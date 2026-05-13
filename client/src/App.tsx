@@ -2,6 +2,7 @@
  * Top-level routing + global providers. Pages are lazy-loaded so the initial
  * bundle stays under what one screen needs.
  */
+import { AnimatePresence, motion } from "framer-motion";
 import { Suspense, lazy, useEffect } from "react";
 import { Route, Switch, useLocation } from "wouter";
 import { AppLayout } from "./components/AppLayout";
@@ -53,25 +54,41 @@ function PageFallback() {
 }
 
 function Routes() {
+  // Wrap routes in AnimatePresence so navigations fade between pages instead
+  // of snapping. Honour prefers-reduced-motion — disable transitions when set.
+  const [location] = useLocation();
+  const prefersReducedMotion =
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   return (
-    <Suspense fallback={<PageFallback />}>
-      <Switch>
-        <Route path="/" component={DailyFeed} />
-        <Route path="/editions" component={Editions} />
-        <Route path="/editions/:editionNumber" component={Editions} />
-        <Route path="/queue" component={ReadingQueue} />
-        <Route path="/notes" component={Notes} />
-        <Route path="/tracker" component={ConversationTracker} />
-        <Route path="/conversations" component={ConversationTracker} />
-        <Route path="/search" component={SearchPage} />
-        <Route path="/trends" component={Trends} />
-        <Route path="/topics" component={TopicThreads} />
-        <Route path="/topics/:category" component={TopicThreads} />
-        <Route path="/about" component={About} />
-        <Route path="/story/:id" component={StoryPage} />
-        <Route component={NotFound} />
-      </Switch>
-    </Suspense>
+    <AnimatePresence mode="wait" initial={false}>
+      <motion.div
+        key={location}
+        initial={prefersReducedMotion ? false : { opacity: 0, y: 6 }}
+        animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+        exit={prefersReducedMotion ? {} : { opacity: 0, y: -4 }}
+        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+      >
+        <Suspense fallback={<PageFallback />}>
+          <Switch>
+            <Route path="/" component={DailyFeed} />
+            <Route path="/editions" component={Editions} />
+            <Route path="/editions/:editionNumber" component={Editions} />
+            <Route path="/queue" component={ReadingQueue} />
+            <Route path="/notes" component={Notes} />
+            <Route path="/tracker" component={ConversationTracker} />
+            <Route path="/conversations" component={ConversationTracker} />
+            <Route path="/search" component={SearchPage} />
+            <Route path="/trends" component={Trends} />
+            <Route path="/topics" component={TopicThreads} />
+            <Route path="/topics/:category" component={TopicThreads} />
+            <Route path="/about" component={About} />
+            <Route path="/story/:id" component={StoryPage} />
+            <Route component={NotFound} />
+          </Switch>
+        </Suspense>
+      </motion.div>
+    </AnimatePresence>
   );
 }
 

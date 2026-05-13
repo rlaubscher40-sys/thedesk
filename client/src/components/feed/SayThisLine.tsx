@@ -37,18 +37,34 @@ export function SayThisLine({
   }
 
   return (
-    <div className="flex items-start gap-2.5 mt-3 p-3 border border-amber-500/15 bg-amber-500/5 rounded">
-      <MessageSquare className="h-3.5 w-3.5 mt-0.5 text-amber-400 shrink-0" />
-      <div className="flex-1 min-w-0 text-sm leading-snug">
-        <span className="overline block mb-1">Say this</span>
-        <span className="text-[var(--color-fg)]">"{sayThis}"</span>
+    <div
+      className="flex items-start gap-3 mt-5 p-4 rounded relative overflow-hidden"
+      style={{
+        background:
+          "linear-gradient(135deg, oklch(0.75 0.18 70 / 9%) 0%, oklch(0.75 0.18 70 / 4%) 100%)",
+        border: "1px solid oklch(0.75 0.18 70 / 22%)",
+        boxShadow: "inset 0 0 0 1px oklch(1 0 0 / 3%)",
+      }}
+    >
+      <div
+        className="h-7 w-7 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0"
+        aria-hidden="true"
+      >
+        <MessageSquare className="h-3.5 w-3.5 text-amber-400" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="overline-amber mb-1">Say this</p>
+        <p className="font-serif italic text-[var(--color-fg)] leading-snug text-base">
+          "{sayThis}"
+        </p>
       </div>
       <button
         onClick={handleCopy}
-        className="p-1.5 rounded text-[var(--color-fg-muted)] hover:text-amber-300 hover:bg-amber-500/10 transition-colors"
+        className="p-1.5 rounded text-[var(--color-fg-muted)] hover:text-amber-300 hover:bg-amber-500/10 transition-colors shrink-0"
         aria-label={copied ? "Copied" : "Copy line"}
+        title="Copy and log to tracker"
       >
-        {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+        {copied ? <Check className="h-4 w-4 text-amber-300" /> : <Copy className="h-4 w-4" />}
       </button>
     </div>
   );

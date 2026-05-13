@@ -29,6 +29,7 @@ import { getSydneyDate } from "@/lib/date";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/useAuth";
 import { trpc } from "@/lib/trpc";
+import { AnimatedBackground } from "./AnimatedBackground";
 import { DemoModeBanner } from "./DemoModeBanner";
 
 type NavItem = {
@@ -110,11 +111,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const visibleNav = NAV_ITEMS.filter((item) => !item.requiresAuth || isAuthenticated);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--color-bg)] text-[var(--color-fg)]">
+    <div className="min-h-screen flex flex-col bg-[var(--color-bg)] text-[var(--color-fg)] relative">
+      <AnimatedBackground />
       <DemoModeBanner />
       <TopRule />
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative" style={{ zIndex: 10 }}>
         <DesktopSidebar
           collapsed={collapsed}
           onToggleCollapse={() => setCollapsed((c) => !c)}
@@ -173,7 +175,8 @@ function MobileHeader({ onOpen }: { onOpen: () => void }) {
       >
         <Menu className="h-4 w-4" />
       </button>
-      <span className="font-serif font-bold text-amber-400 text-base">The Desk</span>
+      <span className="font-serif font-bold text-lg wordmark leading-none">The Desk</span>
+      <span className="live-dot ml-1" aria-hidden="true" />
     </div>
   );
 }
@@ -261,38 +264,71 @@ function SidebarHeader({
     );
   }
   return (
-    <div className="px-5 pt-6 pb-4">
+    <div className="px-5 pt-7 pb-5">
       <div className="flex items-start justify-between">
         <div>
-          <span
-            className="font-serif font-bold tracking-tight text-lg"
-            style={{
-              background: "linear-gradient(135deg, #f5e6c8 0%, #f5a623 60%, #e8921a 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-            }}
-          >
+          {/* Wordmark in editorial display weight, gold gradient. */}
+          <span className="font-serif font-bold tracking-tight text-[20px] leading-none wordmark">
             The Desk
           </span>
+          {/* By-line — small, low-contrast, hover to amber. */}
           <a
             href="https://www.linkedin.com/in/ruben-laubscher/"
             target="_blank"
             rel="noopener noreferrer"
-            className="block overline mt-1.5 hover:text-amber-400 transition-colors"
+            className="block overline mt-2 hover:text-amber-400 transition-colors"
+            style={{ fontSize: "8px", letterSpacing: "0.14em" }}
           >
             By Ruben Laubscher
           </a>
+          {/* Live indicator — pulsing amber dot with mono label. */}
+          <div className="flex items-center gap-1.5 mt-2.5">
+            <span className="live-dot" aria-hidden="true" />
+            <span
+              className="overline-amber"
+              style={{ fontSize: "8px", letterSpacing: "0.16em" }}
+            >
+              Live Intelligence
+            </span>
+          </div>
         </div>
         <button
           onClick={onToggleCollapse}
           aria-label="Collapse sidebar"
           title="Collapse sidebar ([)"
-          className="p-1.5 rounded text-[var(--color-fg-subtle)] hover:text-[var(--color-fg)]"
+          className="p-1.5 rounded text-[var(--color-fg-subtle)] hover:text-amber-400 transition-colors"
         >
           <PanelLeftClose className="h-4 w-4" />
         </button>
       </div>
-      <div className="mt-3 pt-3 border-t border-[var(--color-border)] overline">{currentDate}</div>
+
+      {/* Publication anchor: today's date + the daily-intelligence marker. */}
+      <div className="mt-4 pt-3 border-t border-[var(--color-border)]">
+        <p
+          className="overline mb-1.5"
+          style={{ fontSize: "8px", letterSpacing: "0.15em" }}
+        >
+          {currentDate}
+        </p>
+        <div className="flex items-center gap-2">
+          <span
+            className="block"
+            style={{
+              width: "14px",
+              height: "1.5px",
+              background:
+                "linear-gradient(90deg, oklch(0.75 0.18 70 / 80%), oklch(0.75 0.18 70 / 18%))",
+              borderRadius: "999px",
+            }}
+          />
+          <span
+            className="overline-amber"
+            style={{ fontSize: "7.5px", letterSpacing: "0.18em" }}
+          >
+            Daily Intelligence
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

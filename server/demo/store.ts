@@ -50,6 +50,26 @@ export const demo = {
   conversations: [] as ConversationEntry[],
 };
 
+// Generate hero gradients for every seeded edition so the demo doesn't open
+// on the bare placeholder. The image stub is deterministic (hashed prompt),
+// so each edition gets a unique but stable cover.
+import { demoImage } from "./imageStub";
+for (const edition of demo.editions) {
+  if (!edition.heroImageUrl) {
+    // Fire-and-forget — populates within ~800ms, after which the editions
+    // router will start returning the URL.
+    void demoImage({
+      prompt: `Edition ${edition.editionNumber} ${edition.weekRange} ${edition.topics[0]?.title ?? ""}`,
+    })
+      .then(({ url }) => {
+        edition.heroImageUrl = url;
+      })
+      .catch(() => {
+        /* Non-fatal — falls back to the SSR placeholder. */
+      });
+  }
+}
+
 // Seed a starting queue / note / conversation so each page has something to render.
 demo.queue.push({
   id: allocId(),

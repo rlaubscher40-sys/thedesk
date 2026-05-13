@@ -18,9 +18,9 @@ export function PartnerTagBlock({ raw }: Props) {
   if (!parsed) return null;
 
   return (
-    <div className="border-t border-[var(--color-border)] pt-3 mt-3 space-y-2">
-      <p className="overline">Partner angles</p>
-      <div className="space-y-1.5">
+    <div className="border-t border-[var(--color-border)] pt-4 mt-5">
+      <p className="overline mb-3">Partner angles · tap one to isolate</p>
+      <div className="space-y-2">
         {PARTNER_TAG_LABELS.map((label) => (
           <PartnerTagLine
             key={label}
@@ -51,14 +51,19 @@ function PartnerTagLine({
       type="button"
       onClick={onFocus}
       className={cn(
-        "block w-full text-left text-xs leading-relaxed transition-opacity",
-        focused ? "opacity-100" : "opacity-40 hover:opacity-70"
+        "block w-full text-left text-sm leading-relaxed transition-all rounded py-1 px-2 -mx-2",
+        focused
+          ? "opacity-100 hover:bg-white/5"
+          : "opacity-35 hover:opacity-75 hover:bg-white/5"
       )}
     >
-      <span className="font-mono text-[10px] uppercase tracking-wider text-amber-400/80 mr-2">
+      <span
+        className="font-mono text-[10px] uppercase tracking-wider mr-3 inline-block w-24 truncate align-middle"
+        style={{ color: "oklch(0.85 0.16 75 / 80%)", letterSpacing: "0.14em" }}
+      >
         {label}
       </span>
-      <span className="text-[var(--color-fg-muted)]">{text}</span>
+      <span className="text-[var(--color-fg-muted)] align-middle">{text}</span>
     </button>
   );
 }

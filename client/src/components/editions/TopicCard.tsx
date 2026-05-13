@@ -1,12 +1,13 @@
 /**
- * Card for a single edition topic. The first topic on the page is rendered
- * via LeadStory; this is the "rest of the deck" companion.
+ * Card for a single edition topic. Visually smaller than LeadStory so the
+ * hierarchy on the EditionReader is obvious. Body / "what to watch" sit
+ * behind an expand toggle to keep the grid scannable.
  */
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import type { EditionTopic } from "@shared/schemas";
 import { cn } from "@/lib/cn";
-import { categoryAccentClass } from "@/lib/category";
+import { categoryAccentClass, categoryColour } from "@/lib/category";
 
 export function TopicCard({ topic }: { topic: EditionTopic }) {
   const [open, setOpen] = useState(false);
@@ -15,20 +16,25 @@ export function TopicCard({ topic }: { topic: EditionTopic }) {
   return (
     <article
       className={cn(
-        "panel panel-hover p-5 rounded transition-colors",
+        "panel panel-hover p-6 rounded transition-colors h-full flex flex-col",
         categoryAccentClass(topic.category)
       )}
     >
-      <p className="overline mb-2" style={{ color: "var(--color-amber)" }}>
+      <p
+        className="overline-amber mb-3"
+        style={{ color: categoryColour(topic.category) }}
+      >
         {topic.category}
       </p>
-      <h3 className="font-serif text-lg leading-snug mb-3">{topic.title}</h3>
-      <p className="text-sm text-[var(--color-fg-muted)] leading-relaxed">{topic.summary}</p>
+      <h3 className="display-3 mb-3 leading-tight">{topic.title}</h3>
+      <p className="text-sm text-[var(--color-fg-muted)] leading-relaxed flex-1">
+        {topic.summary}
+      </p>
 
       {topic.keyTakeaway && (
-        <p className="text-sm mt-3 pt-3 border-t border-[var(--color-border)]">
-          <span className="overline mr-2 inline-block">Takeaway</span>
-          {topic.keyTakeaway}
+        <p className="text-sm mt-4 pt-4 border-t border-[var(--color-border)] leading-relaxed">
+          <span className="overline-amber mr-2 inline-block">Takeaway</span>
+          <span className="text-[var(--color-fg)]">{topic.keyTakeaway}</span>
         </p>
       )}
 
@@ -36,7 +42,7 @@ export function TopicCard({ topic }: { topic: EditionTopic }) {
         <>
           <button
             onClick={() => setOpen((v) => !v)}
-            className="mt-4 inline-flex items-center gap-1.5 text-xs text-amber-300 hover:text-amber-200 transition-colors"
+            className="mt-4 inline-flex items-center gap-1.5 self-start overline-amber hover:text-amber-300 transition-colors"
             aria-expanded={open}
           >
             <ChevronDown
@@ -45,7 +51,7 @@ export function TopicCard({ topic }: { topic: EditionTopic }) {
             {open ? "Hide deep dive" : "Show deep dive"}
           </button>
           {open && (
-            <div className="mt-3 prose-sm max-w-none text-sm text-[var(--color-fg-muted)] leading-relaxed whitespace-pre-line">
+            <div className="mt-3 text-sm text-[var(--color-fg-muted)] leading-relaxed whitespace-pre-line border-t border-[var(--color-border)] pt-4">
               {topic.body}
             </div>
           )}
@@ -53,16 +59,13 @@ export function TopicCard({ topic }: { topic: EditionTopic }) {
       )}
 
       {topic.whatToWatch && topic.whatToWatch.length > 0 && (
-        <div className="mt-4 pt-3 border-t border-[var(--color-border)]">
+        <div className="mt-4 pt-4 border-t border-[var(--color-border)]">
           <p className="overline mb-2">What to watch</p>
           <ul className="space-y-1.5 text-xs text-[var(--color-fg-muted)]">
             {topic.whatToWatch.map((line, idx) => (
-              // line is unique most of the time, but a defensive index
-              // fallback prevents the React key warning if anything is blank
-              // (issue #1 in the brief).
               <li key={line || `watch-${idx}`} className="flex gap-2">
-                <span className="text-amber-400/70">·</span>
-                <span>{line}</span>
+                <span className="text-amber-400/60 shrink-0">▸</span>
+                <span className="leading-relaxed">{line}</span>
               </li>
             ))}
           </ul>

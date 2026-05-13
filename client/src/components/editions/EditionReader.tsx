@@ -29,7 +29,21 @@ export function EditionReader({ edition }: { edition: Edition }) {
 
       {rest.length > 0 && (
         <SectionErrorBoundary section="Topics">
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="mb-4 flex items-center gap-3">
+            <p className="overline-amber" style={{ letterSpacing: "0.2em" }}>
+              Topic deck
+            </p>
+            <span
+              className="block flex-1"
+              style={{
+                height: "1px",
+                background:
+                  "linear-gradient(90deg, oklch(0.75 0.18 70 / 30%), transparent)",
+              }}
+              aria-hidden="true"
+            />
+          </div>
+          <div className="grid sm:grid-cols-2 gap-5">
             {rest.map((topic, idx) => (
               // The composed key keeps duplicate titles unique (issue #1).
               <TopicCard key={`${topic.title || "topic"}-${idx}`} topic={topic} />

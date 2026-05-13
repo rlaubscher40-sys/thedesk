@@ -95,53 +95,70 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
   return (
     <article
       className={cn(
-        "panel panel-hover p-5 rounded transition-colors",
+        "panel panel-hover p-6 sm:p-7 rounded transition-colors",
         categoryAccentClass(item.category)
       )}
     >
-      <div className="flex items-start justify-between gap-3 mb-2">
-        <div className="flex items-center gap-3">
-          <span className="overline" style={{ color: "var(--color-amber)" }}>
+      {/* Metadata bar — category in colour, source + actions on the right. */}
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <span
+            className="overline-amber shrink-0"
+            style={{ color: "var(--color-amber-bright)", letterSpacing: "0.18em" }}
+          >
             {item.category}
           </span>
-          <span className="overline">{item.source}</span>
+          <span
+            className="block shrink-0"
+            style={{
+              width: "10px",
+              height: "1px",
+              background: "var(--color-border-strong)",
+            }}
+            aria-hidden="true"
+          />
+          <span className="overline truncate">{item.source}</span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0 -mr-1.5">
           <button
             onClick={toggleQueue}
             aria-label={inQueueId ? "Remove from queue" : "Save to queue"}
-            className="p-1.5 rounded text-[var(--color-fg-subtle)] hover:text-amber-300"
+            className="p-1.5 rounded text-[var(--color-fg-subtle)] hover:text-amber-300 transition-colors"
           >
             {inQueueId ? (
-              <BookmarkCheck className="h-3.5 w-3.5 text-amber-400" />
+              <BookmarkCheck className="h-4 w-4 text-amber-400" />
             ) : (
-              <Bookmark className="h-3.5 w-3.5" />
+              <Bookmark className="h-4 w-4" />
             )}
           </button>
           <button
             onClick={() => setLinkedInOpen(true)}
             aria-label="Share to LinkedIn"
-            className="p-1.5 rounded text-[var(--color-fg-subtle)] hover:text-amber-300"
+            className="p-1.5 rounded text-[var(--color-fg-subtle)] hover:text-amber-300 transition-colors"
           >
-            <Linkedin className="h-3.5 w-3.5" />
+            <Linkedin className="h-4 w-4" />
           </button>
         </div>
       </div>
 
+      {/* Headline — display-3 serif, hover shifts to amber. */}
       <Link href={`/story/${item.id}`} className="block group">
-        <h3 className="font-serif text-lg leading-snug mb-2 group-hover:text-amber-300 transition-colors">
+        <h3 className="display-3 mb-3 group-hover:text-amber-200 transition-colors">
           {item.title}
         </h3>
       </Link>
 
-      <p className="text-sm text-[var(--color-fg-muted)] leading-relaxed">{item.summary}</p>
+      {/* Lede. */}
+      <p className="text-base text-[var(--color-fg-muted)] leading-relaxed">
+        {item.summary}
+      </p>
 
       {item.sourceUrl && (
         <a
           href={item.sourceUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 mt-3 text-xs text-[var(--color-fg-muted)] hover:text-amber-300 transition-colors"
+          className="inline-flex items-center gap-1.5 mt-4 overline-amber hover:text-amber-200 transition-colors"
         >
           <ExternalLink className="h-3 w-3" /> Read original
         </a>

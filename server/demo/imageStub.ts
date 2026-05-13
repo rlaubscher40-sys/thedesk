@@ -2,41 +2,79 @@
  * Demo image generator. Returns a deterministic SVG data URL so the UI shows
  * a hero image without a real generation backend. The prompt is hashed into
  * a hue so different prompts get different gradients.
+ *
+ * Designed to look like editorial cover art — deep navy base, amber accent
+ * spotlight, faint data-curve overlay, film grain.
  */
 import type { GenerateImageOptions } from "../core/image";
 
-function hueFromPrompt(prompt: string): number {
-  let hash = 0;
-  for (const ch of prompt) hash = (hash * 31 + ch.charCodeAt(0)) | 0;
-  return Math.abs(hash) % 360;
+function hashFromPrompt(prompt: string): number {
+  let hash = 5381;
+  for (let i = 0; i < prompt.length; i++) {
+    hash = (hash * 33 + prompt.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash);
 }
 
 export async function demoImage({ prompt }: GenerateImageOptions): Promise<{ url: string }> {
-  // Brief latency keeps the UI's loading state visible.
+  // Latency keeps the UI's loading state visible.
   await new Promise((r) => setTimeout(r, 800));
 
-  const hue = hueFromPrompt(prompt);
-  const accentHue = (hue + 40) % 360;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600">
+  const hash = hashFromPrompt(prompt);
+  const accent = hash % 360;
+  const secondary = (accent + 180 + (hash % 60) - 30) % 360;
+  const curvePhase = (hash % 40) - 20;
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 800" preserveAspectRatio="xMidYMid slice">
     <defs>
-      <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="hsl(${hue}, 30%, 12%)"/>
-        <stop offset="60%" stop-color="hsl(${hue}, 38%, 18%)"/>
-        <stop offset="100%" stop-color="hsl(${accentHue}, 70%, 22%)"/>
+      <linearGradient id="base" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="hsl(240, 30%, 6%)"/>
+        <stop offset="55%" stop-color="hsl(${accent}, 22%, 10%)"/>
+        <stop offset="100%" stop-color="hsl(${secondary}, 30%, 12%)"/>
       </linearGradient>
-      <radialGradient id="r" cx="80%" cy="20%" r="60%">
-        <stop offset="0%" stop-color="hsl(${accentHue}, 90%, 60%)" stop-opacity="0.35"/>
-        <stop offset="100%" stop-color="hsl(${accentHue}, 90%, 60%)" stop-opacity="0"/>
+      <radialGradient id="spot1" cx="78%" cy="22%" r="62%">
+        <stop offset="0%" stop-color="hsl(${accent}, 95%, 65%)" stop-opacity="0.45"/>
+        <stop offset="40%" stop-color="hsl(${accent}, 80%, 50%)" stop-opacity="0.16"/>
+        <stop offset="100%" stop-color="hsl(${accent}, 80%, 50%)" stop-opacity="0"/>
       </radialGradient>
+      <radialGradient id="spot2" cx="14%" cy="86%" r="55%">
+        <stop offset="0%" stop-color="hsl(${secondary}, 80%, 55%)" stop-opacity="0.28"/>
+        <stop offset="100%" stop-color="hsl(${secondary}, 80%, 55%)" stop-opacity="0"/>
+      </radialGradient>
+      <filter id="grain">
+        <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>
+        <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.06 0"/>
+      </filter>
     </defs>
-    <rect width="1200" height="600" fill="url(#g)"/>
-    <rect width="1200" height="600" fill="url(#r)"/>
-    <g stroke="hsl(${accentHue}, 90%, 70%)" stroke-width="1" stroke-opacity="0.18" fill="none">
-      <path d="M0,420 C300,360 600,500 900,380 S1500,360 1500,360"/>
-      <path d="M0,460 C300,420 600,540 900,440 S1500,420 1500,420"/>
-      <path d="M0,500 C300,480 600,560 900,500 S1500,480 1500,480"/>
+
+    <rect width="1600" height="800" fill="url(#base)"/>
+    <rect width="1600" height="800" fill="url(#spot1)"/>
+    <rect width="1600" height="800" fill="url(#spot2)"/>
+
+    <!-- Data curves — abstract editorial overlay. -->
+    <g stroke="hsl(${accent}, 95%, 75%)" stroke-width="1.25" fill="none" stroke-opacity="0.16">
+      <path d="M0,${480 + curvePhase} C400,${420 + curvePhase} 800,${560 + curvePhase} 1200,${480 + curvePhase} S2000,${440 + curvePhase} 2000,${440 + curvePhase}"/>
+      <path d="M0,${540 + curvePhase} C400,${500 + curvePhase} 800,${620 + curvePhase} 1200,${540 + curvePhase} S2000,${520 + curvePhase} 2000,${520 + curvePhase}"/>
+      <path d="M0,${600 + curvePhase} C400,${580 + curvePhase} 800,${680 + curvePhase} 1200,${600 + curvePhase} S2000,${600 + curvePhase} 2000,${600 + curvePhase}"/>
     </g>
-    <text x="60" y="80" font-family="JetBrains Mono, monospace" font-size="14" letter-spacing="3" fill="hsl(${accentHue}, 95%, 75%)" fill-opacity="0.55">DEMO HERO</text>
+
+    <!-- Subtle grid for the data-driven feel. -->
+    <g stroke="hsl(${accent}, 80%, 80%)" stroke-opacity="0.04" stroke-width="0.5">
+      ${Array.from({ length: 16 })
+        .map((_, i) => `<line x1="${i * 100}" y1="0" x2="${i * 100}" y2="800"/>`)
+        .join("")}
+      ${Array.from({ length: 8 })
+        .map((_, i) => `<line x1="0" y1="${i * 100}" x2="1600" y2="${i * 100}"/>`)
+        .join("")}
+    </g>
+
+    <!-- Film grain. -->
+    <rect width="1600" height="800" filter="url(#grain)" opacity="0.6"/>
+
+    <!-- Editorial slug. -->
+    <text x="60" y="80" font-family="JetBrains Mono, monospace" font-size="13" letter-spacing="4" fill="hsl(${accent}, 95%, 80%)" fill-opacity="0.42">
+      THE DESK · DEMO COVER
+    </text>
   </svg>`;
 
   const encoded = Buffer.from(svg, "utf-8").toString("base64");
