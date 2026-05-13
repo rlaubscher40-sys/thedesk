@@ -24,7 +24,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { getLoginUrl } from "@/lib/auth";
+import { getLoginUrl, hasOAuthConfig } from "@/lib/auth";
 import { getSydneyDate } from "@/lib/date";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/useAuth";
@@ -364,13 +364,19 @@ function SidebarFooter({
             <p className="overline">Partner</p>
           </div>
         </div>
-      ) : (
+      ) : hasOAuthConfig() ? (
+        // OAuth is configured — show the sign-in CTA pointing at the portal.
         <a
           href={getLoginUrl()}
           className="flex items-center gap-2 text-xs text-[var(--color-fg-muted)] hover:text-amber-300"
         >
           <LogIn className="h-3.5 w-3.5" /> Sign in
         </a>
+      ) : (
+        // Demo / fresh codespace — no OAuth backend wired up. Render a
+        // passive placeholder while the auth.me query resolves to the demo
+        // user (which it will, in one tick).
+        <p className="text-xs text-[var(--color-fg-subtle)]">Loading…</p>
       )}
       <div className="flex items-center justify-between mt-3">
         <p className="overline">7am AEST daily</p>
