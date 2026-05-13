@@ -1,0 +1,181 @@
+@import "tailwindcss";
+
+/* ─── Design tokens ───────────────────────────────────────────
+   The colour, font and spacing primitives the rest of the app
+   references. Single source of truth — change once, everywhere.
+*/
+@theme {
+  --font-sans: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", ui-serif, Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --color-bg: oklch(0.13 0.018 260);
+  --color-bg-elevated: oklch(0.17 0.018 260);
+  --color-fg: oklch(0.93 0.005 80);
+  --color-fg-muted: oklch(0.68 0.012 260);
+  --color-fg-subtle: oklch(0.5 0.012 260);
+
+  --color-amber: oklch(0.75 0.18 70);
+  --color-amber-bright: oklch(0.85 0.18 80);
+  --color-amber-dim: oklch(0.75 0.18 70 / 18%);
+
+  --color-border: oklch(1 0 0 / 9%);
+  --color-border-strong: oklch(1 0 0 / 16%);
+
+  --color-property: oklch(0.72 0.17 155);
+  --color-macro: oklch(0.75 0.18 70);
+  --color-tech: oklch(0.65 0.18 255);
+  --color-policy: oklch(0.65 0.18 295);
+  --color-markets: oklch(0.72 0.18 45);
+  --color-ai: oklch(0.7 0.18 210);
+  --color-science: oklch(0.68 0.2 15);
+  --color-economics: oklch(0.75 0.16 78);
+}
+
+/* Light theme overrides — same names, different values. Toggling
+   `.light` on <html> flips the whole palette at once. */
+.light {
+  --color-bg: oklch(0.98 0.004 80);
+  --color-bg-elevated: oklch(1 0 0);
+  --color-fg: oklch(0.18 0.02 260);
+  --color-fg-muted: oklch(0.46 0.015 260);
+  --color-fg-subtle: oklch(0.62 0.012 260);
+  --color-border: oklch(0 0 0 / 10%);
+  --color-border-strong: oklch(0 0 0 / 18%);
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    border-color: var(--color-border);
+  }
+
+  html,
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv02", "cv11";
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.01em;
+    line-height: 1.6;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-serif);
+    letter-spacing: -0.025em;
+    line-height: 1.15;
+    font-weight: 700;
+    color: var(--color-fg);
+  }
+
+  *:focus-visible {
+    outline: 2px solid var(--color-amber);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: oklch(1 0 0 / 10%);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-amber-dim);
+  }
+}
+
+@layer components {
+  /* ─── Editorial typography ──────────────────────────────────── */
+  .editorial-rule {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      var(--color-amber) 30%,
+      var(--color-amber-bright) 50%,
+      var(--color-amber) 70%,
+      transparent 100%
+    );
+  }
+
+  .overline {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-fg-subtle);
+  }
+
+  .panel {
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+  }
+
+  .panel-hover {
+    transition: border-color 200ms ease, background-color 200ms ease;
+  }
+  .panel-hover:hover {
+    border-color: var(--color-border-strong);
+    background: color-mix(in oklab, var(--color-bg-elevated) 92%, var(--color-amber) 8%);
+  }
+
+  /* ─── Category accent borders ───────────────────────────────── */
+  .accent-property {
+    border-left: 2px solid var(--color-property);
+  }
+  .accent-macro {
+    border-left: 2px solid var(--color-macro);
+  }
+  .accent-tech {
+    border-left: 2px solid var(--color-tech);
+  }
+  .accent-policy {
+    border-left: 2px solid var(--color-policy);
+  }
+  .accent-markets {
+    border-left: 2px solid var(--color-markets);
+  }
+  .accent-ai {
+    border-left: 2px solid var(--color-ai);
+  }
+  .accent-science {
+    border-left: 2px solid var(--color-science);
+  }
+  .accent-economics {
+    border-left: 2px solid var(--color-economics);
+  }
+  .accent-other {
+    border-left: 2px solid var(--color-border-strong);
+  }
+
+  /* ─── Skeleton loader ───────────────────────────────────────── */
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      oklch(1 0 0 / 4%) 0%,
+      oklch(1 0 0 / 10%) 50%,
+      oklch(1 0 0 / 4%) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+    border-radius: 4px;
+  }
+  @keyframes shimmer {
+    from {
+      background-position: 200% 0;
+    }
+    to {
+      background-position: -200% 0;
+    }
+  }
+}

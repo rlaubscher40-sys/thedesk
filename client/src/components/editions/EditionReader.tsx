@@ -1,0 +1,50 @@
+/**
+ * Top-level reader for a single edition. Slim because every section is its
+ * own component with its own error boundary (issue #3) — see EditionHero,
+ * LeadStory, TopicCard, SignalsBriefs, EditionAdminPanel.
+ */
+import type { Edition } from "@shared/types";
+import { SectionErrorBoundary } from "../ErrorBoundary";
+import { EditionAdminPanel } from "./EditionAdminPanel";
+import { EditionHero } from "./EditionHero";
+import { LeadStory } from "./LeadStory";
+import { SignalsBriefs } from "./SignalsBriefs";
+import { TopicCard } from "./TopicCard";
+
+export function EditionReader({ edition }: { edition: Edition }) {
+  const topics = edition.topics ?? [];
+  const [lead, ...rest] = topics;
+
+  return (
+    <article>
+      <SectionErrorBoundary section="Hero">
+        <EditionHero edition={edition} />
+      </SectionErrorBoundary>
+
+      {lead && (
+        <SectionErrorBoundary section="Lead story">
+          <LeadStory topic={lead} />
+        </SectionErrorBoundary>
+      )}
+
+      {rest.length > 0 && (
+        <SectionErrorBoundary section="Topics">
+          <div className="grid sm:grid-cols-2 gap-4">
+            {rest.map((topic, idx) => (
+              // The composed key keeps duplicate titles unique (issue #1).
+              <TopicCard key={`${topic.title || "topic"}-${idx}`} topic={topic} />
+            ))}
+          </div>
+        </SectionErrorBoundary>
+      )}
+
+      <SectionErrorBoundary section="Signals">
+        <SignalsBriefs signals={edition.signals ?? []} />
+      </SectionErrorBoundary>
+
+      <SectionErrorBoundary section="Admin panel">
+        <EditionAdminPanel edition={edition} />
+      </SectionErrorBoundary>
+    </article>
+  );
+}
