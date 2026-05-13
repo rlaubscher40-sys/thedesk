@@ -25,9 +25,20 @@ Private intelligence briefing tool for Ruben Laubscher (Head of Partnerships, In
 
 ## How to run
 
-### Demo mode (no setup)
+### Click-through preview in Codespaces (no install)
 
-The fastest way to click through the app — no database, no OAuth, no API keys.
+The repo ships with a `.devcontainer/` config. On the [repo page](https://github.com/rubenlaubscher-beep/thedesk/tree/claude/rebuild-the-desk-Wy1Gp):
+
+1. **Code → Codespaces → Create codespace on `claude/rebuild-the-desk-Wy1Gp`**
+2. Wait ~90 seconds (container builds, `pnpm install` runs automatically)
+3. In the terminal: `pnpm dev` — or **Tasks: Run Task → dev**
+4. Click the toast that says "Your application running on port 3000 is available"
+
+You're now looking at the running app in your browser. Demo mode is on by default (no `DATABASE_URL` set), so the seed data is in place and you're auto-signed-in as admin. See [`.devcontainer/README.md`](./.devcontainer/README.md) for more.
+
+### Demo mode locally (no setup)
+
+The same demo flow on your laptop — no database, no OAuth, no API keys.
 
 ```bash
 pnpm install
