@@ -1,15 +1,19 @@
 import { desc, eq, like, or, sql } from "drizzle-orm";
 import type { EditionTopic } from "../../shared/schemas";
+import * as demoQueries from "../demo/queries";
+import { isDemoMode } from "../demo/store";
 import { getDb } from "./client";
 import { editions, type Edition, type InsertEdition } from "./schema";
 
 export async function listEditions(): Promise<Edition[]> {
+  if (isDemoMode()) return demoQueries.listEditions();
   const db = getDb();
   if (!db) return [];
   return db.select().from(editions).orderBy(desc(editions.editionNumber));
 }
 
 export async function getEditionById(id: number): Promise<Edition | undefined> {
+  if (isDemoMode()) return demoQueries.getEditionById(id);
   const db = getDb();
   if (!db) return undefined;
   const rows = await db.select().from(editions).where(eq(editions.id, id)).limit(1);
@@ -17,6 +21,7 @@ export async function getEditionById(id: number): Promise<Edition | undefined> {
 }
 
 export async function getEditionByNumber(num: number): Promise<Edition | undefined> {
+  if (isDemoMode()) return demoQueries.getEditionByNumber(num);
   const db = getDb();
   if (!db) return undefined;
   const rows = await db.select().from(editions).where(eq(editions.editionNumber, num)).limit(1);
@@ -24,12 +29,14 @@ export async function getEditionByNumber(num: number): Promise<Edition | undefin
 }
 
 export async function createEdition(data: InsertEdition) {
+  if (isDemoMode()) return demoQueries.createEdition(data);
   const db = getDb();
   if (!db) throw new Error("createEdition: database unavailable");
   return db.insert(editions).values(data);
 }
 
 export async function updateRubensTake(id: number, rubensTake: string) {
+  if (isDemoMode()) return demoQueries.updateRubensTake(id, rubensTake);
   const db = getDb();
   if (!db) return;
   await db.update(editions).set({ rubensTake }).where(eq(editions.id, id));
@@ -39,6 +46,7 @@ export async function updateSubstackDraft(
   id: number,
   draft: { title: string; subtitle: string; body: string; imageUrl?: string | null }
 ) {
+  if (isDemoMode()) return demoQueries.updateSubstackDraft(id, draft);
   const db = getDb();
   if (!db) return;
   await db
@@ -55,18 +63,21 @@ export async function updateSubstackDraft(
 }
 
 export async function updateSubstackImage(id: number, imageUrl: string | null) {
+  if (isDemoMode()) return demoQueries.updateSubstackImage(id, imageUrl);
   const db = getDb();
   if (!db) return;
   await db.update(editions).set({ substackDraftImageUrl: imageUrl }).where(eq(editions.id, id));
 }
 
 export async function updateHeroImage(id: number, heroImageUrl: string) {
+  if (isDemoMode()) return demoQueries.updateHeroImage(id, heroImageUrl);
   const db = getDb();
   if (!db) return;
   await db.update(editions).set({ heroImageUrl }).where(eq(editions.id, id));
 }
 
 export async function searchEditionFullText(query: string): Promise<Edition[]> {
+  if (isDemoMode()) return demoQueries.searchEditionFullText(query);
   const db = getDb();
   if (!db) return [];
   const pattern = `%${query}%`;
@@ -78,6 +89,7 @@ export async function searchEditionFullText(query: string): Promise<Edition[]> {
 }
 
 export async function getEditionsByCategory(category: string): Promise<Edition[]> {
+  if (isDemoMode()) return demoQueries.getEditionsByCategory(category);
   const db = getDb();
   if (!db) return [];
   // Edition topics is a JSON array. We match against the JSON-serialised form
@@ -100,6 +112,7 @@ export async function getEditionsByCategory(category: string): Promise<Edition[]
 }
 
 export async function getRecentEditionsForMetrics(limit = 4) {
+  if (isDemoMode()) return demoQueries.getRecentEditionsForMetrics(limit);
   const db = getDb();
   if (!db) return [];
   return db
@@ -117,6 +130,7 @@ export async function getRecentEditionsForMetrics(limit = 4) {
 }
 
 export async function getMetricHistory(limit = 12) {
+  if (isDemoMode()) return demoQueries.getMetricHistory(limit);
   const db = getDb();
   if (!db) return [];
   const rows = await db
@@ -136,6 +150,7 @@ export async function getMetricHistory(limit = 12) {
 }
 
 export async function getSignalFrequency(editionLimit = 8) {
+  if (isDemoMode()) return demoQueries.getSignalFrequency(editionLimit);
   const db = getDb();
   if (!db) return [];
   const rows = await db

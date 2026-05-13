@@ -29,6 +29,7 @@ import { getSydneyDate } from "@/lib/date";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/useAuth";
 import { trpc } from "@/lib/trpc";
+import { DemoModeBanner } from "./DemoModeBanner";
 
 type NavItem = {
   path: string;
@@ -110,6 +111,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--color-bg)] text-[var(--color-fg)]">
+      <DemoModeBanner />
       <TopRule />
 
       <div className="flex flex-1 overflow-hidden">

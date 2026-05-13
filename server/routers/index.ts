@@ -4,16 +4,18 @@
  */
 import { router } from "../core/trpc";
 import { authRouter } from "./auth";
+import { conversationsRouter } from "./conversations";
 import { editionsRouter } from "./editions";
 import { feedRouter } from "./feed";
-import { topicsRouter } from "./topics";
-import { readingQueueRouter } from "./readingQueue";
 import { notesRouter } from "./notes";
-import { conversationsRouter } from "./conversations";
-import { trendsRouter } from "./trends";
+import { readingQueueRouter } from "./readingQueue";
 import { searchRouter } from "./search";
+import { systemRouter } from "./system";
+import { topicsRouter } from "./topics";
+import { trendsRouter } from "./trends";
 
 export const appRouter = router({
+  system: systemRouter,
   auth: authRouter,
   editions: editionsRouter,
   feed: feedRouter,

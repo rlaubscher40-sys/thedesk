@@ -3,7 +3,9 @@
  * exposed a dense OpenAI-shaped surface with a half-dozen aliases; we keep a
  * single shape and pick the content off it for callers in one place.
  */
+import { isDemoMode } from "../demo/store";
 import { env } from "./env";
+import { demoLlm } from "../demo/llmStub";
 
 export type LlmRole = "system" | "user" | "assistant";
 
@@ -48,6 +50,7 @@ function resolveApiUrl(): string {
  * log so a single failed enrichment never breaks an ingest.
  */
 export async function invokeLLM(params: InvokeLlmParams): Promise<string> {
+  if (isDemoMode()) return demoLlm(params);
   if (!env.forgeApiKey) {
     throw new Error("BUILT_IN_FORGE_API_KEY is not configured");
   }

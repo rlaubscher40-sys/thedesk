@@ -1,5 +1,7 @@
 import { eq } from "drizzle-orm";
 import { env } from "../core/env";
+import * as demoQueries from "../demo/queries";
+import { isDemoMode } from "../demo/store";
 import { getDb } from "./client";
 import { type InsertUser, type User, users } from "./schema";
 
@@ -10,6 +12,7 @@ import { type InsertUser, type User, users } from "./schema";
  */
 export async function upsertUser(user: InsertUser): Promise<void> {
   if (!user.openId) throw new Error("upsertUser: openId required");
+  if (isDemoMode()) return demoQueries.upsertUser();
   const db = getDb();
   if (!db) return;
 
@@ -40,6 +43,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 }
 
 export async function getUserByOpenId(openId: string): Promise<User | undefined> {
+  if (isDemoMode()) return demoQueries.getUserByOpenId(openId);
   const db = getDb();
   if (!db) return undefined;
   const rows = await db.select().from(users).where(eq(users.openId, openId)).limit(1);

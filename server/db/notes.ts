@@ -1,8 +1,11 @@
 import { and, desc, eq } from "drizzle-orm";
+import * as demoQueries from "../demo/queries";
+import { isDemoMode } from "../demo/store";
 import { getDb } from "./client";
 import { weeklyNotes, type InsertWeeklyNote, type WeeklyNote } from "./schema";
 
 export async function getNote(userId: number, weekId: string): Promise<WeeklyNote | undefined> {
+  if (isDemoMode()) return demoQueries.getNote(userId, weekId);
   const db = getDb();
   if (!db) return undefined;
   const rows = await db
@@ -14,12 +17,14 @@ export async function getNote(userId: number, weekId: string): Promise<WeeklyNot
 }
 
 export async function listNotes(userId: number): Promise<WeeklyNote[]> {
+  if (isDemoMode()) return demoQueries.listNotes(userId);
   const db = getDb();
   if (!db) return [];
   return db.select().from(weeklyNotes).where(eq(weeklyNotes.userId, userId)).orderBy(desc(weeklyNotes.weekId));
 }
 
 export async function upsertNote(data: InsertWeeklyNote) {
+  if (isDemoMode()) return demoQueries.upsertNote(data);
   const db = getDb();
   if (!db) throw new Error("upsertNote: database unavailable");
   const existing = await db
@@ -34,6 +39,7 @@ export async function upsertNote(data: InsertWeeklyNote) {
 }
 
 export async function deleteNote(userId: number, weekId: string) {
+  if (isDemoMode()) return demoQueries.deleteNote(userId, weekId);
   const db = getDb();
   if (!db) return;
   return db.delete(weeklyNotes).where(and(eq(weeklyNotes.userId, userId), eq(weeklyNotes.weekId, weekId)));

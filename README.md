@@ -25,8 +25,24 @@ Private intelligence briefing tool for Ruben Laubscher (Head of Partnerships, In
 
 ## How to run
 
+### Demo mode (no setup)
+
+The fastest way to click through the app — no database, no OAuth, no API keys.
+
 ```bash
 pnpm install
+pnpm dev              # http://localhost:3000
+```
+
+When `DATABASE_URL` is unset, the server boots into **demo mode**: every request is treated as the admin user "Ruben (demo)", three weekly editions and several days of feed items are seeded in memory, and the LLM/image generators return canned responses (the actual prompts still build correctly so the admin panel buttons work end-to-end). A small amber ribbon at the top of every page makes clear you're looking at seed data. Reload the page or restart the server to reset.
+
+Use this for visual review, feedback, screenshots, and to flag UI bugs without needing live data.
+
+### Full setup
+
+```bash
+pnpm install
+cp .env.example .env  # fill in MySQL, Manus OAuth, Forge keys
 pnpm db:push          # generates + runs the migration
 pnpm dev              # http://localhost:3000
 pnpm test             # vitest

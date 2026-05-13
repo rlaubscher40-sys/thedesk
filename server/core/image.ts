@@ -2,6 +2,8 @@
  * Image generation via Manus built-in ImageService. Returns the S3-backed URL
  * we just uploaded the result to.
  */
+import { isDemoMode } from "../demo/store";
+import { demoImage } from "../demo/imageStub";
 import { env } from "./env";
 import { storagePut } from "./storage";
 
@@ -10,6 +12,7 @@ export type GenerateImageOptions = {
 };
 
 export async function generateImage(options: GenerateImageOptions): Promise<{ url: string }> {
+  if (isDemoMode()) return demoImage(options);
   if (!env.forgeApiUrl || !env.forgeApiKey) {
     throw new Error("Image generation requires BUILT_IN_FORGE_API_URL and _KEY");
   }

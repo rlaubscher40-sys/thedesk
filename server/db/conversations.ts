@@ -1,4 +1,6 @@
 import { desc, eq } from "drizzle-orm";
+import * as demoQueries from "../demo/queries";
+import { isDemoMode } from "../demo/store";
 import { getDb } from "./client";
 import {
   conversationTracker,
@@ -7,6 +9,7 @@ import {
 } from "./schema";
 
 export async function listConversationEntries(userId: number): Promise<ConversationEntry[]> {
+  if (isDemoMode()) return demoQueries.listConversationEntries(userId);
   const db = getDb();
   if (!db) return [];
   return db
@@ -17,6 +20,7 @@ export async function listConversationEntries(userId: number): Promise<Conversat
 }
 
 export async function addConversationEntry(data: InsertConversationEntry) {
+  if (isDemoMode()) return demoQueries.addConversationEntry(data);
   const db = getDb();
   if (!db) throw new Error("addConversationEntry: database unavailable");
   return db.insert(conversationTracker).values(data);

@@ -1,9 +1,12 @@
 import { desc, eq, like, or, sql } from "drizzle-orm";
+import * as demoQueries from "../demo/queries";
+import { isDemoMode } from "../demo/store";
 import { getDb } from "./client";
 import { dailyFeedItems, editions, type DailyFeedItem, type InsertDailyFeedItem } from "./schema";
 
 /** Most recent 30 items if no date specified, otherwise everything for that day. */
 export async function listFeedItems(date?: string): Promise<DailyFeedItem[]> {
+  if (isDemoMode()) return demoQueries.listFeedItems(date);
   const db = getDb();
   if (!db) return [];
   if (date) {
@@ -17,6 +20,7 @@ export async function listFeedItems(date?: string): Promise<DailyFeedItem[]> {
 }
 
 export async function getFeedItemById(id: number): Promise<DailyFeedItem | undefined> {
+  if (isDemoMode()) return demoQueries.getFeedItemById(id);
   const db = getDb();
   if (!db) return undefined;
   const rows = await db.select().from(dailyFeedItems).where(eq(dailyFeedItems.id, id)).limit(1);
@@ -24,6 +28,7 @@ export async function getFeedItemById(id: number): Promise<DailyFeedItem | undef
 }
 
 export async function getRecentFeedDates(limit = 14): Promise<string[]> {
+  if (isDemoMode()) return demoQueries.getRecentFeedDates(limit);
   const db = getDb();
   if (!db) return [];
   const rows = await db
@@ -35,6 +40,7 @@ export async function getRecentFeedDates(limit = 14): Promise<string[]> {
 }
 
 export async function createFeedItems(items: InsertDailyFeedItem[]) {
+  if (isDemoMode()) return demoQueries.createFeedItems(items);
   const db = getDb();
   if (!db) throw new Error("createFeedItems: database unavailable");
   if (items.length === 0) return;
@@ -42,12 +48,14 @@ export async function createFeedItems(items: InsertDailyFeedItem[]) {
 }
 
 export async function updateFeedItemPartnerTag(id: number, partnerTag: string) {
+  if (isDemoMode()) return demoQueries.updateFeedItemPartnerTag(id, partnerTag);
   const db = getDb();
   if (!db) return;
   await db.update(dailyFeedItems).set({ partnerTag }).where(eq(dailyFeedItems.id, id));
 }
 
 export async function getFeedItemsByCategory(category: string, limit = 100): Promise<DailyFeedItem[]> {
+  if (isDemoMode()) return demoQueries.getFeedItemsByCategory(category, limit);
   const db = getDb();
   if (!db) return [];
   return db
@@ -60,6 +68,7 @@ export async function getFeedItemsByCategory(category: string, limit = 100): Pro
 
 /** Returns the de-duplicated set of category strings used across feed + editions. */
 export async function listAllCategories(): Promise<string[]> {
+  if (isDemoMode()) return demoQueries.listAllCategories();
   const db = getDb();
   if (!db) return [];
   const feedRows = await db.selectDistinct({ category: dailyFeedItems.category }).from(dailyFeedItems);
@@ -78,6 +87,7 @@ export async function listAllCategories(): Promise<string[]> {
 }
 
 export async function getCategoryHeat(days: number) {
+  if (isDemoMode()) return demoQueries.getCategoryHeat(days);
   const db = getDb();
   if (!db) return [];
   const cutoff = new Date();
@@ -115,6 +125,7 @@ export async function getCategoryHeat(days: number) {
 }
 
 export async function searchAllContent(query: string) {
+  if (isDemoMode()) return demoQueries.searchAllContent(query);
   const db = getDb();
   if (!db) return { editions: [], feedItems: [] };
   const pattern = `%${query}%`;
