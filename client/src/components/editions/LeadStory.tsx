@@ -34,25 +34,29 @@ export function LeadStory({ topic }: { topic: EditionTopic }) {
       </div>
 
       {/* Display-2 scale title — visibly bigger than topic cards' display-3. */}
-      <h2 className="display-2 mb-6 max-w-4xl">{topic.title}</h2>
+      <h2 className="display-2 mb-6">{topic.title}</h2>
 
       {/* Lead summary in larger serif, italic. */}
-      <p className="font-serif italic text-lg sm:text-xl text-[var(--color-fg-muted)] leading-relaxed max-w-3xl mb-6">
+      <p className="font-serif italic text-lg sm:text-xl text-[var(--color-fg-muted)] leading-relaxed mb-6 max-w-[68ch]">
         {topic.summary}
       </p>
 
-      {/* Body — drop cap on first paragraph for editorial weight. */}
+      {/* Body in two columns on wide screens — print newspaper rhythm.
+          Drop cap on the first paragraph. */}
       {topic.body && (
-        <div className="has-dropcap text-[var(--color-fg-muted)] leading-relaxed whitespace-pre-line max-w-3xl">
+        <div
+          className="has-dropcap text-[var(--color-fg-muted)] leading-relaxed whitespace-pre-line lg:columns-2 lg:gap-10"
+          style={{ columnFill: "balance" }}
+        >
           {topic.body}
         </div>
       )}
 
-      {/* Key takeaway — separator + amber overline + foreground line. */}
+      {/* Key takeaway — full-width band, separator above. */}
       {topic.keyTakeaway && (
-        <div className="mt-7 pt-5 border-t border-[var(--color-border)] max-w-3xl">
+        <div className="mt-8 pt-6 border-t border-[var(--color-border)]">
           <p className="overline-amber mb-2">Key takeaway</p>
-          <p className="text-base text-[var(--color-fg)] leading-relaxed">
+          <p className="text-base text-[var(--color-fg)] leading-relaxed max-w-[68ch]">
             {topic.keyTakeaway}
           </p>
         </div>
@@ -63,11 +67,11 @@ export function LeadStory({ topic }: { topic: EditionTopic }) {
         <TalkingPointsBlock points={topic.talkingPoints} />
       )}
 
-      {/* What to watch — final block. */}
+      {/* What to watch — bottom strip, 2 columns on wide. */}
       {topic.whatToWatch && topic.whatToWatch.length > 0 && (
-        <div className="mt-7 pt-5 border-t border-[var(--color-border)] max-w-3xl">
+        <div className="mt-8 pt-6 border-t border-[var(--color-border)]">
           <p className="overline mb-3">What to watch</p>
-          <ul className="space-y-2 text-sm text-[var(--color-fg-muted)]">
+          <ul className="grid sm:grid-cols-2 gap-x-8 gap-y-2 text-sm text-[var(--color-fg-muted)]">
             {topic.whatToWatch.filter(Boolean).map((line, idx) => (
               <li key={line || `lead-watch-${idx}`} className="flex gap-3">
                 <span className="text-amber-400/70 shrink-0 mt-0.5">▸</span>

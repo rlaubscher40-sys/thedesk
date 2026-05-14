@@ -57,15 +57,15 @@ export default function DailyFeed() {
         )}
       </SectionErrorBoundary>
 
-      {/* Feed column. Caps at a generous reading width — wider than a
-          newspaper column but narrower than the surrounding container — so
-          the long-form body remains scannable. */}
-      <div className="mt-8 max-w-4xl">
+      {/* Feed flows in 2 columns on wide screens — newspaper rhythm. The
+          lead item still wins the left column visually because category
+          accents + amber pill draw the eye there. */}
+      <div className="mt-8">
         <SectionErrorBoundary section="Feed items">
           {feedQuery.isLoading ? (
             <FeedSkeleton />
           ) : feedQuery.data && feedQuery.data.length > 0 ? (
-            <div className="space-y-5">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
               {feedQuery.data.map((item) => (
                 <FeedItemCard key={item.id} item={item} />
               ))}

@@ -15,18 +15,39 @@ export function EditionHero({ edition }: { edition: Edition }) {
           AI-generated image is available. */}
       {edition.heroImageUrl ? (
         <div className="aspect-[2/1] w-full overflow-hidden rounded mb-8 bg-[var(--color-bg-elevated)] relative">
+          {/* Ken Burns drift — slow scale + translate3d so the cover
+              feels alive without competing with the content. */}
           <img
             src={edition.heroImageUrl}
             alt={`Cover for Edition ${edition.editionNumber}`}
-            className="w-full h-full object-cover"
+            className="hero-cover-img w-full h-full object-cover"
             loading="lazy"
           />
-          {/* Bottom-fade gradient so the title underneath has weight. */}
+          {/* Specular highlight sweeps slowly across the surface. */}
+          <span className="hero-cover-shine" aria-hidden="true" />
+          {/* Top vignette + bottom-fade gradient so the title underneath
+              has weight and the cover has depth. */}
           <div
-            className="absolute inset-x-0 bottom-0 h-32"
+            className="absolute inset-x-0 top-0 h-24 pointer-events-none"
             style={{
               background:
-                "linear-gradient(180deg, transparent, oklch(0.11 0.018 260 / 60%))",
+                "linear-gradient(180deg, oklch(0.11 0.018 260 / 60%), transparent)",
+            }}
+            aria-hidden="true"
+          />
+          <div
+            className="absolute inset-x-0 bottom-0 h-40 pointer-events-none"
+            style={{
+              background:
+                "linear-gradient(180deg, transparent, oklch(0.11 0.018 260 / 75%))",
+            }}
+            aria-hidden="true"
+          />
+          {/* Edge inner ring — extra gloss. */}
+          <div
+            className="absolute inset-0 pointer-events-none rounded"
+            style={{
+              boxShadow: "inset 0 0 0 1px oklch(0.75 0.18 70 / 14%), inset 0 0 80px oklch(0 0 0 / 35%)",
             }}
             aria-hidden="true"
           />
@@ -57,17 +78,17 @@ export function EditionHero({ edition }: { edition: Edition }) {
       </div>
 
       {/* Hero title — display-1, the week range itself is the headline. */}
-      <h1 className="display-1 max-w-4xl mb-3">{edition.weekRange}</h1>
+      <h1 className="display-1 mb-3">{edition.weekRange}</h1>
 
       {/* Tagline — italic serif, drives the editorial register. */}
-      <p className="font-serif italic text-lg sm:text-xl text-[var(--color-fg-muted)] max-w-2xl leading-snug">
+      <p className="font-serif italic text-lg sm:text-xl text-[var(--color-fg-muted)] leading-snug max-w-[68ch]">
         Weekly intelligence for property partnerships.
       </p>
 
       {/* Ruben's Take — the editorial hook. Big serif italic with an
           oversized amber quote mark, sitting against an amber left rule. */}
       {edition.rubensTake && (
-        <blockquote className="relative mt-10 mb-10 pl-8 max-w-3xl">
+        <blockquote className="relative mt-10 mb-10 pl-8 max-w-[78ch]">
           <div
             className="absolute left-0 top-0 bottom-0"
             style={{

@@ -256,6 +256,31 @@
     background: var(--color-amber);
   }
 
+  /* ─── Hero cover motion ────────────────────────────────────
+     Subtle Ken Burns: very slow scale + drift on the cover image
+     so the hero feels alive without distracting from the page.
+     A second specular highlight sweeps slowly across the surface.
+  */
+  .hero-cover-img {
+    animation: hero-drift 24s ease-in-out infinite alternate;
+    will-change: transform;
+  }
+  .hero-cover-shine {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(
+        115deg,
+        transparent 38%,
+        oklch(1 0 0 / 6%) 49%,
+        oklch(1 0 0 / 0%) 60%
+      );
+    background-size: 300% 100%;
+    animation: hero-shine 14s ease-in-out infinite;
+    mix-blend-mode: screen;
+  }
+
   /* ─── Noise overlay ─────────────────────────────────────── */
   .noise-overlay::before {
     content: "";
@@ -297,6 +322,21 @@
   100% { transform: scale(2.6); opacity: 0; }
 }
 
+@keyframes hero-drift {
+  from {
+    transform: scale(1.04) translate3d(-0.6%, -0.4%, 0);
+  }
+  to {
+    transform: scale(1.06) translate3d(0.4%, 0.4%, 0);
+  }
+}
+
+@keyframes hero-shine {
+  0% { background-position: -90% 0; opacity: 0.65; }
+  45% { background-position: 110% 0; opacity: 0.85; }
+  46%, 100% { background-position: 110% 0; opacity: 0; }
+}
+
 @keyframes orb-drift-1 {
   0%, 100% { transform: translate(0, 0) scale(1); }
   33%      { transform: translate(60px, -40px) scale(1.1); }
@@ -313,7 +353,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ambient-orb-1, .ambient-orb-2, .ambient-orb-3, .live-dot::before, .skeleton {
+  .ambient-orb-1, .ambient-orb-2, .ambient-orb-3, .live-dot::before, .skeleton,
+  .hero-cover-img, .hero-cover-shine {
     animation: none !important;
   }
 }

@@ -43,7 +43,7 @@ export function EditionReader({ edition }: { edition: Edition }) {
               aria-hidden="true"
             />
           </div>
-          <div className="grid sm:grid-cols-2 gap-5">
+          <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
             {rest.map((topic, idx) => (
               // The composed key keeps duplicate titles unique (issue #1).
               <TopicCard key={`${topic.title || "topic"}-${idx}`} topic={topic} />

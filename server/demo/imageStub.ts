@@ -56,27 +56,47 @@ function renderTemplate(t: Template, h: number, prompt: string): string {
   }
 }
 
-/** Common shared defs: gradients, grain filter, vignette. */
+/** Common shared defs: gradients, grain filter, vignette, gloss. */
 function commonDefs(h: number): string {
-  const accent = 38 + (h % 16); // amber band
+  const accent = 38 + (h % 16); // amber band, drifts edition-to-edition
+  const cool = 215 + (h % 30); // secondary navy/teal channel
+  const spotX = 60 + (h % 30); // %  — moves the spotlight per edition
+  const spotY = 14 + (h % 22);
   return `
     <linearGradient id="base" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="hsl(225, 32%, 6%)"/>
-      <stop offset="55%" stop-color="hsl(225, 28%, 8%)"/>
-      <stop offset="100%" stop-color="hsl(225, 30%, 4%)"/>
+      <stop offset="0%" stop-color="hsl(${cool}, 35%, 7%)"/>
+      <stop offset="55%" stop-color="hsl(${cool}, 30%, 9%)"/>
+      <stop offset="100%" stop-color="hsl(${cool}, 38%, 4%)"/>
     </linearGradient>
-    <radialGradient id="spot" cx="78%" cy="22%" r="65%">
-      <stop offset="0%" stop-color="hsl(${accent}, 100%, 62%)" stop-opacity="0.32"/>
-      <stop offset="55%" stop-color="hsl(${accent}, 90%, 55%)" stop-opacity="0.08"/>
+    <radialGradient id="spot" cx="${spotX}%" cy="${spotY}%" r="68%">
+      <stop offset="0%" stop-color="hsl(${accent}, 100%, 68%)" stop-opacity="0.42"/>
+      <stop offset="40%" stop-color="hsl(${accent}, 95%, 58%)" stop-opacity="0.16"/>
       <stop offset="100%" stop-color="hsl(${accent}, 90%, 55%)" stop-opacity="0"/>
     </radialGradient>
+    <radialGradient id="spotCool" cx="${(spotX + 60) % 100}%" cy="${85}%" r="58%">
+      <stop offset="0%" stop-color="hsl(${cool}, 85%, 55%)" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="hsl(${cool}, 85%, 55%)" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Glass sheen across the top half — gives the cover a film-strip gloss. -->
+    <linearGradient id="gloss" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="hsl(${accent}, 100%, 92%)" stop-opacity="0.07"/>
+      <stop offset="40%" stop-color="hsl(${accent}, 100%, 92%)" stop-opacity="0.02"/>
+      <stop offset="100%" stop-color="hsl(${accent}, 100%, 92%)" stop-opacity="0"/>
+    </linearGradient>
     <radialGradient id="vignette" cx="50%" cy="50%" r="80%">
       <stop offset="55%" stop-color="black" stop-opacity="0"/>
-      <stop offset="100%" stop-color="black" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="black" stop-opacity="0.6"/>
     </radialGradient>
     <filter id="grain">
       <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch"/>
-      <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.08 0"/>
+      <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.07 0"/>
+    </filter>
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
     </filter>
   `;
 }
@@ -92,8 +112,11 @@ function editorialSlug(): string {
 
 function commonFinish(): string {
   return `
+    <!-- Cool secondary spot, glass sheen, vignette, grain — gloss stack. -->
+    <rect width="1600" height="800" fill="url(#spotCool)"/>
+    <rect width="1600" height="800" fill="url(#gloss)"/>
     <rect width="1600" height="800" fill="url(#vignette)"/>
-    <rect width="1600" height="800" filter="url(#grain)" opacity="0.7"/>
+    <rect width="1600" height="800" filter="url(#grain)" opacity="0.65"/>
     ${editorialSlug()}
   `;
 }

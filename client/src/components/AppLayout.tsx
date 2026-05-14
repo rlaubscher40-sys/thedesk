@@ -10,7 +10,6 @@ import {
   BookOpen,
   Bookmark,
   ChevronUp,
-  Hash,
   Info,
   LogIn,
   Menu,
@@ -19,7 +18,6 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Search,
-  StickyNote,
   Sun,
   X,
 } from "lucide-react";
@@ -43,9 +41,8 @@ const NAV_ITEMS: NavItem[] = [
   { path: "/", label: "Today", icon: Newspaper },
   { path: "/editions", label: "Editions", icon: BookOpen },
   { path: "/trends", label: "Trends", icon: BarChart3 },
-  { path: "/topics", label: "Topics", icon: Hash },
   { path: "/queue", label: "Reading Queue", icon: Bookmark },
-  { path: "/search", label: "Search", icon: Search },
+  { path: "/search", label: "Archive", icon: Search },
   { path: "/about", label: "About", icon: Info },
 ];
 
@@ -54,7 +51,7 @@ const MOBILE_TABS: NavItem[] = [
   { path: "/editions", label: "Editions", icon: BookOpen },
   { path: "/trends", label: "Trends", icon: BarChart3 },
   { path: "/queue", label: "Queue", icon: Bookmark },
-  { path: "/search", label: "Search", icon: Search },
+  { path: "/search", label: "Archive", icon: Search },
 ];
 
 function isActive(location: string, path: string): boolean {

@@ -22,7 +22,7 @@ export function SignalsBriefs({ signals }: { signals: string[] }) {
           aria-hidden="true"
         />
       </div>
-      <ol className="space-y-4">
+      <ol className="grid sm:grid-cols-2 gap-x-10 gap-y-5">
         {filtered.map((signal, idx) => (
           // Defensive index suffix (issue #1) — signal text usually unique.
           <li
@@ -31,7 +31,7 @@ export function SignalsBriefs({ signals }: { signals: string[] }) {
           >
             <span
               className="font-mono shrink-0 text-amber-400/80 tabular-nums"
-              style={{ fontSize: "20px", fontWeight: 500 }}
+              style={{ fontSize: "22px", fontWeight: 500 }}
             >
               {String(idx + 1).padStart(2, "0")}
             </span>

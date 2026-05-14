@@ -51,15 +51,16 @@ export const demo = {
 };
 
 // Generate hero gradients for every seeded edition so the demo doesn't open
-// on the bare placeholder. The image stub is deterministic (hashed prompt),
-// so each edition gets a unique but stable cover.
+// on the bare placeholder. The image stub is deterministic per prompt, so we
+// inject a per-boot salt — the cover stays stable for the life of the
+// server but rerolls when you restart, matching the brief's "not static
+// every time" feel.
 import { demoImage } from "./imageStub";
+const bootSalt = Math.random().toString(36).slice(2, 8);
 for (const edition of demo.editions) {
   if (!edition.heroImageUrl) {
-    // Fire-and-forget — populates within ~800ms, after which the editions
-    // router will start returning the URL.
     void demoImage({
-      prompt: `Edition ${edition.editionNumber} ${edition.weekRange} ${edition.topics[0]?.title ?? ""}`,
+      prompt: `Edition ${edition.editionNumber} ${edition.weekRange} ${edition.topics[0]?.title ?? ""} ${edition.topics[0]?.category ?? ""} ${bootSalt}`,
     })
       .then(({ url }) => {
         edition.heroImageUrl = url;
