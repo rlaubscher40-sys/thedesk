@@ -40,7 +40,7 @@ export default function DailyFeed() {
   })();
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div>
       <PageHeader
         overline="The Desk · Today"
         title="60-second morning scan"
@@ -57,12 +57,15 @@ export default function DailyFeed() {
         )}
       </SectionErrorBoundary>
 
-      <div className="mt-6">
+      {/* Feed column. Caps at a generous reading width — wider than a
+          newspaper column but narrower than the surrounding container — so
+          the long-form body remains scannable. */}
+      <div className="mt-8 max-w-4xl">
         <SectionErrorBoundary section="Feed items">
           {feedQuery.isLoading ? (
             <FeedSkeleton />
           ) : feedQuery.data && feedQuery.data.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-5">
               {feedQuery.data.map((item) => (
                 <FeedItemCard key={item.id} item={item} />
               ))}

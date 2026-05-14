@@ -19,7 +19,7 @@ export function PartnerTagBlock({ raw }: Props) {
 
   return (
     <div className="border-t border-[var(--color-border)] pt-4 mt-5">
-      <p className="overline mb-3">Partner angles · tap one to isolate</p>
+      <p className="overline mb-3">Partner angles</p>
       <div className="space-y-2">
         {PARTNER_TAG_LABELS.map((label) => (
           <PartnerTagLine

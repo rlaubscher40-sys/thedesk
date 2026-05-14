@@ -14,7 +14,7 @@ export function EditionHero({ edition }: { edition: Edition }) {
       {/* Wide-format hero image. Falls back to a dramatic gradient when no
           AI-generated image is available. */}
       {edition.heroImageUrl ? (
-        <div className="aspect-[21/9] w-full overflow-hidden rounded mb-8 bg-[var(--color-bg-elevated)] relative">
+        <div className="aspect-[2/1] w-full overflow-hidden rounded mb-8 bg-[var(--color-bg-elevated)] relative">
           <img
             src={edition.heroImageUrl}
             alt={`Cover for Edition ${edition.editionNumber}`}
@@ -35,17 +35,33 @@ export function EditionHero({ edition }: { edition: Edition }) {
         <HeroPlaceholder />
       )}
 
-      {/* Editorial slug — edition number + week. */}
-      <p className="overline-amber mb-3">
-        Edition {edition.editionNumber} &nbsp;·&nbsp; {edition.weekRange}
-      </p>
+      {/* Editorial slug — edition number + reading time. */}
+      <div className="flex items-center gap-4 mb-4">
+        <p className="overline-amber" style={{ letterSpacing: "0.2em" }}>
+          Edition No. {edition.editionNumber}
+        </p>
+        {edition.readingTime && (
+          <>
+            <span
+              className="block"
+              style={{
+                width: "20px",
+                height: "1px",
+                background: "oklch(0.75 0.18 70 / 40%)",
+              }}
+              aria-hidden="true"
+            />
+            <p className="overline">{edition.readingTime} read</p>
+          </>
+        )}
+      </div>
 
-      {/* Hero title — display-1 scale, hits ~80px on desktop. */}
-      <h1 className="display-1 max-w-4xl mb-2">
-        Weekly intelligence
-      </h1>
-      <p className="font-serif italic text-xl text-[var(--color-fg-muted)] max-w-3xl">
-        {edition.weekRange}
+      {/* Hero title — display-1, the week range itself is the headline. */}
+      <h1 className="display-1 max-w-4xl mb-3">{edition.weekRange}</h1>
+
+      {/* Tagline — italic serif, drives the editorial register. */}
+      <p className="font-serif italic text-lg sm:text-xl text-[var(--color-fg-muted)] max-w-2xl leading-snug">
+        Weekly intelligence for property partnerships.
       </p>
 
       {/* Ruben's Take — the editorial hook. Big serif italic with an
@@ -87,7 +103,7 @@ export function EditionHero({ edition }: { edition: Edition }) {
 function HeroPlaceholder() {
   return (
     <div
-      className="aspect-[21/9] w-full rounded mb-8 relative overflow-hidden noise-overlay"
+      className="aspect-[2/1] w-full rounded mb-8 relative overflow-hidden noise-overlay"
       style={{
         background:
           "linear-gradient(135deg, oklch(0.14 0.02 260) 0%, oklch(0.10 0.02 260) 35%, oklch(0.18 0.03 260) 60%, oklch(0.32 0.18 70 / 30%) 100%)",

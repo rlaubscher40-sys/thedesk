@@ -51,7 +51,7 @@ export default function EditionsPage() {
         actions={user?.role === "admin" ? <BackfillRubensTakeButton /> : undefined}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6 lg:gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-8 lg:gap-12 xl:gap-16">
         <aside className="space-y-2">
           <SectionErrorBoundary section="Editions list">
             {listQuery.isLoading ? (

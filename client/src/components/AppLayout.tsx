@@ -45,8 +45,6 @@ const NAV_ITEMS: NavItem[] = [
   { path: "/trends", label: "Trends", icon: BarChart3 },
   { path: "/topics", label: "Topics", icon: Hash },
   { path: "/queue", label: "Reading Queue", icon: Bookmark },
-  { path: "/notes", label: "Notes", icon: StickyNote, requiresAuth: true },
-  { path: "/tracker", label: "Tracker", icon: StickyNote, requiresAuth: true },
   { path: "/search", label: "Search", icon: Search },
   { path: "/about", label: "About", icon: Info },
 ];
@@ -54,8 +52,8 @@ const NAV_ITEMS: NavItem[] = [
 const MOBILE_TABS: NavItem[] = [
   { path: "/", label: "Today", icon: Newspaper },
   { path: "/editions", label: "Editions", icon: BookOpen },
+  { path: "/trends", label: "Trends", icon: BarChart3 },
   { path: "/queue", label: "Queue", icon: Bookmark },
-  { path: "/notes", label: "Notes", icon: StickyNote },
   { path: "/search", label: "Search", icon: Search },
 ];
 
@@ -140,7 +138,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <main className="flex-1 overflow-y-auto relative">
           <MobileHeader onOpen={() => setMobileOpen(true)} />
           <div className="editorial-rule shrink-0" aria-hidden="true" />
-          <div className="p-5 sm:p-7 lg:p-8 pb-24 lg:pb-8 max-w-5xl mx-auto">{children}</div>
+          {/* The container is wider than the previous max-w-5xl so the
+              broadsheet rhythm has room to breathe. Pages that need a
+              narrower reading column (the prose-heavy About page, the
+              Story page) wrap their own column inside. */}
+          <div className="px-5 sm:px-8 lg:px-12 xl:px-16 py-8 lg:py-12 pb-24 lg:pb-16 max-w-[1440px] mx-auto">
+            {children}
+          </div>
         </main>
       </div>
 
@@ -349,23 +353,39 @@ function SidebarLink({
     <Link href={item.path}>
       <span
         className={cn(
-          "flex items-center gap-3 mx-2 px-3 py-2 rounded text-sm transition-colors group",
+          "relative flex items-center gap-3 mx-2 px-3 py-2 rounded text-sm group transition-all duration-200",
+          "before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-4 before:w-[2px] before:rounded-r before:transition-all",
           active
-            ? "bg-amber-500/10 text-amber-300 font-semibold"
-            : "text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] hover:bg-white/5",
-          collapsed && "justify-center px-0"
+            ? "bg-amber-500/[0.07] text-amber-200 before:bg-amber-400 before:opacity-100"
+            : "text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] hover:bg-white/[0.04] before:bg-amber-400 before:opacity-0 hover:before:opacity-30",
+          collapsed && "justify-center px-0 mx-1.5"
         )}
         title={collapsed ? item.label : undefined}
       >
-        <Icon className="h-3.5 w-3.5 shrink-0" />
-        {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
+        <Icon
+          className={cn(
+            "h-[14px] w-[14px] shrink-0 transition-colors",
+            active ? "text-amber-300" : ""
+          )}
+          strokeWidth={active ? 2 : 1.75}
+        />
+        {!collapsed && (
+          <span
+            className={cn(
+              "flex-1 truncate transition-all",
+              active ? "font-semibold tracking-tight" : "font-normal"
+            )}
+          >
+            {item.label}
+          </span>
+        )}
         {!collapsed && item.path === "/queue" && unreadCount > 0 && (
-          <span className="font-mono text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+          <span className="font-mono text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 tabular-nums">
             {unreadCount}
           </span>
         )}
         {collapsed && item.path === "/queue" && unreadCount > 0 && (
-          <span className="absolute mt-[-12px] ml-3 h-1.5 w-1.5 rounded-full bg-amber-400" />
+          <span className="absolute top-1.5 right-2 h-1.5 w-1.5 rounded-full bg-amber-400" />
         )}
       </span>
     </Link>

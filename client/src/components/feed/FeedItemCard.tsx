@@ -101,22 +101,19 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
     >
       {/* Metadata bar — category in colour, source + actions on the right. */}
       <div className="flex items-start justify-between gap-3 mb-4">
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center gap-2.5 min-w-0">
           <span
             className="overline-amber shrink-0"
-            style={{ color: "var(--color-amber-bright)", letterSpacing: "0.18em" }}
+            style={{ color: "var(--color-amber-bright)", letterSpacing: "0.2em" }}
           >
             {item.category}
           </span>
           <span
-            className="block shrink-0"
-            style={{
-              width: "10px",
-              height: "1px",
-              background: "var(--color-border-strong)",
-            }}
+            className="overline shrink-0 text-[var(--color-fg-subtle)]"
             aria-hidden="true"
-          />
+          >
+            ·
+          </span>
           <span className="overline truncate">{item.source}</span>
         </div>
         <div className="flex items-center gap-1 shrink-0 -mr-1.5">
