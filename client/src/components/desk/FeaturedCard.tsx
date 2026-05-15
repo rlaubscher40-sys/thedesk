@@ -15,6 +15,7 @@ import { cn } from "@/lib/cn";
 import { usePersona } from "@/lib/persona";
 import { BookmarkButton } from "./BookmarkButton";
 import { ContextExpander } from "./ContextExpander";
+import { FeaturedPill } from "./CategoryPill";
 import { PartnerAngles } from "./PartnerAngles";
 import { SayThis } from "./SayThis";
 import { SourceFooter } from "./SourceFooter";

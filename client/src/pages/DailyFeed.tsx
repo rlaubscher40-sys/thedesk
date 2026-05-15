@@ -1,15 +1,18 @@
 /**
- * Today — full daily-intelligence dashboard.
+ * Today — full-bleed daily-intelligence dashboard.
  *
- * Three regions:
- *   · Main column: Hero → controls strip (date pager + persona switcher
- *     + filter chips) → three-section feed (FEATURED / MORE FROM TODAY /
- *     FURTHER SIGNALS) → Footer.
- *   · Right rail: Key Metrics, Today's Topics, Reading Queue, Latest
- *     Edition, Subscribe. Sticky on xl+, drops below the main column on
- *     anything narrower.
+ * Single editorial column. The right rail is gone — it was forcing the
+ * main feed to share the page horizontally with metadata that didn't
+ * deserve that real estate. Everything reflows top-to-bottom:
  *
- * All content comes from data/editions/2026-05-15.ts — no copy in JSX.
+ *   1. Hero
+ *   2. Controls strip (date pager + persona switcher + filter chips)
+ *   3. Metrics strip (full width, 4 KPI tiles)
+ *   4. Featured story (full width)
+ *   5. More from today (2-up grid, full width)
+ *   6. Further signals (wide single-column cards)
+ *   7. Support strip (Topics · Reading Queue · Latest · Subscribe)
+ *   8. Footer
  */
 import { useMemo, useState } from "react";
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
@@ -22,11 +25,8 @@ import { Hero } from "@/components/desk/Hero";
 import { PersonaSwitcher } from "@/components/desk/PersonaSwitcher";
 import { SignalCard } from "@/components/desk/SignalCard";
 import { StoryCard } from "@/components/desk/StoryCard";
-import { KeyMetrics } from "@/components/desk/rightRail/KeyMetrics";
-import { LatestEdition } from "@/components/desk/rightRail/LatestEdition";
-import { ReadingQueueRail } from "@/components/desk/rightRail/ReadingQueueRail";
-import { Subscribe } from "@/components/desk/rightRail/Subscribe";
-import { TodaysTopics } from "@/components/desk/rightRail/TodaysTopics";
+import { MetricsStrip } from "@/components/desk/rightRail/MetricsStrip";
+import { SupportStrip } from "@/components/desk/rightRail/SupportStrip";
 import { stories } from "@/data/editions/2026-05-15";
 
 export default function DailyFeed() {
@@ -42,96 +42,78 @@ export default function DailyFeed() {
   const further = filtered.filter((s) => s.section === "further");
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_340px] gap-8 xl:gap-12">
-      {/* ─── Main column ────────────────────────────────────────────── */}
-      <div className="min-w-0">
-        <SectionErrorBoundary section="Hero">
-          <Hero />
+    <div className="space-y-12">
+      <SectionErrorBoundary section="Hero">
+        <Hero />
+      </SectionErrorBoundary>
+
+      <div className="space-y-5">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <DatePager />
+          <PersonaSwitcher />
+        </div>
+        <SectionErrorBoundary section="Filters">
+          <FilterChips active={filter} onChange={setFilter} />
         </SectionErrorBoundary>
-
-        {/* Controls strip. */}
-        <div className="mt-8 space-y-5">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <DatePager />
-            <PersonaSwitcher />
-          </div>
-          <SectionErrorBoundary section="Filters">
-            <FilterChips active={filter} onChange={setFilter} />
-          </SectionErrorBoundary>
-        </div>
-
-        {/* Three-section feed. */}
-        <div className="mt-10 space-y-12">
-          {featured && (
-            <section>
-              <SectionDivider label="Featured" />
-              <SectionErrorBoundary section="Featured">
-                <FeaturedCard story={featured} />
-              </SectionErrorBoundary>
-            </section>
-          )}
-
-          {more.length > 0 && (
-            <section>
-              <SectionDivider label="More from today" />
-              <SectionErrorBoundary section="More from today">
-                {/* Two columns max. Three was too tight for Playfair —
-                    headlines started breaking inside words. Cards are
-                    information-dense; they need a generous reading
-                    width. */}
-                <StaggerList
-                  className="grid grid-cols-1 lg:grid-cols-2 gap-5"
-                  cacheKey={`more-${filter}`}
-                >
-                  {more.map((s) => (
-                    <StoryCard key={s.id} story={s} />
-                  ))}
-                </StaggerList>
-              </SectionErrorBoundary>
-            </section>
-          )}
-
-          {further.length > 0 && (
-            <section>
-              <SectionDivider label="Further signals" />
-              <SectionErrorBoundary section="Further signals">
-                <StaggerList className="space-y-4" cacheKey={`further-${filter}`}>
-                  {further.map((s) => (
-                    <SignalCard key={s.id} story={s} />
-                  ))}
-                </StaggerList>
-              </SectionErrorBoundary>
-            </section>
-          )}
-
-          {filtered.length === 0 && (
-            <div className="panel p-8 rounded text-center text-sm text-[var(--color-fg-muted)]">
-              No items match this filter.
-            </div>
-          )}
-        </div>
-
-        <Footer />
       </div>
 
-      {/* ─── Right rail ─────────────────────────────────────────────── */}
-      <aside className="xl:sticky xl:top-6 xl:self-start space-y-5">
-        <SectionErrorBoundary section="Key metrics">
-          <KeyMetrics />
+      <SectionErrorBoundary section="Metrics">
+        <MetricsStrip />
+      </SectionErrorBoundary>
+
+      {featured && (
+        <SectionErrorBoundary section="Featured">
+          <section>
+            <SectionDivider label="Featured" />
+            <FeaturedCard story={featured} />
+          </section>
         </SectionErrorBoundary>
-        <SectionErrorBoundary section="Today's topics">
-          <TodaysTopics />
+      )}
+
+      {more.length > 0 && (
+        <SectionErrorBoundary section="More from today">
+          <section>
+            <SectionDivider label="More from today" />
+            <StaggerList
+              className="grid grid-cols-1 md:grid-cols-2 gap-5"
+              cacheKey={`more-${filter}`}
+            >
+              {more.map((s) => (
+                <StoryCard key={s.id} story={s} />
+              ))}
+            </StaggerList>
+          </section>
         </SectionErrorBoundary>
-        <SectionErrorBoundary section="Reading queue">
-          <ReadingQueueRail />
+      )}
+
+      {further.length > 0 && (
+        <SectionErrorBoundary section="Further signals">
+          <section>
+            <SectionDivider label="Further signals" />
+            <StaggerList className="space-y-4" cacheKey={`further-${filter}`}>
+              {further.map((s) => (
+                <SignalCard key={s.id} story={s} />
+              ))}
+            </StaggerList>
+          </section>
         </SectionErrorBoundary>
-        <SectionErrorBoundary section="Latest edition">
-          <LatestEdition />
-        </SectionErrorBoundary>
-        <SectionErrorBoundary section="Subscribe">
-          <Subscribe />
-        </SectionErrorBoundary>
-      </aside>
+      )}
+
+      {filtered.length === 0 && (
+        <div className="panel p-8 rounded-sm text-center text-sm text-[var(--color-fg-muted)]">
+          No items match this filter.
+        </div>
+      )}
+
+      {/* Support strip replaces the right rail — four cards in one band. */}
+      <SectionErrorBoundary section="Support strip">
+        <section className="pt-4">
+          <SectionDivider label="The desk" />
+          <SupportStrip />
+        </section>
+      </SectionErrorBoundary>
+
+      <Footer />
     </div>
   );
 }
