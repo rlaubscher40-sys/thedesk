@@ -16,7 +16,7 @@ export function TopicCard({ topic }: { topic: EditionTopic }) {
   return (
     <article
       className={cn(
-        "panel panel-hover p-6 rounded transition-colors h-full flex flex-col",
+        "panel panel-hover hover-lift p-6 rounded h-full flex flex-col",
         categoryAccentClass(topic.category)
       )}
     >

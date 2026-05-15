@@ -5,6 +5,7 @@
  */
 import type { Edition } from "@shared/types";
 import { SectionErrorBoundary } from "../ErrorBoundary";
+import { StaggerList } from "../StaggerList";
 import { EditionAdminPanel } from "./EditionAdminPanel";
 import { EditionHero } from "./EditionHero";
 import { LeadStory } from "./LeadStory";
@@ -43,12 +44,15 @@ export function EditionReader({ edition }: { edition: Edition }) {
               aria-hidden="true"
             />
           </div>
-          <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
+          <StaggerList
+            className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5"
+            cacheKey={`edition-${edition.id}`}
+          >
             {rest.map((topic, idx) => (
               // The composed key keeps duplicate titles unique (issue #1).
               <TopicCard key={`${topic.title || "topic"}-${idx}`} topic={topic} />
             ))}
-          </div>
+          </StaggerList>
         </SectionErrorBoundary>
       )}
 

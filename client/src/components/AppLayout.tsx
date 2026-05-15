@@ -29,6 +29,7 @@ import { useAuth } from "@/lib/useAuth";
 import { trpc } from "@/lib/trpc";
 import { AnimatedBackground } from "./AnimatedBackground";
 import { DemoModeBanner } from "./DemoModeBanner";
+import { LiveTicker } from "./LiveTicker";
 
 type NavItem = {
   path: string;
@@ -109,6 +110,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     <div className="min-h-screen flex flex-col bg-[var(--color-bg)] text-[var(--color-fg)] relative">
       <AnimatedBackground />
       <DemoModeBanner />
+      <LiveTicker />
       <TopRule />
 
       <div className="flex flex-1 overflow-hidden relative" style={{ zIndex: 10 }}>
@@ -431,15 +433,24 @@ function SidebarFooter({
         // user (which it will, in one tick).
         <p className="text-xs text-[var(--color-fg-subtle)]">Loading…</p>
       )}
-      <div className="flex items-center justify-between mt-3">
-        <p className="overline">7am AEST daily</p>
-        <button
-          onClick={onToggleTheme}
-          aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-          className="p-1.5 rounded text-[var(--color-fg-subtle)] hover:text-[var(--color-fg)]"
-        >
-          {theme === "dark" ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
-        </button>
+      <div className="flex items-center justify-between mt-3 gap-2">
+        <p className="overline truncate">7am AEST daily</p>
+        <div className="flex items-center gap-2">
+          {/* Cmd+K discovery hint — also a clickable shortcut. */}
+          <kbd
+            className="font-mono inline-flex items-center gap-1 rounded border border-[var(--color-border)] bg-white/[0.04] px-1.5 py-0.5 text-[10px] text-[var(--color-fg-subtle)]"
+            title="Press ⌘K to search anywhere"
+          >
+            ⌘K
+          </kbd>
+          <button
+            onClick={onToggleTheme}
+            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            className="p-1.5 rounded text-[var(--color-fg-subtle)] hover:text-[var(--color-fg)] transition-colors"
+          >
+            {theme === "dark" ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+          </button>
+        </div>
       </div>
     </div>
   );

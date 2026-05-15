@@ -7,6 +7,7 @@ import { Suspense, lazy, useEffect } from "react";
 import { Route, Switch, useLocation } from "wouter";
 import { AppLayout } from "./components/AppLayout";
 import { BreakingSignalToast } from "./components/BreakingSignalToast";
+import { CommandPalette } from "./components/CommandPalette";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { OnboardingModal } from "./components/OnboardingModal";
 import { Skeleton } from "./components/ui/Skeleton";
@@ -67,7 +68,7 @@ function Routes() {
         initial={prefersReducedMotion ? false : { opacity: 0, y: 6 }}
         animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
         exit={prefersReducedMotion ? {} : { opacity: 0, y: -4 }}
-        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
       >
         <Suspense fallback={<PageFallback />}>
           <Switch>
@@ -101,6 +102,7 @@ export default function App() {
           <KeyboardShortcuts />
           <Routes />
         </AppLayout>
+        <CommandPalette />
         <BreakingSignalToast />
         <OnboardingModal />
       </ThemeProvider>

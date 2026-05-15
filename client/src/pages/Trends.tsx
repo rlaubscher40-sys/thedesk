@@ -20,7 +20,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { ArrowDown, ArrowRight, ArrowUp, Minus } from "lucide-react";
+import { ArrowDown, ArrowUp, Minus } from "lucide-react";
+import { CountUp } from "@/components/CountUp";
 import { PageHeader } from "@/components/PageHeader";
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -189,6 +190,16 @@ function KpiTile({
         ? "up"
         : "down";
 
+  // Render the number through CountUp when we can parse it, otherwise fall
+  // back to the raw string (e.g. "AUD/USD" might be "0.659").
+  const numeric = Number.isFinite(currentNum);
+  // Match the precision of the stored value — 2 dp for percentages and
+  // exchange rates, 0 dp for index points.
+  const decimals = numeric ? inferDecimals(value) : 0;
+  // Preserve trailing % if the source string had one.
+  const suffix =
+    typeof value === "string" && value.includes("%") ? "%" : "";
+
   const tone =
     direction === "up"
       ? "text-emerald-300"
@@ -202,8 +213,17 @@ function KpiTile({
       <p className="overline mb-3 truncate" style={{ letterSpacing: "0.16em" }}>
         {label}
       </p>
-      <p className="font-serif text-3xl font-bold tabular-nums text-[var(--color-fg)] leading-none mb-2">
-        {value}
+      <p className="font-serif text-3xl font-bold text-[var(--color-fg)] leading-none mb-2">
+        {numeric ? (
+          <CountUp
+            value={currentNum}
+            decimals={decimals}
+            suffix={suffix}
+            group={currentNum >= 1000}
+          />
+        ) : (
+          <span className="tabular-nums">{value}</span>
+        )}
       </p>
       <p className={cn("font-mono text-xs flex items-center gap-1.5", tone)}>
         <Icon className="h-3 w-3" />
@@ -221,6 +241,13 @@ function KpiTile({
       </p>
     </div>
   );
+}
+
+function inferDecimals(v: string | number): number {
+  if (typeof v === "number") return Number.isInteger(v) ? 0 : 2;
+  const m = String(v).match(/\.(\d+)/);
+  if (!m) return 0;
+  return Math.min(3, m[1]!.length);
 }
 
 // ─── Metric history line chart ──────────────────────────────────────────────
@@ -474,5 +501,3 @@ function SignalCadence({
   );
 }
 
-// Tiny unused for now but kept around so the import set doesn't grow stale.
-export const _arrowRight = ArrowRight;

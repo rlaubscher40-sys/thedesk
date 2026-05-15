@@ -10,6 +10,7 @@
 import { useEffect, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { PageHeader } from "@/components/PageHeader";
+import { StaggerList } from "@/components/StaggerList";
 import { FeedDatePicker } from "@/components/feed/FeedDatePicker";
 import { FeedItemCard } from "@/components/feed/FeedItemCard";
 import { FeedSkeleton } from "@/components/feed/FeedSkeleton";
@@ -65,11 +66,14 @@ export default function DailyFeed() {
           {feedQuery.isLoading ? (
             <FeedSkeleton />
           ) : feedQuery.data && feedQuery.data.length > 0 ? (
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+            <StaggerList
+              className="grid grid-cols-1 xl:grid-cols-2 gap-5"
+              cacheKey={selectedDate}
+            >
               {feedQuery.data.map((item) => (
                 <FeedItemCard key={item.id} item={item} />
               ))}
-            </div>
+            </StaggerList>
           ) : (
             <EmptyFeed date={niceDate} />
           )}

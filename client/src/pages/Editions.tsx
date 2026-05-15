@@ -6,6 +6,7 @@
 import { useEffect, useMemo } from "react";
 import { useParams, useLocation } from "wouter";
 import { PageHeader } from "@/components/PageHeader";
+import { StaggerList } from "@/components/StaggerList";
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
 import { EditionListItem } from "@/components/editions/EditionListItem";
 import { EditionReader } from "@/components/editions/EditionReader";
@@ -57,18 +58,20 @@ export default function EditionsPage() {
             {listQuery.isLoading ? (
               <ListSkeleton />
             ) : listQuery.data && listQuery.data.length > 0 ? (
-              listQuery.data.map((ed) => (
-                <EditionListItem
-                  key={ed.id}
-                  editionNumber={ed.editionNumber}
-                  weekRange={ed.weekRange}
-                  publishedAt={ed.publishedAt}
-                  readingTime={ed.readingTime}
-                  heroImageUrl={ed.heroImageUrl}
-                  hasDraft={ed.hasDraft}
-                  active={ed.editionNumber === selectedNumber}
-                />
-              ))
+              <StaggerList className="space-y-2" stagger={0.04}>
+                {listQuery.data.map((ed) => (
+                  <EditionListItem
+                    key={ed.id}
+                    editionNumber={ed.editionNumber}
+                    weekRange={ed.weekRange}
+                    publishedAt={ed.publishedAt}
+                    readingTime={ed.readingTime}
+                    heroImageUrl={ed.heroImageUrl}
+                    hasDraft={ed.hasDraft}
+                    active={ed.editionNumber === selectedNumber}
+                  />
+                ))}
+              </StaggerList>
             ) : (
               <p className="text-sm text-[var(--color-fg-muted)]">No editions published yet.</p>
             )}

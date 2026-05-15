@@ -256,6 +256,40 @@
     background: var(--color-amber);
   }
 
+  /* ─── Card hover lift ───────────────────────────────────
+     Subtle Y-lift + amber-tinted glow when the user mouses
+     over a card. Combined with panel-hover for cards that
+     also tint on hover.
+  */
+  .hover-lift {
+    transition:
+      transform 240ms cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 240ms ease,
+      border-color 220ms ease;
+    will-change: transform;
+  }
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 12px 32px oklch(0 0 0 / 35%),
+      0 0 0 1px oklch(0.75 0.18 70 / 18%),
+      0 0 24px oklch(0.75 0.18 70 / 10%);
+  }
+
+  /* ─── Headline reveal ───────────────────────────────────
+     Letterbox-mask slide-up. Apply to the parent of a single-
+     line headline you want to reveal on mount; the child
+     content is what slides up behind the mask.
+  */
+  .reveal-mask {
+    overflow: hidden;
+    display: inline-block;
+  }
+  .reveal-mask > * {
+    display: inline-block;
+    animation: reveal-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
   /* ─── Hero cover motion ────────────────────────────────────
      Subtle Ken Burns: very slow scale + drift on the cover image
      so the hero feels alive without distracting from the page.
@@ -322,6 +356,20 @@
   100% { transform: scale(2.6); opacity: 0; }
 }
 
+@keyframes ticker-scroll {
+  0%   { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); }
+}
+
+.ticker-track {
+  animation: ticker-scroll 70s linear infinite;
+}
+
+@keyframes reveal-up {
+  from { transform: translateY(110%); opacity: 0; }
+  to   { transform: translateY(0%);   opacity: 1; }
+}
+
 @keyframes hero-drift {
   from {
     transform: scale(1.04) translate3d(-0.6%, -0.4%, 0);
@@ -354,7 +402,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .ambient-orb-1, .ambient-orb-2, .ambient-orb-3, .live-dot::before, .skeleton,
-  .hero-cover-img, .hero-cover-shine {
+  .hero-cover-img, .hero-cover-shine, .ticker-track, .reveal-mask > * {
     animation: none !important;
   }
 }

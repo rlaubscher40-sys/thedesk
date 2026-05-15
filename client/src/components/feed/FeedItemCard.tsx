@@ -95,7 +95,7 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
   return (
     <article
       className={cn(
-        "panel panel-hover p-6 sm:p-7 rounded transition-colors",
+        "panel panel-hover hover-lift p-6 sm:p-7 rounded",
         categoryAccentClass(item.category)
       )}
     >
