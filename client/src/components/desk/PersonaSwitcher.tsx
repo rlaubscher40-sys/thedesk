@@ -20,7 +20,7 @@ export function PersonaSwitcher() {
       <div
         role="radiogroup"
         aria-label="Active partner persona"
-        className="flex gap-1.5 flex-wrap p-1 rounded panel"
+        className="flex gap-1 flex-wrap p-1 rounded border border-[var(--color-border)] bg-[oklch(0.13_0.018_260)]"
       >
         {PERSONAS.map((p) => {
           const active = p === persona;
@@ -33,23 +33,23 @@ export function PersonaSwitcher() {
               aria-pressed={active}
               onClick={() => setPersona(p)}
               className={cn(
-                "relative px-3.5 py-1.5 rounded text-xs font-mono uppercase tracking-wider transition-all duration-200",
+                "relative px-3 py-1.5 rounded text-[11px] font-mono uppercase tracking-[0.14em] transition-all duration-200",
                 active
                   ? "text-[var(--color-fg)]"
-                  : "text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]"
+                  : "text-[var(--color-fg-subtle)] hover:text-[var(--color-fg-muted)]"
               )}
               style={
                 active
                   ? {
-                      background: `${colour}15`,
+                      background: `${colour}13`,
                       boxShadow: `inset 0 0 0 1px ${colour}55`,
                     }
                   : {}
               }
             >
               <span
-                className="inline-block h-1.5 w-1.5 rounded-full mr-2 align-middle"
-                style={{ background: colour, opacity: active ? 1 : 0.5 }}
+                className="inline-block h-1 w-1 rounded-full mr-2 align-middle transition-opacity"
+                style={{ background: colour, opacity: active ? 1 : 0.4 }}
                 aria-hidden="true"
               />
               {p}

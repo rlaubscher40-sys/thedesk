@@ -14,18 +14,18 @@ export function RailPanel({
   children: ReactNode;
 }) {
   return (
-    <section className="panel rounded p-5">
+    <section className="panel rounded-sm p-6">
       <p
-        className="overline-amber mb-4"
-        style={{ letterSpacing: "0.22em" }}
+        className="overline text-[var(--color-fg-subtle)] mb-5"
+        style={{ letterSpacing: "0.24em" }}
       >
         {overline}
       </p>
       {children}
       {footer && (
         <p
-          className="overline mt-4 pt-4 border-t border-[var(--color-border)] text-[var(--color-fg-subtle)]"
-          style={{ letterSpacing: "0.16em" }}
+          className="overline mt-5 pt-4 border-t border-[var(--color-border)] text-[var(--color-fg-subtle)]"
+          style={{ letterSpacing: "0.18em" }}
         >
           {footer}
         </p>

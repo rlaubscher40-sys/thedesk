@@ -32,24 +32,23 @@ export function FilterChips({
             aria-pressed={isActive}
             onClick={() => onChange(f.id)}
             className={cn(
-              "shrink-0 px-3.5 py-1.5 rounded transition-all duration-150 text-xs font-mono uppercase tracking-[0.14em] flex items-center gap-2 border",
+              "shrink-0 px-3 py-1.5 rounded-full transition-all duration-200 text-[11px] font-mono uppercase tracking-[0.16em] flex items-center gap-2 border",
               isActive
                 ? "text-[var(--color-fg)]"
-                : "text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]"
+                : "text-[var(--color-fg-subtle)] hover:text-[var(--color-fg-muted)]"
             )}
             style={
               isActive
                 ? {
-                    background: `${colour}14`,
+                    background: `${colour}10`,
                     borderColor: `${colour}55`,
-                    boxShadow: `0 0 14px ${colour}25`,
                   }
                 : { borderColor: "var(--color-border)" }
             }
           >
             <span
-              className="h-1.5 w-1.5 rounded-full"
-              style={{ background: colour, opacity: isActive ? 1 : 0.55 }}
+              className="h-1 w-1 rounded-full transition-opacity"
+              style={{ background: colour, opacity: isActive ? 1 : 0.35 }}
               aria-hidden="true"
             />
             {f.label}

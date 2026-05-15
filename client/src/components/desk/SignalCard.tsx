@@ -19,7 +19,7 @@ export function SignalCard({ story }: { story: Story }) {
   return (
     <article
       className={cn(
-        "panel hover-lift rounded p-6 flex flex-col sm:flex-row gap-6",
+        "panel hover-lift rounded-sm p-7 sm:p-8 flex flex-col sm:flex-row gap-7",
         categoryAccentClass(story.category)
       )}
     >
@@ -27,19 +27,25 @@ export function SignalCard({ story }: { story: Story }) {
         <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
           <div className="flex items-center gap-2.5 min-w-0">
             <span
-              className="overline-amber"
-              style={{ color: categoryColour(story.category), letterSpacing: "0.2em" }}
+              className="overline"
+              style={{ color: categoryColour(story.category), letterSpacing: "0.22em" }}
             >
               {story.category}
             </span>
-            <span className="overline">·</span>
-            <span className="overline truncate">{story.source}</span>
+            <span className="overline text-[var(--color-fg-subtle)]">·</span>
+            <span className="overline text-[var(--color-fg-subtle)] truncate">
+              {story.source}
+            </span>
           </div>
           <BookmarkButton id={story.id} title={story.headline} />
         </div>
 
-        <h3 className="font-serif text-xl leading-snug mb-2">{story.headline}</h3>
-        <p className="text-sm text-[var(--color-fg-muted)] leading-relaxed">{story.dek}</p>
+        <h3 className="font-serif text-xl sm:text-2xl leading-snug mb-3 max-w-[40ch]">
+          {story.headline}
+        </h3>
+        <p className="text-[15px] text-[var(--color-fg-muted)] leading-relaxed max-w-[68ch]">
+          {story.dek}
+        </p>
 
         <SayThis story={story} persona={persona} sayThis={angle.sayThis} />
 

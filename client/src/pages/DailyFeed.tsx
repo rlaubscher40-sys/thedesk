@@ -42,7 +42,7 @@ export default function DailyFeed() {
   const further = filtered.filter((s) => s.section === "further");
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_340px] gap-8 xl:gap-12">
+    <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] 2xl:grid-cols-[minmax(0,1fr)_400px] gap-8 xl:gap-10 2xl:gap-14">
       {/* ─── Main column ────────────────────────────────────────────── */}
       <div className="min-w-0">
         <SectionErrorBoundary section="Hero">
@@ -76,7 +76,7 @@ export default function DailyFeed() {
               <SectionDivider label="More from today" />
               <SectionErrorBoundary section="More from today">
                 <StaggerList
-                  className="grid grid-cols-1 md:grid-cols-2 gap-5"
+                  className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-5"
                   cacheKey={`more-${filter}`}
                 >
                   {more.map((s) => (
@@ -91,7 +91,10 @@ export default function DailyFeed() {
             <section>
               <SectionDivider label="Further signals" />
               <SectionErrorBoundary section="Further signals">
-                <StaggerList className="space-y-4" cacheKey={`further-${filter}`}>
+                <StaggerList
+                  className="grid grid-cols-1 2xl:grid-cols-2 gap-5"
+                  cacheKey={`further-${filter}`}
+                >
                   {further.map((s) => (
                     <SignalCard key={s.id} story={s} />
                   ))}
@@ -134,23 +137,15 @@ export default function DailyFeed() {
 
 function SectionDivider({ label }: { label: string }) {
   return (
-    <div className="flex items-center gap-4 mb-5">
+    <div className="flex items-baseline gap-6 mb-7">
       <span
-        className="font-mono uppercase tracking-[0.22em] shrink-0"
-        style={{
-          fontSize: "10px",
-          color: "oklch(0.85 0.16 75 / 90%)",
-        }}
+        className="font-mono uppercase tracking-[0.24em] shrink-0 text-[var(--color-fg-subtle)]"
+        style={{ fontSize: "10px" }}
       >
-        — {label} —
+        {label}
       </span>
       <span
-        className="block flex-1"
-        style={{
-          height: "1px",
-          background:
-            "linear-gradient(90deg, oklch(0.75 0.18 70 / 30%), transparent)",
-        }}
+        className="block flex-1 h-px bg-[var(--color-border)]"
         aria-hidden="true"
       />
     </div>

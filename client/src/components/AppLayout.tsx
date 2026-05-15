@@ -48,9 +48,7 @@ const NAV_ITEMS: NavItem[] = [
   { path: "/queue", label: "Reading Queue", icon: Bookmark },
   { path: "/search", label: "Explore", icon: Search },
   { path: "/about", label: "About", icon: Info },
-  // Admin lives at the bottom of the rail; the EditionReader's admin panel
-  // is where the actual controls live, so /editions covers it.
-  { path: "/editions", label: "Admin", icon: Settings, requiresAdmin: true },
+  { path: "/admin", label: "Admin", icon: Settings, requiresAdmin: true },
 ];
 
 const MOBILE_TABS: NavItem[] = [
@@ -151,7 +149,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
               broadsheet rhythm has room to breathe. Pages that need a
               narrower reading column (the prose-heavy About page, the
               Story page) wrap their own column inside. */}
-          <div className="px-5 sm:px-8 lg:px-12 xl:px-16 py-8 lg:py-12 pb-24 lg:pb-16 max-w-[1440px] mx-auto">
+          {/* Full-bleed content area. Pages that need a narrower reading
+              column (About, Story) wrap their own column inside. The
+              dashboard pages (Today, Editions, Trends, Archive) use the
+              whole width. */}
+          <div className="px-5 sm:px-8 lg:px-12 xl:px-16 2xl:px-20 py-8 lg:py-12 pb-24 lg:pb-16">
             {children}
           </div>
         </main>
@@ -280,30 +282,23 @@ function SidebarHeader({
   return (
     <div className="px-5 pt-7 pb-5">
       <div className="flex items-start justify-between gap-2">
-        {/* Brand lockup: logomark + wordmark + by-line + live indicator.
-            Wrapped in first-paint-mark so it fades in once on mount. */}
+        {/* Restrained brand lockup — logomark + wordmark + single live
+            indicator beneath. The by-line link and edition marker
+            moved out; their information was redundant against the rest
+            of the page chrome. */}
         <div className="flex items-start gap-2.5 first-paint-mark min-w-0">
           <Logomark size={26} animated />
           <div className="leading-none min-w-0">
             <span className="font-serif font-bold tracking-tight text-[19px] leading-none wordmark block">
               The Desk
             </span>
-            <a
-              href="https://www.linkedin.com/in/ruben-laubscher/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block overline mt-2 hover:text-amber-400 transition-colors"
-              style={{ fontSize: "8px", letterSpacing: "0.14em" }}
-            >
-              By Ruben Laubscher
-            </a>
             <div className="flex items-center gap-1.5 mt-2.5">
               <span className="live-dot" aria-hidden="true" />
               <span
-                className="overline-amber"
-                style={{ fontSize: "8px", letterSpacing: "0.16em" }}
+                className="overline text-[var(--color-fg-subtle)]"
+                style={{ fontSize: "8px", letterSpacing: "0.18em" }}
               >
-                Live Intelligence
+                Live · Sydney
               </span>
             </div>
           </div>
@@ -312,39 +307,19 @@ function SidebarHeader({
           onClick={onToggleCollapse}
           aria-label="Collapse sidebar"
           title="Collapse sidebar ([)"
-          className="p-1.5 rounded text-[var(--color-fg-subtle)] hover:text-amber-400 transition-colors shrink-0"
+          className="p-1.5 rounded text-[var(--color-fg-subtle)] hover:text-[var(--color-fg)] transition-colors shrink-0"
         >
           <PanelLeftClose className="h-4 w-4" />
         </button>
       </div>
 
-      {/* Publication anchor: today's date + the daily-intelligence marker. */}
-      <div className="mt-4 pt-3 border-t border-[var(--color-border)]">
-        <p
-          className="overline mb-1.5"
-          style={{ fontSize: "8px", letterSpacing: "0.15em" }}
-        >
-          {currentDate}
-        </p>
-        <div className="flex items-center gap-2">
-          <span
-            className="block"
-            style={{
-              width: "14px",
-              height: "1.5px",
-              background:
-                "linear-gradient(90deg, oklch(0.75 0.18 70 / 80%), oklch(0.75 0.18 70 / 18%))",
-              borderRadius: "999px",
-            }}
-          />
-          <span
-            className="overline-amber"
-            style={{ fontSize: "7.5px", letterSpacing: "0.18em" }}
-          >
-            Daily Intelligence
-          </span>
-        </div>
-      </div>
+      {/* Today's date — a single quiet line. */}
+      <p
+        className="overline mt-5 pt-4 border-t border-[var(--color-border)] text-[var(--color-fg-subtle)]"
+        style={{ fontSize: "8px", letterSpacing: "0.2em" }}
+      >
+        {currentDate}
+      </p>
     </div>
   );
 }
@@ -365,34 +340,33 @@ function SidebarLink({
     <Link href={item.path}>
       <span
         className={cn(
-          "relative flex items-center gap-3 mx-2 px-3 py-2 rounded text-sm group transition-all duration-200",
-          "before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-4 before:w-[2px] before:rounded-r before:transition-all",
+          "relative flex items-center gap-3 mx-2 px-3 py-2 rounded-sm text-sm transition-colors duration-150",
           active
-            ? "bg-amber-500/[0.07] text-amber-200 before:bg-amber-400 before:opacity-100"
-            : "text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] hover:bg-white/[0.04] before:bg-amber-400 before:opacity-0 hover:before:opacity-30",
+            ? "text-[var(--color-fg)]"
+            : "text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] hover:bg-white/[0.03]",
           collapsed && "justify-center px-0 mx-1.5"
         )}
+        style={
+          active
+            ? {
+                background: "oklch(1 0 0 / 4%)",
+                boxShadow: "inset 0 0 0 1px oklch(1 0 0 / 6%)",
+              }
+            : undefined
+        }
         title={collapsed ? item.label : undefined}
       >
         <Icon
-          className={cn(
-            "h-[14px] w-[14px] shrink-0 transition-colors",
-            active ? "text-amber-300" : ""
-          )}
-          strokeWidth={active ? 2 : 1.75}
+          className="h-[14px] w-[14px] shrink-0"
+          strokeWidth={active ? 2 : 1.6}
         />
         {!collapsed && (
-          <span
-            className={cn(
-              "flex-1 truncate transition-all",
-              active ? "font-semibold tracking-tight" : "font-normal"
-            )}
-          >
+          <span className={cn("flex-1 truncate", active ? "font-medium" : "")}>
             {item.label}
           </span>
         )}
         {!collapsed && item.path === "/queue" && unreadCount > 0 && (
-          <span className="font-mono text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 tabular-nums">
+          <span className="font-mono text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[oklch(0.18_0.018_260)] text-[var(--color-fg-muted)] tabular-nums">
             {unreadCount}
           </span>
         )}

@@ -4,7 +4,6 @@
  * Ruben's Take gets a quoted block with an oversized opening quotation
  * mark so it reads like the lead of a print essay.
  */
-import { Quote } from "lucide-react";
 import type { Edition } from "@shared/types";
 import type { KeyMetrics } from "@shared/schemas";
 
@@ -85,28 +84,27 @@ export function EditionHero({ edition }: { edition: Edition }) {
         Weekly intelligence for property partnerships.
       </p>
 
-      {/* Ruben's Take — the editorial hook. Big serif italic with an
-          oversized amber quote mark, sitting against an amber left rule. */}
+      {/* Ruben's Take — the editorial hook. Restrained gold rule + serif
+          italic. Aesop register. */}
       {edition.rubensTake && (
-        <blockquote className="relative mt-10 mb-10 pl-8 max-w-[78ch]">
-          <div
-            className="absolute left-0 top-0 bottom-0"
+        <blockquote className="relative mt-12 mb-12 pl-7 max-w-[68ch]">
+          <span
+            className="absolute left-0 top-1 bottom-1 w-px"
             style={{
-              width: "2px",
               background:
-                "linear-gradient(180deg, var(--color-amber) 0%, oklch(0.75 0.18 70 / 18%) 100%)",
+                "linear-gradient(180deg, var(--color-amber) 0%, transparent 100%)",
             }}
             aria-hidden="true"
           />
-          <Quote
-            className="absolute -left-1 -top-3 h-7 w-7 text-amber-400/30"
-            strokeWidth={1.5}
-            aria-hidden="true"
-          />
-          <p className="overline-amber mb-3 ml-1">Ruben's Take</p>
+          <p
+            className="overline mb-3"
+            style={{ color: "var(--color-amber)", letterSpacing: "0.24em" }}
+          >
+            Ruben's Take
+          </p>
           <p
             className="font-serif italic text-[var(--color-fg)] leading-snug"
-            style={{ fontSize: "clamp(1.25rem, 2.2vw, 1.65rem)" }}
+            style={{ fontSize: "clamp(1.25rem, 2.2vw, 1.75rem)" }}
           >
             {edition.rubensTake}
           </p>

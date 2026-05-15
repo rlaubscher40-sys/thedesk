@@ -25,28 +25,30 @@ export function StoryCard({ story }: { story: Story }) {
   return (
     <article
       className={cn(
-        "panel hover-lift rounded p-6 sm:p-7 flex flex-col h-full",
+        "panel hover-lift rounded-sm p-7 sm:p-8 flex flex-col h-full",
         categoryAccentClass(story.category)
       )}
     >
-      <div className="flex items-start justify-between gap-3 mb-4">
+      <div className="flex items-start justify-between gap-3 mb-5">
         <div className="flex items-center gap-2.5 min-w-0">
           <span
-            className="overline-amber"
-            style={{ color: categoryColour(story.category), letterSpacing: "0.2em" }}
+            className="overline"
+            style={{ color: categoryColour(story.category), letterSpacing: "0.22em" }}
           >
             {story.category}
           </span>
-          <span className="overline">·</span>
-          <span className="overline truncate">{story.source}</span>
+          <span className="overline text-[var(--color-fg-subtle)]">·</span>
+          <span className="overline text-[var(--color-fg-subtle)] truncate">
+            {story.source}
+          </span>
         </div>
         <BookmarkButton id={story.id} title={story.headline} />
       </div>
 
-      <div className="flex gap-4 mb-4">
+      <div className="flex gap-5 mb-4">
         <div className="flex-1 min-w-0">
-          <h3 className="display-3 leading-tight mb-2 line-clamp-3">{story.headline}</h3>
-          <p className="text-sm text-[var(--color-fg-muted)] leading-relaxed line-clamp-3">
+          <h3 className="display-3 leading-tight mb-3 line-clamp-3">{story.headline}</h3>
+          <p className="text-[15px] text-[var(--color-fg-muted)] leading-relaxed line-clamp-3">
             {story.dek}
           </p>
         </div>

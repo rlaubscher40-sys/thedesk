@@ -73,37 +73,35 @@ export function SayThis({ story, persona, sayThis }: Props) {
 
   return (
     <div
-      className="mt-5 p-4 sm:p-5 rounded relative"
+      className="mt-7 p-5 sm:p-6 rounded-sm relative"
       style={{
-        background: `linear-gradient(135deg, ${accent}13 0%, ${accent}06 100%)`,
-        border: `1px solid ${accent}33`,
+        background: `linear-gradient(135deg, ${accent}0d 0%, ${accent}04 100%)`,
+        boxShadow: `inset 0 0 0 1px ${accent}22`,
       }}
     >
-      <div className="flex items-start gap-3">
-        <div
-          className="h-7 w-7 rounded-full shrink-0 flex items-center justify-center"
-          style={{
-            background: `${accent}22`,
-            border: `1px solid ${accent}55`,
-          }}
+      <div className="flex items-start gap-4">
+        <span
+          className="h-1 w-6 rounded-full mt-3 shrink-0"
+          style={{ background: accent }}
           aria-hidden="true"
-        >
-          <MessageSquare className="h-3.5 w-3.5" style={{ color: accent }} />
-        </div>
+        />
         <div className="flex-1 min-w-0">
-          <p
-            className="overline mb-1.5"
-            style={{ color: accent, letterSpacing: "0.2em" }}
-          >
-            Say this · {persona}
-          </p>
-          <p className="font-serif italic text-base sm:text-lg leading-snug text-[var(--color-fg)]">
+          <div className="flex items-center gap-2 mb-2">
+            <MessageSquare className="h-3 w-3" style={{ color: accent }} />
+            <p
+              className="overline"
+              style={{ color: accent, letterSpacing: "0.24em", fontSize: "10px" }}
+            >
+              Say this · {persona}
+            </p>
+          </div>
+          <p className="font-serif italic text-lg sm:text-xl leading-snug text-[var(--color-fg)] max-w-[60ch]">
             "{sayThis}"
           </p>
         </div>
       </div>
 
-      <div className="mt-4 flex items-center gap-1.5 flex-wrap">
+      <div className="mt-5 ml-10 flex items-center gap-1.5 flex-wrap">
         <SmallButton onClick={copyText} icon={copied === "text" ? Check : Copy}>
           {copied === "text" ? "Copied" : "Copy"}
         </SmallButton>
@@ -129,9 +127,9 @@ function SmallButton({
     <button
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-mono uppercase tracking-[0.14em]",
-        "text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] border border-[var(--color-border)]",
-        "hover:border-amber-400/40 hover:bg-white/[0.03] transition-colors"
+        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[10px] font-mono uppercase tracking-[0.16em]",
+        "text-[var(--color-fg-subtle)] hover:text-[var(--color-fg)]",
+        "hover:bg-white/[0.04] transition-colors"
       )}
     >
       <Icon className="h-3 w-3" />

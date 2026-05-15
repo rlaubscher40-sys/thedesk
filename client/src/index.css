@@ -119,19 +119,20 @@
      line with a soft shadow. Used at the top of every page and
      under page headers.
   */
+  /* Site-wide editorial rule. Single 1px line with a soft amber glow —
+     the cinema-grade version of the brand rule. The aggressive 2px
+     version was visually loud and competed with type. */
   .editorial-rule {
-    height: 2px;
+    height: 1px;
     background: linear-gradient(
       90deg,
       transparent 0%,
-      var(--color-amber-dim) 5%,
-      var(--color-amber) 25%,
-      var(--color-amber-bright) 50%,
-      var(--color-amber) 75%,
-      var(--color-amber-dim) 95%,
+      var(--color-amber-dim) 15%,
+      var(--color-amber) 50%,
+      var(--color-amber-dim) 85%,
       transparent 100%
     );
-    box-shadow: 0 0 20px 4px var(--color-amber-glow), 0 0 60px 8px oklch(0.75 0.18 70 / 8%);
+    box-shadow: 0 0 14px 0 oklch(0.75 0.18 70 / 18%);
     flex-shrink: 0;
   }
 
@@ -139,11 +140,9 @@
     height: 1px;
     background: linear-gradient(
       90deg,
-      transparent 0%,
-      var(--color-amber-dim) 25%,
-      var(--color-amber) 50%,
-      var(--color-amber-dim) 75%,
-      transparent 100%
+      transparent,
+      var(--color-border-strong) 50%,
+      transparent
     );
   }
 
@@ -198,13 +197,11 @@
   .panel-hover {
     transition:
       border-color 220ms ease,
-      background-color 220ms ease,
-      box-shadow 220ms ease;
+      background-color 220ms ease;
   }
   .panel-hover:hover {
     border-color: var(--color-border-strong);
-    background: color-mix(in oklab, var(--color-bg-elevated) 88%, var(--color-amber) 12%);
-    box-shadow: 0 8px 30px oklch(0 0 0 / 35%), 0 0 0 1px var(--color-amber-dim);
+    background: color-mix(in oklab, var(--color-bg-elevated) 92%, white 8%);
   }
 
   /* ─── Category accent ──────────────────────────────────────── */
@@ -288,19 +285,20 @@
      over a card. Combined with panel-hover for cards that
      also tint on hover.
   */
+  /* Subtle hover lift — premium-feeling, not theatrical. Apple-style:
+     2px Y, deeper shadow, no amber wash on the ring. */
   .hover-lift {
     transition:
-      transform 240ms cubic-bezier(0.16, 1, 0.3, 1),
-      box-shadow 240ms ease,
+      transform 260ms cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 260ms ease,
       border-color 220ms ease;
     will-change: transform;
   }
   .hover-lift:hover {
     transform: translateY(-2px);
     box-shadow:
-      0 12px 32px oklch(0 0 0 / 35%),
-      0 0 0 1px oklch(0.75 0.18 70 / 18%),
-      0 0 24px oklch(0.75 0.18 70 / 10%);
+      0 14px 40px oklch(0 0 0 / 40%),
+      0 0 0 1px oklch(1 0 0 / 14%);
   }
 
   /* ─── Headline reveal ───────────────────────────────────

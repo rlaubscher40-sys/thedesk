@@ -28,25 +28,32 @@ export function FeaturedCard({ story }: { story: Story }) {
 
   return (
     <article
-      className="panel rounded relative overflow-hidden hover-lift"
-      style={{ boxShadow: `inset 4px 0 0 0 ${colour}` }}
+      className="panel rounded-sm relative overflow-hidden hover-lift"
+      style={{ boxShadow: `inset 3px 0 0 0 ${colour}` }}
     >
-      <div className="p-7 sm:p-9 lg:p-10">
-        {/* Metadata + actions. */}
-        <div className="flex items-start justify-between gap-3 mb-5 flex-wrap">
+      <div className="p-8 sm:p-12 lg:p-16">
+        {/* Quiet metadata strip. */}
+        <div className="flex items-start justify-between gap-3 mb-8 flex-wrap">
           <div className="flex items-center gap-3 min-w-0 flex-wrap">
             <span
-              className="overline-amber"
-              style={{ color: colour, letterSpacing: "0.22em" }}
+              className="overline"
+              style={{ color: colour, letterSpacing: "0.24em" }}
             >
               {story.category}
             </span>
-            <span className="overline">·</span>
-            <span className="overline">Featured</span>
+            <span className="overline text-[var(--color-fg-subtle)]">·</span>
+            <span
+              className="overline text-[var(--color-fg-subtle)]"
+              style={{ letterSpacing: "0.24em" }}
+            >
+              Featured
+            </span>
             {story.readingTime && (
               <>
-                <span className="overline">·</span>
-                <span className="overline">{story.readingTime}</span>
+                <span className="overline text-[var(--color-fg-subtle)]">·</span>
+                <span className="overline text-[var(--color-fg-subtle)]">
+                  {story.readingTime}
+                </span>
               </>
             )}
           </div>
@@ -55,31 +62,20 @@ export function FeaturedCard({ story }: { story: Story }) {
             <button
               onClick={() => setLinkedInOpen((v) => !v)}
               aria-label="Share to LinkedIn"
-              className="p-1.5 rounded text-[var(--color-fg-subtle)] hover:text-amber-300 transition-colors"
+              className="p-1.5 rounded text-[var(--color-fg-subtle)] hover:text-[var(--color-fg)] transition-colors"
             >
               <Linkedin className="h-4 w-4" />
             </button>
           </div>
         </div>
 
-        {/* Headline. */}
-        <h2 className="display-2 mb-5">{story.headline}</h2>
+        {/* Headline — display-2 scale. */}
+        <h2 className="display-2 mb-7 max-w-[28ch]">{story.headline}</h2>
 
-        {/* Dek — italic serif, generous max-w for legibility. */}
-        <p className="font-serif italic text-lg text-[var(--color-fg-muted)] leading-relaxed max-w-[68ch]">
+        {/* Dek. */}
+        <p className="font-serif italic text-lg sm:text-xl text-[var(--color-fg-muted)] leading-relaxed max-w-[68ch]">
           {story.dek}
         </p>
-
-        {/* Read original is repeated up top as a quick link; full source
-            footer lives at the bottom. */}
-        <a
-          href={story.sourceUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 overline-amber mt-5 hover:text-amber-200 transition-colors"
-        >
-          Read original →
-        </a>
 
         <SayThis story={story} persona={persona} sayThis={angle.sayThis} />
 
@@ -93,16 +89,15 @@ export function FeaturedCard({ story }: { story: Story }) {
           category={story.category}
         />
 
-        {/* Optional inline LinkedIn-share confirmation note. */}
         {linkedInOpen && (
           <p
             role="status"
             className={cn(
               "mt-4 text-xs text-[var(--color-fg-muted)] border-l-2 pl-3",
-              "border-amber-400/40"
+              "border-[var(--color-border-strong)]"
             )}
           >
-            Use the Share button in the Say This block — it copies the line and opens LinkedIn for you.
+            Use the Share button on the Say This block — it copies the line and opens LinkedIn.
           </p>
         )}
       </div>

@@ -52,8 +52,11 @@ export default function EditionsPage() {
         actions={user?.role === "admin" ? <BackfillRubensTakeButton /> : undefined}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-8 lg:gap-12 xl:gap-16">
-        <aside className="space-y-2">
+      {/* Two-pane spread. The list rail is sticky so it scrolls
+          independently of the reader. Widths grow on 2xl screens so the
+          rail doesn't feel narrow on ultra-wide monitors. */}
+      <div className="grid grid-cols-1 lg:grid-cols-[320px_minmax(0,1fr)] 2xl:grid-cols-[380px_minmax(0,1fr)] gap-8 lg:gap-12 2xl:gap-16">
+        <aside className="lg:sticky lg:top-6 lg:self-start lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto pr-2">
           <SectionErrorBoundary section="Editions list">
             {listQuery.isLoading ? (
               <ListSkeleton />
@@ -78,7 +81,7 @@ export default function EditionsPage() {
           </SectionErrorBoundary>
         </aside>
 
-        <div>
+        <div className="min-w-0">
           <SectionErrorBoundary section="Edition reader">
             {editionQuery.isLoading ? (
               <EditionReaderSkeleton />
