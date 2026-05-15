@@ -4,10 +4,18 @@
  * Ruben's Take gets a quoted block with an oversized opening quotation
  * mark so it reads like the lead of a print essay.
  */
+import { ArrowDown, ArrowUp, Minus } from "lucide-react";
 import type { Edition } from "@shared/types";
 import type { KeyMetrics } from "@shared/schemas";
 
-export function EditionHero({ edition }: { edition: Edition }) {
+export function EditionHero({
+  edition,
+  priorMetrics,
+}: {
+  edition: Edition;
+  /** Prior edition's keyMetrics so the strip can render trend arrows. */
+  priorMetrics?: KeyMetrics | null;
+}) {
   // Folio = the printed-page corner marker. Carries the edition number,
   // weekday and city. Decorative on screen, ritual in print.
   const folio = `EDITION No. ${edition.editionNumber} · WEEK OF ${edition.weekOf} · SYDNEY`;
@@ -36,10 +44,14 @@ export function EditionHero({ edition }: { edition: Edition }) {
         <div className="h-px mt-px bg-[var(--color-border)]" aria-hidden="true" />
       </div>
 
-      {/* Wide-format hero image. Falls back to a dramatic gradient when no
-          AI-generated image is available. */}
+      {/* Wide-format hero image. Capped at 420px so the cover doesn't
+          dwarf the rest of the page on tall monitors. Aspect ratio
+          tightened from 2:1 to 16:5 (≈3.2:1) — short cinematic band. */}
       {edition.heroImageUrl ? (
-        <div className="aspect-[2/1] w-full overflow-hidden rounded mb-8 bg-[var(--color-bg-elevated)] relative">
+        <div
+          className="aspect-[16/5] w-full overflow-hidden rounded-sm mb-8 bg-[var(--color-bg-elevated)] relative"
+          style={{ maxHeight: 420 }}
+        >
           {/* Ken Burns drift — slow scale + translate3d so the cover
               feels alive without competing with the content. */}
           <img
@@ -149,7 +161,7 @@ export function EditionHero({ edition }: { edition: Edition }) {
 
       {/* Metric strip — dense, mono, tabular. */}
       {edition.keyMetrics && Object.keys(edition.keyMetrics).length > 0 && (
-        <MetricsStrip metrics={edition.keyMetrics} />
+        <MetricsStrip metrics={edition.keyMetrics} prior={priorMetrics ?? null} />
       )}
     </header>
   );
@@ -158,8 +170,9 @@ export function EditionHero({ edition }: { edition: Edition }) {
 function HeroPlaceholder() {
   return (
     <div
-      className="aspect-[2/1] w-full rounded mb-8 relative overflow-hidden noise-overlay"
+      className="aspect-[16/5] w-full rounded-sm mb-8 relative overflow-hidden noise-overlay"
       style={{
+        maxHeight: 420,
         background:
           "linear-gradient(135deg, oklch(0.14 0.02 260) 0%, oklch(0.10 0.02 260) 35%, oklch(0.18 0.03 260) 60%, oklch(0.32 0.18 70 / 30%) 100%)",
       }}
@@ -183,29 +196,137 @@ function HeroPlaceholder() {
   );
 }
 
-function MetricsStrip({ metrics }: { metrics: KeyMetrics }) {
+function MetricsStrip({
+  metrics,
+  prior,
+}: {
+  metrics: KeyMetrics;
+  prior: KeyMetrics | null;
+}) {
   const entries = Object.entries(metrics).slice(0, 6);
   return (
     <div
-      className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-px panel rounded overflow-hidden"
+      className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-px panel rounded-sm overflow-hidden"
       role="list"
-      aria-label="Key market metrics"
+      aria-label="Key market metrics versus prior edition"
     >
       {entries.map(([label, value], idx) => (
-        // Defensive key: use label when unique, fall back to index — issue #1.
-        <div
+        <MetricTile
           key={`${label}-${idx}`}
-          role="listitem"
-          className="bg-[var(--color-bg-elevated)] p-4 hover:bg-[oklch(0.18_0.02_260)] transition-colors"
-        >
-          <p className="overline mb-2 truncate" style={{ letterSpacing: "0.14em" }}>
-            {label}
-          </p>
-          <p className="font-mono text-lg font-semibold tabular-nums text-[var(--color-fg)]">
-            {value}
-          </p>
-        </div>
+          label={label}
+          value={value}
+          prior={prior?.[label]}
+        />
       ))}
     </div>
   );
+}
+
+function MetricTile({
+  label,
+  value,
+  prior,
+}: {
+  label: string;
+  value: string | number;
+  prior: string | number | undefined | null;
+}) {
+  const current = toNumber(value);
+  const previous = prior != null ? toNumber(prior) : NaN;
+  const hasDelta = Number.isFinite(current) && Number.isFinite(previous);
+  const delta = hasDelta ? current - previous : 0;
+  const trend: Trend =
+    !hasDelta || Math.abs(delta) < 0.0001
+      ? "flat"
+      : delta > 0
+        ? "up"
+        : "down";
+
+  const dog = directionOfGood(label); // "up" | "down" | "neutral"
+  const sentiment = computeSentiment(trend, dog);
+  const tone = SENTIMENT_TONE[sentiment];
+  const Icon = trend === "up" ? ArrowUp : trend === "down" ? ArrowDown : Minus;
+
+  return (
+    <div
+      role="listitem"
+      className="bg-[var(--color-bg-elevated)] p-4 hover:bg-[oklch(0.18_0.02_260)] transition-colors"
+    >
+      <p
+        className="overline mb-2 truncate text-[var(--color-fg-subtle)]"
+        style={{ letterSpacing: "0.18em" }}
+        title={label}
+      >
+        {label}
+      </p>
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="font-mono text-lg font-semibold tabular-nums text-[var(--color-fg)] leading-none">
+          {value}
+        </p>
+        <span
+          className="inline-flex items-center gap-1 font-mono tabular-nums"
+          style={{ color: tone.colour, fontSize: "11px" }}
+          title={`${trend} vs prior · ${sentiment}`}
+          aria-label={`${trend} versus prior — ${sentiment}`}
+        >
+          <Icon className="h-3 w-3" strokeWidth={2.5} />
+          {hasDelta && trend !== "flat" && (
+            <span>
+              {delta > 0 ? "+" : ""}
+              {formatDelta(delta)}
+            </span>
+          )}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Trend helpers ──────────────────────────────────────────────────────────
+
+type Trend = "up" | "down" | "flat";
+type Sentiment = "good" | "bad" | "neutral";
+
+/**
+ * Direction-of-good lookup. Maps a metric label to the direction that
+ * counts as "good" for our partner channel. Defaults to "neutral" so
+ * unrecognised metrics get a yellow chip instead of red/green.
+ */
+function directionOfGood(label: string): "up" | "down" | "neutral" {
+  const k = label.toLowerCase();
+  // Rates / costs / risk metrics — DOWN is good.
+  if (/(cash rate|rate|inflation|cpi|unemploy|oil|brent|vix|spread)/.test(k))
+    return "down";
+  // Activity / income / channel metrics — UP is good.
+  if (/(clearance|asx|index|channel|broker|wage|income|gdp|production|housing|listings)/.test(k))
+    return "up";
+  return "neutral";
+}
+
+function computeSentiment(trend: Trend, dog: "up" | "down" | "neutral"): Sentiment {
+  if (trend === "flat") return "neutral";
+  if (dog === "neutral") return "neutral";
+  if (trend === dog) return "good";
+  return "bad";
+}
+
+const SENTIMENT_TONE: Record<Sentiment, { colour: string }> = {
+  good: { colour: "oklch(0.72 0.17 155)" }, // green
+  bad: { colour: "oklch(0.68 0.20 15)" }, // red
+  neutral: { colour: "oklch(0.78 0.18 70)" }, // amber
+};
+
+function toNumber(v: string | number | undefined | null): number {
+  if (typeof v === "number") return v;
+  if (typeof v !== "string") return NaN;
+  const m = v.match(/-?[\d,.]+/);
+  if (!m) return NaN;
+  return Number(m[0].replace(/,/g, ""));
+}
+
+function formatDelta(d: number): string {
+  const abs = Math.abs(d);
+  if (abs >= 100) return d.toFixed(0);
+  if (abs >= 1) return d.toFixed(2);
+  return d.toFixed(3);
 }

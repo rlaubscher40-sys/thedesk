@@ -49,6 +49,16 @@ export default function EditionsPage() {
     { enabled: selectedNumber != null }
   );
 
+  // Prior edition for trend arrows on the metrics strip. Looked up from
+  // the list query (already cached) so we don't fire a second round-trip.
+  const priorMetrics = useMemo(() => {
+    if (selectedNumber == null) return null;
+    const prior = listQuery.data?.find(
+      (ed) => ed.editionNumber === selectedNumber - 1
+    );
+    return prior?.keyMetrics ?? null;
+  }, [listQuery.data, selectedNumber]);
+
   return (
     <div>
       <PageHeader
@@ -80,7 +90,7 @@ export default function EditionsPage() {
           {editionQuery.isLoading ? (
             <EditionReaderSkeleton />
           ) : editionQuery.data ? (
-            <EditionReader edition={editionQuery.data} />
+            <EditionReader edition={editionQuery.data} priorMetrics={priorMetrics} />
           ) : (
             <p className="text-sm text-[var(--color-fg-muted)]">
               Select an edition to begin reading.

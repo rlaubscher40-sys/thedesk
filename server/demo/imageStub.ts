@@ -36,19 +36,26 @@ function hash(s: string): number {
 }
 
 function pickTemplate(prompt: string, h: number): Template {
-  const p = prompt.toLowerCase();
-  if (/(property|housing|listing|suburb|auction|sydney|melbourne)/.test(p))
-    return "cityscape";
-  if (/(rba|cash rate|reserve bank|treasury|budget)/.test(p)) return "civic";
-  if (/(market|asx|bond|equit|yield|index)/.test(p)) return "markets";
-  if (/(policy|apra|regulation|reform|legislation)/.test(p)) return "policy";
-  if (/(geopolitic|global|world|china|us|trade)/.test(p)) return "world";
-  if (/(ai|technology|tech|machine learn|chip|data|algorithm)/.test(p))
-    return "data-hall";
-  if (/(macro|economic|inflation|wage|cpi)/.test(p)) return "civic";
-  // Cycle through the rest deterministically so similar prompts vary.
-  const rest: Template[] = ["masthead", "cityscape", "civic", "markets", "world", "data-hall"];
-  return rest[h % rest.length]!;
+  // Earlier versions of this dispatcher tried to be clever — match the
+  // prompt's category against a regex and pick the "appropriate"
+  // template. The problem: every macro/budget/rba prompt hashed to the
+  // civic template, so every weekly edition with a macro lead looked
+  // identical. Now we rotate through all seven templates by hash so
+  // consecutive editions always look different. Category-flavoured
+  // colour drifting still happens inside each template's palette.
+  const all: Template[] = [
+    "cityscape",
+    "civic",
+    "markets",
+    "policy",
+    "world",
+    "data-hall",
+    "masthead",
+  ];
+  // Use the prompt to keep the original signal — different prompts still
+  // produce different templates — but ignore category matching.
+  void prompt;
+  return all[h % all.length]!;
 }
 
 export async function demoImage({ prompt }: GenerateImageOptions): Promise<{ url: string }> {

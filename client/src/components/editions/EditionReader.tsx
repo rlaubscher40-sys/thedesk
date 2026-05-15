@@ -4,6 +4,7 @@
  * LeadStory, TopicCard, SignalsBriefs, EditionAdminPanel.
  */
 import type { Edition } from "@shared/types";
+import type { KeyMetrics } from "@shared/schemas";
 import { SectionErrorBoundary } from "../ErrorBoundary";
 import { ScrollProgress } from "../ScrollProgress";
 import { StaggerList } from "../StaggerList";
@@ -13,7 +14,15 @@ import { LeadStory } from "./LeadStory";
 import { SignalsBriefs } from "./SignalsBriefs";
 import { TopicCard } from "./TopicCard";
 
-export function EditionReader({ edition }: { edition: Edition }) {
+export function EditionReader({
+  edition,
+  priorMetrics,
+}: {
+  edition: Edition;
+  /** Prior edition's keyMetrics — drives the trend arrows on the
+      metrics strip. */
+  priorMetrics?: KeyMetrics | null;
+}) {
   const topics = edition.topics ?? [];
   const [lead, ...rest] = topics;
 
@@ -21,7 +30,7 @@ export function EditionReader({ edition }: { edition: Edition }) {
     <article>
       <ScrollProgress />
       <SectionErrorBoundary section="Hero">
-        <EditionHero edition={edition} />
+        <EditionHero edition={edition} priorMetrics={priorMetrics ?? null} />
       </SectionErrorBoundary>
 
       {lead && (
