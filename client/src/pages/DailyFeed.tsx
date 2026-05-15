@@ -1,122 +1,158 @@
 /**
- * Today — magazine front page.
+ * Today — full daily-intelligence dashboard.
  *
- *   1. PageHeader (overline, masthead-style title, kicker)
- *   2. Date picker
- *   3. Lead story spans the full width — hero plate left, editorial column
- *      right, asymmetric grid
- *   4. Supporting stories below in a balanced 1-2-3 column grid that
- *      collapses gracefully on narrow screens
+ * Three regions:
+ *   · Main column: Hero → controls strip (date pager + persona switcher
+ *     + filter chips) → three-section feed (FEATURED / MORE FROM TODAY /
+ *     FURTHER SIGNALS) → Footer.
+ *   · Right rail: Key Metrics, Today's Topics, Reading Queue, Latest
+ *     Edition, Subscribe. Sticky on xl+, drops below the main column on
+ *     anything narrower.
  *
- * Section-level boundaries and skeleton states preserved.
+ * All content comes from data/editions/2026-05-15.ts — no copy in JSX.
  */
-import { useEffect, useState } from "react";
-import { format, parseISO } from "date-fns";
-import { PageHeader } from "@/components/PageHeader";
-import { StaggerList } from "@/components/StaggerList";
-import { FeedDatePicker } from "@/components/feed/FeedDatePicker";
-import { FeedItemCard } from "@/components/feed/FeedItemCard";
-import { FeedLeadCard } from "@/components/feed/FeedLeadCard";
-import { FeedSkeleton } from "@/components/feed/FeedSkeleton";
+import { useMemo, useState } from "react";
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
-import { getSydneyIsoDate } from "@/lib/date";
-import { trpc } from "@/lib/trpc";
+import { StaggerList } from "@/components/StaggerList";
+import { DatePager } from "@/components/desk/DatePager";
+import { FeaturedCard } from "@/components/desk/FeaturedCard";
+import { FilterChips, type CategoryFilter } from "@/components/desk/FilterChips";
+import { Footer } from "@/components/desk/Footer";
+import { Hero } from "@/components/desk/Hero";
+import { PersonaSwitcher } from "@/components/desk/PersonaSwitcher";
+import { SignalCard } from "@/components/desk/SignalCard";
+import { StoryCard } from "@/components/desk/StoryCard";
+import { KeyMetrics } from "@/components/desk/rightRail/KeyMetrics";
+import { LatestEdition } from "@/components/desk/rightRail/LatestEdition";
+import { ReadingQueueRail } from "@/components/desk/rightRail/ReadingQueueRail";
+import { Subscribe } from "@/components/desk/rightRail/Subscribe";
+import { TodaysTopics } from "@/components/desk/rightRail/TodaysTopics";
+import { stories } from "@/data/editions/2026-05-15";
 
 export default function DailyFeed() {
-  const [selectedDate, setSelectedDate] = useState<string>(getSydneyIsoDate);
+  const [filter, setFilter] = useState<CategoryFilter>("ALL");
 
-  const datesQuery = trpc.feed.getRecentDates.useQuery();
-  const feedQuery = trpc.feed.getByDate.useQuery({ date: selectedDate });
+  const filtered = useMemo(
+    () => (filter === "ALL" ? stories : stories.filter((s) => s.category === filter)),
+    [filter]
+  );
 
-  useEffect(() => {
-    if (!feedQuery.isLoading && feedQuery.data?.length === 0 && datesQuery.data?.[0]) {
-      const latest = datesQuery.data[0];
-      if (latest !== selectedDate) setSelectedDate(latest);
-    }
-  }, [feedQuery.data, feedQuery.isLoading, datesQuery.data, selectedDate]);
-
-  const niceDate = (() => {
-    try {
-      return format(parseISO(selectedDate), "EEEE, d MMM yyyy");
-    } catch {
-      return selectedDate;
-    }
-  })();
-
-  const items = feedQuery.data ?? [];
-  const [lead, ...rest] = items;
+  const featured = filtered.find((s) => s.section === "featured");
+  const more = filtered.filter((s) => s.section === "more");
+  const further = filtered.filter((s) => s.section === "further");
 
   return (
-    <div>
-      <PageHeader
-        overline="The Desk · Today"
-        title="60-second morning scan"
-        kicker={niceDate}
-      />
-
-      <SectionErrorBoundary section="Date picker">
-        {datesQuery.data && (
-          <FeedDatePicker
-            dates={datesQuery.data}
-            selected={selectedDate}
-            onSelect={setSelectedDate}
-          />
-        )}
-      </SectionErrorBoundary>
-
-      <div className="mt-8 space-y-8">
-        <SectionErrorBoundary section="Feed items">
-          {feedQuery.isLoading ? (
-            <FeedSkeleton />
-          ) : items.length === 0 ? (
-            <EmptyFeed date={niceDate} />
-          ) : (
-            <>
-              {/* Lead story. */}
-              {lead && <FeedLeadCard item={lead} />}
-
-              {/* Supporting deck — 1 col mobile, 2 cols tablet, 3 cols wide. */}
-              {rest.length > 0 && (
-                <>
-                  <div className="flex items-center gap-3">
-                    <p className="overline-amber" style={{ letterSpacing: "0.2em" }}>
-                      Today's deck
-                    </p>
-                    <span
-                      className="block flex-1"
-                      style={{
-                        height: "1px",
-                        background:
-                          "linear-gradient(90deg, oklch(0.75 0.18 70 / 30%), transparent)",
-                      }}
-                      aria-hidden="true"
-                    />
-                  </div>
-                  <StaggerList
-                    className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5"
-                    cacheKey={selectedDate}
-                  >
-                    {rest.map((item) => (
-                      <FeedItemCard key={item.id} item={item} />
-                    ))}
-                  </StaggerList>
-                </>
-              )}
-            </>
-          )}
+    <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_340px] gap-8 xl:gap-12">
+      {/* ─── Main column ────────────────────────────────────────────── */}
+      <div className="min-w-0">
+        <SectionErrorBoundary section="Hero">
+          <Hero />
         </SectionErrorBoundary>
+
+        {/* Controls strip. */}
+        <div className="mt-8 space-y-5">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <DatePager />
+            <PersonaSwitcher />
+          </div>
+          <SectionErrorBoundary section="Filters">
+            <FilterChips active={filter} onChange={setFilter} />
+          </SectionErrorBoundary>
+        </div>
+
+        {/* Three-section feed. */}
+        <div className="mt-10 space-y-12">
+          {featured && (
+            <section>
+              <SectionDivider label="Featured" />
+              <SectionErrorBoundary section="Featured">
+                <FeaturedCard story={featured} />
+              </SectionErrorBoundary>
+            </section>
+          )}
+
+          {more.length > 0 && (
+            <section>
+              <SectionDivider label="More from today" />
+              <SectionErrorBoundary section="More from today">
+                <StaggerList
+                  className="grid grid-cols-1 md:grid-cols-2 gap-5"
+                  cacheKey={`more-${filter}`}
+                >
+                  {more.map((s) => (
+                    <StoryCard key={s.id} story={s} />
+                  ))}
+                </StaggerList>
+              </SectionErrorBoundary>
+            </section>
+          )}
+
+          {further.length > 0 && (
+            <section>
+              <SectionDivider label="Further signals" />
+              <SectionErrorBoundary section="Further signals">
+                <StaggerList className="space-y-4" cacheKey={`further-${filter}`}>
+                  {further.map((s) => (
+                    <SignalCard key={s.id} story={s} />
+                  ))}
+                </StaggerList>
+              </SectionErrorBoundary>
+            </section>
+          )}
+
+          {filtered.length === 0 && (
+            <div className="panel p-8 rounded text-center text-sm text-[var(--color-fg-muted)]">
+              No items match this filter.
+            </div>
+          )}
+        </div>
+
+        <Footer />
       </div>
+
+      {/* ─── Right rail ─────────────────────────────────────────────── */}
+      <aside className="xl:sticky xl:top-6 xl:self-start space-y-5">
+        <SectionErrorBoundary section="Key metrics">
+          <KeyMetrics />
+        </SectionErrorBoundary>
+        <SectionErrorBoundary section="Today's topics">
+          <TodaysTopics />
+        </SectionErrorBoundary>
+        <SectionErrorBoundary section="Reading queue">
+          <ReadingQueueRail />
+        </SectionErrorBoundary>
+        <SectionErrorBoundary section="Latest edition">
+          <LatestEdition />
+        </SectionErrorBoundary>
+        <SectionErrorBoundary section="Subscribe">
+          <Subscribe />
+        </SectionErrorBoundary>
+      </aside>
     </div>
   );
 }
 
-function EmptyFeed({ date }: { date: string }) {
+function SectionDivider({ label }: { label: string }) {
   return (
-    <div className="panel p-8 rounded text-center">
-      <p className="overline mb-2">No feed items</p>
-      <p className="text-sm text-[var(--color-fg-muted)]">
-        Nothing landed for {date} yet. The 7am AEST scan posts here automatically.
-      </p>
+    <div className="flex items-center gap-4 mb-5">
+      <span
+        className="font-mono uppercase tracking-[0.22em] shrink-0"
+        style={{
+          fontSize: "10px",
+          color: "oklch(0.85 0.16 75 / 90%)",
+        }}
+      >
+        — {label} —
+      </span>
+      <span
+        className="block flex-1"
+        style={{
+          height: "1px",
+          background:
+            "linear-gradient(90deg, oklch(0.75 0.18 70 / 30%), transparent)",
+        }}
+        aria-hidden="true"
+      />
     </div>
   );
 }

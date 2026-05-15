@@ -12,6 +12,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { OnboardingModal } from "./components/OnboardingModal";
 import { Skeleton } from "./components/ui/Skeleton";
 import { Toaster } from "./components/ui/Toaster";
+import { PersonaProvider } from "./lib/persona";
 import { ThemeProvider } from "./lib/theme";
 
 // Lazy-load every page. The bundle for / loads only DailyFeed; the rest come on demand.
@@ -97,14 +98,16 @@ export default function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider>
-        <Toaster />
-        <AppLayout>
-          <KeyboardShortcuts />
-          <Routes />
-        </AppLayout>
-        <CommandPalette />
-        <BreakingSignalToast />
-        <OnboardingModal />
+        <PersonaProvider>
+          <Toaster />
+          <AppLayout>
+            <KeyboardShortcuts />
+            <Routes />
+          </AppLayout>
+          <CommandPalette />
+          <BreakingSignalToast />
+          <OnboardingModal />
+        </PersonaProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );

@@ -18,6 +18,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Search,
+  Settings,
   Sun,
   X,
 } from "lucide-react";
@@ -37,6 +38,7 @@ type NavItem = {
   label: string;
   icon: typeof Newspaper;
   requiresAuth?: boolean;
+  requiresAdmin?: boolean;
 };
 
 const NAV_ITEMS: NavItem[] = [
@@ -44,8 +46,11 @@ const NAV_ITEMS: NavItem[] = [
   { path: "/editions", label: "Editions", icon: BookOpen },
   { path: "/trends", label: "Trends", icon: BarChart3 },
   { path: "/queue", label: "Reading Queue", icon: Bookmark },
-  { path: "/search", label: "Archive", icon: Search },
+  { path: "/search", label: "Explore", icon: Search },
   { path: "/about", label: "About", icon: Info },
+  // Admin lives at the bottom of the rail; the EditionReader's admin panel
+  // is where the actual controls live, so /editions covers it.
+  { path: "/editions", label: "Admin", icon: Settings, requiresAdmin: true },
 ];
 
 const MOBILE_TABS: NavItem[] = [
@@ -105,7 +110,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
     refetchInterval: 60_000,
   });
 
-  const visibleNav = NAV_ITEMS.filter((item) => !item.requiresAuth || isAuthenticated);
+  const visibleNav = NAV_ITEMS.filter((item) => {
+    if (item.requiresAuth && !isAuthenticated) return false;
+    if (item.requiresAdmin && user?.role !== "admin") return false;
+    return true;
+  });
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--color-bg)] text-[var(--color-fg)] relative">
