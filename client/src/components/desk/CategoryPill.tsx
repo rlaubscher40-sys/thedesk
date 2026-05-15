@@ -12,7 +12,7 @@ import { cn } from "@/lib/cn";
 import type { Category } from "@/data/editions/2026-05-15";
 
 type Props = {
-  category: Category | "FEATURED";
+  category: Category | "FEATURED" | "RUBEN'S PICK";
   variant?: "solid" | "outline" | "ghost";
   className?: string;
 };
@@ -39,7 +39,9 @@ export function CategoryPill({ category, variant = "outline", className }: Props
   }
 
   const colour =
-    category === "FEATURED" ? "oklch(0.78 0.18 70)" : categoryColour(category);
+    category === "FEATURED" || category === "RUBEN'S PICK"
+      ? "oklch(0.78 0.18 70)"
+      : categoryColour(category);
 
   if (variant === "outline") {
     return (
@@ -79,12 +81,15 @@ export function CategoryPill({ category, variant = "outline", className }: Props
 }
 
 /**
- * "FEATURED · MACRO" double pill — the editorial mast on the lead story.
+ * "RUBEN'S PICK · MACRO" double pill — the editorial mast on the lead
+ * story. The first half names the curator (the value prop of a daily
+ * brief: someone picked this for you); the second half names the
+ * category.
  */
 export function FeaturedPill({ category }: { category: Category }) {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <CategoryPill category="FEATURED" variant="ghost" />
+      <CategoryPill category="RUBEN'S PICK" variant="ghost" />
       <CategoryPill category={category} variant="solid" />
     </span>
   );

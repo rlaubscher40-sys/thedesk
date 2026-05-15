@@ -1,8 +1,14 @@
 /**
- * About page. Editorial register — cinematic hero illustration at the top
- * (banker's lamp lighting an open broadsheet on a desk, /about-hero.svg),
- * then a centred prose column underneath.
+ * About page. Editorial register — cinematic hero with Ruben's headshot
+ * inset prominently, name + role + credentials below, then a centred
+ * prose column. The headshot establishes the "real human curator" signal
+ * the rest of the site is built around.
  */
+import { useState } from "react";
+import { ExternalLink, Linkedin } from "lucide-react";
+
+const SUBSTACK_URL = "https://rubenlaubscher.substack.com/";
+const LINKEDIN_URL = "https://www.linkedin.com/in/ruben-laubscher/";
 
 export default function About() {
   return (
@@ -55,6 +61,53 @@ export default function About() {
               partner conversations.
             </span>
           </h1>
+        </div>
+      </section>
+
+      {/* Author block — photo, name, credentials, social. */}
+      <section className="max-w-[68ch] mx-auto">
+        <div
+          className="panel rounded-sm p-7 sm:p-9 flex items-center gap-6 sm:gap-8 flex-wrap"
+          style={{
+            background:
+              "linear-gradient(135deg, oklch(0.15 0.022 260) 0%, oklch(0.10 0.022 260) 100%)",
+          }}
+        >
+          <AuthorHeadshot />
+          <div className="min-w-0 flex-1">
+            <p
+              className="overline-amber"
+              style={{ letterSpacing: "0.24em", fontSize: "10px" }}
+            >
+              Curator
+            </p>
+            <h2 className="font-serif text-3xl sm:text-4xl font-bold leading-tight mt-1.5">
+              Ruben Laubscher
+            </h2>
+            <p className="text-sm text-[var(--color-fg-muted)] mt-2 leading-snug">
+              Head of Partnerships, InvestorKit. Sydney.
+            </p>
+            <div className="flex items-center gap-2 mt-4 flex-wrap">
+              <a
+                href={LINKEDIN_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-[10px] font-mono uppercase tracking-[0.16em] border border-[var(--color-border)] text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] hover:border-[var(--color-border-strong)] transition-colors"
+              >
+                <Linkedin className="h-3 w-3" />
+                LinkedIn
+              </a>
+              <a
+                href={SUBSTACK_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-[10px] font-mono uppercase tracking-[0.16em] border border-[var(--color-border)] text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] hover:border-[var(--color-border-strong)] transition-colors"
+              >
+                <ExternalLink className="h-3 w-3" />
+                Substack
+              </a>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -125,6 +178,53 @@ export default function About() {
           </div>
         </div>
       </article>
+    </div>
+  );
+}
+
+function AuthorHeadshot() {
+  const [failed, setFailed] = useState(false);
+  const size = 120;
+  return (
+    <div className="relative shrink-0">
+      <div
+        className="rounded-full overflow-hidden"
+        style={{
+          width: size,
+          height: size,
+          boxShadow:
+            "inset 0 0 0 1px oklch(1 0 0 / 12%), 0 8px 28px oklch(0 0 0 / 40%)",
+        }}
+      >
+        {!failed ? (
+          <img
+            src="/ruben.jpg"
+            alt="Ruben Laubscher"
+            className="w-full h-full object-cover"
+            onError={() => setFailed(true)}
+          />
+        ) : (
+          <div
+            className="w-full h-full flex items-center justify-center font-serif font-bold"
+            style={{
+              background:
+                "linear-gradient(135deg, oklch(0.32 0.06 260), oklch(0.16 0.04 260) 60%, oklch(0.32 0.18 70 / 50%))",
+              fontSize: size * 0.42,
+              color: "oklch(0.92 0.16 76)",
+            }}
+          >
+            R
+          </div>
+        )}
+      </div>
+      <span
+        className="absolute inset-0 rounded-full pointer-events-none"
+        style={{
+          boxShadow:
+            "0 0 0 1px oklch(0.75 0.18 70 / 32%), 0 0 24px oklch(0.75 0.18 70 / 18%)",
+        }}
+        aria-hidden="true"
+      />
     </div>
   );
 }

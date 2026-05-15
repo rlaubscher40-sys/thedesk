@@ -21,13 +21,15 @@ import { DatePager } from "@/components/desk/DatePager";
 import { FeaturedCard } from "@/components/desk/FeaturedCard";
 import { FilterChips, type CategoryFilter } from "@/components/desk/FilterChips";
 import { Footer } from "@/components/desk/Footer";
+import { FromTheDeskIntro } from "@/components/desk/FromTheDeskIntro";
 import { Hero } from "@/components/desk/Hero";
 import { PersonaSwitcher } from "@/components/desk/PersonaSwitcher";
 import { SignalCard } from "@/components/desk/SignalCard";
 import { StoryCard } from "@/components/desk/StoryCard";
+import { WhatsNewPill } from "@/components/desk/WhatsNewPill";
 import { MetricsStrip } from "@/components/desk/rightRail/MetricsStrip";
 import { SupportStrip } from "@/components/desk/rightRail/SupportStrip";
-import { stories } from "@/data/editions/2026-05-15";
+import { editionMeta, stories } from "@/data/editions/2026-05-15";
 
 export default function DailyFeed() {
   const [filter, setFilter] = useState<CategoryFilter>("ALL");
@@ -41,10 +43,21 @@ export default function DailyFeed() {
   const more = filtered.filter((s) => s.section === "more");
   const further = filtered.filter((s) => s.section === "further");
 
+  // Edition publish time = 7am Sydney on editionMeta.date. We treat every
+  // story on the page as having landed at that moment for the "what's new"
+  // calculation. When this page is wired to real DB items, swap to each
+  // item's createdAt.
+  const editionPublishedMs = new Date(`${editionMeta.date}T07:00:00+10:00`).getTime();
+  const storyTimestamps = filtered.map(() => editionPublishedMs);
+
   return (
     <div className="space-y-12">
       <SectionErrorBoundary section="Hero">
         <Hero />
+      </SectionErrorBoundary>
+
+      <SectionErrorBoundary section="Author intro">
+        <FromTheDeskIntro />
       </SectionErrorBoundary>
 
       <div className="space-y-5">
@@ -55,6 +68,7 @@ export default function DailyFeed() {
         <SectionErrorBoundary section="Filters">
           <FilterChips active={filter} onChange={setFilter} />
         </SectionErrorBoundary>
+        <WhatsNewPill storyDates={storyTimestamps} storageKey="today" />
       </div>
 
       <SectionErrorBoundary section="Metrics">
