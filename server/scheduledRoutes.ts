@@ -237,7 +237,7 @@ function registerWeeklyEditionRoute(app: Express): void {
         }),
       ]);
 
-      if (imageResult.status === "fulfilled" && imageResult.value.url) {
+      if (imageResult.status === "fulfilled" && imageResult.value?.url) {
         await db.updateHeroImage(inserted.id, imageResult.value.url);
         console.log(`[scheduled] hero image generated for Edition ${edition.editionNumber}`);
       } else if (imageResult.status === "rejected") {
@@ -381,7 +381,7 @@ function registerSynthesizeEditionRoute(app: Express): void {
           keyMetrics: edition.keyMetrics,
         }),
       ]);
-      if (imageResult.status === "fulfilled" && imageResult.value.url) {
+      if (imageResult.status === "fulfilled" && imageResult.value?.url) {
         await db.updateHeroImage(inserted.id, imageResult.value.url);
       }
       if (takeResult.status === "fulfilled") {

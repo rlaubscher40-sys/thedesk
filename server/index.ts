@@ -9,7 +9,6 @@ import { createServer } from "node:http";
 import net from "node:net";
 import { createContext } from "./core/context";
 import { registerOAuthRoutes } from "./core/oauth";
-import { registerStorageProxy } from "./core/storageProxy";
 import { serveStatic, setupVite } from "./core/vite";
 import { appRouter } from "./routers";
 import { registerScheduledRoutes } from "./scheduledRoutes";
@@ -36,7 +35,6 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-  registerStorageProxy(app);
   registerOAuthRoutes(app);
   registerScheduledRoutes(app);
 

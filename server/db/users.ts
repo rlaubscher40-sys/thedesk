@@ -1,14 +1,13 @@
 import { eq } from "drizzle-orm";
-import { env } from "../core/env";
 import * as demoQueries from "../demo/queries";
 import { isDemoMode } from "../demo/store";
 import { getDb } from "./client";
 import { type InsertUser, type User, users } from "./schema";
 
 /**
- * Upsert a user record from the OAuth flow. Tolerates a missing database
- * (returns silently) so the auth middleware can keep behaving sensibly during
- * local dev without MySQL running.
+ * Upsert the admin user row. There's only ever one user (Ruben) so this is
+ * always called with `openId: "admin"` — but the function stays generic so
+ * the schema doesn't need to change.
  */
 export async function upsertUser(user: InsertUser): Promise<void> {
   if (!user.openId) throw new Error("upsertUser: openId required");
@@ -16,8 +15,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   const db = getDb();
   if (!db) return;
 
-  const values: InsertUser = { openId: user.openId };
-  const updateSet: Record<string, unknown> = {};
+  const values: InsertUser = { openId: user.openId, role: "admin" };
+  const updateSet: Record<string, unknown> = { role: "admin" };
 
   for (const field of ["name", "email", "loginMethod"] as const) {
     const value = user[field];
@@ -34,9 +33,6 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   if (user.role !== undefined) {
     values.role = user.role;
     updateSet.role = user.role;
-  } else if (user.openId === env.ownerOpenId) {
-    values.role = "admin";
-    updateSet.role = "admin";
   }
 
   await db.insert(users).values(values).onDuplicateKeyUpdate({ set: updateSet });

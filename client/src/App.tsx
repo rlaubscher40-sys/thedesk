@@ -28,6 +28,7 @@ const Trends = lazy(() => import("./pages/Trends"));
 const About = lazy(() => import("./pages/About"));
 const StoryPage = lazy(() => import("./pages/StoryPage"));
 const AdminPage = lazy(() => import("./pages/Admin"));
+const Login = lazy(() => import("./pages/Login"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 function KeyboardShortcuts() {
@@ -89,6 +90,7 @@ function Routes() {
             <Route path="/about" component={About} />
             <Route path="/story/:id" component={StoryPage} />
             <Route path="/admin" component={AdminPage} />
+            <Route path="/login" component={Login} />
             <Route component={NotFound} />
           </Switch>
         </Suspense>

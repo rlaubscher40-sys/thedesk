@@ -110,10 +110,10 @@ export const editionsRouter = router({
     });
     let imageUrl: string | null = null;
     try {
-      const { url } = await generateImage({
+      const result = await generateImage({
         prompt: substackHeroPrompt({ title: draft.title, topics: edition.topics }),
       });
-      imageUrl = url;
+      imageUrl = result?.url ?? null;
     } catch (err) {
       console.warn("[editions] substack hero image failed:", err);
     }
@@ -149,21 +149,33 @@ export const editionsRouter = router({
     const edition = await db.getEditionById(input.editionId);
     if (!edition) throw new TRPCError({ code: "NOT_FOUND", message: "Edition not found" });
     const title = edition.substackDraftTitle ?? `Edition ${edition.editionNumber}`;
-    const { url } = await generateImage({
+    const result = await generateImage({
       prompt: substackHeroPrompt({ title, topics: edition.topics }),
     });
-    await db.updateSubstackImage(edition.id, url);
-    return { imageUrl: url };
+    if (!result) {
+      throw new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message: "Image generation is not configured. Set OPENAI_API_KEY to enable.",
+      });
+    }
+    await db.updateSubstackImage(edition.id, result.url);
+    return { imageUrl: result.url };
   }),
 
   /** Admin: regenerate the EditionReader hero image. */
   generateHeroImage: adminProcedure.input(editionIdInput).mutation(async ({ input }) => {
     const edition = await db.getEditionById(input.editionId);
     if (!edition) throw new TRPCError({ code: "NOT_FOUND", message: "Edition not found" });
-    const { url } = await generateImage({
+    const result = await generateImage({
       prompt: editionHeroPrompt({ weekRange: edition.weekRange, topics: edition.topics }),
     });
-    await db.updateHeroImage(edition.id, url);
-    return { url };
+    if (!result) {
+      throw new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message: "Image generation is not configured. Set OPENAI_API_KEY to enable.",
+      });
+    }
+    await db.updateHeroImage(edition.id, result.url);
+    return { url: result.url };
   }),
 });
