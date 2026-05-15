@@ -1,0 +1,41 @@
+name: Weekly edition synthesis
+
+on:
+  schedule:
+    # 08:00 UTC Sunday ≈ 18:00 Sydney (AEST) / 19:00 (AEDT) — late Sunday
+    # afternoon, so the week's daily feed is complete before synthesis.
+    - cron: "0 8 * * 0"
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Why are you running this manually?"
+        required: false
+        default: "manual test"
+
+concurrency:
+  group: weekly-edition
+  cancel-in-progress: false
+
+jobs:
+  synthesize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Trigger weekly edition synthesis
+        env:
+          INGEST_BASE_URL: ${{ secrets.INGEST_BASE_URL }}
+          SCHEDULED_API_KEY: ${{ secrets.SCHEDULED_API_KEY }}
+        run: pnpm ingest:weekly

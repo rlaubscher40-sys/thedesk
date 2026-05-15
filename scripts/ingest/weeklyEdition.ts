@@ -1,0 +1,37 @@
+/**
+ * Weekly edition synthesis trigger. Runs once a week (Sunday evening AEDT)
+ * on GitHub Actions.
+ *
+ * All the heavy lifting happens server-side: this script just hits
+ * /api/ingest/synthesize-edition, which gathers the week's feed items,
+ * runs the synthesis prompt against the Manus LLM, and persists the new
+ * edition. We do nothing locally so the script needs zero LLM credentials.
+ *
+ * Required env:
+ *   INGEST_BASE_URL    — e.g. https://thedeskglobal.manus.space
+ *   SCHEDULED_API_KEY  — matches the server's SCHEDULED_API_KEY env var
+ */
+import { postJSON } from "./lib/post";
+
+async function main(): Promise<void> {
+  const baseUrl = process.env.INGEST_BASE_URL?.replace(/\/+$/, "");
+  const apiKey = process.env.SCHEDULED_API_KEY;
+  if (!baseUrl) throw new Error("INGEST_BASE_URL is required");
+  if (!apiKey) throw new Error("SCHEDULED_API_KEY is required");
+
+  const today = new Date().toISOString().slice(0, 10);
+  console.log(`[weekly] requesting synthesis for week containing ${today}`);
+
+  const result = await postJSON(
+    `${baseUrl}/api/ingest/synthesize-edition`,
+    { anyDateInWeek: today },
+    apiKey
+  );
+  console.log(`[weekly] server response:`, result);
+  console.log(`[weekly] done.`);
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

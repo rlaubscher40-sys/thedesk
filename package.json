@@ -13,7 +13,9 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
-    "db:push": "drizzle-kit generate && drizzle-kit migrate"
+    "db:push": "drizzle-kit generate && drizzle-kit migrate",
+    "ingest:daily": "tsx scripts/ingest/dailyFeed.ts",
+    "ingest:weekly": "tsx scripts/ingest/weeklyEdition.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
@@ -57,6 +59,7 @@
     "drizzle-kit": "^0.31.4",
     "esbuild": "^0.25.0",
     "prettier": "^3.6.2",
+    "rss-parser": "^3.13.0",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.19.1",
     "typescript": "5.9.3",

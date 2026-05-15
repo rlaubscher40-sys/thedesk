@@ -135,3 +135,66 @@ curl -s -X POST http://localhost:5173/api/ingest/daily-feed \
 In demo mode (no `DATABASE_URL`) the writes hit the in-memory store and reset
 on server restart — useful for shaping payloads before pointing the real
 scheduler at production.
+
+---
+
+## The actual scheduler: GitHub Actions
+
+The repo ships with two workflows that drive the site:
+
+- `.github/workflows/daily-feed.yml` — runs every day at 20:00 UTC (~06:00
+  Sydney). Pulls RSS from the sources listed in `scripts/ingest/sources.ts`,
+  dedupes, scrapes `og:image` per article, and POSTs the batch to
+  `/api/ingest/daily-feed`. Server enriches partnerTag / sayThis / image
+  fallback in the background.
+- `.github/workflows/weekly-edition.yml` — runs Sunday 08:00 UTC (~18:00
+  Sydney). POSTs to `/api/ingest/synthesize-edition`. The server gathers
+  the week's feed items, runs the synthesis prompt against the Manus LLM,
+  and persists a new edition. Hero image and Ruben's Take are generated in
+  the background after the response returns.
+
+Neither workflow needs an LLM API key — all LLM work happens server-side
+through the existing Manus SDK.
+
+### One-time setup
+
+1. **Deploy the site somewhere with a real database.** Demo mode wipes on
+   restart, so the scheduler has nowhere to persist. Set `DATABASE_URL`
+   (MySQL / TiDB) and run `pnpm db:push`.
+2. **Set a shared secret on the server**: `SCHEDULED_API_KEY` env var. Any
+   strong random string works — generate one with `openssl rand -hex 32`.
+3. **Add the same key to GitHub repo Secrets**, plus the public URL of the
+   site:
+   - `SCHEDULED_API_KEY` — same value as the server env var
+   - `INGEST_BASE_URL` — e.g. `https://thedeskglobal.manus.space` (no
+     trailing slash)
+4. **Confirm timings.** The cron expressions are UTC. The defaults assume
+   Sydney AEST (UTC+10). Edit the `cron:` line in each workflow if you'd
+   rather post at a different local time, or during AEDT (UTC+11).
+
+### Running manually
+
+Each workflow has a `workflow_dispatch` trigger, so you can fire it from
+the GitHub Actions UI for testing without waiting for the cron.
+
+Locally, either script runs the same way:
+
+```bash
+export INGEST_BASE_URL=https://thedeskglobal.manus.space
+export SCHEDULED_API_KEY=...
+
+pnpm ingest:daily
+pnpm ingest:weekly
+```
+
+### Editing the source list
+
+`scripts/ingest/sources.ts` is the editorial dial. Each entry maps an RSS
+feed URL to a category and an item cap. Add a source, change a cap, swap a
+category — the script picks it up on the next run. There's no LLM
+classification step in the script itself, so the category you set here is
+the one stored on the feed item.
+
+If a source is intermittently flaky, the script logs a warning and skips
+it; one bad feed doesn't sink the run. But if total items fall below
+`DAILY_ITEM_MIN` (8) the run fails red so a thin day doesn't ship.

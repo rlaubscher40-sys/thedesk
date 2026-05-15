@@ -12,6 +12,24 @@ export async function listEditions(): Promise<Edition[]> {
   return db.select().from(editions).orderBy(desc(editions.editionNumber));
 }
 
+/** Returns the next free editionNumber. Used by the weekly synthesis to assign
+ *  the new edition without the caller having to think about numbering. */
+export async function getNextEditionNumber(): Promise<number> {
+  if (isDemoMode()) {
+    const rows = demoQueries.listEditions();
+    const max = rows.reduce((m, r) => Math.max(m, r.editionNumber), 0);
+    return max + 1;
+  }
+  const db = getDb();
+  if (!db) return 1;
+  const rows = await db
+    .select({ editionNumber: editions.editionNumber })
+    .from(editions)
+    .orderBy(desc(editions.editionNumber))
+    .limit(1);
+  return (rows[0]?.editionNumber ?? 0) + 1;
+}
+
 export async function getEditionById(id: number): Promise<Edition | undefined> {
   if (isDemoMode()) return demoQueries.getEditionById(id);
   const db = getDb();

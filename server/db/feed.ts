@@ -68,6 +68,24 @@ export async function updateFeedItemImageUrl(id: number, imageUrl: string) {
   await db.update(dailyFeedItems).set({ imageUrl }).where(eq(dailyFeedItems.id, id));
 }
 
+/** Items between two YYYY-MM-DD dates inclusive. Used by the weekly
+ *  synthesis pipeline to gather a week of stories. */
+export async function listFeedItemsBetween(
+  startDate: string,
+  endDate: string
+): Promise<DailyFeedItem[]> {
+  if (isDemoMode()) return demoQueries.listFeedItemsBetween(startDate, endDate);
+  const db = getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(dailyFeedItems)
+    .where(
+      sql`${dailyFeedItems.feedDate} >= ${startDate} AND ${dailyFeedItems.feedDate} <= ${endDate}`
+    )
+    .orderBy(desc(dailyFeedItems.createdAt));
+}
+
 /** Items missing a sayThis line — used by the backfill admin procedure. */
 export async function listFeedItemsMissingSayThis(limit = 50): Promise<DailyFeedItem[]> {
   if (isDemoMode()) return demoQueries.listFeedItemsMissingSayThis(limit);

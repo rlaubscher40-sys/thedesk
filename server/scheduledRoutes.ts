@@ -26,6 +26,7 @@ import {
   generatePartnerTag,
   generateRubensTake,
   generateSayThis,
+  synthesizeWeeklyEdition,
 } from "./prompts";
 
 // ─── Auth ───────────────────────────────────────────────────────────────────
@@ -255,11 +256,149 @@ function registerWeeklyEditionRoute(app: Express): void {
   app.post("/api/ingest/weekly-edition", handler);
 }
 
+// ─── Weekly edition synthesis from feed ─────────────────────────────────────
+
+const synthesizeEditionBodySchema = z.object({
+  /** ISO date (YYYY-MM-DD) of any day in the target week. Defaults to today. */
+  anyDateInWeek: z.string().regex(/^\d{4}-\d{2}-\d{2}$/u).optional(),
+});
+
+/**
+ * Returns the Monday and Sunday of the ISO week containing `iso` as
+ * "YYYY-MM-DD" strings. Used to bound the feed-items query and to label
+ * the new edition.
+ */
+function isoWeekBounds(iso: string): { weekStart: string; weekEnd: string; weekRange: string; weekOf: string } {
+  const d = new Date(iso + "T12:00:00Z");
+  // Monday = 1, Sunday = 0 → shift Sunday to 7 then back-compute Monday.
+  const dayNum = d.getUTCDay() || 7;
+  const monday = new Date(d);
+  monday.setUTCDate(d.getUTCDate() - (dayNum - 1));
+  const sunday = new Date(monday);
+  sunday.setUTCDate(monday.getUTCDate() + 6);
+  const fmt = (date: Date) => date.toISOString().slice(0, 10);
+  const monthDay = (date: Date) =>
+    date.toLocaleString("en-AU", { month: "short", day: "numeric", timeZone: "UTC" });
+  return {
+    weekStart: fmt(monday),
+    weekEnd: fmt(sunday),
+    weekRange: `${monthDay(monday)} - ${monthDay(sunday)}, ${sunday.getUTCFullYear()}`,
+    weekOf: fmt(monday),
+  };
+}
+
+function registerSynthesizeEditionRoute(app: Express): void {
+  const handler = async (req: Request, res: Response) => {
+    if (!(await authenticateScheduled(req))) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const parsed = synthesizeEditionBodySchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid payload", issues: parsed.error.flatten() });
+      return;
+    }
+
+    const target = parsed.data.anyDateInWeek ?? new Date().toISOString().slice(0, 10);
+    const { weekStart, weekEnd, weekRange, weekOf } = isoWeekBounds(target);
+
+    const items = await db.listFeedItemsBetween(weekStart, weekEnd);
+    if (items.length === 0) {
+      res.status(422).json({
+        error: "No feed items in target week",
+        weekStart,
+        weekEnd,
+      });
+      return;
+    }
+
+    // Refuse to overwrite — if an edition already exists for this week, bail
+    // out and let the caller decide what to do.
+    const existing = await db.listEditions();
+    const dup = existing.find((e) => e.weekOf === weekOf);
+    if (dup) {
+      res.status(409).json({
+        error: "Edition already exists for this week",
+        editionNumber: dup.editionNumber,
+        weekOf: dup.weekOf,
+      });
+      return;
+    }
+
+    let synth;
+    try {
+      synth = await synthesizeWeeklyEdition({ weekRange, weekOf, items });
+    } catch (err) {
+      console.error("[synthesize-edition] LLM synthesis failed:", err);
+      res.status(502).json({ error: "Synthesis failed", message: (err as Error).message });
+      return;
+    }
+
+    const editionNumber = await db.getNextEditionNumber();
+    const edition = {
+      editionNumber,
+      weekOf,
+      weekRange,
+      pdfUrl: `desk://edition/${editionNumber}`,
+      readingTime: synth.readingTime,
+      topics: synth.topics,
+      signals: synth.signals,
+      fullText: null,
+      keyMetrics: synth.keyMetrics,
+    };
+    try {
+      await db.createEdition(edition);
+    } catch (err) {
+      console.error("[synthesize-edition] DB insert failed:", err);
+      res.status(500).json({ error: "Database insert failed" });
+      return;
+    }
+
+    console.log(
+      `[scheduled] synthesised Edition ${editionNumber} (${weekRange}) from ${items.length} feed items`
+    );
+    res.json({
+      success: true,
+      editionNumber,
+      weekOf,
+      weekRange,
+      topicCount: edition.topics.length,
+      signalCount: edition.signals.length,
+      sourcedItemCount: items.length,
+    });
+
+    // ── Background: hero image + Ruben's Take, same as the manual route ────
+    setImmediate(async () => {
+      const inserted = await db.getEditionByNumber(editionNumber);
+      if (!inserted) return;
+      const [imageResult, takeResult] = await Promise.allSettled([
+        generateImage({
+          prompt: editionHeroPrompt({ weekRange, topics: edition.topics }),
+        }),
+        generateRubensTake({
+          weekRange,
+          topics: edition.topics,
+          keyMetrics: edition.keyMetrics,
+        }),
+      ]);
+      if (imageResult.status === "fulfilled" && imageResult.value.url) {
+        await db.updateHeroImage(inserted.id, imageResult.value.url);
+      }
+      if (takeResult.status === "fulfilled") {
+        await db.updateRubensTake(inserted.id, takeResult.value);
+      }
+    });
+  };
+  app.post("/api/scheduled/synthesize-edition", handler);
+  app.post("/api/ingest/synthesize-edition", handler);
+}
+
 export function registerScheduledRoutes(app: Express): void {
   registerDailyFeedRoute(app);
   registerWeeklyEditionRoute(app);
+  registerSynthesizeEditionRoute(app);
   console.log(
-    "[scheduled] registered /api/scheduled/{daily-feed,weekly-edition} and /api/ingest/{daily-feed,weekly-edition}"
+    "[scheduled] registered /api/{scheduled,ingest}/{daily-feed,weekly-edition,synthesize-edition}"
   );
 }
 

@@ -209,6 +209,12 @@ export function updateFeedItemImageUrl(id: number, imageUrl: string): void {
   if (item) item.imageUrl = imageUrl;
 }
 
+export function listFeedItemsBetween(startDate: string, endDate: string): DailyFeedItem[] {
+  return [...demo.feed]
+    .filter((i) => i.feedDate >= startDate && i.feedDate <= endDate)
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+}
+
 export function listFeedItemsMissingSayThis(limit: number): DailyFeedItem[] {
   return [...demo.feed]
     .filter((i) => !i.sayThis || i.sayThis.trim().length === 0)

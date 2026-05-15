@@ -8,3 +8,4 @@ export * from "./partnerTag";
 export * from "./sayThis";
 export * from "./substackDraft";
 export * from "./heroImage";
+export * from "./editionSynthesis";
