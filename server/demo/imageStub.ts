@@ -1,17 +1,33 @@
 /**
- * Demo image generator.
+ * Demo image generator — photographic-style editorial cover art.
  *
- * Returns a deterministic SVG data URL that *looks* like the cover of an
- * intelligence briefing — globe, terminal data, world map or masthead —
- * rather than the abstract blobs the first pass produced. The choice of
- * template is hashed off the prompt so different editions get different
- * but stable covers; if the prompt mentions a category, we bias toward the
- * template that suits it (GLOBE for geopolitics/macro, DASHBOARD for
- * markets, MAP for property, MASTHEAD for everything else).
+ * Composes layered gradients, architectural silhouettes, atmospheric
+ * haze and film grain to feel like the cover of an intelligence
+ * briefing, not procedural decoration. Dispatched per-category:
+ *
+ *   PROPERTY    → financial-district cityscape at blue hour
+ *   MACRO       → parliamentary / civic dome at dusk
+ *   MARKETS     → market screens, tickers, depth-of-field
+ *   POLICY      → parliament steps with directional light
+ *   GEOPOLITICS → world at night, illuminated coastlines
+ *   AI / TECH   → server-hall corridor with light streams
+ *   default     → editorial masthead spread
+ *
+ * Each composition is fully deterministic per prompt-hash but the
+ * spotlight, colour temperature and palette drift edition-to-edition.
  */
 import type { GenerateImageOptions } from "../core/image";
 
-type Template = "globe" | "dashboard" | "map" | "masthead";
+type Template =
+  | "cityscape"
+  | "civic"
+  | "markets"
+  | "policy"
+  | "world"
+  | "data-hall"
+  | "masthead";
+
+// ─── Hash + dispatcher ──────────────────────────────────────────────────────
 
 function hash(s: string): number {
   let h = 5381;
@@ -21,379 +37,716 @@ function hash(s: string): number {
 
 function pickTemplate(prompt: string, h: number): Template {
   const p = prompt.toLowerCase();
-  if (/(geopolitic|global|world|policy|rba|economic)/.test(p)) return "globe";
-  if (/(market|asx|rate|inflation|bond|equit)/.test(p)) return "dashboard";
-  if (/(property|housing|listing|suburb|auction)/.test(p)) return "map";
-  // Round-robin between all four for the remainder so any single template
-  // doesn't dominate when prompts are similar.
-  const choices: Template[] = ["globe", "dashboard", "map", "masthead"];
-  return choices[h % choices.length]!;
+  if (/(property|housing|listing|suburb|auction|sydney|melbourne)/.test(p))
+    return "cityscape";
+  if (/(rba|cash rate|reserve bank|treasury|budget)/.test(p)) return "civic";
+  if (/(market|asx|bond|equit|yield|index)/.test(p)) return "markets";
+  if (/(policy|apra|regulation|reform|legislation)/.test(p)) return "policy";
+  if (/(geopolitic|global|world|china|us|trade)/.test(p)) return "world";
+  if (/(ai|technology|tech|machine learn|chip|data|algorithm)/.test(p))
+    return "data-hall";
+  if (/(macro|economic|inflation|wage|cpi)/.test(p)) return "civic";
+  // Cycle through the rest deterministically so similar prompts vary.
+  const rest: Template[] = ["masthead", "cityscape", "civic", "markets", "world", "data-hall"];
+  return rest[h % rest.length]!;
 }
 
 export async function demoImage({ prompt }: GenerateImageOptions): Promise<{ url: string }> {
-  // Brief latency keeps the UI's loading state visible.
   await new Promise((r) => setTimeout(r, 600));
-
   const h = hash(prompt);
   const template = pickTemplate(prompt, h);
-  const svg = renderTemplate(template, h, prompt);
+  const palette = buildPalette(template, h);
+  const svg = renderTemplate(template, h, prompt, palette);
   const encoded = Buffer.from(svg, "utf-8").toString("base64");
   return { url: `data:image/svg+xml;base64,${encoded}` };
 }
 
-// ─── Templates ──────────────────────────────────────────────────────────────
+// ─── Palette per template ──────────────────────────────────────────────────
 
-function renderTemplate(t: Template, h: number, prompt: string): string {
-  switch (t) {
-    case "globe":
-      return globeSvg(h, prompt);
-    case "dashboard":
-      return dashboardSvg(h, prompt);
-    case "map":
-      return mapSvg(h, prompt);
+type Palette = {
+  /** Sky / background top. */
+  top: string;
+  /** Mid horizon. */
+  mid: string;
+  /** Deepest shadow. */
+  bottom: string;
+  /** Primary warm light source (sun, key light). */
+  warm: string;
+  /** Secondary cool light source (window glow, screen light). */
+  cool: string;
+  /** Foreground architecture / silhouettes. */
+  ink: string;
+  /** Accent — the amber editorial overlay. */
+  accent: string;
+};
+
+function buildPalette(template: Template, h: number): Palette {
+  // Per-template moodboards. Each picks a base hue triple and shifts it
+  // slightly per-edition so consecutive editions look related but distinct.
+  const drift = h % 12; // small hue drift in degrees
+
+  switch (template) {
+    case "cityscape": // blue hour with warm window lights
+      return {
+        top: `hsl(${220 + drift}, 50%, 14%)`,
+        mid: `hsl(${215 + drift}, 60%, 8%)`,
+        bottom: `hsl(${220 + drift}, 70%, 4%)`,
+        warm: `hsl(${36 + drift}, 95%, 70%)`,
+        cool: `hsl(${210 + drift}, 95%, 65%)`,
+        ink: `hsl(${220 + drift}, 40%, 6%)`,
+        accent: `hsl(${38 + drift}, 95%, 72%)`,
+      };
+    case "civic": // dusk over a civic building
+      return {
+        top: `hsl(${20 + drift}, 35%, 14%)`,
+        mid: `hsl(${15 + drift}, 38%, 9%)`,
+        bottom: `hsl(${228 + drift}, 50%, 5%)`,
+        warm: `hsl(${30 + drift}, 95%, 68%)`,
+        cool: `hsl(${220 + drift}, 80%, 60%)`,
+        ink: `hsl(${230 + drift}, 35%, 8%)`,
+        accent: `hsl(${36 + drift}, 95%, 72%)`,
+      };
+    case "markets": // screen glow, depth-of-field
+      return {
+        top: `hsl(${200 + drift}, 35%, 10%)`,
+        mid: `hsl(${220 + drift}, 38%, 6%)`,
+        bottom: `hsl(${230 + drift}, 45%, 3%)`,
+        warm: `hsl(${42 + drift}, 95%, 70%)`,
+        cool: `hsl(${155 + drift}, 80%, 60%)`,
+        ink: `hsl(${225 + drift}, 50%, 5%)`,
+        accent: `hsl(${36 + drift}, 95%, 72%)`,
+      };
+    case "policy": // marble + warm hallway light
+      return {
+        top: `hsl(${28 + drift}, 25%, 16%)`,
+        mid: `hsl(${22 + drift}, 28%, 10%)`,
+        bottom: `hsl(${20 + drift}, 30%, 5%)`,
+        warm: `hsl(${36 + drift}, 95%, 75%)`,
+        cool: `hsl(${24 + drift}, 60%, 50%)`,
+        ink: `hsl(${22 + drift}, 25%, 8%)`,
+        accent: `hsl(${36 + drift}, 95%, 75%)`,
+      };
+    case "world": // earth at night, atmospheric rim
+      return {
+        top: `hsl(${230 + drift}, 50%, 8%)`,
+        mid: `hsl(${225 + drift}, 60%, 4%)`,
+        bottom: `hsl(${220 + drift}, 70%, 2%)`,
+        warm: `hsl(${36 + drift}, 95%, 70%)`,
+        cool: `hsl(${190 + drift}, 95%, 60%)`,
+        ink: `hsl(${230 + drift}, 60%, 5%)`,
+        accent: `hsl(${36 + drift}, 95%, 72%)`,
+      };
+    case "data-hall": // server corridor, vanishing point
+      return {
+        top: `hsl(${210 + drift}, 40%, 10%)`,
+        mid: `hsl(${215 + drift}, 50%, 6%)`,
+        bottom: `hsl(${225 + drift}, 55%, 3%)`,
+        warm: `hsl(${38 + drift}, 95%, 72%)`,
+        cool: `hsl(${195 + drift}, 95%, 60%)`,
+        ink: `hsl(${220 + drift}, 45%, 4%)`,
+        accent: `hsl(${36 + drift}, 95%, 72%)`,
+      };
     case "masthead":
-      return mastheadSvg(h, prompt);
+    default:
+      return {
+        top: `hsl(${225 + drift}, 35%, 8%)`,
+        mid: `hsl(${225 + drift}, 30%, 5%)`,
+        bottom: `hsl(${228 + drift}, 35%, 3%)`,
+        warm: `hsl(${38 + drift}, 95%, 72%)`,
+        cool: `hsl(${220 + drift}, 60%, 50%)`,
+        ink: `hsl(${230 + drift}, 25%, 6%)`,
+        accent: `hsl(${36 + drift}, 95%, 72%)`,
+      };
   }
 }
 
-/** Common shared defs: gradients, grain filter, vignette, gloss. */
-function commonDefs(h: number): string {
-  const accent = 38 + (h % 16); // amber band, drifts edition-to-edition
-  const cool = 215 + (h % 30); // secondary navy/teal channel
-  const spotX = 60 + (h % 30); // %  — moves the spotlight per edition
-  const spotY = 14 + (h % 22);
+// ─── Shared defs ────────────────────────────────────────────────────────────
+
+function commonDefs(p: Palette, h: number): string {
+  const spotX = 60 + (h % 30);
+  const spotY = 12 + (h % 22);
   return `
-    <linearGradient id="base" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="hsl(${cool}, 35%, 7%)"/>
-      <stop offset="55%" stop-color="hsl(${cool}, 30%, 9%)"/>
-      <stop offset="100%" stop-color="hsl(${cool}, 38%, 4%)"/>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="${p.top}"/>
+      <stop offset="55%" stop-color="${p.mid}"/>
+      <stop offset="100%" stop-color="${p.bottom}"/>
     </linearGradient>
-    <radialGradient id="spot" cx="${spotX}%" cy="${spotY}%" r="68%">
-      <stop offset="0%" stop-color="hsl(${accent}, 100%, 68%)" stop-opacity="0.42"/>
-      <stop offset="40%" stop-color="hsl(${accent}, 95%, 58%)" stop-opacity="0.16"/>
-      <stop offset="100%" stop-color="hsl(${accent}, 90%, 55%)" stop-opacity="0"/>
+    <radialGradient id="sun" cx="${spotX}%" cy="${spotY}%" r="55%">
+      <stop offset="0%"  stop-color="${p.warm}" stop-opacity="0.55"/>
+      <stop offset="35%" stop-color="${p.warm}" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="${p.warm}" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="spotCool" cx="${(spotX + 60) % 100}%" cy="${85}%" r="58%">
-      <stop offset="0%" stop-color="hsl(${cool}, 85%, 55%)" stop-opacity="0.18"/>
-      <stop offset="100%" stop-color="hsl(${cool}, 85%, 55%)" stop-opacity="0"/>
+    <radialGradient id="counter" cx="${(spotX + 60) % 100}%" cy="90%" r="50%">
+      <stop offset="0%" stop-color="${p.cool}" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="${p.cool}" stop-opacity="0"/>
     </radialGradient>
-    <!-- Glass sheen across the top half — gives the cover a film-strip gloss. -->
+    <linearGradient id="haze" x1="0" y1="0.4" x2="0" y2="1">
+      <stop offset="0%"  stop-color="${p.warm}" stop-opacity="0"/>
+      <stop offset="100%" stop-color="${p.warm}" stop-opacity="0.10"/>
+    </linearGradient>
     <linearGradient id="gloss" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="hsl(${accent}, 100%, 92%)" stop-opacity="0.07"/>
-      <stop offset="40%" stop-color="hsl(${accent}, 100%, 92%)" stop-opacity="0.02"/>
-      <stop offset="100%" stop-color="hsl(${accent}, 100%, 92%)" stop-opacity="0"/>
+      <stop offset="0%"  stop-color="hsl(0,0%,100%)" stop-opacity="0.08"/>
+      <stop offset="55%" stop-color="hsl(0,0%,100%)" stop-opacity="0.02"/>
+      <stop offset="100%" stop-color="hsl(0,0%,100%)" stop-opacity="0"/>
     </linearGradient>
-    <radialGradient id="vignette" cx="50%" cy="50%" r="80%">
+    <radialGradient id="vignette" cx="50%" cy="50%" r="78%">
       <stop offset="55%" stop-color="black" stop-opacity="0"/>
-      <stop offset="100%" stop-color="black" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="black" stop-opacity="0.65"/>
     </radialGradient>
     <filter id="grain">
       <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch"/>
-      <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.07 0"/>
+      <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.08 0"/>
     </filter>
-    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="3" result="b"/>
-      <feMerge>
-        <feMergeNode in="b"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
+    <filter id="atmos">
+      <feGaussianBlur stdDeviation="2"/>
     </filter>
   `;
 }
 
-function editorialSlug(): string {
+function editorialSlug(p: Palette): string {
   return `
-    <g font-family="JetBrains Mono, monospace" fill="hsl(38, 95%, 78%)" fill-opacity="0.55">
-      <text x="60" y="78" font-size="11" letter-spacing="5">THE DESK · INTELLIGENCE</text>
-      <line x1="60" y1="92" x2="200" y2="92" stroke="hsl(38, 95%, 65%)" stroke-opacity="0.4"/>
+    <g font-family="JetBrains Mono, monospace" fill="${p.accent}" fill-opacity="0.6">
+      <text x="60" y="80" font-size="11" letter-spacing="5">THE DESK · INTELLIGENCE</text>
+      <line x1="60" y1="92" x2="220" y2="92" stroke="${p.accent}" stroke-opacity="0.4"/>
     </g>
   `;
 }
 
-function commonFinish(): string {
+function commonFinish(p: Palette): string {
   return `
-    <!-- Cool secondary spot, glass sheen, vignette, grain — gloss stack. -->
-    <rect width="1600" height="800" fill="url(#spotCool)"/>
+    <rect width="1600" height="800" fill="url(#counter)"/>
+    <rect width="1600" height="800" fill="url(#haze)"/>
     <rect width="1600" height="800" fill="url(#gloss)"/>
     <rect width="1600" height="800" fill="url(#vignette)"/>
-    <rect width="1600" height="800" filter="url(#grain)" opacity="0.65"/>
-    ${editorialSlug()}
+    <rect width="1600" height="800" filter="url(#grain)" opacity="0.7"/>
+    ${editorialSlug(p)}
   `;
 }
 
-// ─── Globe ──────────────────────────────────────────────────────────────────
+function renderTemplate(t: Template, h: number, prompt: string, p: Palette): string {
+  switch (t) {
+    case "cityscape": return cityscapeSvg(h, p);
+    case "civic":     return civicSvg(h, p);
+    case "markets":   return marketsSvg(h, p);
+    case "policy":    return policySvg(h, p);
+    case "world":     return worldSvg(h, p);
+    case "data-hall": return dataHallSvg(h, p);
+    case "masthead":  return mastheadSvg(h, p, prompt);
+  }
+}
 
-function globeSvg(h: number, _prompt: string): string {
-  const cx = 1140;
-  const cy = 400;
-  const r = 280;
-  const meridianCount = 9;
-  const parallelCount = 7;
+// ─── Cityscape (financial district at blue hour) ────────────────────────────
 
-  const meridians = Array.from({ length: meridianCount })
-    .map((_, i) => {
-      const t = i / (meridianCount - 1);
-      const rx = r * Math.abs(2 * t - 1);
-      return `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${r}" />`;
-    })
-    .join("");
+function cityscapeSvg(h: number, p: Palette): string {
+  // Two layers of building silhouettes — distant (paler, atmospheric) and
+  // foreground (full ink). Each is a deterministic sequence of rectangles
+  // with varying widths/heights. Lit window grid on the foreground layer.
 
-  const parallels = Array.from({ length: parallelCount })
-    .map((_, i) => {
-      const t = (i + 1) / (parallelCount + 1);
-      const y = cy - r + r * 2 * t;
-      const rx = Math.sin(t * Math.PI) * r;
-      return `<ellipse cx="${cx}" cy="${y}" rx="${rx}" ry="${rx * 0.06}" />`;
-    })
-    .join("");
-
-  // Plot a couple of "intel hotspots" at deterministic locations on the globe.
-  const hotspots = [
-    [0.22, 0.42, 0.9],
-    [0.55, 0.32, 0.7],
-    [0.68, 0.62, 1.0],
-    [0.34, 0.78, 0.55],
-  ]
-    .map(([u, v, mag]) => {
-      const angle = (u as number) * Math.PI * 2;
-      const tilt = ((v as number) - 0.5) * Math.PI;
-      const x = cx + Math.sin(angle) * r * 0.92 * Math.cos(tilt);
-      const y = cy + Math.sin(tilt) * r * 0.92;
-      const opacity = (mag as number) * 0.7;
-      return `
-        <circle cx="${x}" cy="${y}" r="${4 + (mag as number) * 3}" fill="hsl(38, 100%, 70%)" fill-opacity="${opacity}"/>
-        <circle cx="${x}" cy="${y}" r="${10 + (mag as number) * 8}" fill="none" stroke="hsl(38, 100%, 70%)" stroke-opacity="${opacity * 0.5}"/>
-      `;
-    })
-    .join("");
+  function buildings(rowSeed: number, baseY: number, baseColor: string, opacity: number, withWindows: boolean): string {
+    let x = 0;
+    let parts = "";
+    let i = 0;
+    while (x < 1600) {
+      const seed = (rowSeed + i * 41) % 1000;
+      const w = 70 + (seed % 90);
+      const buildingH = 80 + ((seed * 17) % 280);
+      const y = baseY - buildingH;
+      parts += `<rect x="${x}" y="${y}" width="${w - 8}" height="${buildingH}" fill="${baseColor}" fill-opacity="${opacity}"/>`;
+      // Roof aerial — random tiny mast.
+      if (seed % 3 === 0) {
+        parts += `<line x1="${x + w / 2 - 4}" y1="${y}" x2="${x + w / 2 - 4}" y2="${y - 12}" stroke="${baseColor}" stroke-opacity="${opacity * 0.7}" stroke-width="1.5"/>`;
+      }
+      if (withWindows) {
+        // Window grid — 4-6 columns, every other row lit.
+        const cols = 3 + (seed % 4);
+        const rows = Math.floor(buildingH / 22);
+        for (let c = 0; c < cols; c++) {
+          for (let r = 1; r < rows; r++) {
+            const lit = (seed + c * 7 + r * 13) % 5 < 2;
+            const wx = x + 6 + c * ((w - 16) / cols);
+            const wy = y + r * 22;
+            const ww = (w - 16) / cols - 4;
+            const wh = 9;
+            const fill = lit ? p.warm : "hsl(0,0%,8%)";
+            const alpha = lit ? 0.55 + ((seed + c + r) % 3) * 0.12 : 0.18;
+            parts += `<rect x="${wx}" y="${wy}" width="${ww}" height="${wh}" fill="${fill}" fill-opacity="${alpha}"/>`;
+          }
+        }
+      }
+      x += w;
+      i++;
+    }
+    return parts;
+  }
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 800" preserveAspectRatio="xMidYMid slice">
-    <defs>${commonDefs(h)}
-      <radialGradient id="globeFill" cx="40%" cy="35%" r="65%">
-        <stop offset="0%" stop-color="hsl(225, 40%, 16%)" stop-opacity="1"/>
-        <stop offset="100%" stop-color="hsl(225, 50%, 4%)" stop-opacity="1"/>
-      </radialGradient>
-      <radialGradient id="globeRim" cx="50%" cy="50%" r="50%">
-        <stop offset="92%" stop-color="hsl(38, 100%, 70%)" stop-opacity="0"/>
-        <stop offset="98%" stop-color="hsl(38, 100%, 70%)" stop-opacity="0.6"/>
-        <stop offset="100%" stop-color="hsl(38, 100%, 70%)" stop-opacity="0"/>
+    <defs>${commonDefs(p, h)}
+      <linearGradient id="streetLight" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${p.warm}" stop-opacity="0.18"/>
+        <stop offset="100%" stop-color="${p.warm}" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <rect width="1600" height="800" fill="url(#sky)"/>
+    <rect width="1600" height="800" fill="url(#sun)"/>
+
+    <!-- Distant skyline, hazed. -->
+    <g filter="url(#atmos)">
+      ${buildings(h, 600, p.ink, 0.55, false)}
+    </g>
+    <!-- Atmospheric horizon haze. -->
+    <rect x="0" y="540" width="1600" height="100" fill="url(#haze)"/>
+
+    <!-- Mid skyline. -->
+    ${buildings(h * 3 + 7, 680, p.ink, 0.75, false)}
+
+    <!-- Foreground skyline with lit windows. -->
+    ${buildings(h * 7 + 13, 800, p.bottom, 1, true)}
+
+    <!-- Street light wash. -->
+    <rect x="0" y="700" width="1600" height="100" fill="url(#streetLight)"/>
+
+    <!-- Subtle skyline contour highlight. -->
+    <line x1="0" y1="540" x2="1600" y2="540" stroke="${p.warm}" stroke-opacity="0.06"/>
+
+    <!-- Coordinate corner labels. -->
+    <g font-family="JetBrains Mono, monospace" fill="${p.accent}" fill-opacity="0.4" font-size="11" letter-spacing="2">
+      <text x="60" y="740">33.86°S · 151.20°E</text>
+      <text x="60" y="760">SYDNEY · 18:42 AEST</text>
+    </g>
+
+    ${commonFinish(p)}
+  </svg>`;
+}
+
+// ─── Civic dome at dusk ─────────────────────────────────────────────────────
+
+function civicSvg(h: number, p: Palette): string {
+  // Parliament-style dome silhouette with columns, dramatic backlight,
+  // rim of sky above. Light shafts radiate from behind the dome.
+
+  // Flagpole on top — deterministic but rotates slightly.
+  const flagSway = ((h % 7) - 3) * 0.5;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 800" preserveAspectRatio="xMidYMid slice">
+    <defs>${commonDefs(p, h)}
+      <radialGradient id="dome-glow" cx="50%" cy="60%" r="40%">
+        <stop offset="0%" stop-color="${p.warm}" stop-opacity="0.6"/>
+        <stop offset="60%" stop-color="${p.warm}" stop-opacity="0.1"/>
+        <stop offset="100%" stop-color="${p.warm}" stop-opacity="0"/>
       </radialGradient>
     </defs>
+    <rect width="1600" height="800" fill="url(#sky)"/>
+    <rect width="1600" height="800" fill="url(#sun)"/>
 
-    <rect width="1600" height="800" fill="url(#base)"/>
-    <rect width="1600" height="800" fill="url(#spot)"/>
+    <!-- Light shafts behind the dome. -->
+    <g opacity="0.55">
+      ${Array.from({ length: 9 }).map((_, i) => {
+        const angle = -60 + i * 15;
+        const cx = 800;
+        const cy = 460;
+        return `<g transform="translate(${cx} ${cy}) rotate(${angle})">
+          <rect x="0" y="-260" width="3" height="260" fill="${p.warm}" fill-opacity="0.04" filter="url(#atmos)"/>
+        </g>`;
+      }).join("")}
+    </g>
+    <circle cx="800" cy="460" r="240" fill="url(#dome-glow)"/>
 
-    <!-- Faint grid background. -->
-    <g stroke="hsl(200, 30%, 70%)" stroke-opacity="0.04" stroke-width="0.5">
-      ${Array.from({ length: 16 }).map((_, i) => `<line x1="${i * 100}" y1="0" x2="${i * 100}" y2="800"/>`).join("")}
-      ${Array.from({ length: 8 }).map((_, i) => `<line x1="0" y1="${i * 100}" x2="1600" y2="${i * 100}"/>`).join("")}
+    <!-- Steps. -->
+    <g fill="${p.ink}">
+      <rect x="240" y="660" width="1120" height="6" fill-opacity="0.8"/>
+      <rect x="220" y="680" width="1160" height="6" fill-opacity="0.75"/>
+      <rect x="200" y="700" width="1200" height="6" fill-opacity="0.7"/>
+      <rect x="180" y="720" width="1240" height="6" fill-opacity="0.65"/>
+      <rect x="160" y="740" width="1280" height="6" fill-opacity="0.6"/>
+    </g>
+    <rect x="0" y="660" width="1600" height="140" fill="${p.bottom}" fill-opacity="0.5"/>
+
+    <!-- Architrave above the columns. -->
+    <rect x="300" y="540" width="1000" height="22" fill="${p.ink}"/>
+    <!-- Frieze highlight (warm rim from setting sun). -->
+    <rect x="300" y="540" width="1000" height="2" fill="${p.warm}" fill-opacity="0.55"/>
+
+    <!-- Columns. -->
+    <g fill="${p.ink}">
+      ${Array.from({ length: 8 }).map((_, i) => {
+        const x = 340 + i * 130;
+        return `<rect x="${x}" y="562" width="30" height="100"/>
+                <rect x="${x - 6}" y="558" width="42" height="6"/>
+                <rect x="${x - 6}" y="660" width="42" height="6"/>`;
+      }).join("")}
+    </g>
+    <!-- Column rim highlights. -->
+    <g fill="${p.warm}" fill-opacity="0.35">
+      ${Array.from({ length: 8 }).map((_, i) => {
+        const x = 340 + i * 130;
+        return `<rect x="${x}" y="562" width="2" height="100"/>`;
+      }).join("")}
     </g>
 
-    <!-- Globe body. -->
-    <circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#globeFill)"/>
-    <circle cx="${cx}" cy="${cy}" r="${r + 6}" fill="url(#globeRim)"/>
+    <!-- Dome. -->
+    <ellipse cx="800" cy="540" rx="170" ry="160" fill="${p.ink}"/>
+    <ellipse cx="780" cy="500" rx="100" ry="120" fill="${p.warm}" fill-opacity="0.08" filter="url(#atmos)"/>
+    <!-- Dome rim highlight. -->
+    <path d="M 630 540 Q 800 380 970 540" stroke="${p.warm}" stroke-opacity="0.45" stroke-width="1.5" fill="none"/>
+    <!-- Drum below the dome. -->
+    <rect x="700" y="500" width="200" height="50" fill="${p.ink}"/>
+    <!-- Drum windows lit. -->
+    ${Array.from({ length: 5 }).map((_, i) => {
+      const x = 712 + i * 38;
+      return `<rect x="${x}" y="514" width="14" height="24" fill="${p.warm}" fill-opacity="0.55"/>`;
+    }).join("")}
 
-    <!-- Latitude / longitude. -->
-    <g fill="none" stroke="hsl(38, 100%, 75%)" stroke-opacity="0.18" stroke-width="0.7">
-      ${meridians}
-      ${parallels}
+    <!-- Cupola spike. -->
+    <line x1="800" y1="380" x2="800" y2="340" stroke="${p.ink}" stroke-width="6"/>
+    <circle cx="800" cy="335" r="6" fill="${p.ink}"/>
+
+    <!-- Flagpole + flag. -->
+    <line x1="800" y1="340" x2="800" y2="280" stroke="${p.ink}" stroke-width="2"/>
+    <g transform="translate(800 285) rotate(${flagSway})">
+      <path d="M0 0 L 36 4 L 32 16 L 0 20 Z" fill="${p.accent}" fill-opacity="0.65"/>
     </g>
 
-    <!-- Hotspots -->
-    ${hotspots}
+    <!-- Foreground ink wash. -->
+    <rect x="0" y="745" width="1600" height="55" fill="${p.bottom}"/>
 
-    <!-- Coordinate corner labels — newsroom feel. -->
-    <g font-family="JetBrains Mono, monospace" fill="hsl(38, 90%, 80%)" fill-opacity="0.35" font-size="11" letter-spacing="2">
-      <text x="60" y="740">LAT 33.86 S · LON 151.20 E</text>
-      <text x="60" y="760">SYDNEY · GMT+11</text>
+    <g font-family="JetBrains Mono, monospace" fill="${p.accent}" fill-opacity="0.4" font-size="11" letter-spacing="2">
+      <text x="60" y="740">CANBERRA · 17:02 AEST</text>
+      <text x="60" y="760">CIVIC DESK</text>
     </g>
 
-    ${commonFinish()}
+    ${commonFinish(p)}
   </svg>`;
 }
 
-// ─── Dashboard ──────────────────────────────────────────────────────────────
+// ─── Markets (screens + tickers, depth-of-field) ────────────────────────────
 
-function dashboardSvg(h: number, _prompt: string): string {
-  // A faked terminal: three sparkline charts + two gauges + one bar block.
-  const spark = (x: number, y: number, w: number, hgt: number, seed: number) => {
-    const pts: Array<[number, number]> = Array.from({ length: 24 }).map((_, i) => {
-      const t = i / 23;
-      const noise =
-        Math.sin(t * Math.PI * 2 + seed) * 0.18 +
-        Math.sin(t * Math.PI * 5 + seed * 1.3) * 0.08 +
-        (seed % 7) * 0.01;
-      return [x + t * w, y + hgt - (0.5 + noise + t * 0.3) * hgt];
-    });
-    return pts.map(([px, py]) => `${px.toFixed(1)},${py.toFixed(1)}`).join(" ");
-  };
+function marketsSvg(h: number, p: Palette): string {
+  // Foreground out-of-focus glow orbs + sharp ticker board mid-frame.
+  // Tickers are deterministic but vary slightly per edition.
 
-  const barBlock = Array.from({ length: 16 })
-    .map((_, i) => {
-      const seed = (h + i * 7) % 100;
-      const heightPx = 14 + (seed % 70);
-      return `<rect x="${1010 + i * 28}" y="${520 - heightPx}" width="18" height="${heightPx}" fill="hsl(38, 100%, 70%)" fill-opacity="${0.25 + (i % 4) * 0.12}"/>`;
-    })
-    .join("");
+  const tickers = ["ASX 200", "AUD/USD", "10Y AGB", "BHP", "CBA", "NAB", "WBC", "BTC", "GOLD", "WTI"];
+  const tickerRows = Array.from({ length: 12 }).map((_, i) => {
+    const seed = (h + i * 23) % 1000;
+    const sym = tickers[i % tickers.length];
+    const value = ((seed % 8000) / 10).toFixed(2);
+    const pct = (((seed % 200) - 100) / 100).toFixed(2);
+    const up = Number(pct) >= 0;
+    return { sym, value, pct, up };
+  });
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 800" preserveAspectRatio="xMidYMid slice">
-    <defs>${commonDefs(h)}</defs>
+    <defs>${commonDefs(p, h)}
+      <filter id="bokeh"><feGaussianBlur stdDeviation="22"/></filter>
+    </defs>
+    <rect width="1600" height="800" fill="url(#sky)"/>
 
-    <rect width="1600" height="800" fill="url(#base)"/>
-    <rect width="1600" height="800" fill="url(#spot)"/>
-
-    <!-- Background grid. -->
-    <g stroke="hsl(200, 30%, 70%)" stroke-opacity="0.05" stroke-width="0.5">
-      ${Array.from({ length: 16 }).map((_, i) => `<line x1="${i * 100}" y1="0" x2="${i * 100}" y2="800"/>`).join("")}
-      ${Array.from({ length: 8 }).map((_, i) => `<line x1="0" y1="${i * 100}" x2="1600" y2="${i * 100}"/>`).join("")}
+    <!-- Far depth: blurred bokeh orbs. -->
+    <g filter="url(#bokeh)" opacity="0.7">
+      ${Array.from({ length: 14 }).map((_, i) => {
+        const seed = (h + i * 47) % 1000;
+        const x = (seed * 7) % 1600;
+        const y = 100 + ((seed * 13) % 600);
+        const r = 30 + (seed % 50);
+        const colour = i % 3 === 0 ? p.warm : i % 3 === 1 ? p.cool : p.accent;
+        return `<circle cx="${x}" cy="${y}" r="${r}" fill="${colour}" fill-opacity="0.22"/>`;
+      }).join("")}
     </g>
 
-    <!-- Three sparkline panels in the left half. -->
-    <g>
-      <rect x="100" y="180" width="380" height="140" fill="hsl(225, 40%, 10%)" fill-opacity="0.6" stroke="hsl(225, 30%, 24%)" stroke-opacity="0.4"/>
-      <text x="116" y="208" font-family="JetBrains Mono, monospace" font-size="11" letter-spacing="2" fill="hsl(38, 80%, 78%)" fill-opacity="0.6">CASH RATE</text>
-      <polyline points="${spark(120, 230, 340, 60, h)}" fill="none" stroke="hsl(38, 100%, 70%)" stroke-width="1.5"/>
+    <!-- Ticker board (centred panel). -->
+    <g transform="translate(380 220)">
+      <rect x="0" y="0" width="840" height="380" fill="${p.ink}" fill-opacity="0.92" stroke="${p.warm}" stroke-opacity="0.2"/>
+      <!-- Header strip. -->
+      <rect x="0" y="0" width="840" height="36" fill="${p.warm}" fill-opacity="0.08"/>
+      <text x="20" y="24" font-family="JetBrains Mono, monospace" font-size="12" letter-spacing="3" fill="${p.warm}" fill-opacity="0.8">LIVE MARKETS · ASX</text>
+      <text x="820" y="24" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="12" letter-spacing="2" fill="${p.warm}" fill-opacity="0.55">07:00 AEST</text>
 
-      <rect x="100" y="340" width="380" height="140" fill="hsl(225, 40%, 10%)" fill-opacity="0.6" stroke="hsl(225, 30%, 24%)" stroke-opacity="0.4"/>
-      <text x="116" y="368" font-family="JetBrains Mono, monospace" font-size="11" letter-spacing="2" fill="hsl(38, 80%, 78%)" fill-opacity="0.6">AUCTION CLEARANCE</text>
-      <polyline points="${spark(120, 390, 340, 60, h * 2)}" fill="none" stroke="hsl(155, 70%, 60%)" stroke-width="1.5"/>
-
-      <rect x="100" y="500" width="380" height="140" fill="hsl(225, 40%, 10%)" fill-opacity="0.6" stroke="hsl(225, 30%, 24%)" stroke-opacity="0.4"/>
-      <text x="116" y="528" font-family="JetBrains Mono, monospace" font-size="11" letter-spacing="2" fill="hsl(38, 80%, 78%)" fill-opacity="0.6">BROKER CHANNEL</text>
-      <polyline points="${spark(120, 550, 340, 60, h * 3)}" fill="none" stroke="hsl(260, 70%, 70%)" stroke-width="1.5"/>
+      <!-- Rows. -->
+      ${tickerRows.map((r, i) => {
+        const y = 60 + i * 27;
+        const tone = r.up ? "hsl(155, 70%, 65%)" : "hsl(0, 70%, 65%)";
+        return `
+          <line x1="20" y1="${y + 14}" x2="820" y2="${y + 14}" stroke="${p.warm}" stroke-opacity="0.08"/>
+          <text x="20" y="${y + 6}" font-family="JetBrains Mono, monospace" font-size="13" fill="${p.warm}" fill-opacity="0.85">${r.sym}</text>
+          <text x="500" y="${y + 6}" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="13" fill="${p.warm}" fill-opacity="0.85">${r.value}</text>
+          <text x="800" y="${y + 6}" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="13" fill="${tone}" fill-opacity="0.9">${r.up ? "▲" : "▼"} ${r.up ? "+" : ""}${r.pct}%</text>
+        `;
+      }).join("")}
     </g>
 
-    <!-- Bar chart block bottom-right. -->
-    <g>
-      <text x="1010" y="498" font-family="JetBrains Mono, monospace" font-size="11" letter-spacing="2" fill="hsl(38, 80%, 78%)" fill-opacity="0.6">SIGNALS / EDITION</text>
-      ${barBlock}
+    <!-- Headline tile bottom-left. -->
+    <g transform="translate(120 620)">
+      <rect width="380" height="100" fill="${p.ink}" fill-opacity="0.86" stroke="${p.warm}" stroke-opacity="0.18"/>
+      <text x="20" y="34" font-family="JetBrains Mono, monospace" font-size="10" letter-spacing="3" fill="${p.warm}" fill-opacity="0.55">10Y AUSTRALIAN BOND</text>
+      <text x="20" y="78" font-family="Playfair Display, serif" font-weight="700" font-size="46" fill="${p.warm}">4.21<tspan font-size="22" font-weight="500" fill-opacity="0.6">%</tspan></text>
     </g>
 
-    <!-- Gauge: large numeric tile top-right. -->
-    <g>
-      <rect x="1010" y="180" width="490" height="280" fill="hsl(225, 40%, 10%)" fill-opacity="0.65" stroke="hsl(225, 30%, 24%)" stroke-opacity="0.4"/>
-      <text x="1030" y="216" font-family="JetBrains Mono, monospace" font-size="11" letter-spacing="3" fill="hsl(38, 80%, 78%)" fill-opacity="0.6">10Y AGB</text>
-      <text x="1030" y="370" font-family="Playfair Display, serif" font-size="118" font-weight="700" fill="hsl(38, 100%, 78%)" fill-opacity="0.92">4.21<tspan font-size="58" font-weight="500" fill-opacity="0.65">%</tspan></text>
-      <text x="1030" y="416" font-family="JetBrains Mono, monospace" font-size="13" letter-spacing="2" fill="hsl(155, 70%, 70%)" fill-opacity="0.65">▲ +6BP THIS WEEK</text>
+    <g font-family="JetBrains Mono, monospace" fill="${p.accent}" fill-opacity="0.4" font-size="11" letter-spacing="2">
+      <text x="60" y="740">MARKETS DESK · LIVE</text>
     </g>
 
-    ${commonFinish()}
+    ${commonFinish(p)}
   </svg>`;
 }
 
-// ─── World map ─────────────────────────────────────────────────────────────
+// ─── Policy (parliament steps, directional light) ───────────────────────────
 
-function mapSvg(h: number, _prompt: string): string {
-  // Stylised continent silhouettes (very loose) on a coordinate grid.
-  // Done as polygons so we don't pull in any geo library.
+function policySvg(h: number, p: Palette): string {
+  // Tall columns receding to a vanishing point, warm hallway light.
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 800" preserveAspectRatio="xMidYMid slice">
+    <defs>${commonDefs(p, h)}
+      <linearGradient id="shaft" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${p.warm}" stop-opacity="0"/>
+        <stop offset="50%" stop-color="${p.warm}" stop-opacity="0.18"/>
+        <stop offset="100%" stop-color="${p.warm}" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <rect width="1600" height="800" fill="url(#sky)"/>
+    <rect width="1600" height="800" fill="url(#sun)"/>
+
+    <!-- Receding floor. -->
+    <polygon points="0,800 1600,800 1100,500 500,500" fill="${p.ink}" fill-opacity="0.85"/>
+    <!-- Floor highlight pool. -->
+    <polygon points="600,800 1000,800 900,600 700,600" fill="${p.warm}" fill-opacity="0.06" filter="url(#atmos)"/>
+
+    <!-- Vanishing-point columns. -->
+    <g fill="${p.ink}" fill-opacity="0.95">
+      ${Array.from({ length: 5 }).map((_, i) => {
+        const t = i / 4;
+        const xLeft = 100 + t * 400;
+        const xRight = 1500 - t * 400;
+        const colW = 60 - t * 36;
+        const top = 200 + t * 200;
+        const bot = 800 - t * 200;
+        return `
+          <rect x="${xLeft}" y="${top}" width="${colW}" height="${bot - top}"/>
+          <rect x="${xLeft - colW * 0.15}" y="${top}" width="${colW * 1.3}" height="${colW * 0.4}"/>
+          <rect x="${xLeft - colW * 0.15}" y="${bot - colW * 0.4}" width="${colW * 1.3}" height="${colW * 0.4}"/>
+          <rect x="${xRight - colW}" y="${top}" width="${colW}" height="${bot - top}"/>
+          <rect x="${xRight - colW * 1.15}" y="${top}" width="${colW * 1.3}" height="${colW * 0.4}"/>
+          <rect x="${xRight - colW * 1.15}" y="${bot - colW * 0.4}" width="${colW * 1.3}" height="${colW * 0.4}"/>
+        `;
+      }).join("")}
+    </g>
+    <!-- Warm rim on closest columns. -->
+    <g fill="${p.warm}" fill-opacity="0.32">
+      <rect x="100" y="200" width="3" height="600"/>
+      <rect x="1497" y="200" width="3" height="600"/>
+    </g>
+
+    <!-- Light shafts from the right-rear arches. -->
+    <g>
+      <rect x="700" y="200" width="60" height="500" fill="url(#shaft)" filter="url(#atmos)"/>
+      <rect x="840" y="200" width="60" height="500" fill="url(#shaft)" filter="url(#atmos)"/>
+    </g>
+
+    <g font-family="JetBrains Mono, monospace" fill="${p.accent}" fill-opacity="0.4" font-size="11" letter-spacing="2">
+      <text x="60" y="740">POLICY DESK · CANBERRA</text>
+    </g>
+
+    ${commonFinish(p)}
+  </svg>`;
+}
+
+// ─── World (earth at night, illuminated coastlines) ─────────────────────────
+
+function worldSvg(h: number, p: Palette): string {
+  const cx = 1100;
+  const cy = 400;
+  const r = 320;
+
+  // Coastline-style polylines on the sphere.
   const continents = [
-    // North America
-    "M270,260 L320,220 L400,210 L470,240 L495,290 L470,340 L420,360 L370,400 L320,420 L270,410 L240,360 L240,310 Z",
-    // South America
-    "M380,440 L420,440 L450,500 L440,580 L410,640 L380,650 L355,610 L350,540 L360,490 Z",
-    // Europe
-    "M730,210 L800,220 L840,250 L825,290 L770,295 L740,275 Z",
-    // Africa
-    "M780,310 L850,310 L880,370 L870,470 L820,550 L790,560 L760,510 L750,420 L765,360 Z",
-    // Asia
-    "M860,200 L1080,210 L1180,250 L1220,310 L1180,355 L1080,365 L960,355 L890,310 L860,260 Z",
-    // Australia
-    "M1140,510 L1230,510 L1280,540 L1250,580 L1180,585 L1140,560 Z",
+    "M260,250 L320,205 L420,200 L500,235 L520,295 L495,355 L440,380 L385,420 L325,440 L265,425 L235,365 L235,305 Z",
+    "M380,460 L430,460 L470,530 L450,620 L415,675 L385,680 L355,635 L350,560 L365,500 Z",
+    "M730,210 L800,220 L850,255 L835,295 L770,300 L735,275 Z",
+    "M780,310 L860,310 L895,375 L880,485 L825,570 L795,580 L760,525 L750,425 L765,360 Z",
+    "M860,200 L1080,210 L1190,250 L1230,315 L1190,365 L1080,375 L960,365 L890,315 L860,260 Z",
+    "M1170,520 L1260,520 L1310,555 L1280,595 L1200,600 L1170,575 Z",
   ];
 
+  function projectToSphere(d: string): string {
+    // No real projection — just shift to centre the continents on the
+    // visible sphere face and rotate slightly.
+    return d;
+  }
+
   const hotspots = [
-    [1200, 555, 1.0], // Sydney
-    [430, 290, 0.7],  // NY
-    [800, 250, 0.65], // London
-    [1080, 290, 0.55], // Tokyo
-    [820, 460, 0.45], // Africa
-  ]
-    .map(([x, y, mag]) => {
-      const m = mag as number;
-      return `
-        <circle cx="${x}" cy="${y}" r="${4 + m * 3}" fill="hsl(38, 100%, 70%)" fill-opacity="${0.7 * m}"/>
-        <circle cx="${x}" cy="${y}" r="${14 + m * 12}" fill="none" stroke="hsl(38, 100%, 70%)" stroke-opacity="${0.4 * m}"/>
-      `;
-    })
-    .join("");
+    [1248, 568, 1.0, "SYD"],
+    [438, 297, 0.65, "NYC"],
+    [800, 250, 0.55, "LON"],
+    [1080, 290, 0.5, "TKO"],
+    [820, 470, 0.4, "JNB"],
+  ];
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 800" preserveAspectRatio="xMidYMid slice">
-    <defs>${commonDefs(h)}</defs>
+    <defs>${commonDefs(p, h)}
+      <radialGradient id="earth" cx="40%" cy="35%" r="65%">
+        <stop offset="0%" stop-color="hsl(225, 50%, 18%)"/>
+        <stop offset="60%" stop-color="hsl(225, 60%, 8%)"/>
+        <stop offset="100%" stop-color="hsl(225, 70%, 3%)"/>
+      </radialGradient>
+      <radialGradient id="rim" cx="50%" cy="50%" r="50%">
+        <stop offset="92%" stop-color="${p.cool}" stop-opacity="0"/>
+        <stop offset="98%" stop-color="${p.cool}" stop-opacity="0.55"/>
+        <stop offset="100%" stop-color="${p.cool}" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="terminator" cx="20%" cy="50%" r="55%">
+        <stop offset="0%" stop-color="black" stop-opacity="0"/>
+        <stop offset="100%" stop-color="black" stop-opacity="0.65"/>
+      </radialGradient>
+    </defs>
+    <rect width="1600" height="800" fill="url(#sky)"/>
 
-    <rect width="1600" height="800" fill="url(#base)"/>
-    <rect width="1600" height="800" fill="url(#spot)"/>
-
-    <!-- Lat/lon grid. -->
-    <g stroke="hsl(200, 50%, 60%)" stroke-opacity="0.06" stroke-width="0.5">
-      ${Array.from({ length: 18 }).map((_, i) => `<line x1="${i * 90}" y1="0" x2="${i * 90}" y2="800"/>`).join("")}
-      ${Array.from({ length: 9 }).map((_, i) => `<line x1="0" y1="${i * 90 + 80}" x2="1600" y2="${i * 90 + 80}"/>`).join("")}
+    <!-- Subtle starfield. -->
+    <g fill="${p.warm}">
+      ${Array.from({ length: 30 }).map((_, i) => {
+        const seed = (h + i * 91) % 1000;
+        const x = (seed * 7) % 1100;
+        const y = (seed * 13) % 800;
+        const r2 = 0.5 + (seed % 3) * 0.4;
+        const op = 0.15 + (seed % 5) * 0.06;
+        return `<circle cx="${x}" cy="${y}" r="${r2}" fill-opacity="${op}"/>`;
+      }).join("")}
     </g>
 
-    <!-- Equator and Sydney parallel. -->
-    <g stroke="hsl(38, 80%, 65%)" stroke-opacity="0.16" stroke-width="0.6" stroke-dasharray="4 6">
-      <line x1="0" y1="400" x2="1600" y2="400"/>
-      <line x1="0" y1="560" x2="1600" y2="560"/>
+    <!-- Earth body. -->
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#earth)"/>
+    <circle cx="${cx}" cy="${cy}" r="${r + 6}" fill="url(#rim)"/>
+
+    <!-- Continent outlines, clipped to the visible face. -->
+    <g transform="translate(${cx - 800} ${cy - 400}) scale(0.86)" opacity="0.85">
+      <g fill="hsl(225, 50%, 16%)" stroke="${p.warm}" stroke-opacity="0.3" stroke-width="0.8">
+        ${continents.map((d) => `<path d="${projectToSphere(d)}"/>`).join("")}
+      </g>
+      <!-- Illuminated coastlines — bright amber edge to suggest city lights. -->
+      <g fill="none" stroke="${p.warm}" stroke-opacity="0.55" stroke-width="1.2">
+        ${continents.map((d) => `<path d="${projectToSphere(d)}"/>`).join("")}
+      </g>
     </g>
 
-    <!-- Continents. -->
-    <g fill="hsl(225, 35%, 18%)" fill-opacity="0.85" stroke="hsl(38, 60%, 60%)" stroke-opacity="0.2" stroke-width="0.7">
-      ${continents.map((d) => `<path d="${d}"/>`).join("")}
+    <!-- City-light dots scattered along coastlines (deterministic). -->
+    <g fill="${p.warm}">
+      ${Array.from({ length: 60 }).map((_, i) => {
+        const seed = (h + i * 53) % 1000;
+        const angle = ((seed * 11) % 360) * (Math.PI / 180);
+        const rr = r * (0.5 + ((seed * 17) % 100) / 220);
+        const x = cx + Math.cos(angle) * rr;
+        const y = cy + Math.sin(angle) * rr;
+        if ((x - cx) * (x - cx) + (y - cy) * (y - cy) > r * r * 0.95) return "";
+        return `<circle cx="${x}" cy="${y}" r="${0.8 + (seed % 4) * 0.3}" fill-opacity="${0.4 + (seed % 5) * 0.1}"/>`;
+      }).join("")}
     </g>
 
-    <!-- Hotspots. -->
-    ${hotspots}
+    <!-- Terminator shadow on the far side. -->
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#terminator)"/>
 
-    <!-- Footer labels. -->
-    <g font-family="JetBrains Mono, monospace" fill="hsl(38, 90%, 80%)" fill-opacity="0.35" font-size="11" letter-spacing="2">
-      <text x="60" y="740">GLOBAL · INTEL FLOW · LIVE</text>
-      <text x="60" y="760">5 ACTIVE SIGNALS</text>
+    <!-- Major hotspots. -->
+    ${hotspots.map(([x, y, mag, label]) => {
+      const m = mag as number;
+      return `
+        <circle cx="${x}" cy="${y}" r="${4 + m * 3}" fill="${p.accent}" fill-opacity="${0.85 * m}"/>
+        <circle cx="${x}" cy="${y}" r="${14 + m * 14}" fill="none" stroke="${p.accent}" stroke-opacity="${0.4 * m}"/>
+        <text x="${(x as number) + 16}" y="${(y as number) + 4}" font-family="JetBrains Mono, monospace" font-size="11" letter-spacing="2" fill="${p.accent}" fill-opacity="${0.7 * m}">${label}</text>
+      `;
+    }).join("")}
+
+    <g font-family="JetBrains Mono, monospace" fill="${p.accent}" fill-opacity="0.4" font-size="11" letter-spacing="2">
+      <text x="60" y="740">GLOBAL DESK · ${new Date().toISOString().slice(11, 16)} UTC</text>
     </g>
 
-    ${commonFinish()}
+    ${commonFinish(p)}
   </svg>`;
 }
 
-// ─── Masthead ──────────────────────────────────────────────────────────────
+// ─── Data hall (server corridor, vanishing point) ───────────────────────────
 
-function mastheadSvg(h: number, prompt: string): string {
-  // Extract the edition number from the prompt if present (the demo seed
-  // calls demoImage with "Edition 14 ..." style prompts).
+function dataHallSvg(h: number, p: Palette): string {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 800" preserveAspectRatio="xMidYMid slice">
+    <defs>${commonDefs(p, h)}
+      <linearGradient id="rack" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${p.ink}"/>
+        <stop offset="100%" stop-color="hsl(0,0%,2%)"/>
+      </linearGradient>
+    </defs>
+    <rect width="1600" height="800" fill="url(#sky)"/>
+
+    <!-- Receding floor / ceiling. -->
+    <polygon points="0,0 1600,0 900,400 700,400" fill="${p.bottom}" fill-opacity="0.85"/>
+    <polygon points="0,800 1600,800 900,400 700,400" fill="${p.bottom}" fill-opacity="0.95"/>
+
+    <!-- Receding rack rows. -->
+    ${Array.from({ length: 7 }).map((_, i) => {
+      const t = i / 6;
+      const xLeft = 30 + t * 660;
+      const xRight = 1570 - t * 660;
+      const yTop = 200 + t * 200;
+      const yBot = 720 - t * 200;
+      const rackH = yBot - yTop;
+      const ledRows = Math.max(4, Math.floor(rackH / 16));
+      // LED row colours alternate cool/amber.
+      const leds = Array.from({ length: ledRows })
+        .map((__, j) => {
+          const seed = (h + i * 13 + j * 41) % 100;
+          const on = seed > 30;
+          if (!on) return "";
+          const colour = (seed + j) % 4 === 0 ? p.warm : p.cool;
+          return `
+            <rect x="${xLeft + 4}" y="${yTop + 4 + j * 16}" width="${(xRight - xLeft) * 0.04}" height="3" fill="${colour}" fill-opacity="${0.7 - t * 0.6}"/>
+            <rect x="${xRight - (xRight - xLeft) * 0.04 - 4}" y="${yTop + 4 + j * 16}" width="${(xRight - xLeft) * 0.04}" height="3" fill="${colour}" fill-opacity="${0.7 - t * 0.6}"/>
+          `;
+        })
+        .join("");
+
+      return `
+        <rect x="${xLeft}" y="${yTop}" width="${(xRight - xLeft) * 0.08}" height="${rackH}" fill="url(#rack)" fill-opacity="${1 - t * 0.65}"/>
+        <rect x="${xRight - (xRight - xLeft) * 0.08}" y="${yTop}" width="${(xRight - xLeft) * 0.08}" height="${rackH}" fill="url(#rack)" fill-opacity="${1 - t * 0.65}"/>
+        ${leds}
+      `;
+    }).join("")}
+
+    <!-- Floor light strip. -->
+    <polygon points="700,400 900,400 1000,800 600,800" fill="${p.cool}" fill-opacity="0.06" filter="url(#atmos)"/>
+
+    <!-- Vanishing-point glow. -->
+    <circle cx="800" cy="400" r="120" fill="${p.warm}" fill-opacity="0.15" filter="url(#atmos)"/>
+
+    <g font-family="JetBrains Mono, monospace" fill="${p.accent}" fill-opacity="0.4" font-size="11" letter-spacing="2">
+      <text x="60" y="740">TECH DESK · AP-SOUTHEAST-2</text>
+    </g>
+
+    ${commonFinish(p)}
+  </svg>`;
+}
+
+// ─── Masthead (oversized typographic spread) ────────────────────────────────
+
+function mastheadSvg(h: number, p: Palette, prompt: string): string {
   const editionMatch = prompt.match(/Edition\s+(\d+)/i);
   const editionNum = editionMatch ? editionMatch[1] : String(10 + (h % 90));
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 800" preserveAspectRatio="xMidYMid slice">
-    <defs>${commonDefs(h)}</defs>
+    <defs>${commonDefs(p, h)}</defs>
+    <rect width="1600" height="800" fill="url(#sky)"/>
+    <rect width="1600" height="800" fill="url(#sun)"/>
 
-    <rect width="1600" height="800" fill="url(#base)"/>
-    <rect width="1600" height="800" fill="url(#spot)"/>
+    <!-- Top + bottom paper rules. -->
+    <line x1="80" y1="170" x2="1520" y2="170" stroke="${p.warm}" stroke-opacity="0.65"/>
+    <line x1="80" y1="176" x2="1520" y2="176" stroke="${p.warm}" stroke-opacity="0.2"/>
 
-    <!-- Background grid. -->
-    <g stroke="hsl(200, 30%, 70%)" stroke-opacity="0.04" stroke-width="0.5">
-      ${Array.from({ length: 16 }).map((_, i) => `<line x1="${i * 100}" y1="0" x2="${i * 100}" y2="800"/>`).join("")}
-    </g>
+    <!-- Slug row. -->
+    <text x="80" y="210" font-family="JetBrains Mono, monospace" font-size="13" letter-spacing="6" fill="${p.warm}" fill-opacity="0.7">EDITION No. ${editionNum}</text>
+    <text x="1520" y="210" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="13" letter-spacing="6" fill="${p.warm}" fill-opacity="0.7">SYDNEY · 7AM AEST</text>
 
-    <!-- Top rule + paper-style header. -->
-    <g>
-      <line x1="80" y1="180" x2="1520" y2="180" stroke="hsl(38, 100%, 70%)" stroke-opacity="0.6"/>
-      <line x1="80" y1="184" x2="1520" y2="184" stroke="hsl(38, 100%, 70%)" stroke-opacity="0.2"/>
-      <text x="80" y="216" font-family="JetBrains Mono, monospace" font-size="13" letter-spacing="5" fill="hsl(38, 90%, 80%)" fill-opacity="0.6">EDITION No. ${editionNum} · WEEKLY INTELLIGENCE</text>
-      <text x="1520" y="216" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="13" letter-spacing="5" fill="hsl(38, 90%, 80%)" fill-opacity="0.6">SYDNEY · 7AM AEST</text>
-    </g>
+    <!-- Wordmark — outlined behind, solid in front. -->
+    <text x="800" y="490" text-anchor="middle" font-family="Playfair Display, serif" font-weight="800" font-size="220" letter-spacing="-10" fill="none" stroke="${p.warm}" stroke-opacity="0.18" stroke-width="2">The Desk</text>
+    <text x="800" y="480" text-anchor="middle" font-family="Playfair Display, serif" font-weight="800" font-size="220" letter-spacing="-10" fill="${p.warm}" fill-opacity="0.92">The Desk</text>
 
-    <!-- Oversized masthead. -->
-    <g>
-      <text x="800" y="510" text-anchor="middle" font-family="Playfair Display, serif" font-weight="800" font-size="260" letter-spacing="-12" fill="hsl(38, 90%, 78%)" fill-opacity="0.18">The Desk</text>
-      <text x="800" y="500" text-anchor="middle" font-family="Playfair Display, serif" font-weight="800" font-size="260" letter-spacing="-12" fill="hsl(38, 100%, 80%)" fill-opacity="0.92">The Desk</text>
-    </g>
+    <!-- Tagline. -->
+    <line x1="80" y1="600" x2="1520" y2="600" stroke="${p.warm}" stroke-opacity="0.4"/>
+    <line x1="80" y1="606" x2="1520" y2="606" stroke="${p.warm}" stroke-opacity="0.12"/>
+    <text x="800" y="660" text-anchor="middle" font-family="Playfair Display, serif" font-style="italic" font-size="30" fill="${p.warm}" fill-opacity="0.78">Intelligence for property partnerships</text>
+    <text x="800" y="710" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" letter-spacing="6" fill="${p.warm}" fill-opacity="0.45">BY RUBEN LAUBSCHER · INVESTORKIT</text>
 
-    <!-- Bottom dec block. -->
-    <g>
-      <line x1="80" y1="620" x2="1520" y2="620" stroke="hsl(38, 100%, 70%)" stroke-opacity="0.4"/>
-      <line x1="80" y1="624" x2="1520" y2="624" stroke="hsl(38, 100%, 70%)" stroke-opacity="0.14"/>
-      <text x="800" y="678" text-anchor="middle" font-family="Playfair Display, serif" font-style="italic" font-size="28" fill="hsl(40, 60%, 88%)" fill-opacity="0.65">Intelligence for property partnerships</text>
-      <text x="800" y="730" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" letter-spacing="6" fill="hsl(38, 90%, 80%)" fill-opacity="0.45">BY RUBEN LAUBSCHER · INVESTORKIT</text>
-    </g>
-
-    ${commonFinish()}
+    ${commonFinish(p)}
   </svg>`;
 }

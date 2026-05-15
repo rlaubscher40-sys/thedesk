@@ -30,6 +30,7 @@ import { trpc } from "@/lib/trpc";
 import { AnimatedBackground } from "./AnimatedBackground";
 import { DemoModeBanner } from "./DemoModeBanner";
 import { LiveTicker } from "./LiveTicker";
+import { Logomark } from "./Logomark";
 
 type NavItem = {
   path: string;
@@ -165,7 +166,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 // ─── Sub-components ─────────────────────────────────────────────────────────
 
 function TopRule() {
-  return <div className="editorial-rule shrink-0" aria-hidden="true" />;
+  return <div className="editorial-rule first-paint-rule shrink-0" aria-hidden="true" />;
 }
 
 function MobileHeader({ onOpen }: { onOpen: () => void }) {
@@ -178,6 +179,7 @@ function MobileHeader({ onOpen }: { onOpen: () => void }) {
       >
         <Menu className="h-4 w-4" />
       </button>
+      <Logomark size={22} animated={false} />
       <span className="font-serif font-bold text-lg wordmark leading-none">The Desk</span>
       <span className="live-dot ml-1" aria-hidden="true" />
     </div>
@@ -268,38 +270,40 @@ function SidebarHeader({
   }
   return (
     <div className="px-5 pt-7 pb-5">
-      <div className="flex items-start justify-between">
-        <div>
-          {/* Wordmark in editorial display weight, gold gradient. */}
-          <span className="font-serif font-bold tracking-tight text-[20px] leading-none wordmark">
-            The Desk
-          </span>
-          {/* By-line — small, low-contrast, hover to amber. */}
-          <a
-            href="https://www.linkedin.com/in/ruben-laubscher/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block overline mt-2 hover:text-amber-400 transition-colors"
-            style={{ fontSize: "8px", letterSpacing: "0.14em" }}
-          >
-            By Ruben Laubscher
-          </a>
-          {/* Live indicator — pulsing amber dot with mono label. */}
-          <div className="flex items-center gap-1.5 mt-2.5">
-            <span className="live-dot" aria-hidden="true" />
-            <span
-              className="overline-amber"
-              style={{ fontSize: "8px", letterSpacing: "0.16em" }}
-            >
-              Live Intelligence
+      <div className="flex items-start justify-between gap-2">
+        {/* Brand lockup: logomark + wordmark + by-line + live indicator.
+            Wrapped in first-paint-mark so it fades in once on mount. */}
+        <div className="flex items-start gap-2.5 first-paint-mark min-w-0">
+          <Logomark size={26} animated />
+          <div className="leading-none min-w-0">
+            <span className="font-serif font-bold tracking-tight text-[19px] leading-none wordmark block">
+              The Desk
             </span>
+            <a
+              href="https://www.linkedin.com/in/ruben-laubscher/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block overline mt-2 hover:text-amber-400 transition-colors"
+              style={{ fontSize: "8px", letterSpacing: "0.14em" }}
+            >
+              By Ruben Laubscher
+            </a>
+            <div className="flex items-center gap-1.5 mt-2.5">
+              <span className="live-dot" aria-hidden="true" />
+              <span
+                className="overline-amber"
+                style={{ fontSize: "8px", letterSpacing: "0.16em" }}
+              >
+                Live Intelligence
+              </span>
+            </div>
           </div>
         </div>
         <button
           onClick={onToggleCollapse}
           aria-label="Collapse sidebar"
           title="Collapse sidebar ([)"
-          className="p-1.5 rounded text-[var(--color-fg-subtle)] hover:text-amber-400 transition-colors"
+          className="p-1.5 rounded text-[var(--color-fg-subtle)] hover:text-amber-400 transition-colors shrink-0"
         >
           <PanelLeftClose className="h-4 w-4" />
         </button>

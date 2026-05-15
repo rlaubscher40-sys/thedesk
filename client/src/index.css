@@ -22,6 +22,13 @@
   --color-amber-dim: oklch(0.75 0.18 70 / 18%);
   --color-amber-glow: oklch(0.75 0.18 70 / 35%);
 
+  /* Secondary accent — oxidised copper / rust. Sits opposite the
+     amber on the colour wheel, used sparingly for callouts,
+     directional deltas, and one-off accent moments. */
+  --color-ink: oklch(0.62 0.18 25);
+  --color-ink-bright: oklch(0.72 0.20 28);
+  --color-ink-dim: oklch(0.62 0.18 25 / 18%);
+
   --color-border: oklch(1 0 0 / 9%);
   --color-border-strong: oklch(1 0 0 / 18%);
 
@@ -256,6 +263,26 @@
     background: var(--color-amber);
   }
 
+  /* ─── First-paint sequence ─────────────────────────────
+     Coordinated intro: the wordmark draws in, the top rule
+     sweeps across, then content fades up. Three classes
+     with staggered animation-delay so the cascade is
+     declarative — no JS choreography.
+  */
+  .first-paint-mark {
+    opacity: 0;
+    animation: first-paint-fade 800ms cubic-bezier(0.16, 1, 0.3, 1) 100ms forwards;
+  }
+  .first-paint-rule {
+    transform: scaleX(0);
+    transform-origin: left center;
+    animation: first-paint-sweep 900ms cubic-bezier(0.16, 1, 0.3, 1) 250ms forwards;
+  }
+  .first-paint-content {
+    opacity: 0;
+    animation: first-paint-fade 700ms cubic-bezier(0.16, 1, 0.3, 1) 500ms forwards;
+  }
+
   /* ─── Card hover lift ───────────────────────────────────
      Subtle Y-lift + amber-tinted glow when the user mouses
      over a card. Combined with panel-hover for cards that
@@ -370,6 +397,21 @@
   to   { transform: translateY(0%);   opacity: 1; }
 }
 
+@keyframes first-paint-fade {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes first-paint-sweep {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+@keyframes draw-stroke {
+  from { stroke-dashoffset: var(--len, 200); }
+  to   { stroke-dashoffset: 0; }
+}
+
 @keyframes hero-drift {
   from {
     transform: scale(1.04) translate3d(-0.6%, -0.4%, 0);
@@ -402,7 +444,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .ambient-orb-1, .ambient-orb-2, .ambient-orb-3, .live-dot::before, .skeleton,
-  .hero-cover-img, .hero-cover-shine, .ticker-track, .reveal-mask > * {
+  .hero-cover-img, .hero-cover-shine, .ticker-track, .reveal-mask > *,
+  .first-paint-mark, .first-paint-rule, .first-paint-content {
     animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 }

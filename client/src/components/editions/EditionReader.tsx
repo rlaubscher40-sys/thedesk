@@ -5,6 +5,7 @@
  */
 import type { Edition } from "@shared/types";
 import { SectionErrorBoundary } from "../ErrorBoundary";
+import { ScrollProgress } from "../ScrollProgress";
 import { StaggerList } from "../StaggerList";
 import { EditionAdminPanel } from "./EditionAdminPanel";
 import { EditionHero } from "./EditionHero";
@@ -18,6 +19,7 @@ export function EditionReader({ edition }: { edition: Edition }) {
 
   return (
     <article>
+      <ScrollProgress />
       <SectionErrorBoundary section="Hero">
         <EditionHero edition={edition} />
       </SectionErrorBoundary>

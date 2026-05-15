@@ -24,8 +24,9 @@ import { ArrowDown, ArrowUp, Minus } from "lucide-react";
 import { CountUp } from "@/components/CountUp";
 import { PageHeader } from "@/components/PageHeader";
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
+import { Sparkline } from "@/components/charts/Sparkline";
+import { HeatTreemap } from "@/components/charts/HeatTreemap";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { categoryColour } from "@/lib/category";
 import { cn } from "@/lib/cn";
 import { trpc } from "@/lib/trpc";
 
@@ -155,6 +156,20 @@ function KpiStrip({
     );
   }
 
+  // Build the historical series of numeric values for each KPI label.
+  // Used by the inline sparkline next to the current number.
+  const seriesByLabel = new Map<string, number[]>();
+  for (const label of labels) {
+    const series: number[] = [];
+    for (const row of history ?? []) {
+      const v = row.keyMetrics?.[label];
+      if (v == null) continue;
+      const n = toNumber(v);
+      if (Number.isFinite(n)) series.push(n);
+    }
+    seriesByLabel.set(label, series);
+  }
+
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-px panel rounded overflow-hidden">
       {labels.map((label, idx) => (
@@ -163,6 +178,7 @@ function KpiStrip({
           label={label}
           value={latest.keyMetrics![label]!}
           prev={prior?.keyMetrics?.[label] ?? null}
+          series={seriesByLabel.get(label) ?? []}
         />
       ))}
     </div>
@@ -173,10 +189,12 @@ function KpiTile({
   label,
   value,
   prev,
+  series,
 }: {
   label: string;
   value: string | number;
   prev: string | number | null | undefined;
+  series: number[];
 }) {
   const currentNum = toNumber(value);
   const prevNum = prev != null ? toNumber(prev) : NaN;
@@ -208,23 +226,36 @@ function KpiTile({
         : "text-[var(--color-fg-subtle)]";
   const Icon = direction === "up" ? ArrowUp : direction === "down" ? ArrowDown : Minus;
 
+  const sparkColour =
+    direction === "up"
+      ? "oklch(0.72 0.17 155)"
+      : direction === "down"
+        ? "oklch(0.68 0.20 15)"
+        : "oklch(0.78 0.18 70)";
+
   return (
-    <div className="bg-[var(--color-bg-elevated)] p-5 hover:bg-[oklch(0.18_0.02_260)] transition-colors group">
+    <div className="bg-[var(--color-bg-elevated)] p-5 hover:bg-[oklch(0.18_0.02_260)] transition-colors relative">
       <p className="overline mb-3 truncate" style={{ letterSpacing: "0.16em" }}>
         {label}
       </p>
-      <p className="font-serif text-3xl font-bold text-[var(--color-fg)] leading-none mb-2">
-        {numeric ? (
-          <CountUp
-            value={currentNum}
-            decimals={decimals}
-            suffix={suffix}
-            group={currentNum >= 1000}
-          />
-        ) : (
-          <span className="tabular-nums">{value}</span>
+      <div className="flex items-end justify-between gap-3 mb-2">
+        <p className="font-serif text-3xl font-bold text-[var(--color-fg)] leading-none">
+          {numeric ? (
+            <CountUp
+              value={currentNum}
+              decimals={decimals}
+              suffix={suffix}
+              group={currentNum >= 1000}
+            />
+          ) : (
+            <span className="tabular-nums">{value}</span>
+          )}
+        </p>
+        {/* Inline sparkline — shows the trajectory beside the headline number. */}
+        {series.length >= 2 && (
+          <Sparkline values={series} width={92} height={32} colour={sparkColour} />
         )}
-      </p>
+      </div>
       <p className={cn("font-mono text-xs flex items-center gap-1.5", tone)}>
         <Icon className="h-3 w-3" />
         {hasDelta ? (
@@ -380,48 +411,10 @@ function CategoryHeat({
     | undefined;
   loading: boolean;
 }) {
-  if (loading) return <Skeleton className="h-64 w-full" />;
+  if (loading) return <Skeleton className="h-72 w-full" />;
   if (!data || data.length === 0)
     return <p className="text-sm text-[var(--color-fg-muted)]">No data yet.</p>;
-
-  const top = data.slice(0, 6);
-  const maxTotal = Math.max(...top.map((d) => d.total), 1);
-
-  return (
-    <div className="space-y-3">
-      {top.map((row) => {
-        const widthPct = (row.total / maxTotal) * 100;
-        return (
-          <div key={row.category} className="group">
-            <div className="flex items-baseline justify-between mb-1.5">
-              <span
-                className="overline transition-colors"
-                style={{ color: categoryColour(row.category) }}
-              >
-                {row.category}
-              </span>
-              <span className="font-mono text-xs tabular-nums text-[var(--color-fg-muted)]">
-                {row.total}
-                <span className="text-[var(--color-fg-subtle)] ml-1.5">
-                  {row.daily}d · {row.weekly}w
-                </span>
-              </span>
-            </div>
-            <div className="h-1.5 rounded-full overflow-hidden bg-white/[0.04]">
-              <div
-                className="h-full transition-all duration-500"
-                style={{
-                  width: `${widthPct}%`,
-                  background: categoryColour(row.category),
-                  boxShadow: `0 0 16px 0 ${categoryColour(row.category)}40`,
-                }}
-              />
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
+  return <HeatTreemap data={data.slice(0, 9)} height={320} />;
 }
 
 // ─── Signal cadence ─────────────────────────────────────────────────────────

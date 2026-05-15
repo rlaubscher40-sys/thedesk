@@ -1,11 +1,14 @@
 /**
- * Today is the daily scan. The page is intentionally small — the heavy
- * rendering lives in the focused sub-components under components/feed/.
+ * Today — magazine front page.
  *
- * Improvements addressed here:
- *  - Loading skeletons (issue #4)
- *  - Section-level error boundaries (issue #3)
- *  - Optimistic queue updates flow through FeedItemCard (issue #10)
+ *   1. PageHeader (overline, masthead-style title, kicker)
+ *   2. Date picker
+ *   3. Lead story spans the full width — hero plate left, editorial column
+ *      right, asymmetric grid
+ *   4. Supporting stories below in a balanced 1-2-3 column grid that
+ *      collapses gracefully on narrow screens
+ *
+ * Section-level boundaries and skeleton states preserved.
  */
 import { useEffect, useState } from "react";
 import { format, parseISO } from "date-fns";
@@ -13,6 +16,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StaggerList } from "@/components/StaggerList";
 import { FeedDatePicker } from "@/components/feed/FeedDatePicker";
 import { FeedItemCard } from "@/components/feed/FeedItemCard";
+import { FeedLeadCard } from "@/components/feed/FeedLeadCard";
 import { FeedSkeleton } from "@/components/feed/FeedSkeleton";
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
 import { getSydneyIsoDate } from "@/lib/date";
@@ -24,7 +28,6 @@ export default function DailyFeed() {
   const datesQuery = trpc.feed.getRecentDates.useQuery();
   const feedQuery = trpc.feed.getByDate.useQuery({ date: selectedDate });
 
-  // If the user lands on a day with no feed, fall back to the latest available.
   useEffect(() => {
     if (!feedQuery.isLoading && feedQuery.data?.length === 0 && datesQuery.data?.[0]) {
       const latest = datesQuery.data[0];
@@ -39,6 +42,9 @@ export default function DailyFeed() {
       return selectedDate;
     }
   })();
+
+  const items = feedQuery.data ?? [];
+  const [lead, ...rest] = items;
 
   return (
     <div>
@@ -58,24 +64,45 @@ export default function DailyFeed() {
         )}
       </SectionErrorBoundary>
 
-      {/* Feed flows in 2 columns on wide screens — newspaper rhythm. The
-          lead item still wins the left column visually because category
-          accents + amber pill draw the eye there. */}
-      <div className="mt-8">
+      <div className="mt-8 space-y-8">
         <SectionErrorBoundary section="Feed items">
           {feedQuery.isLoading ? (
             <FeedSkeleton />
-          ) : feedQuery.data && feedQuery.data.length > 0 ? (
-            <StaggerList
-              className="grid grid-cols-1 xl:grid-cols-2 gap-5"
-              cacheKey={selectedDate}
-            >
-              {feedQuery.data.map((item) => (
-                <FeedItemCard key={item.id} item={item} />
-              ))}
-            </StaggerList>
-          ) : (
+          ) : items.length === 0 ? (
             <EmptyFeed date={niceDate} />
+          ) : (
+            <>
+              {/* Lead story. */}
+              {lead && <FeedLeadCard item={lead} />}
+
+              {/* Supporting deck — 1 col mobile, 2 cols tablet, 3 cols wide. */}
+              {rest.length > 0 && (
+                <>
+                  <div className="flex items-center gap-3">
+                    <p className="overline-amber" style={{ letterSpacing: "0.2em" }}>
+                      Today's deck
+                    </p>
+                    <span
+                      className="block flex-1"
+                      style={{
+                        height: "1px",
+                        background:
+                          "linear-gradient(90deg, oklch(0.75 0.18 70 / 30%), transparent)",
+                      }}
+                      aria-hidden="true"
+                    />
+                  </div>
+                  <StaggerList
+                    className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5"
+                    cacheKey={selectedDate}
+                  >
+                    {rest.map((item) => (
+                      <FeedItemCard key={item.id} item={item} />
+                    ))}
+                  </StaggerList>
+                </>
+              )}
+            </>
           )}
         </SectionErrorBoundary>
       </div>
