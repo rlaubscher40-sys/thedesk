@@ -8,9 +8,11 @@ import type {
   ConversationEntry,
   DailyFeedItem,
   Edition,
+  FeaturedLinkedInPost,
   InsertConversationEntry,
   InsertDailyFeedItem,
   InsertEdition,
+  InsertFeaturedLinkedInPost,
   InsertReadingQueueItem,
   InsertSubscriber,
   InsertWeeklyNote,
@@ -455,4 +457,51 @@ export function listSubscribers(): Subscriber[] {
 
 export function countConfirmedSubscribers(): number {
   return demo.subscribers.filter((s) => s.confirmedAt && !s.unsubscribedAt).length;
+}
+
+// ─── Featured LinkedIn posts ────────────────────────────────────────────────
+
+export function listLiveLinkedInPosts(limit: number): FeaturedLinkedInPost[] {
+  return [...demo.linkedInPosts]
+    .filter((p) => p.isLive)
+    .sort((a, b) => a.displayOrder - b.displayOrder || b.createdAt.getTime() - a.createdAt.getTime())
+    .slice(0, limit);
+}
+
+export function listAllLinkedInPosts(): FeaturedLinkedInPost[] {
+  return [...demo.linkedInPosts].sort(
+    (a, b) => a.displayOrder - b.displayOrder || b.createdAt.getTime() - a.createdAt.getTime()
+  );
+}
+
+export function createLinkedInPost(data: InsertFeaturedLinkedInPost): FeaturedLinkedInPost {
+  const post: FeaturedLinkedInPost = {
+    id: allocId(),
+    postUrl: data.postUrl,
+    excerpt: data.excerpt,
+    authorName: data.authorName ?? "Ruben Laubscher",
+    displayOrder: data.displayOrder ?? 100,
+    isLive: data.isLive ?? true,
+    createdAt: new Date(),
+  };
+  demo.linkedInPosts.unshift(post);
+  return post;
+}
+
+export function updateLinkedInPost(
+  id: number,
+  patch: Partial<Omit<InsertFeaturedLinkedInPost, "id">>
+): void {
+  const row = demo.linkedInPosts.find((p) => p.id === id);
+  if (!row) return;
+  if (patch.postUrl !== undefined) row.postUrl = patch.postUrl;
+  if (patch.excerpt !== undefined) row.excerpt = patch.excerpt;
+  if (patch.authorName !== undefined && patch.authorName !== null) row.authorName = patch.authorName;
+  if (patch.displayOrder !== undefined && patch.displayOrder !== null) row.displayOrder = patch.displayOrder;
+  if (patch.isLive !== undefined && patch.isLive !== null) row.isLive = patch.isLive;
+}
+
+export function deleteLinkedInPost(id: number): void {
+  const idx = demo.linkedInPosts.findIndex((p) => p.id === id);
+  if (idx >= 0) demo.linkedInPosts.splice(idx, 1);
 }

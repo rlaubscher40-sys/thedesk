@@ -23,6 +23,7 @@ import { FilterChips, type CategoryFilter } from "@/components/desk/FilterChips"
 import { Footer } from "@/components/desk/Footer";
 import { FromTheDeskIntro } from "@/components/desk/FromTheDeskIntro";
 import { Hero } from "@/components/desk/Hero";
+import { LinkedInStrip } from "@/components/desk/LinkedInStrip";
 import { PersonaSwitcher } from "@/components/desk/PersonaSwitcher";
 import { SignalCard } from "@/components/desk/SignalCard";
 import { StoryCard } from "@/components/desk/StoryCard";
@@ -118,6 +119,10 @@ export default function DailyFeed() {
           No items match this filter.
         </div>
       )}
+
+      <SectionErrorBoundary section="LinkedIn">
+        <LinkedInStrip />
+      </SectionErrorBoundary>
 
       {/* Support strip replaces the right rail — four cards in one band. */}
       <SectionErrorBoundary section="Support strip">

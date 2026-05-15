@@ -15,6 +15,13 @@
       "when": 1747260000000,
       "tag": "0001_subscribers_premium_imageurl",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1747400000000,
+      "tag": "0002_featured_linkedin_posts",
+      "breakpoints": true
     }
   ]
 }

@@ -126,6 +126,35 @@ export const subscribers = mysqlTable("subscribers", {
 export type Subscriber = typeof subscribers.$inferSelect;
 export type InsertSubscriber = typeof subscribers.$inferInsert;
 
+// ─── Featured LinkedIn posts ────────────────────────────────────────────────
+
+/**
+ * Hand-curated LinkedIn posts that surface on the Today page as a "Ruben
+ * on LinkedIn" strip. LinkedIn has no scrape-friendly API, so the admin
+ * pastes the URL + excerpt manually. The site renders cards that link
+ * back to the original post — readers finish the read on LinkedIn, which
+ * doubles as engagement / follower acquisition for the brand.
+ */
+export const featuredLinkedInPosts = mysqlTable("featured_linkedin_posts", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Canonical URL to the LinkedIn post (linkedin.com/posts/... or /feed/update/...). */
+  postUrl: varchar("postUrl", { length: 1024 }).notNull(),
+  /** 1-3 sentence pull from the post body. Plain text, no markup. */
+  excerpt: text("excerpt").notNull(),
+  /** Author display name; defaults to Ruben. Stored so we can feature
+   *  guest posts down the line. */
+  authorName: varchar("authorName", { length: 128 }).default("Ruben Laubscher").notNull(),
+  /** Lower numbers sort first. Default 100 so new entries land at the end. */
+  displayOrder: int("displayOrder").default(100).notNull(),
+  /** Soft-hide flag — set false to remove from the page without deleting
+   *  the row. */
+  isLive: boolean("isLive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type FeaturedLinkedInPost = typeof featuredLinkedInPosts.$inferSelect;
+export type InsertFeaturedLinkedInPost = typeof featuredLinkedInPosts.$inferInsert;
+
 // ─── Reading queue ──────────────────────────────────────────────────────────
 
 export const readingQueue = mysqlTable("reading_queue", {

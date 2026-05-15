@@ -9,6 +9,7 @@ import { editionsRouter } from "./editions";
 import { feedRouter } from "./feed";
 import { notesRouter } from "./notes";
 import { readingQueueRouter } from "./readingQueue";
+import { linkedInRouter } from "./linkedIn";
 import { searchRouter } from "./search";
 import { subscribersRouter } from "./subscribers";
 import { systemRouter } from "./system";
@@ -27,6 +28,7 @@ export const appRouter = router({
   trends: trendsRouter,
   search: searchRouter,
   subscribers: subscribersRouter,
+  linkedIn: linkedInRouter,
 });
 
 export type AppRouter = typeof appRouter;

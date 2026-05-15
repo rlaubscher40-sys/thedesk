@@ -10,6 +10,7 @@
 import type {
   DailyFeedItem,
   Edition,
+  FeaturedLinkedInPost,
   ReadingQueueItem,
   WeeklyNote,
   User,
@@ -51,7 +52,44 @@ export const demo = {
   notes: [] as WeeklyNote[],
   conversations: [] as ConversationEntry[],
   subscribers: [] as Subscriber[],
+  linkedInPosts: linkedInSeed(),
 };
+
+function linkedInSeed(): FeaturedLinkedInPost[] {
+  const now = Date.now();
+  return [
+    {
+      id: 800,
+      postUrl: "https://www.linkedin.com/posts/ruben-laubscher_apra-serviceability-buffer-activity-7195000000000000000-DESK/",
+      excerpt:
+        "The APRA serviceability buffer consultation is a six-month story, not a six-week one. Brokers selling 'loosening' to clients this quarter are selling timing they cannot deliver.",
+      authorName: "Ruben Laubscher",
+      displayOrder: 10,
+      isLive: true,
+      createdAt: new Date(now - 1000 * 60 * 60 * 24 * 2),
+    },
+    {
+      id: 801,
+      postUrl: "https://www.linkedin.com/posts/ruben-laubscher_sydney-clearance-rates-activity-7195000000000000001-DESK/",
+      excerpt:
+        "Sydney clearance over 65% for six straight weeks. The volume is finally catching up to the price story. Watch June listings — that's the test.",
+      authorName: "Ruben Laubscher",
+      displayOrder: 20,
+      isLive: true,
+      createdAt: new Date(now - 1000 * 60 * 60 * 24 * 5),
+    },
+    {
+      id: 802,
+      postUrl: "https://www.linkedin.com/posts/ruben-laubscher_fixed-rate-rolloff-activity-7195000000000000002-DESK/",
+      excerpt:
+        "Fixed-rate roll-offs land in mid-June. The decision was the easy part — broker channel share through June is where the real action is.",
+      authorName: "Ruben Laubscher",
+      displayOrder: 30,
+      isLive: true,
+      createdAt: new Date(now - 1000 * 60 * 60 * 24 * 9),
+    },
+  ];
+}
 
 // Generate hero gradients for every seeded edition so the demo doesn't open
 // on the bare placeholder. The image stub is deterministic per prompt, so we

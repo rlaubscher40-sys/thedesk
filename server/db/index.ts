@@ -10,3 +10,4 @@ export * from "./queue";
 export * from "./notes";
 export * from "./conversations";
 export * from "./subscribers";
+export * from "./featuredLinkedIn";
