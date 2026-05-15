@@ -1,17 +1,24 @@
 /**
- * Editions page. Two-pane layout: left rail lists all editions (with draft
- * badges, improvement #8), right side is the EditionReader for the selected
- * one. /editions/:editionNumber selects a specific edition.
+ * Editions page.
+ *
+ * Editorial flow, top-to-bottom:
+ *   1. PageHeader — title, kicker, Backfill button (admin)
+ *   2. Horizontal EditionSelector — every edition as a card row
+ *   3. EditionReader — full-width reader for the selected edition
+ *
+ * Previously the editions list was a sticky-left-rail and the reader sat
+ * in the right column. On wide viewports the rail wasted ~25% of the
+ * horizontal real estate. Promoting the list to a horizontal row at the
+ * top frees the reader to occupy the full width.
  */
 import { useEffect, useMemo } from "react";
-import { useParams, useLocation } from "wouter";
+import { useLocation, useParams } from "wouter";
 import { PageHeader } from "@/components/PageHeader";
-import { StaggerList } from "@/components/StaggerList";
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
-import { EditionListItem } from "@/components/editions/EditionListItem";
+import { BackfillRubensTakeButton } from "@/components/editions/EditionAdminPanel";
 import { EditionReader } from "@/components/editions/EditionReader";
 import { EditionReaderSkeleton } from "@/components/editions/EditionReaderSkeleton";
-import { BackfillRubensTakeButton } from "@/components/editions/EditionAdminPanel";
+import { EditionSelector } from "@/components/editions/EditionSelector";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/lib/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -31,7 +38,6 @@ export default function EditionsPage() {
     return listQuery.data?.[0]?.editionNumber ?? null;
   }, [params.editionNumber, listQuery.data]);
 
-  // Auto-navigate to newest edition once the list loads.
   useEffect(() => {
     if (!params.editionNumber && listQuery.data?.[0]) {
       navigate(`/editions/${listQuery.data[0].editionNumber}`, { replace: true });
@@ -48,62 +54,55 @@ export default function EditionsPage() {
       <PageHeader
         overline="The Desk · Editions"
         title="Weekly deep dives"
-        kicker="Editorial intelligence for partner conversations. New edition Sundays."
+        kicker="Editorial intelligence for partner conversations. New edition each Sunday."
         actions={user?.role === "admin" ? <BackfillRubensTakeButton /> : undefined}
       />
 
-      {/* Two-pane spread. The list rail is sticky so it scrolls
-          independently of the reader. Widths grow on 2xl screens so the
-          rail doesn't feel narrow on ultra-wide monitors. */}
-      <div className="grid grid-cols-1 lg:grid-cols-[320px_minmax(0,1fr)] 2xl:grid-cols-[380px_minmax(0,1fr)] gap-8 lg:gap-12 2xl:gap-16">
-        <aside className="lg:sticky lg:top-6 lg:self-start lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto pr-2">
-          <SectionErrorBoundary section="Editions list">
-            {listQuery.isLoading ? (
-              <ListSkeleton />
-            ) : listQuery.data && listQuery.data.length > 0 ? (
-              <StaggerList className="space-y-2" stagger={0.04}>
-                {listQuery.data.map((ed) => (
-                  <EditionListItem
-                    key={ed.id}
-                    editionNumber={ed.editionNumber}
-                    weekRange={ed.weekRange}
-                    publishedAt={ed.publishedAt}
-                    readingTime={ed.readingTime}
-                    heroImageUrl={ed.heroImageUrl}
-                    hasDraft={ed.hasDraft}
-                    active={ed.editionNumber === selectedNumber}
-                  />
-                ))}
-              </StaggerList>
-            ) : (
-              <p className="text-sm text-[var(--color-fg-muted)]">No editions published yet.</p>
-            )}
-          </SectionErrorBoundary>
-        </aside>
+      {/* Horizontal selector row. */}
+      <SectionErrorBoundary section="Editions selector">
+        {listQuery.isLoading ? (
+          <SelectorSkeleton />
+        ) : listQuery.data && listQuery.data.length > 0 ? (
+          <EditionSelector
+            editions={listQuery.data}
+            activeNumber={selectedNumber}
+          />
+        ) : (
+          <p className="text-sm text-[var(--color-fg-muted)]">
+            No editions published yet.
+          </p>
+        )}
+      </SectionErrorBoundary>
 
-        <div className="min-w-0">
-          <SectionErrorBoundary section="Edition reader">
-            {editionQuery.isLoading ? (
-              <EditionReaderSkeleton />
-            ) : editionQuery.data ? (
-              <EditionReader edition={editionQuery.data} />
-            ) : (
-              <p className="text-sm text-[var(--color-fg-muted)]">Select an edition to begin reading.</p>
-            )}
-          </SectionErrorBoundary>
-        </div>
+      {/* Full-width reader. */}
+      <div className="mt-12">
+        <SectionErrorBoundary section="Edition reader">
+          {editionQuery.isLoading ? (
+            <EditionReaderSkeleton />
+          ) : editionQuery.data ? (
+            <EditionReader edition={editionQuery.data} />
+          ) : (
+            <p className="text-sm text-[var(--color-fg-muted)]">
+              Select an edition to begin reading.
+            </p>
+          )}
+        </SectionErrorBoundary>
       </div>
     </div>
   );
 }
 
-function ListSkeleton() {
+function SelectorSkeleton() {
   return (
-    <div className="space-y-2" aria-busy="true">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="panel p-4 rounded flex gap-3">
-          <Skeleton className="h-16 w-16 rounded" />
-          <div className="flex-1 space-y-2">
+    <div className="flex gap-3 overflow-hidden">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div
+          key={i}
+          className="shrink-0 panel rounded-sm overflow-hidden"
+          style={{ width: 240 }}
+        >
+          <Skeleton className="w-full" style={{ aspectRatio: "16/5" }} />
+          <div className="p-3.5 space-y-2">
             <Skeleton className="h-3 w-20" />
             <Skeleton className="h-4 w-3/4" />
             <Skeleton className="h-3 w-1/2" />

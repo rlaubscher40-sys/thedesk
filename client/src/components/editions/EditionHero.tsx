@@ -81,32 +81,42 @@ export function EditionHero({ edition }: { edition: Edition }) {
         <HeroPlaceholder />
       )}
 
-      {/* Editorial slug — edition number + reading time. */}
-      <div className="flex items-center gap-4 mb-4">
-        <p className="overline-amber" style={{ letterSpacing: "0.2em" }}>
+      {/* Editorial slug — edition number + reading time. Soft neutral
+          baseline; the title below carries the weight. */}
+      <div className="flex items-baseline gap-4 mt-8 mb-5">
+        <p
+          className="overline-amber"
+          style={{ letterSpacing: "0.24em", fontSize: "11px" }}
+        >
           Edition No. {edition.editionNumber}
         </p>
         {edition.readingTime && (
           <>
             <span
-              className="block"
-              style={{
-                width: "20px",
-                height: "1px",
-                background: "oklch(0.75 0.18 70 / 40%)",
-              }}
+              className="block h-px w-8"
+              style={{ background: "var(--color-border-strong)" }}
               aria-hidden="true"
             />
-            <p className="overline">{edition.readingTime} read</p>
+            <p className="overline text-[var(--color-fg-subtle)]">
+              {edition.readingTime} read
+            </p>
           </>
         )}
       </div>
 
-      {/* Hero title — display-1, the week range itself is the headline. */}
-      <h1 className="display-1 mb-3">{edition.weekRange}</h1>
+      {/* Hero title — tighter clamp than display-1 so it doesn't dwarf
+          the rest of the page. The italic tagline finishes the sentence. */}
+      <h1
+        className="font-serif font-bold tracking-tight"
+        style={{ fontSize: "clamp(2.5rem, 5vw, 4.5rem)", lineHeight: "0.98" }}
+      >
+        {edition.weekRange}
+      </h1>
 
-      {/* Tagline — italic serif, drives the editorial register. */}
-      <p className="font-serif italic text-lg sm:text-xl text-[var(--color-fg-muted)] leading-snug max-w-[68ch]">
+      <p
+        className="font-serif italic text-[var(--color-fg-muted)] leading-snug max-w-[60ch] mt-5"
+        style={{ fontSize: "clamp(1.05rem, 1.3vw, 1.3rem)" }}
+      >
         Weekly intelligence for property partnerships.
       </p>
 
