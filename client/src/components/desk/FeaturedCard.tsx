@@ -16,14 +16,18 @@ import { usePersona } from "@/lib/persona";
 import { BookmarkButton } from "./BookmarkButton";
 import { ContextExpander } from "./ContextExpander";
 import { FeaturedPill } from "./CategoryPill";
+import { NoAngleNote } from "./NoAngleNote";
 import { PartnerAngles } from "./PartnerAngles";
 import { SayThis } from "./SayThis";
 import { SourceFooter } from "./SourceFooter";
 
 export function FeaturedCard({ story }: { story: Story }) {
   const { persona } = usePersona();
-  const angle = story.partnerAngles.find((a) => a.persona === persona)
-    ?? story.partnerAngles[0]!;
+  // Only show a Say This when the active persona has an angle on this
+  // story. If a "trending" / culture / sport item doesn't apply to
+  // (say) SMSF specialists, we don't fabricate a forced angle —
+  // we hide the partner block entirely.
+  const angle = story.partnerAngles.find((a) => a.persona === persona);
   const colour = categoryColour(story.category);
   const [linkedInOpen, setLinkedInOpen] = useState(false);
 
@@ -69,11 +73,17 @@ export function FeaturedCard({ story }: { story: Story }) {
           {story.dek}
         </p>
 
-        <SayThis story={story} persona={persona} sayThis={angle.sayThis} />
+        {angle ? (
+          <SayThis story={story} persona={persona} sayThis={angle.sayThis} />
+        ) : (
+          <NoAngleNote persona={persona} />
+        )}
 
         {story.context && <ContextExpander note={story.context} />}
 
-        <PartnerAngles angles={story.partnerAngles} />
+        {story.partnerAngles.length > 0 && (
+          <PartnerAngles angles={story.partnerAngles} />
+        )}
 
         <SourceFooter
           source={story.source}

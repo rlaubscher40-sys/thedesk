@@ -12,7 +12,6 @@ import { ArrowDown, ArrowUp, Minus } from "lucide-react";
 import { CountUp } from "@/components/CountUp";
 import { PageHeader } from "@/components/PageHeader";
 import { BarChart } from "@/components/charts/BarChart";
-import { LineChart } from "@/components/charts/LineChart";
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
 import { Sparkline } from "@/components/charts/Sparkline";
 import { HeatTreemap } from "@/components/charts/HeatTreemap";
@@ -280,7 +279,15 @@ function MetricHistory({
   data: HistoryRow[] | undefined;
   loading: boolean;
 }) {
-  if (loading) return <Skeleton className="h-72 w-full" />;
+  if (loading) {
+    return (
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Skeleton key={i} className="h-32 rounded-sm" />
+        ))}
+      </div>
+    );
+  }
   if (!data || data.length === 0)
     return <p className="text-sm text-[var(--color-fg-muted)]">No editions with metrics yet.</p>;
 
@@ -292,34 +299,97 @@ function MetricHistory({
       </p>
     );
 
-  const xLabels = data.map((r) => `#${r.editionNumber}`);
-  const series = keys.map((k, i) => ({
-    key: k,
-    label: k,
-    values: data.map((row) => toNumber(row.keyMetrics?.[k])),
-    colour: CHART_PALETTE[i % CHART_PALETTE.length]!,
-  }));
-
+  // Small-multiples grid. Each metric gets its own card with its own
+  // sparkline at its own scale — the previous single combined chart
+  // was useless because an index of 8,000+ (ASX) and a percentage of
+  // 4.35 (Cash Rate) can't share a y-axis.
   return (
-    <>
-      <LineChart xLabels={xLabels} series={series} height={320} />
-      <div className="flex flex-wrap gap-x-5 gap-y-2 mt-4">
-        {keys.map((k, i) => (
-          <span
+    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+      {keys.map((k, i) => {
+        const values = data.map((row) => toNumber(row.keyMetrics?.[k]));
+        const latest = values[values.length - 1];
+        const prior = values[values.length - 2];
+        const hasDelta =
+          latest != null &&
+          prior != null &&
+          Number.isFinite(latest) &&
+          Number.isFinite(prior);
+        const delta = hasDelta ? latest - prior : 0;
+        const trend: "up" | "down" | "flat" = !hasDelta || Math.abs(delta) < 0.0001
+          ? "flat"
+          : delta > 0
+            ? "up"
+            : "down";
+        // Direction-of-good: rates / costs DOWN-is-good; activity /
+        // indices / channel-share UP-is-good. Same logic the
+        // EditionHero metrics use.
+        const k_ = k.toLowerCase();
+        const dog: "up" | "down" | "neutral" =
+          /(rate|inflation|cpi|oil|brent|spread|vix|unemploy)/.test(k_)
+            ? "down"
+            : /(clearance|asx|index|channel|broker|wage|income|gdp|housing|listings)/.test(k_)
+              ? "up"
+              : "neutral";
+        const sentiment: "good" | "bad" | "neutral" =
+          trend === "flat" || dog === "neutral"
+            ? "neutral"
+            : trend === dog
+              ? "good"
+              : "bad";
+        const toneColour =
+          sentiment === "good"
+            ? "oklch(0.72 0.17 155)"
+            : sentiment === "bad"
+              ? "oklch(0.68 0.20 15)"
+              : "oklch(0.78 0.18 70)";
+        const sparkColour = CHART_PALETTE[i % CHART_PALETTE.length]!;
+        const Icon = trend === "up" ? ArrowUp : trend === "down" ? ArrowDown : Minus;
+
+        return (
+          <div
             key={k}
-            className="overline flex items-center gap-2"
-            style={{ color: CHART_PALETTE[i % CHART_PALETTE.length] }}
+            className="panel rounded-sm p-4 hover:bg-[oklch(0.18_0.02_260)] transition-colors"
           >
-            <span
-              className="h-1.5 w-3 rounded-full"
-              style={{ background: CHART_PALETTE[i % CHART_PALETTE.length] }}
-            />
-            {k}
-          </span>
-        ))}
-      </div>
-    </>
+            <p
+              className="overline mb-3 truncate"
+              style={{ letterSpacing: "0.18em", fontSize: "10px" }}
+              title={k}
+            >
+              {k}
+            </p>
+            <div className="flex items-baseline justify-between gap-2 mb-2">
+              <p className="font-serif text-2xl font-bold tabular-nums text-[var(--color-fg)] leading-none">
+                {latest != null && Number.isFinite(latest)
+                  ? formatMetricNumber(latest)
+                  : "—"}
+              </p>
+              <span
+                className="inline-flex items-center gap-1 font-mono tabular-nums"
+                style={{ color: toneColour, fontSize: "10px" }}
+                title={`${trend} vs prior · ${sentiment}`}
+              >
+                <Icon className="h-3 w-3" strokeWidth={2.5} />
+                {hasDelta && trend !== "flat" && (
+                  <span>
+                    {delta > 0 ? "+" : ""}
+                    {formatMetricNumber(delta)}
+                  </span>
+                )}
+              </span>
+            </div>
+            <Sparkline values={values} width={220} height={36} colour={sparkColour} />
+          </div>
+        );
+      })}
+    </div>
   );
+}
+
+function formatMetricNumber(n: number): string {
+  const abs = Math.abs(n);
+  if (abs >= 1000) return n.toLocaleString("en-AU", { maximumFractionDigits: 0 });
+  if (abs >= 10) return n.toFixed(2);
+  return n.toFixed(2);
 }
 
 const CHART_PALETTE = [

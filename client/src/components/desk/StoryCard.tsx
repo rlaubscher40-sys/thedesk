@@ -13,6 +13,7 @@ import { usePersona } from "@/lib/persona";
 import { BookmarkButton } from "./BookmarkButton";
 import { CategoryPill } from "./CategoryPill";
 import { ContextExpander } from "./ContextExpander";
+import { NoAngleNote } from "./NoAngleNote";
 import { PartnerAngles } from "./PartnerAngles";
 import { SayThis } from "./SayThis";
 import { SourceFooter } from "./SourceFooter";
@@ -20,8 +21,7 @@ import { Thumbnail } from "./Thumbnail";
 
 export function StoryCard({ story }: { story: Story }) {
   const { persona } = usePersona();
-  const angle = story.partnerAngles.find((a) => a.persona === persona)
-    ?? story.partnerAngles[0]!;
+  const angle = story.partnerAngles.find((a) => a.persona === persona);
 
   return (
     <article
@@ -49,11 +49,17 @@ export function StoryCard({ story }: { story: Story }) {
         {story.dek}
       </p>
 
-      <SayThis story={story} persona={persona} sayThis={angle.sayThis} />
+      {angle ? (
+        <SayThis story={story} persona={persona} sayThis={angle.sayThis} />
+      ) : (
+        <NoAngleNote persona={persona} />
+      )}
 
       {story.context && <ContextExpander note={story.context} />}
 
-      <PartnerAngles angles={story.partnerAngles} />
+      {story.partnerAngles.length > 0 && (
+        <PartnerAngles angles={story.partnerAngles} />
+      )}
 
       <SourceFooter
         source={story.source}

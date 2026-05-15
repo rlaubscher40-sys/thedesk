@@ -76,6 +76,9 @@ export type Metric = {
   key: string;
   /** Single-line value. */
   value: string;
+  /** Prior-edition value used to compute the trend arrow. Optional —
+   *  if absent, the tile renders without a delta. */
+  prior?: string;
   /** Optional supporting line beneath the value. */
   detail?: string;
 };
@@ -384,13 +387,56 @@ export const stories: Story[] = [
       },
     ],
   },
+
+  // ── Trending / Culture — broadly relevant items that DON'T deserve
+  // a forced partner angle for every persona. These demonstrate the
+  // smart Say This filtering: if the active persona has no angle, the
+  // card shows a quiet "Not relevant to X this week" note instead of
+  // a fabricated talking point.
+  {
+    id: "wwc-heat",
+    section: "further",
+    category: "SPORT",
+    source: "Yahoo Sports",
+    sourceUrl: "https://example.com/wwc-heat",
+    headline: "World Weather Attribution warns FIFA on extreme-heat match conditions",
+    dek: "Roughly a quarter of expanded 2026 men's World Cup fixtures forecast to play in conditions exceeding FIFPRO safety limits. Five matches flagged where postponement would be advised.",
+    partnerAngles: [],
+  },
+  {
+    id: "x-trends",
+    section: "further",
+    category: "CULTURE",
+    source: "Visible · X",
+    sourceUrl: "https://example.com/x-trends",
+    headline: "X worldwide trends dominated by entertainment and fandom signals",
+    dek: "Top of the visible archive: TLEFIRSTONE X KAZZ 2026, PPP FAMILY KAZZAWARDS, #HEESEUNG, #OLYMPOP2026DAY. Cultural and sport tags eclipse the macro feed.",
+    partnerAngles: [],
+  },
+  {
+    id: "reddit-sentiment",
+    section: "further",
+    category: "REDDIT",
+    source: "r/AusFinance",
+    sourceUrl: "https://example.com/reddit-ausfinance",
+    headline: "AusFinance pivots: 'rates higher for longer' fading from the top of the sub",
+    dek: "Sentiment shift on the largest Australian finance subreddit — top-three threads this week are now about fixed-rate roll-off strategy, not the cash rate path. Anecdotal but directional.",
+    partnerAngles: [
+      {
+        persona: "Broker",
+        angle: "Reddit sentiment leads broker channel volume by ~two weeks. Worth a check-in call this week.",
+        sayThis:
+          "AusFinance is now talking fixed-rate roll-off, not the cash rate. Your June refi book might land sooner than you think.",
+      },
+    ],
+  },
 ];
 
 export const metrics: Metric[] = [
-  { key: "AUS_PROD", value: "1.2%", detail: "vs 0.9% prior" },
-  { key: "HEALTH", value: "↑ 2.4%", detail: "monthly delta" },
-  { key: "OIL_DEM", value: "102.4 mb/d", detail: "+0.3 vs prior" },
-  { key: "OIL_PRI", value: "$78.10", detail: "Brent · -0.6%" },
+  { key: "AUS_PROD", value: "1.2%", prior: "0.9%", detail: "vs 0.9% prior" },
+  { key: "INFLATION", value: "3.4%", prior: "3.2%", detail: "headline YoY" },
+  { key: "OIL_DEM", value: "102.4 mb/d", prior: "102.1 mb/d", detail: "global demand" },
+  { key: "OIL_PRI", value: "$78.10", prior: "$78.57", detail: "Brent · spot" },
 ];
 
 export const topics: Topic[] = [

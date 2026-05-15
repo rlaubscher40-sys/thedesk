@@ -29,7 +29,7 @@ export function Hero({ onGenerateAll }: { onGenerateAll?: () => void }) {
   return (
     <section
       className="relative overflow-hidden rounded-sm"
-      style={{ aspectRatio: "21 / 9", minHeight: 420, maxHeight: 620 }}
+      style={{ aspectRatio: "21 / 9", minHeight: 420, maxHeight: 540 }}
     >
       {/* Photographic backdrop. Drifts slowly via .hero-cover-img. */}
       <img
@@ -67,7 +67,7 @@ export function Hero({ onGenerateAll }: { onGenerateAll?: () => void }) {
         aria-hidden="true"
       />
 
-      <div className="relative h-full flex flex-col p-8 sm:p-12 lg:p-16 xl:p-20">
+      <div className="relative h-full flex flex-col p-7 sm:p-10 lg:p-12 xl:p-14">
         {/* Quiet top slug — just date + edition. */}
         <div className="flex items-center justify-between gap-4 flex-wrap text-[var(--color-fg-subtle)]">
           <div className="flex items-center gap-3 flex-wrap">
@@ -91,7 +91,7 @@ export function Hero({ onGenerateAll }: { onGenerateAll?: () => void }) {
           </p>
           <h1
             className="font-serif font-bold tracking-tight"
-            style={{ fontSize: "clamp(64px, 10vw, 156px)", lineHeight: "0.92" }}
+            style={{ fontSize: "clamp(48px, 7.5vw, 112px)", lineHeight: "0.92" }}
           >
             <span className="block first-paint-mark text-[var(--color-fg)]">Today's</span>
             <span

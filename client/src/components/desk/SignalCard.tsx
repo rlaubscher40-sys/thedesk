@@ -11,14 +11,14 @@ import { cn } from "@/lib/cn";
 import { usePersona } from "@/lib/persona";
 import { BookmarkButton } from "./BookmarkButton";
 import { CategoryPill } from "./CategoryPill";
+import { NoAngleNote } from "./NoAngleNote";
 import { SayThis } from "./SayThis";
 import { SourceFooter } from "./SourceFooter";
 import { Thumbnail } from "./Thumbnail";
 
 export function SignalCard({ story }: { story: Story }) {
   const { persona } = usePersona();
-  const angle = story.partnerAngles.find((a) => a.persona === persona)
-    ?? story.partnerAngles[0]!;
+  const angle = story.partnerAngles.find((a) => a.persona === persona);
 
   return (
     <article
@@ -42,7 +42,11 @@ export function SignalCard({ story }: { story: Story }) {
         {story.dek}
       </p>
 
-      <SayThis story={story} persona={persona} sayThis={angle.sayThis} />
+      {angle ? (
+        <SayThis story={story} persona={persona} sayThis={angle.sayThis} />
+      ) : (
+        <NoAngleNote persona={persona} />
+      )}
 
       <SourceFooter
         source={story.source}

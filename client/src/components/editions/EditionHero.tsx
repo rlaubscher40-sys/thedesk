@@ -7,6 +7,8 @@
 import { ArrowDown, ArrowUp, Minus } from "lucide-react";
 import type { Edition } from "@shared/types";
 import type { KeyMetrics } from "@shared/schemas";
+import { AuthorByline } from "@/components/desk/AuthorByline";
+import { resolveMetricTrend } from "@/lib/metrics";
 
 export function EditionHero({
   edition,
@@ -132,31 +134,36 @@ export function EditionHero({
         Weekly intelligence for property partnerships.
       </p>
 
-      {/* Ruben's Take — the editorial hook. Restrained gold rule + serif
-          italic. Aesop register. */}
+      {/* Ruben's Take — the editorial hook. The take itself lives in the
+          left column; the author byline (headshot + LinkedIn +
+          Substack) sits in the right column on wide screens, below on
+          narrow. */}
       {edition.rubensTake && (
-        <blockquote className="relative mt-12 mb-12 pl-7 max-w-[68ch]">
-          <span
-            className="absolute left-0 top-1 bottom-1 w-px"
-            style={{
-              background:
-                "linear-gradient(180deg, var(--color-amber) 0%, transparent 100%)",
-            }}
-            aria-hidden="true"
-          />
-          <p
-            className="overline mb-3"
-            style={{ color: "var(--color-amber)", letterSpacing: "0.24em" }}
-          >
-            Ruben's Take
-          </p>
-          <p
-            className="font-serif italic text-[var(--color-fg)] leading-snug"
-            style={{ fontSize: "clamp(1.25rem, 2.2vw, 1.75rem)" }}
-          >
-            {edition.rubensTake}
-          </p>
-        </blockquote>
+        <div className="mt-12 mb-12 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px] gap-10 lg:gap-14 items-start">
+          <blockquote className="relative pl-7 max-w-[68ch]">
+            <span
+              className="absolute left-0 top-1 bottom-1 w-px"
+              style={{
+                background:
+                  "linear-gradient(180deg, var(--color-amber) 0%, transparent 100%)",
+              }}
+              aria-hidden="true"
+            />
+            <p
+              className="overline mb-3"
+              style={{ color: "var(--color-amber)", letterSpacing: "0.24em" }}
+            >
+              Ruben's Take
+            </p>
+            <p
+              className="font-serif italic text-[var(--color-fg)] leading-snug"
+              style={{ fontSize: "clamp(1.25rem, 2.2vw, 1.75rem)" }}
+            >
+              {edition.rubensTake}
+            </p>
+          </blockquote>
+          <AuthorByline />
+        </div>
       )}
 
       {/* Metric strip — dense, mono, tabular. */}
@@ -231,20 +238,11 @@ function MetricTile({
   value: string | number;
   prior: string | number | undefined | null;
 }) {
-  const current = toNumber(value);
-  const previous = prior != null ? toNumber(prior) : NaN;
-  const hasDelta = Number.isFinite(current) && Number.isFinite(previous);
-  const delta = hasDelta ? current - previous : 0;
-  const trend: Trend =
-    !hasDelta || Math.abs(delta) < 0.0001
-      ? "flat"
-      : delta > 0
-        ? "up"
-        : "down";
-
-  const dog = directionOfGood(label); // "up" | "down" | "neutral"
-  const sentiment = computeSentiment(trend, dog);
-  const tone = SENTIMENT_TONE[sentiment];
+  const { hasDelta, delta, trend, sentiment, colour } = resolveMetricTrend(
+    label,
+    value,
+    prior
+  );
   const Icon = trend === "up" ? ArrowUp : trend === "down" ? ArrowDown : Minus;
 
   return (
@@ -265,7 +263,7 @@ function MetricTile({
         </p>
         <span
           className="inline-flex items-center gap-1 font-mono tabular-nums"
-          style={{ color: tone.colour, fontSize: "11px" }}
+          style={{ color: colour, fontSize: "11px" }}
           title={`${trend} vs prior · ${sentiment}`}
           aria-label={`${trend} versus prior — ${sentiment}`}
         >
@@ -273,60 +271,11 @@ function MetricTile({
           {hasDelta && trend !== "flat" && (
             <span>
               {delta > 0 ? "+" : ""}
-              {formatDelta(delta)}
+              {delta.toFixed(Math.abs(delta) < 1 ? 3 : 2)}
             </span>
           )}
         </span>
       </div>
     </div>
   );
-}
-
-// ─── Trend helpers ──────────────────────────────────────────────────────────
-
-type Trend = "up" | "down" | "flat";
-type Sentiment = "good" | "bad" | "neutral";
-
-/**
- * Direction-of-good lookup. Maps a metric label to the direction that
- * counts as "good" for our partner channel. Defaults to "neutral" so
- * unrecognised metrics get a yellow chip instead of red/green.
- */
-function directionOfGood(label: string): "up" | "down" | "neutral" {
-  const k = label.toLowerCase();
-  // Rates / costs / risk metrics — DOWN is good.
-  if (/(cash rate|rate|inflation|cpi|unemploy|oil|brent|vix|spread)/.test(k))
-    return "down";
-  // Activity / income / channel metrics — UP is good.
-  if (/(clearance|asx|index|channel|broker|wage|income|gdp|production|housing|listings)/.test(k))
-    return "up";
-  return "neutral";
-}
-
-function computeSentiment(trend: Trend, dog: "up" | "down" | "neutral"): Sentiment {
-  if (trend === "flat") return "neutral";
-  if (dog === "neutral") return "neutral";
-  if (trend === dog) return "good";
-  return "bad";
-}
-
-const SENTIMENT_TONE: Record<Sentiment, { colour: string }> = {
-  good: { colour: "oklch(0.72 0.17 155)" }, // green
-  bad: { colour: "oklch(0.68 0.20 15)" }, // red
-  neutral: { colour: "oklch(0.78 0.18 70)" }, // amber
-};
-
-function toNumber(v: string | number | undefined | null): number {
-  if (typeof v === "number") return v;
-  if (typeof v !== "string") return NaN;
-  const m = v.match(/-?[\d,.]+/);
-  if (!m) return NaN;
-  return Number(m[0].replace(/,/g, ""));
-}
-
-function formatDelta(d: number): string {
-  const abs = Math.abs(d);
-  if (abs >= 100) return d.toFixed(0);
-  if (abs >= 1) return d.toFixed(2);
-  return d.toFixed(3);
 }
