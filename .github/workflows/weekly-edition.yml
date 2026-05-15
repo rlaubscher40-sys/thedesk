@@ -2,9 +2,9 @@ name: Weekly edition synthesis
 
 on:
   schedule:
-    # 08:00 UTC Sunday ≈ 18:00 Sydney (AEST) / 19:00 (AEDT) — late Sunday
-    # afternoon, so the week's daily feed is complete before synthesis.
-    - cron: "0 8 * * 0"
+    # 21:00 UTC Saturday ≈ 07:00 Sunday Sydney (AEST) / 08:00 (AEDT).
+    # Posts before the week starts so Sunday morning has the new edition.
+    - cron: "0 21 * * 6"
   workflow_dispatch:
     inputs:
       reason:
