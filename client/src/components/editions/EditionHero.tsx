@@ -134,35 +134,35 @@ export function EditionHero({
         Weekly intelligence for property partnerships.
       </p>
 
-      {/* Ruben's Take — the editorial hook. The take itself lives in the
-          left column; the author byline (headshot + LinkedIn +
-          Substack) sits in the right column on wide screens, below on
-          narrow. */}
+      {/* Ruben's Take — the editorial hook. The quote and the print-
+          style byline share one column with the same amber rule down
+          the left edge, so the byline reads as the end of the take
+          rather than a floating sidebar. */}
       {edition.rubensTake && (
-        <div className="mt-12 mb-12 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px] gap-10 lg:gap-14 items-start">
-          <blockquote className="relative pl-7 max-w-[68ch]">
-            <span
-              className="absolute left-0 top-1 bottom-1 w-px"
-              style={{
-                background:
-                  "linear-gradient(180deg, var(--color-amber) 0%, transparent 100%)",
-              }}
-              aria-hidden="true"
-            />
-            <p
-              className="overline mb-3"
-              style={{ color: "var(--color-amber)", letterSpacing: "0.24em" }}
-            >
-              Ruben's Take
-            </p>
-            <p
-              className="font-serif italic text-[var(--color-fg)] leading-snug"
-              style={{ fontSize: "clamp(1.25rem, 2.2vw, 1.75rem)" }}
-            >
-              {edition.rubensTake}
-            </p>
+        <div className="mt-12 mb-12 relative pl-7 max-w-[80ch]">
+          <span
+            className="absolute left-0 top-1 bottom-1 w-px"
+            style={{
+              background:
+                "linear-gradient(180deg, var(--color-amber) 0%, transparent 100%)",
+            }}
+            aria-hidden="true"
+          />
+          <p
+            className="overline mb-3"
+            style={{ color: "var(--color-amber)", letterSpacing: "0.24em" }}
+          >
+            Ruben's Take
+          </p>
+          <blockquote
+            className="font-serif italic text-[var(--color-fg)] leading-snug"
+            style={{ fontSize: "clamp(1.25rem, 2.2vw, 1.75rem)" }}
+          >
+            {edition.rubensTake}
           </blockquote>
-          <AuthorByline />
+          <div className="mt-6 pt-5 border-t border-[var(--color-border)]">
+            <AuthorByline />
+          </div>
         </div>
       )}
 

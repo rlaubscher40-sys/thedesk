@@ -439,6 +439,24 @@ function SidebarFooter({
           </button>
         </div>
       </div>
+
+      {/* Always-visible Subscribe affordance. Keeps audience-growth one
+          click away from every page. */}
+      <a
+        href="https://rubenlaubscher.substack.com/"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-4 flex items-center justify-center gap-1.5 rounded-sm px-3 py-2 text-[10px] font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.98]"
+        style={{
+          background:
+            "linear-gradient(135deg, oklch(0.78 0.18 70) 0%, oklch(0.88 0.19 82) 55%, oklch(0.65 0.16 60) 100%)",
+          color: "oklch(0.10 0.018 260)",
+          boxShadow:
+            "0 1px 0 oklch(1 0 0 / 18%) inset, 0 4px 14px oklch(0.75 0.18 70 / 25%)",
+        }}
+      >
+        ✦ Subscribe to Ruben
+      </a>
     </div>
   );
 }
