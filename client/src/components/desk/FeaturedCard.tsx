@@ -33,25 +33,16 @@ export function FeaturedCard({ story }: { story: Story }) {
       style={{ boxShadow: `inset 3px 0 0 0 ${colour}` }}
     >
       <div className="p-8 sm:p-12 lg:p-16">
-        {/* Quiet metadata strip. */}
+        {/* Editorial mast — FEATURED · CATEGORY double-pill + actions. */}
         <div className="flex items-start justify-between gap-3 mb-8 flex-wrap">
           <div className="flex items-center gap-3 min-w-0 flex-wrap">
-            <span
-              className="overline"
-              style={{ color: colour, letterSpacing: "0.24em" }}
-            >
-              {story.category}
-            </span>
-            <span className="overline text-[var(--color-fg-subtle)]">·</span>
-            <span
-              className="overline text-[var(--color-fg-subtle)]"
-              style={{ letterSpacing: "0.24em" }}
-            >
-              Featured
-            </span>
+            <FeaturedPill category={story.category} />
             {story.readingTime && (
               <>
-                <span className="overline text-[var(--color-fg-subtle)]">·</span>
+                <span
+                  className="block h-3 w-px bg-[var(--color-border-strong)]"
+                  aria-hidden="true"
+                />
                 <span className="overline text-[var(--color-fg-subtle)]">
                   {story.readingTime}
                 </span>

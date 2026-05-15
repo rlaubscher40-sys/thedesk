@@ -1,35 +1,22 @@
 /**
- * "More from today" card. Two-column grid member on lg+.
+ * "More from today" card. Two-column grid member on md+.
  *
- * Layout — the headline gets its full column width:
- *   ┌──────────────────────────────────────────────────┐
- *   │ CATEGORY · SOURCE                       ◫        │
- *   │                                                  │
- *   │ Headline runs the full width of the card         │
- *   │                                                  │
- *   │ Three-line dek paragraph...                      │
- *   │                                                  │
- *   │ SAY THIS — persona quote with actions            │
- *   │                                                  │
- *   │ ▾ Show context                                   │
- *   │                                                  │
- *   │ Partner angles                                   │
- *   │                                                  │
- *   │ Source · Read original                           │
- *   └──────────────────────────────────────────────────┘
- *
- * (The 96×96 thumbnail used to sit inside the title row and was the
- * reason headlines were breaking at narrow widths. It's gone.)
+ * Top row carries the category pill on the left and a small 72×72
+ * thumbnail + bookmark on the right. Headline sits BELOW that row
+ * so it gets the full card width and never wraps awkwardly into
+ * the thumbnail.
  */
 import type { Story } from "@/data/editions/2026-05-15";
-import { categoryAccentClass, categoryColour } from "@/lib/category";
+import { categoryAccentClass } from "@/lib/category";
 import { cn } from "@/lib/cn";
 import { usePersona } from "@/lib/persona";
 import { BookmarkButton } from "./BookmarkButton";
+import { CategoryPill } from "./CategoryPill";
 import { ContextExpander } from "./ContextExpander";
 import { PartnerAngles } from "./PartnerAngles";
 import { SayThis } from "./SayThis";
 import { SourceFooter } from "./SourceFooter";
+import { Thumbnail } from "./Thumbnail";
 
 export function StoryCard({ story }: { story: Story }) {
   const { persona } = usePersona();
@@ -43,25 +30,18 @@ export function StoryCard({ story }: { story: Story }) {
         categoryAccentClass(story.category)
       )}
     >
-      <div className="flex items-center justify-between gap-3 mb-5">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <span
-            className="overline"
-            style={{ color: categoryColour(story.category), letterSpacing: "0.22em" }}
-          >
-            {story.category}
-          </span>
-          <span className="overline text-[var(--color-fg-subtle)]">·</span>
-          <span className="overline text-[var(--color-fg-subtle)] truncate">
-            {story.source}
-          </span>
+      {/* Top row — pill on the left, thumbnail + bookmark on the right. */}
+      <div className="flex items-start justify-between gap-4 mb-5">
+        <CategoryPill category={story.category} />
+        <div className="flex items-start gap-2 shrink-0">
+          <Thumbnail seed={story.id} category={story.category} size={72} />
+          <BookmarkButton id={story.id} title={story.headline} />
         </div>
-        <BookmarkButton id={story.id} title={story.headline} />
       </div>
 
       <h3
         className="font-serif font-bold leading-[1.08] tracking-tight mb-4"
-        style={{ fontSize: "clamp(1.6rem, 2.2vw, 2rem)" }}
+        style={{ fontSize: "clamp(1.55rem, 2.1vw, 1.95rem)" }}
       >
         {story.headline}
       </h3>

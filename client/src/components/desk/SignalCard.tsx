@@ -1,15 +1,19 @@
 /**
- * "Further signals" card. Single-column, wide, lighter weight — no
- * partner-angles list, but the active persona's Say This is still
- * surfaced inline.
+ * "Further signals" card. Single-column, wide. Lighter weight than the
+ * featured / more cards — no Partner Angles list, smaller thumbnail.
+ *
+ * Two-column inside: editorial column left, small 56×56 thumbnail
+ * mounted in the top-right.
  */
 import type { Story } from "@/data/editions/2026-05-15";
-import { categoryAccentClass, categoryColour } from "@/lib/category";
+import { categoryAccentClass } from "@/lib/category";
 import { cn } from "@/lib/cn";
 import { usePersona } from "@/lib/persona";
 import { BookmarkButton } from "./BookmarkButton";
+import { CategoryPill } from "./CategoryPill";
 import { SayThis } from "./SayThis";
 import { SourceFooter } from "./SourceFooter";
+import { Thumbnail } from "./Thumbnail";
 
 export function SignalCard({ story }: { story: Story }) {
   const { persona } = usePersona();
@@ -19,42 +23,32 @@ export function SignalCard({ story }: { story: Story }) {
   return (
     <article
       className={cn(
-        "panel hover-lift rounded-sm p-7 sm:p-8 flex flex-col sm:flex-row gap-7",
+        "panel hover-lift rounded-sm p-7 sm:p-8",
         categoryAccentClass(story.category)
       )}
     >
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <span
-              className="overline"
-              style={{ color: categoryColour(story.category), letterSpacing: "0.22em" }}
-            >
-              {story.category}
-            </span>
-            <span className="overline text-[var(--color-fg-subtle)]">·</span>
-            <span className="overline text-[var(--color-fg-subtle)] truncate">
-              {story.source}
-            </span>
-          </div>
+      <div className="flex items-start justify-between gap-4 mb-5">
+        <CategoryPill category={story.category} variant="ghost" />
+        <div className="flex items-start gap-2 shrink-0">
+          <Thumbnail seed={story.id} category={story.category} size={56} />
           <BookmarkButton id={story.id} title={story.headline} />
         </div>
-
-        <h3 className="font-serif text-xl sm:text-2xl leading-snug mb-3 max-w-[40ch]">
-          {story.headline}
-        </h3>
-        <p className="text-[15px] text-[var(--color-fg-muted)] leading-relaxed max-w-[68ch]">
-          {story.dek}
-        </p>
-
-        <SayThis story={story} persona={persona} sayThis={angle.sayThis} />
-
-        <SourceFooter
-          source={story.source}
-          sourceUrl={story.sourceUrl}
-          category={story.category}
-        />
       </div>
+
+      <h3 className="font-serif font-bold text-xl sm:text-2xl leading-snug mb-3 max-w-[60ch]">
+        {story.headline}
+      </h3>
+      <p className="text-[15px] text-[var(--color-fg-muted)] leading-relaxed max-w-[78ch]">
+        {story.dek}
+      </p>
+
+      <SayThis story={story} persona={persona} sayThis={angle.sayThis} />
+
+      <SourceFooter
+        source={story.source}
+        sourceUrl={story.sourceUrl}
+        category={story.category}
+      />
     </article>
   );
 }

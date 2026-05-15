@@ -8,8 +8,34 @@ import type { Edition } from "@shared/types";
 import type { KeyMetrics } from "@shared/schemas";
 
 export function EditionHero({ edition }: { edition: Edition }) {
+  // Folio = the printed-page corner marker. Carries the edition number,
+  // weekday and city. Decorative on screen, ritual in print.
+  const folio = `EDITION No. ${edition.editionNumber} · WEEK OF ${edition.weekOf} · SYDNEY`;
   return (
-    <header className="mb-12">
+    <header className="mb-12 relative">
+      {/* Top folio — printed broadsheet header. Sits above the hero with
+          a hairline rule above and below, mono uppercase, character-
+          spaced. */}
+      <div className="mb-8">
+        <div className="h-px bg-[var(--color-border-strong)]" aria-hidden="true" />
+        <div className="flex items-center justify-between gap-4 flex-wrap py-2.5">
+          <p
+            className="font-mono uppercase text-[var(--color-fg-subtle)] truncate"
+            style={{ fontSize: "10px", letterSpacing: "0.24em" }}
+          >
+            {folio}
+          </p>
+          <p
+            className="font-mono uppercase text-[var(--color-fg-subtle)]"
+            style={{ fontSize: "10px", letterSpacing: "0.24em" }}
+          >
+            The Desk · Daily Intelligence
+          </p>
+        </div>
+        <div className="h-px bg-[var(--color-border-strong)]" aria-hidden="true" />
+        <div className="h-px mt-px bg-[var(--color-border)]" aria-hidden="true" />
+      </div>
+
       {/* Wide-format hero image. Falls back to a dramatic gradient when no
           AI-generated image is available. */}
       {edition.heroImageUrl ? (

@@ -8,21 +8,11 @@
  * across the bottom.
  */
 import { useMemo } from "react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import { ArrowDown, ArrowUp, Minus } from "lucide-react";
 import { CountUp } from "@/components/CountUp";
 import { PageHeader } from "@/components/PageHeader";
+import { BarChart } from "@/components/charts/BarChart";
+import { LineChart } from "@/components/charts/LineChart";
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
 import { Sparkline } from "@/components/charts/Sparkline";
 import { HeatTreemap } from "@/components/charts/HeatTreemap";
@@ -302,53 +292,17 @@ function MetricHistory({
       </p>
     );
 
-  const series = data.map((row) => {
-    const next: Record<string, string | number> = { editionNumber: row.editionNumber };
-    for (const k of keys) next[k] = toNumber(row.keyMetrics?.[k]);
-    return next;
-  });
+  const xLabels = data.map((r) => `#${r.editionNumber}`);
+  const series = keys.map((k, i) => ({
+    key: k,
+    label: k,
+    values: data.map((row) => toNumber(row.keyMetrics?.[k])),
+    colour: CHART_PALETTE[i % CHART_PALETTE.length]!,
+  }));
 
   return (
     <>
-      <ResponsiveContainer width="100%" height={320}>
-        <LineChart data={series} margin={{ top: 10, right: 16, bottom: 8, left: -10 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="oklch(1 0 0 / 6%)" />
-          <XAxis
-            dataKey="editionNumber"
-            tickFormatter={(v) => `#${v}`}
-            tick={{ fill: "oklch(0.62 0.012 260)", fontSize: 11, fontFamily: "JetBrains Mono" }}
-            axisLine={{ stroke: "oklch(1 0 0 / 10%)" }}
-            tickLine={false}
-          />
-          <YAxis
-            tick={{ fill: "oklch(0.62 0.012 260)", fontSize: 11, fontFamily: "JetBrains Mono" }}
-            axisLine={false}
-            tickLine={false}
-          />
-          <Tooltip
-            contentStyle={{
-              background: "oklch(0.13 0.018 260)",
-              border: "1px solid oklch(1 0 0 / 12%)",
-              borderRadius: 4,
-              fontSize: 12,
-              fontFamily: "JetBrains Mono",
-              padding: "10px 12px",
-            }}
-            cursor={{ stroke: "oklch(0.75 0.18 70 / 30%)", strokeWidth: 1 }}
-          />
-          {keys.map((k, i) => (
-            <Line
-              key={k}
-              type="monotone"
-              dataKey={k}
-              stroke={CHART_PALETTE[i % CHART_PALETTE.length]}
-              strokeWidth={1.75}
-              dot={false}
-              activeDot={{ r: 4, stroke: "oklch(0.11 0.018 260)", strokeWidth: 2 }}
-            />
-          ))}
-        </LineChart>
-      </ResponsiveContainer>
+      <LineChart xLabels={xLabels} series={series} height={320} />
       <div className="flex flex-wrap gap-x-5 gap-y-2 mt-4">
         {keys.map((k, i) => (
           <span
@@ -437,46 +391,27 @@ function SignalCadence({
   if (!data || data.length === 0)
     return <p className="text-sm text-[var(--color-fg-muted)]">No editions yet.</p>;
 
+  const xLabels = data.map((d) => `#${d.editionNumber}`);
   return (
     <>
-      <ResponsiveContainer width="100%" height={260}>
-        <BarChart data={data} margin={{ top: 10, right: 16, bottom: 8, left: -10 }} barGap={4}>
-          <CartesianGrid strokeDasharray="3 3" stroke="oklch(1 0 0 / 6%)" />
-          <XAxis
-            dataKey="editionNumber"
-            tickFormatter={(v) => `#${v}`}
-            tick={{ fill: "oklch(0.62 0.012 260)", fontSize: 11, fontFamily: "JetBrains Mono" }}
-            axisLine={{ stroke: "oklch(1 0 0 / 10%)" }}
-            tickLine={false}
-          />
-          <YAxis
-            tick={{ fill: "oklch(0.62 0.012 260)", fontSize: 11, fontFamily: "JetBrains Mono" }}
-            axisLine={false}
-            tickLine={false}
-          />
-          <Tooltip
-            contentStyle={{
-              background: "oklch(0.13 0.018 260)",
-              border: "1px solid oklch(1 0 0 / 12%)",
-              borderRadius: 4,
-              fontSize: 12,
-              fontFamily: "JetBrains Mono",
-              padding: "10px 12px",
-            }}
-            cursor={{ fill: "oklch(0.75 0.18 70 / 5%)" }}
-          />
-          <Bar dataKey="signalCount" name="Signals" radius={[2, 2, 0, 0]}>
-            {data.map((d, i) => (
-              <Cell key={`signals-${d.editionNumber}-${i}`} fill="oklch(0.78 0.18 70)" />
-            ))}
-          </Bar>
-          <Bar dataKey="topicCount" name="Topics" radius={[2, 2, 0, 0]}>
-            {data.map((d, i) => (
-              <Cell key={`topics-${d.editionNumber}-${i}`} fill="oklch(0.65 0.18 255)" />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+      <BarChart
+        xLabels={xLabels}
+        series={[
+          {
+            key: "signals",
+            label: "Signals",
+            values: data.map((d) => d.signalCount),
+            colour: "oklch(0.78 0.18 70)",
+          },
+          {
+            key: "topics",
+            label: "Topics",
+            values: data.map((d) => d.topicCount),
+            colour: "oklch(0.65 0.18 255)",
+          },
+        ]}
+        height={260}
+      />
       <div className="flex flex-wrap gap-x-5 gap-y-2 mt-4">
         <span className="overline flex items-center gap-2" style={{ color: "oklch(0.78 0.18 70)" }}>
           <span className="h-1.5 w-3 rounded-full" style={{ background: "oklch(0.78 0.18 70)" }} />
