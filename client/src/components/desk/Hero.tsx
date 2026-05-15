@@ -29,7 +29,7 @@ export function Hero({ onGenerateAll }: { onGenerateAll?: () => void }) {
   return (
     <section
       className="relative overflow-hidden rounded-sm"
-      style={{ aspectRatio: "21 / 9", minHeight: 460 }}
+      style={{ aspectRatio: "21 / 9", minHeight: 420, maxHeight: 620 }}
     >
       {/* Photographic backdrop. Drifts slowly via .hero-cover-img. */}
       <img

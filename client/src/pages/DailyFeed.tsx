@@ -42,7 +42,7 @@ export default function DailyFeed() {
   const further = filtered.filter((s) => s.section === "further");
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] 2xl:grid-cols-[minmax(0,1fr)_400px] gap-8 xl:gap-10 2xl:gap-14">
+    <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_340px] gap-8 xl:gap-12">
       {/* ─── Main column ────────────────────────────────────────────── */}
       <div className="min-w-0">
         <SectionErrorBoundary section="Hero">
@@ -75,8 +75,12 @@ export default function DailyFeed() {
             <section>
               <SectionDivider label="More from today" />
               <SectionErrorBoundary section="More from today">
+                {/* Two columns max. Three was too tight for Playfair —
+                    headlines started breaking inside words. Cards are
+                    information-dense; they need a generous reading
+                    width. */}
                 <StaggerList
-                  className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-5"
+                  className="grid grid-cols-1 lg:grid-cols-2 gap-5"
                   cacheKey={`more-${filter}`}
                 >
                   {more.map((s) => (
@@ -91,10 +95,7 @@ export default function DailyFeed() {
             <section>
               <SectionDivider label="Further signals" />
               <SectionErrorBoundary section="Further signals">
-                <StaggerList
-                  className="grid grid-cols-1 2xl:grid-cols-2 gap-5"
-                  cacheKey={`further-${filter}`}
-                >
+                <StaggerList className="space-y-4" cacheKey={`further-${filter}`}>
                   {further.map((s) => (
                     <SignalCard key={s.id} story={s} />
                   ))}

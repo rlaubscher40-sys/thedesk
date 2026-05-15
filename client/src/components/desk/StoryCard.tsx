@@ -1,10 +1,25 @@
 /**
- * "More from today" card. 2-up grid member.
+ * "More from today" card. Two-column grid member on lg+.
  *
- * Layout: category tag + bookmark on top, then a row with the editorial
- * column on the left (headline + 3-line dek) and a 96×96 thumbnail on
- * the right. Below: SAY THIS block for the active persona, Show context
- * expander, Partner Angles, source footer.
+ * Layout — the headline gets its full column width:
+ *   ┌──────────────────────────────────────────────────┐
+ *   │ CATEGORY · SOURCE                       ◫        │
+ *   │                                                  │
+ *   │ Headline runs the full width of the card         │
+ *   │                                                  │
+ *   │ Three-line dek paragraph...                      │
+ *   │                                                  │
+ *   │ SAY THIS — persona quote with actions            │
+ *   │                                                  │
+ *   │ ▾ Show context                                   │
+ *   │                                                  │
+ *   │ Partner angles                                   │
+ *   │                                                  │
+ *   │ Source · Read original                           │
+ *   └──────────────────────────────────────────────────┘
+ *
+ * (The 96×96 thumbnail used to sit inside the title row and was the
+ * reason headlines were breaking at narrow widths. It's gone.)
  */
 import type { Story } from "@/data/editions/2026-05-15";
 import { categoryAccentClass, categoryColour } from "@/lib/category";
@@ -15,7 +30,6 @@ import { ContextExpander } from "./ContextExpander";
 import { PartnerAngles } from "./PartnerAngles";
 import { SayThis } from "./SayThis";
 import { SourceFooter } from "./SourceFooter";
-import { Thumbnail } from "./Thumbnail";
 
 export function StoryCard({ story }: { story: Story }) {
   const { persona } = usePersona();
@@ -29,7 +43,7 @@ export function StoryCard({ story }: { story: Story }) {
         categoryAccentClass(story.category)
       )}
     >
-      <div className="flex items-start justify-between gap-3 mb-5">
+      <div className="flex items-center justify-between gap-3 mb-5">
         <div className="flex items-center gap-2.5 min-w-0">
           <span
             className="overline"
@@ -45,15 +59,15 @@ export function StoryCard({ story }: { story: Story }) {
         <BookmarkButton id={story.id} title={story.headline} />
       </div>
 
-      <div className="flex gap-5 mb-4">
-        <div className="flex-1 min-w-0">
-          <h3 className="display-3 leading-tight mb-3 line-clamp-3">{story.headline}</h3>
-          <p className="text-[15px] text-[var(--color-fg-muted)] leading-relaxed line-clamp-3">
-            {story.dek}
-          </p>
-        </div>
-        <Thumbnail seed={story.id} category={story.category} />
-      </div>
+      <h3
+        className="font-serif font-bold leading-[1.08] tracking-tight mb-4"
+        style={{ fontSize: "clamp(1.6rem, 2.2vw, 2rem)" }}
+      >
+        {story.headline}
+      </h3>
+      <p className="text-[15px] text-[var(--color-fg-muted)] leading-relaxed">
+        {story.dek}
+      </p>
 
       <SayThis story={story} persona={persona} sayThis={angle.sayThis} />
 
