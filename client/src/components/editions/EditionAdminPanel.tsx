@@ -11,6 +11,7 @@ import {
   PenSquare,
   RefreshCw,
   Save,
+  Send,
   Sparkles,
   Wand2,
 } from "lucide-react";
@@ -38,10 +39,49 @@ export function EditionAdminPanel({ edition }: { edition: Edition }) {
       <SectionErrorBoundary section="Take controls">
         <TakeControls edition={edition} />
       </SectionErrorBoundary>
+      <SectionErrorBoundary section="Forward this">
+        <ForwardEdition edition={edition} />
+      </SectionErrorBoundary>
       <SectionErrorBoundary section="Substack draft">
         <SubstackDraftEditor edition={edition} />
       </SectionErrorBoundary>
     </section>
+  );
+}
+
+// ─── Forward this edition by email ──────────────────────────────────────────
+
+function ForwardEdition({ edition }: { edition: Edition }) {
+  function openComposer() {
+    const url =
+      typeof window === "undefined"
+        ? `/editions/${edition.editionNumber}`
+        : `${window.location.origin}/editions/${edition.editionNumber}`;
+    const subject = `The Desk · Edition ${edition.editionNumber} — ${edition.weekRange}`;
+    const take = edition.rubensTake ? `\n\n"${edition.rubensTake}"\n— Ruben` : "";
+    const body =
+      `Thought you'd find this week's edition useful.${take}\n\n` +
+      `Read it here: ${url}\n\n` +
+      `If it lands, subscribe — Ruben writes two of these a week:\n` +
+      `https://rubenlaubscher.substack.com/`;
+    const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailto;
+  }
+
+  return (
+    <div className="border-t border-[var(--color-border)] pt-5 mt-5">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <p className="overline mb-1">Forward this edition</p>
+          <p className="text-xs text-[var(--color-fg-muted)]">
+            Opens your default mail client with a pre-filled subject, Ruben's Take, the edition link, and a Subscribe nudge.
+          </p>
+        </div>
+        <Button variant="outline" size="sm" onClick={openComposer}>
+          <Send className="h-3.5 w-3.5" /> Forward
+        </Button>
+      </div>
+    </div>
   );
 }
 

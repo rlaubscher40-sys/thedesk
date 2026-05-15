@@ -9,6 +9,7 @@ import type { Edition } from "@shared/types";
 import type { KeyMetrics } from "@shared/schemas";
 import { AuthorByline } from "@/components/desk/AuthorByline";
 import { resolveMetricTrend } from "@/lib/metrics";
+import { ShareEditionButton } from "./ShareEditionButton";
 
 export function EditionHero({
   edition,
@@ -95,27 +96,30 @@ export function EditionHero({
         <HeroPlaceholder />
       )}
 
-      {/* Editorial slug — edition number + reading time. Soft neutral
-          baseline; the title below carries the weight. */}
-      <div className="flex items-baseline gap-4 mt-8 mb-5">
-        <p
-          className="overline-amber"
-          style={{ letterSpacing: "0.24em", fontSize: "11px" }}
-        >
-          Edition No. {edition.editionNumber}
-        </p>
-        {edition.readingTime && (
-          <>
-            <span
-              className="block h-px w-8"
-              style={{ background: "var(--color-border-strong)" }}
-              aria-hidden="true"
-            />
-            <p className="overline text-[var(--color-fg-subtle)]">
-              {edition.readingTime} read
-            </p>
-          </>
-        )}
+      {/* Editorial slug — edition number + reading time on the left,
+          Share button on the right. */}
+      <div className="flex items-center justify-between gap-4 mt-8 mb-5 flex-wrap">
+        <div className="flex items-baseline gap-4">
+          <p
+            className="overline-amber"
+            style={{ letterSpacing: "0.24em", fontSize: "11px" }}
+          >
+            Edition No. {edition.editionNumber}
+          </p>
+          {edition.readingTime && (
+            <>
+              <span
+                className="block h-px w-8"
+                style={{ background: "var(--color-border-strong)" }}
+                aria-hidden="true"
+              />
+              <p className="overline text-[var(--color-fg-subtle)]">
+                {edition.readingTime} read
+              </p>
+            </>
+          )}
+        </div>
+        <ShareEditionButton edition={edition} />
       </div>
 
       {/* Hero title — tighter clamp than display-1 so it doesn't dwarf

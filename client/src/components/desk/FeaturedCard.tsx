@@ -16,7 +16,9 @@ import { usePersona } from "@/lib/persona";
 import { BookmarkButton } from "./BookmarkButton";
 import { ContextExpander } from "./ContextExpander";
 import { FeaturedPill } from "./CategoryPill";
+import { CuratorByline } from "./CuratorByline";
 import { NoAngleNote } from "./NoAngleNote";
+import { PaywallHint } from "./PaywallHint";
 import { PartnerAngles } from "./PartnerAngles";
 import { SayThis } from "./SayThis";
 import { SourceFooter } from "./SourceFooter";
@@ -84,6 +86,12 @@ export function FeaturedCard({ story }: { story: Story }) {
         {story.partnerAngles.length > 0 && (
           <PartnerAngles angles={story.partnerAngles} />
         )}
+
+        {story.tier === "paid" && <PaywallHint />}
+
+        <div className="mt-5 pt-5 border-t border-[var(--color-border)] flex items-center justify-between gap-3 flex-wrap">
+          <CuratorByline />
+        </div>
 
         <SourceFooter
           source={story.source}

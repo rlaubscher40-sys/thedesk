@@ -11,7 +11,9 @@ import { cn } from "@/lib/cn";
 import { usePersona } from "@/lib/persona";
 import { BookmarkButton } from "./BookmarkButton";
 import { CategoryPill } from "./CategoryPill";
+import { CuratorByline } from "./CuratorByline";
 import { NoAngleNote } from "./NoAngleNote";
+import { PaywallHint } from "./PaywallHint";
 import { SayThis } from "./SayThis";
 import { SourceFooter } from "./SourceFooter";
 import { Thumbnail } from "./Thumbnail";
@@ -47,6 +49,12 @@ export function SignalCard({ story }: { story: Story }) {
       ) : (
         <NoAngleNote persona={persona} />
       )}
+
+      {story.tier === "paid" && <PaywallHint />}
+
+      <div className="mt-5 pt-5 border-t border-[var(--color-border)]">
+        <CuratorByline />
+      </div>
 
       <SourceFooter
         source={story.source}

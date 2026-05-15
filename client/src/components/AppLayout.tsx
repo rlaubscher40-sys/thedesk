@@ -32,6 +32,7 @@ import { AnimatedBackground } from "./AnimatedBackground";
 import { DemoModeBanner } from "./DemoModeBanner";
 import { LiveTicker } from "./LiveTicker";
 import { Logomark } from "./Logomark";
+import { StreakBadge } from "./StreakBadge";
 
 type NavItem = {
   path: string;
@@ -245,6 +246,9 @@ function DesktopSidebar({
           />
         ))}
       </nav>
+      {/* Reading streak chip — sits between the nav and the footer. Only
+          renders once a 2+ day streak is logged. */}
+      <StreakBadge collapsed={collapsed} />
       <SidebarFooter
         collapsed={collapsed}
         isAuthenticated={isAuthenticated}

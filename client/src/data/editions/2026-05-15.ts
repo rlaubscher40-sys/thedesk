@@ -69,6 +69,9 @@ export type Story = {
   context?: string;
   /** "5 min" style reading-time chip on Featured cards. */
   readingTime?: string;
+  /** Optional subscription tier gate. "paid" stories render a soft
+   *  paywall hint that drives users to subscribe. */
+  tier?: "free" | "paid";
 };
 
 export type Metric = {
@@ -331,6 +334,7 @@ export const stories: Story[] = [
     category: "MACRO",
     source: "Treasury",
     sourceUrl: "https://example.com/budget",
+    tier: "paid",
     headline: "Federal Budget: CGT discount tweak on long-held investment property",
     dek: "Two paragraphs on page 147 adjust the discount rate for properties held over 8 years. The IRR maths shifts at year eight. Morning coverage missed it entirely.",
     partnerAngles: [
@@ -362,6 +366,7 @@ export const stories: Story[] = [
     category: "AI",
     source: "Bloomberg",
     sourceUrl: "https://example.com/tsmc",
+    tier: "paid",
     headline: "TSMC pulls forward Arizona fab phase three by nine months",
     dek: "Onshoring acceleration: $4B incremental capex, first wafers Q4 2027 instead of Q3 2028. Reaction in TWD muted; reaction in AUD-AUD swap spreads telling.",
     partnerAngles: [

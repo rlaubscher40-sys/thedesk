@@ -10,6 +10,7 @@ import { BreakingSignalToast } from "./components/BreakingSignalToast";
 import { CommandPalette } from "./components/CommandPalette";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { OnboardingModal } from "./components/OnboardingModal";
+import { SubscribeModal } from "./components/SubscribeModal";
 import { Skeleton } from "./components/ui/Skeleton";
 import { Toaster } from "./components/ui/Toaster";
 import { PersonaProvider } from "./lib/persona";
@@ -109,6 +110,7 @@ export default function App() {
           <CommandPalette />
           <BreakingSignalToast />
           <OnboardingModal />
+          <SubscribeModal />
         </PersonaProvider>
       </ThemeProvider>
     </ErrorBoundary>
