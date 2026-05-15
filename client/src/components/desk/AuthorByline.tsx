@@ -32,7 +32,7 @@ export function AuthorByline({
   name = "Ruben Laubscher",
   role = "Head of Partnerships · InvestorKit",
   linkedin = "https://www.linkedin.com/in/ruben-laubscher/",
-  substack = "https://thedeskglobal.substack.com",
+  substack = "https://rubenlaubscher.substack.com/",
   variant = "inline",
   className,
 }: Props) {
