@@ -18,13 +18,36 @@ export function Thumbnail({
   seed,
   category,
   size = 96,
+  imageUrl,
 }: {
   seed: string;
   category: Category;
   size?: number;
+  /** Optional real image. When supplied the gradient plate is replaced. */
+  imageUrl?: string | null;
 }) {
   const cat = categoryColour(category);
   const hue = seedHue(seed);
+  if (imageUrl) {
+    return (
+      <div
+        className="rounded overflow-hidden relative shrink-0"
+        style={{ width: size, height: size }}
+        aria-hidden="true"
+      >
+        <img
+          src={imageUrl}
+          alt=""
+          className="w-full h-full object-cover"
+          loading="lazy"
+        />
+        <span
+          className="absolute inset-0"
+          style={{ boxShadow: `inset 0 0 0 1px ${cat}33` }}
+        />
+      </div>
+    );
+  }
   return (
     <div
       className="rounded overflow-hidden relative shrink-0"

@@ -10,6 +10,7 @@ import { feedRouter } from "./feed";
 import { notesRouter } from "./notes";
 import { readingQueueRouter } from "./readingQueue";
 import { searchRouter } from "./search";
+import { subscribersRouter } from "./subscribers";
 import { systemRouter } from "./system";
 import { topicsRouter } from "./topics";
 import { trendsRouter } from "./trends";
@@ -25,6 +26,7 @@ export const appRouter = router({
   conversations: conversationsRouter,
   trends: trendsRouter,
   search: searchRouter,
+  subscribers: subscribersRouter,
 });
 
 export type AppRouter = typeof appRouter;

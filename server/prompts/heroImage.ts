@@ -38,3 +38,14 @@ export function substackHeroPrompt(args: { title: string; topics: EditionTopic[]
   const dominant = args.topics[0]?.category;
   return `Substack essay hero image. Topic: ${args.title}. Style: ${visualCue(dominant)}. Wide format, cinematic, high contrast, no text, no words, no labels.`;
 }
+
+/** Image prompt for a single daily-feed item. Used by the background enrichment
+ *  step to fill in `dailyFeedItems.imageUrl`. */
+export function feedItemImagePrompt(args: {
+  title: string;
+  summary: string | null;
+  category: string;
+}): string {
+  const summary = args.summary ? `Context: ${args.summary.slice(0, 240)}` : "";
+  return `Editorial news thumbnail image for a property and finance intelligence brief. Headline: ${args.title}. ${summary} Style: ${visualCue(args.category)}. Square framing, cinematic, high contrast, no text, no words, no labels.`;
+}

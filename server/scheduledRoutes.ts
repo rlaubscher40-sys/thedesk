@@ -22,8 +22,10 @@ import {
 } from "../shared/schemas";
 import {
   editionHeroPrompt,
+  feedItemImagePrompt,
   generatePartnerTag,
   generateRubensTake,
+  generateSayThis,
 } from "./prompts";
 
 // ─── Auth ───────────────────────────────────────────────────────────────────
@@ -62,7 +64,7 @@ function sanitiseText<T extends string | null | undefined>(text: T): T {
 // ─── Daily feed ─────────────────────────────────────────────────────────────
 
 function registerDailyFeedRoute(app: Express): void {
-  app.post("/api/scheduled/daily-feed", async (req: Request, res: Response) => {
+  const handler = async (req: Request, res: Response) => {
     if (!(await authenticateScheduled(req))) {
       res.status(401).json({ error: "Unauthorized" });
       return;
@@ -84,6 +86,7 @@ function registerDailyFeedRoute(app: Express): void {
       sourceUrl: item.sourceUrl ?? null,
       summary: sanitiseText(item.summary),
       category: item.category.toUpperCase(),
+      imageUrl: item.imageUrl ?? null,
       partnerTag: sanitiseText(item.partnerTag ?? null),
       sayThis: sanitiseText(item.sayThis ?? null),
       promotedToEdition: false,
@@ -99,7 +102,7 @@ function registerDailyFeedRoute(app: Express): void {
 
     res.json({ success: true, count: items.length });
 
-    // ── Background: 4-persona partnerTag enrichment ──────────────────────
+    // ── Background: partnerTag + sayThis + per-item image enrichment ─────
     const feedDate = items[0]?.feedDate;
     if (feedDate) {
       setImmediate(async () => {
@@ -108,39 +111,72 @@ function registerDailyFeedRoute(app: Express): void {
           const byTitle = new Map<string, number>();
           for (const row of inserted) byTitle.set(row.title, row.id);
 
-          let ok = 0;
-          let fail = 0;
-          // Parallel enrichment with a small fan-out so we don't drown the LLM.
+          let tagOk = 0;
+          let sayOk = 0;
+          let imgOk = 0;
           await Promise.all(
             items.map(async (item) => {
               const id = byTitle.get(item.title);
               if (!id) return;
-              const tag = await generatePartnerTag({
-                title: item.title,
-                summary: item.summary,
-                existingTag: item.partnerTag,
-              });
-              if (tag) {
-                await db.updateFeedItemPartnerTag(id, tag);
-                ok++;
-              } else {
-                fail++;
+
+              // All three enrichments fan out in parallel per item.
+              const [tag, say, img] = await Promise.allSettled([
+                item.partnerTag
+                  ? Promise.resolve(item.partnerTag)
+                  : generatePartnerTag({
+                      title: item.title,
+                      summary: item.summary,
+                      existingTag: item.partnerTag,
+                    }),
+                item.sayThis
+                  ? Promise.resolve(item.sayThis)
+                  : generateSayThis({
+                      title: item.title,
+                      summary: item.summary,
+                      category: item.category,
+                    }),
+                item.imageUrl
+                  ? Promise.resolve({ url: item.imageUrl })
+                  : generateImage({
+                      prompt: feedItemImagePrompt({
+                        title: item.title,
+                        summary: item.summary,
+                        category: item.category,
+                      }),
+                    }),
+              ]);
+
+              if (tag.status === "fulfilled" && tag.value) {
+                await db.updateFeedItemPartnerTag(id, tag.value);
+                tagOk++;
+              }
+              if (say.status === "fulfilled" && say.value) {
+                await db.updateFeedItemSayThis(id, say.value);
+                sayOk++;
+              }
+              if (img.status === "fulfilled" && img.value?.url) {
+                await db.updateFeedItemImageUrl(id, img.value.url);
+                imgOk++;
               }
             })
           );
-          console.log(`[scheduled] enriched ${ok} partnerTags (${fail} failed) for ${feedDate}`);
+          console.log(
+            `[scheduled] enriched ${feedDate}: ${tagOk} partnerTags, ${sayOk} sayThis, ${imgOk} images`
+          );
         } catch (err) {
-          console.error("[scheduled] partnerTag enrichment error:", err);
+          console.error("[scheduled] daily-feed enrichment error:", err);
         }
       });
     }
-  });
+  };
+  app.post("/api/scheduled/daily-feed", handler);
+  app.post("/api/ingest/daily-feed", handler);
 }
 
 // ─── Weekly edition ─────────────────────────────────────────────────────────
 
 function registerWeeklyEditionRoute(app: Express): void {
-  app.post("/api/scheduled/weekly-edition", async (req, res) => {
+  const handler = async (req: Request, res: Response) => {
     if (!(await authenticateScheduled(req))) {
       res.status(401).json({ error: "Unauthorized" });
       return;
@@ -214,13 +250,17 @@ function registerWeeklyEditionRoute(app: Express): void {
         console.warn(`[scheduled] Ruben's Take failed:`, takeResult.reason);
       }
     });
-  });
+  };
+  app.post("/api/scheduled/weekly-edition", handler);
+  app.post("/api/ingest/weekly-edition", handler);
 }
 
 export function registerScheduledRoutes(app: Express): void {
   registerDailyFeedRoute(app);
   registerWeeklyEditionRoute(app);
-  console.log("[scheduled] registered /api/scheduled/daily-feed and /api/scheduled/weekly-edition");
+  console.log(
+    "[scheduled] registered /api/scheduled/{daily-feed,weekly-edition} and /api/ingest/{daily-feed,weekly-edition}"
+  );
 }
 
 // Re-export schemas so tests can import the shape from this module's surface.

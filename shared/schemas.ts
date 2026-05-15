@@ -101,6 +101,8 @@ export const dailyFeedIngestItemSchema = z.object({
   category: z.string().min(1).max(64).transform((c) => c.toUpperCase()),
   partnerTag: z.string().optional().nullable(),
   sayThis: z.string().optional().nullable(),
+  /** Optional preset thumbnail. If absent, background enrichment generates one. */
+  imageUrl: z.string().url().optional().nullable(),
 });
 export type DailyFeedIngestItem = z.infer<typeof dailyFeedIngestItemSchema>;
 

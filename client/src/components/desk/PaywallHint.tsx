@@ -3,14 +3,17 @@
  * hide content in demo mode — it just signals which items are
  * paid-tier and routes the user to subscribe.
  *
- * In production this would wrap the Say This / context / partner-angles
- * blocks with an opaque blur overlay and a sign-in/subscribe CTA.
+ * Hidden entirely once the signed-in user has `isPremium: true`, so paid
+ * subscribers see the full card without the upsell rail.
  */
 import { Lock } from "lucide-react";
+import { useAuth } from "@/lib/useAuth";
 
 const SUBSCRIBE_URL = "https://rubenlaubscher.substack.com/";
 
 export function PaywallHint() {
+  const { user } = useAuth();
+  if (user?.isPremium) return null;
   return (
     <div
       className="mt-5 p-4 rounded-sm flex items-center justify-between gap-3 flex-wrap"

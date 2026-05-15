@@ -54,6 +54,33 @@ export async function updateFeedItemPartnerTag(id: number, partnerTag: string) {
   await db.update(dailyFeedItems).set({ partnerTag }).where(eq(dailyFeedItems.id, id));
 }
 
+export async function updateFeedItemSayThis(id: number, sayThis: string) {
+  if (isDemoMode()) return demoQueries.updateFeedItemSayThis(id, sayThis);
+  const db = getDb();
+  if (!db) return;
+  await db.update(dailyFeedItems).set({ sayThis }).where(eq(dailyFeedItems.id, id));
+}
+
+export async function updateFeedItemImageUrl(id: number, imageUrl: string) {
+  if (isDemoMode()) return demoQueries.updateFeedItemImageUrl(id, imageUrl);
+  const db = getDb();
+  if (!db) return;
+  await db.update(dailyFeedItems).set({ imageUrl }).where(eq(dailyFeedItems.id, id));
+}
+
+/** Items missing a sayThis line — used by the backfill admin procedure. */
+export async function listFeedItemsMissingSayThis(limit = 50): Promise<DailyFeedItem[]> {
+  if (isDemoMode()) return demoQueries.listFeedItemsMissingSayThis(limit);
+  const db = getDb();
+  if (!db) return [];
+  const rows = await db
+    .select()
+    .from(dailyFeedItems)
+    .orderBy(desc(dailyFeedItems.createdAt))
+    .limit(500);
+  return rows.filter((r) => !r.sayThis || r.sayThis.trim().length === 0).slice(0, limit);
+}
+
 export async function getFeedItemsByCategory(category: string, limit = 100): Promise<DailyFeedItem[]> {
   if (isDemoMode()) return demoQueries.getFeedItemsByCategory(category, limit);
   const db = getDb();

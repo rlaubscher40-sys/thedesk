@@ -5,5 +5,6 @@
 export * from "./voice";
 export * from "./rubensTake";
 export * from "./partnerTag";
+export * from "./sayThis";
 export * from "./substackDraft";
 export * from "./heroImage";

@@ -58,35 +58,51 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
         categoryAccentClass(item.category)
       )}
     >
-      {/* Hero plate — editorial gradient keyed to the category. */}
+      {/* Hero plate — AI-generated thumbnail when present, otherwise an
+          editorial gradient keyed to the category. */}
       <Link
         href={`/story/${item.id}`}
         className="relative block aspect-[5/3] lg:aspect-auto lg:min-h-[460px] overflow-hidden"
-        style={{
-          background: `
-            radial-gradient(circle at 78% 22%, ${categoryColour(item.category)}50 0%, transparent 55%),
-            radial-gradient(circle at 14% 86%, oklch(0.55 0.18 270 / 18%) 0%, transparent 55%),
-            linear-gradient(135deg, oklch(0.16 0.022 260) 0%, oklch(0.08 0.022 260) 100%)
-          `,
-        }}
+        style={
+          item.imageUrl
+            ? undefined
+            : {
+                background: `
+                  radial-gradient(circle at 78% 22%, ${categoryColour(item.category)}50 0%, transparent 55%),
+                  radial-gradient(circle at 14% 86%, oklch(0.55 0.18 270 / 18%) 0%, transparent 55%),
+                  linear-gradient(135deg, oklch(0.16 0.022 260) 0%, oklch(0.08 0.022 260) 100%)
+                `,
+              }
+        }
       >
-        {/* Category supersized — the cover plate's typographic moment. */}
-        <span
-          className="absolute font-serif font-bold pointer-events-none select-none"
-          style={{
-            top: "8%",
-            left: "6%",
-            right: "6%",
-            color: categoryColour(item.category),
-            opacity: 0.18,
-            fontSize: "clamp(72px, 9vw, 144px)",
-            letterSpacing: "-0.04em",
-            lineHeight: 0.95,
-            mixBlendMode: "screen",
-          }}
-        >
-          {item.category}
-        </span>
+        {item.imageUrl && (
+          <img
+            src={item.imageUrl}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+            loading="lazy"
+          />
+        )}
+        {/* Category supersized — the cover plate's typographic moment.
+            Hidden when a real photo is present. */}
+        {!item.imageUrl && (
+          <span
+            className="absolute font-serif font-bold pointer-events-none select-none"
+            style={{
+              top: "8%",
+              left: "6%",
+              right: "6%",
+              color: categoryColour(item.category),
+              opacity: 0.18,
+              fontSize: "clamp(72px, 9vw, 144px)",
+              letterSpacing: "-0.04em",
+              lineHeight: 0.95,
+              mixBlendMode: "screen",
+            }}
+          >
+            {item.category}
+          </span>
+        )}
 
         {/* Grain + vignette. */}
         <span

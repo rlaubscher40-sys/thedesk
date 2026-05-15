@@ -1,14 +1,31 @@
 /**
- * Subscribe rail card — email + Subscribe button. Stubbed: shows a toast
- * on submit, doesn't actually send the address anywhere.
+ * Subscribe rail card — email + Subscribe button. Posts to the
+ * `subscribers.subscribe` tRPC mutation (double-opt-in: a confirm token is
+ * returned which would normally arrive by email). Falls back to a toast on
+ * server error so the rail never breaks the page.
  */
 import { useState } from "react";
 import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
 import { RailPanel } from "./RailPanel";
 
-export function Subscribe() {
+export function Subscribe({ source = "right-rail" }: { source?: string }) {
   const [email, setEmail] = useState("");
-  const [busy, setBusy] = useState(false);
+  const subscribe = trpc.subscribers.subscribe.useMutation({
+    onSuccess: (res) => {
+      setEmail("");
+      if (res.status === "already-confirmed") {
+        toast.success("You're already on the list");
+      } else {
+        toast.success("Check your inbox", {
+          description: "Confirm the email to lock in your subscription.",
+        });
+      }
+    },
+    onError: () => {
+      toast.error("Couldn't subscribe right now — try again in a minute.");
+    },
+  });
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -17,15 +34,10 @@ export function Subscribe() {
       toast.error("That email doesn't look right");
       return;
     }
-    setBusy(true);
-    setTimeout(() => {
-      setBusy(false);
-      setEmail("");
-      toast.success("You're on the list", {
-        description: "In production this would post to the subscriber endpoint.",
-      });
-    }, 600);
+    subscribe.mutate({ email, source });
   }
+
+  const busy = subscribe.isPending;
 
   return (
     <RailPanel overline="Subscribe">

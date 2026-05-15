@@ -12,8 +12,10 @@ import type {
   InsertDailyFeedItem,
   InsertEdition,
   InsertReadingQueueItem,
+  InsertSubscriber,
   InsertWeeklyNote,
   ReadingQueueItem,
+  Subscriber,
   WeeklyNote,
 } from "../db/schema";
 import { allocId, demo, demoUser } from "./store";
@@ -183,6 +185,7 @@ export function createFeedItems(items: InsertDailyFeedItem[]): void {
       sourceUrl: item.sourceUrl ?? null,
       summary: item.summary,
       category: item.category,
+      imageUrl: item.imageUrl ?? null,
       partnerTag: item.partnerTag ?? null,
       sayThis: item.sayThis ?? null,
       promotedToEdition: false,
@@ -194,6 +197,23 @@ export function createFeedItems(items: InsertDailyFeedItem[]): void {
 export function updateFeedItemPartnerTag(id: number, partnerTag: string): void {
   const item = demo.feed.find((i) => i.id === id);
   if (item) item.partnerTag = partnerTag;
+}
+
+export function updateFeedItemSayThis(id: number, sayThis: string): void {
+  const item = demo.feed.find((i) => i.id === id);
+  if (item) item.sayThis = sayThis;
+}
+
+export function updateFeedItemImageUrl(id: number, imageUrl: string): void {
+  const item = demo.feed.find((i) => i.id === id);
+  if (item) item.imageUrl = imageUrl;
+}
+
+export function listFeedItemsMissingSayThis(limit: number): DailyFeedItem[] {
+  return [...demo.feed]
+    .filter((i) => !i.sayThis || i.sayThis.trim().length === 0)
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .slice(0, limit);
 }
 
 export function getFeedItemsByCategory(category: string, limit: number): DailyFeedItem[] {
@@ -378,4 +398,55 @@ export function upsertUser(): void {
 export function getUserByOpenId(openId: string) {
   if (openId === demoUser.openId) return demoUser;
   return undefined;
+}
+
+// ─── Subscribers ────────────────────────────────────────────────────────────
+
+export function findSubscriberByEmail(email: string): Subscriber | undefined {
+  return demo.subscribers.find((s) => s.email.toLowerCase() === email.toLowerCase());
+}
+
+export function findSubscriberByToken(token: string): Subscriber | undefined {
+  return demo.subscribers.find((s) => s.confirmToken === token);
+}
+
+export function createSubscriber(data: InsertSubscriber): Subscriber {
+  const existing = findSubscriberByEmail(data.email);
+  if (existing) return existing;
+  const sub: Subscriber = {
+    id: allocId(),
+    email: data.email,
+    name: data.name ?? null,
+    confirmToken: data.confirmToken ?? null,
+    confirmedAt: data.confirmedAt ?? null,
+    unsubscribedAt: null,
+    source: data.source ?? null,
+    isPremium: data.isPremium ?? false,
+    createdAt: new Date(),
+  };
+  demo.subscribers.unshift(sub);
+  return sub;
+}
+
+export function confirmSubscriber(token: string): Subscriber | undefined {
+  const row = findSubscriberByToken(token);
+  if (!row) return undefined;
+  row.confirmedAt = new Date();
+  row.confirmToken = null;
+  return row;
+}
+
+export function unsubscribeByEmail(email: string): void {
+  const row = findSubscriberByEmail(email);
+  if (row) row.unsubscribedAt = new Date();
+}
+
+export function listSubscribers(): Subscriber[] {
+  return [...demo.subscribers].sort(
+    (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+  );
+}
+
+export function countConfirmedSubscribers(): number {
+  return demo.subscribers.filter((s) => s.confirmedAt && !s.unsubscribedAt).length;
 }

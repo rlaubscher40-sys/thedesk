@@ -15,6 +15,7 @@ import { useEffect, useState } from "react";
 import { Rss, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
+import { trpc } from "@/lib/trpc";
 
 const STORAGE_KEY = "thedesk:subscribe-modal-seen";
 const SUBSTACK_URL = "https://rubenlaubscher.substack.com/";
@@ -24,7 +25,6 @@ export function SubscribeModal() {
   const [location] = useLocation();
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
-  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     // Only trigger on the Today page so it doesn't interrupt deeper
@@ -47,6 +47,18 @@ export function SubscribeModal() {
     }
   }
 
+  const subscribeMut = trpc.subscribers.subscribe.useMutation({
+    onSettled: () => {
+      // Open Substack with the email pre-filled — Substack accepts the
+      // `?email=` query param on the subscribe form. We do this regardless
+      // of the tRPC result so the user gets the same UX either way.
+      const url = `${SUBSTACK_URL}?email=${encodeURIComponent(email)}`;
+      window.open(url, "_blank", "noopener,noreferrer");
+      dismiss("subscribed");
+      toast.success("Finish on Substack — opened in a new tab");
+    },
+  });
+
   function subscribe(e: React.FormEvent) {
     e.preventDefault();
     const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -54,17 +66,10 @@ export function SubscribeModal() {
       toast.error("That email doesn't look right");
       return;
     }
-    setBusy(true);
-    // Open Substack with the email pre-filled — Substack accepts the
-    // `?email=` query param on the subscribe form.
-    const url = `${SUBSTACK_URL}?email=${encodeURIComponent(email)}`;
-    window.open(url, "_blank", "noopener,noreferrer");
-    setTimeout(() => {
-      setBusy(false);
-      dismiss("subscribed");
-      toast.success("Finish on Substack — opened in a new tab");
-    }, 400);
+    subscribeMut.mutate({ email, source: "first-visit-modal" });
   }
+
+  const busy = subscribeMut.isPending;
 
   if (!open) return null;
 

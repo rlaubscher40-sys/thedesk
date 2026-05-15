@@ -14,6 +14,7 @@ import type {
   WeeklyNote,
   User,
   ConversationEntry,
+  Subscriber,
 } from "../db/schema";
 import { env } from "../core/env";
 import { editionsSeed } from "./seedEditions";
@@ -32,6 +33,7 @@ export const demoUser: User = {
   email: "demo@thedesk.local",
   loginMethod: "demo",
   role: "admin",
+  isPremium: true,
   createdAt: new Date("2026-01-15T07:00:00Z"),
   updatedAt: new Date(),
   lastSignedIn: new Date(),
@@ -48,6 +50,7 @@ export const demo = {
   queue: [] as ReadingQueueItem[],
   notes: [] as WeeklyNote[],
   conversations: [] as ConversationEntry[],
+  subscribers: [] as Subscriber[],
 };
 
 // Generate hero gradients for every seeded edition so the demo doesn't open
