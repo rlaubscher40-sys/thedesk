@@ -56,7 +56,7 @@ export function EditionReader({
             />
           </div>
           <StaggerList
-            className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5"
+            className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5 items-start"
             cacheKey={`edition-${edition.id}`}
           >
             {rest.map((topic, idx) => (
