@@ -1,21 +1,26 @@
 /**
  * Card for a single edition topic. Designed as a proper article, not a
- * preview — the body, key takeaway, talking points and what-to-watch are
- * all visible inline. The whole point of the weekly edition is that
- * readers sit down and read it; hiding the body behind a "Show deep dive"
- * toggle defeated that intent.
+ * preview — but collapsible: by default only the headline, italic summary
+ * and "why it matters" hook show, with a button to expand the full deep
+ * dive (body, key takeaway, what to watch, talking points). Keeps the
+ * topic deck scannable without losing the long-form value.
  */
+import { useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import type { EditionTopic } from "@shared/schemas";
 import { cn } from "@/lib/cn";
 import { categoryAccentClass, categoryColour } from "@/lib/category";
 import { TalkingPointsBlock } from "./TalkingPointsBlock";
 
 export function TopicCard({ topic }: { topic: EditionTopic }) {
+  const [expanded, setExpanded] = useState(false);
   const colour = categoryColour(topic.category);
   const hasBody = Boolean(topic.body && topic.body.length > 0);
   const hasWatch = Boolean(topic.whatToWatch && topic.whatToWatch.length > 0);
   const hasTalkingPoints =
     topic.talkingPoints && Object.keys(topic.talkingPoints).length > 0;
+  const hasDeepDive =
+    hasBody || hasWatch || hasTalkingPoints || Boolean(topic.keyTakeaway);
 
   return (
     <article
@@ -62,58 +67,90 @@ export function TopicCard({ topic }: { topic: EditionTopic }) {
         </div>
       )}
 
-      {hasBody && (
-        <div
-          className="text-[var(--color-fg-muted)] leading-relaxed whitespace-pre-line max-w-[68ch] mb-6"
-          style={{ fontSize: "15px", lineHeight: "1.75" }}
-        >
-          {topic.body}
-        </div>
+      {/* Deep dive — collapsed by default. The summary + whyItMatters give
+          the reader enough to decide whether to expand. */}
+      {expanded && (
+        <>
+          {hasBody && (
+            <div
+              className="text-[var(--color-fg-muted)] leading-relaxed whitespace-pre-line max-w-[68ch] mb-6"
+              style={{ fontSize: "15px", lineHeight: "1.75" }}
+            >
+              {topic.body}
+            </div>
+          )}
+
+          {topic.keyTakeaway && (
+            <div
+              className="mt-2 mb-6 p-4 rounded-sm"
+              style={{
+                background: `${colour}0a`,
+                boxShadow: `inset 0 0 0 1px ${colour}22`,
+              }}
+            >
+              <p
+                className="overline-amber mb-2"
+                style={{ color: colour, letterSpacing: "0.22em", fontSize: "10px" }}
+              >
+                Key takeaway
+              </p>
+              <p className="font-serif text-base text-[var(--color-fg)] leading-relaxed">
+                {topic.keyTakeaway}
+              </p>
+            </div>
+          )}
+
+          {hasWatch && (
+            <div className="mt-2 mb-6 pt-5 border-t border-[var(--color-border)]">
+              <p
+                className="overline mb-3"
+                style={{ letterSpacing: "0.2em" }}
+              >
+                What to watch
+              </p>
+              <ul className="space-y-2 text-sm text-[var(--color-fg-muted)]">
+                {topic.whatToWatch!.map((line, idx) => (
+                  <li key={line || `watch-${idx}`} className="flex gap-3">
+                    <span className="text-amber-400/70 shrink-0 mt-0.5">▸</span>
+                    <span className="leading-relaxed">{line}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {hasTalkingPoints && (
+            <div className="mt-2 pt-5 border-t border-[var(--color-border)]">
+              <TalkingPointsBlock points={topic.talkingPoints!} />
+            </div>
+          )}
+        </>
       )}
 
-      {topic.keyTakeaway && (
-        <div
-          className="mt-2 mb-6 p-4 rounded-sm"
+      {hasDeepDive && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+          className="mt-auto self-start inline-flex items-center gap-1.5 rounded px-3.5 py-2 text-[10px] font-mono uppercase tracking-[0.18em] transition-colors"
           style={{
-            background: `${colour}0a`,
-            boxShadow: `inset 0 0 0 1px ${colour}22`,
+            background: `${colour}10`,
+            boxShadow: `inset 0 0 0 1px ${colour}40`,
+            color: colour,
           }}
         >
-          <p
-            className="overline-amber mb-2"
-            style={{ color: colour, letterSpacing: "0.22em", fontSize: "10px" }}
-          >
-            Key takeaway
-          </p>
-          <p className="font-serif text-base text-[var(--color-fg)] leading-relaxed">
-            {topic.keyTakeaway}
-          </p>
-        </div>
-      )}
-
-      {hasWatch && (
-        <div className="mt-2 mb-6 pt-5 border-t border-[var(--color-border)]">
-          <p
-            className="overline mb-3"
-            style={{ letterSpacing: "0.2em" }}
-          >
-            What to watch
-          </p>
-          <ul className="space-y-2 text-sm text-[var(--color-fg-muted)]">
-            {topic.whatToWatch!.map((line, idx) => (
-              <li key={line || `watch-${idx}`} className="flex gap-3">
-                <span className="text-amber-400/70 shrink-0 mt-0.5">▸</span>
-                <span className="leading-relaxed">{line}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {hasTalkingPoints && (
-        <div className="mt-2 pt-5 border-t border-[var(--color-border)]">
-          <TalkingPointsBlock points={topic.talkingPoints!} />
-        </div>
+          {expanded ? (
+            <>
+              <ChevronUp className="h-3 w-3" />
+              Collapse
+            </>
+          ) : (
+            <>
+              <ChevronDown className="h-3 w-3" />
+              Read deep dive
+            </>
+          )}
+        </button>
       )}
     </article>
   );
