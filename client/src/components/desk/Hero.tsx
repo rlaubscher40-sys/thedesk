@@ -29,7 +29,13 @@ export function Hero({ onGenerateAll }: { onGenerateAll?: () => void }) {
   return (
     <section
       className="relative overflow-hidden rounded-sm"
-      style={{ aspectRatio: "21 / 9", minHeight: 420, maxHeight: 540 }}
+      style={{
+        // 30vh on mobile (~250-280px on a typical phone), 40vh on
+        // desktop. Floor + ceiling keep the photo readable on weird
+        // viewports. Tuned to keep the first story above the fold on
+        // 1280×800 — the prior 540px max pushed it below.
+        height: "clamp(280px, 40vh, 440px)",
+      }}
     >
       {/* Photographic backdrop. Drifts slowly via .hero-cover-img. */}
       <img
@@ -67,7 +73,7 @@ export function Hero({ onGenerateAll }: { onGenerateAll?: () => void }) {
         aria-hidden="true"
       />
 
-      <div className="relative h-full flex flex-col p-7 sm:p-10 lg:p-12 xl:p-14">
+      <div className="relative h-full flex flex-col p-6 sm:p-8 lg:p-10">
         {/* Quiet top slug — just date + edition. */}
         <div className="flex items-center justify-between gap-4 flex-wrap text-[var(--color-fg-subtle)]">
           <div className="flex items-center gap-3 flex-wrap">
@@ -84,14 +90,14 @@ export function Hero({ onGenerateAll }: { onGenerateAll?: () => void }) {
         {/* Bottom-anchored editorial stack. */}
         <div className="mt-auto max-w-[58ch]">
           <p
-            className="overline-amber mb-6"
+            className="overline-amber mb-3"
             style={{ letterSpacing: "0.26em", fontSize: "10px" }}
           >
             Daily Intelligence Brief
           </p>
           <h1
             className="font-serif font-bold tracking-tight"
-            style={{ fontSize: "clamp(48px, 7.5vw, 112px)", lineHeight: "0.92" }}
+            style={{ fontSize: "clamp(40px, 5vw, 72px)", lineHeight: "0.94" }}
           >
             <span className="block first-paint-mark text-[var(--color-fg)]">Today's</span>
             <span
@@ -108,8 +114,8 @@ export function Hero({ onGenerateAll }: { onGenerateAll?: () => void }) {
             </span>
           </h1>
 
-          <div className="flex items-end justify-between gap-6 mt-8 flex-wrap">
-            <p className="font-serif italic text-lg sm:text-xl text-[var(--color-fg-muted)] max-w-[42ch] leading-snug">
+          <div className="flex items-end justify-between gap-6 mt-4 flex-wrap">
+            <p className="font-serif italic text-base sm:text-lg text-[var(--color-fg-muted)] max-w-[42ch] leading-snug">
               What's cutting through right now. A sixty-second scan, updated each morning before the open.
             </p>
             <button

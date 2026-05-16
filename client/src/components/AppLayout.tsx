@@ -47,7 +47,7 @@ const NAV_ITEMS: NavItem[] = [
   { path: "/editions", label: "Editions", icon: BookOpen },
   { path: "/trends", label: "Trends", icon: BarChart3 },
   { path: "/queue", label: "Reading Queue", icon: Bookmark },
-  { path: "/search", label: "Explore", icon: Search },
+  { path: "/search", label: "Search", icon: Search },
   { path: "/about", label: "About", icon: Info },
   { path: "/admin", label: "Admin", icon: Settings, requiresAdmin: true },
 ];
@@ -57,7 +57,7 @@ const MOBILE_TABS: NavItem[] = [
   { path: "/editions", label: "Editions", icon: BookOpen },
   { path: "/trends", label: "Trends", icon: BarChart3 },
   { path: "/queue", label: "Queue", icon: Bookmark },
-  { path: "/search", label: "Archive", icon: Search },
+  { path: "/search", label: "Search", icon: Search },
 ];
 
 function isActive(location: string, path: string): boolean {
@@ -376,6 +376,14 @@ function SidebarLink({
         )}
         {collapsed && item.path === "/queue" && unreadCount > 0 && (
           <span className="absolute top-1.5 right-2 h-1.5 w-1.5 rounded-full bg-amber-400" />
+        )}
+        {!collapsed && item.path === "/search" && (
+          <span
+            className="font-mono text-[9px] px-1.5 py-0.5 rounded text-[var(--color-fg-subtle)]"
+            style={{ boxShadow: "inset 0 0 0 1px var(--color-border)" }}
+          >
+            ⌘K
+          </span>
         )}
       </span>
     </Link>

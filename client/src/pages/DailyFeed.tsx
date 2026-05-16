@@ -76,6 +76,24 @@ export default function DailyFeed() {
         <MetricsStrip />
       </SectionErrorBoundary>
 
+      <section
+        aria-label="Editor's note"
+        className="panel rounded-sm p-5 sm:p-6 border-l-4"
+        style={{ borderLeftColor: "oklch(0.78 0.18 70)" }}
+      >
+        <p
+          className="overline-amber mb-2"
+          style={{ letterSpacing: "0.22em", fontSize: "10px" }}
+        >
+          Why these stories
+        </p>
+        <p className="font-serif text-base sm:text-lg italic text-[var(--color-fg-muted)] leading-snug max-w-[68ch]">
+          Today's picks land on rates, listings volume, and the policy timing
+          mismatch brokers keep getting wrong. Read the lead first; the rest
+          fills out the conversation you'll have at midday.
+        </p>
+      </section>
+
       {featured && (
         <SectionErrorBoundary section="Featured">
           <section>
