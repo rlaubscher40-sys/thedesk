@@ -113,7 +113,15 @@ export const editionsRouter = router({
       const result = await generateImage({
         prompt: substackHeroPrompt({ title: draft.title, topics: edition.topics }),
       });
-      imageUrl = result?.url ?? null;
+      if (result) {
+        await db.storeEditionAsset({
+          editionId: edition.id,
+          kind: "substack",
+          contentType: result.contentType,
+          bytes: result.bytes,
+        });
+        imageUrl = db.editionAssetUrl(edition.id, "substack");
+      }
     } catch (err) {
       console.warn("[editions] substack hero image failed:", err);
     }
@@ -158,8 +166,15 @@ export const editionsRouter = router({
         message: "Image generation is not configured. Set OPENAI_API_KEY to enable.",
       });
     }
-    await db.updateSubstackImage(edition.id, result.url);
-    return { imageUrl: result.url };
+    await db.storeEditionAsset({
+      editionId: edition.id,
+      kind: "substack",
+      contentType: result.contentType,
+      bytes: result.bytes,
+    });
+    const url = db.editionAssetUrl(edition.id, "substack");
+    await db.updateSubstackImage(edition.id, url);
+    return { imageUrl: url };
   }),
 
   /** Admin: regenerate the EditionReader hero image. */
@@ -175,8 +190,15 @@ export const editionsRouter = router({
         message: "Image generation is not configured. Set OPENAI_API_KEY to enable.",
       });
     }
-    await db.updateHeroImage(edition.id, result.url);
-    return { url: result.url };
+    await db.storeEditionAsset({
+      editionId: edition.id,
+      kind: "hero",
+      contentType: result.contentType,
+      bytes: result.bytes,
+    });
+    const url = db.editionAssetUrl(edition.id, "hero");
+    await db.updateHeroImage(edition.id, url);
+    return { url };
   }),
 
   /**

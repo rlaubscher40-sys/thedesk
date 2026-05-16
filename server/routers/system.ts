@@ -46,6 +46,21 @@ const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
   { name: "0007 · editions.socialTitle", sql: "ALTER TABLE editions ADD socialTitle varchar(200)" },
   { name: "0007 · editions.socialDescription", sql: "ALTER TABLE editions ADD socialDescription varchar(400)" },
   { name: "0007 · editions.headlineVariants", sql: "ALTER TABLE editions ADD headlineVariants json" },
+  {
+    name: "0008 · edition_assets table",
+    sql: `CREATE TABLE edition_assets (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      editionId INT NOT NULL,
+      kind VARCHAR(32) NOT NULL,
+      contentType VARCHAR(64) NOT NULL,
+      bytes MEDIUMBLOB NOT NULL,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`,
+  },
+  {
+    name: "0008 · edition_assets index",
+    sql: "CREATE INDEX idx_edition_assets_lookup ON edition_assets (editionId, kind, createdAt)",
+  },
 ];
 
 /** MySQL/TiDB error codes / fragments we treat as "already applied". */

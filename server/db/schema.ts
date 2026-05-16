@@ -5,6 +5,7 @@
  */
 import {
   boolean,
+  customType,
   double,
   index,
   int,
@@ -15,6 +16,15 @@ import {
   timestamp,
   varchar,
 } from "drizzle-orm/mysql-core";
+
+/**
+ * MEDIUMBLOB column type — up to 16MB binary, plenty for compressed
+ * hero images. Drizzle ships `binary` and `varbinary` but not blob,
+ * so we declare it via customType and let mysql2 bind Buffers natively.
+ */
+const mediumBlob = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType: () => "mediumblob",
+});
 import type { EditionTopic, KeyMetrics, Signals } from "../../shared/schemas";
 
 // ─── Users ──────────────────────────────────────────────────────────────────
@@ -219,6 +229,34 @@ export const dailyMetricHistory = mysqlTable(
 
 export type DailyMetricHistory = typeof dailyMetricHistory.$inferSelect;
 export type InsertDailyMetricHistory = typeof dailyMetricHistory.$inferInsert;
+
+// ─── Edition asset blobs (hero + substack images) ──────────────────────────
+
+/**
+ * Binary storage for AI-generated edition images. Lives in its own table
+ * so the large mediumblob never travels with editions.list / getById
+ * unless explicitly selected. The `editions.heroImageUrl` and
+ * `editions.substackDraftImageUrl` columns store a short
+ * `/api/images/edition/:id/:kind` URL pointing at a row in here.
+ *
+ * One row per (editionId, kind). Re-generating overwrites the latest
+ * row rather than appending — historical images aren't useful and
+ * blob churn is cheap at this scale.
+ */
+export const editionAssets = mysqlTable("edition_assets", {
+  id: int("id").autoincrement().primaryKey(),
+  editionId: int("editionId").notNull(),
+  /** "hero" or "substack". Free-form short string keeps future asset
+   *  kinds (story thumbs, etc.) easy without another schema change. */
+  kind: varchar("kind", { length: 32 }).notNull(),
+  contentType: varchar("contentType", { length: 64 }).notNull(),
+  /** WebP / PNG bytes. mediumblob = up to 16MB; we compress to <300KB. */
+  bytes: mediumBlob("bytes").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type EditionAsset = typeof editionAssets.$inferSelect;
+export type InsertEditionAsset = typeof editionAssets.$inferInsert;
 
 // ─── Featured LinkedIn posts ────────────────────────────────────────────────
 
