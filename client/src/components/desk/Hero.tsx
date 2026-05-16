@@ -37,12 +37,16 @@ export function Hero({ onGenerateAll }: { onGenerateAll?: () => void }) {
         height: "clamp(280px, 40vh, 440px)",
       }}
     >
-      {/* Photographic backdrop. Drifts slowly via .hero-cover-img. */}
+      {/* Photographic backdrop. Drifts slowly via .hero-cover-img. This is
+          the LCP element on the Today landing page. */}
       <img
         src="/hero.svg"
         alt=""
         aria-hidden="true"
         className="hero-cover-img absolute inset-0 w-full h-full object-cover"
+        loading="eager"
+        decoding="async"
+        fetchPriority="high"
       />
       <span className="hero-cover-shine absolute inset-0" aria-hidden="true" />
 

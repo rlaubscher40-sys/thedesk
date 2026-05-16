@@ -52,6 +52,14 @@ export function AnimatedBackground() {
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduced) return;
 
+    // Mobile bails out — the particle field's O(n²) connection-line pass
+    // is the most expensive frame in the app, and on a mid-range Android
+    // it shows up in Lighthouse as main-thread blocking. The static
+    // gradient washes below the canvas still render so the look survives.
+    const isSmallViewport =
+      typeof window !== "undefined" && window.innerWidth < 768;
+    if (isSmallViewport) return;
+
     let dpr = Math.min(window.devicePixelRatio || 1, 2);
     let width = window.innerWidth;
     let height = window.innerHeight;

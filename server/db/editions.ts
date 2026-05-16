@@ -101,6 +101,57 @@ export async function updateHeroImage(id: number, heroImageUrl: string) {
   await db.update(editions).set({ heroImageUrl }).where(eq(editions.id, id));
 }
 
+/**
+ * Replace the synthesised topic deck / signals / letter on an edition.
+ * Used by the editor-QC pass to apply revisions after the initial insert.
+ */
+export async function updateEditionSynthesis(
+  id: number,
+  patch: {
+    topics?: EditionTopic[];
+    signals?: string[];
+    fullText?: string | null;
+    keyMetrics?: Record<string, string | number>;
+    marketStress?: string | null;
+    datesToWatch?: { label: string; description: string }[] | null;
+  }
+) {
+  if (isDemoMode()) return demoQueries.updateEditionSynthesis?.(id, patch);
+  const db = getDb();
+  if (!db) return;
+  await db.update(editions).set(patch).where(eq(editions.id, id));
+}
+
+/**
+ * Save the SEO + headline-variants block on an edition. Written by the
+ * headline-optimiser pass; consumed by the edition page's <head> renderer
+ * and the admin headline picker.
+ */
+export async function updateEditionSeo(
+  id: number,
+  seo: {
+    metaTitle: string;
+    metaDescription: string;
+    socialTitle: string;
+    socialDescription: string;
+    headlineVariants: string[];
+  }
+) {
+  if (isDemoMode()) return demoQueries.updateEditionSeo?.(id, seo);
+  const db = getDb();
+  if (!db) return;
+  await db
+    .update(editions)
+    .set({
+      metaTitle: seo.metaTitle,
+      metaDescription: seo.metaDescription,
+      socialTitle: seo.socialTitle,
+      socialDescription: seo.socialDescription,
+      headlineVariants: seo.headlineVariants,
+    })
+    .where(eq(editions.id, id));
+}
+
 export async function searchEditionFullText(query: string): Promise<Edition[]> {
   if (isDemoMode()) return demoQueries.searchEditionFullText(query);
   const db = getDb();

@@ -29,6 +29,20 @@
       "when": 1747500000000,
       "tag": "0003_daily_metrics",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1747600000000,
+      "tag": "0004_feed_rubens_note",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1747700000000,
+      "tag": "0005_dashboard_richer",
+      "breakpoints": true
     }
   ]
 }

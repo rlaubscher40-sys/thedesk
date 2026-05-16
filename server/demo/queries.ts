@@ -56,6 +56,13 @@ export function createEdition(data: InsertEdition): void {
     substackDraftSubtitle: data.substackDraftSubtitle ?? null,
     substackDraftBody: data.substackDraftBody ?? null,
     substackDraftImageUrl: data.substackDraftImageUrl ?? null,
+    marketStress: data.marketStress ?? null,
+    datesToWatch: data.datesToWatch ?? null,
+    metaTitle: data.metaTitle ?? null,
+    metaDescription: data.metaDescription ?? null,
+    socialTitle: data.socialTitle ?? null,
+    socialDescription: data.socialDescription ?? null,
+    headlineVariants: data.headlineVariants ?? null,
     createdAt: new Date(),
   };
   demo.editions.unshift(edition);
@@ -64,6 +71,46 @@ export function createEdition(data: InsertEdition): void {
 export function updateRubensTake(id: number, rubensTake: string): void {
   const e = demo.editions.find((x) => x.id === id);
   if (e) e.rubensTake = rubensTake;
+}
+
+export function updateEditionSynthesis(
+  id: number,
+  patch: {
+    topics?: Edition["topics"];
+    signals?: Edition["signals"];
+    fullText?: Edition["fullText"];
+    keyMetrics?: Edition["keyMetrics"];
+    marketStress?: Edition["marketStress"];
+    datesToWatch?: Edition["datesToWatch"];
+  }
+): void {
+  const e = demo.editions.find((x) => x.id === id);
+  if (!e) return;
+  if (patch.topics !== undefined) e.topics = patch.topics;
+  if (patch.signals !== undefined) e.signals = patch.signals;
+  if (patch.fullText !== undefined) e.fullText = patch.fullText;
+  if (patch.keyMetrics !== undefined) e.keyMetrics = patch.keyMetrics;
+  if (patch.marketStress !== undefined) e.marketStress = patch.marketStress;
+  if (patch.datesToWatch !== undefined) e.datesToWatch = patch.datesToWatch;
+}
+
+export function updateEditionSeo(
+  id: number,
+  seo: {
+    metaTitle: string;
+    metaDescription: string;
+    socialTitle: string;
+    socialDescription: string;
+    headlineVariants: string[];
+  }
+): void {
+  const e = demo.editions.find((x) => x.id === id);
+  if (!e) return;
+  e.metaTitle = seo.metaTitle;
+  e.metaDescription = seo.metaDescription;
+  e.socialTitle = seo.socialTitle;
+  e.socialDescription = seo.socialDescription;
+  e.headlineVariants = seo.headlineVariants;
 }
 
 export function deleteEdition(id: number): void {
@@ -174,6 +221,20 @@ export function getFeedItemById(id: number): DailyFeedItem | undefined {
   return demo.feed.find((i) => i.id === id);
 }
 
+export function listArchive(opts: {
+  category?: string;
+  limit: number;
+  offset: number;
+}): DailyFeedItem[] {
+  let items = [...demo.feed];
+  if (opts.category) {
+    const cat = opts.category.toUpperCase();
+    items = items.filter((i) => i.category.toUpperCase() === cat);
+  }
+  items.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  return items.slice(opts.offset, opts.offset + opts.limit);
+}
+
 export function getRecentFeedDates(limit: number): string[] {
   const set = new Set<string>();
   for (const item of [...demo.feed].sort((a, b) => b.feedDate.localeCompare(a.feedDate))) {
@@ -196,6 +257,7 @@ export function createFeedItems(items: InsertDailyFeedItem[]): void {
       imageUrl: item.imageUrl ?? null,
       partnerTag: item.partnerTag ?? null,
       sayThis: item.sayThis ?? null,
+      rubensNote: item.rubensNote ?? null,
       promotedToEdition: false,
       createdAt: new Date(),
     });
@@ -215,6 +277,11 @@ export function deleteFeedItem(id: number): void {
 export function updateFeedItemSayThis(id: number, sayThis: string): void {
   const item = demo.feed.find((i) => i.id === id);
   if (item) item.sayThis = sayThis;
+}
+
+export function updateFeedItemRubensNote(id: number, rubensNote: string | null): void {
+  const item = demo.feed.find((i) => i.id === id);
+  if (item) item.rubensNote = rubensNote;
 }
 
 export function updateFeedItemImageUrl(id: number, imageUrl: string): void {
@@ -529,6 +596,8 @@ export function upsertDailyMetric(input: {
   value: string;
   unit?: string | null;
   source?: string | null;
+  context?: string | null;
+  groupKey?: string | null;
   asOf: Date;
   displayOrder?: number;
 }): void {
@@ -539,6 +608,8 @@ export function upsertDailyMetric(input: {
     existing.value = input.value;
     existing.unit = input.unit ?? null;
     existing.source = input.source ?? null;
+    existing.context = input.context ?? null;
+    existing.groupKey = input.groupKey ?? null;
     existing.asOf = input.asOf;
     existing.displayOrder = input.displayOrder ?? existing.displayOrder;
     existing.previousValue = previousValue;
@@ -552,9 +623,47 @@ export function upsertDailyMetric(input: {
     value: input.value,
     unit: input.unit ?? null,
     source: input.source ?? null,
+    context: input.context ?? null,
+    groupKey: input.groupKey ?? null,
     asOf: input.asOf,
     displayOrder: input.displayOrder ?? 100,
     previousValue,
     updatedAt: new Date(),
   });
+}
+
+/**
+ * Demo-mode history. Generates a smooth-ish 30-day series around the
+ * current value so the sparklines have something to render even with no
+ * real DB writes yet. Deterministic per metricKey so the chart doesn't
+ * flicker between renders.
+ */
+export function listMetricHistories(
+  days = 30
+): Record<string, Array<{ value: number; recordedAt: Date }>> {
+  const out: Record<string, Array<{ value: number; recordedAt: Date }>> = {};
+  for (const m of demo.metrics) {
+    const cleaned = m.value.replace(/[$,%\s]/g, "");
+    const n = Number(cleaned);
+    if (!Number.isFinite(n)) continue;
+    // Cheap hash-driven walk so each metric gets a stable shape.
+    let seed = 0;
+    for (let i = 0; i < m.metricKey.length; i++) {
+      seed = (seed * 31 + m.metricKey.charCodeAt(i)) >>> 0;
+    }
+    const series: Array<{ value: number; recordedAt: Date }> = [];
+    let v = n * 0.95;
+    for (let i = 0; i < days; i++) {
+      seed = (seed * 1103515245 + 12345) >>> 0;
+      const wobble = ((seed % 1000) / 1000 - 0.5) * 0.04 * n;
+      v = v + wobble + (n - v) * 0.05;
+      series.push({
+        value: v,
+        recordedAt: new Date(Date.now() - (days - i) * 86_400_000),
+      });
+    }
+    series.push({ value: n, recordedAt: new Date() });
+    out[m.metricKey] = series;
+  }
+  return out;
 }

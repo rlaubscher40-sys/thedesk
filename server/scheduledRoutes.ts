@@ -22,12 +22,16 @@ import {
 } from "../shared/schemas";
 import {
   editionHeroPrompt,
+  extractMetricFromNews,
   feedItemImagePrompt,
   generatePartnerTag,
   generateRubensTake,
   generateSayThis,
+  optimiseHeadlines,
+  runEditorQc,
   synthesizeWeeklyEdition,
 } from "./prompts";
+import Parser from "rss-parser";
 
 // ─── Auth ───────────────────────────────────────────────────────────────────
 
@@ -345,6 +349,8 @@ function registerSynthesizeEditionRoute(app: Express): void {
       signals: synth.signals,
       fullText: synth.fullText,
       keyMetrics: synth.keyMetrics,
+      marketStress: synth.marketStress,
+      datesToWatch: synth.datesToWatch,
     };
     try {
       await db.createEdition(edition);
@@ -367,25 +373,88 @@ function registerSynthesizeEditionRoute(app: Express): void {
       sourcedItemCount: items.length,
     });
 
-    // ── Background: hero image + Ruben's Take, same as the manual route ────
+    // ── Background: editor QC + hero + take + headline SEO ─────────────────
+    // The QC pass and headline optimiser run on the LIVE edition so a slow
+    // call doesn't hold up the synthesise endpoint. Each step is best-effort
+    // — a failure logs and moves on, the edition stays usable either way.
     setImmediate(async () => {
       const inserted = await db.getEditionByNumber(editionNumber);
       if (!inserted) return;
+
+      // Step 1: Editor QC pass. Audits voice, clarity, audience hooks,
+      // unsupported claims and applies fixes in place. We feed it the
+      // synthesised output (not the DB row, which is the same shape).
+      let finalEdition = {
+        topics: edition.topics,
+        signals: edition.signals,
+        keyMetrics: edition.keyMetrics,
+        readingTime: edition.readingTime,
+        fullText: edition.fullText,
+        marketStress: edition.marketStress,
+        datesToWatch: edition.datesToWatch,
+      };
+      try {
+        const qc = await runEditorQc(finalEdition);
+        if (!qc.approved) {
+          console.log(
+            `[editor-qc] Edition ${editionNumber}: applied ${qc.notes.length} edits`
+          );
+          for (const n of qc.notes) console.log(`  - ${n}`);
+        } else {
+          console.log(`[editor-qc] Edition ${editionNumber}: clean on first pass`);
+        }
+        finalEdition = qc.revised;
+        await db.updateEditionSynthesis(inserted.id, {
+          topics: finalEdition.topics,
+          signals: finalEdition.signals,
+          fullText: finalEdition.fullText,
+          keyMetrics: finalEdition.keyMetrics,
+          marketStress: finalEdition.marketStress,
+          datesToWatch: finalEdition.datesToWatch,
+        });
+      } catch (err) {
+        console.warn(
+          `[editor-qc] Edition ${editionNumber} skipped: ${(err as Error).message}`
+        );
+      }
+
+      // Step 2: hero image + Ruben's Take in parallel.
       const [imageResult, takeResult] = await Promise.allSettled([
         generateImage({
-          prompt: editionHeroPrompt({ weekRange, topics: edition.topics }),
+          prompt: editionHeroPrompt({ weekRange, topics: finalEdition.topics }),
         }),
         generateRubensTake({
           weekRange,
-          topics: edition.topics,
-          keyMetrics: edition.keyMetrics,
+          topics: finalEdition.topics,
+          keyMetrics: finalEdition.keyMetrics,
         }),
       ]);
       if (imageResult.status === "fulfilled" && imageResult.value?.url) {
         await db.updateHeroImage(inserted.id, imageResult.value.url);
       }
+      let rubensTake: string | null = null;
       if (takeResult.status === "fulfilled") {
-        await db.updateRubensTake(inserted.id, takeResult.value);
+        rubensTake = takeResult.value;
+        await db.updateRubensTake(inserted.id, rubensTake);
+      }
+
+      // Step 3: headline + SEO optimiser. Needs the take if we have one
+      // (it informs the social-card framing).
+      try {
+        const seo = await optimiseHeadlines({
+          weekRange,
+          rubensTake,
+          topics: finalEdition.topics,
+          fullText: finalEdition.fullText,
+        });
+        await db.updateEditionSeo(inserted.id, seo);
+        console.log(
+          `[headline-optimiser] Edition ${editionNumber}: meta + ${seo.headlineVariants.length} variants saved`
+        );
+      } catch (err) {
+        console.warn(
+          `[headline-optimiser] Edition ${editionNumber} skipped: ${(err as Error).message}`
+        );
       }
     });
   };
@@ -404,6 +473,8 @@ const dailyMetricsBodySchema = z.object({
         value: z.string().min(1).max(64),
         unit: z.string().max(16).optional().nullable(),
         source: z.string().max(64).optional().nullable(),
+        context: z.string().max(256).optional().nullable(),
+        groupKey: z.string().max(32).optional().nullable(),
         asOf: z.string().datetime().or(z.string().min(1)),
         displayOrder: z.number().int().min(0).max(9999).optional(),
       })
@@ -431,6 +502,8 @@ function registerDailyMetricsRoute(app: Express): void {
           value: m.value,
           unit: m.unit ?? null,
           source: m.source ?? null,
+          context: m.context ?? null,
+          groupKey: m.groupKey ?? null,
           asOf: new Date(m.asOf),
           displayOrder: m.displayOrder,
         });
@@ -446,13 +519,107 @@ function registerDailyMetricsRoute(app: Express): void {
   app.post("/api/ingest/daily-metrics", handler);
 }
 
+// ─── News-driven metric extraction ──────────────────────────────────────────
+// For metrics whose underlying source is paywalled (CoreLogic, Domain,
+// Westpac-MI) but get covered by news outlets within hours, ask the LLM
+// to pull the figure from Google News results.
+
+const extractMetricsBodySchema = z.object({
+  queries: z
+    .array(
+      z.object({
+        metricKey: z.string().min(1).max(64),
+        label: z.string().min(1).max(128),
+        unit: z.string().max(16).optional().nullable(),
+        groupKey: z.string().max(32).optional().nullable(),
+        displayOrder: z.number().int().min(0).max(9999).optional(),
+        googleQuery: z.string().min(1).max(200),
+        guidance: z.string().min(1).max(500),
+      })
+    )
+    .min(1)
+    .max(10),
+});
+
+function registerExtractMetricsRoute(app: Express): void {
+  const parser = new Parser({
+    timeout: 8_000,
+    headers: { "User-Agent": "TheDesk/1.0" },
+  });
+  const handler = async (req: Request, res: Response) => {
+    if (!(await authenticateScheduled(req))) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const parsed = extractMetricsBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid payload", issues: parsed.error.flatten() });
+      return;
+    }
+    let ok = 0;
+    let skipped = 0;
+    for (const q of parsed.data.queries) {
+      try {
+        // 1. Fetch Google News RSS for this metric's query.
+        const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q.googleQuery)}&hl=en-AU&gl=AU&ceid=AU:en`;
+        const feed = await parser.parseURL(url);
+        const articles = (feed.items ?? []).slice(0, 6).map((it) => ({
+          title: (it.title ?? "").slice(0, 200),
+          summary: (it.contentSnippet ?? it.content ?? "").slice(0, 400),
+          source: (it.creator as string | undefined) ?? "Google News",
+          date: it.isoDate ?? it.pubDate ?? null,
+        }));
+        if (articles.length === 0) {
+          skipped++;
+          continue;
+        }
+        // 2. Ask the LLM to extract.
+        const extracted = await extractMetricFromNews({
+          metricLabel: q.label,
+          unit: q.unit ?? null,
+          guidance: q.guidance,
+          articles,
+        });
+        if (!extracted) {
+          skipped++;
+          continue;
+        }
+        // 3. Upsert.
+        await db.upsertDailyMetric({
+          metricKey: q.metricKey,
+          label: q.label,
+          value: extracted.value,
+          unit: q.unit ?? null,
+          source: "News + LLM",
+          context: extracted.context,
+          groupKey: q.groupKey ?? null,
+          asOf: extracted.asOf ?? new Date(),
+          displayOrder: q.displayOrder,
+        });
+        ok++;
+        console.log(
+          `[extract-metric] ${q.metricKey} = ${extracted.value}${q.unit ?? ""} (${extracted.context ?? "no context"})`
+        );
+      } catch (err) {
+        console.error(`[extract-metric] ${q.metricKey} failed:`, (err as Error).message);
+        skipped++;
+      }
+    }
+    console.log(`[scheduled] extracted ${ok}/${parsed.data.queries.length} news-driven metrics`);
+    res.json({ success: true, extracted: ok, skipped });
+  };
+  app.post("/api/scheduled/extract-metrics", handler);
+  app.post("/api/ingest/extract-metrics", handler);
+}
+
 export function registerScheduledRoutes(app: Express): void {
   registerDailyFeedRoute(app);
   registerWeeklyEditionRoute(app);
   registerSynthesizeEditionRoute(app);
   registerDailyMetricsRoute(app);
+  registerExtractMetricsRoute(app);
   console.log(
-    "[scheduled] registered /api/{scheduled,ingest}/{daily-feed,weekly-edition,synthesize-edition,daily-metrics}"
+    "[scheduled] registered /api/{scheduled,ingest}/{daily-feed,weekly-edition,synthesize-edition,daily-metrics,extract-metrics}"
   );
 }
 

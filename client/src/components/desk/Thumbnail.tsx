@@ -40,6 +40,9 @@ export function Thumbnail({
           alt=""
           className="w-full h-full object-cover"
           loading="lazy"
+          decoding="async"
+          width={size}
+          height={size}
         />
         <span
           className="absolute inset-0"

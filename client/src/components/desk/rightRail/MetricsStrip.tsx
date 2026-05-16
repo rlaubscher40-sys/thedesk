@@ -1,71 +1,89 @@
 /**
- * Full-width metrics strip on the Today page. Sits at the top of the
- * editorial body — under the hero + controls. Each tile carries a
- * direction-of-good trend arrow + delta against the previous day's
- * value, coloured green/red/amber by sentiment.
+ * Full-width macro dashboard. Tiles are grouped into editorial sections
+ * (MACRO / PROPERTY / LABOUR / MARKETS / DEMOGRAPHICS) when the data is
+ * tagged with a `groupKey`. Each tile carries a value, direction arrow,
+ * delta vs prior, and a short editorial context blurb in mono.
  *
- * Reads from `trpc.metrics.list` (DB-backed, refreshed daily by the
- * daily-metrics GitHub Actions workflow). Falls back to the curated
- * seed metrics when the DB has nothing yet (dev / first boot).
+ * Falls back to a flat layout (and to the curated seed metrics) when the
+ * DB hasn't been populated yet.
  */
 import { ArrowDown, ArrowUp, Minus } from "lucide-react";
+import type { DailyMetric } from "@shared/types";
 import { editionMeta, metrics as seedMetrics } from "@/data/editions/2026-05-15";
 import { resolveMetricTrend } from "@/lib/metrics";
 import { trpc } from "@/lib/trpc";
+import { Sparkline } from "./Sparkline";
 
 type Tile = {
   key: string;
   value: string;
   prior: string | null;
-  detail?: string | null;
+  context?: string | null;
+  groupKey?: string | null;
+  /** 30-day numeric series for the sparkline. Empty until history exists. */
+  history?: number[];
+};
+
+const GROUP_ORDER = ["MACRO", "PROPERTY", "LABOUR", "MARKETS", "DEMOGRAPHICS"];
+const GROUP_LABELS: Record<string, string> = {
+  MACRO: "Macro & rates",
+  PROPERTY: "Property",
+  LABOUR: "Labour & wages",
+  MARKETS: "Markets",
+  DEMOGRAPHICS: "Demographics",
 };
 
 export function MetricsStrip() {
   const { data: liveMetrics } = trpc.metrics.list.useQuery(undefined, {
     staleTime: 5 * 60_000,
   });
+  // Sparkline history. Cached longer — daily ingest writes one point a day.
+  const { data: histories } = trpc.metrics.histories.useQuery(undefined, {
+    staleTime: 30 * 60_000,
+  });
 
-  // Live tiles come from the DB. Each row has value + previousValue, which
-  // resolveMetricTrend uses to compute the arrow and delta.
   const liveTiles: Tile[] =
-    liveMetrics?.map((m) => ({
+    liveMetrics?.map((m: DailyMetric) => ({
       key: m.label,
-      value: m.unit === "%" ? `${m.value}${m.unit}` : m.value,
-      prior: m.previousValue
-        ? m.unit === "%"
-          ? `${m.previousValue}${m.unit}`
-          : m.previousValue
-        : null,
-      detail: m.source ? `as of ${formatAsOf(m.asOf)} · ${m.source}` : undefined,
+      value: m.unit && m.unit !== "%" ? `${m.value}${m.unit}` : m.unit === "%" ? `${m.value}${m.unit}` : m.value,
+      prior:
+        m.previousValue != null
+          ? m.unit === "%"
+            ? `${m.previousValue}${m.unit}`
+            : m.previousValue
+          : null,
+      context: m.context,
+      groupKey: m.groupKey,
+      history: histories?.[m.metricKey]?.map((p) => p.value) ?? [],
     })) ?? [];
 
-  const tiles: Tile[] =
-    liveTiles.length > 0
-      ? liveTiles
-      : seedMetrics.map((m) => ({
-          key: m.key,
-          value: m.value,
-          prior: m.prior ?? null,
-          detail: m.detail ?? null,
-        }));
+  const hasLive = liveTiles.length > 0;
+  const tiles: Tile[] = hasLive
+    ? liveTiles
+    : seedMetrics.map((m) => ({
+        key: m.key,
+        value: m.value,
+        prior: m.prior ?? null,
+        context: m.detail ?? null,
+      }));
 
-  const headerRight =
-    liveTiles.length > 0
-      ? `Live · refreshed daily`
-      : `Edition ${editionMeta.number} · ${editionMeta.date}`;
+  // Group tiles when groupKey is set on enough of them. Otherwise flat.
+  const grouped = groupTiles(tiles);
+  const headerRight = hasLive
+    ? "Live · refreshed daily"
+    : `Edition ${editionMeta.number} · ${editionMeta.date}`;
 
   return (
     <section
       className="panel rounded-sm overflow-hidden"
-      aria-label="Today's key metrics versus prior day"
+      aria-label="Where things stand"
     >
-      <header className="px-6 py-3 border-b border-[var(--color-border)] flex items-center justify-between flex-wrap gap-3">
-        <p
-          className="overline text-[var(--color-fg-subtle)]"
-          style={{ letterSpacing: "0.24em" }}
-        >
-          Key metrics · versus prior
-        </p>
+      <header className="px-6 py-4 border-b border-[var(--color-border)] flex items-baseline justify-between flex-wrap gap-3">
+        <div className="flex items-baseline gap-3">
+          <h2 className="font-serif text-2xl sm:text-3xl font-bold leading-none">
+            Where things stand
+          </h2>
+        </div>
         <p
           className="overline text-[var(--color-fg-subtle)]"
           style={{ letterSpacing: "0.18em" }}
@@ -74,68 +92,101 @@ export function MetricsStrip() {
         </p>
       </header>
 
-      <div
-        className={
-          "grid grid-cols-2 " +
-          (tiles.length <= 4 ? "lg:grid-cols-4" : "lg:grid-cols-3 xl:grid-cols-6")
-        }
-      >
-        {tiles.map((m, idx) => {
-          const { hasDelta, delta, trend, sentiment, colour } = resolveMetricTrend(
-            m.key,
-            m.value,
-            m.prior
-          );
-          const Icon = trend === "up" ? ArrowUp : trend === "down" ? ArrowDown : Minus;
-          return (
-            <div
-              key={m.key + idx}
-              className={
-                "p-6 lg:p-7 border-t border-[var(--color-border)] " +
-                "first:border-t-0 lg:border-t-0 " +
-                "lg:border-l first:border-l-0 border-[var(--color-border)]"
-              }
-            >
+      {grouped.map((group, groupIdx) => (
+        <div key={group.label ?? `g-${groupIdx}`}>
+          {group.label && (
+            <div className="px-6 pt-5 pb-2 border-t border-[var(--color-border)] first:border-t-0 flex items-center gap-3">
               <p
-                className="overline mb-3 truncate"
-                style={{ letterSpacing: "0.18em", fontSize: "10px" }}
-                title={m.key}
+                className="overline-amber"
+                style={{ letterSpacing: "0.22em", fontSize: "10px" }}
               >
-                {m.key}
+                {group.label}
               </p>
-              <div className="flex items-baseline justify-between gap-3 mb-2">
-                <p className="font-serif text-3xl lg:text-4xl font-bold tabular-nums text-[var(--color-fg)] leading-none">
-                  {m.value}
-                </p>
-                <span
-                  className="inline-flex items-center gap-1 font-mono tabular-nums shrink-0"
-                  style={{ color: colour, fontSize: "11px" }}
-                  title={`${trend} vs prior · ${sentiment}`}
-                  aria-label={`${trend} versus prior — ${sentiment}`}
-                >
-                  <Icon className="h-3.5 w-3.5" strokeWidth={2.5} />
-                  {hasDelta && trend !== "flat" && (
-                    <span>
-                      {delta > 0 ? "+" : ""}
-                      {delta.toFixed(Math.abs(delta) < 1 ? 3 : 2)}
-                    </span>
-                  )}
-                </span>
-              </div>
-              {m.detail && (
-                <p className="font-mono text-[11px] text-[var(--color-fg-subtle)] truncate" title={m.detail}>
-                  {m.detail}
-                </p>
-              )}
+              <span
+                className="block flex-1 h-px bg-[var(--color-border)]"
+                aria-hidden="true"
+              />
             </div>
-          );
-        })}
-      </div>
+          )}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {group.tiles.map((m, idx) => (
+              <Tile key={m.key + idx} tile={m} />
+            ))}
+          </div>
+        </div>
+      ))}
     </section>
   );
 }
 
-function formatAsOf(asOf: Date | string): string {
-  const d = asOf instanceof Date ? asOf : new Date(asOf);
-  return d.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
+function Tile({ tile }: { tile: Tile }) {
+  const { hasDelta, delta, trend, sentiment, colour } = resolveMetricTrend(
+    tile.key,
+    tile.value,
+    tile.prior
+  );
+  const Icon = trend === "up" ? ArrowUp : trend === "down" ? ArrowDown : Minus;
+  return (
+    <div className="p-4 sm:p-5 lg:p-6 border-t border-l border-[var(--color-border)] -mt-px -ml-px">
+      <p
+        className="overline mb-2 truncate"
+        style={{ letterSpacing: "0.18em", fontSize: "10px" }}
+        title={tile.key}
+      >
+        {tile.key}
+      </p>
+      <div className="flex items-baseline justify-between gap-3 mb-2">
+        <p className="font-serif text-2xl lg:text-[28px] font-bold tabular-nums text-[var(--color-fg)] leading-none">
+          {tile.value}
+        </p>
+        <span
+          className="inline-flex items-center gap-1 font-mono tabular-nums shrink-0"
+          style={{ color: colour, fontSize: "10px" }}
+          aria-label={`${trend} versus prior — ${sentiment}`}
+        >
+          <Icon className="h-3 w-3" strokeWidth={2.5} />
+          {hasDelta && trend !== "flat" && (
+            <span>
+              {delta > 0 ? "+" : ""}
+              {delta.toFixed(Math.abs(delta) < 1 ? 3 : 2)}
+            </span>
+          )}
+        </span>
+      </div>
+      {tile.history && tile.history.length >= 2 && (
+        <div className="mb-2 opacity-80">
+          <Sparkline values={tile.history} width={120} height={20} />
+        </div>
+      )}
+      {tile.context && (
+        <p
+          className="font-mono text-[10px] text-[var(--color-fg-subtle)] leading-relaxed line-clamp-2"
+          title={tile.context}
+        >
+          {tile.context}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function groupTiles(tiles: Tile[]): Array<{ label: string | null; tiles: Tile[] }> {
+  const hasGroups = tiles.filter((t) => t.groupKey).length >= Math.min(4, tiles.length);
+  if (!hasGroups) return [{ label: null, tiles }];
+  const byKey = new Map<string, Tile[]>();
+  for (const t of tiles) {
+    const k = (t.groupKey ?? "OTHER").toUpperCase();
+    const arr = byKey.get(k) ?? [];
+    arr.push(t);
+    byKey.set(k, arr);
+  }
+  return GROUP_ORDER.flatMap((k) => {
+    const list = byKey.get(k);
+    if (!list) return [];
+    return [{ label: GROUP_LABELS[k] ?? k, tiles: list }];
+  }).concat(
+    Array.from(byKey.entries())
+      .filter(([k]) => !GROUP_ORDER.includes(k))
+      .map(([k, ts]) => ({ label: GROUP_LABELS[k] ?? k, tiles: ts }))
+  );
 }

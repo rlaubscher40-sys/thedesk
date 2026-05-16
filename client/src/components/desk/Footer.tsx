@@ -36,6 +36,7 @@ export function Footer() {
           {[
             { href: "/about", label: "About" },
             { href: "/editorial-standards", label: "Editorial standards" },
+            { href: "/corrections", label: "Corrections" },
             { href: "/privacy", label: "Privacy" },
             { href: "/terms", label: "Terms" },
           ].map((l) => (
@@ -48,6 +49,13 @@ export function Footer() {
               {l.label}
             </Link>
           ))}
+          <a
+            href="/feed.xml"
+            className="font-mono uppercase tracking-[0.16em] hover:text-amber-300 transition-colors"
+            style={{ fontSize: "10px" }}
+          >
+            RSS
+          </a>
         </nav>
       </div>
 

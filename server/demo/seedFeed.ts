@@ -40,12 +40,17 @@ export function feedSeed(): DailyFeedItem[] {
 
   let id = 1;
   const make = (
-    item: Omit<DailyFeedItem, "id" | "createdAt" | "promotedToEdition" | "imageUrl"> & {
+    item: Omit<
+      DailyFeedItem,
+      "id" | "createdAt" | "promotedToEdition" | "imageUrl" | "rubensNote"
+    > & {
       imageUrl?: string | null;
+      rubensNote?: string | null;
     }
   ): DailyFeedItem => ({
     id: id++,
     promotedToEdition: false,
+    rubensNote: item.rubensNote ?? null,
     createdAt: new Date(Date.now() - id * 1000 * 60 * 17),
     ...item,
     imageUrl: item.imageUrl ?? null,

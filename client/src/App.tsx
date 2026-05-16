@@ -28,10 +28,12 @@ const Trends = lazy(() => import("./pages/Trends"));
 const About = lazy(() => import("./pages/About"));
 const StoryPage = lazy(() => import("./pages/StoryPage"));
 const AdminPage = lazy(() => import("./pages/Admin"));
+const Archive = lazy(() => import("./pages/Archive"));
 const Login = lazy(() => import("./pages/Login"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
 const EditorialStandards = lazy(() => import("./pages/EditorialStandards"));
+const Corrections = lazy(() => import("./pages/Corrections"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 function KeyboardShortcuts() {
@@ -91,12 +93,14 @@ function Routes() {
             <Route path="/topics" component={TopicThreads} />
             <Route path="/topics/:category" component={TopicThreads} />
             <Route path="/about" component={About} />
+            <Route path="/archive" component={Archive} />
             <Route path="/story/:id" component={StoryPage} />
             <Route path="/admin" component={AdminPage} />
             <Route path="/login" component={Login} />
             <Route path="/privacy" component={Privacy} />
             <Route path="/terms" component={Terms} />
             <Route path="/editorial-standards" component={EditorialStandards} />
+            <Route path="/corrections" component={Corrections} />
             <Route component={NotFound} />
           </Switch>
         </Suspense>

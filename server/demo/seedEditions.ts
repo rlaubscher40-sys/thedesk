@@ -44,6 +44,13 @@ export function editionsSeed(): Edition[] {
       substackDraftBody:
         "I was on a call with a broker friend the morning the decision dropped. He had three settlements lined up that afternoon and a presentation at five.\n\nThe RBA had just held the cash rate at 4.35%. Nothing about his day changed. Nothing about his clients' files changed. The presentation he was giving had been written a week earlier and would have read the same either way.\n\n---\n\nThe decision is the headline. The interesting story is the four weeks after.\n\nLast cycle, when the RBA held in March and again in May, broker channel share crept up almost a full percentage point through June. Not because anyone changed their mind. Because the holds gave clients permission to sit still, and sitting still in a refi market means the existing broker keeps the relationship.\n\nThis time, the data is starting to rhyme. Channel share moved from 73.8% to 74.6% between the last decision and this one. Not dramatic. But the direction matters more than the number.\n\nWhat's a partner conversation in this look like? Not 'rates are holding.' Everyone says that. The angle is what fixed-rate roll-off volumes do in mid-June, because that's where the real decisions get made.\n\n---\n\n_If this landed, I write two of these a week. Subscribe and I'll send them straight to your inbox._",
       substackDraftImageUrl: null,
+      marketStress: null,
+      datesToWatch: null,
+      metaTitle: null,
+      metaDescription: null,
+      socialTitle: null,
+      socialDescription: null,
+      headlineVariants: null,
       createdAt: daysAgo(2),
       topics: [
         {
@@ -181,6 +188,13 @@ export function editionsSeed(): Edition[] {
       substackDraftBody:
         "I read the budget papers on the flight back from Melbourne.\n\nThe CGT discount tweak is two paragraphs on page 147. Most of the morning coverage missed it. By Friday it'll be the only thing anyone talks about.\n\n_If this landed, I write two of these a week. Subscribe and I'll send them straight to your inbox._",
       substackDraftImageUrl: null,
+      marketStress: null,
+      datesToWatch: null,
+      metaTitle: null,
+      metaDescription: null,
+      socialTitle: null,
+      socialDescription: null,
+      headlineVariants: null,
       createdAt: daysAgo(9),
       topics: [
         {
@@ -268,6 +282,13 @@ export function editionsSeed(): Edition[] {
       substackDraftSubtitle: null,
       substackDraftBody: null,
       substackDraftImageUrl: null,
+      marketStress: null,
+      datesToWatch: null,
+      metaTitle: null,
+      metaDescription: null,
+      socialTitle: null,
+      socialDescription: null,
+      headlineVariants: null,
       createdAt: daysAgo(16),
       topics: [
         {

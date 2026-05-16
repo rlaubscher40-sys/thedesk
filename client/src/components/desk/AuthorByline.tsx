@@ -87,6 +87,8 @@ function Headshot({
             src={src}
             alt={`${name} headshot`}
             className="w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
             onError={() => setFailed(true)}
           />
         ) : (

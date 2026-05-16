@@ -9,3 +9,6 @@ export * from "./sayThis";
 export * from "./substackDraft";
 export * from "./heroImage";
 export * from "./editionSynthesis";
+export * from "./editorQc";
+export * from "./headlineOptimiser";
+export * from "./metricExtraction";
