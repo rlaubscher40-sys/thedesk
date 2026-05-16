@@ -5,6 +5,8 @@
  */
 import {
   boolean,
+  double,
+  index,
   int,
   json,
   mysqlEnum,
@@ -180,6 +182,31 @@ export const dailyMetrics = mysqlTable("daily_metrics", {
 
 export type DailyMetric = typeof dailyMetrics.$inferSelect;
 export type InsertDailyMetric = typeof dailyMetrics.$inferInsert;
+
+/**
+ * Append-only history of metric values. One row per upsert, so we can
+ * draw a sparkline next to the current value on the dashboard. Cheap to
+ * write (rate is one row per metric per day) and bounded — ~30 metrics ×
+ * 365 days ≈ 11k rows per year.
+ */
+export const dailyMetricHistory = mysqlTable(
+  "daily_metric_history",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    metricKey: varchar("metricKey", { length: 64 }).notNull(),
+    numericValue: double("numericValue").notNull(),
+    recordedAt: timestamp("recordedAt").defaultNow().notNull(),
+  },
+  (t) => ({
+    keyRecorded: index("idx_metric_history_key_recorded").on(
+      t.metricKey,
+      t.recordedAt
+    ),
+  })
+);
+
+export type DailyMetricHistory = typeof dailyMetricHistory.$inferSelect;
+export type InsertDailyMetricHistory = typeof dailyMetricHistory.$inferInsert;
 
 // ─── Featured LinkedIn posts ────────────────────────────────────────────────
 

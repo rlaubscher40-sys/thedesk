@@ -12,6 +12,14 @@ export const metricsRouter = router({
     return db.listDailyMetrics();
   }),
 
+  /**
+   * Last 30 days of numeric history per metricKey, for sparklines. Cached
+   * client-side longer than `list` because it doesn't change within a day.
+   */
+  histories: publicProcedure.query(async () => {
+    return db.listMetricHistories(30);
+  }),
+
   listAll: adminProcedure.query(async () => {
     return db.listDailyMetrics();
   }),

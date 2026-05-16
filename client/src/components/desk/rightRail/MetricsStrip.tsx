@@ -12,6 +12,7 @@ import type { DailyMetric } from "@shared/types";
 import { editionMeta, metrics as seedMetrics } from "@/data/editions/2026-05-15";
 import { resolveMetricTrend } from "@/lib/metrics";
 import { trpc } from "@/lib/trpc";
+import { Sparkline } from "./Sparkline";
 
 type Tile = {
   key: string;
@@ -19,6 +20,8 @@ type Tile = {
   prior: string | null;
   context?: string | null;
   groupKey?: string | null;
+  /** 30-day numeric series for the sparkline. Empty until history exists. */
+  history?: number[];
 };
 
 const GROUP_ORDER = ["MACRO", "PROPERTY", "LABOUR", "MARKETS", "DEMOGRAPHICS"];
@@ -34,6 +37,10 @@ export function MetricsStrip() {
   const { data: liveMetrics } = trpc.metrics.list.useQuery(undefined, {
     staleTime: 5 * 60_000,
   });
+  // Sparkline history. Cached longer — daily ingest writes one point a day.
+  const { data: histories } = trpc.metrics.histories.useQuery(undefined, {
+    staleTime: 30 * 60_000,
+  });
 
   const liveTiles: Tile[] =
     liveMetrics?.map((m: DailyMetric) => ({
@@ -47,6 +54,7 @@ export function MetricsStrip() {
           : null,
       context: m.context,
       groupKey: m.groupKey,
+      history: histories?.[m.metricKey]?.map((p) => p.value) ?? [],
     })) ?? [];
 
   const hasLive = liveTiles.length > 0;
@@ -145,6 +153,11 @@ function Tile({ tile }: { tile: Tile }) {
           )}
         </span>
       </div>
+      {tile.history && tile.history.length >= 2 && (
+        <div className="mb-2 opacity-80">
+          <Sparkline values={tile.history} width={120} height={20} />
+        </div>
+      )}
       {tile.context && (
         <p
           className="font-mono text-[10px] text-[var(--color-fg-subtle)] leading-relaxed line-clamp-2"

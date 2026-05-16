@@ -586,3 +586,39 @@ export function upsertDailyMetric(input: {
     updatedAt: new Date(),
   });
 }
+
+/**
+ * Demo-mode history. Generates a smooth-ish 30-day series around the
+ * current value so the sparklines have something to render even with no
+ * real DB writes yet. Deterministic per metricKey so the chart doesn't
+ * flicker between renders.
+ */
+export function listMetricHistories(
+  days = 30
+): Record<string, Array<{ value: number; recordedAt: Date }>> {
+  const out: Record<string, Array<{ value: number; recordedAt: Date }>> = {};
+  for (const m of demo.metrics) {
+    const cleaned = m.value.replace(/[$,%\s]/g, "");
+    const n = Number(cleaned);
+    if (!Number.isFinite(n)) continue;
+    // Cheap hash-driven walk so each metric gets a stable shape.
+    let seed = 0;
+    for (let i = 0; i < m.metricKey.length; i++) {
+      seed = (seed * 31 + m.metricKey.charCodeAt(i)) >>> 0;
+    }
+    const series: Array<{ value: number; recordedAt: Date }> = [];
+    let v = n * 0.95;
+    for (let i = 0; i < days; i++) {
+      seed = (seed * 1103515245 + 12345) >>> 0;
+      const wobble = ((seed % 1000) / 1000 - 0.5) * 0.04 * n;
+      v = v + wobble + (n - v) * 0.05;
+      series.push({
+        value: v,
+        recordedAt: new Date(Date.now() - (days - i) * 86_400_000),
+      });
+    }
+    series.push({ value: n, recordedAt: new Date() });
+    out[m.metricKey] = series;
+  }
+  return out;
+}
