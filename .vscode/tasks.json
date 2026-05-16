@@ -1,0 +1,33 @@
+{
+  // VS Code tasks. In Codespaces or VS Code: Ctrl/Cmd-Shift-P → "Tasks: Run Task".
+  // Picked up automatically by the devcontainer.
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "dev",
+      "type": "shell",
+      "command": "pnpm dev",
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "check",
+      "type": "shell",
+      "command": "pnpm check",
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": []
+    },
+    {
+      "label": "test",
+      "type": "shell",
+      "command": "pnpm test",
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": []
+    }
+  ]
+}

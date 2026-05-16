@@ -1,0 +1,171 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 600" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="ab-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="hsl(225, 45%, 9%)"/>
+      <stop offset="60%" stop-color="hsl(220, 50%, 5%)"/>
+      <stop offset="100%" stop-color="hsl(225, 60%, 3%)"/>
+    </linearGradient>
+    <radialGradient id="ab-lamp" cx="22%" cy="36%" r="38%">
+      <stop offset="0%" stop-color="hsl(38, 100%, 72%)" stop-opacity="0.62"/>
+      <stop offset="40%" stop-color="hsl(38, 95%, 60%)" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="hsl(38, 95%, 55%)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="ab-cool" cx="82%" cy="84%" r="55%">
+      <stop offset="0%" stop-color="hsl(210, 95%, 55%)" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="hsl(210, 95%, 55%)" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ab-paper" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="hsl(40, 12%, 88%)"/>
+      <stop offset="50%" stop-color="hsl(38, 14%, 80%)"/>
+      <stop offset="100%" stop-color="hsl(36, 16%, 72%)"/>
+    </linearGradient>
+    <filter id="ab-grain">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.07 0"/>
+    </filter>
+    <radialGradient id="ab-vignette" cx="50%" cy="50%" r="80%">
+      <stop offset="55%" stop-color="black" stop-opacity="0"/>
+      <stop offset="100%" stop-color="black" stop-opacity="0.55"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1600" height="600" fill="url(#ab-sky)"/>
+  <rect width="1600" height="600" fill="url(#ab-lamp)"/>
+  <rect width="1600" height="600" fill="url(#ab-cool)"/>
+
+  <!-- Desk surface. -->
+  <rect x="0" y="380" width="1600" height="220" fill="hsl(28, 22%, 8%)"/>
+  <!-- Desk surface highlight catching warm light. -->
+  <rect x="0" y="380" width="1600" height="4" fill="hsl(38, 95%, 70%)" fill-opacity="0.25"/>
+  <!-- Wood grain hint. -->
+  <g stroke="hsl(30, 20%, 14%)" stroke-width="0.6" fill="none" stroke-opacity="0.4">
+    <path d="M 0,460 Q 400,455 800,460 T 1600,460"/>
+    <path d="M 0,500 Q 400,494 800,500 T 1600,500"/>
+    <path d="M 0,540 Q 400,545 800,540 T 1600,540"/>
+  </g>
+
+  <!-- Folded newspaper / open broadsheet sitting on the desk, viewed at an angle. -->
+  <g transform="translate(420 240) rotate(-2)">
+    <!-- Paper page. -->
+    <rect x="0" y="0" width="760" height="280" fill="url(#ab-paper)" rx="2"/>
+    <!-- Page rim shadow. -->
+    <rect x="0" y="0" width="760" height="280" fill="hsl(0,0%,0%)" fill-opacity="0.12" rx="2" filter="url(#ab-grain)"/>
+    <!-- Crease down the middle (a fold). -->
+    <line x1="380" y1="0" x2="380" y2="280" stroke="hsl(0,0%,0%)" stroke-opacity="0.08" stroke-width="2"/>
+
+    <!-- Left page masthead. -->
+    <text x="20" y="36" font-family="Playfair Display, serif" font-weight="800" font-size="32" fill="hsl(225, 40%, 10%)">The Desk</text>
+    <text x="20" y="56" font-family="JetBrains Mono, monospace" font-size="9" letter-spacing="3" fill="hsl(225, 30%, 25%)" fill-opacity="0.7">DAILY · SYDNEY</text>
+    <line x1="20" y1="68" x2="360" y2="68" stroke="hsl(225, 50%, 8%)" stroke-opacity="0.45" stroke-width="1.5"/>
+    <line x1="20" y1="72" x2="360" y2="72" stroke="hsl(225, 50%, 8%)" stroke-opacity="0.2"/>
+
+    <!-- Left page columns of text — represented as fine ruled lines. -->
+    <g stroke="hsl(225, 30%, 20%)" stroke-opacity="0.35" stroke-width="0.7">
+      <line x1="20"  y1="92"  x2="180" y2="92"/>
+      <line x1="20"  y1="100" x2="170" y2="100"/>
+      <line x1="20"  y1="108" x2="180" y2="108"/>
+      <line x1="20"  y1="116" x2="160" y2="116"/>
+      <line x1="20"  y1="124" x2="175" y2="124"/>
+      <line x1="20"  y1="132" x2="180" y2="132"/>
+      <line x1="20"  y1="140" x2="165" y2="140"/>
+      <line x1="20"  y1="148" x2="180" y2="148"/>
+      <line x1="20"  y1="156" x2="170" y2="156"/>
+      <line x1="20"  y1="164" x2="180" y2="164"/>
+      <line x1="20"  y1="172" x2="155" y2="172"/>
+      <line x1="20"  y1="180" x2="180" y2="180"/>
+      <line x1="20"  y1="188" x2="170" y2="188"/>
+      <line x1="20"  y1="196" x2="180" y2="196"/>
+      <line x1="20"  y1="204" x2="160" y2="204"/>
+
+      <line x1="200" y1="92"  x2="360" y2="92"/>
+      <line x1="200" y1="100" x2="350" y2="100"/>
+      <line x1="200" y1="108" x2="360" y2="108"/>
+      <line x1="200" y1="116" x2="340" y2="116"/>
+      <line x1="200" y1="124" x2="360" y2="124"/>
+      <line x1="200" y1="132" x2="350" y2="132"/>
+      <line x1="200" y1="140" x2="360" y2="140"/>
+      <line x1="200" y1="148" x2="345" y2="148"/>
+      <line x1="200" y1="156" x2="360" y2="156"/>
+      <line x1="200" y1="164" x2="355" y2="164"/>
+      <line x1="200" y1="172" x2="360" y2="172"/>
+      <line x1="200" y1="180" x2="350" y2="180"/>
+      <line x1="200" y1="188" x2="360" y2="188"/>
+      <line x1="200" y1="196" x2="340" y2="196"/>
+      <line x1="200" y1="204" x2="360" y2="204"/>
+    </g>
+
+    <!-- Right page lead headline (display serif). -->
+    <text x="400" y="42" font-family="Playfair Display, serif" font-weight="700" font-size="22" fill="hsl(225, 50%, 8%)">Markets read the silence</text>
+    <text x="400" y="64" font-family="Playfair Display, serif" font-weight="700" font-size="22" fill="hsl(225, 50%, 8%)">as a pivot.</text>
+    <text x="400" y="86" font-family="JetBrains Mono, monospace" font-size="9" letter-spacing="2" fill="hsl(225, 30%, 25%)" fill-opacity="0.7">FRIDAY 15 MAY · MACRO</text>
+
+    <!-- Right page columns. -->
+    <g stroke="hsl(225, 30%, 20%)" stroke-opacity="0.35" stroke-width="0.7">
+      <line x1="400" y1="108" x2="560" y2="108"/>
+      <line x1="400" y1="116" x2="555" y2="116"/>
+      <line x1="400" y1="124" x2="560" y2="124"/>
+      <line x1="400" y1="132" x2="545" y2="132"/>
+      <line x1="400" y1="140" x2="560" y2="140"/>
+      <line x1="400" y1="148" x2="555" y2="148"/>
+      <line x1="400" y1="156" x2="560" y2="156"/>
+      <line x1="400" y1="164" x2="540" y2="164"/>
+      <line x1="400" y1="172" x2="560" y2="172"/>
+      <line x1="400" y1="180" x2="555" y2="180"/>
+      <line x1="400" y1="188" x2="560" y2="188"/>
+      <line x1="400" y1="196" x2="550" y2="196"/>
+      <line x1="400" y1="204" x2="560" y2="204"/>
+
+      <line x1="580" y1="108" x2="740" y2="108"/>
+      <line x1="580" y1="116" x2="735" y2="116"/>
+      <line x1="580" y1="124" x2="740" y2="124"/>
+      <line x1="580" y1="132" x2="725" y2="132"/>
+      <line x1="580" y1="140" x2="740" y2="140"/>
+      <line x1="580" y1="148" x2="735" y2="148"/>
+      <line x1="580" y1="156" x2="740" y2="156"/>
+      <line x1="580" y1="164" x2="730" y2="164"/>
+      <line x1="580" y1="172" x2="740" y2="172"/>
+      <line x1="580" y1="180" x2="735" y2="180"/>
+      <line x1="580" y1="188" x2="740" y2="188"/>
+      <line x1="580" y1="196" x2="745" y2="196"/>
+    </g>
+  </g>
+
+  <!-- Banker's lamp upper-left silhouette. -->
+  <g transform="translate(140 90)">
+    <!-- Shade. -->
+    <path d="M 0 100 Q 80 60 160 100 L 150 130 Q 80 100 10 130 Z" fill="hsl(160, 60%, 14%)"/>
+    <!-- Shade inner light. -->
+    <ellipse cx="80" cy="115" rx="70" ry="14" fill="hsl(38, 100%, 70%)" fill-opacity="0.45"/>
+    <!-- Stem. -->
+    <line x1="80" y1="130" x2="80" y2="220" stroke="hsl(160, 60%, 12%)" stroke-width="6"/>
+    <line x1="80" y1="220" x2="120" y2="290" stroke="hsl(160, 60%, 12%)" stroke-width="6"/>
+    <!-- Base. -->
+    <ellipse cx="130" cy="295" rx="34" ry="8" fill="hsl(160, 60%, 10%)"/>
+  </g>
+
+  <!-- Coffee cup right side. -->
+  <g transform="translate(1280 320)">
+    <ellipse cx="60" cy="0" rx="60" ry="14" fill="hsl(30, 20%, 6%)"/>
+    <ellipse cx="60" cy="-3" rx="58" ry="12" fill="hsl(28, 65%, 20%)"/>
+    <path d="M 0 0 Q 0 60 60 60 Q 120 60 120 0 Z" fill="hsl(0,0%,0%)" fill-opacity="0.4"/>
+    <ellipse cx="60" cy="-3" rx="50" ry="9" fill="hsl(28, 60%, 14%)" fill-opacity="0.7"/>
+    <!-- Steam wisps. -->
+    <g stroke="hsl(38, 60%, 80%)" stroke-opacity="0.2" stroke-width="1.5" fill="none" stroke-linecap="round">
+      <path d="M 40 -20 Q 36 -34 42 -50 Q 38 -64 48 -78"/>
+      <path d="M 70 -20 Q 76 -34 70 -50 Q 76 -64 68 -78"/>
+    </g>
+  </g>
+
+  <!-- Atmospheric particles. -->
+  <g fill="hsl(38, 95%, 75%)">
+    <circle cx="280" cy="180" r="1.4" fill-opacity="0.45"/>
+    <circle cx="520" cy="120" r="1.2" fill-opacity="0.35"/>
+    <circle cx="980" cy="80"  r="1.5" fill-opacity="0.40"/>
+    <circle cx="700" cy="200" r="1.0" fill-opacity="0.3"/>
+    <circle cx="1100" cy="160" r="1.2" fill-opacity="0.35"/>
+    <circle cx="1380" cy="220" r="1.4" fill-opacity="0.4"/>
+  </g>
+
+  <rect width="1600" height="600" fill="url(#ab-vignette)"/>
+  <rect width="1600" height="600" filter="url(#ab-grain)" opacity="0.7"/>
+</svg>

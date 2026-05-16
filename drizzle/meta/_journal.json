@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1747085000000,
+      "tag": "0000_init",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1747260000000,
+      "tag": "0001_subscribers_premium_imageurl",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1747400000000,
+      "tag": "0002_featured_linkedin_posts",
+      "breakpoints": true
+    }
+  ]
+}

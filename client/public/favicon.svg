@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0d1326"/>
+      <stop offset="100%" stop-color="#181f3c"/>
+    </linearGradient>
+    <linearGradient id="sun" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f5e6c8"/>
+      <stop offset="55%" stop-color="#f5a623"/>
+      <stop offset="100%" stop-color="#b8721c"/>
+    </linearGradient>
+    <linearGradient id="horizon" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#f5a623" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#f8c45a"/>
+      <stop offset="100%" stop-color="#f5a623" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="10" fill="url(#bg)"/>
+  <!-- Sun — top half above horizon. -->
+  <circle cx="32" cy="40" r="11" fill="url(#sun)"/>
+  <path d="M 21 40 A 11 11 0 0 1 43 40" fill="none" stroke="#f5e6c8" stroke-width="1" stroke-opacity="0.6"/>
+  <!-- Horizon rule. -->
+  <line x1="8" y1="40" x2="56" y2="40" stroke="url(#horizon)" stroke-width="2" stroke-linecap="round"/>
+  <!-- Kicker rules. -->
+  <line x1="36" y1="20" x2="50" y2="20" stroke="#f5a623" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="40" y1="24" x2="50" y2="24" stroke="#f5a623" stroke-width="1" stroke-opacity="0.5" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,10 @@
+node_modules
+dist
+.env
+.env.local
+.manus-logs
+*.log
+.DS_Store
+.cache
+.turbo
+coverage

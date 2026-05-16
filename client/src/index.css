@@ -1,0 +1,451 @@
+@import "tailwindcss";
+
+/* ─── Design tokens ───────────────────────────────────────────
+   Single source of truth for colour, type, motion. Editorial
+   broadsheet aesthetic — deep navy with amber as the defining
+   accent. Information density is the point.
+*/
+@theme {
+  --font-sans: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", ui-serif, Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --color-bg: oklch(0.11 0.018 260);
+  --color-bg-elevated: oklch(0.16 0.018 260);
+  --color-bg-deep: oklch(0.08 0.018 260);
+  --color-fg: oklch(0.94 0.005 80);
+  --color-fg-muted: oklch(0.68 0.012 260);
+  --color-fg-subtle: oklch(0.5 0.012 260);
+
+  --color-amber: oklch(0.75 0.18 70);
+  --color-amber-bright: oklch(0.88 0.19 82);
+  --color-amber-dim: oklch(0.75 0.18 70 / 18%);
+  --color-amber-glow: oklch(0.75 0.18 70 / 35%);
+
+  /* Secondary accent — oxidised copper / rust. Sits opposite the
+     amber on the colour wheel, used sparingly for callouts,
+     directional deltas, and one-off accent moments. */
+  --color-ink: oklch(0.62 0.18 25);
+  --color-ink-bright: oklch(0.72 0.20 28);
+  --color-ink-dim: oklch(0.62 0.18 25 / 18%);
+
+  --color-border: oklch(1 0 0 / 9%);
+  --color-border-strong: oklch(1 0 0 / 18%);
+
+  --color-property: oklch(0.72 0.17 155);
+  --color-macro: oklch(0.78 0.18 70);
+  --color-tech: oklch(0.65 0.18 255);
+  --color-policy: oklch(0.65 0.18 295);
+  --color-markets: oklch(0.72 0.18 45);
+  --color-ai: oklch(0.7 0.18 210);
+  --color-science: oklch(0.68 0.2 15);
+  --color-economics: oklch(0.75 0.16 78);
+}
+
+.light {
+  --color-bg: oklch(0.98 0.004 80);
+  --color-bg-elevated: oklch(1 0 0);
+  --color-bg-deep: oklch(0.94 0.004 80);
+  --color-fg: oklch(0.18 0.02 260);
+  --color-fg-muted: oklch(0.46 0.015 260);
+  --color-fg-subtle: oklch(0.62 0.012 260);
+  --color-border: oklch(0 0 0 / 10%);
+  --color-border-strong: oklch(0 0 0 / 18%);
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    border-color: var(--color-border);
+  }
+
+  html,
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv02", "cv11";
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.011em;
+    line-height: 1.62;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-serif);
+    letter-spacing: -0.028em;
+    line-height: 1.08;
+    font-weight: 700;
+    color: var(--color-fg);
+  }
+
+  /* Drop-cap variant for editorial leads. */
+  .has-dropcap > p:first-of-type::first-letter {
+    font-family: var(--font-serif);
+    font-weight: 700;
+    font-size: 3.6em;
+    float: left;
+    line-height: 0.9;
+    padding: 0.05em 0.08em 0 0;
+    color: var(--color-amber);
+  }
+
+  *:focus-visible {
+    outline: 2px solid var(--color-amber);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: oklch(1 0 0 / 10%);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-amber-dim);
+  }
+}
+
+@layer components {
+  /* ─── Editorial rule ─────────────────────────────────────────
+     The defining horizontal element — a glowing amber gradient
+     line with a soft shadow. Used at the top of every page and
+     under page headers.
+  */
+  /* Site-wide editorial rule. Single 1px line with a soft amber glow —
+     the cinema-grade version of the brand rule. The aggressive 2px
+     version was visually loud and competed with type. */
+  .editorial-rule {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      var(--color-amber-dim) 15%,
+      var(--color-amber) 50%,
+      var(--color-amber-dim) 85%,
+      transparent 100%
+    );
+    box-shadow: 0 0 14px 0 oklch(0.75 0.18 70 / 18%);
+    flex-shrink: 0;
+  }
+
+  .editorial-rule-soft {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--color-border-strong) 50%,
+      transparent
+    );
+  }
+
+  .overline {
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-fg-subtle);
+  }
+
+  .overline-amber {
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: oklch(0.85 0.16 75 / 80%);
+  }
+
+  /* ─── Editorial type scale ────────────────────────────────── */
+  .display-1 {
+    font-family: var(--font-serif);
+    font-weight: 700;
+    font-size: clamp(2.5rem, 6.5vw, 5rem);
+    line-height: 0.98;
+    letter-spacing: -0.035em;
+  }
+  .display-2 {
+    font-family: var(--font-serif);
+    font-weight: 700;
+    font-size: clamp(2rem, 4.5vw, 3.5rem);
+    line-height: 1.04;
+    letter-spacing: -0.03em;
+  }
+  .display-3 {
+    font-family: var(--font-serif);
+    font-weight: 700;
+    font-size: clamp(1.5rem, 3vw, 2.25rem);
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+  }
+
+  /* ─── Panel ───────────────────────────────────────────────── */
+  .panel {
+    background: color-mix(in oklab, var(--color-bg-elevated) 95%, transparent);
+    border: 1px solid var(--color-border);
+    backdrop-filter: blur(8px);
+  }
+
+  .panel-hover {
+    transition:
+      border-color 220ms ease,
+      background-color 220ms ease;
+  }
+  .panel-hover:hover {
+    border-color: var(--color-border-strong);
+    background: color-mix(in oklab, var(--color-bg-elevated) 92%, white 8%);
+  }
+
+  /* ─── Category accent ──────────────────────────────────────── */
+  .accent-property  { border-left: 2px solid var(--color-property); }
+  .accent-macro     { border-left: 2px solid var(--color-macro); }
+  .accent-tech      { border-left: 2px solid var(--color-tech); }
+  .accent-policy    { border-left: 2px solid var(--color-policy); }
+  .accent-markets   { border-left: 2px solid var(--color-markets); }
+  .accent-ai        { border-left: 2px solid var(--color-ai); }
+  .accent-science   { border-left: 2px solid var(--color-science); }
+  .accent-economics { border-left: 2px solid var(--color-economics); }
+  .accent-other     { border-left: 2px solid var(--color-border-strong); }
+
+  /* ─── Skeleton loader ────────────────────────────────────── */
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      oklch(1 0 0 / 4%) 0%,
+      oklch(1 0 0 / 10%) 50%,
+      oklch(1 0 0 / 4%) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+    border-radius: 4px;
+  }
+
+  /* ─── Wordmark gradient ─────────────────────────────────── */
+  .wordmark {
+    background: linear-gradient(135deg, oklch(0.96 0.08 88) 0%, oklch(0.85 0.18 76) 50%, oklch(0.68 0.15 60) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* ─── Live indicator dot ────────────────────────────────── */
+  .live-dot {
+    position: relative;
+    display: inline-flex;
+    width: 6px;
+    height: 6px;
+  }
+  .live-dot::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    background: var(--color-amber);
+    animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+    opacity: 0.6;
+  }
+  .live-dot::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    background: var(--color-amber);
+  }
+
+  /* ─── First-paint sequence ─────────────────────────────
+     Coordinated intro: the wordmark draws in, the top rule
+     sweeps across, then content fades up. Three classes
+     with staggered animation-delay so the cascade is
+     declarative — no JS choreography.
+  */
+  .first-paint-mark {
+    opacity: 0;
+    animation: first-paint-fade 800ms cubic-bezier(0.16, 1, 0.3, 1) 100ms forwards;
+  }
+  .first-paint-rule {
+    transform: scaleX(0);
+    transform-origin: left center;
+    animation: first-paint-sweep 900ms cubic-bezier(0.16, 1, 0.3, 1) 250ms forwards;
+  }
+  .first-paint-content {
+    opacity: 0;
+    animation: first-paint-fade 700ms cubic-bezier(0.16, 1, 0.3, 1) 500ms forwards;
+  }
+
+  /* ─── Card hover lift ───────────────────────────────────
+     Subtle Y-lift + amber-tinted glow when the user mouses
+     over a card. Combined with panel-hover for cards that
+     also tint on hover.
+  */
+  /* Subtle hover lift — premium-feeling, not theatrical. Apple-style:
+     2px Y, deeper shadow, no amber wash on the ring. */
+  .hover-lift {
+    transition:
+      transform 260ms cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 260ms ease,
+      border-color 220ms ease;
+    will-change: transform;
+  }
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 14px 40px oklch(0 0 0 / 40%),
+      0 0 0 1px oklch(1 0 0 / 14%);
+  }
+
+  /* ─── Headline reveal ───────────────────────────────────
+     Letterbox-mask slide-up. Apply to the parent of a single-
+     line headline you want to reveal on mount; the child
+     content is what slides up behind the mask.
+  */
+  .reveal-mask {
+    overflow: hidden;
+    display: inline-block;
+  }
+  .reveal-mask > * {
+    display: inline-block;
+    animation: reveal-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  /* ─── Hero cover motion ────────────────────────────────────
+     Subtle Ken Burns: very slow scale + drift on the cover image
+     so the hero feels alive without distracting from the page.
+     A second specular highlight sweeps slowly across the surface.
+  */
+  .hero-cover-img {
+    animation: hero-drift 24s ease-in-out infinite alternate;
+    will-change: transform;
+  }
+  .hero-cover-shine {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(
+        115deg,
+        transparent 38%,
+        oklch(1 0 0 / 6%) 49%,
+        oklch(1 0 0 / 0%) 60%
+      );
+    background-size: 300% 100%;
+    animation: hero-shine 14s ease-in-out infinite;
+    mix-blend-mode: screen;
+  }
+
+  /* ─── Noise overlay ─────────────────────────────────────── */
+  .noise-overlay::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 200px 200px;
+  }
+
+  /* ─── Ambient orbs ─────────────────────────────────────── */
+  .ambient-orb-1 { animation: orb-drift-1 26s ease-in-out infinite; }
+  .ambient-orb-2 { animation: orb-drift-2 32s ease-in-out infinite; }
+  .ambient-orb-3 { animation: orb-drift-3 38s ease-in-out infinite; }
+}
+
+@layer utilities {
+  .animate-fade-in {
+    animation: fade-in 0.4s ease-out forwards;
+  }
+}
+
+/* ─── Keyframes ─────────────────────────────────────────────── */
+
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-ring {
+  0%   { transform: scale(0.8); opacity: 0.7; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+
+@keyframes ticker-scroll {
+  0%   { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); }
+}
+
+.ticker-track {
+  animation: ticker-scroll 70s linear infinite;
+}
+
+@keyframes reveal-up {
+  from { transform: translateY(110%); opacity: 0; }
+  to   { transform: translateY(0%);   opacity: 1; }
+}
+
+@keyframes first-paint-fade {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes first-paint-sweep {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+@keyframes draw-stroke {
+  from { stroke-dashoffset: var(--len, 200); }
+  to   { stroke-dashoffset: 0; }
+}
+
+@keyframes hero-drift {
+  from {
+    transform: scale(1.04) translate3d(-0.6%, -0.4%, 0);
+  }
+  to {
+    transform: scale(1.06) translate3d(0.4%, 0.4%, 0);
+  }
+}
+
+@keyframes hero-shine {
+  0% { background-position: -90% 0; opacity: 0.65; }
+  45% { background-position: 110% 0; opacity: 0.85; }
+  46%, 100% { background-position: 110% 0; opacity: 0; }
+}
+
+@keyframes orb-drift-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(60px, -40px) scale(1.1); }
+  66%      { transform: translate(-30px, 25px) scale(0.93); }
+}
+@keyframes orb-drift-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  40%      { transform: translate(-70px, 45px) scale(1.07); }
+  70%      { transform: translate(40px, -25px) scale(0.9); }
+}
+@keyframes orb-drift-3 {
+  0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); }
+  50%      { transform: translate(30px, 60px) scale(1.05) rotate(180deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient-orb-1, .ambient-orb-2, .ambient-orb-3, .live-dot::before, .skeleton,
+  .hero-cover-img, .hero-cover-shine, .ticker-track, .reveal-mask > *,
+  .first-paint-mark, .first-paint-rule, .first-paint-content {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

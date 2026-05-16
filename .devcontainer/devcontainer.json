@@ -1,0 +1,43 @@
+// .devcontainer/devcontainer.json — Codespaces / VS Code dev container config.
+//
+// What this gives you:
+//   * Node 22 image with pnpm pre-installed
+//   * `pnpm install` runs once on create so the editor opens with deps ready
+//   * Port 3000 forwarded automatically — Codespaces gives you a clickable URL
+//   * A "Run dev server" VS Code task wired up (Ctrl/Cmd-Shift-P → "Tasks: Run Task")
+//
+// Demo mode (the seed-data preview) activates whenever DATABASE_URL is unset,
+// which is the default in a fresh codespace — no `.env` needed.
+{
+  "name": "The Desk",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
+  "features": {
+    "ghcr.io/devcontainers-contrib/features/pnpm:2": {}
+  },
+  "postCreateCommand": "pnpm install --frozen-lockfile=false",
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": {
+      "label": "The Desk",
+      "onAutoForward": "openBrowserOnce",
+      "protocol": "http"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "bradlc.vscode-tailwindcss",
+        "esbenp.prettier-vscode",
+        "ms-azuretools.vscode-docker"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "tailwindCSS.experimental.classRegex": [
+          ["cn\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"]
+        ]
+      }
+    }
+  },
+  "remoteUser": "node"
+}
