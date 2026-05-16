@@ -8,6 +8,15 @@ export const UNAUTHED_ERR_MSG = "Please login (10001)";
 export const NOT_ADMIN_ERR_MSG = "You do not have required permission (10002)";
 
 /**
+ * Public-facing URL of the site. Used in LinkedIn share text, RSS scraper
+ * User-Agent, and anywhere we need to point readers back at the site.
+ *
+ * Override via `VITE_SITE_URL` (Vite-compiled client code) or `SITE_URL`
+ * (Node scripts). When neither is set, falls back to the demo URL.
+ */
+export const DEFAULT_SITE_URL = "https://thedeskglobal.manus.space";
+
+/**
  * Partner personas surfaced on every daily feed item. The order is the order
  * shown in the UI, so do not reorder without a coordinated change in the
  * sidebar persona selector.

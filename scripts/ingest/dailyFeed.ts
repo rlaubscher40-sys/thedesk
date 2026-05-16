@@ -9,7 +9,7 @@
  * after this POST returns. No LLM calls happen here.
  *
  * Required env:
- *   INGEST_BASE_URL    — e.g. https://thedeskglobal.manus.space
+ *   INGEST_BASE_URL    — the deployed site URL, e.g. https://thedesk.com.au
  *   SCHEDULED_API_KEY  — matches the server's SCHEDULED_API_KEY env var
  */
 import { DAILY_ITEM_MIN, DAILY_ITEM_TARGET, SOURCES } from "./sources";

@@ -6,6 +6,9 @@
  * Times out fast (4s) and returns null on any failure — the caller falls
  * back to the category-tinted gradient placeholder.
  */
+import { DEFAULT_SITE_URL } from "../../../shared/const";
+
+const SITE_URL = process.env.SITE_URL ?? DEFAULT_SITE_URL;
 
 const OG_PATTERNS = [
   /<meta\s+[^>]*property=["']og:image(?::secure_url)?["'][^>]*content=["']([^"']+)["'][^>]*>/i,
@@ -22,8 +25,7 @@ export async function fetchOgImage(url: string, timeoutMs = 4_000): Promise<stri
       signal: controller.signal,
       redirect: "follow",
       headers: {
-        "User-Agent":
-          "Mozilla/5.0 (compatible; TheDeskBot/1.0; +https://thedeskglobal.manus.space)",
+        "User-Agent": `Mozilla/5.0 (compatible; TheDeskBot/1.0; +${SITE_URL})`,
         Accept: "text/html,application/xhtml+xml",
       },
     });

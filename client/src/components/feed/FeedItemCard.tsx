@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import type { DailyFeedItem } from "@shared/types";
 import { cn } from "@/lib/cn";
 import { categoryAccentClass } from "@/lib/category";
+import { SITE_DISPLAY } from "@/lib/siteUrl";
 import { useAuth } from "@/lib/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Button } from "../ui/Button";
@@ -184,7 +185,7 @@ function buildLinkedInDraft(item: DailyFeedItem): string {
     item.summary,
     item.sayThis ? `\nMy take: ${item.sayThis}` : "",
     "",
-    "Via The Desk — thedeskglobal.manus.space",
+    `Via The Desk — ${SITE_DISPLAY}`,
   ];
   return lines.filter((l) => l !== "" || true).join("\n").trim();
 }

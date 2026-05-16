@@ -4,12 +4,15 @@
  * the whole run.
  */
 import Parser from "rss-parser";
+import { DEFAULT_SITE_URL } from "../../../shared/const";
 import type { Source } from "../sources";
 import { plainText } from "./text";
 
+const SITE_URL = process.env.SITE_URL ?? DEFAULT_SITE_URL;
+
 const parser = new Parser({
   timeout: 8_000,
-  headers: { "User-Agent": "TheDesk/1.0 (+https://thedeskglobal.manus.space)" },
+  headers: { "User-Agent": `TheDesk/1.0 (+${SITE_URL})` },
 });
 
 export type FetchedItem = {

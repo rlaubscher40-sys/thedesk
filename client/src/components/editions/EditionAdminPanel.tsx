@@ -21,6 +21,7 @@ import { LINKEDIN_LIMITS } from "@shared/const";
 import { Button } from "../ui/Button";
 import { LinkedInPostModal } from "../LinkedInPostModal";
 import { SectionErrorBoundary } from "../ErrorBoundary";
+import { SITE_DISPLAY } from "@/lib/siteUrl";
 import { useAuth } from "@/lib/useAuth";
 import { trpc } from "@/lib/trpc";
 
@@ -310,7 +311,7 @@ function buildLinkedInDraftFromEssay({
     .map((p) => p.trim())
     .filter(Boolean);
   const teaser = paragraphs.slice(0, 2).join("\n\n");
-  return [`${title}`, subtitle, "", teaser, "", "Via The Desk — thedeskglobal.manus.space"]
+  return [`${title}`, subtitle, "", teaser, "", `Via The Desk — ${SITE_DISPLAY}`]
     .join("\n")
     .trim();
 }

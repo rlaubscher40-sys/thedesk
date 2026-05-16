@@ -4,11 +4,12 @@
  *
  * All the heavy lifting happens server-side: this script just hits
  * /api/ingest/synthesize-edition, which gathers the week's feed items,
- * runs the synthesis prompt against the Manus LLM, and persists the new
- * edition. We do nothing locally so the script needs zero LLM credentials.
+ * runs the synthesis prompt through the Anthropic API, and persists the
+ * new edition. We do nothing locally so the script needs zero LLM
+ * credentials.
  *
  * Required env:
- *   INGEST_BASE_URL    — e.g. https://thedeskglobal.manus.space
+ *   INGEST_BASE_URL    — the deployed site URL, e.g. https://thedesk.com.au
  *   SCHEDULED_API_KEY  — matches the server's SCHEDULED_API_KEY env var
  */
 import { postJSON } from "./lib/post";

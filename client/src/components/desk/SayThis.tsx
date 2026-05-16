@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/cn";
 import { useAuth } from "@/lib/useAuth";
 import { PERSONA_COLOUR } from "@/lib/persona";
+import { SITE_DISPLAY } from "@/lib/siteUrl";
 import { trpc } from "@/lib/trpc";
 import type { Persona, Story } from "@/data/editions/2026-05-15";
 
@@ -61,7 +62,7 @@ export function SayThis({ story, persona, sayThis }: Props) {
 
   async function share() {
     try {
-      await navigator.clipboard.writeText(`${sayThis}\n\nVia The Desk — thedeskglobal.manus.space`);
+      await navigator.clipboard.writeText(`${sayThis}\n\nVia The Desk — ${SITE_DISPLAY}`);
       window.open(LINKEDIN_COMPOSE_URL, "_blank", "noopener,noreferrer");
       toast.success("Copied. LinkedIn open in a new tab — paste in.");
     } catch {

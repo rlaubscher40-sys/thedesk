@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import type { DailyFeedItem } from "@shared/types";
 import { cn } from "@/lib/cn";
 import { categoryAccentClass, categoryColour } from "@/lib/category";
+import { SITE_DISPLAY } from "@/lib/siteUrl";
 import { useAuth } from "@/lib/useAuth";
 import { trpc } from "@/lib/trpc";
 import { LinkedInPostModal } from "../LinkedInPostModal";
@@ -48,7 +49,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
     item.summary,
     item.sayThis ? `\nMy take: ${item.sayThis}` : "",
     "",
-    "Via The Desk — thedeskglobal.manus.space",
+    `Via The Desk — ${SITE_DISPLAY}`,
   ].join("\n").trim();
 
   return (

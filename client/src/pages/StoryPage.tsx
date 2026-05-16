@@ -14,6 +14,7 @@ import { PartnerTagBlock } from "@/components/feed/PartnerTagBlock";
 import { SayThisLine } from "@/components/feed/SayThisLine";
 import { categoryAccentClass } from "@/lib/category";
 import { cn } from "@/lib/cn";
+import { SITE_DISPLAY } from "@/lib/siteUrl";
 import { trpc } from "@/lib/trpc";
 
 export default function StoryPage() {
@@ -90,7 +91,7 @@ export default function StoryPage() {
                 itemQuery.data.summary,
                 itemQuery.data.sayThis ? `\nMy take: ${itemQuery.data.sayThis}` : "",
                 "",
-                "Via The Desk — thedeskglobal.manus.space",
+                `Via The Desk — ${SITE_DISPLAY}`,
               ]
                 .join("\n")
                 .trim()}
