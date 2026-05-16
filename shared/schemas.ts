@@ -39,8 +39,14 @@ export const editionTopicSchema = z.object({
   partnerRelevance: z.array(z.string()).optional(),
   /** 300-600 word deep-dive body. */
   body: z.string().optional(),
-  /** One-sentence takeaway. */
+  /** One-sentence takeaway — the line Ruben repeats verbatim to a client. */
   keyTakeaway: z.string().optional(),
+  /**
+   * One explicit sentence answering "why does the partner channel care
+   * about this specifically, right now". Forced by the synthesis rubric
+   * so the audience focus is auditable. Rendered as its own block.
+   */
+  whyItMatters: z.string().optional(),
   /** 2-3 forward-looking watch items. */
   whatToWatch: z.array(z.string()).optional(),
   talkingPoints: talkingPointsSchema.optional(),

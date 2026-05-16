@@ -58,6 +58,11 @@ export function createEdition(data: InsertEdition): void {
     substackDraftImageUrl: data.substackDraftImageUrl ?? null,
     marketStress: data.marketStress ?? null,
     datesToWatch: data.datesToWatch ?? null,
+    metaTitle: data.metaTitle ?? null,
+    metaDescription: data.metaDescription ?? null,
+    socialTitle: data.socialTitle ?? null,
+    socialDescription: data.socialDescription ?? null,
+    headlineVariants: data.headlineVariants ?? null,
     createdAt: new Date(),
   };
   demo.editions.unshift(edition);

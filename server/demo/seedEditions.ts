@@ -46,6 +46,11 @@ export function editionsSeed(): Edition[] {
       substackDraftImageUrl: null,
       marketStress: null,
       datesToWatch: null,
+      metaTitle: null,
+      metaDescription: null,
+      socialTitle: null,
+      socialDescription: null,
+      headlineVariants: null,
       createdAt: daysAgo(2),
       topics: [
         {
@@ -185,6 +190,11 @@ export function editionsSeed(): Edition[] {
       substackDraftImageUrl: null,
       marketStress: null,
       datesToWatch: null,
+      metaTitle: null,
+      metaDescription: null,
+      socialTitle: null,
+      socialDescription: null,
+      headlineVariants: null,
       createdAt: daysAgo(9),
       topics: [
         {
@@ -274,6 +284,11 @@ export function editionsSeed(): Edition[] {
       substackDraftImageUrl: null,
       marketStress: null,
       datesToWatch: null,
+      metaTitle: null,
+      metaDescription: null,
+      socialTitle: null,
+      socialDescription: null,
+      headlineVariants: null,
       createdAt: daysAgo(16),
       topics: [
         {
