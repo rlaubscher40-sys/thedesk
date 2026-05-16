@@ -68,6 +68,22 @@ export async function getFeedItemById(id: number): Promise<DailyFeedItem | undef
 }
 
 /**
+ * Batch fetch by ids. Order is NOT preserved — caller should resort
+ * if it cares. Used by the anonymous reading queue to hydrate
+ * localStorage bookmarks in a single request.
+ */
+export async function getFeedItemsByIds(ids: number[]): Promise<DailyFeedItem[]> {
+  if (ids.length === 0) return [];
+  if (isDemoMode()) return demoQueries.getFeedItemsByIds?.(ids) ?? [];
+  const db = getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(dailyFeedItems)
+    .where(sql`${dailyFeedItems.id} IN (${sql.join(ids, sql`, `)})`);
+}
+
+/**
  * Paginated archive query — feed items across all dates, optionally
  * filtered by category. Used by the /archive page.
  */

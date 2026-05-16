@@ -217,6 +217,11 @@ export function getFeedItemById(id: number): DailyFeedItem | undefined {
   return demo.feed.find((i) => i.id === id);
 }
 
+export function getFeedItemsByIds(ids: number[]): DailyFeedItem[] {
+  const set = new Set(ids);
+  return demo.feed.filter((i) => set.has(i.id));
+}
+
 export function listArchive(opts: {
   category?: string;
   limit: number;
