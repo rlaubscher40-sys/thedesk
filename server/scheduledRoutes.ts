@@ -343,7 +343,7 @@ function registerSynthesizeEditionRoute(app: Express): void {
       readingTime: synth.readingTime,
       topics: synth.topics,
       signals: synth.signals,
-      fullText: null,
+      fullText: synth.fullText,
       keyMetrics: synth.keyMetrics,
     };
     try {

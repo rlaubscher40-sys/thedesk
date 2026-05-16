@@ -66,6 +66,11 @@ export function updateRubensTake(id: number, rubensTake: string): void {
   if (e) e.rubensTake = rubensTake;
 }
 
+export function deleteEdition(id: number): void {
+  const idx = demo.editions.findIndex((e) => e.id === id);
+  if (idx >= 0) demo.editions.splice(idx, 1);
+}
+
 export function updateSubstackDraft(
   id: number,
   draft: { title: string; subtitle: string; body: string; imageUrl?: string | null }

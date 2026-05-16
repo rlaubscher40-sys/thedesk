@@ -8,6 +8,7 @@ import { ChevronDown } from "lucide-react";
 import type { EditionTopic } from "@shared/schemas";
 import { cn } from "@/lib/cn";
 import { categoryAccentClass, categoryColour } from "@/lib/category";
+import { TalkingPointsBlock } from "./TalkingPointsBlock";
 
 export function TopicCard({ topic }: { topic: EditionTopic }) {
   const [open, setOpen] = useState(false);
@@ -70,6 +71,10 @@ export function TopicCard({ topic }: { topic: EditionTopic }) {
             ))}
           </ul>
         </div>
+      )}
+
+      {topic.talkingPoints && Object.keys(topic.talkingPoints).length > 0 && (
+        <TalkingPointsBlock points={topic.talkingPoints} />
       )}
     </article>
   );

@@ -6,6 +6,7 @@
  * Only renders for users with role === "admin".
  */
 import { useEffect, useState } from "react";
+import { useLocation } from "wouter";
 import {
   Image as ImageIcon,
   PenSquare,
@@ -46,7 +47,47 @@ export function EditionAdminPanel({ edition }: { edition: Edition }) {
       <SectionErrorBoundary section="Substack draft">
         <SubstackDraftEditor edition={edition} />
       </SectionErrorBoundary>
+      <SectionErrorBoundary section="Danger zone">
+        <DeleteEditionButton edition={edition} />
+      </SectionErrorBoundary>
     </section>
+  );
+}
+
+// ─── Delete edition (destructive — admin only) ──────────────────────────────
+
+function DeleteEditionButton({ edition }: { edition: Edition }) {
+  const [, navigate] = useLocation();
+  const utils = trpc.useUtils();
+  const del = trpc.editions.deleteEdition.useMutation({
+    onSuccess: () => {
+      toast.success(`Edition ${edition.editionNumber} deleted`);
+      utils.editions.list.invalidate();
+      navigate("/editions");
+    },
+    onError: (err) => toast.error(err.message || "Couldn't delete"),
+  });
+  function onClick() {
+    const ok = confirm(
+      `Delete edition ${edition.editionNumber} (${edition.weekRange})? This frees up the slot so you can re-run weekly synthesis for that week.`
+    );
+    if (ok) del.mutate({ editionId: edition.id });
+  }
+  return (
+    <div className="mt-8 pt-6 border-t border-[var(--color-border)]">
+      <p className="overline mb-2 text-red-300/70">Danger zone</p>
+      <p className="text-xs text-[var(--color-fg-muted)] mb-3 max-w-[60ch]">
+        Permanently removes this edition. Use to clear a thin first-pass before
+        re-running weekly synthesis for the same week.
+      </p>
+      <button
+        onClick={onClick}
+        disabled={del.isPending}
+        className="inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-[10px] font-mono uppercase tracking-[0.16em] transition-colors border border-red-500/40 text-red-300 hover:bg-red-500/10 disabled:opacity-50"
+      >
+        {del.isPending ? "Deleting…" : "Delete this edition"}
+      </button>
+    </div>
   );
 }
 
