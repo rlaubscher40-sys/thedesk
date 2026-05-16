@@ -140,15 +140,14 @@ function registerDailyFeedRoute(app: Express): void {
                       summary: item.summary,
                       category: item.category,
                     }),
+                // Feed items don't use AI thumbnails post-refactor — they
+                // rely on the og:image scraped during ingest. Wiring per-
+                // item asset storage is doable (mirror the edition_assets
+                // pattern keyed on feedItemId) but isn't worth the schema
+                // churn for thumbnails that come free from the source URL.
                 item.imageUrl
                   ? Promise.resolve({ url: item.imageUrl })
-                  : generateImage({
-                      prompt: feedItemImagePrompt({
-                        title: item.title,
-                        summary: item.summary,
-                        category: item.category,
-                      }),
-                    }),
+                  : Promise.resolve(null),
               ]);
 
               if (tag.status === "fulfilled" && tag.value) {
@@ -159,7 +158,12 @@ function registerDailyFeedRoute(app: Express): void {
                 await db.updateFeedItemSayThis(id, say.value);
                 sayOk++;
               }
-              if (img.status === "fulfilled" && img.value?.url) {
+              if (
+                img.status === "fulfilled" &&
+                img.value &&
+                "url" in img.value &&
+                img.value.url
+              ) {
                 await db.updateFeedItemImageUrl(id, img.value.url);
                 imgOk++;
               }
@@ -241,8 +245,14 @@ function registerWeeklyEditionRoute(app: Express): void {
         }),
       ]);
 
-      if (imageResult.status === "fulfilled" && imageResult.value?.url) {
-        await db.updateHeroImage(inserted.id, imageResult.value.url);
+      if (imageResult.status === "fulfilled" && imageResult.value) {
+        await db.storeEditionAsset({
+          editionId: inserted.id,
+          kind: "hero",
+          contentType: imageResult.value.contentType,
+          bytes: imageResult.value.bytes,
+        });
+        await db.updateHeroImage(inserted.id, db.editionAssetUrl(inserted.id, "hero"));
         console.log(`[scheduled] hero image generated for Edition ${edition.editionNumber}`);
       } else if (imageResult.status === "rejected") {
         console.warn(`[scheduled] hero image failed:`, imageResult.reason);
@@ -429,8 +439,14 @@ function registerSynthesizeEditionRoute(app: Express): void {
           keyMetrics: finalEdition.keyMetrics,
         }),
       ]);
-      if (imageResult.status === "fulfilled" && imageResult.value?.url) {
-        await db.updateHeroImage(inserted.id, imageResult.value.url);
+      if (imageResult.status === "fulfilled" && imageResult.value) {
+        await db.storeEditionAsset({
+          editionId: inserted.id,
+          kind: "hero",
+          contentType: imageResult.value.contentType,
+          bytes: imageResult.value.bytes,
+        });
+        await db.updateHeroImage(inserted.id, db.editionAssetUrl(inserted.id, "hero"));
       }
       let rubensTake: string | null = null;
       if (takeResult.status === "fulfilled") {

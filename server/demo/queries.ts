@@ -633,6 +633,27 @@ export function upsertDailyMetric(input: {
 }
 
 /**
+ * Edition asset demo stubs — no-op stores so the demo console doesn't
+ * error when image generation runs, and a null fetcher so the Express
+ * route returns 404 in demo mode (the SVG fallback renders client-side).
+ */
+export function storeEditionAsset(_args: {
+  editionId: number;
+  kind: string;
+  contentType: string;
+  bytes: Buffer;
+}): number {
+  return 0;
+}
+
+export function getLatestEditionAsset(
+  _editionId: number,
+  _kind: string
+): null {
+  return null;
+}
+
+/**
  * Demo-mode history. Generates a smooth-ish 30-day series around the
  * current value so the sparklines have something to render even with no
  * real DB writes yet. Deterministic per metricKey so the chart doesn't

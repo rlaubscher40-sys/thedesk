@@ -81,7 +81,14 @@ async function handleEditionMeta(
       `Weekly intelligence for property partnerships — Edition ${edition.editionNumber}.`;
     const ogTitle = edition.socialTitle ?? title;
     const ogDescription = edition.socialDescription ?? description;
-    const ogImage = edition.heroImageUrl;
+    // heroImageUrl is a relative path post-refactor (`/api/images/...`).
+    // OG/Twitter crawlers need an absolute URL — prepend the site origin.
+    const heroPath = edition.heroImageUrl;
+    const ogImage = heroPath
+      ? heroPath.startsWith("http")
+        ? heroPath
+        : `${siteUrl(req)}${heroPath}`
+      : null;
     const canonical = `${siteUrl(req)}/editions/${edition.editionNumber}`;
 
     // Replace the static defaults in place.
@@ -135,7 +142,42 @@ async function handleEditionMeta(
   }
 }
 
+/**
+ * Serve a stored AI-generated image (hero or substack) for an edition.
+ * URL: /api/images/edition/:id/:kind  → returns the binary with the
+ * stored content-type. 404 if the edition has no asset of that kind.
+ * Aggressively cacheable — images regenerate at most once a week.
+ */
+async function handleEditionImage(
+  req: Request,
+  res: Response
+): Promise<void> {
+  const id = parseInt(req.params.id ?? "", 10);
+  const kind = req.params.kind === "substack" ? "substack" : "hero";
+  if (!Number.isFinite(id) || id <= 0) {
+    res.status(400).send("Bad id");
+    return;
+  }
+  try {
+    const asset = await db.getLatestEditionAsset(id, kind);
+    if (!asset) {
+      res.status(404).send("Not found");
+      return;
+    }
+    res.set("Content-Type", asset.contentType);
+    res.set("Cache-Control", "public, max-age=86400, immutable");
+    res.send(asset.bytes);
+  } catch (err) {
+    console.warn(
+      `[seo] edition image fetch failed for ${id}/${kind}:`,
+      (err as Error).message
+    );
+    res.status(500).send("Image fetch failed");
+  }
+}
+
 export function registerSeoRoutes(app: Express): void {
+  app.get("/api/images/edition/:id/:kind", handleEditionImage);
   app.get("/editions/:n", handleEditionMeta);
 
   app.get("/sitemap.xml", async (req: Request, res: Response) => {
