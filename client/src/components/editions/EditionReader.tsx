@@ -39,6 +39,44 @@ export function EditionReader({
         </SectionErrorBoundary>
       )}
 
+      {edition.fullText && (
+        <section
+          className="panel rounded-sm p-8 sm:p-12 lg:p-16 mb-12"
+          aria-label="Editor's letter"
+        >
+          <div className="inline-flex items-center gap-3 mb-6">
+            <span
+              className="inline-block h-px w-8"
+              style={{
+                background:
+                  "linear-gradient(90deg, var(--color-amber), oklch(0.75 0.18 70 / 20%))",
+              }}
+              aria-hidden="true"
+            />
+            <p
+              className="overline-amber"
+              style={{ letterSpacing: "0.24em", fontSize: "11px" }}
+            >
+              Editor's letter
+            </p>
+          </div>
+          <div
+            className="has-dropcap text-[var(--color-fg-muted)] whitespace-pre-line lg:columns-2"
+            style={{
+              columnGap: "3rem",
+              columnRuleWidth: "1px",
+              columnRuleStyle: "solid",
+              columnRuleColor: "var(--color-border)",
+              columnFill: "balance",
+              fontSize: "15.5px",
+              lineHeight: "1.75",
+            }}
+          >
+            {edition.fullText}
+          </div>
+        </section>
+      )}
+
       {rest.length > 0 && (
         <SectionErrorBoundary section="Topics">
           <div className="mb-4 flex items-center gap-3">
@@ -56,7 +94,7 @@ export function EditionReader({
             />
           </div>
           <StaggerList
-            className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5 items-start"
+            className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start"
             cacheKey={`edition-${edition.id}`}
           >
             {rest.map((topic, idx) => (

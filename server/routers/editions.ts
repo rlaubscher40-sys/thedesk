@@ -178,4 +178,13 @@ export const editionsRouter = router({
     await db.updateHeroImage(edition.id, result.url);
     return { url: result.url };
   }),
+
+  /**
+   * Admin: delete an edition. Used to clean up a thin first-pass synthesis
+   * before re-running the weekly workflow.
+   */
+  deleteEdition: adminProcedure.input(editionIdInput).mutation(async ({ input }) => {
+    await db.deleteEdition(input.editionId);
+    return { success: true } as const;
+  }),
 });

@@ -53,6 +53,13 @@ export async function createEdition(data: InsertEdition) {
   return db.insert(editions).values(data);
 }
 
+export async function deleteEdition(id: number): Promise<void> {
+  if (isDemoMode()) return demoQueries.deleteEdition(id);
+  const db = getDb();
+  if (!db) return;
+  await db.delete(editions).where(eq(editions.id, id));
+}
+
 export async function updateRubensTake(id: number, rubensTake: string) {
   if (isDemoMode()) return demoQueries.updateRubensTake(id, rubensTake);
   const db = getDb();

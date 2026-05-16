@@ -31,6 +31,7 @@ export type SynthesisOutput = {
   signals: Signals;
   keyMetrics: KeyMetrics;
   readingTime: string;
+  fullText: string | null;
 };
 
 const synthesisSchema = z.object({
@@ -38,6 +39,7 @@ const synthesisSchema = z.object({
   signals: signalsSchema.min(4).max(12),
   keyMetrics: keyMetricsSchema,
   readingTime: z.string().max(32).optional(),
+  fullText: z.string().optional().nullable(),
 });
 
 function formatItems(items: DailyFeedItem[]): string {
@@ -51,9 +53,21 @@ function formatItems(items: DailyFeedItem[]): string {
 }
 
 function buildPrompt(input: SynthesisInput): string {
-  return `You are compiling the weekly edition of The Desk — an intelligence briefing for Australian property investment professionals, curated by Ruben Laubscher (Head of Partnerships, InvestorKit).
+  return `You are compiling the WEEKLY EDITION of The Desk — a deep-dive intelligence briefing for Australian property investment professionals, curated by Ruben Laubscher (Head of Partnerships, InvestorKit).
+
+This is the long-form companion to the daily feed. Readers come here to UNDERSTAND, not skim. Each topic gets a full analytical treatment — context, argument, evidence, implication, what to do about it. Think Bloomberg Opinion, FT Lex, or Stratechery — not a press release recap.
+
+Audience: brokers, financial advisers, accountants, buyer's agents, SMSF specialists. They read 40 sources a week and walk into client meetings sounding sharper than the headlines. Your job is to tell them what it MEANS and what to SAY.
 
 This week's range: ${input.weekRange} (week of ${input.weekOf})
+
+Coverage mandate. The edition must span this spread when the week's stories support it:
+  1. Property OR Macro — the spine. Rates, housing data, lending policy.
+  2. Policy OR Geopolitics — anything that changes the rules or the cost of capital. APRA, ASIC, RBA decisions, federal budget, trade, elections.
+  3. Tech OR AI — only when it materially moves money or workflows in Australia, OR is a global pivot point readers need to understand.
+  4. A wider-world story — global event, market shift, or social-pulse moment that affects how partners read the room. Not domestic sport.
+
+If the week's stories don't support a category, omit it rather than fabricate. But push for breadth before depth.
 
 Below is every story logged on the daily feed across the week. Synthesise them into a structured weekly edition.
 
@@ -70,33 +84,56 @@ Output a SINGLE JSON object matching this exact shape, and NOTHING ELSE — no p
 {
   "topics": [
     {
-      "title": "headline (max 14 words, no clickbait)",
-      "summary": "2-3 sentence lead that lands the insight",
+      "title": "Headline (max 14 words). States the argument, not the news.",
+      "summary": "2-3 sentence editorial lede. The setup, not the recap. Reads like the opening of a Stratechery or FT Lex column.",
       "category": "MACRO | PROPERTY | POLICY | MARKETS | AI | TECH | GEOPOLITICS | SCIENCE | ECONOMICS | OTHER",
-      "keyTakeaway": "one sentence Ruben could repeat verbatim to a client",
-      "whatToWatch": ["1-2 forward-looking watch items"]
+      "body": "600-800 word analytical deep-dive. Plain prose, multiple paragraphs separated by blank lines. NO bullet points, NO markdown, NO subheadings.\\n\\nStructure each body around four implicit beats:\\n  1. WHAT HAPPENED — one tight paragraph grounding the reader in the week's facts. Concrete numbers, dates, named entities.\\n  2. WHY IT MATTERS — two or three paragraphs of analysis. What does this change for the partner channel? What's the second-order effect? What did the consensus get wrong?\\n  3. WHAT TO WATCH — a paragraph on the next 1-4 weeks. Specific data releases, decisions, or signals.\\n  4. WHAT IT MEANS FOR YOU — a closing paragraph that lands the partner-channel implication. Not advice, framing.\\n\\nWrite like an editor who has sat with the week's stories for an hour and is now telling a sharp broker what they need to know. The lead topic (first in the array) gets the most substantive treatment.",
+      "keyTakeaway": "One sentence Ruben could repeat verbatim to a client over coffee. The compressed version of the whole argument. This is the line.",
+      "whatToWatch": [
+        "Specific forward-looking item — a data release, decision, or event in the next 1-4 weeks",
+        "Second watch item",
+        "Optional third"
+      ],
+      "talkingPoints": {
+        "Brokers": "One sentence — what a mortgage broker says to a client tomorrow about this. Specific. Action-oriented. Not 'rates are uncertain', but 'lock in if the fixed-rate roll-off lands in June'.",
+        "Financial Advisers": "One sentence — what an adviser or accountant says about the wealth-strategy implication.",
+        "Buyer's Agents": "One sentence — what a BA says about deal flow, listings velocity, or market timing.",
+        "SMSF Specialists": "One sentence — what an SMSF specialist says about super, structure, or contribution implications. OMIT this key entirely if no clear angle exists rather than fabricating one."
+      }
     }
-    // ... 4 to 6 topics total
+    // ... 4 to 6 topics total. The FIRST topic is the lead — most consequential of the week, longest body, drives the whole edition.
   ],
   "signals": [
-    "one-line signal",
-    // ... 6 to 10 total — short, sharp, single sentence each
+    "one-line signal — short, sharp, max 18 words, names a thing that moved",
+    // ... 6 to 10 total. NOT topic summaries. These are the "what's also moving" rail — quick hits the reader scans.
   ],
   "keyMetrics": {
     "Cash rate": "4.35%",
     "ASX 200": "8,210",
     // ... 4-6 numbers that matter this week; values can be strings or numbers
   },
-  "readingTime": "8 min"
+  "fullText": "800-1200 word editor's letter. The unifying narrative that flows ACROSS the topics. Answers 'why does it all add up'. Written as Ruben — direct, plain, commercially sharp. First paragraph hooks with the through-line. Middle paragraphs link the topics. Last paragraph leaves the reader with something to think about heading into next week. Use null only if the topics genuinely have no through-line.",
+  "readingTime": "10 min"
 }
 
-Rules:
-- Group stories by theme. Each topic should pull together 2-5 related daily items into one synthesised view, not just restate one item.
-- Mix the categories — at least one MACRO/RATES, at least one PROPERTY, at least one POLICY.
-- Signals are NOT topic summaries. They're the "what's also moving" rail — single sentences, max 18 words each, can reference data points or quotes.
-- Key metrics must be plausible numbers consistent with the week's stories. If a metric isn't supported by the source items, leave it out — don't fabricate.
-- Australian English. No em dashes. No question marks. No first-person.
-- Output valid JSON only. No trailing commas. No comments in the actual output.`;
+CRITICAL voice rules — Ruben's house style:
+- Direct. Plain. Commercially sharp.
+- Australian English.
+- No em dashes anywhere.
+- No question marks in titles, summaries, or takeaways.
+- No first person ("I think", "in my view") — the editorial voice is implicit.
+- No hype words: "groundbreaking", "game-changing", "unprecedented".
+- No generic AI phrasing: "in today's rapidly evolving landscape", "delve into", "navigate".
+- Never use "literally", "actually", "frankly", "to be honest".
+- Never use "moreover", "furthermore", "in conclusion".
+- Numbers and proper nouns spell themselves — don't pad with adjectives.
+
+Other rules:
+- The body is where the value lives. Don't skimp. 600-800 words. Multi-paragraph flowing prose.
+- Each topic must synthesise 2-5 related daily items, not just restate one.
+- Talking points must be PRACTICAL — what the partner literally SAYS in a meeting tomorrow. Specific, not vague.
+- Key metrics must be plausible and consistent with the source items. Do not fabricate.
+- Output valid JSON only. No trailing commas. No comments.`;
 }
 
 export async function synthesizeWeeklyEdition(input: SynthesisInput): Promise<SynthesisOutput> {
@@ -139,9 +176,15 @@ export async function synthesizeWeeklyEdition(input: SynthesisInput): Promise<Sy
       body: t.body ? stripBannedChars(t.body) : undefined,
       keyTakeaway: t.keyTakeaway ? stripBannedChars(t.keyTakeaway) : undefined,
       whatToWatch: t.whatToWatch?.map((s) => stripBannedChars(s)),
+      talkingPoints: t.talkingPoints
+        ? Object.fromEntries(
+            Object.entries(t.talkingPoints).map(([k, v]) => [k, stripBannedChars(v)])
+          )
+        : undefined,
     })),
     signals: validated.data.signals.map((s) => stripBannedChars(s)),
     keyMetrics: validated.data.keyMetrics,
     readingTime: validated.data.readingTime ?? "6 min",
+    fullText: validated.data.fullText ? stripBannedChars(validated.data.fullText) : null,
   };
 }
