@@ -1,35 +1,28 @@
 /**
- * The "Say This" line on a feed item — a copy-ready one-liner. Clicking the
- * copy button writes to the clipboard *and* records the line in the
- * conversation tracker so the user can review what they actually used.
+ * The "Say This" line on a feed item — a copy-ready one-liner the partner
+ * can paste straight into a client conversation. Pure clipboard, no
+ * server-side logging.
  */
 import { useState } from "react";
 import { Check, Copy, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
-import { useAuth } from "@/lib/useAuth";
-import { trpc } from "@/lib/trpc";
 
 export function SayThisLine({
   sayThis,
-  editionId,
-  category,
 }: {
   sayThis: string;
+  /** Accepted but unused — preserved so callers can keep passing context
+   *  for future analytics without a signature change. */
   editionId?: number;
   category?: string;
 }) {
   const [copied, setCopied] = useState(false);
-  const { isAuthenticated } = useAuth();
-  const track = trpc.conversations.track.useMutation();
 
   async function handleCopy() {
     try {
       await navigator.clipboard.writeText(sayThis);
       setCopied(true);
-      if (isAuthenticated) {
-        track.mutate({ editionId, lineText: sayThis, usedWithCategory: category });
-      }
-      toast.success("Copied. Track logged.");
+      toast.success("Copied");
       setTimeout(() => setCopied(false), 1800);
     } catch {
       toast.error("Could not copy to clipboard");
@@ -62,7 +55,7 @@ export function SayThisLine({
         onClick={handleCopy}
         className="p-1.5 rounded text-[var(--color-fg-muted)] hover:text-amber-300 hover:bg-amber-500/10 transition-colors shrink-0"
         aria-label={copied ? "Copied" : "Copy line"}
-        title="Copy and log to tracker"
+        title="Copy to clipboard"
       >
         {copied ? <Check className="h-4 w-4 text-amber-300" /> : <Copy className="h-4 w-4" />}
       </button>

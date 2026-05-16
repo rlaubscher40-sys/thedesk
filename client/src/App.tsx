@@ -20,8 +20,6 @@ import { ThemeProvider } from "./lib/theme";
 const DailyFeed = lazy(() => import("./pages/DailyFeed"));
 const Editions = lazy(() => import("./pages/Editions"));
 const ReadingQueue = lazy(() => import("./pages/ReadingQueue"));
-const Notes = lazy(() => import("./pages/Notes"));
-const ConversationTracker = lazy(() => import("./pages/ConversationTracker"));
 const TopicThreads = lazy(() => import("./pages/TopicThreads"));
 const Trends = lazy(() => import("./pages/Trends"));
 const About = lazy(() => import("./pages/About"));
@@ -94,9 +92,6 @@ function Routes() {
             <Route path="/editions" component={Editions} />
             <Route path="/editions/:editionNumber" component={Editions} />
             <Route path="/queue" component={ReadingQueue} />
-            <Route path="/notes" component={Notes} />
-            <Route path="/tracker" component={ConversationTracker} />
-            <Route path="/conversations" component={ConversationTracker} />
             {/* Legacy /search route → forward to the unified /archive, keeping
                 whatever query string was on the URL so deep links survive. */}
             <Route path="/search" component={SearchRedirect} />

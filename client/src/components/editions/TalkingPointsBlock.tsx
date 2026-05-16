@@ -1,6 +1,6 @@
 /**
  * Renders the talkingPoints map (partner type -> line) on a topic. Each line
- * has a copy button that writes to the clipboard and logs to the tracker.
+ * has a copy button that writes to the clipboard.
  *
  * The reader's active persona (from PersonaSwitcher / localStorage) is
  * surfaced first and visually highlighted — the others sit below at reduced
@@ -11,9 +11,7 @@ import { useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { toast } from "sonner";
 import type { TalkingPoints } from "@shared/schemas";
-import { useAuth } from "@/lib/useAuth";
 import { usePersona } from "@/lib/persona";
-import { trpc } from "@/lib/trpc";
 
 /**
  * Loose string-match between an active persona ("Broker", "Adviser", etc.)
@@ -72,14 +70,11 @@ function TalkingPointLine({
   highlighted: boolean;
 }) {
   const [copied, setCopied] = useState(false);
-  const { isAuthenticated } = useAuth();
-  const track = trpc.conversations.track.useMutation();
 
   async function handleCopy() {
     try {
       await navigator.clipboard.writeText(line);
       setCopied(true);
-      if (isAuthenticated) track.mutate({ lineText: line, usedWithCategory: partner });
       toast.success(`Copied for ${partner}`);
       setTimeout(() => setCopied(false), 1800);
     } catch {

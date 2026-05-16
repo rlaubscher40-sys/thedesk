@@ -13,9 +13,7 @@ import type {
   Edition,
   FeaturedLinkedInPost,
   ReadingQueueItem,
-  WeeklyNote,
   User,
-  ConversationEntry,
   Subscriber,
 } from "../db/schema";
 import { env } from "../core/env";
@@ -50,8 +48,6 @@ export const demo = {
   editions: editionsSeed(),
   feed: feedSeed(),
   queue: [] as ReadingQueueItem[],
-  notes: [] as WeeklyNote[],
-  conversations: [] as ConversationEntry[],
   subscribers: [] as Subscriber[],
   linkedInPosts: linkedInSeed(),
   metrics: metricsSeed(),
@@ -157,7 +153,8 @@ for (const edition of demo.editions) {
   }
 }
 
-// Seed a starting queue / note / conversation so each page has something to render.
+// Seed a starting reading-queue item so the saved-items list has something
+// to render in demo mode.
 demo.queue.push({
   id: allocId(),
   userId: demoUser.id,
@@ -169,38 +166,10 @@ demo.queue.push({
   createdAt: new Date(Date.now() - 1000 * 60 * 60 * 6),
 });
 
-demo.notes.push({
-  id: allocId(),
-  userId: demoUser.id,
-  weekId: currentIsoWeekId(),
-  content:
-    "Sentiment shifted faster than the data this week. The cash rate decision moved less than the broker chatter around it. Keep the conversation on serviceability.",
-  updatedAt: new Date(),
-  createdAt: new Date(),
-});
-
-demo.conversations.push({
-  id: allocId(),
-  userId: demoUser.id,
-  editionId: demo.editions[0]?.id ?? null,
-  lineText: "If you only watch one number this week, watch fixed-rate roll-off volumes.",
-  usedWithCategory: "Brokers",
-  usedAt: new Date(Date.now() - 1000 * 60 * 60 * 26),
-});
-
 // ─── ID helpers ─────────────────────────────────────────────────────────────
 
 export { allocId };
 
-function currentIsoWeekId(date = new Date()): string {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  const dayNum = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  const weekNo = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-  return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, "0")}`;
-}
-
 // ─── Re-export types for helper convenience ─────────────────────────────────
 
-export type { Edition, DailyFeedItem, ReadingQueueItem, WeeklyNote, ConversationEntry };
+export type { Edition, DailyFeedItem, ReadingQueueItem };

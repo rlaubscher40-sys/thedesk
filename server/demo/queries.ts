@@ -5,21 +5,17 @@
  * Writes mutate the in-memory store; the data resets on server restart.
  */
 import type {
-  ConversationEntry,
   DailyFeedItem,
   DailyMetric,
   Edition,
   FeaturedLinkedInPost,
-  InsertConversationEntry,
   InsertDailyFeedItem,
   InsertEdition,
   InsertFeaturedLinkedInPost,
   InsertReadingQueueItem,
   InsertSubscriber,
-  InsertWeeklyNote,
   ReadingQueueItem,
   Subscriber,
-  WeeklyNote,
 } from "../db/schema";
 import { allocId, demo, demoUser } from "./store";
 
@@ -420,59 +416,6 @@ export function clearQueue(userId: number): void {
 
 export function markAllQueueRead(userId: number): void {
   for (const item of demo.queue) if (item.userId === userId) item.isRead = true;
-}
-
-// ─── Notes ──────────────────────────────────────────────────────────────────
-
-export function getNote(userId: number, weekId: string): WeeklyNote | undefined {
-  return demo.notes.find((n) => n.userId === userId && n.weekId === weekId);
-}
-
-export function listNotes(userId: number): WeeklyNote[] {
-  return [...demo.notes]
-    .filter((n) => n.userId === userId)
-    .sort((a, b) => b.weekId.localeCompare(a.weekId));
-}
-
-export function upsertNote(data: InsertWeeklyNote): void {
-  const existing = demo.notes.find((n) => n.userId === data.userId && n.weekId === data.weekId);
-  if (existing) {
-    existing.content = data.content;
-    existing.updatedAt = new Date();
-    return;
-  }
-  demo.notes.push({
-    id: allocId(),
-    userId: data.userId,
-    weekId: data.weekId,
-    content: data.content,
-    updatedAt: new Date(),
-    createdAt: new Date(),
-  });
-}
-
-export function deleteNote(userId: number, weekId: string): void {
-  const idx = demo.notes.findIndex((n) => n.userId === userId && n.weekId === weekId);
-  if (idx >= 0) demo.notes.splice(idx, 1);
-}
-
-// ─── Conversations ──────────────────────────────────────────────────────────
-
-export function listConversationEntries(userId: number): ConversationEntry[] {
-  return [...demo.conversations]
-    .filter((c) => c.userId === userId)
-    .sort((a, b) => b.usedAt.getTime() - a.usedAt.getTime());
-}
-
-export function addConversationEntry(data: InsertConversationEntry): void {
-  demo.conversations.unshift({
-    id: allocId(),
-    userId: data.userId,
-    editionId: data.editionId ?? null,
-    lineText: data.lineText,
-    usedWithCategory: data.usedWithCategory ?? null,
-    usedAt: new Date(),
-  });
 }
 
 // ─── Users ──────────────────────────────────────────────────────────────────

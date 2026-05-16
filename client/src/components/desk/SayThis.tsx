@@ -7,18 +7,13 @@
  *
  * Each action shows a 2-second toast on success — the toast layer is
  * announced via role="status" by sonner so screen readers pick it up.
- *
- * Logs the copied line to the conversation tracker when the user is
- * authenticated so the auto-log stays intact.
  */
 import { useState } from "react";
 import { Check, Copy, Link2, Linkedin, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/cn";
-import { useAuth } from "@/lib/useAuth";
 import { PERSONA_COLOUR } from "@/lib/persona";
 import { SITE_DISPLAY } from "@/lib/siteUrl";
-import { trpc } from "@/lib/trpc";
 import type { Persona, Story } from "@/data/editions/2026-05-15";
 
 type Props = {
@@ -32,17 +27,12 @@ const LINKEDIN_COMPOSE_URL = "https://www.linkedin.com/feed/?shareActive=true";
 
 export function SayThis({ story, persona, sayThis }: Props) {
   const [copied, setCopied] = useState<"text" | "link" | null>(null);
-  const { isAuthenticated } = useAuth();
-  const track = trpc.conversations.track.useMutation();
 
   async function copyText() {
     try {
       await navigator.clipboard.writeText(sayThis);
       setCopied("text");
-      if (isAuthenticated) {
-        track.mutate({ lineText: sayThis, usedWithCategory: persona });
-      }
-      toast.success("Copied. Logged to tracker.");
+      toast.success("Copied");
       setTimeout(() => setCopied(null), 2000);
     } catch {
       toast.error("Couldn't copy to clipboard");

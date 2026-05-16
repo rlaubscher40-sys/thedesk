@@ -129,8 +129,8 @@ export default function About() {
           <ul className="space-y-3 not-italic list-none p-0">
             {[
               "Open Today first thing. Copy a Say This line into a partner conversation.",
-              "Drop saved articles into the Reading Queue. They sync to your account.",
-              "End the week in Notes. The lessons compound when you write them down.",
+              "Drop saved articles into the Reading Queue. Tag and triage them when you have a minute.",
+              "Open Editions on Sunday for the weekly deep dive — long-form, with the take, signals, and dates to watch.",
               "Press / from anywhere to search. ⌘K opens the command palette.",
             ].map((line, i) => (
               <li key={i} className="flex gap-4 items-baseline">
