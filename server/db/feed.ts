@@ -47,6 +47,13 @@ export async function createFeedItems(items: InsertDailyFeedItem[]) {
   return db.insert(dailyFeedItems).values(items);
 }
 
+export async function deleteFeedItem(id: number): Promise<void> {
+  if (isDemoMode()) return demoQueries.deleteFeedItem(id);
+  const db = getDb();
+  if (!db) return;
+  await db.delete(dailyFeedItems).where(eq(dailyFeedItems.id, id));
+}
+
 export async function updateFeedItemPartnerTag(id: number, partnerTag: string) {
   if (isDemoMode()) return demoQueries.updateFeedItemPartnerTag(id, partnerTag);
   const db = getDb();

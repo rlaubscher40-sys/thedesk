@@ -66,28 +66,59 @@ async function fetchYahooQuote(symbol: string): Promise<{
 }
 
 /**
- * Scrape the current RBA cash rate from rba.gov.au. The homepage shows
- * "Cash Rate Target: X.XX%" prominently — a regex against the rendered
- * HTML is more reliable than trying to find an API.
+ * Pull the current RBA cash rate from the official statistics CSV.
+ * Format (from f1.1-data.csv):
+ *   "Title","Cash Rate Target",...
+ *   "Description","...",...
+ *   "Frequency","Monthly",...
+ *   ...metadata header rows...
+ *   "31-Jan-1990",17.50,...
+ *   ...one row per change of the target...
+ *   "24-Jul-2024",4.35
+ *
+ * The last data row holds the current target. Far more reliable than
+ * scraping the homepage, whose layout changes.
  */
 async function fetchCashRate(): Promise<{ rate: number; asOf: Date } | null> {
   try {
-    const res = await fetch("https://www.rba.gov.au/", {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (compatible; TheDeskBot/1.0; +https://thedesk.com.au)",
-      },
-    });
-    if (!res.ok) return null;
-    const html = await res.text();
-    const m = html.match(/[Cc]ash [Rr]ate [Tt]arget[^0-9]*([0-9]+\.[0-9]+)\s*%/);
-    if (!m) {
-      console.warn("[metrics] cash rate pattern not found on RBA homepage");
+    const res = await fetch(
+      "https://www.rba.gov.au/statistics/tables/csv/f1.1-data.csv",
+      {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (compatible; TheDeskBot/1.0; +https://thedesk.com.au)",
+        },
+      }
+    );
+    if (!res.ok) {
+      console.warn(`[metrics] RBA CSV → ${res.status}`);
       return null;
     }
-    const rate = Number(m[1]);
-    if (!Number.isFinite(rate)) return null;
-    return { rate, asOf: new Date() };
+    const csv = await res.text();
+    // Walk the rows backwards; the first row that starts with a quoted
+    // date like "DD-Mon-YYYY" is the most recent target.
+    const lines = csv.split(/\r?\n/);
+    const dateRe = /^"(\d{1,2})-(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-(\d{4})"/i;
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const line = lines[i];
+      if (!line) continue;
+      const m = line.match(dateRe);
+      if (!m) continue;
+      const cells = line.split(",");
+      const valueCell = cells[1]?.trim();
+      if (!valueCell) continue;
+      const rate = Number(valueCell);
+      if (!Number.isFinite(rate)) continue;
+      // Parse the date for asOf.
+      const monthIdx = [
+        "jan", "feb", "mar", "apr", "may", "jun",
+        "jul", "aug", "sep", "oct", "nov", "dec",
+      ].indexOf(m[2]!.toLowerCase());
+      const asOf = new Date(Date.UTC(Number(m[3]), monthIdx, Number(m[1])));
+      return { rate, asOf };
+    }
+    console.warn("[metrics] RBA CSV had no parseable data rows");
+    return null;
   } catch (err) {
     console.warn("[metrics] cash rate fetch error:", (err as Error).message);
     return null;

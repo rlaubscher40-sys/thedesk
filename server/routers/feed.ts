@@ -48,4 +48,16 @@ export const feedRouter = router({
       }
       return { scanned: items.length, updated, skipped };
     }),
+
+  /**
+   * Admin: delete a single feed item by id. Used to clean up off-topic
+   * stories that slip through the ingest filters (e.g. a sport story
+   * mis-tagged POLICY).
+   */
+  deleteItem: adminProcedure
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ input }) => {
+      await db.deleteFeedItem(input.id);
+      return { success: true } as const;
+    }),
 });

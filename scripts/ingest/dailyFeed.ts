@@ -17,6 +17,58 @@ import { fetchOgImage } from "./lib/og";
 import { fetchSource, type FetchedItem } from "./lib/rss";
 import { postJSON } from "./lib/post";
 
+/**
+ * Sport / entertainment / celebrity headlines that slip through even our
+ * topic-targeted Google News queries (a "broker channel" search can pull
+ * a story about an NRL team's media broker, etc.). Filtering at ingest
+ * time is cheaper than asking the LLM to re-categorise everything.
+ *
+ * Each pattern is matched against title + summary. One match = drop.
+ * Keep patterns strict — false negatives are far less costly than false
+ * positives (an irrelevant story showing up beats a legitimate one going
+ * missing).
+ */
+const SPORT_AND_ENTERTAINMENT_PATTERNS: RegExp[] = [
+  // League acronyms
+  /\bnrl\b/i,
+  /\bafl\b/i,
+  /\ba-?league\b/i,
+  /\bsuper rugby\b/i,
+  /\bbbl\b/i,
+  /\bipl\b/i,
+  /\bnbl\b/i,
+  /\bwnba\b/i,
+  /\bw[ -]?league\b/i,
+
+  // Sport-only phrases
+  /\bgrand final\b/i,
+  /\bstate of origin\b/i,
+  /\bmagic round\b/i,
+  /\btest (cricket|match)\b/i,
+  /\b(the )?ashes\b/i,
+  /\bt20\b/i,
+  /\bodi\b/i,
+  /\bone[- ]day international\b/i,
+  /\bworld cup\b/i,
+  /\bolympics?\b/i,
+  /\bcommonwealth games\b/i,
+  /\bsuper bowl\b/i,
+
+  // Entertainment / reality
+  /\beurovision\b/i,
+  /\bbachelor(?:ette)?\b/i,
+  /\bmasterchef\b/i,
+  /\blogies?\b/i,
+  /\bmafs\b/i,
+  /\bmarried at first sight\b/i,
+  /\bbig brother\b/i,
+];
+
+function isSportOrEntertainment(item: FetchedItem): boolean {
+  const haystack = `${item.title}\n${item.summary}`;
+  return SPORT_AND_ENTERTAINMENT_PATTERNS.some((re) => re.test(haystack));
+}
+
 function todayInSydney(): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Australia/Sydney",
@@ -84,7 +136,20 @@ async function main(): Promise<void> {
   const fetched = (await Promise.all(SOURCES.map(fetchSource))).flat();
   console.log(`[ingest] fetched ${fetched.length} raw items`);
 
-  const deduped = dedupe(fetched);
+  // Filter out obvious sport / entertainment headlines. The partner-channel
+  // audience does not need them, and Google News topic queries occasionally
+  // leak them through (e.g. a "broker" search returning a story about an
+  // NRL team's broadcast broker).
+  const relevant = fetched.filter((item) => {
+    if (isSportOrEntertainment(item)) {
+      console.log(`[ingest] dropped (sport/entertainment): ${item.title.slice(0, 80)}`);
+      return false;
+    }
+    return true;
+  });
+  console.log(`[ingest] ${relevant.length} after relevance filter`);
+
+  const deduped = dedupe(relevant);
   console.log(`[ingest] ${deduped.length} after dedup`);
 
   const picked = rankAndCap(deduped, DAILY_ITEM_TARGET);

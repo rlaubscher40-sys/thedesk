@@ -202,6 +202,11 @@ export function updateFeedItemPartnerTag(id: number, partnerTag: string): void {
   if (item) item.partnerTag = partnerTag;
 }
 
+export function deleteFeedItem(id: number): void {
+  const idx = demo.feed.findIndex((i) => i.id === id);
+  if (idx >= 0) demo.feed.splice(idx, 1);
+}
+
 export function updateFeedItemSayThis(id: number, sayThis: string): void {
   const item = demo.feed.find((i) => i.id === id);
   if (item) item.sayThis = sayThis;

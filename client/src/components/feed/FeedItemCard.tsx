@@ -4,7 +4,7 @@
  * (improvement #10).
  */
 import { useState } from "react";
-import { Bookmark, BookmarkCheck, ExternalLink, Linkedin } from "lucide-react";
+import { Bookmark, BookmarkCheck, ExternalLink, Linkedin, Trash2 } from "lucide-react";
 import { Link } from "wouter";
 import { toast } from "sonner";
 import type { DailyFeedItem } from "@shared/types";
@@ -19,9 +19,23 @@ import { PartnerTagBlock } from "./PartnerTagBlock";
 import { SayThisLine } from "./SayThisLine";
 
 export function FeedItemCard({ item }: { item: DailyFeedItem }) {
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const isAdmin = user?.role === "admin";
   const utils = trpc.useUtils();
   const [linkedInOpen, setLinkedInOpen] = useState(false);
+
+  const deleteItem = trpc.feed.deleteItem.useMutation({
+    onSuccess: () => {
+      toast.success("Story removed");
+      utils.feed.getByDate.invalidate();
+    },
+    onError: () => toast.error("Couldn't delete that one"),
+  });
+
+  function handleDelete() {
+    if (!confirm(`Remove "${item.title.slice(0, 60)}…" from today's feed?`)) return;
+    deleteItem.mutate({ id: item.id });
+  }
 
   const isInQueue = trpc.readingQueue.list.useQuery(undefined, { enabled: isAuthenticated });
   const inQueueId = isInQueue.data?.find((q) => q.feedItemId === item.id)?.id;
@@ -136,6 +150,17 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
           >
             <Linkedin className="h-4 w-4" />
           </button>
+          {isAdmin && (
+            <button
+              onClick={handleDelete}
+              disabled={deleteItem.isPending}
+              aria-label="Delete story (admin)"
+              title="Delete story (admin only)"
+              className="p-1.5 rounded text-[var(--color-fg-subtle)] hover:text-red-400 transition-colors disabled:opacity-50"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
 
