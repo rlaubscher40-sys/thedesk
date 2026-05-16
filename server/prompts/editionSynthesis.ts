@@ -7,7 +7,7 @@
  * before persisting — anything malformed throws so the caller can fall
  * back gracefully.
  */
-import type { DailyFeedItem } from "../db/schema";
+import type { DailyFeedItem, DateToWatch } from "../db/schema";
 import {
   editionTopicSchema,
   keyMetricsSchema,
@@ -32,7 +32,14 @@ export type SynthesisOutput = {
   keyMetrics: KeyMetrics;
   readingTime: string;
   fullText: string | null;
+  marketStress: "low" | "moderate" | "high" | null;
+  datesToWatch: DateToWatch[] | null;
 };
+
+const dateToWatchSchema = z.object({
+  label: z.string().min(1).max(48),
+  description: z.string().min(1).max(400),
+});
 
 const synthesisSchema = z.object({
   topics: z.array(editionTopicSchema).min(3).max(7),
@@ -40,6 +47,8 @@ const synthesisSchema = z.object({
   keyMetrics: keyMetricsSchema,
   readingTime: z.string().max(32).optional(),
   fullText: z.string().optional().nullable(),
+  marketStress: z.enum(["low", "moderate", "high"]).optional().nullable(),
+  datesToWatch: z.array(dateToWatchSchema).max(12).optional().nullable(),
 });
 
 function formatItems(items: DailyFeedItem[]): string {
@@ -113,7 +122,19 @@ Output a SINGLE JSON object matching this exact shape, and NOTHING ELSE — no p
     // ... 4-6 numbers that matter this week; values can be strings or numbers
   },
   "fullText": "800-1200 word editor's letter. The unifying narrative that flows ACROSS the topics. Answers 'why does it all add up'. Written as Ruben — direct, plain, commercially sharp. First paragraph hooks with the through-line. Middle paragraphs link the topics. Last paragraph leaves the reader with something to think about heading into next week. Use null only if the topics genuinely have no through-line.",
-  "readingTime": "10 min"
+  "readingTime": "10 min",
+  "marketStress": "low | moderate | high — single overall sentiment indicator. 'low' = stable / repairing, 'moderate' = mixed signals, 'high' = stress / dislocation. Set based on the week's tone across rates, listings, lending, geopolitics.",
+  "datesToWatch": [
+    {
+      "label": "May 21",
+      "description": "ABS April labour force data. First reading that fully captures the employment impact of recent rate moves."
+    },
+    {
+      "label": "June 16",
+      "description": "Next RBA decision. CommBank, NAB, ANZ Research all expect a hold at 4.35%."
+    }
+    // ... 5-8 forward-looking entries — release dates, decisions, hearings, settlements, expiries. Cover the next 4-8 weeks. Each label is a short date or "Ongoing"; description is one sentence explaining what's at stake.
+  ]
 }
 
 CRITICAL voice rules — Ruben's house style:
@@ -186,5 +207,11 @@ export async function synthesizeWeeklyEdition(input: SynthesisInput): Promise<Sy
     keyMetrics: validated.data.keyMetrics,
     readingTime: validated.data.readingTime ?? "6 min",
     fullText: validated.data.fullText ? stripBannedChars(validated.data.fullText) : null,
+    marketStress: validated.data.marketStress ?? null,
+    datesToWatch:
+      validated.data.datesToWatch?.map((d) => ({
+        label: stripBannedChars(d.label),
+        description: stripBannedChars(d.description),
+      })) ?? null,
   };
 }

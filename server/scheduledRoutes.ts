@@ -345,6 +345,8 @@ function registerSynthesizeEditionRoute(app: Express): void {
       signals: synth.signals,
       fullText: synth.fullText,
       keyMetrics: synth.keyMetrics,
+      marketStress: synth.marketStress,
+      datesToWatch: synth.datesToWatch,
     };
     try {
       await db.createEdition(edition);
@@ -404,6 +406,8 @@ const dailyMetricsBodySchema = z.object({
         value: z.string().min(1).max(64),
         unit: z.string().max(16).optional().nullable(),
         source: z.string().max(64).optional().nullable(),
+        context: z.string().max(256).optional().nullable(),
+        groupKey: z.string().max(32).optional().nullable(),
         asOf: z.string().datetime().or(z.string().min(1)),
         displayOrder: z.number().int().min(0).max(9999).optional(),
       })
@@ -431,6 +435,8 @@ function registerDailyMetricsRoute(app: Express): void {
           value: m.value,
           unit: m.unit ?? null,
           source: m.source ?? null,
+          context: m.context ?? null,
+          groupKey: m.groupKey ?? null,
           asOf: new Date(m.asOf),
           displayOrder: m.displayOrder,
         });

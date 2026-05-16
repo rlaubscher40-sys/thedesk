@@ -24,6 +24,8 @@ export const metricsRouter = router({
         value: z.string().min(1).max(64),
         unit: z.string().max(16).optional().nullable(),
         source: z.string().max(64).optional().nullable(),
+        context: z.string().max(256).optional().nullable(),
+        groupKey: z.string().max(32).optional().nullable(),
         displayOrder: z.number().int().min(0).max(9999).optional(),
       })
     )
@@ -34,6 +36,8 @@ export const metricsRouter = router({
         value: input.value,
         unit: input.unit ?? null,
         source: input.source ?? "Manual",
+        context: input.context ?? null,
+        groupKey: input.groupKey ?? null,
         asOf: new Date(),
         displayOrder: input.displayOrder,
       });

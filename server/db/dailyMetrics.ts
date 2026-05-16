@@ -32,6 +32,8 @@ export async function upsertDailyMetric(input: {
   value: string;
   unit?: string | null;
   source?: string | null;
+  context?: string | null;
+  groupKey?: string | null;
   asOf: Date;
   displayOrder?: number;
 }): Promise<void> {
@@ -53,6 +55,8 @@ export async function upsertDailyMetric(input: {
     value: input.value,
     unit: input.unit ?? null,
     source: input.source ?? null,
+    context: input.context ?? null,
+    groupKey: input.groupKey ?? null,
     asOf: input.asOf,
     displayOrder: input.displayOrder ?? 100,
     previousValue,
@@ -66,6 +70,8 @@ export async function upsertDailyMetric(input: {
         value: row.value,
         unit: row.unit,
         source: row.source,
+        context: row.context,
+        groupKey: row.groupKey,
         asOf: row.asOf,
         displayOrder: row.displayOrder,
         previousValue,

@@ -109,6 +109,40 @@ export function EditionReader({
         <SignalsBriefs signals={edition.signals ?? []} />
       </SectionErrorBoundary>
 
+      {edition.datesToWatch && edition.datesToWatch.length > 0 && (
+        <SectionErrorBoundary section="Dates to watch">
+          <section className="mt-12">
+            <div className="mb-5 flex items-center gap-3">
+              <p className="overline-amber" style={{ letterSpacing: "0.22em" }}>
+                Dates to watch
+              </p>
+              <span
+                className="block flex-1 h-px bg-[var(--color-border)]"
+                aria-hidden="true"
+              />
+            </div>
+            <ul className="space-y-3">
+              {edition.datesToWatch.map((d, idx) => (
+                <li
+                  key={`${d.label}-${idx}`}
+                  className="panel rounded-sm p-5 grid grid-cols-[100px_minmax(0,1fr)] items-start gap-5"
+                >
+                  <span
+                    className="font-mono uppercase tracking-[0.18em] text-amber-300"
+                    style={{ fontSize: "11px" }}
+                  >
+                    {d.label}
+                  </span>
+                  <p className="text-sm text-[var(--color-fg-muted)] leading-relaxed">
+                    {d.description}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </SectionErrorBoundary>
+      )}
+
       <SectionErrorBoundary section="Admin panel">
         <EditionAdminPanel edition={edition} />
       </SectionErrorBoundary>

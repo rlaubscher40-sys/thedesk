@@ -19,6 +19,8 @@ export function MetricsAdminPanel() {
   const [label, setLabel] = useState("");
   const [value, setValue] = useState("");
   const [unit, setUnit] = useState("");
+  const [context, setContext] = useState("");
+  const [groupKey, setGroupKey] = useState("MACRO");
   const [displayOrder, setDisplayOrder] = useState("100");
 
   const upsert = trpc.metrics.upsert.useMutation({
@@ -28,6 +30,7 @@ export function MetricsAdminPanel() {
       setLabel("");
       setValue("");
       setUnit("");
+      setContext("");
       setDisplayOrder("100");
       utils.metrics.list.invalidate();
       utils.metrics.listAll.invalidate();
@@ -46,6 +49,8 @@ export function MetricsAdminPanel() {
       label: label.trim(),
       value: value.trim(),
       unit: unit.trim() || null,
+      context: context.trim() || null,
+      groupKey: groupKey.trim() || null,
       displayOrder: Number(displayOrder) || 100,
     });
   }
@@ -152,6 +157,44 @@ export function MetricsAdminPanel() {
               max={9999}
               className="w-full px-3 py-2 rounded text-sm tabular-nums bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors"
             />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_160px] gap-3">
+          <div>
+            <label
+              className="overline block mb-1.5"
+              style={{ letterSpacing: "0.18em", fontSize: "10px" }}
+            >
+              Context (one-line blurb under the tile)
+            </label>
+            <input
+              type="text"
+              value={context}
+              onChange={(e) => setContext(e.target.value)}
+              maxLength={256}
+              placeholder="ANZ now expects extended hold"
+              className="w-full px-3 py-2 rounded text-sm bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors"
+            />
+          </div>
+          <div>
+            <label
+              className="overline block mb-1.5"
+              style={{ letterSpacing: "0.18em", fontSize: "10px" }}
+            >
+              Group
+            </label>
+            <select
+              value={groupKey}
+              onChange={(e) => setGroupKey(e.target.value)}
+              className="w-full px-3 py-2 rounded text-sm bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors"
+            >
+              <option value="MACRO">Macro & rates</option>
+              <option value="PROPERTY">Property</option>
+              <option value="LABOUR">Labour & wages</option>
+              <option value="MARKETS">Markets</option>
+              <option value="DEMOGRAPHICS">Demographics</option>
+              <option value="">— Ungrouped</option>
+            </select>
           </div>
         </div>
         <button

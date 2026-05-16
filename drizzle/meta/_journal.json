@@ -36,6 +36,13 @@
       "when": 1747600000000,
       "tag": "0004_feed_rubens_note",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1747700000000,
+      "tag": "0005_dashboard_richer",
+      "breakpoints": true
     }
   ]
 }

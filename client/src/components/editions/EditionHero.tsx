@@ -36,12 +36,15 @@ export function EditionHero({
           >
             {folio}
           </p>
-          <p
-            className="font-mono uppercase text-[var(--color-fg-subtle)]"
-            style={{ fontSize: "10px", letterSpacing: "0.24em" }}
-          >
-            The Desk · Daily Intelligence
-          </p>
+          <div className="flex items-center gap-4">
+            {edition.marketStress && <MarketStressBadge level={edition.marketStress} />}
+            <p
+              className="font-mono uppercase text-[var(--color-fg-subtle)]"
+              style={{ fontSize: "10px", letterSpacing: "0.24em" }}
+            >
+              The Desk · Daily Intelligence
+            </p>
+          </div>
         </div>
         <div className="h-px bg-[var(--color-border-strong)]" aria-hidden="true" />
         <div className="h-px mt-px bg-[var(--color-border)]" aria-hidden="true" />
@@ -281,5 +284,34 @@ function MetricTile({
         </span>
       </div>
     </div>
+  );
+}
+
+function MarketStressBadge({ level }: { level: string }) {
+  const colour =
+    level === "high"
+      ? "oklch(0.68 0.20 15)"
+      : level === "moderate"
+        ? "oklch(0.78 0.18 70)"
+        : "oklch(0.72 0.17 155)";
+  const label =
+    level === "high"
+      ? "HIGH MARKET STRESS"
+      : level === "moderate"
+        ? "MODERATE STRESS"
+        : "LOW STRESS";
+  return (
+    <span
+      className="inline-flex items-center gap-2 font-mono uppercase"
+      style={{ fontSize: "10px", letterSpacing: "0.22em", color: colour }}
+      title={`Market stress: ${level}`}
+    >
+      <span
+        className="inline-block h-1.5 w-1.5 rounded-full"
+        style={{ background: colour, boxShadow: `0 0 8px ${colour}` }}
+        aria-hidden="true"
+      />
+      {label}
+    </span>
   );
 }

@@ -62,8 +62,20 @@ export const editions = mysqlTable("editions", {
   substackDraftSubtitle: text("substackDraftSubtitle"),
   substackDraftBody: text("substackDraftBody"),
   substackDraftImageUrl: text("substackDraftImageUrl"),
+  /** Overall market stress signal — "low" / "moderate" / "high". Drives a
+   *  single coloured dot on the edition hero, the way The Signal does. */
+  marketStress: varchar("marketStress", { length: 16 }),
+  /** Edition-level "dates to watch" forward calendar. JSON array of
+   *  `{label, description}` entries (label is something like "May 21"
+   *  or "Ongoing"). */
+  datesToWatch: json("datesToWatch").$type<DateToWatch[] | null>(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
+
+export type DateToWatch = {
+  label: string;
+  description: string;
+};
 
 export type Edition = typeof editions.$inferSelect;
 export type InsertEdition = typeof editions.$inferInsert;
@@ -153,6 +165,12 @@ export const dailyMetrics = mysqlTable("daily_metrics", {
   previousValue: varchar("previousValue", { length: 64 }),
   /** Source label — "Yahoo Finance", "RBA", "Manual". */
   source: varchar("source", { length: 64 }),
+  /** Editorial context blurb under the value, e.g.
+   *  "ANZ NOW EXPECTS EXTENDED HOLD" or "BELOW 60% FOR 7 STRAIGHT WEEKS". */
+  context: varchar("context", { length: 256 }),
+  /** Group key for organising tiles into sections on the metrics
+   *  dashboard — "MACRO", "PROPERTY", "LABOUR", "MARKETS", "DEMOGRAPHICS". */
+  groupKey: varchar("groupKey", { length: 32 }),
   /** As-of timestamp from the data source (not the upsert time). */
   asOf: timestamp("asOf").notNull(),
   /** Display order, lower = earlier. */

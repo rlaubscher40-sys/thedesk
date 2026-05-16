@@ -56,6 +56,8 @@ export function createEdition(data: InsertEdition): void {
     substackDraftSubtitle: data.substackDraftSubtitle ?? null,
     substackDraftBody: data.substackDraftBody ?? null,
     substackDraftImageUrl: data.substackDraftImageUrl ?? null,
+    marketStress: data.marketStress ?? null,
+    datesToWatch: data.datesToWatch ?? null,
     createdAt: new Date(),
   };
   demo.editions.unshift(edition);
@@ -549,6 +551,8 @@ export function upsertDailyMetric(input: {
   value: string;
   unit?: string | null;
   source?: string | null;
+  context?: string | null;
+  groupKey?: string | null;
   asOf: Date;
   displayOrder?: number;
 }): void {
@@ -559,6 +563,8 @@ export function upsertDailyMetric(input: {
     existing.value = input.value;
     existing.unit = input.unit ?? null;
     existing.source = input.source ?? null;
+    existing.context = input.context ?? null;
+    existing.groupKey = input.groupKey ?? null;
     existing.asOf = input.asOf;
     existing.displayOrder = input.displayOrder ?? existing.displayOrder;
     existing.previousValue = previousValue;
@@ -572,6 +578,8 @@ export function upsertDailyMetric(input: {
     value: input.value,
     unit: input.unit ?? null,
     source: input.source ?? null,
+    context: input.context ?? null,
+    groupKey: input.groupKey ?? null,
     asOf: input.asOf,
     displayOrder: input.displayOrder ?? 100,
     previousValue,
