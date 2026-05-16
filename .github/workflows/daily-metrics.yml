@@ -1,0 +1,41 @@
+name: Daily metrics ingest
+
+on:
+  schedule:
+    # 19:30 UTC ≈ 05:30 Sydney AEST — runs slightly before daily-feed so
+    # the metrics strip is fresh when the brief lands.
+    - cron: "30 19 * * *"
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Why are you running this manually?"
+        required: false
+        default: "manual test"
+
+concurrency:
+  group: daily-metrics
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Run daily metrics ingest
+        env:
+          INGEST_BASE_URL: ${{ secrets.INGEST_BASE_URL }}
+          SCHEDULED_API_KEY: ${{ secrets.SCHEDULED_API_KEY }}
+        run: pnpm ingest:metrics

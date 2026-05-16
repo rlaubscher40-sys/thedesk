@@ -10,6 +10,7 @@ import { feedRouter } from "./feed";
 import { notesRouter } from "./notes";
 import { readingQueueRouter } from "./readingQueue";
 import { linkedInRouter } from "./linkedIn";
+import { metricsRouter } from "./metrics";
 import { searchRouter } from "./search";
 import { subscribersRouter } from "./subscribers";
 import { systemRouter } from "./system";
@@ -29,6 +30,7 @@ export const appRouter = router({
   search: searchRouter,
   subscribers: subscribersRouter,
   linkedIn: linkedInRouter,
+  metrics: metricsRouter,
 });
 
 export type AppRouter = typeof appRouter;

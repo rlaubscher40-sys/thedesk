@@ -9,6 +9,7 @@
  */
 import type {
   DailyFeedItem,
+  DailyMetric,
   Edition,
   FeaturedLinkedInPost,
   ReadingQueueItem,
@@ -53,7 +54,62 @@ export const demo = {
   conversations: [] as ConversationEntry[],
   subscribers: [] as Subscriber[],
   linkedInPosts: linkedInSeed(),
+  metrics: metricsSeed(),
 };
+
+function metricsSeed(): DailyMetric[] {
+  const now = new Date();
+  return [
+    {
+      id: 900,
+      metricKey: "cash_rate",
+      label: "RBA cash rate",
+      value: "4.35",
+      unit: "%",
+      previousValue: "4.35",
+      source: "RBA",
+      asOf: now,
+      displayOrder: 10,
+      updatedAt: now,
+    },
+    {
+      id: 901,
+      metricKey: "asx200",
+      label: "ASX 200",
+      value: "8,210",
+      unit: null,
+      previousValue: "8,150",
+      source: "Yahoo Finance",
+      asOf: now,
+      displayOrder: 20,
+      updatedAt: now,
+    },
+    {
+      id: 902,
+      metricKey: "audusd",
+      label: "AUD / USD",
+      value: "0.6543",
+      unit: null,
+      previousValue: "0.6580",
+      source: "Yahoo Finance",
+      asOf: now,
+      displayOrder: 30,
+      updatedAt: now,
+    },
+    {
+      id: 903,
+      metricKey: "audgbp",
+      label: "AUD / GBP",
+      value: "0.5180",
+      unit: null,
+      previousValue: "0.5170",
+      source: "Yahoo Finance",
+      asOf: now,
+      displayOrder: 40,
+      updatedAt: now,
+    },
+  ];
+}
 
 function linkedInSeed(): FeaturedLinkedInPost[] {
   const now = Date.now();

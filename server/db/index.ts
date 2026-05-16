@@ -11,3 +11,4 @@ export * from "./notes";
 export * from "./conversations";
 export * from "./subscribers";
 export * from "./featuredLinkedIn";
+export * from "./dailyMetrics";

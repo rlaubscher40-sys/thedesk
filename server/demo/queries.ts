@@ -7,6 +7,7 @@
 import type {
   ConversationEntry,
   DailyFeedItem,
+  DailyMetric,
   Edition,
   FeaturedLinkedInPost,
   InsertConversationEntry,
@@ -504,4 +505,46 @@ export function updateLinkedInPost(
 export function deleteLinkedInPost(id: number): void {
   const idx = demo.linkedInPosts.findIndex((p) => p.id === id);
   if (idx >= 0) demo.linkedInPosts.splice(idx, 1);
+}
+
+// ─── Daily metrics ──────────────────────────────────────────────────────────
+
+export function listDailyMetrics(): DailyMetric[] {
+  return [...demo.metrics].sort((a, b) => a.displayOrder - b.displayOrder);
+}
+
+export function upsertDailyMetric(input: {
+  metricKey: string;
+  label: string;
+  value: string;
+  unit?: string | null;
+  source?: string | null;
+  asOf: Date;
+  displayOrder?: number;
+}): void {
+  const existing = demo.metrics.find((m) => m.metricKey === input.metricKey);
+  const previousValue = existing?.value ?? null;
+  if (existing) {
+    existing.label = input.label;
+    existing.value = input.value;
+    existing.unit = input.unit ?? null;
+    existing.source = input.source ?? null;
+    existing.asOf = input.asOf;
+    existing.displayOrder = input.displayOrder ?? existing.displayOrder;
+    existing.previousValue = previousValue;
+    existing.updatedAt = new Date();
+    return;
+  }
+  demo.metrics.push({
+    id: allocId(),
+    metricKey: input.metricKey,
+    label: input.label,
+    value: input.value,
+    unit: input.unit ?? null,
+    source: input.source ?? null,
+    asOf: input.asOf,
+    displayOrder: input.displayOrder ?? 100,
+    previousValue,
+    updatedAt: new Date(),
+  });
 }
