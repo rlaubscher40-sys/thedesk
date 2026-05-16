@@ -11,6 +11,7 @@ import { StaggerList } from "../StaggerList";
 import { SubscribeCallout } from "../SubscribeCallout";
 import { EditionAdminPanel } from "./EditionAdminPanel";
 import { EditionHero } from "./EditionHero";
+import { EditorsLetter } from "./EditorsLetter";
 import { LeadStory } from "./LeadStory";
 import { ListenButton } from "./ListenButton";
 import { SignalsBriefs } from "./SignalsBriefs";
@@ -67,41 +68,9 @@ export function EditionReader({
       )}
 
       {edition.fullText && (
-        <section
-          className="panel rounded-sm p-8 sm:p-12 lg:p-16 mb-12"
-          aria-label="Editor's letter"
-        >
-          <div className="inline-flex items-center gap-3 mb-6">
-            <span
-              className="inline-block h-px w-8"
-              style={{
-                background:
-                  "linear-gradient(90deg, var(--color-amber), oklch(0.75 0.18 70 / 20%))",
-              }}
-              aria-hidden="true"
-            />
-            <p
-              className="overline-amber"
-              style={{ letterSpacing: "0.24em", fontSize: "11px" }}
-            >
-              Editor's letter
-            </p>
-          </div>
-          <div
-            className="has-dropcap text-[var(--color-fg-muted)] whitespace-pre-line lg:columns-2"
-            style={{
-              columnGap: "3rem",
-              columnRuleWidth: "1px",
-              columnRuleStyle: "solid",
-              columnRuleColor: "var(--color-border)",
-              columnFill: "balance",
-              fontSize: "15.5px",
-              lineHeight: "1.75",
-            }}
-          >
-            {edition.fullText}
-          </div>
-        </section>
+        <SectionErrorBoundary section="Editor's letter">
+          <EditorsLetter fullText={edition.fullText} />
+        </SectionErrorBoundary>
       )}
 
       {rest.length > 0 && (
