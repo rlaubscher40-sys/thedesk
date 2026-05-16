@@ -5,8 +5,13 @@ import superjson from "superjson";
 import { UNAUTHED_ERR_MSG } from "@shared/const";
 import App from "./App";
 import { getLoginUrl } from "./lib/auth";
+import { initSentry } from "./lib/sentry";
 import { trpc } from "./lib/trpc";
 import "./index.css";
+
+// Browser error monitoring. No-op when VITE_SENTRY_DSN isn't set, so the
+// dev environment stays quiet.
+initSentry();
 
 const queryClient = new QueryClient({
   defaultOptions: {

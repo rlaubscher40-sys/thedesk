@@ -3,6 +3,15 @@
  * client; in production it falls back to the static bundle in dist/public.
  */
 import "dotenv/config";
+import { initSentry, registerSentryErrorHandler } from "./core/sentry";
+
+// Init Sentry FIRST so anything that throws during the rest of the
+// bootstrap path (DB connect, route registration) still reports.
+const sentryActive = initSentry();
+if (sentryActive) {
+  console.log("[boot] Sentry initialised");
+}
+
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import express from "express";
 import { createServer } from "node:http";
@@ -53,6 +62,10 @@ async function startServer() {
   } else {
     serveStatic(app);
   }
+
+  // Last in the chain so it catches anything routes / SPA fallback let
+  // through. No-op when SENTRY_DSN isn't set.
+  registerSentryErrorHandler(app);
 
   const preferredPort = parseInt(process.env.PORT ?? "3000", 10);
   const port = await findAvailablePort(preferredPort);
