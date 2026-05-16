@@ -11,8 +11,29 @@ import { StaggerList } from "../StaggerList";
 import { EditionAdminPanel } from "./EditionAdminPanel";
 import { EditionHero } from "./EditionHero";
 import { LeadStory } from "./LeadStory";
+import { ListenButton } from "./ListenButton";
 import { SignalsBriefs } from "./SignalsBriefs";
 import { TopicCard } from "./TopicCard";
+
+/**
+ * Flatten an edition into a plain-text script the browser's SpeechSynthesis
+ * can read end-to-end. Keeps the natural reading order: take, letter, lead,
+ * each topic in turn. Signals + dates are skipped — they're scannable, not
+ * listenable.
+ */
+function buildAudioScript(edition: Edition): string {
+  const parts: string[] = [];
+  parts.push(`Edition ${edition.editionNumber}. ${edition.weekRange}.`);
+  if (edition.rubensTake) parts.push(`Ruben's take. ${edition.rubensTake}`);
+  if (edition.fullText) parts.push(edition.fullText);
+  for (const topic of edition.topics ?? []) {
+    parts.push(`${topic.category}. ${topic.title}.`);
+    if (topic.summary) parts.push(topic.summary);
+    if (topic.body) parts.push(topic.body);
+    if (topic.keyTakeaway) parts.push(`Key takeaway. ${topic.keyTakeaway}`);
+  }
+  return parts.join("\n\n");
+}
 
 export function EditionReader({
   edition,
@@ -25,6 +46,7 @@ export function EditionReader({
 }) {
   const topics = edition.topics ?? [];
   const [lead, ...rest] = topics;
+  const audioScript = buildAudioScript(edition);
 
   return (
     <article>
@@ -32,6 +54,10 @@ export function EditionReader({
       <SectionErrorBoundary section="Hero">
         <EditionHero edition={edition} priorMetrics={priorMetrics ?? null} />
       </SectionErrorBoundary>
+
+      <div className="flex justify-end -mt-6 mb-8">
+        <ListenButton text={audioScript} />
+      </div>
 
       {lead && (
         <SectionErrorBoundary section="Lead story">

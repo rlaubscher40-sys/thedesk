@@ -33,6 +33,7 @@ const Login = lazy(() => import("./pages/Login"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
 const EditorialStandards = lazy(() => import("./pages/EditorialStandards"));
+const Corrections = lazy(() => import("./pages/Corrections"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 function KeyboardShortcuts() {
@@ -99,6 +100,7 @@ function Routes() {
             <Route path="/privacy" component={Privacy} />
             <Route path="/terms" component={Terms} />
             <Route path="/editorial-standards" component={EditorialStandards} />
+            <Route path="/corrections" component={Corrections} />
             <Route component={NotFound} />
           </Switch>
         </Suspense>
