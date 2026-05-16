@@ -41,6 +41,9 @@ export function EditionAdminPanel({ edition }: { edition: Edition }) {
       <SectionErrorBoundary section="Take controls">
         <TakeControls edition={edition} />
       </SectionErrorBoundary>
+      <SectionErrorBoundary section="Hero image controls">
+        <HeroImageControls edition={edition} />
+      </SectionErrorBoundary>
       <SectionErrorBoundary section="Forward this">
         <ForwardEdition edition={edition} />
       </SectionErrorBoundary>
@@ -128,6 +131,47 @@ function ForwardEdition({ edition }: { edition: Edition }) {
 }
 
 // ─── Ruben's Take ───────────────────────────────────────────────────────────
+
+function HeroImageControls({ edition }: { edition: Edition }) {
+  const utils = trpc.useUtils();
+  const generate = trpc.editions.generateHeroImage.useMutation({
+    onSuccess: () => {
+      utils.editions.getById.invalidate({ editionId: edition.id });
+      utils.editions.getByNumber.invalidate({ editionNumber: edition.editionNumber });
+      utils.editions.list.invalidate();
+      toast.success("Hero image regenerated");
+    },
+    onError: (err) => toast.error(`Image generation failed: ${err.message}`),
+  });
+
+  return (
+    <div className="border-t border-[var(--color-border)] pt-5 mt-5">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="min-w-0">
+          <p className="overline mb-1">Hero image</p>
+          <p className="text-xs text-[var(--color-fg-muted)]">
+            {edition.heroImageUrl
+              ? "Cover is in place. Regenerate to try a different look."
+              : "Missing. Generate a cover for this edition."}
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => generate.mutate({ editionId: edition.id })}
+          disabled={generate.isPending}
+        >
+          <ImageIcon className="h-3.5 w-3.5" />
+          {generate.isPending
+            ? "Generating..."
+            : edition.heroImageUrl
+              ? "Regenerate image"
+              : "Generate image"}
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 function TakeControls({ edition }: { edition: Edition }) {
   const utils = trpc.useUtils();
