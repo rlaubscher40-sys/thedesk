@@ -76,6 +76,7 @@ function metricsSeed(): DailyMetric[] {
     source,
     context,
     groupKey,
+    sourceUrl: null,
     asOf: now,
     displayOrder,
     updatedAt: now,

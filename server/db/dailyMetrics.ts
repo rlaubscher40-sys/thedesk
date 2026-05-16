@@ -46,6 +46,8 @@ export async function upsertDailyMetric(input: {
   source?: string | null;
   context?: string | null;
   groupKey?: string | null;
+  /** Audit-trail URL — passed through from news extraction. */
+  sourceUrl?: string | null;
   asOf: Date;
   displayOrder?: number;
 }): Promise<void> {
@@ -69,6 +71,7 @@ export async function upsertDailyMetric(input: {
     source: input.source ?? null,
     context: input.context ?? null,
     groupKey: input.groupKey ?? null,
+    sourceUrl: input.sourceUrl ?? null,
     asOf: input.asOf,
     displayOrder: input.displayOrder ?? 100,
     previousValue,
@@ -84,6 +87,7 @@ export async function upsertDailyMetric(input: {
         source: row.source,
         context: row.context,
         groupKey: row.groupKey,
+        sourceUrl: row.sourceUrl,
         asOf: row.asOf,
         displayOrder: row.displayOrder,
         previousValue,

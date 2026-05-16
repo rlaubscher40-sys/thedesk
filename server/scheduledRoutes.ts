@@ -583,6 +583,7 @@ function registerExtractMetricsRoute(app: Express): void {
           title: (it.title ?? "").slice(0, 200),
           summary: (it.contentSnippet ?? it.content ?? "").slice(0, 400),
           source: (it.creator as string | undefined) ?? "Google News",
+          url: it.link ?? null,
           date: it.isoDate ?? it.pubDate ?? null,
         }));
         if (articles.length === 0) {
@@ -609,6 +610,7 @@ function registerExtractMetricsRoute(app: Express): void {
           source: "News + LLM",
           context: extracted.context,
           groupKey: q.groupKey ?? null,
+          sourceUrl: extracted.sourceUrl,
           asOf: extracted.asOf ?? new Date(),
           displayOrder: q.displayOrder,
         });

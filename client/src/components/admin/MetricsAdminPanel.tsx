@@ -238,6 +238,18 @@ export function MetricsAdminPanel() {
                       {m.source}
                     </p>
                   )}
+                  {m.sourceUrl && (
+                    <a
+                      href={m.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="overline text-amber-300/70 hover:text-amber-300 mt-0.5 inline-block truncate max-w-full"
+                      title={m.sourceUrl}
+                      style={{ letterSpacing: "0.12em" }}
+                    >
+                      View source ↗
+                    </a>
+                  )}
                 </div>
                 <span className="font-serif text-base tabular-nums text-right">
                   {m.value}

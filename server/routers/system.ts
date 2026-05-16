@@ -61,6 +61,10 @@ const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
     name: "0008 · edition_assets index",
     sql: "CREATE INDEX idx_edition_assets_lookup ON edition_assets (editionId, kind, createdAt)",
   },
+  {
+    name: "0009 · daily_metrics.sourceUrl",
+    sql: "ALTER TABLE daily_metrics ADD sourceUrl text",
+  },
 ];
 
 /** MySQL/TiDB error codes / fragments we treat as "already applied". */

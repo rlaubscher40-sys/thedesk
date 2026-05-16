@@ -541,6 +541,7 @@ export function upsertDailyMetric(input: {
   source?: string | null;
   context?: string | null;
   groupKey?: string | null;
+  sourceUrl?: string | null;
   asOf: Date;
   displayOrder?: number;
 }): void {
@@ -553,6 +554,7 @@ export function upsertDailyMetric(input: {
     existing.source = input.source ?? null;
     existing.context = input.context ?? null;
     existing.groupKey = input.groupKey ?? null;
+    existing.sourceUrl = input.sourceUrl ?? null;
     existing.asOf = input.asOf;
     existing.displayOrder = input.displayOrder ?? existing.displayOrder;
     existing.previousValue = previousValue;
@@ -568,6 +570,7 @@ export function upsertDailyMetric(input: {
     source: input.source ?? null,
     context: input.context ?? null,
     groupKey: input.groupKey ?? null,
+    sourceUrl: input.sourceUrl ?? null,
     asOf: input.asOf,
     displayOrder: input.displayOrder ?? 100,
     previousValue,
