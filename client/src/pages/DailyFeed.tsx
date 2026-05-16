@@ -1,18 +1,16 @@
 /**
  * Today — full-bleed daily-intelligence dashboard.
  *
- * Single editorial column. The right rail is gone — it was forcing the
- * main feed to share the page horizontally with metadata that didn't
- * deserve that real estate. Everything reflows top-to-bottom:
+ * Wired to the database when there are real feed items, falls back to the
+ * curated seed Story array when the DB is empty (dev / first-boot / preview).
  *
- *   1. Hero
- *   2. Controls strip (date pager + persona switcher + filter chips)
- *   3. Metrics strip (full width, 4 KPI tiles)
- *   4. Featured story (full width)
- *   5. More from today (2-up grid, full width)
- *   6. Further signals (wide single-column cards)
- *   7. Support strip (Topics · Reading Queue · Latest · Subscribe)
- *   8. Footer
+ * DB layout:
+ *   - Lead story = first item by createdAt
+ *   - Grid below = items 2..7 (six in a 3-up at lg)
+ *   - Signal column = everything beyond that, single-column
+ *
+ * Seed layout (untouched — same demo as before):
+ *   - Featured → More → Further sections from the static stories array
  */
 import { useMemo, useState } from "react";
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
@@ -30,26 +28,51 @@ import { StoryCard } from "@/components/desk/StoryCard";
 import { WhatsNewPill } from "@/components/desk/WhatsNewPill";
 import { MetricsStrip } from "@/components/desk/rightRail/MetricsStrip";
 import { SupportStrip } from "@/components/desk/rightRail/SupportStrip";
+import { FeedLeadCard } from "@/components/feed/FeedLeadCard";
+import { FeedItemCard } from "@/components/feed/FeedItemCard";
 import { editionMeta, stories } from "@/data/editions/2026-05-15";
+import { trpc } from "@/lib/trpc";
 
 export default function DailyFeed() {
   const [filter, setFilter] = useState<CategoryFilter>("ALL");
 
-  const filtered = useMemo(
+  // Pull today's items from the DB. `staleTime` keeps it warm for a minute
+  // so navigating away and back doesn't refetch.
+  const feedQuery = trpc.feed.getByDate.useQuery(undefined, {
+    staleTime: 60_000,
+  });
+
+  const feedItems = useMemo(() => {
+    const items = feedQuery.data ?? [];
+    if (filter === "ALL") return items;
+    return items.filter((it) => it.category.toUpperCase() === filter);
+  }, [feedQuery.data, filter]);
+
+  // Render the live DB feed if there is one. Otherwise fall back to the
+  // curated seed (for dev mode + first-launch before any ingest has run).
+  const hasLiveData = feedItems.length > 0;
+
+  // Seed-mode derived buckets (legacy three-tier layout).
+  const filteredSeed = useMemo(
     () => (filter === "ALL" ? stories : stories.filter((s) => s.category === filter)),
     [filter]
   );
+  const featured = filteredSeed.find((s) => s.section === "featured");
+  const more = filteredSeed.filter((s) => s.section === "more");
+  const further = filteredSeed.filter((s) => s.section === "further");
 
-  const featured = filtered.find((s) => s.section === "featured");
-  const more = filtered.filter((s) => s.section === "more");
-  const further = filtered.filter((s) => s.section === "further");
-
-  // Edition publish time = 7am Sydney on editionMeta.date. We treat every
-  // story on the page as having landed at that moment for the "what's new"
-  // calculation. When this page is wired to real DB items, swap to each
-  // item's createdAt.
+  // "What's new since last visit" needs an array of timestamps the user
+  // could have missed. For live data, each item carries its own createdAt;
+  // for seed mode, every story shares the same edition publish time.
   const editionPublishedMs = new Date(`${editionMeta.date}T07:00:00+10:00`).getTime();
-  const storyTimestamps = filtered.map(() => editionPublishedMs);
+  const storyTimestamps = hasLiveData
+    ? feedItems.map((it) => new Date(it.createdAt).getTime())
+    : filteredSeed.map(() => editionPublishedMs);
+
+  // Live-mode buckets.
+  const liveLead = feedItems[0];
+  const liveGrid = feedItems.slice(1, 7);
+  const liveSignals = feedItems.slice(7);
 
   return (
     <div className="space-y-12">
@@ -94,45 +117,97 @@ export default function DailyFeed() {
         </p>
       </section>
 
-      {featured && (
-        <SectionErrorBoundary section="Featured">
-          <section>
-            <SectionDivider label="Featured" />
-            <FeaturedCard story={featured} />
-          </section>
-        </SectionErrorBoundary>
+      {/* ── Live feed (DB-driven) ────────────────────────────────────── */}
+      {hasLiveData ? (
+        <>
+          {liveLead && (
+            <SectionErrorBoundary section="Lead">
+              <section>
+                <SectionDivider label="Today's lead" />
+                <FeedLeadCard item={liveLead} />
+              </section>
+            </SectionErrorBoundary>
+          )}
+
+          {liveGrid.length > 0 && (
+            <SectionErrorBoundary section="Grid">
+              <section>
+                <SectionDivider label="More from today" />
+                <StaggerList
+                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
+                  cacheKey={`grid-${filter}`}
+                >
+                  {liveGrid.map((item) => (
+                    <FeedItemCard key={item.id} item={item} />
+                  ))}
+                </StaggerList>
+              </section>
+            </SectionErrorBoundary>
+          )}
+
+          {liveSignals.length > 0 && (
+            <SectionErrorBoundary section="Signals">
+              <section>
+                <SectionDivider label="Further signals" />
+                <StaggerList className="space-y-4" cacheKey={`signals-${filter}`}>
+                  {liveSignals.map((item) => (
+                    <FeedItemCard key={item.id} item={item} />
+                  ))}
+                </StaggerList>
+              </section>
+            </SectionErrorBoundary>
+          )}
+        </>
+      ) : (
+        // ── Seed fallback (dev mode / pre-ingest) ───────────────────
+        <>
+          {featured && (
+            <SectionErrorBoundary section="Featured">
+              <section>
+                <SectionDivider label="Featured" />
+                <FeaturedCard story={featured} />
+              </section>
+            </SectionErrorBoundary>
+          )}
+
+          {more.length > 0 && (
+            <SectionErrorBoundary section="More from today">
+              <section>
+                <SectionDivider label="More from today" />
+                <StaggerList
+                  className="grid grid-cols-1 md:grid-cols-2 gap-5"
+                  cacheKey={`more-${filter}`}
+                >
+                  {more.map((s) => (
+                    <StoryCard key={s.id} story={s} />
+                  ))}
+                </StaggerList>
+              </section>
+            </SectionErrorBoundary>
+          )}
+
+          {further.length > 0 && (
+            <SectionErrorBoundary section="Further signals">
+              <section>
+                <SectionDivider label="Further signals" />
+                <StaggerList className="space-y-4" cacheKey={`further-${filter}`}>
+                  {further.map((s) => (
+                    <SignalCard key={s.id} story={s} />
+                  ))}
+                </StaggerList>
+              </section>
+            </SectionErrorBoundary>
+          )}
+
+          {filteredSeed.length === 0 && (
+            <div className="panel p-8 rounded-sm text-center text-sm text-[var(--color-fg-muted)]">
+              No items match this filter.
+            </div>
+          )}
+        </>
       )}
 
-      {more.length > 0 && (
-        <SectionErrorBoundary section="More from today">
-          <section>
-            <SectionDivider label="More from today" />
-            <StaggerList
-              className="grid grid-cols-1 md:grid-cols-2 gap-5"
-              cacheKey={`more-${filter}`}
-            >
-              {more.map((s) => (
-                <StoryCard key={s.id} story={s} />
-              ))}
-            </StaggerList>
-          </section>
-        </SectionErrorBoundary>
-      )}
-
-      {further.length > 0 && (
-        <SectionErrorBoundary section="Further signals">
-          <section>
-            <SectionDivider label="Further signals" />
-            <StaggerList className="space-y-4" cacheKey={`further-${filter}`}>
-              {further.map((s) => (
-                <SignalCard key={s.id} story={s} />
-              ))}
-            </StaggerList>
-          </section>
-        </SectionErrorBoundary>
-      )}
-
-      {filtered.length === 0 && (
+      {hasLiveData && feedItems.length === 0 && (
         <div className="panel p-8 rounded-sm text-center text-sm text-[var(--color-fg-muted)]">
           No items match this filter.
         </div>

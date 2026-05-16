@@ -7,7 +7,7 @@
  * We always opt into TLS — local MySQL setups accept it too, so this is a
  * safe default everywhere.
  */
-import mysql from "mysql2/promise";
+import { createPool } from "mysql2";
 import { drizzle } from "drizzle-orm/mysql2";
 import { env } from "../core/env";
 
@@ -18,7 +18,7 @@ export function getDb() {
   if (!_db && !_attempted && env.databaseUrl) {
     _attempted = true;
     try {
-      const pool = mysql.createPool({
+      const pool = createPool({
         uri: env.databaseUrl,
         ssl: { rejectUnauthorized: true },
       });
