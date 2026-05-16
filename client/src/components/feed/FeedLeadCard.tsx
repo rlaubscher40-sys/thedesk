@@ -97,6 +97,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
             alt=""
             className="absolute inset-0 w-full h-full object-cover"
             loading="lazy"
+            decoding="async"
           />
         )}
         {/* Category supersized — the cover plate's typographic moment.

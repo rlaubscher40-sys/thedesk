@@ -38,6 +38,8 @@ export function FromTheDeskIntro() {
               src="/ruben.jpg"
               alt="Ruben Laubscher"
               className="w-full h-full object-cover"
+              loading="lazy"
+              decoding="async"
               onError={() => setImgFailed(true)}
             />
           ) : (

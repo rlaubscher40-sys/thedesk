@@ -59,12 +59,16 @@ export function EditionHero({
           style={{ maxHeight: 420 }}
         >
           {/* Ken Burns drift — slow scale + translate3d so the cover
-              feels alive without competing with the content. */}
+              feels alive without competing with the content. This is the
+              page's LCP element so it MUST NOT be lazy-loaded; fetchpriority
+              tells the browser to fetch it ahead of the JS bundles. */}
           <img
             src={edition.heroImageUrl}
             alt={`Cover for Edition ${edition.editionNumber}`}
             className="hero-cover-img w-full h-full object-cover"
-            loading="lazy"
+            loading="eager"
+            decoding="async"
+            fetchPriority="high"
           />
           {/* Specular highlight sweeps slowly across the surface. */}
           <span className="hero-cover-shine" aria-hidden="true" />

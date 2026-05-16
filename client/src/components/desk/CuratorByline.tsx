@@ -35,6 +35,8 @@ export function CuratorByline() {
             src={HEADSHOT}
             alt=""
             className="w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
             onError={() => setFailed(true)}
           />
         ) : (
