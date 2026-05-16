@@ -42,21 +42,33 @@ export default function DailyFeed() {
     staleTime: 60_000,
   });
 
+  const allFeedItems = feedQuery.data ?? [];
+  const liveCategories = useMemo(() => {
+    const set = new Set<string>();
+    for (const it of allFeedItems) set.add(it.category.toUpperCase());
+    return Array.from(set).sort();
+  }, [allFeedItems]);
+
   const feedItems = useMemo(() => {
-    const items = feedQuery.data ?? [];
-    if (filter === "ALL") return items;
-    return items.filter((it) => it.category.toUpperCase() === filter);
-  }, [feedQuery.data, filter]);
+    if (filter === "ALL") return allFeedItems;
+    return allFeedItems.filter((it) => it.category.toUpperCase() === filter);
+  }, [allFeedItems, filter]);
 
   // Render the live DB feed if there is one. Otherwise fall back to the
   // curated seed (for dev mode + first-launch before any ingest has run).
-  const hasLiveData = feedItems.length > 0;
+  const hasLiveData = allFeedItems.length > 0;
 
   // Seed-mode derived buckets (legacy three-tier layout).
   const filteredSeed = useMemo(
     () => (filter === "ALL" ? stories : stories.filter((s) => s.category === filter)),
     [filter]
   );
+
+  // Categories the chips should show. Live mode = whatever's in the DB
+  // today; seed mode = the original handcurated set.
+  const chipCategories = hasLiveData
+    ? liveCategories
+    : ["MACRO", "GEOPOLITICS", "PROPERTY", "AI", "MARKETS", "CLIMATE", "SPORT", "REDDIT", "CRYPTO"];
   const featured = filteredSeed.find((s) => s.section === "featured");
   const more = filteredSeed.filter((s) => s.section === "more");
   const further = filteredSeed.filter((s) => s.section === "further");
@@ -90,7 +102,11 @@ export default function DailyFeed() {
           <PersonaSwitcher />
         </div>
         <SectionErrorBoundary section="Filters">
-          <FilterChips active={filter} onChange={setFilter} />
+          <FilterChips
+            active={filter}
+            onChange={setFilter}
+            categories={chipCategories}
+          />
         </SectionErrorBoundary>
         <WhatsNewPill storyDates={storyTimestamps} storageKey="today" />
       </div>
