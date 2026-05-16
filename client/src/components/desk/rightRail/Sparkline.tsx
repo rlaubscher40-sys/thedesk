@@ -56,7 +56,9 @@ export function Sparkline({
       viewBox={`0 0 ${width} ${height}`}
       role="img"
       aria-label="30-day trend"
-      style={{ display: "block" }}
+      // max-width:100% lets the line shrink to fit narrow mobile tiles
+      // without needing a media-query rewrite. Aspect ratio is preserved.
+      style={{ display: "block", maxWidth: "100%", height: "auto" }}
     >
       <polyline
         points={points}

@@ -67,7 +67,10 @@ export default function Corrections() {
             {CORRECTIONS.map((c, idx) => (
               <li
                 key={`${c.issuedOn}-${idx}`}
-                className="panel rounded-sm p-6 grid grid-cols-[110px_minmax(0,1fr)] gap-5"
+                // Stack on mobile so the long-form correction body has the
+                // full width; side-by-side from sm: where the metadata
+                // column fits cleanly.
+                className="panel rounded-sm p-5 sm:p-6 grid grid-cols-1 sm:grid-cols-[110px_minmax(0,1fr)] gap-3 sm:gap-5"
               >
                 <div>
                   <p

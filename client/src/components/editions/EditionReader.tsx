@@ -152,7 +152,10 @@ export function EditionReader({
               {edition.datesToWatch.map((d, idx) => (
                 <li
                   key={`${d.label}-${idx}`}
-                  className="panel rounded-sm p-5 grid grid-cols-[100px_minmax(0,1fr)] items-start gap-5"
+                  // On mobile the date label sits above the description
+                  // (single column). On sm+ they side-by-side with the
+                  // date column shrunk from 100px to 78px to free space.
+                  className="panel rounded-sm p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-[78px_minmax(0,1fr)] items-start gap-2 sm:gap-5"
                 >
                   <span
                     className="font-mono uppercase tracking-[0.18em] text-amber-300"

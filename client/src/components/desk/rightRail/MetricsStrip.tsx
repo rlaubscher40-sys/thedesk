@@ -127,7 +127,7 @@ function Tile({ tile }: { tile: Tile }) {
   );
   const Icon = trend === "up" ? ArrowUp : trend === "down" ? ArrowDown : Minus;
   return (
-    <div className="p-5 lg:p-6 border-t border-l border-[var(--color-border)] -mt-px -ml-px">
+    <div className="p-4 sm:p-5 lg:p-6 border-t border-l border-[var(--color-border)] -mt-px -ml-px">
       <p
         className="overline mb-2 truncate"
         style={{ letterSpacing: "0.18em", fontSize: "10px" }}
