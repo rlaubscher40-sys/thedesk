@@ -16,6 +16,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "../ui/Button";
 import { LinkedInPostModal } from "../LinkedInPostModal";
 import { PartnerTagBlock } from "./PartnerTagBlock";
+import { RubensNoteBlock } from "./RubensNoteBlock";
 import { SayThisLine } from "./SayThisLine";
 
 export function FeedItemCard({ item }: { item: DailyFeedItem }) {
@@ -187,7 +188,8 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
         </a>
       )}
 
-      {item.sayThis && (
+      <RubensNoteBlock itemId={item.id} note={item.rubensNote} />
+      {!item.rubensNote && item.sayThis && (
         <SayThisLine sayThis={item.sayThis} category={item.category} />
       )}
 

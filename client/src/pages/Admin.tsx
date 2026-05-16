@@ -15,6 +15,8 @@ import { ArrowRight, CheckCircle2, FileText, Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
 import { LinkedInAdminPanel } from "@/components/admin/LinkedInAdminPanel";
+import { MetricsAdminPanel } from "@/components/admin/MetricsAdminPanel";
+import { SubscribersAdminPanel } from "@/components/admin/SubscribersAdminPanel";
 import { BackfillRubensTakeButton } from "@/components/editions/EditionAdminPanel";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/cn";
@@ -128,6 +130,18 @@ export default function AdminPage() {
           </div>
         )}
       </SectionErrorBoundary>
+
+      <div className="mt-10">
+        <SectionErrorBoundary section="Metrics admin">
+          <MetricsAdminPanel />
+        </SectionErrorBoundary>
+      </div>
+
+      <div className="mt-10">
+        <SectionErrorBoundary section="Subscribers admin">
+          <SubscribersAdminPanel />
+        </SectionErrorBoundary>
+      </div>
 
       <div className="mt-10">
         <SectionErrorBoundary section="LinkedIn admin">

@@ -6,6 +6,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import {
+  Archive,
   BarChart3,
   BookOpen,
   Bookmark,
@@ -46,6 +47,7 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   { path: "/", label: "Today", icon: Newspaper },
   { path: "/editions", label: "Editions", icon: BookOpen },
+  { path: "/archive", label: "Archive", icon: Archive },
   { path: "/trends", label: "Trends", icon: BarChart3 },
   { path: "/queue", label: "Reading Queue", icon: Bookmark },
   { path: "/search", label: "Search", icon: Search },

@@ -174,6 +174,20 @@ export function getFeedItemById(id: number): DailyFeedItem | undefined {
   return demo.feed.find((i) => i.id === id);
 }
 
+export function listArchive(opts: {
+  category?: string;
+  limit: number;
+  offset: number;
+}): DailyFeedItem[] {
+  let items = [...demo.feed];
+  if (opts.category) {
+    const cat = opts.category.toUpperCase();
+    items = items.filter((i) => i.category.toUpperCase() === cat);
+  }
+  items.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  return items.slice(opts.offset, opts.offset + opts.limit);
+}
+
 export function getRecentFeedDates(limit: number): string[] {
   const set = new Set<string>();
   for (const item of [...demo.feed].sort((a, b) => b.feedDate.localeCompare(a.feedDate))) {
@@ -196,6 +210,7 @@ export function createFeedItems(items: InsertDailyFeedItem[]): void {
       imageUrl: item.imageUrl ?? null,
       partnerTag: item.partnerTag ?? null,
       sayThis: item.sayThis ?? null,
+      rubensNote: item.rubensNote ?? null,
       promotedToEdition: false,
       createdAt: new Date(),
     });
@@ -215,6 +230,11 @@ export function deleteFeedItem(id: number): void {
 export function updateFeedItemSayThis(id: number, sayThis: string): void {
   const item = demo.feed.find((i) => i.id === id);
   if (item) item.sayThis = sayThis;
+}
+
+export function updateFeedItemRubensNote(id: number, rubensNote: string | null): void {
+  const item = demo.feed.find((i) => i.id === id);
+  if (item) item.rubensNote = rubensNote;
 }
 
 export function updateFeedItemImageUrl(id: number, imageUrl: string): void {

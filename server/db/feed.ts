@@ -27,6 +27,28 @@ export async function getFeedItemById(id: number): Promise<DailyFeedItem | undef
   return rows[0];
 }
 
+/**
+ * Paginated archive query — feed items across all dates, optionally
+ * filtered by category. Used by the /archive page.
+ */
+export async function listArchive(opts: {
+  category?: string;
+  limit: number;
+  offset: number;
+}): Promise<DailyFeedItem[]> {
+  if (isDemoMode()) return demoQueries.listArchive(opts);
+  const db = getDb();
+  if (!db) return [];
+  const base = db.select().from(dailyFeedItems);
+  const filtered = opts.category
+    ? base.where(eq(dailyFeedItems.category, opts.category.toUpperCase()))
+    : base;
+  return filtered
+    .orderBy(desc(dailyFeedItems.createdAt))
+    .limit(opts.limit)
+    .offset(opts.offset);
+}
+
 export async function getRecentFeedDates(limit = 14): Promise<string[]> {
   if (isDemoMode()) return demoQueries.getRecentFeedDates(limit);
   const db = getDb();
@@ -66,6 +88,13 @@ export async function updateFeedItemSayThis(id: number, sayThis: string) {
   const db = getDb();
   if (!db) return;
   await db.update(dailyFeedItems).set({ sayThis }).where(eq(dailyFeedItems.id, id));
+}
+
+export async function updateFeedItemRubensNote(id: number, rubensNote: string | null) {
+  if (isDemoMode()) return demoQueries.updateFeedItemRubensNote(id, rubensNote);
+  const db = getDb();
+  if (!db) return;
+  await db.update(dailyFeedItems).set({ rubensNote }).where(eq(dailyFeedItems.id, id));
 }
 
 export async function updateFeedItemImageUrl(id: number, imageUrl: string) {

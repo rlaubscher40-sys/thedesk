@@ -17,6 +17,7 @@ import { useAuth } from "@/lib/useAuth";
 import { trpc } from "@/lib/trpc";
 import { LinkedInPostModal } from "../LinkedInPostModal";
 import { PartnerTagBlock } from "./PartnerTagBlock";
+import { RubensNoteBlock } from "./RubensNoteBlock";
 import { SayThisLine } from "./SayThisLine";
 
 export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
@@ -209,7 +210,8 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
           </a>
         )}
 
-        {item.sayThis && (
+        <RubensNoteBlock itemId={item.id} note={item.rubensNote} />
+        {!item.rubensNote && item.sayThis && (
           <SayThisLine sayThis={item.sayThis} category={item.category} />
         )}
 

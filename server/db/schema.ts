@@ -86,6 +86,10 @@ export const dailyFeedItems = mysqlTable("daily_feed_items", {
   partnerTag: text("partnerTag"),
   /** One-liner conversation starter. */
   sayThis: text("sayThis"),
+  /** Editorial override — admin-authored note that appears on the story card
+   *  as a highlighted Ruben quote. When set, takes visual precedence over
+   *  the AI-generated sayThis. */
+  rubensNote: text("rubensNote"),
   promotedToEdition: boolean("promotedToEdition").default(false),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
