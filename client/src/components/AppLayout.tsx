@@ -25,6 +25,7 @@ import {
 import { cn } from "@/lib/cn";
 import { getLoginUrl, hasOAuthConfig } from "@/lib/auth";
 import { getSydneyDate } from "@/lib/date";
+import { useBookmarks } from "@/lib/useBookmarks";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -104,10 +105,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  const { data: unreadCount } = trpc.readingQueue.unreadCount.useQuery(undefined, {
-    enabled: isAuthenticated,
-    refetchInterval: 60_000,
-  });
+  // Sidebar badge reads from the SAME source as the footer "Reading queue"
+  // rail card — localStorage bookmarks. The server-side reading queue is
+  // only ever populated when a user signs in (which is rare on this site),
+  // so showing it separately created a "1 in sidebar / 0 in footer"
+  // state mismatch that read as a bug to reviewers.
+  const { count: bookmarkCount } = useBookmarks();
+  const unreadCount = bookmarkCount;
 
   const visibleNav = NAV_ITEMS.filter((item) => {
     if (item.requiresAuth && !isAuthenticated) return false;

@@ -150,6 +150,15 @@ export default function About() {
             Built by Ruben Laubscher, Head of Partnerships at InvestorKit (Australia's most awarded buyer's agency). The Desk is private — partners and the firm only.
           </p>
 
+          <h2 className="font-serif text-3xl mt-12 mb-5">How we use AI</h2>
+          <p>
+            The Desk uses large language models for one specific job: drafting per-persona angles after a story has been selected and summarised. The human editor picks the story, frames it, and writes the take. The AI helps phrase the four "Say This" lines so each persona — broker, adviser, accountant, buyer's agent — gets language tuned to their conversation. Full disclosure is on the{" "}
+            <a href="/editorial-standards" className="text-amber-300 hover:text-amber-200 transition-colors">
+              editorial standards
+            </a>{" "}
+            page.
+          </p>
+
           <div className="mt-12 pt-8 border-t border-[var(--color-border)]">
             <p
               className="overline mb-4"

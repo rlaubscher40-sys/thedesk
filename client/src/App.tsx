@@ -29,6 +29,9 @@ const About = lazy(() => import("./pages/About"));
 const StoryPage = lazy(() => import("./pages/StoryPage"));
 const AdminPage = lazy(() => import("./pages/Admin"));
 const Login = lazy(() => import("./pages/Login"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const Terms = lazy(() => import("./pages/Terms"));
+const EditorialStandards = lazy(() => import("./pages/EditorialStandards"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 function KeyboardShortcuts() {
@@ -91,6 +94,9 @@ function Routes() {
             <Route path="/story/:id" component={StoryPage} />
             <Route path="/admin" component={AdminPage} />
             <Route path="/login" component={Login} />
+            <Route path="/privacy" component={Privacy} />
+            <Route path="/terms" component={Terms} />
+            <Route path="/editorial-standards" component={EditorialStandards} />
             <Route component={NotFound} />
           </Switch>
         </Suspense>
