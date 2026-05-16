@@ -13,7 +13,8 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
-    "db:push": "drizzle-kit generate && drizzle-kit migrate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
     "ingest:daily": "tsx scripts/ingest/dailyFeed.ts",
     "ingest:weekly": "tsx scripts/ingest/weeklyEdition.ts"
   },
