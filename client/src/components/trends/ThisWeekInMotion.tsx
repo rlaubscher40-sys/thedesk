@@ -8,8 +8,18 @@
  * Turns the page from "a wall of charts" into a punchy editorial lede.
  */
 import { ArrowDown, ArrowUp, CalendarDays, Gauge, Minus } from "lucide-react";
-import type { Edition } from "@shared/types";
 import type { DailyMetric } from "@shared/types";
+
+/**
+ * The subset of Edition fields this hero reads. Typed locally so it
+ * accepts both the full Edition and the leaner EditionSummary returned
+ * by editions.list — neither needs topics/body/signals/fullText here.
+ */
+type EditionLite = {
+  editionNumber: number;
+  marketStress: string | null;
+  datesToWatch: Array<{ label: string; description: string }> | null;
+};
 import { Sparkline } from "@/components/charts/Sparkline";
 import { Skeleton } from "@/components/ui/Skeleton";
 
@@ -73,7 +83,7 @@ export function ThisWeekInMotion({
 }: {
   metrics: DailyMetric[] | undefined;
   histories: Histories | undefined;
-  editions: Edition[] | undefined;
+  editions: EditionLite[] | undefined;
   loading: boolean;
 }) {
   if (loading) {
@@ -176,7 +186,7 @@ function StressBlock({
   edition,
 }: {
   stress: string | null;
-  edition: Edition | undefined;
+  edition: EditionLite | undefined;
 }) {
   const meta = stressMeta(stress);
   return (
@@ -258,7 +268,7 @@ function DatesBlock({
   edition,
 }: {
   dates: Array<{ label: string; description: string }>;
-  edition: Edition | undefined;
+  edition: EditionLite | undefined;
 }) {
   return (
     <div className="bg-[var(--color-bg-elevated)] p-5 sm:p-6">

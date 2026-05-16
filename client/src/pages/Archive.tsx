@@ -37,8 +37,13 @@ export default function ArchivePage() {
   const [category, setCategory] = useState<string | null>(initial.cat);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Press `/` anywhere focuses the search input.
+  // Auto-focus the search input on desktop so the user can start typing
+  // immediately. On mobile we skip this — focusing pops the keyboard the
+  // instant the page loads, which obscures the category chips and is
+  // jarring when the user came here to browse, not search.
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.innerWidth < 768) return;
     inputRef.current?.focus();
   }, []);
 

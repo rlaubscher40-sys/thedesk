@@ -14,15 +14,17 @@ const editionIdInput = z.object({ editionId: z.number().int().positive() });
 
 export const editionsRouter = router({
   /**
-   * All editions, decorated with a derived `title` so the list view doesn't
-   * need to assemble it on every render.
+   * Lean list view of every edition. Drops the heavy text columns
+   * (fullText / substackDraftBody / topics / signals) the list never
+   * reads — cuts the payload from MBs to tens of KBs once you have a
+   * year of editions, and keeps the React Query cache light. Callers
+   * that need the full document fetch it through getByNumber.
    */
   list: publicProcedure.query(async () => {
-    const rows = await db.listEditions();
+    const rows = await db.listEditionSummaries();
     return rows.map((ed) => ({
       ...ed,
       title: `Edition ${ed.editionNumber}: ${ed.weekRange}`,
-      hasDraft: Boolean(ed.substackDraftBody && ed.substackDraftBody.length > 0),
     }));
   }),
 
