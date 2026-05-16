@@ -6,13 +6,20 @@
  *
  * Falls back to a flat layout (and to the curated seed metrics) when the
  * DB hasn't been populated yet.
+ *
+ * Collapsed by default on mobile so the lead story isn't pushed below
+ * the fold. The expanded/collapsed choice persists in localStorage so a
+ * reader's preference sticks across visits and viewports.
  */
-import { ArrowDown, ArrowUp, Minus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowDown, ArrowUp, ChevronDown, Minus } from "lucide-react";
 import type { DailyMetric } from "@shared/types";
 import { editionMeta, metrics as seedMetrics } from "@/data/editions/2026-05-15";
 import { resolveMetricTrend } from "@/lib/metrics";
 import { trpc } from "@/lib/trpc";
 import { Sparkline } from "./Sparkline";
+
+const STORAGE_KEY = "thedesk:metrics-strip-expanded";
 
 type Tile = {
   key: string;
@@ -33,7 +40,27 @@ const GROUP_LABELS: Record<string, string> = {
   DEMOGRAPHICS: "Demographics",
 };
 
+/**
+ * Read the persisted expanded preference. If none is set, expand by
+ * default on desktop and collapse on mobile so the stories land sooner
+ * on the smaller screens where the dashboard pushes them well below
+ * the fold.
+ */
+function readInitialExpanded(): boolean {
+  if (typeof window === "undefined") return true;
+  const stored = window.localStorage.getItem(STORAGE_KEY);
+  if (stored === "1") return true;
+  if (stored === "0") return false;
+  return window.innerWidth >= 768;
+}
+
 export function MetricsStrip() {
+  const [expanded, setExpanded] = useState<boolean>(readInitialExpanded);
+
+  useEffect(() => {
+    window.localStorage.setItem(STORAGE_KEY, expanded ? "1" : "0");
+  }, [expanded]);
+
   const { data: liveMetrics } = trpc.metrics.list.useQuery(undefined, {
     staleTime: 5 * 60_000,
   });
@@ -72,49 +99,77 @@ export function MetricsStrip() {
   const headerRight = hasLive
     ? "Live · refreshed daily"
     : `Edition ${editionMeta.number} · ${editionMeta.date}`;
+  const tileCount = tiles.length;
 
   return (
     <section
       className="panel rounded-sm overflow-hidden"
       aria-label="Where things stand"
     >
-      <header className="px-6 py-4 border-b border-[var(--color-border)] flex items-baseline justify-between flex-wrap gap-3">
+      {/* Header is the whole tap target so a thumb on mobile doesn't have
+          to land on the chevron specifically. */}
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+        aria-controls="metrics-strip-body"
+        className="w-full px-6 py-4 border-b border-[var(--color-border)] flex items-baseline justify-between flex-wrap gap-3 text-left hover:bg-white/[0.02] transition-colors"
+        style={{ borderBottomWidth: expanded ? 1 : 0 }}
+      >
         <div className="flex items-baseline gap-3">
           <h2 className="font-serif text-2xl sm:text-3xl font-bold leading-none">
             Where things stand
           </h2>
-        </div>
-        <p
-          className="overline text-[var(--color-fg-subtle)]"
-          style={{ letterSpacing: "0.18em" }}
-        >
-          {headerRight}
-        </p>
-      </header>
-
-      {grouped.map((group, groupIdx) => (
-        <div key={group.label ?? `g-${groupIdx}`}>
-          {group.label && (
-            <div className="px-6 pt-5 pb-2 border-t border-[var(--color-border)] first:border-t-0 flex items-center gap-3">
-              <p
-                className="overline-amber"
-                style={{ letterSpacing: "0.22em", fontSize: "10px" }}
-              >
-                {group.label}
-              </p>
-              <span
-                className="block flex-1 h-px bg-[var(--color-border)]"
-                aria-hidden="true"
-              />
-            </div>
+          {!expanded && tileCount > 0 && (
+            <span
+              className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-fg-subtle)]"
+            >
+              {tileCount} metric{tileCount === 1 ? "" : "s"}
+            </span>
           )}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {group.tiles.map((m, idx) => (
-              <Tile key={m.key + idx} tile={m} />
-            ))}
-          </div>
         </div>
-      ))}
+        <div className="flex items-center gap-3">
+          <p
+            className="overline text-[var(--color-fg-subtle)]"
+            style={{ letterSpacing: "0.18em" }}
+          >
+            {headerRight}
+          </p>
+          <ChevronDown
+            className="h-3.5 w-3.5 text-[var(--color-fg-subtle)] shrink-0 transition-transform"
+            style={{ transform: expanded ? "rotate(180deg)" : "none" }}
+            aria-hidden="true"
+          />
+        </div>
+      </button>
+
+      {expanded && (
+        <div id="metrics-strip-body">
+          {grouped.map((group, groupIdx) => (
+            <div key={group.label ?? `g-${groupIdx}`}>
+              {group.label && (
+                <div className="px-6 pt-5 pb-2 border-t border-[var(--color-border)] first:border-t-0 flex items-center gap-3">
+                  <p
+                    className="overline-amber"
+                    style={{ letterSpacing: "0.22em", fontSize: "10px" }}
+                  >
+                    {group.label}
+                  </p>
+                  <span
+                    className="block flex-1 h-px bg-[var(--color-border)]"
+                    aria-hidden="true"
+                  />
+                </div>
+              )}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                {group.tiles.map((m, idx) => (
+                  <Tile key={m.key + idx} tile={m} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
