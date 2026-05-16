@@ -98,6 +98,7 @@ Output a SINGLE JSON object matching this exact shape, and NOTHING ELSE — no p
       "category": "MACRO | PROPERTY | POLICY | MARKETS | AI | TECH | GEOPOLITICS | SCIENCE | ECONOMICS | OTHER",
       "body": "600-800 word analytical deep-dive. Plain prose, multiple paragraphs separated by blank lines. NO bullet points, NO markdown, NO subheadings.\\n\\nStructure each body around four implicit beats:\\n  1. WHAT HAPPENED — one tight paragraph grounding the reader in the week's facts. Concrete numbers, dates, named entities.\\n  2. WHY IT MATTERS — two or three paragraphs of analysis. What does this change for the partner channel? What's the second-order effect? What did the consensus get wrong?\\n  3. WHAT TO WATCH — a paragraph on the next 1-4 weeks. Specific data releases, decisions, or signals.\\n  4. WHAT IT MEANS FOR YOU — a closing paragraph that lands the partner-channel implication. Not advice, framing.\\n\\nWrite like an editor who has sat with the week's stories for an hour and is now telling a sharp broker what they need to know. The lead topic (first in the array) gets the most substantive treatment.",
       "keyTakeaway": "One sentence Ruben could repeat verbatim to a client over coffee. The compressed version of the whole argument. This is the line.",
+      "whyItMatters": "One explicit sentence answering 'why does the partner channel care about this specifically, right now'. Not the takeaway, not the headline — the audience-relevance hook. Specific to brokers/advisers/buyer's agents in Australia this week, not generic.",
       "whatToWatch": [
         "Specific forward-looking item — a data release, decision, or event in the next 1-4 weeks",
         "Second watch item",
@@ -196,6 +197,7 @@ export async function synthesizeWeeklyEdition(input: SynthesisInput): Promise<Sy
       summary: stripBannedChars(t.summary),
       body: t.body ? stripBannedChars(t.body) : undefined,
       keyTakeaway: t.keyTakeaway ? stripBannedChars(t.keyTakeaway) : undefined,
+      whyItMatters: t.whyItMatters ? stripBannedChars(t.whyItMatters) : undefined,
       whatToWatch: t.whatToWatch?.map((s) => stripBannedChars(s)),
       talkingPoints: t.talkingPoints
         ? Object.fromEntries(

@@ -73,6 +73,46 @@ export function updateRubensTake(id: number, rubensTake: string): void {
   if (e) e.rubensTake = rubensTake;
 }
 
+export function updateEditionSynthesis(
+  id: number,
+  patch: {
+    topics?: Edition["topics"];
+    signals?: Edition["signals"];
+    fullText?: Edition["fullText"];
+    keyMetrics?: Edition["keyMetrics"];
+    marketStress?: Edition["marketStress"];
+    datesToWatch?: Edition["datesToWatch"];
+  }
+): void {
+  const e = demo.editions.find((x) => x.id === id);
+  if (!e) return;
+  if (patch.topics !== undefined) e.topics = patch.topics;
+  if (patch.signals !== undefined) e.signals = patch.signals;
+  if (patch.fullText !== undefined) e.fullText = patch.fullText;
+  if (patch.keyMetrics !== undefined) e.keyMetrics = patch.keyMetrics;
+  if (patch.marketStress !== undefined) e.marketStress = patch.marketStress;
+  if (patch.datesToWatch !== undefined) e.datesToWatch = patch.datesToWatch;
+}
+
+export function updateEditionSeo(
+  id: number,
+  seo: {
+    metaTitle: string;
+    metaDescription: string;
+    socialTitle: string;
+    socialDescription: string;
+    headlineVariants: string[];
+  }
+): void {
+  const e = demo.editions.find((x) => x.id === id);
+  if (!e) return;
+  e.metaTitle = seo.metaTitle;
+  e.metaDescription = seo.metaDescription;
+  e.socialTitle = seo.socialTitle;
+  e.socialDescription = seo.socialDescription;
+  e.headlineVariants = seo.headlineVariants;
+}
+
 export function deleteEdition(id: number): void {
   const idx = demo.editions.findIndex((e) => e.id === id);
   if (idx >= 0) demo.editions.splice(idx, 1);

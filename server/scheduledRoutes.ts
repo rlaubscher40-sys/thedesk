@@ -27,6 +27,8 @@ import {
   generatePartnerTag,
   generateRubensTake,
   generateSayThis,
+  optimiseHeadlines,
+  runEditorQc,
   synthesizeWeeklyEdition,
 } from "./prompts";
 import Parser from "rss-parser";
@@ -371,25 +373,88 @@ function registerSynthesizeEditionRoute(app: Express): void {
       sourcedItemCount: items.length,
     });
 
-    // ── Background: hero image + Ruben's Take, same as the manual route ────
+    // ── Background: editor QC + hero + take + headline SEO ─────────────────
+    // The QC pass and headline optimiser run on the LIVE edition so a slow
+    // call doesn't hold up the synthesise endpoint. Each step is best-effort
+    // — a failure logs and moves on, the edition stays usable either way.
     setImmediate(async () => {
       const inserted = await db.getEditionByNumber(editionNumber);
       if (!inserted) return;
+
+      // Step 1: Editor QC pass. Audits voice, clarity, audience hooks,
+      // unsupported claims and applies fixes in place. We feed it the
+      // synthesised output (not the DB row, which is the same shape).
+      let finalEdition = {
+        topics: edition.topics,
+        signals: edition.signals,
+        keyMetrics: edition.keyMetrics,
+        readingTime: edition.readingTime,
+        fullText: edition.fullText,
+        marketStress: edition.marketStress,
+        datesToWatch: edition.datesToWatch,
+      };
+      try {
+        const qc = await runEditorQc(finalEdition);
+        if (!qc.approved) {
+          console.log(
+            `[editor-qc] Edition ${editionNumber}: applied ${qc.notes.length} edits`
+          );
+          for (const n of qc.notes) console.log(`  - ${n}`);
+        } else {
+          console.log(`[editor-qc] Edition ${editionNumber}: clean on first pass`);
+        }
+        finalEdition = qc.revised;
+        await db.updateEditionSynthesis(inserted.id, {
+          topics: finalEdition.topics,
+          signals: finalEdition.signals,
+          fullText: finalEdition.fullText,
+          keyMetrics: finalEdition.keyMetrics,
+          marketStress: finalEdition.marketStress,
+          datesToWatch: finalEdition.datesToWatch,
+        });
+      } catch (err) {
+        console.warn(
+          `[editor-qc] Edition ${editionNumber} skipped: ${(err as Error).message}`
+        );
+      }
+
+      // Step 2: hero image + Ruben's Take in parallel.
       const [imageResult, takeResult] = await Promise.allSettled([
         generateImage({
-          prompt: editionHeroPrompt({ weekRange, topics: edition.topics }),
+          prompt: editionHeroPrompt({ weekRange, topics: finalEdition.topics }),
         }),
         generateRubensTake({
           weekRange,
-          topics: edition.topics,
-          keyMetrics: edition.keyMetrics,
+          topics: finalEdition.topics,
+          keyMetrics: finalEdition.keyMetrics,
         }),
       ]);
       if (imageResult.status === "fulfilled" && imageResult.value?.url) {
         await db.updateHeroImage(inserted.id, imageResult.value.url);
       }
+      let rubensTake: string | null = null;
       if (takeResult.status === "fulfilled") {
-        await db.updateRubensTake(inserted.id, takeResult.value);
+        rubensTake = takeResult.value;
+        await db.updateRubensTake(inserted.id, rubensTake);
+      }
+
+      // Step 3: headline + SEO optimiser. Needs the take if we have one
+      // (it informs the social-card framing).
+      try {
+        const seo = await optimiseHeadlines({
+          weekRange,
+          rubensTake,
+          topics: finalEdition.topics,
+          fullText: finalEdition.fullText,
+        });
+        await db.updateEditionSeo(inserted.id, seo);
+        console.log(
+          `[headline-optimiser] Edition ${editionNumber}: meta + ${seo.headlineVariants.length} variants saved`
+        );
+      } catch (err) {
+        console.warn(
+          `[headline-optimiser] Edition ${editionNumber} skipped: ${(err as Error).message}`
+        );
       }
     });
   };
