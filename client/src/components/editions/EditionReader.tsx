@@ -63,7 +63,7 @@ export function EditionReader({
 
       {lead && (
         <SectionErrorBoundary section="Lead story">
-          <LeadStory topic={lead} />
+          <LeadStory topic={lead} editionId={edition.id} topicIndex={0} />
         </SectionErrorBoundary>
       )}
 
@@ -95,7 +95,13 @@ export function EditionReader({
           >
             {rest.map((topic, idx) => (
               // The composed key keeps duplicate titles unique (issue #1).
-              <TopicCard key={`${topic.title || "topic"}-${idx}`} topic={topic} />
+              // topicIndex is +1 because the lead is at array position 0.
+              <TopicCard
+                key={`${topic.title || "topic"}-${idx}`}
+                topic={topic}
+                editionId={edition.id}
+                topicIndex={idx + 1}
+              />
             ))}
           </StaggerList>
         </SectionErrorBoundary>

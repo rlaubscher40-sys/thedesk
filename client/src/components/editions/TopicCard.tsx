@@ -6,14 +6,28 @@
  * topic deck scannable without losing the long-form value.
  */
 import { useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Pencil } from "lucide-react";
 import type { EditionTopic } from "@shared/schemas";
 import { cn } from "@/lib/cn";
 import { categoryAccentClass, categoryColour } from "@/lib/category";
+import { useAuth } from "@/lib/useAuth";
 import { TalkingPointsBlock } from "./TalkingPointsBlock";
+import { TopicEditDrawer } from "./TopicEditDrawer";
 
-export function TopicCard({ topic }: { topic: EditionTopic }) {
+export function TopicCard({
+  topic,
+  editionId,
+  topicIndex,
+}: {
+  topic: EditionTopic;
+  editionId?: number;
+  topicIndex?: number;
+}) {
   const [expanded, setExpanded] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const { user } = useAuth();
+  const canEdit =
+    user?.role === "admin" && editionId != null && topicIndex != null;
   const colour = categoryColour(topic.category);
   const hasBody = Boolean(topic.body && topic.body.length > 0);
   const hasWatch = Boolean(topic.whatToWatch && topic.whatToWatch.length > 0);
@@ -30,12 +44,25 @@ export function TopicCard({ topic }: { topic: EditionTopic }) {
       )}
       style={{ boxShadow: `inset 3px 0 0 0 ${colour}` }}
     >
-      <p
-        className="overline-amber mb-3"
-        style={{ color: colour, letterSpacing: "0.2em" }}
-      >
-        {topic.category}
-      </p>
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <p
+          className="overline-amber"
+          style={{ color: colour, letterSpacing: "0.2em" }}
+        >
+          {topic.category}
+        </p>
+        {canEdit && (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="p-1.5 rounded text-[var(--color-fg-subtle)] hover:text-amber-300 hover:bg-amber-500/10 transition-colors"
+            aria-label="Edit topic"
+            title="Edit topic"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
 
       <h3 className="display-3 mb-4 leading-tight">{topic.title}</h3>
 
@@ -151,6 +178,16 @@ export function TopicCard({ topic }: { topic: EditionTopic }) {
             </>
           )}
         </button>
+      )}
+
+      {canEdit && (
+        <TopicEditDrawer
+          open={editing}
+          onClose={() => setEditing(false)}
+          editionId={editionId!}
+          topicIndex={topicIndex!}
+          topic={topic}
+        />
       )}
     </article>
   );
