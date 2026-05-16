@@ -15,14 +15,19 @@ import { sdk } from "./sdk";
 
 export function registerOAuthRoutes(app: Express): void {
   /**
-   * Quick "is admin login wired up?" probe. Returns flags only — never
-   * leaks the password value. Useful when login fails and we need to
-   * tell config-missing apart from wrong-password from the phone.
+   * Quick "is the server wired up?" probe. Returns config flags only —
+   * never leaks any secret values. Useful when something fails on
+   * Railway and we need to tell "env var missing" apart from "env var
+   * set but value wrong" from the phone.
    */
   app.get("/api/auth/status", (_req: Request, res: Response) => {
     res.json({
       passwordConfigured: env.adminPassword.length > 0,
       jwtSecretConfigured: env.cookieSecret.length > 0,
+      anthropicConfigured: env.anthropicApiKey.length > 0,
+      openAiConfigured: env.openAiApiKey.length > 0,
+      databaseConfigured: env.databaseUrl.length > 0,
+      scheduledKeyConfigured: env.scheduledApiKey.length > 0,
       environment: env.isProduction ? "production" : "development",
     });
   });
