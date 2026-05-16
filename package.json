@@ -16,7 +16,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "ingest:daily": "tsx scripts/ingest/dailyFeed.ts",
-    "ingest:weekly": "tsx scripts/ingest/weeklyEdition.ts"
+    "ingest:weekly": "tsx scripts/ingest/weeklyEdition.ts",
+    "ingest:metrics": "tsx scripts/ingest/dailyMetrics.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.96.0",

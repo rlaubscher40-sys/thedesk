@@ -1,17 +1,18 @@
 /**
- * RSS source list for the daily ingest. Each entry maps a feed URL to a
- * default category — the script uses this rather than running an LLM
- * classifier (faster, free, deterministic).
+ * RSS source list for the daily ingest.
  *
- * Editing this list IS the editorial decision about what The Desk reads.
- * Keep it short and trustworthy; a smaller set of good sources beats a long
- * tail of aggregators.
+ * Three tiers of sources, ordered by signal-to-noise:
  *
- * Category values must match the union in shared/schemas.ts.
+ *   1. Official / regulators — RBA, Treasury. First-class signal.
+ *   2. Australian newsrooms with reliable RSS — ABC, Guardian, etc.
+ *   3. Google News topic queries — laser-targeted to the partner-channel
+ *      beat. Each query pulls relevant items from across publishers
+ *      without us having to maintain a long source list. The redirect
+ *      url is uglier than a direct masthead URL but the relevance is
+ *      consistently better than scraping a generic "business" feed.
  *
- * If a source's URL 404s or stops being valid RSS, the script logs a
- * warning and skips it — one bad feed doesn't sink the run. So leaving
- * speculative URLs in here is fine; they self-disable.
+ * Categories must match the union in shared/schemas.ts. The category set
+ * here is the default; the LLM enrichment downstream can refine.
  */
 
 export type SourceCategory =
@@ -27,108 +28,63 @@ export type SourceCategory =
   | "OTHER";
 
 export type Source = {
-  /** Short masthead shown on the card — "RBA", "Reddit / r/AusFinance", etc. */
   name: string;
-  /** RSS / Atom URL. */
   url: string;
-  /** Default category for items from this source. */
   category: SourceCategory;
-  /** Cap items pulled from this source in one run. */
   maxItems?: number;
 };
 
+/**
+ * Google News RSS — laser-targeted topic queries. Each returns Australian
+ * news matching the search, scored by Google's relevance ranking. The
+ * link is a Google redirect (uglier than direct masthead URLs) but the
+ * relevance is much higher than scraping a generic business feed.
+ *
+ * Format: q=<query>&hl=en-AU&gl=AU&ceid=AU:en
+ */
+function googleNews(query: string): string {
+  const params = new URLSearchParams({
+    q: query,
+    hl: "en-AU",
+    gl: "AU",
+    ceid: "AU:en",
+  });
+  return `https://news.google.com/rss/search?${params.toString()}`;
+}
+
 export const SOURCES: Source[] = [
-  // ── Regulators & official ────────────────────────────────────────────────
-  // First-class signal — these are the institutions that move markets.
+  // ── Tier 1: Official / regulators ────────────────────────────────────────
   {
     name: "RBA",
     url: "https://www.rba.gov.au/rss/rss-cb-media-releases.xml",
     category: "MACRO",
-    maxItems: 3,
+    maxItems: 4,
   },
   {
     name: "RBA Speeches",
     url: "https://www.rba.gov.au/rss/rss-cb-speeches.xml",
     category: "MACRO",
-    maxItems: 2,
-  },
-  {
-    name: "APRA",
-    url: "https://www.apra.gov.au/rss/news.xml",
-    category: "POLICY",
     maxItems: 3,
-  },
-  {
-    name: "ASIC",
-    url: "https://asic.gov.au/about-asic/news-centre/find-a-media-release/?rss=1",
-    category: "POLICY",
-    maxItems: 2,
   },
   {
     name: "Treasury",
     url: "https://treasury.gov.au/rss.xml",
     category: "POLICY",
-    maxItems: 2,
-  },
-  {
-    name: "ABS",
-    url: "https://www.abs.gov.au/AUSSTATS/subscriber.nsf/rss/8B5D67BE9F9C5A5BCA257A7700135D52?opendocument",
-    category: "ECONOMICS",
     maxItems: 3,
   },
 
-  // ── Property research ───────────────────────────────────────────────────
-  {
-    name: "CoreLogic AU",
-    url: "https://www.corelogic.com.au/news-research/news/feed",
-    category: "PROPERTY",
-    maxItems: 3,
-  },
-  {
-    name: "PropTrack",
-    url: "https://www.proptrack.com.au/feed/",
-    category: "PROPERTY",
-    maxItems: 2,
-  },
-  {
-    name: "Domain News",
-    url: "https://www.domain.com.au/news/feed/",
-    category: "PROPERTY",
-    maxItems: 3,
-  },
-
-  // ── Markets / Business news ─────────────────────────────────────────────
+  // ── Tier 2: Australian newsrooms with reliable RSS ───────────────────────
   {
     name: "ABC News Business",
     url: "https://www.abc.net.au/news/feed/51120/rss.xml",
     category: "MARKETS",
-    maxItems: 3,
+    maxItems: 4,
   },
   {
     name: "Guardian AU Business",
     url: "https://www.theguardian.com/au/business/rss",
     category: "MARKETS",
-    maxItems: 2,
-  },
-  {
-    name: "Livewire Markets",
-    url: "https://www.livewiremarkets.com/feed",
-    category: "MARKETS",
-    maxItems: 2,
-  },
-  {
-    name: "MacroBusiness",
-    url: "https://www.macrobusiness.com.au/feed/",
-    category: "MACRO",
     maxItems: 3,
-  },
-
-  // ── Politics / Policy news ──────────────────────────────────────────────
-  {
-    name: "ABC News Politics",
-    url: "https://www.abc.net.au/news/feed/46182/rss.xml",
-    category: "POLICY",
-    maxItems: 2,
   },
   {
     name: "Guardian AU Politics",
@@ -136,45 +92,80 @@ export const SOURCES: Source[] = [
     category: "POLICY",
     maxItems: 2,
   },
-
-  // ── Tech / AI ───────────────────────────────────────────────────────────
   {
-    name: "ABC News Technology",
-    url: "https://www.abc.net.au/news/feed/2942460/rss.xml",
-    category: "TECH",
+    name: "The Conversation · Business",
+    url: "https://theconversation.com/au/business/articles.atom",
+    category: "MARKETS",
+    maxItems: 2,
+  },
+  {
+    name: "The Conversation · Economy",
+    url: "https://theconversation.com/au/topics/australian-economy-9/articles.atom",
+    category: "ECONOMICS",
     maxItems: 2,
   },
 
-  // ── Global public pulse (Reddit) ────────────────────────────────────────
-  // Reddit's per-subreddit RSS is free and unauthenticated. We pull the
-  // top posts from the last day — surfaces what the audience is actually
-  // talking about, not what gets published in mastheads.
+  // ── Tier 3: Google News topic queries (laser-targeted) ──────────────────
   {
-    name: "Reddit / r/AusFinance",
-    url: "https://www.reddit.com/r/AusFinance/top/.rss?t=day",
+    name: "RBA & Cash Rate",
+    url: googleNews('"Reserve Bank of Australia" OR "RBA" rates'),
+    category: "MACRO",
+    maxItems: 3,
+  },
+  {
+    name: "APRA & Lending",
+    url: googleNews('APRA Australia lending OR serviceability OR banks'),
+    category: "POLICY",
+    maxItems: 3,
+  },
+  {
+    name: "Australian Property Market",
+    url: googleNews(
+      'Australia property prices OR "housing market" OR "house prices" -realestate.com.au/buy'
+    ),
+    category: "PROPERTY",
+    maxItems: 4,
+  },
+  {
+    name: "Sydney & Melbourne Auctions",
+    url: googleNews(
+      '("auction clearance" OR "auction results") Sydney OR Melbourne'
+    ),
+    category: "PROPERTY",
+    maxItems: 2,
+  },
+  {
+    name: "Mortgage Brokers & Lending",
+    url: googleNews(
+      'Australia "mortgage broker" OR "broker channel" OR "fixed rate" mortgage'
+    ),
     category: "MARKETS",
     maxItems: 3,
   },
   {
-    name: "Reddit / r/AusProperty",
-    url: "https://www.reddit.com/r/AusProperty/top/.rss?t=day",
-    category: "PROPERTY",
-    maxItems: 3,
+    name: "ASX & Markets",
+    url: googleNews('ASX 200 OR "Australian shares" OR "AUD USD"'),
+    category: "MARKETS",
+    maxItems: 2,
   },
   {
-    name: "Reddit / r/AusEcon",
-    url: "https://www.reddit.com/r/AusEcon/top/.rss?t=day",
+    name: "Inflation & Economy",
+    url: googleNews(
+      'Australia inflation OR CPI OR "Reserve Bank" GDP OR unemployment'
+    ),
     category: "ECONOMICS",
     maxItems: 2,
   },
   {
-    name: "Reddit / r/fiaustralia",
-    url: "https://www.reddit.com/r/fiaustralia/top/.rss?t=day",
-    category: "MARKETS",
+    name: "Buyer's Agents & Investors",
+    url: googleNews(
+      '"buyer\'s agent" Australia OR "property investor" Australia'
+    ),
+    category: "PROPERTY",
     maxItems: 2,
   },
 ];
 
 /** How many items to ship per daily run after dedup. */
-export const DAILY_ITEM_TARGET = 18;
+export const DAILY_ITEM_TARGET = 20;
 export const DAILY_ITEM_MIN = 8;

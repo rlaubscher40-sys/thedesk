@@ -126,6 +126,39 @@ export const subscribers = mysqlTable("subscribers", {
 export type Subscriber = typeof subscribers.$inferSelect;
 export type InsertSubscriber = typeof subscribers.$inferInsert;
 
+// ─── Daily key metrics ──────────────────────────────────────────────────────
+
+/**
+ * Daily-refreshed market metrics shown in the Today page strip. One row
+ * per metric (keyed by `metricKey`), upserted by the daily-metrics
+ * GitHub Actions workflow. The `previousValue` is preserved across
+ * updates so the UI can render a "vs. prior" delta without storing
+ * history elsewhere.
+ */
+export const dailyMetrics = mysqlTable("daily_metrics", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Stable key — "asx200", "audusd", "cash_rate". Used as the upsert key. */
+  metricKey: varchar("metricKey", { length: 64 }).notNull().unique(),
+  /** Human label — "ASX 200", "AUD / USD", "Cash rate". */
+  label: varchar("label", { length: 128 }).notNull(),
+  /** Current value as a display string, e.g. "8,210.43" or "0.6543" or "4.35%". */
+  value: varchar("value", { length: 64 }).notNull(),
+  /** Optional unit suffix, e.g. "%", "pts". UI may append. */
+  unit: varchar("unit", { length: 16 }),
+  /** Previous value before this update — used to compute deltas in the UI. */
+  previousValue: varchar("previousValue", { length: 64 }),
+  /** Source label — "Yahoo Finance", "RBA", "Manual". */
+  source: varchar("source", { length: 64 }),
+  /** As-of timestamp from the data source (not the upsert time). */
+  asOf: timestamp("asOf").notNull(),
+  /** Display order, lower = earlier. */
+  displayOrder: int("displayOrder").default(100).notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export type DailyMetric = typeof dailyMetrics.$inferSelect;
+export type InsertDailyMetric = typeof dailyMetrics.$inferInsert;
+
 // ─── Featured LinkedIn posts ────────────────────────────────────────────────
 
 /**

@@ -393,12 +393,66 @@ function registerSynthesizeEditionRoute(app: Express): void {
   app.post("/api/ingest/synthesize-edition", handler);
 }
 
+// ─── Daily metrics ──────────────────────────────────────────────────────────
+
+const dailyMetricsBodySchema = z.object({
+  metrics: z
+    .array(
+      z.object({
+        metricKey: z.string().min(1).max(64),
+        label: z.string().min(1).max(128),
+        value: z.string().min(1).max(64),
+        unit: z.string().max(16).optional().nullable(),
+        source: z.string().max(64).optional().nullable(),
+        asOf: z.string().datetime().or(z.string().min(1)),
+        displayOrder: z.number().int().min(0).max(9999).optional(),
+      })
+    )
+    .min(1),
+});
+
+function registerDailyMetricsRoute(app: Express): void {
+  const handler = async (req: Request, res: Response) => {
+    if (!(await authenticateScheduled(req))) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const parsed = dailyMetricsBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid payload", issues: parsed.error.flatten() });
+      return;
+    }
+    let ok = 0;
+    for (const m of parsed.data.metrics) {
+      try {
+        await db.upsertDailyMetric({
+          metricKey: m.metricKey,
+          label: m.label,
+          value: m.value,
+          unit: m.unit ?? null,
+          source: m.source ?? null,
+          asOf: new Date(m.asOf),
+          displayOrder: m.displayOrder,
+        });
+        ok++;
+      } catch (err) {
+        console.error(`[metrics] upsert ${m.metricKey} failed:`, err);
+      }
+    }
+    console.log(`[scheduled] upserted ${ok}/${parsed.data.metrics.length} daily metrics`);
+    res.json({ success: true, count: ok });
+  };
+  app.post("/api/scheduled/daily-metrics", handler);
+  app.post("/api/ingest/daily-metrics", handler);
+}
+
 export function registerScheduledRoutes(app: Express): void {
   registerDailyFeedRoute(app);
   registerWeeklyEditionRoute(app);
   registerSynthesizeEditionRoute(app);
+  registerDailyMetricsRoute(app);
   console.log(
-    "[scheduled] registered /api/{scheduled,ingest}/{daily-feed,weekly-edition,synthesize-edition}"
+    "[scheduled] registered /api/{scheduled,ingest}/{daily-feed,weekly-edition,synthesize-edition,daily-metrics}"
   );
 }
 
