@@ -29,7 +29,11 @@ export async function setupVite(app: Express, server: Server): Promise<void> {
 }
 
 export function serveStatic(app: Express): void {
-  const distPath = path.resolve(import.meta.dirname, "../..", "dist", "public");
+  // Resolve from the working directory, not from import.meta.dirname — the
+  // server is esbuild-bundled in production so the source path no longer
+  // matches the bundled location at runtime. `process.cwd()` is set by
+  // `node dist/index.js` to the project root regardless.
+  const distPath = path.resolve(process.cwd(), "dist", "public");
   if (!fs.existsSync(distPath)) {
     console.error(`[static] missing build directory ${distPath}`);
   }
