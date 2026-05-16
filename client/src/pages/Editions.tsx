@@ -21,6 +21,7 @@ import { EditionReaderSkeleton } from "@/components/editions/EditionReaderSkelet
 import { EditionSelector } from "@/components/editions/EditionSelector";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/lib/useAuth";
+import { useEditionMeta } from "@/lib/useEditionMeta";
 import { trpc } from "@/lib/trpc";
 
 export default function EditionsPage() {
@@ -58,6 +59,38 @@ export default function EditionsPage() {
     );
     return prior?.keyMetrics ?? null;
   }, [listQuery.data, selectedNumber]);
+
+  // Pump per-edition meta tags into <head> so a share to LinkedIn / Slack
+  // gets the right preview card. Static index.html tags still serve as
+  // the Google-crawler fallback.
+  const edition = editionQuery.data;
+  useEditionMeta(
+    edition
+      ? {
+          title:
+            edition.metaTitle ??
+            `Edition ${edition.editionNumber} · ${edition.weekRange}`,
+          description:
+            edition.metaDescription ??
+            edition.rubensTake ??
+            `Weekly intelligence for property partnerships — Edition ${edition.editionNumber}.`,
+          ogTitle:
+            edition.socialTitle ??
+            edition.metaTitle ??
+            `Edition ${edition.editionNumber} · ${edition.weekRange}`,
+          ogDescription:
+            edition.socialDescription ??
+            edition.metaDescription ??
+            edition.rubensTake ??
+            undefined,
+          ogImage: edition.heroImageUrl,
+          url:
+            typeof window !== "undefined"
+              ? `${window.location.origin}/editions/${edition.editionNumber}`
+              : undefined,
+        }
+      : null
+  );
 
   return (
     <div>

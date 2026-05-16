@@ -1,11 +1,18 @@
 /**
- * SEO routes — sitemap.xml + feed.xml.
+ * SEO routes — sitemap.xml + feed.xml + per-edition meta tag injection.
  *
- * Both pull the editions list from the database (or demo store) and emit
- * properly-formed XML. The site URL comes from env.SITE_URL; falls back
- * to the constant so it works in dev without an explicit value.
+ * The XML routes pull the editions list from the database and emit
+ * properly-formed XML. The edition route intercepts `/editions/:n` HTML
+ * requests in production and rewrites the static index.html with the
+ * edition's metaTitle / metaDescription / OG image so crawlers (Google,
+ * LinkedIn, Twitter) see the right preview without needing JS.
+ *
+ * The site URL comes from env.SITE_URL; falls back to the constant so
+ * it works in dev without an explicit value.
  */
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
+import fs from "node:fs";
+import path from "node:path";
 import { DEFAULT_SITE_URL } from "../../shared/const";
 import * as db from "../db";
 
@@ -26,7 +33,111 @@ function xmlEscape(s: string): string {
     .replace(/'/g, "&apos;");
 }
 
+function htmlEscape(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/**
+ * Intercept `/editions/:n` HTML requests, look up the edition, and serve
+ * the static index.html with that edition's meta tags substituted in.
+ * Production only — in dev the vite middleware owns the catch-all.
+ *
+ * Calls next() (falling through to the SPA shell) on any miss: bad
+ * editionNumber, edition not found, non-HTML accept header, missing build,
+ * or any DB error. The client-side useEditionMeta hook still runs after
+ * load, so the live page is correct either way.
+ */
+async function handleEditionMeta(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const editionNumber = parseInt(req.params.n ?? "", 10);
+    if (!Number.isFinite(editionNumber)) return next();
+
+    const accept = req.headers.accept ?? "";
+    if (!accept.includes("text/html")) return next();
+
+    const distPath = path.resolve(process.cwd(), "dist", "public");
+    const indexPath = path.resolve(distPath, "index.html");
+    if (!fs.existsSync(indexPath)) return next();
+
+    const edition = await db.getEditionByNumber(editionNumber);
+    if (!edition) return next();
+
+    let html = await fs.promises.readFile(indexPath, "utf-8");
+
+    const title =
+      edition.metaTitle ??
+      `Edition ${edition.editionNumber} · ${edition.weekRange}`;
+    const description =
+      edition.metaDescription ??
+      edition.rubensTake ??
+      `Weekly intelligence for property partnerships — Edition ${edition.editionNumber}.`;
+    const ogTitle = edition.socialTitle ?? title;
+    const ogDescription = edition.socialDescription ?? description;
+    const ogImage = edition.heroImageUrl;
+    const canonical = `${siteUrl(req)}/editions/${edition.editionNumber}`;
+
+    // Replace the static defaults in place.
+    html = html
+      .replace(
+        /<title>[\s\S]*?<\/title>/,
+        `<title>${htmlEscape(title)} — The Desk</title>`
+      )
+      .replace(
+        /<meta\s+name="description"\s+content="[^"]*"\s*\/?>/,
+        `<meta name="description" content="${htmlEscape(description)}" />`
+      )
+      .replace(
+        /<meta\s+property="og:title"\s+content="[^"]*"\s*\/?>/,
+        `<meta property="og:title" content="${htmlEscape(ogTitle)}" />`
+      )
+      .replace(
+        /<meta\s+property="og:description"\s+content="[^"]*"\s*\/?>/,
+        `<meta property="og:description" content="${htmlEscape(ogDescription)}" />`
+      );
+
+    // Append the tags index.html doesn't ship by default. og:type flips
+    // to "article" for editions; the rest are additive.
+    const additions = [
+      `<meta property="og:type" content="article" />`,
+      `<meta property="og:url" content="${htmlEscape(canonical)}" />`,
+      ogImage
+        ? `<meta property="og:image" content="${htmlEscape(ogImage)}" />`
+        : null,
+      `<meta name="twitter:title" content="${htmlEscape(ogTitle)}" />`,
+      `<meta name="twitter:description" content="${htmlEscape(ogDescription)}" />`,
+      ogImage
+        ? `<meta name="twitter:image" content="${htmlEscape(ogImage)}" />`
+        : null,
+      `<link rel="canonical" href="${htmlEscape(canonical)}" />`,
+    ]
+      .filter(Boolean)
+      .join("\n    ");
+
+    html = html.replace("</head>", `    ${additions}\n  </head>`);
+
+    res.set("Content-Type", "text/html; charset=utf-8");
+    res.set("Cache-Control", "public, max-age=300");
+    res.send(html);
+  } catch (err) {
+    console.warn(
+      `[seo] edition meta injection failed for ${req.params.n}:`,
+      (err as Error).message
+    );
+    next();
+  }
+}
+
 export function registerSeoRoutes(app: Express): void {
+  app.get("/editions/:n", handleEditionMeta);
+
   app.get("/sitemap.xml", async (req: Request, res: Response) => {
     const base = siteUrl(req);
     const editions = await db.listEditions().catch(() => []);

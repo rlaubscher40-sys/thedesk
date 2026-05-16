@@ -38,6 +38,30 @@ export function TopicCard({ topic }: { topic: EditionTopic }) {
         {topic.summary}
       </p>
 
+      {topic.whyItMatters && (
+        <div
+          className="mb-6 px-5 py-4 rounded-sm border-l-2 max-w-[68ch]"
+          style={{
+            borderLeftColor: colour,
+            background: `${colour}08`,
+          }}
+        >
+          <p
+            className="overline mb-1.5"
+            style={{
+              color: colour,
+              letterSpacing: "0.22em",
+              fontSize: "9px",
+            }}
+          >
+            Why this matters
+          </p>
+          <p className="text-[15px] text-[var(--color-fg)] leading-relaxed">
+            {topic.whyItMatters}
+          </p>
+        </div>
+      )}
+
       {hasBody && (
         <div
           className="text-[var(--color-fg-muted)] leading-relaxed whitespace-pre-line max-w-[68ch] mb-6"
