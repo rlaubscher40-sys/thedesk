@@ -8,6 +8,7 @@ import type { KeyMetrics } from "@shared/schemas";
 import { SectionErrorBoundary } from "../ErrorBoundary";
 import { ScrollProgress } from "../ScrollProgress";
 import { StaggerList } from "../StaggerList";
+import { SubscribeCallout } from "../SubscribeCallout";
 import { EditionAdminPanel } from "./EditionAdminPanel";
 import { EditionHero } from "./EditionHero";
 import { LeadStory } from "./LeadStory";
@@ -168,6 +169,15 @@ export function EditionReader({
           </section>
         </SectionErrorBoundary>
       )}
+
+      {/* End-of-read Subscribe panel. Highest-conversion surface in the
+          product — the reader has just spent 10 minutes with the editor's
+          voice, so the offer to keep getting it lands at the right moment. */}
+      <SectionErrorBoundary section="Subscribe">
+        <div className="mt-16 mb-12">
+          <SubscribeCallout source="edition-foot" variant="edition" />
+        </div>
+      </SectionErrorBoundary>
 
       <SectionErrorBoundary section="Admin panel">
         <EditionAdminPanel edition={edition} />

@@ -8,6 +8,7 @@ import { Link, useParams } from "wouter";
 import { PageHeader } from "@/components/PageHeader";
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
 import { LinkedInPostModal } from "@/components/LinkedInPostModal";
+import { SubscribeCallout } from "@/components/SubscribeCallout";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { PartnerTagBlock } from "@/components/feed/PartnerTagBlock";
@@ -96,6 +97,12 @@ export default function StoryPage() {
                 .join("\n")
                 .trim()}
             />
+
+            {/* End-of-read Subscribe panel. Compact variant — story pages
+                are shorter reads than editions. */}
+            <div className="mt-12">
+              <SubscribeCallout source="story-foot" variant="story" />
+            </div>
           </>
         )}
       </SectionErrorBoundary>
