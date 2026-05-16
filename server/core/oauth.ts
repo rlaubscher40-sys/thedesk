@@ -10,13 +10,47 @@
 import type { Express, Request, Response } from "express";
 import { COOKIE_NAME, ONE_YEAR_MS } from "../../shared/const";
 import { getSessionCookieOptions } from "./cookies";
+import { env } from "./env";
 import { sdk } from "./sdk";
 
 export function registerOAuthRoutes(app: Express): void {
+  /**
+   * Quick "is admin login wired up?" probe. Returns flags only — never
+   * leaks the password value. Useful when login fails and we need to
+   * tell config-missing apart from wrong-password from the phone.
+   */
+  app.get("/api/auth/status", (_req: Request, res: Response) => {
+    res.json({
+      passwordConfigured: env.adminPassword.length > 0,
+      jwtSecretConfigured: env.cookieSecret.length > 0,
+      environment: env.isProduction ? "production" : "development",
+    });
+  });
+
   app.post("/api/auth/login", async (req: Request, res: Response) => {
     const password = typeof req.body?.password === "string" ? req.body.password : "";
     if (!password) {
-      res.status(400).json({ error: "password is required" });
+      res.status(400).json({ error: "Password is required" });
+      return;
+    }
+    // Distinguish "server isn't configured" from "wrong password". The
+    // first is a config bug worth surfacing; the second is normal.
+    if (env.adminPassword.length === 0) {
+      res
+        .status(503)
+        .json({
+          error:
+            "Admin login isn't configured. Set the ADMIN_PASSWORD env var on the server and redeploy.",
+        });
+      return;
+    }
+    if (env.cookieSecret.length === 0) {
+      res
+        .status(503)
+        .json({
+          error:
+            "Session signing key isn't configured. Set the JWT_SECRET env var on the server and redeploy.",
+        });
       return;
     }
     if (!sdk.verifyPassword(password)) {

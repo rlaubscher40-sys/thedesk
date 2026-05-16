@@ -147,6 +147,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           onClose={() => setMobileOpen(false)}
           items={visibleNav}
           location={location}
+          isAuthenticated={isAuthenticated}
         />
 
         <main className="flex-1 overflow-y-auto relative">
@@ -484,11 +485,13 @@ function MobileSidebar({
   onClose,
   items,
   location,
+  isAuthenticated,
 }: {
   open: boolean;
   onClose: () => void;
   items: NavItem[];
   location: string;
+  isAuthenticated: boolean;
 }) {
   if (!open) return null;
   return (
@@ -526,6 +529,18 @@ function MobileSidebar({
             );
           })}
         </nav>
+        {/* Footer Sign in — the desktop sidebar has its own, mobile didn't.
+            Without this there's no reachable login affordance on mobile,
+            so visiting /admin straight from a URL traps you on Forbidden. */}
+        {!isAuthenticated && (
+          <div className="px-4 py-4 border-t border-[var(--color-border)]">
+            <Link href={getLoginUrl()} onClick={onClose}>
+              <span className="flex items-center justify-center gap-2 px-3 py-2.5 rounded text-xs font-mono uppercase tracking-[0.18em] text-amber-300 border border-amber-500/40 bg-amber-500/8">
+                <LogIn className="h-3 w-3" /> Sign in
+              </span>
+            </Link>
+          </div>
+        )}
       </aside>
     </>
   );

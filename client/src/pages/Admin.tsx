@@ -11,7 +11,7 @@
  * Non-admin users see a forbidden card.
  */
 import { Link } from "wouter";
-import { ArrowRight, CheckCircle2, FileText, Sparkles } from "lucide-react";
+import { ArrowRight, CheckCircle2, FileText, Lock, Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
 import { LinkedInAdminPanel } from "@/components/admin/LinkedInAdminPanel";
@@ -41,11 +41,32 @@ export default function AdminPage() {
   if (user?.role !== "admin") {
     return (
       <div className="max-w-2xl mx-auto">
-        <PageHeader overline="Admin" title="Forbidden" />
-        <p className="text-sm text-[var(--color-fg-muted)]">
-          The admin console is only available to users with the admin role. If
-          this is wrong, ask the owner to promote your account.
+        <PageHeader
+          overline="Admin"
+          title={user ? "Forbidden" : "Sign in to continue"}
+        />
+        <p className="text-sm text-[var(--color-fg-muted)] mb-5">
+          {user
+            ? "The admin console is only available to users with the admin role. If this is wrong, ask the owner to promote your account."
+            : "The admin console is curator-only. Sign in with the admin password to continue."}
         </p>
+        {!user && (
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-2 rounded px-4 py-2.5 text-[11px] font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.98]"
+            style={{
+              background:
+                "linear-gradient(135deg, oklch(0.78 0.18 70) 0%, oklch(0.88 0.19 82) 55%, oklch(0.65 0.16 60) 100%)",
+              color: "oklch(0.10 0.018 260)",
+              boxShadow:
+                "0 1px 0 oklch(1 0 0 / 18%) inset, 0 4px 14px oklch(0.75 0.18 70 / 28%)",
+            }}
+          >
+            <Lock className="h-3 w-3" />
+            Sign in
+            <ArrowRight className="h-3 w-3" />
+          </Link>
+        )}
       </div>
     );
   }
