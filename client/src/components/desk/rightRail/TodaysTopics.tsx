@@ -48,7 +48,7 @@ export function TodaysTopics() {
         })}
       </ul>
       <Link
-        href="/search"
+        href="/archive"
         className="inline-flex items-center gap-1.5 overline-amber mt-5 hover:text-amber-200 transition-colors"
       >
         Browse all topics

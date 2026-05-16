@@ -60,7 +60,7 @@ export default function NotFound() {
           <RouteButton href="/">Today</RouteButton>
           <RouteButton href="/editions">Editions</RouteButton>
           <RouteButton href="/trends">Trends</RouteButton>
-          <RouteButton href="/search">Archive</RouteButton>
+          <RouteButton href="/archive">Archive</RouteButton>
         </div>
       </div>
     </div>

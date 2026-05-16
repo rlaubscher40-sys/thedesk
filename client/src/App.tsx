@@ -4,7 +4,7 @@
  */
 import { AnimatePresence, motion } from "framer-motion";
 import { Suspense, lazy, useEffect } from "react";
-import { Route, Switch, useLocation } from "wouter";
+import { Route, Switch, useLocation, useSearch } from "wouter";
 import { AppLayout } from "./components/AppLayout";
 import { BreakingSignalToast } from "./components/BreakingSignalToast";
 import { CommandPalette } from "./components/CommandPalette";
@@ -22,7 +22,6 @@ const Editions = lazy(() => import("./pages/Editions"));
 const ReadingQueue = lazy(() => import("./pages/ReadingQueue"));
 const Notes = lazy(() => import("./pages/Notes"));
 const ConversationTracker = lazy(() => import("./pages/ConversationTracker"));
-const SearchPage = lazy(() => import("./pages/SearchPage"));
 const TopicThreads = lazy(() => import("./pages/TopicThreads"));
 const Trends = lazy(() => import("./pages/Trends"));
 const About = lazy(() => import("./pages/About"));
@@ -44,12 +43,22 @@ function KeyboardShortcuts() {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.key === "/") {
         e.preventDefault();
-        navigate("/search");
+        navigate("/archive");
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [navigate]);
+  return null;
+}
+
+/** Legacy /search → /archive redirect that carries the query string across. */
+function SearchRedirect() {
+  const [, navigate] = useLocation();
+  const search = useSearch();
+  useEffect(() => {
+    navigate(search ? `/archive?${search}` : "/archive", { replace: true });
+  }, [navigate, search]);
   return null;
 }
 
@@ -88,7 +97,9 @@ function Routes() {
             <Route path="/notes" component={Notes} />
             <Route path="/tracker" component={ConversationTracker} />
             <Route path="/conversations" component={ConversationTracker} />
-            <Route path="/search" component={SearchPage} />
+            {/* Legacy /search route → forward to the unified /archive, keeping
+                whatever query string was on the URL so deep links survive. */}
+            <Route path="/search" component={SearchRedirect} />
             <Route path="/trends" component={Trends} />
             <Route path="/topics" component={TopicThreads} />
             <Route path="/topics/:category" component={TopicThreads} />

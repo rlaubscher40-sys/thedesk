@@ -184,7 +184,7 @@ export function registerSeoRoutes(app: Express): void {
     const base = siteUrl(req);
     const editions = await db.listEditions().catch(() => []);
 
-    const staticPaths = ["/", "/editions", "/trends", "/about", "/editorial-standards", "/privacy", "/terms"];
+    const staticPaths = ["/", "/editions", "/archive", "/trends", "/about", "/editorial-standards", "/privacy", "/terms"];
 
     const urls: string[] = [];
     for (const path of staticPaths) {
