@@ -5,21 +5,17 @@
  * Writes mutate the in-memory store; the data resets on server restart.
  */
 import type {
-  ConversationEntry,
   DailyFeedItem,
   DailyMetric,
   Edition,
   FeaturedLinkedInPost,
-  InsertConversationEntry,
   InsertDailyFeedItem,
   InsertEdition,
   InsertFeaturedLinkedInPost,
   InsertReadingQueueItem,
   InsertSubscriber,
-  InsertWeeklyNote,
   ReadingQueueItem,
   Subscriber,
-  WeeklyNote,
 } from "../db/schema";
 import { allocId, demo, demoUser } from "./store";
 
@@ -219,6 +215,11 @@ export function listFeedItems(date?: string): DailyFeedItem[] {
 
 export function getFeedItemById(id: number): DailyFeedItem | undefined {
   return demo.feed.find((i) => i.id === id);
+}
+
+export function getFeedItemsByIds(ids: number[]): DailyFeedItem[] {
+  const set = new Set(ids);
+  return demo.feed.filter((i) => set.has(i.id));
 }
 
 export function listArchive(opts: {
@@ -422,59 +423,6 @@ export function markAllQueueRead(userId: number): void {
   for (const item of demo.queue) if (item.userId === userId) item.isRead = true;
 }
 
-// ─── Notes ──────────────────────────────────────────────────────────────────
-
-export function getNote(userId: number, weekId: string): WeeklyNote | undefined {
-  return demo.notes.find((n) => n.userId === userId && n.weekId === weekId);
-}
-
-export function listNotes(userId: number): WeeklyNote[] {
-  return [...demo.notes]
-    .filter((n) => n.userId === userId)
-    .sort((a, b) => b.weekId.localeCompare(a.weekId));
-}
-
-export function upsertNote(data: InsertWeeklyNote): void {
-  const existing = demo.notes.find((n) => n.userId === data.userId && n.weekId === data.weekId);
-  if (existing) {
-    existing.content = data.content;
-    existing.updatedAt = new Date();
-    return;
-  }
-  demo.notes.push({
-    id: allocId(),
-    userId: data.userId,
-    weekId: data.weekId,
-    content: data.content,
-    updatedAt: new Date(),
-    createdAt: new Date(),
-  });
-}
-
-export function deleteNote(userId: number, weekId: string): void {
-  const idx = demo.notes.findIndex((n) => n.userId === userId && n.weekId === weekId);
-  if (idx >= 0) demo.notes.splice(idx, 1);
-}
-
-// ─── Conversations ──────────────────────────────────────────────────────────
-
-export function listConversationEntries(userId: number): ConversationEntry[] {
-  return [...demo.conversations]
-    .filter((c) => c.userId === userId)
-    .sort((a, b) => b.usedAt.getTime() - a.usedAt.getTime());
-}
-
-export function addConversationEntry(data: InsertConversationEntry): void {
-  demo.conversations.unshift({
-    id: allocId(),
-    userId: data.userId,
-    editionId: data.editionId ?? null,
-    lineText: data.lineText,
-    usedWithCategory: data.usedWithCategory ?? null,
-    usedAt: new Date(),
-  });
-}
-
 // ─── Users ──────────────────────────────────────────────────────────────────
 
 export function upsertUser(): void {
@@ -598,6 +546,7 @@ export function upsertDailyMetric(input: {
   source?: string | null;
   context?: string | null;
   groupKey?: string | null;
+  sourceUrl?: string | null;
   asOf: Date;
   displayOrder?: number;
 }): void {
@@ -610,6 +559,7 @@ export function upsertDailyMetric(input: {
     existing.source = input.source ?? null;
     existing.context = input.context ?? null;
     existing.groupKey = input.groupKey ?? null;
+    existing.sourceUrl = input.sourceUrl ?? null;
     existing.asOf = input.asOf;
     existing.displayOrder = input.displayOrder ?? existing.displayOrder;
     existing.previousValue = previousValue;
@@ -625,6 +575,7 @@ export function upsertDailyMetric(input: {
     source: input.source ?? null,
     context: input.context ?? null,
     groupKey: input.groupKey ?? null,
+    sourceUrl: input.sourceUrl ?? null,
     asOf: input.asOf,
     displayOrder: input.displayOrder ?? 100,
     previousValue,

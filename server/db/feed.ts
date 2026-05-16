@@ -5,6 +5,24 @@ import { getDb } from "./client";
 import { dailyFeedItems, editions, type DailyFeedItem, type InsertDailyFeedItem } from "./schema";
 
 /** Most recent 30 items if no date specified, otherwise everything for that day. */
+/**
+ * Today (Sydney) in YYYY-MM-DD. Used as the default feedDate filter so
+ * the Today page actually shows today's items rather than the latest N
+ * items irrespective of date.
+ */
+function sydneyToday(): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Australia/Sydney",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const y = parts.find((p) => p.type === "year")?.value;
+  const m = parts.find((p) => p.type === "month")?.value;
+  const d = parts.find((p) => p.type === "day")?.value;
+  return `${y}-${m}-${d}`;
+}
+
 export async function listFeedItems(date?: string): Promise<DailyFeedItem[]> {
   if (isDemoMode()) return demoQueries.listFeedItems(date);
   const db = getDb();
@@ -16,7 +34,29 @@ export async function listFeedItems(date?: string): Promise<DailyFeedItem[]> {
       .where(eq(dailyFeedItems.feedDate, date))
       .orderBy(desc(dailyFeedItems.createdAt));
   }
-  return db.select().from(dailyFeedItems).orderBy(desc(dailyFeedItems.createdAt)).limit(30);
+  // No date supplied: try today (Sydney) first; if today has nothing yet
+  // (the morning ingest hasn't run), fall back to the most recent date
+  // that does have items so the Today page is never empty when the
+  // archive isn't.
+  const today = sydneyToday();
+  const todayRows = await db
+    .select()
+    .from(dailyFeedItems)
+    .where(eq(dailyFeedItems.feedDate, today))
+    .orderBy(desc(dailyFeedItems.createdAt));
+  if (todayRows.length > 0) return todayRows;
+  const recentDate = await db
+    .selectDistinct({ feedDate: dailyFeedItems.feedDate })
+    .from(dailyFeedItems)
+    .orderBy(desc(dailyFeedItems.feedDate))
+    .limit(1);
+  const fallback = recentDate[0]?.feedDate;
+  if (!fallback) return [];
+  return db
+    .select()
+    .from(dailyFeedItems)
+    .where(eq(dailyFeedItems.feedDate, fallback))
+    .orderBy(desc(dailyFeedItems.createdAt));
 }
 
 export async function getFeedItemById(id: number): Promise<DailyFeedItem | undefined> {
@@ -25,6 +65,22 @@ export async function getFeedItemById(id: number): Promise<DailyFeedItem | undef
   if (!db) return undefined;
   const rows = await db.select().from(dailyFeedItems).where(eq(dailyFeedItems.id, id)).limit(1);
   return rows[0];
+}
+
+/**
+ * Batch fetch by ids. Order is NOT preserved — caller should resort
+ * if it cares. Used by the anonymous reading queue to hydrate
+ * localStorage bookmarks in a single request.
+ */
+export async function getFeedItemsByIds(ids: number[]): Promise<DailyFeedItem[]> {
+  if (ids.length === 0) return [];
+  if (isDemoMode()) return demoQueries.getFeedItemsByIds?.(ids) ?? [];
+  const db = getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(dailyFeedItems)
+    .where(sql`${dailyFeedItems.id} IN (${sql.join(ids, sql`, `)})`);
 }
 
 /**

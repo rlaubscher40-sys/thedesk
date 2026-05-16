@@ -16,6 +16,18 @@ export const feedRouter = router({
     .input(z.object({ id: z.number().int().positive() }))
     .query(async ({ input }) => db.getFeedItemById(input.id)),
 
+  /**
+   * Batch fetch — used by the anonymous reading queue which keeps a
+   * localStorage list of saved item ids and needs to hydrate them all
+   * in one request. Capped at 60 so callers can't pull the world.
+   */
+  getByIds: publicProcedure
+    .input(z.object({ ids: z.array(z.number().int().positive()).max(60) }))
+    .query(async ({ input }) => {
+      if (input.ids.length === 0) return [];
+      return db.getFeedItemsByIds(input.ids);
+    }),
+
   /** Dates that have at least one feed item, newest first. */
   getRecentDates: publicProcedure.query(async () => db.getRecentFeedDates()),
 

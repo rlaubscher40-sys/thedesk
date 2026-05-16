@@ -195,6 +195,10 @@ export const dailyMetrics = mysqlTable("daily_metrics", {
   /** Group key for organising tiles into sections on the metrics
    *  dashboard — "MACRO", "PROPERTY", "LABOUR", "MARKETS", "DEMOGRAPHICS". */
   groupKey: varchar("groupKey", { length: 32 }),
+  /** Audit trail for news-extracted metrics — the URL the LLM pulled
+   *  the figure from. Null for direct API sources (Yahoo / RBA / ABS)
+   *  where the source is the canonical URL on the metric definition. */
+  sourceUrl: text("sourceUrl"),
   /** As-of timestamp from the data source (not the upsert time). */
   asOf: timestamp("asOf").notNull(),
   /** Display order, lower = earlier. */

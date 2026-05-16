@@ -12,6 +12,66 @@ export async function listEditions(): Promise<Edition[]> {
   return db.select().from(editions).orderBy(desc(editions.editionNumber));
 }
 
+/**
+ * Lean list for list views. Drops the heavy text columns the editions
+ * list / picker / Trends hero never read:
+ *   - `fullText`        — multi-KB editor's letter
+ *   - `substackDraftBody` — multi-KB essay draft
+ *   - `topics`          — JSON deck (only needed when reading one edition)
+ *   - `signals`         — array of strings, only used in the reader
+ *
+ * On a 30-edition list this cuts the JSON payload from MBs to tens of
+ * KBs and keeps the React Query cache lightweight on mobile.
+ *
+ * `hasDraft` is computed in SQL so the caller still knows whether a
+ * draft exists without us shipping the draft body.
+ */
+export async function listEditionSummaries() {
+  if (isDemoMode()) {
+    return demoQueries.listEditions().map((ed) => ({
+      id: ed.id,
+      editionNumber: ed.editionNumber,
+      weekOf: ed.weekOf,
+      weekRange: ed.weekRange,
+      publishedAt: ed.publishedAt,
+      readingTime: ed.readingTime,
+      heroImageUrl: ed.heroImageUrl,
+      rubensTake: ed.rubensTake,
+      keyMetrics: ed.keyMetrics,
+      marketStress: ed.marketStress,
+      datesToWatch: ed.datesToWatch,
+      metaTitle: ed.metaTitle,
+      socialTitle: ed.socialTitle,
+      hasDraft: Boolean(ed.substackDraftBody && ed.substackDraftBody.length > 0),
+    }));
+  }
+  const db = getDb();
+  if (!db) return [];
+  const rows = await db
+    .select({
+      id: editions.id,
+      editionNumber: editions.editionNumber,
+      weekOf: editions.weekOf,
+      weekRange: editions.weekRange,
+      publishedAt: editions.publishedAt,
+      readingTime: editions.readingTime,
+      heroImageUrl: editions.heroImageUrl,
+      rubensTake: editions.rubensTake,
+      keyMetrics: editions.keyMetrics,
+      marketStress: editions.marketStress,
+      datesToWatch: editions.datesToWatch,
+      metaTitle: editions.metaTitle,
+      socialTitle: editions.socialTitle,
+      // SQL-side boolean — "draft exists with non-empty body".
+      hasDraft: sql<boolean>`(${editions.substackDraftBody} IS NOT NULL AND ${editions.substackDraftBody} <> '')`,
+    })
+    .from(editions)
+    .orderBy(desc(editions.editionNumber));
+  return rows;
+}
+
+export type EditionSummary = Awaited<ReturnType<typeof listEditionSummaries>>[number];
+
 /** Returns the next free editionNumber. Used by the weekly synthesis to assign
  *  the new edition without the caller having to think about numbering. */
 export async function getNextEditionNumber(): Promise<number> {

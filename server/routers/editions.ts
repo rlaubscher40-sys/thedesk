@@ -12,17 +12,31 @@ import {
 
 const editionIdInput = z.object({ editionId: z.number().int().positive() });
 
+/** Subset of EditionTopic fields the admin can patch in place. */
+const topicPatchInput = z.object({
+  editionId: z.number().int().positive(),
+  topicIndex: z.number().int().min(0).max(20),
+  title: z.string().min(1).max(300).optional(),
+  summary: z.string().min(1).max(2000).optional(),
+  body: z.string().max(20000).optional().nullable(),
+  whyItMatters: z.string().max(2000).optional().nullable(),
+  keyTakeaway: z.string().max(2000).optional().nullable(),
+  whatToWatch: z.array(z.string().max(400)).max(8).optional().nullable(),
+});
+
 export const editionsRouter = router({
   /**
-   * All editions, decorated with a derived `title` so the list view doesn't
-   * need to assemble it on every render.
+   * Lean list view of every edition. Drops the heavy text columns
+   * (fullText / substackDraftBody / topics / signals) the list never
+   * reads — cuts the payload from MBs to tens of KBs once you have a
+   * year of editions, and keeps the React Query cache light. Callers
+   * that need the full document fetch it through getByNumber.
    */
   list: publicProcedure.query(async () => {
-    const rows = await db.listEditions();
+    const rows = await db.listEditionSummaries();
     return rows.map((ed) => ({
       ...ed,
       title: `Edition ${ed.editionNumber}: ${ed.weekRange}`,
-      hasDraft: Boolean(ed.substackDraftBody && ed.substackDraftBody.length > 0),
     }));
   }),
 
@@ -175,6 +189,44 @@ export const editionsRouter = router({
     const url = db.editionAssetUrl(edition.id, "substack");
     await db.updateSubstackImage(edition.id, url);
     return { imageUrl: url };
+  }),
+
+  /**
+   * Admin: patch one topic on an edition in place. Used by the topic-edit
+   * drawer in the reader so the editor can fix a single paragraph without
+   * having to regenerate the whole edition. Each patch field is optional —
+   * only what's supplied gets written.
+   */
+  updateTopic: adminProcedure.input(topicPatchInput).mutation(async ({ input }) => {
+    const edition = await db.getEditionById(input.editionId);
+    if (!edition) throw new TRPCError({ code: "NOT_FOUND", message: "Edition not found" });
+    const topics = [...edition.topics];
+    const target = topics[input.topicIndex];
+    if (!target) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: `Topic index ${input.topicIndex} out of range`,
+      });
+    }
+    topics[input.topicIndex] = {
+      ...target,
+      ...(input.title !== undefined ? { title: input.title } : {}),
+      ...(input.summary !== undefined ? { summary: input.summary } : {}),
+      // Pass nulls through as "clear this optional field" rather than
+      // unset — undefined means "don't touch", null means "blank it".
+      ...(input.body !== undefined ? { body: input.body ?? undefined } : {}),
+      ...(input.whyItMatters !== undefined
+        ? { whyItMatters: input.whyItMatters ?? undefined }
+        : {}),
+      ...(input.keyTakeaway !== undefined
+        ? { keyTakeaway: input.keyTakeaway ?? undefined }
+        : {}),
+      ...(input.whatToWatch !== undefined
+        ? { whatToWatch: input.whatToWatch ?? undefined }
+        : {}),
+    };
+    await db.updateEditionSynthesis(edition.id, { topics });
+    return { success: true } as const;
   }),
 
   /** Admin: regenerate the EditionReader hero image. */

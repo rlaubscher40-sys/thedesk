@@ -37,7 +37,7 @@ const NAV_ITEMS: Item[] = [
   { id: "nav-editions", label: "Editions", hint: "Weekly deep-dives", icon: BookOpen, group: "nav", href: "/editions" },
   { id: "nav-trends", label: "Trends", hint: "Intelligence dashboard", icon: BarChart3, group: "nav", href: "/trends" },
   { id: "nav-queue", label: "Reading Queue", hint: "Saved items", icon: Bookmark, group: "nav", href: "/queue" },
-  { id: "nav-archive", label: "Archive", hint: "Search + browse", icon: Search, group: "nav", href: "/search" },
+  { id: "nav-archive", label: "Archive", hint: "Search + browse", icon: Search, group: "nav", href: "/archive" },
   { id: "nav-about", label: "About", hint: "What this is", icon: Info, group: "nav", href: "/about" },
 ];
 

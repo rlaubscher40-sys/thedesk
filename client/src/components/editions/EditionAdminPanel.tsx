@@ -8,6 +8,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import {
+  ClipboardCopy,
   Image as ImageIcon,
   PenSquare,
   RefreshCw,
@@ -312,6 +313,11 @@ function SubstackDraftEditor({ edition }: { edition: Edition }) {
               >
                 <PenSquare className="h-3.5 w-3.5" /> LinkedIn
               </Button>
+              <CopyForSubstackButton
+                title={title}
+                subtitle={subtitle}
+                body={body}
+              />
             </>
           )}
           <Button
@@ -422,6 +428,45 @@ export function BackfillRubensTakeButton() {
     >
       <RefreshCw className={`h-3.5 w-3.5 ${backfill.isPending ? "animate-spin" : ""}`} />
       {backfill.isPending ? "Backfilling..." : "Backfill Takes"}
+    </Button>
+  );
+}
+
+/**
+ * Copy the Substack draft (title + subtitle + body) to the clipboard in a
+ * paste-friendly format. Substack's editor handles paragraph breaks
+ * cleanly when you paste plain text with double-newlines between
+ * paragraphs, so we ship that. No HTML — Substack's HTML paste is finicky.
+ */
+function CopyForSubstackButton({
+  title,
+  subtitle,
+  body,
+}: {
+  title: string;
+  subtitle: string;
+  body: string;
+}) {
+  async function copy() {
+    const payload = [title, subtitle, "", body]
+      .filter(Boolean)
+      .map((s) => s.trim())
+      .join("\n\n");
+    try {
+      await navigator.clipboard.writeText(payload);
+      toast.success("Draft copied — paste into Substack");
+    } catch {
+      toast.error("Clipboard write failed");
+    }
+  }
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={copy}
+      title="Copy title + subtitle + body to clipboard, ready to paste into Substack"
+    >
+      <ClipboardCopy className="h-3.5 w-3.5" /> Copy
     </Button>
   );
 }

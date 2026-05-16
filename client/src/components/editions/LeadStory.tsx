@@ -8,14 +8,28 @@
  * want the headline + lede pass.
  */
 import { useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Pencil } from "lucide-react";
 import type { EditionTopic } from "@shared/schemas";
 import { cn } from "@/lib/cn";
 import { categoryAccentClass, categoryColour } from "@/lib/category";
+import { useAuth } from "@/lib/useAuth";
 import { TalkingPointsBlock } from "./TalkingPointsBlock";
+import { TopicEditDrawer } from "./TopicEditDrawer";
 
-export function LeadStory({ topic }: { topic: EditionTopic }) {
+export function LeadStory({
+  topic,
+  editionId,
+  topicIndex,
+}: {
+  topic: EditionTopic;
+  editionId?: number;
+  topicIndex?: number;
+}) {
   const [expanded, setExpanded] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const { user } = useAuth();
+  const canEdit =
+    user?.role === "admin" && editionId != null && topicIndex != null;
   const colour = categoryColour(topic.category);
   const hasBody = Boolean(topic.body);
   const hasWatch = Boolean(topic.whatToWatch && topic.whatToWatch.length > 0);
@@ -34,22 +48,35 @@ export function LeadStory({ topic }: { topic: EditionTopic }) {
     >
       <div className="p-8 sm:p-12 lg:p-16">
         {/* Editorial badge — slim gold rule + small mono label. */}
-        <div className="inline-flex items-center gap-3 mb-6">
-          <span
-            className="inline-block h-px w-8"
-            style={{
-              background:
-                "linear-gradient(90deg, var(--color-amber), oklch(0.75 0.18 70 / 20%))",
-            }}
-            aria-hidden="true"
-          />
-          <p
-            className="overline-amber"
-            style={{ letterSpacing: "0.24em", fontSize: "11px" }}
-          >
-            Lead story <span className="text-[var(--color-fg-subtle)] mx-1.5">·</span>{" "}
-            {topic.category}
-          </p>
+        <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
+          <div className="inline-flex items-center gap-3">
+            <span
+              className="inline-block h-px w-8"
+              style={{
+                background:
+                  "linear-gradient(90deg, var(--color-amber), oklch(0.75 0.18 70 / 20%))",
+              }}
+              aria-hidden="true"
+            />
+            <p
+              className="overline-amber"
+              style={{ letterSpacing: "0.24em", fontSize: "11px" }}
+            >
+              Lead story <span className="text-[var(--color-fg-subtle)] mx-1.5">·</span>{" "}
+              {topic.category}
+            </p>
+          </div>
+          {canEdit && (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[10px] font-mono uppercase tracking-[0.18em] text-[var(--color-fg-subtle)] hover:text-amber-300 hover:bg-amber-500/10 transition-colors"
+              aria-label="Edit lead story"
+            >
+              <Pencil className="h-3 w-3" />
+              Edit
+            </button>
+          )}
         </div>
 
         {/* Display-2 title — bounded width so the line wraps editorially
@@ -180,6 +207,16 @@ export function LeadStory({ topic }: { topic: EditionTopic }) {
           </div>
         )}
       </div>
+
+      {canEdit && (
+        <TopicEditDrawer
+          open={editing}
+          onClose={() => setEditing(false)}
+          editionId={editionId!}
+          topicIndex={topicIndex!}
+          topic={topic}
+        />
+      )}
     </article>
   );
 }

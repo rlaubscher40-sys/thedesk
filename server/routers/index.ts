@@ -4,10 +4,8 @@
  */
 import { router } from "../core/trpc";
 import { authRouter } from "./auth";
-import { conversationsRouter } from "./conversations";
 import { editionsRouter } from "./editions";
 import { feedRouter } from "./feed";
-import { notesRouter } from "./notes";
 import { readingQueueRouter } from "./readingQueue";
 import { linkedInRouter } from "./linkedIn";
 import { metricsRouter } from "./metrics";
@@ -24,8 +22,6 @@ export const appRouter = router({
   feed: feedRouter,
   topics: topicsRouter,
   readingQueue: readingQueueRouter,
-  notes: notesRouter,
-  conversations: conversationsRouter,
   trends: trendsRouter,
   search: searchRouter,
   subscribers: subscribersRouter,
