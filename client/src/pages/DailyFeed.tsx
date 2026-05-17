@@ -32,6 +32,7 @@ import { FeedLeadCard } from "@/components/feed/FeedLeadCard";
 import { FeedItemCard } from "@/components/feed/FeedItemCard";
 import { TodayInBrief } from "@/components/feed/TodayInBrief";
 import { editionMeta, stories } from "@/data/editions/2026-05-15";
+import { useFilteredFeed } from "@/lib/useFilteredFeed";
 import { trpc } from "@/lib/trpc";
 
 export default function DailyFeed() {
@@ -48,7 +49,9 @@ export default function DailyFeed() {
   const demoModeQuery = trpc.system.demoMode.useQuery();
   const isDemo = demoModeQuery.data?.demoMode ?? false;
 
-  const allFeedItems = feedQuery.data ?? [];
+  // Live feed items, pre-filtered through the user's topic allowlist
+  // from Settings. When no allowlist is set this is a pass-through.
+  const allFeedItems = useFilteredFeed(feedQuery.data ?? []);
   const liveCategories = useMemo(() => {
     const set = new Set<string>();
     for (const it of allFeedItems) set.add(it.category.toUpperCase());

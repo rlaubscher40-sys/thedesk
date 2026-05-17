@@ -97,8 +97,17 @@ export function UserPrefsProvider({ children }: { children: ReactNode }) {
 
   const isCategoryAllowed = useCallback(
     (category: string) => {
+      // No allowlist set = show everything (default).
       if (prefs.topicAllowlist.length === 0) return true;
-      return prefs.topicAllowlist.includes(category.toUpperCase());
+      const upper = category.toUpperCase();
+      // Only gate categories the settings UI lets the user pick. Anything
+      // outside SELECTABLE_CATEGORIES (e.g. OTHER, custom ingest categories)
+      // always shows — otherwise opting into ANY topic would silently hide
+      // every uncategorised story forever.
+      if (!(SELECTABLE_CATEGORIES as readonly string[]).includes(upper)) {
+        return true;
+      }
+      return prefs.topicAllowlist.includes(upper);
     },
     [prefs.topicAllowlist]
   );

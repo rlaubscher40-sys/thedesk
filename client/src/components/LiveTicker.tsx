@@ -11,6 +11,7 @@
  */
 import { useMemo } from "react";
 import { categoryColour } from "@/lib/category";
+import { useFilteredFeed } from "@/lib/useFilteredFeed";
 import { trpc } from "@/lib/trpc";
 
 type TickerItem = { category: string | null; label: string };
@@ -20,14 +21,14 @@ export function LiveTicker() {
     staleTime: 60_000,
   });
 
+  const filteredFeed = useFilteredFeed(feedQuery.data ?? []);
   const items = useMemo<TickerItem[]>(() => {
-    const feed = feedQuery.data ?? [];
-    return feed.slice(0, 12).map((it) => ({
+    return filteredFeed.slice(0, 12).map((it) => ({
       category: it.category ?? null,
       // Truncate hard so a long headline doesn't choke the scroll.
       label: it.title.length > 110 ? `${it.title.slice(0, 110).trim()}…` : it.title,
     }));
-  }, [feedQuery.data]);
+  }, [filteredFeed]);
 
   if (items.length === 0) return null;
 

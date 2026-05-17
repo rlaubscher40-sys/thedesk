@@ -11,7 +11,7 @@
  * Replaces both the old SearchPage and the old TopicThreads index — they
  * served related needs and one unified page reads cleaner.
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useSearch } from "wouter";
 import { Search as SearchIcon, X } from "lucide-react";
 import type { DailyFeedItem } from "@shared/types";
@@ -20,6 +20,7 @@ import { SectionErrorBoundary } from "@/components/ErrorBoundary";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { categoryAccentClass, categoryColour } from "@/lib/category";
 import { cn } from "@/lib/cn";
+import { useUserPrefs } from "@/lib/userPrefs";
 import { trpc } from "@/lib/trpc";
 
 function parseSearch(search: string): { q: string; cat: string | null } {
@@ -68,10 +69,34 @@ export default function ArchivePage() {
     { enabled: !!category }
   );
 
+  // User's topic-allowlist preference. Applied to the overview's category
+  // thread cards and to the search results, but NOT to the explicit
+  // category drill-down — if the reader taps a chip the assumption is
+  // they want to see that category regardless of their global filter.
+  const { isCategoryAllowed } = useUserPrefs();
+
   const counts = new Map<string, number>(
-    (countsQuery.data ?? []).map((r) => [r.category, r.total])
+    (countsQuery.data ?? [])
+      .filter((r) => isCategoryAllowed(r.category))
+      .map((r) => [r.category, r.total])
   );
-  const categories = Object.keys(recentByCategoryQuery.data ?? {}).sort(
+  const recentByCategoryFiltered = useMemo(() => {
+    const raw = recentByCategoryQuery.data ?? {};
+    const out: Record<string, (typeof raw)[string]> = {};
+    for (const [cat, items] of Object.entries(raw)) {
+      if (isCategoryAllowed(cat)) out[cat] = items;
+    }
+    return out;
+  }, [recentByCategoryQuery.data, isCategoryAllowed]);
+  const filteredSearchResults = useMemo(() => {
+    const raw = searchQuery.data;
+    if (!raw) return undefined;
+    return {
+      editions: raw.editions,
+      feedItems: raw.feedItems.filter((it) => isCategoryAllowed(it.category)),
+    };
+  }, [searchQuery.data, isCategoryAllowed]);
+  const categories = Object.keys(recentByCategoryFiltered).sort(
     (a, b) => (counts.get(b) ?? 0) - (counts.get(a) ?? 0)
   );
 
@@ -125,7 +150,11 @@ export default function ArchivePage() {
       <div className="mt-8">
         {isSearching && (
           <SectionErrorBoundary section="Search results">
-            <SearchResults query={query} data={searchQuery.data} loading={searchQuery.isLoading} />
+            <SearchResults
+              query={query}
+              data={filteredSearchResults}
+              loading={searchQuery.isLoading}
+            />
           </SectionErrorBoundary>
         )}
 
@@ -142,7 +171,7 @@ export default function ArchivePage() {
         {isOverview && (
           <SectionErrorBoundary section="Topic threads overview">
             <TopicOverview
-              recent={recentByCategoryQuery.data}
+              recent={recentByCategoryFiltered}
               counts={counts}
               loading={recentByCategoryQuery.isLoading}
             />

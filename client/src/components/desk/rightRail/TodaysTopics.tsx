@@ -12,6 +12,7 @@ import { ArrowRight } from "lucide-react";
 import { Link } from "wouter";
 import { topics as seedTopics } from "@/data/editions/2026-05-15";
 import { categoryColour } from "@/lib/category";
+import { useFilteredFeed } from "@/lib/useFilteredFeed";
 import { trpc } from "@/lib/trpc";
 import { RailPanel } from "./RailPanel";
 
@@ -28,10 +29,10 @@ export function TodaysTopics() {
   const demoModeQuery = trpc.system.demoMode.useQuery();
   const isDemo = demoModeQuery.data?.demoMode ?? false;
 
+  const filteredItems = useFilteredFeed(feedQuery.data ?? []);
   const liveCounts = useMemo<CountedCategory[]>(() => {
-    const items = feedQuery.data ?? [];
     const counts = new Map<string, number>();
-    for (const item of items) {
+    for (const item of filteredItems) {
       const k = (item.category ?? "OTHER").toUpperCase();
       counts.set(k, (counts.get(k) ?? 0) + 1);
     }
@@ -39,7 +40,7 @@ export function TodaysTopics() {
       .map(([category, count]) => ({ category, label: category, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 6);
-  }, [feedQuery.data]);
+  }, [filteredItems]);
 
   const hasLive = liveCounts.length > 0;
   // Demo deploys (no DB) keep the seed display so the page doesn't feel
