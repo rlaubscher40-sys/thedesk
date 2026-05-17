@@ -196,7 +196,11 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
           </h2>
         </Link>
 
-        <p className="font-serif italic text-lg text-[var(--color-fg-muted)] leading-relaxed mb-5">
+        {/* Lede. Plain serif rather than italic — italic Playfair gets squished
+            at body sizes on a dark background and was reading as cramped. The
+            magazine register stays via the serif face and the surrounding
+            chrome; the italic was carrying too much load. */}
+        <p className="font-serif text-lg text-[var(--color-fg-muted)] leading-relaxed mb-5">
           {item.summary}
         </p>
 

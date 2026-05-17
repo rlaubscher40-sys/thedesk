@@ -46,9 +46,23 @@ export function SayThisLine({
         <MessageSquare className="h-3.5 w-3.5 text-amber-400" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="overline-amber mb-1">Say this</p>
-        <p className="font-serif italic text-[var(--color-fg)] leading-snug text-base">
-          "{sayThis}"
+        <p className="overline-amber mb-1.5">Say this</p>
+        {/* Quote rendered in serif but NOT italic — italic Playfair at
+            body sizes was reading as cramped on a tinted background. The
+            opening glyph + the "Say this" label do the pull-quote work
+            without making the actual text hard to read. */}
+        <p
+          className="font-serif text-[var(--color-fg)] leading-snug"
+          style={{ fontSize: "15.5px" }}
+        >
+          <span
+            aria-hidden="true"
+            className="text-amber-300/70 mr-0.5 font-serif"
+            style={{ fontSize: "20px", lineHeight: 0 }}
+          >
+            ❝
+          </span>
+          {sayThis}
         </p>
       </div>
       <button
