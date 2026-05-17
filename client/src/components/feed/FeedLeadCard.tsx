@@ -104,13 +104,12 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
   return (
     <article
       className={cn(
-        // Single-column stack on every breakpoint. The 2-col grid kept
-        // forcing the cover plate to stretch to the editorial column's
-        // height, which either cropped the image violently or left a
-        // dead gradient panel below it. Stacking sidesteps the problem
-        // — image at its natural aspect on top, editorial below at a
-        // comfortable reading width.
-        "panel hover-lift rounded overflow-hidden",
+        // Single-column stack with a sane max-width on the card itself
+        // so the lead doesn't span a 1400px viewport edge-to-edge. The
+        // card is centred under the page header; image fills the card
+        // width, editorial flows below without needing its own
+        // internal max-width.
+        "panel hover-lift rounded overflow-hidden mx-auto w-full max-w-[960px]",
         categoryAccentClass(item.category)
       )}
     >
@@ -122,14 +121,13 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
           peeking through the edges rather than getting savagely cropped. */}
       <Link
         href={`/story/${item.id}`}
-        // Centred + max-h capped so a portrait image doesn't push the
-        // editorial deck below the fold. Image takes its natural aspect
-        // (or the 5:3 fallback while loading) — never stretched, never
-        // cropped.
-        className="relative block overflow-hidden mx-auto w-full"
+        // The card has its own max-width now (960px), so the image
+        // can take its full natural aspect without dominating the
+        // viewport. No more max-height clamp — that was the source
+        // of the zoom-in crop.
+        className="relative block overflow-hidden w-full"
         style={{
           aspectRatio: imageAspect ?? (item.imageUrl ? 5 / 3 : 5 / 3),
-          maxHeight: 480,
           background: `
             radial-gradient(circle at 78% 22%, ${categoryColour(item.category)}50 0%, transparent 55%),
             radial-gradient(circle at 14% 86%, ${categoryColour(item.category)}1a 0%, transparent 55%),
@@ -199,11 +197,10 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
         </div>
       </Link>
 
-      {/* Editorial column — magazine-style centred reading column so a
-          full-width card doesn't push the title into a 1200px line.
-          Hairline rules sit between each section so the eye groups
-          title + lede / source + actions / take + angles. */}
-      <div className="px-6 py-7 sm:px-10 sm:py-9 mx-auto w-full max-w-[72ch] flex flex-col">
+      {/* Editorial column — sits below the cover plate at the full
+          card width (960px max via the parent article). Hairline rules
+          group the sections — title+lede / source / take / angles. */}
+      <div className="px-6 py-7 sm:px-10 sm:py-9 flex flex-col">
         <div className="flex items-start justify-between gap-3 mb-4">
           <span
             className="overline-amber"
