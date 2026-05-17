@@ -32,7 +32,7 @@ export async function listFeedItems(date?: string): Promise<DailyFeedItem[]> {
       .select()
       .from(dailyFeedItems)
       .where(eq(dailyFeedItems.feedDate, date))
-      .orderBy(desc(dailyFeedItems.createdAt));
+      .orderBy(desc(dailyFeedItems.priority), desc(dailyFeedItems.createdAt));
   }
   // No date supplied: try today (Sydney) first; if today has nothing yet
   // (the morning ingest hasn't run), fall back to the most recent date
@@ -151,6 +151,13 @@ export async function updateFeedItemRubensNote(id: number, rubensNote: string | 
   const db = getDb();
   if (!db) return;
   await db.update(dailyFeedItems).set({ rubensNote }).where(eq(dailyFeedItems.id, id));
+}
+
+export async function updateFeedItemPriority(id: number, priority: number) {
+  if (isDemoMode()) return demoQueries.updateFeedItemPriority?.(id, priority);
+  const db = getDb();
+  if (!db) return;
+  await db.update(dailyFeedItems).set({ priority }).where(eq(dailyFeedItems.id, id));
 }
 
 export async function updateFeedItemImageUrl(id: number, imageUrl: string) {

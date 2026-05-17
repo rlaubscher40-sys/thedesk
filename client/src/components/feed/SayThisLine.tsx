@@ -49,8 +49,8 @@ export function SayThisLine({
         <p className="overline-amber mb-1.5">Say this</p>
         {/* Quote rendered in serif but NOT italic — italic Playfair at
             body sizes was reading as cramped on a tinted background. The
-            opening glyph + the "Say this" label do the pull-quote work
-            without making the actual text hard to read. */}
+            opening + closing glyphs frame the pull quote without making
+            the actual text hard to read. */}
         <p
           className="font-serif text-[var(--color-fg)] leading-snug"
           style={{ fontSize: "15.5px" }}
@@ -63,6 +63,13 @@ export function SayThisLine({
             ❝
           </span>
           {sayThis}
+          <span
+            aria-hidden="true"
+            className="text-amber-300/70 ml-0.5 font-serif"
+            style={{ fontSize: "20px", lineHeight: 0 }}
+          >
+            ❞
+          </span>
         </p>
       </div>
       <button

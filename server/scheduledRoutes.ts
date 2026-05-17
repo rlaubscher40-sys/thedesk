@@ -9,6 +9,7 @@
  * setImmediate so the HTTP response returns quickly.
  */
 import { COOKIE_NAME } from "../shared/const";
+import { defaultFeedPriority } from "../shared/feedPriority";
 import { parse as parseCookieHeader } from "cookie";
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
@@ -84,18 +85,25 @@ function registerDailyFeedRoute(app: Express): void {
       return;
     }
 
-    const items = parsed.data.items.map((item) => ({
-      feedDate: item.feedDate,
-      title: sanitiseText(item.title),
-      source: sanitiseText(item.source),
-      sourceUrl: item.sourceUrl ?? null,
-      summary: sanitiseText(item.summary),
-      category: item.category.toUpperCase(),
-      imageUrl: item.imageUrl ?? null,
-      partnerTag: sanitiseText(item.partnerTag ?? null),
-      sayThis: sanitiseText(item.sayThis ?? null),
-      promotedToEdition: false,
-    }));
+    const items = parsed.data.items.map((item) => {
+      const category = item.category.toUpperCase();
+      const source = sanitiseText(item.source);
+      return {
+        feedDate: item.feedDate,
+        title: sanitiseText(item.title),
+        source,
+        sourceUrl: item.sourceUrl ?? null,
+        summary: sanitiseText(item.summary),
+        category,
+        imageUrl: item.imageUrl ?? null,
+        partnerTag: sanitiseText(item.partnerTag ?? null),
+        sayThis: sanitiseText(item.sayThis ?? null),
+        promotedToEdition: false,
+        // Editorial-impact baseline. The admin can override per-item via
+        // feed.setPriority — manual control always wins.
+        priority: defaultFeedPriority({ category, source }),
+      };
+    });
 
     try {
       await db.createFeedItems(items);

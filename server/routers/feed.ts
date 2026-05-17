@@ -101,4 +101,20 @@ export const feedRouter = router({
       await db.updateFeedItemRubensNote(input.id, trimmed.length > 0 ? trimmed : null);
       return { success: true } as const;
     }),
+
+  /**
+   * Admin: set a story's editorial priority. 100 = pinned lead, 0 = buried.
+   * Ordering on the Today page is `priority DESC, createdAt DESC`.
+   */
+  setPriority: adminProcedure
+    .input(
+      z.object({
+        id: z.number().int().positive(),
+        priority: z.number().int().min(0).max(100),
+      })
+    )
+    .mutation(async ({ input }) => {
+      await db.updateFeedItemPriority(input.id, input.priority);
+      return { success: true } as const;
+    }),
 });

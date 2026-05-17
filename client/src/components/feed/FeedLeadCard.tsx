@@ -6,7 +6,15 @@
  * label set large.
  */
 import { useState } from "react";
-import { Bookmark, BookmarkCheck, ExternalLink, Linkedin, Trash2 } from "lucide-react";
+import {
+  Bookmark,
+  BookmarkCheck,
+  ExternalLink,
+  Linkedin,
+  Pin,
+  PinOff,
+  Trash2,
+} from "lucide-react";
 import { Link } from "wouter";
 import { toast } from "sonner";
 import type { DailyFeedItem } from "@shared/types";
@@ -47,6 +55,18 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
   });
   const remove = trpc.readingQueue.remove.useMutation({
     onSettled: () => utils.readingQueue.list.invalidate(),
+  });
+
+  // Admin priority toggle: pin to 100 (locks the story as the lead) or
+  // reset to default 50. Categories/sources keep ingest-time defaults at
+  // 50-80 — pinning at 100 always wins.
+  const isPinned = (item.priority ?? 50) >= 100;
+  const setPriority = trpc.feed.setPriority.useMutation({
+    onSuccess: () => {
+      utils.feed.getByDate.invalidate();
+      toast.success(isPinned ? "Unpinned from lead" : "Pinned as lead");
+    },
+    onError: () => toast.error("Couldn't update priority"),
   });
 
   function toggleQueue() {
@@ -176,6 +196,30 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
             >
               <Linkedin className="h-4 w-4" />
             </button>
+            {isAdmin && (
+              <button
+                onClick={() =>
+                  setPriority.mutate({
+                    id: item.id,
+                    priority: isPinned ? 50 : 100,
+                  })
+                }
+                disabled={setPriority.isPending}
+                aria-label={isPinned ? "Unpin from lead" : "Pin as lead"}
+                title={
+                  isPinned
+                    ? "Unpin (let category priority decide order)"
+                    : "Pin this story as the Today lead"
+                }
+                className="p-1.5 rounded text-[var(--color-fg-subtle)] hover:text-amber-300 transition-colors disabled:opacity-50"
+              >
+                {isPinned ? (
+                  <PinOff className="h-4 w-4 text-amber-400" />
+                ) : (
+                  <Pin className="h-4 w-4" />
+                )}
+              </button>
+            )}
             {isAdmin && (
               <button
                 onClick={handleDelete}

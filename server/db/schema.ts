@@ -126,6 +126,11 @@ export const dailyFeedItems = mysqlTable("daily_feed_items", {
    *  as a highlighted Ruben quote. When set, takes visual precedence over
    *  the AI-generated sayThis. */
   rubensNote: text("rubensNote"),
+  /** Story priority for the Today page lead/ordering. 0–100, higher
+   *  outranks. Default 50, computed at ingest time by
+   *  shared/feedPriority.ts. The admin can pin a story to 100 ("promote
+   *  as lead") or drop one to 0 ("suppress") via feed.setPriority. */
+  priority: int("priority").default(50).notNull(),
   promotedToEdition: boolean("promotedToEdition").default(false),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
