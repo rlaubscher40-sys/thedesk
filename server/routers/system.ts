@@ -157,4 +157,52 @@ export const systemRouter = router({
         (result as unknown as Array<{ affectedRows?: number }>)[0]?.affectedRows ?? 0;
       return { ok: true, demoMode: false, deletedCount: affected };
     }),
+
+  /**
+   * Wipe ALL feed items. Used to reset the Today/Archive feed before a
+   * fresh daily-feed workflow run. The `confirm` payload guards against
+   * accidental fires from the typed-client perspective — the UI passes
+   * the literal string "WIPE" to acknowledge the action.
+   */
+  purgeFeed: adminProcedure
+    .input(z.object({ confirm: z.literal("WIPE") }))
+    .mutation(async () => {
+      if (isDemoMode()) return { ok: true, demoMode: true, deletedCount: 0 };
+      const db = getDb();
+      if (!db) throw new Error("Database not configured");
+      const result = await db.execute(sql`DELETE FROM daily_feed_items`);
+      const affected =
+        (result as unknown as Array<{ affectedRows?: number }>)[0]?.affectedRows ?? 0;
+      return { ok: true, demoMode: false, deletedCount: affected };
+    }),
+
+  /**
+   * Wipe ALL daily metrics + the metric history table. Used before
+   * re-running the daily-metrics workflow to get a clean slate. The
+   * history table goes too so the sparklines redraw from scratch.
+   */
+  purgeMetrics: adminProcedure
+    .input(z.object({ confirm: z.literal("WIPE") }))
+    .mutation(async () => {
+      if (isDemoMode()) return { ok: true, demoMode: true, deletedCount: 0 };
+      const db = getDb();
+      if (!db) throw new Error("Database not configured");
+      const m = await db.execute(sql`DELETE FROM daily_metrics`);
+      let historyAffected = 0;
+      try {
+        const h = await db.execute(sql`DELETE FROM daily_metric_history`);
+        historyAffected =
+          (h as unknown as Array<{ affectedRows?: number }>)[0]?.affectedRows ?? 0;
+      } catch {
+        // History table may not exist yet on a fresh DB.
+      }
+      const metricsAffected =
+        (m as unknown as Array<{ affectedRows?: number }>)[0]?.affectedRows ?? 0;
+      return {
+        ok: true,
+        demoMode: false,
+        deletedCount: metricsAffected,
+        historyDeletedCount: historyAffected,
+      };
+    }),
 });
