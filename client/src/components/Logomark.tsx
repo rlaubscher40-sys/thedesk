@@ -1,23 +1,19 @@
 /**
- * Logomark — "Sunrise on the desk".
+ * Logomark — D-Sunrise.
  *
- * A sun rising on a horizon. The horizon doubles as the editorial rule
- * carried across the rest of the brand. Conceptual fit: "The Desk" =
- * the surface where intelligence is processed; the sunrise = the daily
- * morning brief.
+ * The brand mark. A stylised uppercase "D" where the vertical stroke is
+ * a thin editorial rule, the bowl is a wide arc, and a filled sun-dome
+ * with radiating rays sits inside the bowl. Geometry is the canonical
+ * vector from client/public/brand/desk-logo-light.svg — do not stretch,
+ * compress, or rotate (brand guide §2.2).
  *
- * Geometry:
- *   · A square frame at 64×64.
- *   · A long horizon line two-thirds of the way down.
- *   · A circle (sun) centred on the horizon — top half visible, with a
- *     stroke ring catching dawn light.
- *   · A small gold dot above the horizon to the right (the live mark).
- *   · A thicker accent rule above the horizon on the right hand side —
- *     the editorial register; this is the kicker rule that every page
- *     header carries.
+ * Colour comes from the parent via currentColor. The .brand-mark class
+ * resolves to --color-amber in dark mode and --color-fg (navy) in light
+ * mode, matching the brand guide's dark / light mark variants.
  *
- * On first-paint each stroke inks in sequentially via the draw-stroke
- * keyframe. Subsequent renders are static.
+ * Animated first-paint: D-frame strokes ink in left-to-right, the bowl
+ * arc draws, then the sun dome and rays fade in last. The animated
+ * first-paint sequence is the only effect permitted on the mark.
  */
 import { cn } from "@/lib/cn";
 
@@ -27,148 +23,85 @@ type Props = {
   animated?: boolean;
 };
 
+const ASPECT = 240 / 280;
+
 export function Logomark({ size = 32, className, animated = true }: Props) {
+  const width = Math.round(size * ASPECT);
+  const drawStroke = (length: number, delay: number, duration = 700) =>
+    animated
+      ? {
+          strokeDasharray: length,
+          strokeDashoffset: length,
+          animation: `draw-stroke ${duration}ms cubic-bezier(0.16,1,0.3,1) ${delay}ms forwards`,
+          ["--len" as never]: String(length),
+        }
+      : {};
+
+  const fadeIn = (delay: number, duration = 600) =>
+    animated
+      ? {
+          opacity: 0,
+          animation: `first-paint-fade ${duration}ms cubic-bezier(0.16,1,0.3,1) ${delay}ms forwards`,
+        }
+      : {};
+
   return (
     <svg
-      width={size}
+      width={width}
       height={size}
-      viewBox="0 0 64 64"
-      className={cn("shrink-0", className)}
+      viewBox="0 0 240 280"
+      className={cn("brand-mark shrink-0", className)}
       aria-hidden="true"
     >
-      <defs>
-        <linearGradient id="logomark-sun" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="oklch(0.94 0.10 84)" />
-          <stop offset="55%" stopColor="oklch(0.78 0.18 76)" />
-          <stop offset="100%" stopColor="oklch(0.55 0.14 60)" />
-        </linearGradient>
-        <linearGradient id="logomark-horizon" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="oklch(0.78 0.18 70 / 0%)" />
-          <stop offset="50%" stopColor="oklch(0.85 0.18 74)" />
-          <stop offset="100%" stopColor="oklch(0.78 0.18 70 / 0%)" />
-        </linearGradient>
-      </defs>
-
-      {/* Subtle frame — almost invisible, just a structural anchor. */}
-      <rect
-        x="6"
-        y="6"
-        width="52"
-        height="52"
-        rx="4"
+      <g
         fill="none"
-        stroke="oklch(1 0 0 / 6%)"
-      />
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        {/* D frame — thick strokes inked sequentially on first paint. */}
+        <g strokeWidth="5">
+          <line x1="56" y1="16" x2="56" y2="264" style={drawStroke(248, 100, 800)} />
+          <line x1="56" y1="100" x2="92" y2="100" style={drawStroke(36, 350, 360)} />
+          <line x1="56" y1="264" x2="92" y2="264" style={drawStroke(36, 420, 360)} />
+          <path d="M 92 100 A 82 82 0 0 1 92 264" style={drawStroke(260, 260, 900)} />
+        </g>
 
-      {/* Sun. Top half exposed, lower half hidden behind the horizon. */}
-      <circle
-        cx="32"
-        cy="40"
-        r="11"
-        fill="url(#logomark-sun)"
-        style={
-          animated
-            ? {
-                opacity: 0,
-                animation:
-                  "first-paint-fade 700ms cubic-bezier(0.16,1,0.3,1) 350ms forwards",
-              }
-            : {}
-        }
-      />
-      {/* Sun rim catching light — fine stroke arc above. */}
-      <path
-        d="M 21 40 A 11 11 0 0 1 43 40"
-        fill="none"
-        stroke="oklch(0.96 0.08 88)"
-        strokeWidth="1"
-        strokeLinecap="round"
-        strokeOpacity="0.55"
-        style={
-          animated
-            ? {
-                strokeDasharray: 36,
-                strokeDashoffset: 36,
-                animation:
-                  "draw-stroke 700ms cubic-bezier(0.16,1,0.3,1) 480ms forwards",
-                ["--len" as never]: "36",
-              }
-            : {}
-        }
-      />
+        {/* Sun dome — filled half-disc seated on the editorial baseline. */}
+        <path
+          d="M 68.3 177 A 36 36 0 0 1 140.3 177 Z"
+          fill="currentColor"
+          stroke="none"
+          style={fadeIn(900, 500)}
+        />
 
-      {/* Horizon. The long brand rule. */}
-      <line
-        x1="8"
-        y1="40"
-        x2="56"
-        y2="40"
-        stroke="url(#logomark-horizon)"
-        strokeWidth="2"
-        strokeLinecap="round"
-        style={
-          animated
-            ? {
-                strokeDasharray: 50,
-                strokeDashoffset: 50,
-                animation:
-                  "draw-stroke 700ms cubic-bezier(0.16,1,0.3,1) 100ms forwards",
-                ["--len" as never]: "50",
-              }
-            : {}
-        }
-      />
-
-      {/* Editorial kicker — short heavy rule above the horizon, right side. */}
-      <line
-        x1="36"
-        y1="20"
-        x2="50"
-        y2="20"
-        stroke="oklch(0.85 0.18 74)"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeOpacity="0.85"
-        style={
-          animated
-            ? {
-                strokeDasharray: 16,
-                strokeDashoffset: 16,
-                animation:
-                  "draw-stroke 500ms cubic-bezier(0.16,1,0.3,1) 800ms forwards",
-                ["--len" as never]: "16",
-              }
-            : {}
-        }
-      />
-      {/* Thin secondary rule under the kicker. */}
-      <line
-        x1="40"
-        y1="24"
-        x2="50"
-        y2="24"
-        stroke="oklch(0.85 0.18 74)"
-        strokeWidth="1"
-        strokeLinecap="round"
-        strokeOpacity="0.45"
-        style={
-          animated
-            ? {
-                strokeDasharray: 12,
-                strokeDashoffset: 12,
-                animation:
-                  "draw-stroke 400ms cubic-bezier(0.16,1,0.3,1) 920ms forwards",
-                ["--len" as never]: "12",
-              }
-            : {}
-        }
-      />
+        {/* Sun rays — thin radiating lines, the editorial register. */}
+        <g strokeWidth="1.8" style={fadeIn(1050, 500)}>
+          <line x1="104.3" y1="173" x2="58" y2="173" />
+          <line x1="104.3" y1="173" x2="58" y2="160.6" />
+          <line x1="104.3" y1="173" x2="58" y2="146.3" />
+          <line x1="104.3" y1="173" x2="63.3" y2="132" />
+          <line x1="104.3" y1="173" x2="75.3" y2="122.8" />
+          <line x1="104.3" y1="173" x2="89.3" y2="117" />
+          <line x1="104.3" y1="173" x2="104.3" y2="115" />
+          <line x1="104.3" y1="173" x2="119.3" y2="117" />
+          <line x1="104.3" y1="173" x2="133.3" y2="122.8" />
+          <line x1="104.3" y1="173" x2="145.3" y2="132" />
+          <line x1="104.3" y1="173" x2="154.5" y2="144" />
+          <line x1="104.3" y1="173" x2="160.3" y2="158" />
+          <line x1="104.3" y1="173" x2="162.3" y2="173" />
+        </g>
+      </g>
     </svg>
   );
 }
 
 /**
- * Full brand lockup — logomark + Playfair wordmark.
+ * Brand lockup — mark + Playfair "The Desk" wordmark + INTELLIGENCE
+ * byline. The canonical brand surface (guide §2.1). The byline is
+ * non-negotiable; do not substitute or remove it from the standard
+ * lockup. Pass `byline={false}` only for compressed chrome (sticky
+ * masthead, narrow mobile contexts) per the minimum-size rule.
  */
 export function BrandLockup({
   size = 32,
@@ -179,22 +112,23 @@ export function BrandLockup({
   byline?: boolean;
   animated?: boolean;
 }) {
+  const wordmarkSize = Math.round(size * 0.66);
   return (
     <div className="flex items-center gap-2.5">
       <Logomark size={size} animated={animated} />
       <div className="leading-none">
         <span
-          className="font-serif font-bold tracking-tight wordmark"
-          style={{ fontSize: Math.round(size * 0.66) }}
+          className="font-serif font-bold tracking-tight wordmark block"
+          style={{ fontSize: wordmarkSize }}
         >
           The Desk
         </span>
         {byline && (
           <p
-            className="overline mt-1.5"
-            style={{ fontSize: 8, letterSpacing: "0.16em" }}
+            className="overline text-[var(--color-fg-subtle)] mt-1.5"
+            style={{ fontSize: 9, letterSpacing: "0.22em" }}
           >
-            Intelligence · Sydney
+            INTELLIGENCE
           </p>
         )}
       </div>
