@@ -85,7 +85,9 @@ export default function EditionsPage() {
             edition.metaDescription ??
             edition.rubensTake ??
             undefined,
-          ogImage: edition.heroImageUrl,
+          // Branded per-edition card (server-rendered) rather than the
+          // hero illustration so share previews carry the masthead.
+          ogImage: `/og/editions/${edition.editionNumber}.png`,
           url:
             typeof window !== "undefined"
               ? `${window.location.origin}/editions/${edition.editionNumber}`
