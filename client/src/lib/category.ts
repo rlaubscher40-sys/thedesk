@@ -10,7 +10,7 @@ const ACCENT_CLASS: Record<string, string> = {
   AI: "accent-ai",
   SCIENCE: "accent-science",
   ECONOMICS: "accent-economics",
-  GEOPOLITICS: "accent-policy",
+  GEOPOLITICS: "accent-geopolitics",
   OTHER: "accent-other",
 };
 
@@ -28,7 +28,7 @@ const CATEGORY_COLOUR: Record<string, string> = {
   AI: "oklch(0.7 0.18 210)",
   SCIENCE: "oklch(0.68 0.2 15)",
   ECONOMICS: "oklch(0.75 0.16 78)",
-  GEOPOLITICS: "oklch(0.65 0.18 295)",
+  GEOPOLITICS: "oklch(0.7 0.15 180)",
   OTHER: "oklch(0.62 0.012 260)",
 };
 

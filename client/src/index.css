@@ -40,6 +40,9 @@
   --color-ai: oklch(0.7 0.18 210);
   --color-science: oklch(0.68 0.2 15);
   --color-economics: oklch(0.75 0.16 78);
+  /* Distinct teal hue so GEOPOLITICS reads as its own beat rather than
+     aliasing onto POLICY's purple. */
+  --color-geopolitics: oklch(0.7 0.15 180);
 }
 
 .light {
@@ -212,8 +215,9 @@
   .accent-markets   { border-left: 2px solid var(--color-markets); }
   .accent-ai        { border-left: 2px solid var(--color-ai); }
   .accent-science   { border-left: 2px solid var(--color-science); }
-  .accent-economics { border-left: 2px solid var(--color-economics); }
-  .accent-other     { border-left: 2px solid var(--color-border-strong); }
+  .accent-economics   { border-left: 2px solid var(--color-economics); }
+  .accent-geopolitics { border-left: 2px solid var(--color-geopolitics); }
+  .accent-other       { border-left: 2px solid var(--color-border-strong); }
 
   /* ─── Skeleton loader ────────────────────────────────────── */
   .skeleton {

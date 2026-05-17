@@ -42,8 +42,10 @@ const dateToWatchSchema = z.object({
 });
 
 const synthesisSchema = z.object({
-  topics: z.array(editionTopicSchema).min(3).max(7),
-  signals: signalsSchema.min(4).max(12),
+  // Minimum 5 topics — four topics ended up reading as thin in the real
+  // world, and the coverage mandate below targets five distinct beats.
+  topics: z.array(editionTopicSchema).min(5).max(7),
+  signals: signalsSchema.min(6).max(14),
   keyMetrics: keyMetricsSchema,
   readingTime: z.string().max(32).optional(),
   fullText: z.string().optional().nullable(),
@@ -70,13 +72,17 @@ Audience: brokers, financial advisers, accountants, buyer's agents, SMSF special
 
 This week's range: ${input.weekRange} (week of ${input.weekOf})
 
-Coverage mandate. The edition must span this spread when the week's stories support it:
-  1. Property OR Macro — the spine. Rates, housing data, lending policy.
-  2. Policy OR Geopolitics — anything that changes the rules or the cost of capital. APRA, ASIC, RBA decisions, federal budget, trade, elections.
-  3. Tech OR AI — only when it materially moves money or workflows in Australia, OR is a global pivot point readers need to understand.
-  4. A wider-world story — global event, market shift, or social-pulse moment that affects how partners read the room. Not domestic sport.
+COVERAGE MANDATE — non-negotiable. The edition MUST include at least one topic from EACH of these five beats. Repeating a beat is allowed, missing a beat is not unless the week's source material genuinely contained nothing in that lane.
 
-If the week's stories don't support a category, omit it rather than fabricate. But push for breadth before depth.
+  1. Property — Australian housing, prices, listings, auctions, broker channel.
+  2. Macro / Policy — rates, RBA, APRA, ASIC, federal budget, regulatory change.
+  3. Geopolitics — international events that move capital, trade, currencies, or the rules of business in Australia. AUKUS, China, US politics, Middle East, Europe.
+  4. Tech / AI — only when it materially moves money or workflows in Australia or is a global pivot point partners need to understand.
+  5. Wider-world / culture — a non-domestic story or trend that changes how partners read the room. Could be sport-of-business, a science milestone, a major cultural shift, a death of a notable figure, a viral movement. NOT domestic sport scores.
+
+If you find yourself shipping fewer than 5 topics, you have missed a beat — go back through the source items and find the missing angle. A weekly edition that covers only Property + Policy reads as half a brief.
+
+Each topic must synthesise 2-5 related daily items, not just restate one. If two topics start to feel redundant, merge them.
 
 Below is every story logged on the daily feed across the week. Synthesise them into a structured weekly edition.
 
@@ -111,11 +117,11 @@ Output a SINGLE JSON object matching this exact shape, and NOTHING ELSE — no p
         "SMSF Specialists": "One sentence — what an SMSF specialist says about super, structure, or contribution implications. OMIT this key entirely if no clear angle exists rather than fabricating one."
       }
     }
-    // ... 4 to 6 topics total. The FIRST topic is the lead — most consequential of the week, longest body, drives the whole edition.
+    // ... 5 to 7 topics total spanning the five-beat coverage mandate above. The FIRST topic is the lead — most consequential of the week, longest body, drives the whole edition.
   ],
   "signals": [
     "one-line signal — short, sharp, max 18 words, names a thing that moved",
-    // ... 6 to 10 total. NOT topic summaries. These are the "what's also moving" rail — quick hits the reader scans.
+    // ... 8 to 12 total. NOT topic summaries. These are the "what's also moving" rail — quick hits the reader scans across the top of the edition. Cover diverse beats: a rate move, an APRA note, a listings stat, a global headline, a tech / AI item, a cultural beat. Variety > quantity.
   ],
   "keyMetrics": {
     "Cash rate": "4.35%",
