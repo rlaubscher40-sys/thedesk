@@ -75,12 +75,38 @@ const validResponse = JSON.stringify({
         "Buyer's Agents": "Six weeks above 65 is a trend, not a print.",
       },
     },
+    {
+      title: "AUKUS budget under pressure as US lags submarine plan",
+      summary: "Treasury revises AUKUS expenditure assumptions.",
+      category: "GEOPOLITICS",
+      body: "What happened. US production behind. Why it matters. Capital allocation shifts. What to watch. Defence DOC release. What it means for you. Watch regional industrial property.",
+      keyTakeaway: "Defence spend is a property catalyst no one is pricing.",
+      whyItMatters: "BAs covering regional industrial corridors should monitor defence-zone announcements.",
+      whatToWatch: ["Q3 defence procurement update"],
+      talkingPoints: {
+        "Buyer's Agents": "Defence pipeline still anchors industrial corridors.",
+      },
+    },
+    {
+      title: "Anthropic releases a long-context agent SDK",
+      summary: "AI tooling for brokers and advisers gets cheaper.",
+      category: "AI",
+      body: "What happened. New SDK. Why it matters. Document workflows. What to watch. Adoption rate. What it means for you. Pilot one workflow.",
+      keyTakeaway: "Pick one document workflow and pilot the new tooling.",
+      whyItMatters: "Mortgage brokers can pilot document-handling agents without bespoke ML cost.",
+      whatToWatch: ["Adoption benchmarks Q3"],
+      talkingPoints: {
+        Brokers: "Pilot doc-handling automation on a low-risk workflow first.",
+      },
+    },
   ],
   signals: [
     "RBA holds at 4.35% for the third meeting",
     "APRA serviceability paper softens",
     "Sydney clearance above 65 for six weeks",
     "Fixed-rate roll-off volume peaks in June",
+    "AUKUS production schedule slipping",
+    "Anthropic agent SDK lands",
   ],
   keyMetrics: { "Cash rate": "4.35%", "Sydney clearance": "67%" },
   readingTime: "9 min",
@@ -104,12 +130,12 @@ describe("synthesizeWeeklyEdition", () => {
       items: fakeItems,
     });
 
-    expect(out.topics).toHaveLength(3);
+    expect(out.topics).toHaveLength(5);
     expect(out.topics[0]?.title).toBe(
       "Cash rate holds, broker channel keeps pricing"
     );
     expect(out.topics[0]?.whyItMatters).toContain("Brokers and BAs");
-    expect(out.signals.length).toBeGreaterThanOrEqual(4);
+    expect(out.signals.length).toBeGreaterThanOrEqual(6);
     expect(out.marketStress).toBe("low");
     expect(out.datesToWatch).toHaveLength(2);
   });
@@ -152,7 +178,7 @@ describe("synthesizeWeeklyEdition", () => {
   it("throws when topics or signals fall below the schema minimum", async () => {
     const thin = JSON.stringify({
       ...JSON.parse(validResponse),
-      topics: [JSON.parse(validResponse).topics[0]], // just one — below min 3
+      topics: [JSON.parse(validResponse).topics[0]], // just one — below min 5
     });
     vi.mocked(invokeLLM).mockResolvedValueOnce(thin);
 

@@ -145,35 +145,43 @@ export function EditionHero({
         Weekly intelligence for property partnerships.
       </p>
 
-      {/* Ruben's Take — the editorial hook. The quote and the print-
-          style byline share one column with the same amber rule down
-          the left edge, so the byline reads as the end of the take
-          rather than a floating sidebar. */}
-      {edition.rubensTake && (
-        <div className="mt-12 mb-12 relative pl-7 max-w-[80ch]">
-          <span
-            className="absolute left-0 top-1 bottom-1 w-px"
-            style={{
-              background:
-                "linear-gradient(180deg, var(--color-amber) 0%, transparent 100%)",
-            }}
-            aria-hidden="true"
-          />
-          <p
-            className="overline mb-3"
-            style={{ color: "var(--color-amber)", letterSpacing: "0.24em" }}
-          >
-            Ruben's Take
-          </p>
-          <blockquote
-            className="font-serif italic text-[var(--color-fg)] leading-snug"
-            style={{ fontSize: "clamp(1.25rem, 2.2vw, 1.75rem)" }}
-          >
-            {edition.rubensTake}
-          </blockquote>
-          <div className="mt-6 pt-5 border-t border-[var(--color-border)]">
-            <AuthorByline />
-          </div>
+      {/* Ruben's Take + In-brief scan strip — two-column on desktop so the
+          take doesn't sit lonely on the left half of a wide canvas. The
+          scan strip carries the first 6 signals as quick hits the reader
+          can absorb before diving in. Single column on mobile, take first
+          then scan. */}
+      {(edition.rubensTake || (edition.signals && edition.signals.length > 0)) && (
+        <div className="mt-12 mb-12 grid gap-10 lg:gap-14 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] items-start">
+          {edition.rubensTake && (
+            <div className="relative pl-7">
+              <span
+                className="absolute left-0 top-1 bottom-1 w-px"
+                style={{
+                  background:
+                    "linear-gradient(180deg, var(--color-amber) 0%, transparent 100%)",
+                }}
+                aria-hidden="true"
+              />
+              <p
+                className="overline mb-3"
+                style={{ color: "var(--color-amber)", letterSpacing: "0.24em" }}
+              >
+                Ruben's Take
+              </p>
+              <blockquote
+                className="font-serif italic text-[var(--color-fg)] leading-snug"
+                style={{ fontSize: "clamp(1.25rem, 2.2vw, 1.75rem)" }}
+              >
+                {edition.rubensTake}
+              </blockquote>
+              <div className="mt-6 pt-5 border-t border-[var(--color-border)]">
+                <AuthorByline />
+              </div>
+            </div>
+          )}
+          {edition.signals && edition.signals.length > 0 && (
+            <InBriefScan signals={edition.signals} />
+          )}
         </div>
       )}
 
@@ -317,5 +325,55 @@ function MarketStressBadge({ level }: { level: string }) {
       />
       {label}
     </span>
+  );
+}
+
+/**
+ * "In brief" scan strip — the first six edition signals as dot-point hits,
+ * sized so a reader can absorb the whole week at a glance before diving
+ * into the topic deck. Rendered next to Ruben's Take on desktop; stacks
+ * underneath on mobile.
+ */
+function InBriefScan({ signals }: { signals: string[] }) {
+  const filtered = signals.filter((s) => s && s.trim().length > 0).slice(0, 6);
+  if (filtered.length === 0) return null;
+  return (
+    <aside
+      className="panel rounded-sm p-5 lg:p-6"
+      aria-label="In brief"
+      style={{
+        background:
+          "linear-gradient(180deg, oklch(0.13 0.022 260) 0%, oklch(0.10 0.022 260) 100%)",
+        boxShadow: "inset 0 0 0 1px oklch(0.75 0.18 70 / 10%)",
+      }}
+    >
+      <p
+        className="overline-amber mb-4"
+        style={{ letterSpacing: "0.22em", fontSize: "10px" }}
+      >
+        In brief
+      </p>
+      <ol className="space-y-3">
+        {filtered.map((s, i) => (
+          <li
+            key={`brief-${i}-${s.slice(0, 24)}`}
+            className="grid grid-cols-[22px_minmax(0,1fr)] items-baseline gap-2"
+          >
+            <span
+              className="font-mono tabular-nums text-amber-400/80"
+              style={{ fontSize: "11px" }}
+            >
+              {String(i + 1).padStart(2, "0")}
+            </span>
+            <span
+              className="text-[var(--color-fg)] leading-snug"
+              style={{ fontSize: "13.5px" }}
+            >
+              {s}
+            </span>
+          </li>
+        ))}
+      </ol>
+    </aside>
   );
 }
