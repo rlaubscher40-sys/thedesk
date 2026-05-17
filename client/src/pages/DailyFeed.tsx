@@ -30,6 +30,7 @@ import { MetricsStrip } from "@/components/desk/rightRail/MetricsStrip";
 import { SupportStrip } from "@/components/desk/rightRail/SupportStrip";
 import { FeedLeadCard } from "@/components/feed/FeedLeadCard";
 import { FeedItemCard } from "@/components/feed/FeedItemCard";
+import { TodayInBrief } from "@/components/feed/TodayInBrief";
 import { editionMeta, stories } from "@/data/editions/2026-05-15";
 import { trpc } from "@/lib/trpc";
 
@@ -118,6 +119,12 @@ export default function DailyFeed() {
       {/* ── Live feed (DB-driven) ────────────────────────────────────── */}
       {hasLiveData ? (
         <>
+          {/* Scan strip — every story today as dot points so partners can
+              absorb the day in 10 seconds before drilling in. */}
+          <SectionErrorBoundary section="Today in brief">
+            <TodayInBrief items={feedItems} />
+          </SectionErrorBoundary>
+
           {liveLead && (
             <SectionErrorBoundary section="Lead">
               <section>
