@@ -24,6 +24,7 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Honeypot } from "@/components/Honeypot";
 import { cn } from "@/lib/cn";
 import { trpc } from "@/lib/trpc";
 
@@ -97,6 +98,7 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
   const [kind, setKind] = useState<Kind>("bug");
   const [message, setMessage] = useState("");
   const [contactEmail, setContactEmail] = useState("");
+  const [hp, setHp] = useState("");
   const [reporterLabel, setReporterLabel] = useState(() => {
     if (typeof window === "undefined") return "";
     return window.localStorage.getItem(STORAGE_LABEL_KEY) ?? "";
@@ -135,6 +137,7 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
     submit.mutate({
       kind,
       message: message.trim(),
+      _hp: hp,
       pageUrl: typeof window !== "undefined" ? window.location.href : null,
       userAgent: typeof navigator !== "undefined" ? navigator.userAgent : null,
       contactEmail: contactEmail.trim() || null,
@@ -180,6 +183,7 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
         </header>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          <Honeypot value={hp} onChange={setHp} />
           {/* Kind picker. */}
           <div>
             <p

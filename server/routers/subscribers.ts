@@ -38,6 +38,10 @@ export const subscribersRouter = router({
         /** Touchpoint identifier — "sidebar", "modal", "hero",
          *  "edition-footer", etc. */
         source: z.string().min(1).max(64).optional(),
+        // Honeypot — must be empty. Form-filler bots flood every field;
+        // a truthy value here means it's a bot and the row is rejected
+        // before it ever touches the subscribers table.
+        _hp: z.string().max(0).optional(),
       })
     )
     .mutation(async ({ input }) => {

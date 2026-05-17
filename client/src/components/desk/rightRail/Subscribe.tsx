@@ -6,11 +6,13 @@
  */
 import { useState } from "react";
 import { toast } from "sonner";
+import { Honeypot } from "@/components/Honeypot";
 import { trpc } from "@/lib/trpc";
 import { RailPanel } from "./RailPanel";
 
 export function Subscribe({ source = "right-rail" }: { source?: string }) {
   const [email, setEmail] = useState("");
+  const [hp, setHp] = useState("");
   const subscribe = trpc.subscribers.subscribe.useMutation({
     onSuccess: (res) => {
       setEmail("");
@@ -34,7 +36,7 @@ export function Subscribe({ source = "right-rail" }: { source?: string }) {
       toast.error("That email doesn't look right");
       return;
     }
-    subscribe.mutate({ email, source });
+    subscribe.mutate({ email, source, _hp: hp });
   }
 
   const busy = subscribe.isPending;
@@ -45,6 +47,7 @@ export function Subscribe({ source = "right-rail" }: { source?: string }) {
         Get the Daily Brief and the weekly edition in your inbox at 7am AEST.
       </p>
       <form onSubmit={onSubmit} className="flex flex-col gap-2.5">
+        <Honeypot value={hp} onChange={setHp} />
         <input
           type="email"
           inputMode="email"

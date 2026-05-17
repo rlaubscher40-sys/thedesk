@@ -14,6 +14,11 @@ import { adminProcedure, publicProcedure, router } from "../core/trpc";
 const submitInput = z.object({
   kind: z.enum(["bug", "idea", "praise"]),
   message: z.string().min(3).max(2000),
+  // Honeypot — the client never sets this. Form-filler bots will set
+  // every field. A non-empty value here means it's a bot; reject.
+  // Field name intentionally bland so signature-based bots can't spot
+  // and skip it. Server treats any truthy value as spam.
+  _hp: z.string().max(0).optional(),
   // Validate the URL parses AND uses an http(s) scheme. Belt + braces:
   // some URL validators accept "javascript:" as valid; the explicit
   // protocol check guarantees the admin can't be phished via a
