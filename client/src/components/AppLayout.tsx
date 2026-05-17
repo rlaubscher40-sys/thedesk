@@ -31,6 +31,7 @@ import { useAuth } from "@/lib/useAuth";
 import { trpc } from "@/lib/trpc";
 import { AnimatedBackground } from "./AnimatedBackground";
 import { DemoModeBanner } from "./DemoModeBanner";
+import { FeedbackButton } from "./FeedbackButton";
 import { LiveTicker } from "./LiveTicker";
 import { Logomark } from "./Logomark";
 import { StreakBadge } from "./StreakBadge";
@@ -174,12 +175,20 @@ export function AppLayout({ children }: { children: ReactNode }) {
       {showScrollTop && (
         <button
           aria-label="Scroll to top"
-          className="fixed z-50 lg:bottom-6 lg:right-6 bottom-24 right-4 h-10 w-10 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-300 backdrop-blur flex items-center justify-center hover:bg-amber-500/25 transition-colors"
+          // Shifted up so it stacks above the FeedbackButton without
+          // overlapping. lg: 64px above the feedback pill; mobile:
+          // above the feedback pill but below the bottom tab bar.
+          className="fixed z-50 lg:bottom-20 lg:right-6 bottom-[120px] right-4 h-10 w-10 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-300 backdrop-blur flex items-center justify-center hover:bg-amber-500/25 transition-colors"
           onClick={() => document.querySelector("main")?.scrollTo({ top: 0, behavior: "smooth" })}
         >
           <ChevronUp className="h-4 w-4" />
         </button>
       )}
+
+      {/* Floating feedback affordance — hidden on /admin and pre-auth
+          chrome. Sits bottom-right, visible on every reader-facing
+          surface throughout the testing window. */}
+      <FeedbackButton />
     </div>
   );
 }

@@ -433,6 +433,47 @@ export function markAllQueueRead(userId: number): void {
   for (const item of demo.queue) if (item.userId === userId) item.isRead = true;
 }
 
+// ─── Feedback ───────────────────────────────────────────────────────────────
+
+export function createFeedback(data: {
+  kind: string;
+  message: string;
+  pageUrl?: string | null;
+  userAgent?: string | null;
+  contactEmail?: string | null;
+  reporterLabel?: string | null;
+}): void {
+  demo.feedback.unshift({
+    id: allocId(),
+    kind: data.kind,
+    message: data.message,
+    pageUrl: data.pageUrl ?? null,
+    userAgent: data.userAgent ?? null,
+    contactEmail: data.contactEmail ?? null,
+    reporterLabel: data.reporterLabel ?? null,
+    status: "new",
+    createdAt: new Date(),
+  });
+}
+
+export function listFeedback() {
+  return [...demo.feedback];
+}
+
+export function updateFeedbackStatus(id: number, status: "new" | "reviewed"): void {
+  const row = demo.feedback.find((f) => f.id === id);
+  if (row) row.status = status;
+}
+
+export function deleteFeedback(id: number): void {
+  const idx = demo.feedback.findIndex((f) => f.id === id);
+  if (idx >= 0) demo.feedback.splice(idx, 1);
+}
+
+export function countNewFeedback(): number {
+  return demo.feedback.filter((f) => f.status === "new").length;
+}
+
 // ─── Users ──────────────────────────────────────────────────────────────────
 
 export function upsertUser(): void {

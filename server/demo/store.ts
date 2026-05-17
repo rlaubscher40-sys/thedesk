@@ -12,6 +12,7 @@ import type {
   DailyMetric,
   Edition,
   FeaturedLinkedInPost,
+  FeedbackSubmission,
   ReadingQueueItem,
   User,
   Subscriber,
@@ -51,6 +52,7 @@ export const demo = {
   subscribers: [] as Subscriber[],
   linkedInPosts: linkedInSeed(),
   metrics: metricsSeed(),
+  feedback: [] as FeedbackSubmission[],
 };
 
 function metricsSeed(): DailyMetric[] {

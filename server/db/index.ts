@@ -11,3 +11,4 @@ export * from "./subscribers";
 export * from "./featuredLinkedIn";
 export * from "./dailyMetrics";
 export * from "./editionAssets";
+export * from "./feedback";
