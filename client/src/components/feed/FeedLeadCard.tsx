@@ -104,7 +104,13 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
   return (
     <article
       className={cn(
-        "panel hover-lift rounded overflow-hidden grid grid-cols-1 lg:grid-cols-[1.05fr_1fr]",
+        // Single-column stack on every breakpoint. The 2-col grid kept
+        // forcing the cover plate to stretch to the editorial column's
+        // height, which either cropped the image violently or left a
+        // dead gradient panel below it. Stacking sidesteps the problem
+        // — image at its natural aspect on top, editorial below at a
+        // comfortable reading width.
+        "panel hover-lift rounded overflow-hidden",
         categoryAccentClass(item.category)
       )}
     >
@@ -116,13 +122,14 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
           peeking through the edges rather than getting savagely cropped. */}
       <Link
         href={`/story/${item.id}`}
-        className="relative block overflow-hidden"
+        // Centred + max-h capped so a portrait image doesn't push the
+        // editorial deck below the fold. Image takes its natural aspect
+        // (or the 5:3 fallback while loading) — never stretched, never
+        // cropped.
+        className="relative block overflow-hidden mx-auto w-full"
         style={{
-          // Default to 5:3 (landscape, news-banner-ish) until the image
-          // loads and we know its real ratio. When no image, lock to a
-          // pleasing landscape that suits the supersized category
-          // typographic moment.
           aspectRatio: imageAspect ?? (item.imageUrl ? 5 / 3 : 5 / 3),
+          maxHeight: 480,
           background: `
             radial-gradient(circle at 78% 22%, ${categoryColour(item.category)}50 0%, transparent 55%),
             radial-gradient(circle at 14% 86%, ${categoryColour(item.category)}1a 0%, transparent 55%),
@@ -134,7 +141,10 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
           <img
             src={item.imageUrl}
             alt=""
-            className="absolute inset-0 w-full h-full object-cover object-center"
+            // object-top so any rare max-height clamp on a tall portrait
+            // preserves the top of the image (faces) rather than centring
+            // the crop through somebody's chin.
+            className="absolute inset-0 w-full h-full object-cover object-top"
             loading="lazy"
             decoding="async"
             onLoad={onImageLoad}
