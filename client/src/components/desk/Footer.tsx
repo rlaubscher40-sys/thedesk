@@ -10,6 +10,7 @@
  * expects a visible disclaimer that the content isn't personal advice.
  */
 import { Link } from "wouter";
+import { BrandLockup } from "@/components/Logomark";
 import { useLiveEditionMeta } from "@/lib/useLiveEditionMeta";
 
 // TODO: replace with the real InvestorKit ABN before going public.
@@ -19,14 +20,11 @@ export function Footer() {
   const edition = useLiveEditionMeta();
   return (
     <footer className="mt-16 border-t border-[var(--color-border)] pt-6 pb-10 space-y-5 text-[var(--color-fg-subtle)]">
-      {/* Row 1 — brand + edition + nav. */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <p
-          className="font-mono uppercase tracking-[0.16em]"
-          style={{ fontSize: "10px" }}
-        >
-          The Desk · Daily intelligence for property partnerships
-        </p>
+      {/* Row 1 — canonical lockup + edition + nav. The lockup replaces
+          the prior plain-text "The Desk · ..." string so the footer
+          carries the same brand surface as every other masthead. */}
+      <div className="flex items-center justify-between flex-wrap gap-6">
+        <BrandLockup size={28} />
         {edition && (
           <p
             className="font-mono uppercase tracking-[0.16em]"

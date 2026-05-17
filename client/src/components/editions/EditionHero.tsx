@@ -8,6 +8,7 @@ import { ArrowDown, ArrowUp, Minus } from "lucide-react";
 import type { Edition } from "@shared/types";
 import type { KeyMetrics } from "@shared/schemas";
 import { AuthorByline } from "@/components/desk/AuthorByline";
+import { BrandLockup } from "@/components/Logomark";
 import { resolveMetricTrend } from "@/lib/metrics";
 import { ShareEditionButton } from "./ShareEditionButton";
 
@@ -38,12 +39,7 @@ export function EditionHero({
           </p>
           <div className="flex items-center gap-4">
             {edition.marketStress && <MarketStressBadge level={edition.marketStress} />}
-            <p
-              className="font-mono uppercase text-[var(--color-fg-subtle)]"
-              style={{ fontSize: "10px", letterSpacing: "0.24em" }}
-            >
-              The Desk · Daily Intelligence
-            </p>
+            <BrandLockup size={22} byline={false} />
           </div>
         </div>
         <div className="h-px bg-[var(--color-border-strong)]" aria-hidden="true" />

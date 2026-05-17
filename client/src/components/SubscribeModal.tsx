@@ -22,10 +22,11 @@
  * permanently.
  */
 import { useEffect, useState } from "react";
-import { CheckCircle2, ExternalLink, Rss, Sparkles, X } from "lucide-react";
+import { CheckCircle2, ExternalLink, Rss, X } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 import { Honeypot } from "@/components/Honeypot";
+import { Logomark } from "@/components/Logomark";
 import { trpc } from "@/lib/trpc";
 
 const STORAGE_KEY = "thedesk:subscribe-modal-seen";
@@ -127,7 +128,9 @@ export function SubscribeModal() {
           {done ? (
             <CheckCircle2 className="absolute top-6 left-7 h-8 w-8 text-amber-300/80" strokeWidth={1.4} />
           ) : (
-            <Sparkles className="absolute top-6 left-7 h-8 w-8 text-amber-300/80" strokeWidth={1.4} />
+            <div className="absolute top-6 left-7">
+              <Logomark size={32} animated={false} />
+            </div>
           )}
         </div>
 

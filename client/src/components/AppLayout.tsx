@@ -307,7 +307,7 @@ function SidebarHeader({
             byline. Per brand guide §2.2 the byline is the lockup's only
             sub-mark text, so the previous "Live · Sydney" strip is gone. */}
         <div className="first-paint-mark min-w-0">
-          <BrandLockup size={26} animated />
+          <BrandLockup size={36} animated />
         </div>
         <button
           onClick={onToggleCollapse}

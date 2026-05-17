@@ -7,6 +7,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { Loader2, Lock } from "lucide-react";
+import { BrandLockup } from "@/components/Logomark";
 import { trpc } from "@/lib/trpc";
 
 export default function Login() {
@@ -45,27 +46,17 @@ export default function Login() {
   return (
     <div className="max-w-md mx-auto py-16">
       <div className="panel rounded-sm p-8 sm:p-10 space-y-6">
-        <div className="flex items-center gap-3">
-          <span
-            className="h-9 w-9 rounded-full flex items-center justify-center shrink-0"
-            style={{
-              background: "oklch(0.78 0.18 70 / 14%)",
-              boxShadow: "inset 0 0 0 1px oklch(0.78 0.18 70 / 32%)",
-            }}
+        <BrandLockup size={36} />
+        <div>
+          <p
+            className="overline-amber"
+            style={{ letterSpacing: "0.22em", fontSize: "10px" }}
           >
-            <Lock className="h-4 w-4 text-amber-300" />
-          </span>
-          <div>
-            <p
-              className="overline-amber"
-              style={{ letterSpacing: "0.22em", fontSize: "10px" }}
-            >
-              The Desk · Admin
-            </p>
-            <h1 className="font-serif text-2xl font-bold leading-tight mt-1">
-              Sign in
-            </h1>
-          </div>
+            Curator access
+          </p>
+          <h1 className="font-serif text-2xl font-bold leading-tight mt-1">
+            Sign in
+          </h1>
         </div>
 
         <p className="text-sm text-[var(--color-fg-muted)] leading-relaxed">
