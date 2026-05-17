@@ -84,10 +84,18 @@ export function PersonaSwitcher() {
       </div>
       {showCaption && (
         <p
-          className="text-[11px] text-[var(--color-fg-subtle)] leading-snug pl-1 max-w-[60ch]"
+          className="text-[12px] sm:text-[11px] text-[var(--color-fg-muted)] leading-snug pl-1 max-w-[60ch]"
           style={{ animation: "fade-in 0.35s ease-out" }}
         >
-          Tailors the "Say This" angle on each story to your audience.
+          <span
+            aria-hidden="true"
+            className="inline-block mr-1.5 text-amber-300"
+            style={{ letterSpacing: "0" }}
+          >
+            ↑
+          </span>
+          Tap a persona to tailor every story&apos;s "Say This" angle to that
+          audience.
         </p>
       )}
     </div>

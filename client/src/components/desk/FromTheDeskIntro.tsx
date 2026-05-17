@@ -73,8 +73,34 @@ export function FromTheDeskIntro() {
           Ruben Laubscher
         </h2>
         <p className="text-sm text-[var(--color-fg-muted)] mt-1.5 leading-snug max-w-[60ch]">
-          Head of Partnerships at <span className="text-[var(--color-fg)]">InvestorKit</span>, Australia&apos;s most awarded data-driven buyer&apos;s agency. Curating one daily read for the partner channel since 2024.
+          One daily read for the partner channel — built so brokers, advisers,
+          accountants and buyer's agents walk into the next conversation
+          sharper than the last. Head of Partnerships at{" "}
+          <span className="text-[var(--color-fg)]">InvestorKit</span>,
+          Australia&apos;s most awarded data-driven buyer&apos;s agency.
         </p>
+        <div className="flex items-center gap-2 mt-3 sm:hidden">
+          <a
+            href={LINKEDIN_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Ruben Laubscher on LinkedIn"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-[10px] font-mono uppercase tracking-[0.16em] border border-[var(--color-border)] text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] hover:border-[var(--color-border-strong)] transition-colors"
+          >
+            <Linkedin className="h-3 w-3" />
+            LinkedIn
+          </a>
+          <a
+            href={SUBSTACK_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Ruben Laubscher's Substack"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-[10px] font-mono uppercase tracking-[0.16em] border border-[var(--color-border)] text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] hover:border-[var(--color-border-strong)] transition-colors"
+          >
+            <ExternalLink className="h-3 w-3" />
+            Substack
+          </a>
+        </div>
       </div>
 
       <div className="hidden sm:flex items-center gap-2 shrink-0">
