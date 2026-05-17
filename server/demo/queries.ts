@@ -656,6 +656,40 @@ export function getLatestEditionAsset(
 }
 
 /**
+ * Hero-library demo stubs — empty list, null picks, no-op writes. Demo
+ * mode skips image generation entirely so the library never gets
+ * populated, and these stubs make sure the routers/cron don't error.
+ */
+export function listHeroLibrary(): [] {
+  return [];
+}
+
+export function pickLeastRecentlyUsedHero(): null {
+  return null;
+}
+
+export function getHeroLibraryBytes(_id: number): null {
+  return null;
+}
+
+export function storeHeroLibraryItem(_args: {
+  label?: string | null;
+  promptUsed?: string | null;
+  contentType: string;
+  bytes: Buffer;
+}): number {
+  return 0;
+}
+
+export function markHeroLibraryUsed(_id: number): void {}
+
+export function setHeroLibraryRetired(_id: number, _retired: boolean): void {}
+
+export function setHeroLibraryLabel(_id: number, _label: string | null): void {}
+
+export function deleteHeroLibraryItem(_id: number): void {}
+
+/**
  * Demo-mode history. Generates a smooth-ish 30-day series around the
  * current value so the sparklines have something to render even with no
  * real DB writes yet. Deterministic per metricKey so the chart doesn't

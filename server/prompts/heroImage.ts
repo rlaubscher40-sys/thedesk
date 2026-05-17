@@ -39,6 +39,36 @@ export function substackHeroPrompt(args: { title: string; topics: EditionTopic[]
   return `Substack essay hero image. Topic: ${args.title}. Style: ${visualCue(dominant)}. Wide format, cinematic, high contrast, no text, no words, no labels.`;
 }
 
+/**
+ * Library-seed prompt. Generates a generic editorial cover that's not
+ * tied to a specific edition's content, so the same image can be
+ * recycled across many weeks without looking content-mismatched. The
+ * `seed` argument rotates the visual cue so a batch of generations
+ * doesn't return ten near-identical covers.
+ */
+const LIBRARY_VISUAL_SEEDS: string[] = [
+  CATEGORY_VISUAL_CUE.MACRO!,
+  CATEGORY_VISUAL_CUE.PROPERTY!,
+  CATEGORY_VISUAL_CUE.MARKETS!,
+  CATEGORY_VISUAL_CUE.POLICY!,
+  CATEGORY_VISUAL_CUE.ECONOMICS!,
+  "dark editorial photograph of an empty newsroom desk at dawn, warm amber lamp light, navy shadows, cinematic depth of field",
+  "abstract topographic line drawing of an Australian coastline at night, deep navy with thin amber contour lines, editorial",
+  "macro photograph of brass fountain pen and folded newspaper on dark walnut, warm amber rim light, navy background, cinematic",
+  "aerial photograph of suburban Australian rooflines at dusk, long shadows, warm amber sky meeting deep navy, editorial documentary style",
+  "dark editorial still life of stacked financial reports and a brass desk lamp, amber pool of light, deep navy surroundings, cinematic",
+];
+
+export function libraryHeroPrompt(args: { seed?: number } = {}): string {
+  const idx =
+    typeof args.seed === "number"
+      ? ((args.seed % LIBRARY_VISUAL_SEEDS.length) + LIBRARY_VISUAL_SEEDS.length) %
+        LIBRARY_VISUAL_SEEDS.length
+      : Math.floor(Math.random() * LIBRARY_VISUAL_SEEDS.length);
+  const cue = LIBRARY_VISUAL_SEEDS[idx]!;
+  return `Editorial intelligence briefing hero image for a weekly Australian property and finance brief. Style: ${cue}. No text, no words, no labels. Cinematic, high contrast, dark background, wide cinematic format.`;
+}
+
 /** Image prompt for a single daily-feed item. Used by the background enrichment
  *  step to fill in `dailyFeedItems.imageUrl`. */
 export function feedItemImagePrompt(args: {
