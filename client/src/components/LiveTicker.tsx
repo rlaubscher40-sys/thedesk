@@ -1,17 +1,35 @@
 /**
- * Top scrolling ticker. Pulls from `tickerItems` in the edition data file
- * so the strip is editable without touching JSX. Renders the list twice
- * for seamless wrap-around (CSS keyframe translates by 50%).
+ * Top scrolling ticker. Pulls today's live feed headlines and runs them
+ * across the top of the page as a "what's moving today" strip.
  *
  *   ● LIVE  · Item · Item · Item · …
  *
- * Paused on hover. Disappears if the array is empty.
+ * Renders the list twice for seamless wrap-around (CSS keyframe
+ * translates by 50%). Paused on hover. Hidden when there's nothing in
+ * the feed — never falls back to seed placeholders since stale ticker
+ * items in a "LIVE" strip is worse than no ticker at all.
  */
+import { useMemo } from "react";
 import { categoryColour } from "@/lib/category";
-import { tickerItems } from "@/data/editions/2026-05-15";
+import { trpc } from "@/lib/trpc";
+
+type TickerItem = { category: string | null; label: string };
 
 export function LiveTicker() {
-  if (tickerItems.length === 0) return null;
+  const feedQuery = trpc.feed.getByDate.useQuery(undefined, {
+    staleTime: 60_000,
+  });
+
+  const items = useMemo<TickerItem[]>(() => {
+    const feed = feedQuery.data ?? [];
+    return feed.slice(0, 12).map((it) => ({
+      category: it.category ?? null,
+      // Truncate hard so a long headline doesn't choke the scroll.
+      label: it.title.length > 110 ? `${it.title.slice(0, 110).trim()}…` : it.title,
+    }));
+  }, [feedQuery.data]);
+
+  if (items.length === 0) return null;
 
   return (
     <div
@@ -19,15 +37,12 @@ export function LiveTicker() {
       style={{ height: "30px" }}
       aria-label="Live intelligence ticker"
     >
-      {/* Fixed left LIVE badge. */}
       <div className="absolute inset-y-0 left-0 z-20 flex items-center gap-2 px-4 bg-[oklch(0.10_0.018_260)] border-r border-[var(--color-border)] shrink-0">
         <span className="live-dot" aria-hidden="true" />
         <span className="overline-amber" style={{ letterSpacing: "0.2em" }}>
           Live
         </span>
       </div>
-
-      {/* Scrolling track. */}
       <div
         className="absolute inset-y-0 left-[100px] right-0 overflow-hidden flex items-center"
         style={{
@@ -41,15 +56,12 @@ export function LiveTicker() {
         >
           {[0, 1].map((loop) => (
             <span key={loop} className="inline-flex items-center">
-              {tickerItems.map((item, i) => (
+              {items.map((item, i) => (
                 <span key={`${loop}-${i}`} className="inline-flex items-center pr-6">
                   {item.category && (
                     <span
                       className="font-mono uppercase tracking-[0.18em] mr-2.5"
-                      style={{
-                        color: categoryColour(item.category),
-                        fontSize: "9px",
-                      }}
+                      style={{ color: categoryColour(item.category), fontSize: "9px" }}
                     >
                       {item.category}
                     </span>
