@@ -1,37 +1,91 @@
 /**
- * Minimal theme context. Only two modes ("dark"/"light"), persisted to
- * localStorage and applied as a `.light` class on the html element so the
- * CSS overrides in index.css take effect.
+ * Theme context. Three user-facing modes: "dark", "light", "system".
+ * The resolved theme (after applying the system preference when "system"
+ * is selected) is applied as a `.light` class on <html> so the CSS
+ * overrides in index.css take effect.
+ *
+ * Persisted to localStorage. System mode listens to prefers-color-scheme
+ * and flips live when the OS toggles.
  */
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
 
-type Theme = "dark" | "light";
+export type ThemeMode = "dark" | "light" | "system";
+export type ResolvedTheme = "dark" | "light";
 
-const ThemeContext = createContext<{
-  theme: Theme;
+type Ctx = {
+  /** What the user picked. */
+  theme: ThemeMode;
+  /** What's actually applied (system resolved). */
+  resolvedTheme: ResolvedTheme;
+  /** What the OS currently prefers. */
+  systemPreferred: ResolvedTheme;
+  /** Cycle dark → light → system (legacy toggle button). */
   toggleTheme: () => void;
-} | null>(null);
+  /** Direct picker for the Settings page. */
+  setTheme: (mode: ThemeMode) => void;
+};
+
+const ThemeContext = createContext<Ctx | null>(null);
 
 const STORAGE_KEY = "thedesk:theme";
 
-function readStoredTheme(): Theme {
+function readStored(): ThemeMode {
   if (typeof window === "undefined") return "dark";
   const stored = window.localStorage.getItem(STORAGE_KEY);
-  return stored === "light" ? "light" : "dark";
+  if (stored === "light" || stored === "dark" || stored === "system") return stored;
+  return "dark";
+}
+
+function readSystem(): ResolvedTheme {
+  if (typeof window === "undefined") return "dark";
+  return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(readStoredTheme);
+  const [theme, setThemeState] = useState<ThemeMode>(readStored);
+  const [systemPreferred, setSystemPreferred] = useState<ResolvedTheme>(readSystem);
+
+  // Listen for OS theme flips so "system" mode follows live.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(prefers-color-scheme: light)");
+    const onChange = () => setSystemPreferred(mq.matches ? "light" : "dark");
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  const resolvedTheme: ResolvedTheme = theme === "system" ? systemPreferred : theme;
 
   useEffect(() => {
     const root = document.documentElement;
-    root.classList.toggle("light", theme === "light");
+    root.classList.toggle("light", resolvedTheme === "light");
+    root.style.colorScheme = resolvedTheme;
     window.localStorage.setItem(STORAGE_KEY, theme);
-  }, [theme]);
+  }, [resolvedTheme, theme]);
 
-  const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
+  const setTheme = useCallback((next: ThemeMode) => setThemeState(next), []);
 
-  return <ThemeContext.Provider value={{ theme, toggleTheme }}>{children}</ThemeContext.Provider>;
+  // Legacy toggle: cycle dark → light → system → dark.
+  const toggleTheme = useCallback(() => {
+    setThemeState((t) =>
+      t === "dark" ? "light" : t === "light" ? "system" : "dark"
+    );
+  }, []);
+
+  return (
+    <ThemeContext.Provider
+      value={{ theme, resolvedTheme, systemPreferred, toggleTheme, setTheme }}
+    >
+      {children}
+    </ThemeContext.Provider>
+  );
 }
 
 export function useTheme() {

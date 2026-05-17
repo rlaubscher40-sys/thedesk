@@ -13,9 +13,15 @@
  */
 import { Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { editionMeta } from "@/data/editions/2026-05-15";
+import { getSydneyDate } from "@/lib/date";
+import { useLiveEditionMeta } from "@/lib/useLiveEditionMeta";
 
 export function Hero({ onGenerateAll }: { onGenerateAll?: () => void }) {
+  // Today's date in Sydney + the latest live edition's number — both
+  // pulled from real data rather than the static seed editionMeta. The
+  // edition link still lands on the newest edition.
+  const todayLabel = getSydneyDate();
+  const edition = useLiveEditionMeta();
   function handleGen() {
     if (onGenerateAll) {
       onGenerateAll();
@@ -83,12 +89,14 @@ export function Hero({ onGenerateAll }: { onGenerateAll?: () => void }) {
           <div className="flex items-center gap-3 flex-wrap">
             <span className="live-dot" aria-hidden="true" />
             <span className="overline" style={{ letterSpacing: "0.2em" }}>
-              {editionMeta.longDate}
+              {todayLabel}
             </span>
           </div>
-          <span className="overline" style={{ letterSpacing: "0.2em" }}>
-            Edition No. {editionMeta.number} · {editionMeta.publishedAt}
-          </span>
+          {edition && (
+            <span className="overline" style={{ letterSpacing: "0.2em" }}>
+              Edition No. {edition.number} · 07:00 AEST
+            </span>
+          )}
         </div>
 
         {/* Bottom-anchored editorial stack. */}

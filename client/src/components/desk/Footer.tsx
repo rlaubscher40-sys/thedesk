@@ -10,12 +10,13 @@
  * expects a visible disclaimer that the content isn't personal advice.
  */
 import { Link } from "wouter";
-import { editionMeta } from "@/data/editions/2026-05-15";
+import { useLiveEditionMeta } from "@/lib/useLiveEditionMeta";
 
 // TODO: replace with the real InvestorKit ABN before going public.
 const INVESTORKIT_ABN = "ABN 00 000 000 000";
 
 export function Footer() {
+  const edition = useLiveEditionMeta();
   return (
     <footer className="mt-16 border-t border-[var(--color-border)] pt-6 pb-10 space-y-5 text-[var(--color-fg-subtle)]">
       {/* Row 1 — brand + edition + nav. */}
@@ -26,12 +27,14 @@ export function Footer() {
         >
           The Desk · Daily intelligence for property partnerships
         </p>
-        <p
-          className="font-mono uppercase tracking-[0.16em]"
-          style={{ fontSize: "10px" }}
-        >
-          Edition {editionMeta.number} · {editionMeta.longDate}
-        </p>
+        {edition && (
+          <p
+            className="font-mono uppercase tracking-[0.16em]"
+            style={{ fontSize: "10px" }}
+          >
+            Edition {edition.number} · {edition.longDate}
+          </p>
+        )}
         <nav className="flex gap-5 flex-wrap" aria-label="Footer navigation">
           {[
             { href: "/about", label: "About" },
