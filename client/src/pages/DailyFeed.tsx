@@ -30,6 +30,7 @@ import { MetricsStrip } from "@/components/desk/rightRail/MetricsStrip";
 import { SupportStrip } from "@/components/desk/rightRail/SupportStrip";
 import { FeedLeadCard } from "@/components/feed/FeedLeadCard";
 import { FeedItemCard } from "@/components/feed/FeedItemCard";
+import { FeedSignalStrip } from "@/components/feed/FeedSignalStrip";
 import { TodayInBrief } from "@/components/feed/TodayInBrief";
 import { editionMeta, stories } from "@/data/editions/2026-05-15";
 import { useFilteredFeed } from "@/lib/useFilteredFeed";
@@ -91,9 +92,22 @@ export default function DailyFeed() {
     : filteredSeed.map(() => editionPublishedMs);
 
   // Live-mode buckets.
+  //
+  // The split is editorial, not positional: a story earns the full
+  // "More from today" treatment if it has a Say This line or partner
+  // angles attached — i.e. the LLM judged it commercially relevant.
+  // Stories without either (trending / awareness pieces — shark
+  // attacks, celebrity news, off-beat global signals) drop into the
+  // "Further signals" strip so the grid stays visually uniform and the
+  // angle-bearing cards aren't sitting next to taller / shorter ones.
   const liveLead = feedItems[0];
-  const liveGrid = feedItems.slice(1, 7);
-  const liveSignals = feedItems.slice(7);
+  const liveRest = feedItems.slice(1);
+  const liveGrid = liveRest.filter(
+    (it) => (it.sayThis && it.sayThis.length > 0) || (it.partnerTag && it.partnerTag.length > 0)
+  );
+  const liveSignals = liveRest.filter(
+    (it) => !((it.sayThis && it.sayThis.length > 0) || (it.partnerTag && it.partnerTag.length > 0))
+  );
 
   return (
     <div className="space-y-12">
@@ -167,9 +181,9 @@ export default function DailyFeed() {
             <SectionErrorBoundary section="Signals">
               <section>
                 <SectionDivider label="Further signals" />
-                <StaggerList className="space-y-4" cacheKey={`signals-${filter}`}>
+                <StaggerList className="space-y-2.5" cacheKey={`signals-${filter}`}>
                   {liveSignals.map((item) => (
-                    <FeedItemCard key={item.id} item={item} />
+                    <FeedSignalStrip key={item.id} item={item} />
                   ))}
                 </StaggerList>
               </section>
