@@ -104,7 +104,13 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
   return (
     <article
       className={cn(
-        "panel hover-lift rounded overflow-hidden grid grid-cols-1 lg:grid-cols-[1.05fr_1fr]",
+        // Single-column stack on every breakpoint. The 2-col grid kept
+        // forcing the cover plate to stretch to the editorial column's
+        // height, which either cropped the image violently or left a
+        // dead gradient panel below it. Stacking sidesteps the problem
+        // — image at its natural aspect on top, editorial below at a
+        // comfortable reading width.
+        "panel hover-lift rounded overflow-hidden",
         categoryAccentClass(item.category)
       )}
     >
@@ -116,13 +122,14 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
           peeking through the edges rather than getting savagely cropped. */}
       <Link
         href={`/story/${item.id}`}
-        className="relative block overflow-hidden"
+        // Centred + max-h capped so a portrait image doesn't push the
+        // editorial deck below the fold. Image takes its natural aspect
+        // (or the 5:3 fallback while loading) — never stretched, never
+        // cropped.
+        className="relative block overflow-hidden mx-auto w-full"
         style={{
-          // Default to 5:3 (landscape, news-banner-ish) until the image
-          // loads and we know its real ratio. When no image, lock to a
-          // pleasing landscape that suits the supersized category
-          // typographic moment.
           aspectRatio: imageAspect ?? (item.imageUrl ? 5 / 3 : 5 / 3),
+          maxHeight: 480,
           background: `
             radial-gradient(circle at 78% 22%, ${categoryColour(item.category)}50 0%, transparent 55%),
             radial-gradient(circle at 14% 86%, ${categoryColour(item.category)}1a 0%, transparent 55%),
@@ -134,7 +141,10 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
           <img
             src={item.imageUrl}
             alt=""
-            className="absolute inset-0 w-full h-full object-cover object-center"
+            // object-top so any rare max-height clamp on a tall portrait
+            // preserves the top of the image (faces) rather than centring
+            // the crop through somebody's chin.
+            className="absolute inset-0 w-full h-full object-cover object-top"
             loading="lazy"
             decoding="async"
             onLoad={onImageLoad}
@@ -176,21 +186,25 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
           aria-hidden="true"
         />
 
-        {/* Slug strip — bottom-left badge. */}
-        <div className="absolute bottom-5 left-5 right-5 flex items-end justify-between">
-          <div>
-            <p className="overline-amber mb-1" style={{ letterSpacing: "0.2em" }}>
-              Lead story
-            </p>
-            <p className="overline">{item.source}</p>
-          </div>
-          <p className="overline">{item.feedDate}</p>
+        {/* "LEAD STORY" badge — bottom-left, sits over the cover image.
+            Source + date moved into the editorial column below so the
+            badge isn't fighting tiny text overlaid on a photo. */}
+        <div className="absolute bottom-5 left-5">
+          <p
+            className="overline-amber"
+            style={{ letterSpacing: "0.22em", fontSize: "10px" }}
+          >
+            Lead story
+          </p>
         </div>
       </Link>
 
-      {/* Editorial column. */}
-      <div className="p-6 sm:p-8 flex flex-col">
-        <div className="flex items-start justify-between gap-3 mb-3">
+      {/* Editorial column — magazine-style centred reading column so a
+          full-width card doesn't push the title into a 1200px line.
+          Hairline rules sit between each section so the eye groups
+          title + lede / source + actions / take + angles. */}
+      <div className="px-6 py-7 sm:px-10 sm:py-9 mx-auto w-full max-w-[72ch] flex flex-col">
+        <div className="flex items-start justify-between gap-3 mb-4">
           <span
             className="overline-amber"
             style={{ color: categoryColour(item.category), letterSpacing: "0.2em" }}
@@ -268,22 +282,41 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
           {item.summary}
         </p>
 
-        {item.sourceUrl && (
-          <a
-            href={item.sourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 overline-amber hover:text-amber-200 transition-colors self-start"
-          >
-            <ExternalLink className="h-3 w-3" /> Read original
-          </a>
+        {/* Source + meta row. Sits between the lede and the editorial
+            take, separated by hairline rules on each side. */}
+        {(item.sourceUrl || item.source) && (
+          <div className="flex items-center justify-between gap-4 flex-wrap mt-1 pt-5 pb-1 border-t border-[var(--color-border)]">
+            {item.sourceUrl ? (
+              <a
+                href={item.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 overline-amber hover:text-amber-200 transition-colors"
+              >
+                <ExternalLink className="h-3 w-3" /> Read original
+              </a>
+            ) : (
+              <span />
+            )}
+            <p className="overline text-[var(--color-fg-subtle)]">
+              {item.source} · {item.feedDate}
+            </p>
+          </div>
         )}
 
-        <RubensNoteBlock itemId={item.id} note={item.rubensNote} />
-        {!item.rubensNote && item.sayThis && (
-          <SayThisLine sayThis={item.sayThis} category={item.category} />
+        {/* Editor's take — Ruben's note overrides the auto-generated
+            sayThis line when set. */}
+        {(item.rubensNote || item.sayThis) && (
+          <div className="mt-6 pt-6 border-t border-[var(--color-border)]">
+            <RubensNoteBlock itemId={item.id} note={item.rubensNote} />
+            {!item.rubensNote && item.sayThis && (
+              <SayThisLine sayThis={item.sayThis} category={item.category} />
+            )}
+          </div>
         )}
 
+        {/* PartnerTagBlock paints its own border-t + top margin so we
+            don't wrap it here — would create a double hairline. */}
         <PartnerTagBlock raw={item.partnerTag} />
 
         <LinkedInPostModal
