@@ -46,6 +46,20 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
     deleteItem.mutate({ id: item.id });
   }
   const [linkedInOpen, setLinkedInOpen] = useState(false);
+  // Adopt the image's natural aspect ratio once it loads so news og:images
+  // of any shape (landscape banners, square portraits, vertical scrolls)
+  // fill the cover plate exactly — no object-cover crops, no empty
+  // gradient bands above or below. Capped to a sensible window so a
+  // single weird tall image doesn't blow the grid.
+  const [imageAspect, setImageAspect] = useState<number | null>(null);
+  function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
+    const img = e.currentTarget;
+    if (!img.naturalWidth || !img.naturalHeight) return;
+    const ratio = img.naturalWidth / img.naturalHeight;
+    // Clamp 4:5 (0.8) ↔ 16:9 (1.78). Anything more extreme falls back
+    // to a sensible default rather than dominating the layout.
+    setImageAspect(Math.min(1.78, Math.max(0.8, ratio)));
+  }
 
   const queueQuery = trpc.readingQueue.list.useQuery(undefined, { enabled: isAuthenticated });
   const inQueueId = queueQuery.data?.find((q) => q.feedItemId === item.id)?.id;
@@ -102,8 +116,13 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
           peeking through the edges rather than getting savagely cropped. */}
       <Link
         href={`/story/${item.id}`}
-        className="relative block aspect-[5/3] lg:aspect-[5/4] overflow-hidden"
+        className="relative block overflow-hidden"
         style={{
+          // Default to 5:3 (landscape, news-banner-ish) until the image
+          // loads and we know its real ratio. When no image, lock to a
+          // pleasing landscape that suits the supersized category
+          // typographic moment.
+          aspectRatio: imageAspect ?? (item.imageUrl ? 5 / 3 : 5 / 3),
           background: `
             radial-gradient(circle at 78% 22%, ${categoryColour(item.category)}50 0%, transparent 55%),
             radial-gradient(circle at 14% 86%, ${categoryColour(item.category)}1a 0%, transparent 55%),
@@ -115,9 +134,10 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
           <img
             src={item.imageUrl}
             alt=""
-            className="absolute inset-0 w-full h-full object-contain object-center"
+            className="absolute inset-0 w-full h-full object-cover object-center"
             loading="lazy"
             decoding="async"
+            onLoad={onImageLoad}
           />
         )}
         {/* Category supersized — the cover plate's typographic moment.
