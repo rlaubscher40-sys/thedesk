@@ -76,13 +76,50 @@ const HARMLESS_ERROR_PATTERNS = [
   /Duplicate column/i,
   /Table .* already exists/i,
   /Duplicate key name/i,
-  /1060/, // ER_DUP_FIELDNAME
-  /1050/, // ER_TABLE_EXISTS_ERROR
-  /1061/, // ER_DUP_KEYNAME
 ];
 
-function isHarmless(message: string): boolean {
-  return HARMLESS_ERROR_PATTERNS.some((p) => p.test(message));
+/**
+ * MySQL/TiDB error codes that mean "already applied". When the underlying
+ * mysql2 error is accessible via err.cause we can read these directly,
+ * which is more reliable than substring-matching error messages.
+ */
+const HARMLESS_ERROR_CODES = new Set<string | number>([
+  "ER_DUP_FIELDNAME", // 1060 — ALTER TABLE ADD column that already exists
+  "ER_TABLE_EXISTS_ERROR", // 1050 — CREATE TABLE for an existing table
+  "ER_DUP_KEYNAME", // 1061 — CREATE INDEX for an existing index
+  1060,
+  1050,
+  1061,
+]);
+
+/**
+ * Walk an error and any nested `.cause` chain looking for either a
+ * known-harmless error code or text on any layer that matches one of
+ * the harmless message patterns. Drizzle wraps the original mysql2
+ * error inside a `Failed query: …` outer error, so the helpful text
+ * lives on `err.cause` not `err.message`.
+ */
+function isHarmless(err: unknown): boolean {
+  const seen = new Set<unknown>();
+  let cursor: unknown = err;
+  while (cursor && !seen.has(cursor)) {
+    seen.add(cursor);
+    const layer = cursor as {
+      message?: string;
+      code?: string | number;
+      errno?: number;
+      sqlMessage?: string;
+      cause?: unknown;
+    };
+    if (layer.code !== undefined && HARMLESS_ERROR_CODES.has(layer.code)) return true;
+    if (layer.errno !== undefined && HARMLESS_ERROR_CODES.has(layer.errno)) return true;
+    const text = `${layer.message ?? ""} ${layer.sqlMessage ?? ""}`;
+    if (text.trim().length > 0 && HARMLESS_ERROR_PATTERNS.some((p) => p.test(text))) {
+      return true;
+    }
+    cursor = layer.cause;
+  }
+  return false;
 }
 
 export const systemRouter = router({
@@ -117,12 +154,20 @@ export const systemRouter = router({
         await db.execute(sql.raw(stmt.sql));
         applied.push(stmt.name);
       } catch (err) {
-        const message = (err as Error).message ?? String(err);
-        if (isHarmless(message)) {
+        if (isHarmless(err)) {
           skipped.push(stmt.name);
-        } else {
-          failed.push({ name: stmt.name, message });
+          continue;
         }
+        // Genuine failure — surface the most informative message we can
+        // reach: the underlying SQL error wins over Drizzle's wrapper.
+        const cause = (err as { cause?: { sqlMessage?: string; message?: string } })
+          .cause;
+        const message =
+          cause?.sqlMessage ??
+          cause?.message ??
+          (err as Error).message ??
+          String(err);
+        failed.push({ name: stmt.name, message });
       }
     }
 

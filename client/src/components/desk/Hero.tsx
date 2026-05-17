@@ -60,10 +60,7 @@ export function Hero({ onGenerateAll }: { onGenerateAll?: () => void }) {
           fading out top-right so the photographic detail breathes. */}
       <div
         className="absolute inset-0"
-        style={{
-          background:
-            "linear-gradient(115deg, oklch(0.07 0.018 260 / 94%) 0%, oklch(0.07 0.018 260 / 70%) 35%, oklch(0.07 0.018 260 / 30%) 65%, transparent 100%)",
-        }}
+        style={{ background: "var(--grad-hero-overlay)" }}
         aria-hidden="true"
       />
       <div

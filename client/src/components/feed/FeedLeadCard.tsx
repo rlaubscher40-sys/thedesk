@@ -98,7 +98,11 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
           editorial gradient keyed to the category. */}
       <Link
         href={`/story/${item.id}`}
-        className="relative block aspect-[5/3] lg:aspect-auto lg:min-h-[460px] overflow-hidden"
+        // Aspect constrained on every breakpoint so the cover plate
+        // never goes tall+narrow (which was zooming portraits absurdly
+        // close on desktop). Slightly wider than 5:3 on lg+ so the
+        // image breathes when the editorial column is the constraint.
+        className="relative block aspect-[5/3] lg:aspect-[5/4] overflow-hidden"
         style={
           item.imageUrl
             ? undefined
@@ -115,7 +119,8 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
           <img
             src={item.imageUrl}
             alt=""
-            className="absolute inset-0 w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover object-center"
+            style={{ objectPosition: "center 30%" }}
             loading="lazy"
             decoding="async"
           />

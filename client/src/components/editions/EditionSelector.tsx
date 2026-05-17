@@ -86,17 +86,14 @@ function EditionChip({ edition, active }: { edition: Edition; active: boolean })
             className="absolute inset-0"
             style={{
               background:
-                "linear-gradient(135deg, oklch(0.16 0.018 260), oklch(0.08 0.018 260) 60%, oklch(0.32 0.18 70 / 28%))",
+                "linear-gradient(135deg, var(--color-bg-elevated), var(--color-bg-deep) 60%, var(--color-amber-dim))",
             }}
           />
         )}
         {/* Bottom fade so the meta below it has weight. */}
         <div
           className="absolute inset-x-0 bottom-0 h-1/2 pointer-events-none"
-          style={{
-            background:
-              "linear-gradient(180deg, transparent, oklch(0.11 0.018 260 / 80%))",
-          }}
+          style={{ background: "var(--grad-hero-fade-bottom)" }}
           aria-hidden="true"
         />
         {active && (

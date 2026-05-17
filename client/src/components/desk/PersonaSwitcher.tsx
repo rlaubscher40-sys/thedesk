@@ -44,7 +44,7 @@ export function PersonaSwitcher() {
       <div
         role="radiogroup"
         aria-label="Active partner persona"
-        className="flex gap-1 flex-wrap p-1 rounded border border-[var(--color-border)] bg-[oklch(0.13_0.018_260)]"
+        className="flex gap-1 flex-wrap p-1 rounded border border-[var(--color-border)] bg-[var(--color-panel-tile-bg)]"
       >
         {PERSONAS.map((p) => {
           const active = p === persona;

@@ -3,11 +3,10 @@
  * (a single visit isn't a streak yet). Tier-coloured: amber → emerald
  * → champagne as the streak grows. Tooltip surfaces the longest run.
  *
- * Text contrast was previously too faint to read at a glance — the
- * count rendered at fontSize 10px in the same colour as the chip
- * background at 60% alpha. Now: number at 13px in serif, full-strength
- * tier colour; "DAYS" mono label below; chip background pulled to 14%
- * alpha so the contrast holds without overpowering the sidebar.
+ * Bigger than v2 — the count was reading as a forgettable secondary
+ * stat. Now it's a small editorial moment: glowing flame, big serif
+ * number, tier label below in mono, longest-run accent if relevant.
+ * Fills the available sidebar width.
  */
 import { Flame } from "lucide-react";
 import { useStreak, type StreakTier } from "@/lib/useStreak";
@@ -26,50 +25,88 @@ export function StreakBadge({ collapsed }: { collapsed?: boolean }) {
   if (current < 2) return null;
   const style = TIER_STYLE[tier];
 
+  if (collapsed) {
+    return (
+      <div
+        className="mx-1.5 mt-3 mb-1 rounded-sm flex items-center justify-center py-2.5"
+        style={{
+          background: `${style.colour}18`,
+          boxShadow: `inset 0 0 0 1px ${style.colour}55`,
+        }}
+        title={`Current streak: ${current} day${current === 1 ? "" : "s"}. Longest: ${longest} day${longest === 1 ? "" : "s"}.`}
+      >
+        <Flame
+          className="h-4 w-4"
+          style={{ color: style.colour }}
+          strokeWidth={2}
+          fill={style.colour}
+          fillOpacity={0.3}
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
-        "mx-2 mt-3 mb-1 rounded-sm flex items-center gap-2.5 px-3 py-2.5 transition-colors",
-        collapsed && "justify-center px-0 mx-1.5"
+        "mx-3 mt-4 mb-2 rounded-sm relative overflow-hidden",
+        "px-4 py-3.5"
       )}
       style={{
-        background: `${style.colour}14`,
-        boxShadow: `inset 0 0 0 1px ${style.colour}50`,
+        background: `${style.colour}16`,
+        boxShadow: `inset 0 0 0 1px ${style.colour}55, 0 0 18px ${style.colour}1a`,
       }}
       title={`Current streak: ${current} day${current === 1 ? "" : "s"}. Longest: ${longest} day${longest === 1 ? "" : "s"}.`}
     >
-      <Flame
-        className="h-4 w-4 shrink-0"
-        style={{ color: style.colour }}
-        strokeWidth={2}
-        fill={style.colour}
-        fillOpacity={0.25}
+      {/* Faint radial glow that pulls the eye to the chip. */}
+      <span
+        className="absolute -top-6 -right-4 h-20 w-20 rounded-full pointer-events-none"
+        style={{
+          background: `radial-gradient(circle, ${style.colour}40 0%, transparent 60%)`,
+          filter: "blur(8px)",
+        }}
+        aria-hidden="true"
       />
-      {!collapsed && (
-        <div className="flex-1 min-w-0 flex items-baseline gap-1.5">
-          <span
-            className="font-serif font-bold tabular-nums leading-none"
-            style={{ color: style.colour, fontSize: "16px" }}
-          >
-            {current}
-          </span>
-          <span
-            className="font-mono uppercase tracking-[0.18em]"
-            style={{ color: style.colour, fontSize: "9px" }}
-          >
-            day{current === 1 ? "" : "s"}
-          </span>
-          {longest > current && (
+      <div className="relative flex items-start gap-3">
+        <Flame
+          className="h-5 w-5 shrink-0 mt-1"
+          style={{ color: style.colour }}
+          strokeWidth={2}
+          fill={style.colour}
+          fillOpacity={0.3}
+        />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline gap-1.5">
             <span
-              className="ml-auto font-mono tabular-nums shrink-0"
-              style={{ color: `${style.colour}cc`, fontSize: "9px" }}
+              className="font-serif font-bold tabular-nums leading-none"
+              style={{ color: style.colour, fontSize: "26px" }}
+            >
+              {current}
+            </span>
+            <span
+              className="font-mono uppercase tracking-[0.18em]"
+              style={{ color: style.colour, fontSize: "10px" }}
+            >
+              day{current === 1 ? "" : "s"}
+            </span>
+          </div>
+          <p
+            className="font-mono uppercase tracking-[0.16em] mt-1.5 truncate"
+            style={{ color: `${style.colour}cc`, fontSize: "9px" }}
+          >
+            {style.label}
+          </p>
+          {longest > current && (
+            <p
+              className="font-mono tabular-nums mt-0.5"
+              style={{ color: `${style.colour}99`, fontSize: "9px", letterSpacing: "0.12em" }}
               title={`Longest run: ${longest} days`}
             >
-              ↑ {longest}
-            </span>
+              ↑ {longest} best
+            </p>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

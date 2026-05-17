@@ -35,7 +35,7 @@ export function ContextExpander({ note }: { note: string }) {
         aria-hidden={!open}
       >
         <div
-          className="p-3.5 rounded border border-[var(--color-border)] bg-[oklch(0.13_0.018_260)] text-xs leading-relaxed font-mono text-[var(--color-fg-muted)]"
+          className="p-3.5 rounded border border-[var(--color-border)] bg-[var(--color-panel-tile-bg)] text-xs leading-relaxed font-mono text-[var(--color-fg-muted)]"
           style={{ letterSpacing: "0.01em" }}
         >
           {note}

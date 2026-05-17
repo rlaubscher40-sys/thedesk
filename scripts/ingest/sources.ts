@@ -166,29 +166,12 @@ export const SOURCES: Source[] = [
   },
 
   // ── Tier 4: Trending signals ─────────────────────────────────────────────
-  // Reddit + Google "top headlines" act as a what's-actually-being-discussed
-  // signal — partnership pros watch retail-investor sentiment closely, and
-  // Reddit threads often surface stories before they hit mastheads.
-  // Low maxItems on each: trending signals are a *complement* to the curated
-  // sources above, not a replacement.
-  {
-    name: "r/AusFinance · top of the day",
-    url: "https://www.reddit.com/r/AusFinance/top.rss?t=day&limit=8",
-    category: "ECONOMICS",
-    maxItems: 3,
-  },
-  {
-    name: "r/AusProperty · top of the day",
-    url: "https://www.reddit.com/r/AusProperty/top.rss?t=day&limit=8",
-    category: "PROPERTY",
-    maxItems: 3,
-  },
-  {
-    name: "r/fiaustralia · top of the day",
-    url: "https://www.reddit.com/r/fiaustralia/top.rss?t=day&limit=6",
-    category: "ECONOMICS",
-    maxItems: 2,
-  },
+  // Reddit RSS endpoints used to be free for unauthenticated bots — now
+  // their cloudflare layer returns 403 on Actions IPs without an OAuth
+  // token. Each failed fetch was blowing the full 8s rss-parser timeout
+  // and contributing to job timeouts, so they've been removed. Wire
+  // back in via a Reddit OAuth app + reddit-api package when retail
+  // sentiment becomes a real editorial input.
   {
     name: "Google · Top headlines AU",
     url: "https://news.google.com/rss?hl=en-AU&gl=AU&ceid=AU:en",

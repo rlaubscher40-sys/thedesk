@@ -32,7 +32,13 @@ async function main(): Promise<void> {
   console.log(`[weekly] done.`);
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+main()
+  .then(() => {
+    // Force exit so dangling keepalive sockets don't hold Node past
+    // `done`. Same reasoning as dailyFeed.ts.
+    process.exit(0);
+  })
+  .catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });

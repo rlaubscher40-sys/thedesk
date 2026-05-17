@@ -34,11 +34,11 @@ export function LiveTicker() {
 
   return (
     <div
-      className="relative overflow-hidden border-b border-[var(--color-border)] bg-[oklch(0.10_0.018_260)] group"
+      className="relative overflow-hidden border-b border-[var(--color-border)] bg-[var(--color-bg-deep)] group"
       style={{ height: "30px" }}
       aria-label="Live intelligence ticker"
     >
-      <div className="absolute inset-y-0 left-0 z-20 flex items-center gap-2 px-4 bg-[oklch(0.10_0.018_260)] border-r border-[var(--color-border)] shrink-0">
+      <div className="absolute inset-y-0 left-0 z-20 flex items-center gap-2 px-4 bg-[var(--color-bg-deep)] border-r border-[var(--color-border)] shrink-0">
         <span className="live-dot" aria-hidden="true" />
         <span className="overline-amber" style={{ letterSpacing: "0.2em" }}>
           Live

@@ -76,18 +76,12 @@ export function EditionHero({
               has weight and the cover has depth. */}
           <div
             className="absolute inset-x-0 top-0 h-24 pointer-events-none"
-            style={{
-              background:
-                "linear-gradient(180deg, oklch(0.11 0.018 260 / 60%), transparent)",
-            }}
+            style={{ background: "var(--grad-hero-fade-top)" }}
             aria-hidden="true"
           />
           <div
             className="absolute inset-x-0 bottom-0 h-40 pointer-events-none"
-            style={{
-              background:
-                "linear-gradient(180deg, transparent, oklch(0.11 0.018 260 / 75%))",
-            }}
+            style={{ background: "var(--grad-hero-fade-bottom)" }}
             aria-hidden="true"
           />
           {/* Edge inner ring — extra gloss. */}
@@ -267,7 +261,7 @@ function MetricTile({
   return (
     <div
       role="listitem"
-      className="bg-[var(--color-bg-elevated)] p-4 hover:bg-[oklch(0.18_0.02_260)] transition-colors"
+      className="bg-[var(--color-bg-elevated)] p-4 hover:bg-[var(--color-bg-deep)] transition-colors"
     >
       <p
         className="overline mb-2 truncate text-[var(--color-fg-subtle)]"
@@ -342,9 +336,8 @@ function InBriefScan({ signals }: { signals: string[] }) {
       className="panel rounded-sm p-5 lg:p-6"
       aria-label="In brief"
       style={{
-        background:
-          "linear-gradient(180deg, oklch(0.13 0.022 260) 0%, oklch(0.10 0.022 260) 100%)",
-        boxShadow: "inset 0 0 0 1px oklch(0.75 0.18 70 / 10%)",
+        background: "var(--grad-panel-soft)",
+        boxShadow: "inset 0 0 0 1px var(--color-amber-dim)",
       }}
     >
       <p

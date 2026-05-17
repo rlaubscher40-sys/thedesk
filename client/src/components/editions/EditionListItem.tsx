@@ -57,7 +57,7 @@ export function EditionListItem({
             className="h-16 w-16 rounded shrink-0 relative overflow-hidden"
             style={{
               background:
-                "linear-gradient(135deg, oklch(0.18 0.02 260), oklch(0.10 0.02 260) 60%, oklch(0.32 0.18 70 / 30%))",
+                "linear-gradient(135deg, var(--color-bg-elevated), var(--color-bg-deep) 60%, var(--color-amber-dim))",
             }}
             aria-hidden="true"
           >
