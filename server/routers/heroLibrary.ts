@@ -69,8 +69,13 @@ export const heroLibraryRouter = router({
   /**
    * Generate a new library image and store it. The prompt is generic
    * (not tied to any single edition's content) so the result can be
-   * reused across many weeks. Optional `seed` argument lets the admin
-   * walk through visual variants when seeding a fresh library.
+   * reused across many weeks.
+   *
+   * When the admin clicks "Generate" without a specific seed, we walk
+   * the seed pool in sequence based on the current library size — so
+   * back-to-back clicks roll through different visual subjects rather
+   * than getting unlucky with Math.random() and producing five
+   * near-identical covers.
    */
   generate: adminProcedure
     .input(
@@ -80,7 +85,11 @@ export const heroLibraryRouter = router({
       })
     )
     .mutation(async ({ input }) => {
-      const prompt = libraryHeroPrompt({ seed: input.seed });
+      const seed =
+        typeof input.seed === "number"
+          ? input.seed
+          : (await db.listHeroLibrary()).length;
+      const prompt = libraryHeroPrompt({ seed });
       const result = await generateImage({ prompt });
       if (!result) {
         throw new TRPCError({
