@@ -94,33 +94,28 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
         categoryAccentClass(item.category)
       )}
     >
-      {/* Hero plate — AI-generated thumbnail when present, otherwise an
-          editorial gradient keyed to the category. */}
+      {/* Hero plate — og:image when scraped, otherwise an editorial
+          gradient keyed to the category. The category gradient ALWAYS
+          renders as the background, even when an image is present —
+          object-contain on the image means odd aspect ratios (very
+          common for news og:images) sit centred with gradient filler
+          peeking through the edges rather than getting savagely cropped. */}
       <Link
         href={`/story/${item.id}`}
-        // Aspect constrained on every breakpoint so the cover plate
-        // never goes tall+narrow (which was zooming portraits absurdly
-        // close on desktop). Slightly wider than 5:3 on lg+ so the
-        // image breathes when the editorial column is the constraint.
         className="relative block aspect-[5/3] lg:aspect-[5/4] overflow-hidden"
-        style={
-          item.imageUrl
-            ? undefined
-            : {
-                background: `
-                  radial-gradient(circle at 78% 22%, ${categoryColour(item.category)}50 0%, transparent 55%),
-                  radial-gradient(circle at 14% 86%, oklch(0.55 0.18 270 / 18%) 0%, transparent 55%),
-                  linear-gradient(135deg, oklch(0.16 0.022 260) 0%, oklch(0.08 0.022 260) 100%)
-                `,
-              }
-        }
+        style={{
+          background: `
+            radial-gradient(circle at 78% 22%, ${categoryColour(item.category)}50 0%, transparent 55%),
+            radial-gradient(circle at 14% 86%, oklch(0.55 0.18 270 / 18%) 0%, transparent 55%),
+            linear-gradient(135deg, oklch(0.16 0.022 260) 0%, oklch(0.08 0.022 260) 100%)
+          `,
+        }}
       >
         {item.imageUrl && (
           <img
             src={item.imageUrl}
             alt=""
-            className="absolute inset-0 w-full h-full object-cover object-center"
-            style={{ objectPosition: "center 30%" }}
+            className="absolute inset-0 w-full h-full object-contain object-center"
             loading="lazy"
             decoding="async"
           />
