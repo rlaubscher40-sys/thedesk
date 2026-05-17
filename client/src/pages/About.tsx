@@ -77,6 +77,11 @@ export default function About() {
         </div>
       </section>
 
+      {/* Editorial rule — the defining horizontal element per brand
+          guide §6.3. PageHeader carries it on every other page; the
+          About hero is custom so we render it explicitly. */}
+      <div className="editorial-rule-soft -mt-6" aria-hidden="true" />
+
       {/* Two-column editorial body. Prose on the left at a comfortable
           reading width; the author + meta sidebar on the right uses the
           rest of the canvas. Stacks on mobile, prose first then sidebar. */}

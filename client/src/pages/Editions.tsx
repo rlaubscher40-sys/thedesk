@@ -23,6 +23,7 @@ import { EditionSelector } from "@/components/editions/EditionSelector";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/lib/useAuth";
 import { useEditionMeta } from "@/lib/useEditionMeta";
+import { getNextEditionLabel } from "@/lib/date";
 import { trpc } from "@/lib/trpc";
 
 export default function EditionsPage() {
@@ -84,7 +85,9 @@ export default function EditionsPage() {
             edition.metaDescription ??
             edition.rubensTake ??
             undefined,
-          ogImage: edition.heroImageUrl,
+          // Branded per-edition card (server-rendered) rather than the
+          // hero illustration so share previews carry the masthead.
+          ogImage: `/og/editions/${edition.editionNumber}.png`,
           url:
             typeof window !== "undefined"
               ? `${window.location.origin}/editions/${edition.editionNumber}`
@@ -99,7 +102,12 @@ export default function EditionsPage() {
         overline="The Desk · Editions"
         title="Weekly deep dives"
         kicker="Editorial intelligence for partner conversations. New edition each Sunday."
-        actions={user?.role === "admin" ? <BackfillRubensTakeButton /> : undefined}
+        actions={
+          <div className="flex items-end gap-4">
+            <EditionsMetaPanel editions={listQuery.data ?? []} />
+            {user?.role === "admin" && <BackfillRubensTakeButton />}
+          </div>
+        }
       />
 
       {/* Horizontal selector row. Empty + loading states handled by the
@@ -171,6 +179,73 @@ function EmptyEditions() {
         property partnerships that week, written for brokers, advisers,
         accountants and buyer&apos;s agents. The Daily Brief ships every
         weekday in the meantime.
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Editorial meta panel for the Editions page header.
+ *
+ * Quiet block of mono-overline metadata that earns the right-side
+ * whitespace next to the "Weekly deep dives" title. Three lines: when
+ * the next edition lands, how many have shipped to date, and the
+ * average read time. Falls back gracefully when there are no editions
+ * yet — only the "next edition" row renders, so the panel still has
+ * editorial weight without empty zeroes.
+ */
+function EditionsMetaPanel({
+  editions,
+}: {
+  editions: Array<{ readingTime?: string | null }>;
+}) {
+  const nextEdition = getNextEditionLabel();
+  const count = editions.length;
+  const avgRead = useMemo(() => {
+    if (!count) return null;
+    const minutes = editions
+      .map((e) => {
+        const raw = e.readingTime?.match(/(\d+)/)?.[1];
+        return raw ? parseInt(raw, 10) : null;
+      })
+      .filter((m): m is number => m !== null && m > 0);
+    if (!minutes.length) return null;
+    return Math.round(minutes.reduce((a, b) => a + b, 0) / minutes.length);
+  }, [editions, count]);
+
+  return (
+    <div
+      className="hidden md:block panel rounded-sm px-5 py-4 space-y-3.5 text-right shrink-0"
+      style={{ minWidth: 200 }}
+    >
+      <MetaRow label="Next edition" value={`${nextEdition} · 07:00 AEST`} />
+      {count > 0 && (
+        <MetaRow
+          label="Editions published"
+          value={String(count).padStart(2, "0")}
+        />
+      )}
+      {avgRead !== null && (
+        <MetaRow label="Avg read time" value={`${avgRead} min`} />
+      )}
+    </div>
+  );
+}
+
+function MetaRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="space-y-1">
+      <p
+        className="font-mono uppercase text-[var(--color-fg-subtle)]"
+        style={{ fontSize: "9px", letterSpacing: "0.22em" }}
+      >
+        {label}
+      </p>
+      <p
+        className="font-mono text-[var(--color-fg)] tabular-nums"
+        style={{ fontSize: "12px", letterSpacing: "0.04em" }}
+      >
+        {value}
       </p>
     </div>
   );
