@@ -111,10 +111,10 @@ Output a SINGLE JSON object matching this exact shape, and NOTHING ELSE — no p
         "Optional third"
       ],
       "talkingPoints": {
-        "Brokers": "One sentence — what a mortgage broker says to a client tomorrow about this. Specific. Action-oriented. Not 'rates are uncertain', but 'lock in if the fixed-rate roll-off lands in June'.",
-        "Financial Advisers": "One sentence — what an adviser or accountant says about the wealth-strategy implication.",
-        "Buyer's Agents": "One sentence — what a BA says about deal flow, listings velocity, or market timing.",
-        "SMSF Specialists": "One sentence — what an SMSF specialist says about super, structure, or contribution implications. OMIT this key entirely if no clear angle exists rather than fabricating one."
+        "Institutional": "One sentence — what a corporate / employer-side partner (HR, benefits, salary packaging) takes from this. Macro frame, not retail advice. OMIT this key entirely if no clear institutional angle exists.",
+        "Broker": "One sentence — what a mortgage broker says to a client tomorrow about this. Specific. Action-oriented. Not 'rates are uncertain', but 'lock in if the fixed-rate roll-off lands in June'.",
+        "Adviser": "One sentence — what a financial adviser or accountant says about the wealth-strategy or structural implication. The second-order read.",
+        "Buyers Agent": "One sentence — what a buyer's agent says about deal flow, suburb-level shifts, listings velocity, or market timing."
       }
     }
     // ... 5 to 7 topics total spanning the five-beat coverage mandate above. The FIRST topic is the lead — most consequential of the week, longest body, drives the whole edition.
