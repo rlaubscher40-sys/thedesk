@@ -12,7 +12,7 @@ import { useEffect, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { parsePartnerTag, PARTNER_TAG_LABELS, type PartnerTagLabel } from "@shared/schemas";
 import { cn } from "@/lib/cn";
-import { usePersona } from "@/lib/persona";
+import { PERSONA_COLOUR, usePersona } from "@/lib/persona";
 
 const STORAGE_KEY = "thedesk:partner-angles-expanded";
 
@@ -113,7 +113,10 @@ function PartnerTagLine({
       <span
         className="font-mono uppercase tabular-nums"
         style={{
-          color: "oklch(0.85 0.16 75 / 80%)",
+          // Per-persona accent — matches the VIEW AS pill colour for the
+          // same label. Was a single amber for every row before, which
+          // collapsed the visual distinction between the four personas.
+          color: PERSONA_COLOUR[label],
           letterSpacing: "0.14em",
           fontSize: "10px",
         }}
