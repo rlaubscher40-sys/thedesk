@@ -75,8 +75,7 @@ export function SubscribeCallout({
       role="complementary"
       aria-label="Subscribe to The Desk"
       style={{
-        background:
-          "linear-gradient(135deg, oklch(0.13 0.022 260) 0%, oklch(0.10 0.022 260) 60%, oklch(0.18 0.045 70) 100%)",
+        background: "var(--grad-cta-deep)",
         boxShadow:
           "inset 0 0 0 1px oklch(0.75 0.18 70 / 14%), 0 14px 40px oklch(0 0 0 / 30%)",
       }}

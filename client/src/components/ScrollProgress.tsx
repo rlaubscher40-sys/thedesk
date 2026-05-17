@@ -66,8 +66,7 @@ export function ScrollProgress({ revealAt = 320 }: { revealAt?: number }) {
       <div
         className="fixed top-0 inset-x-0 z-30 pointer-events-none flex items-center justify-center px-6 py-3"
         style={{
-          background:
-            "linear-gradient(180deg, oklch(0.11 0.018 260 / 92%), oklch(0.11 0.018 260 / 70%))",
+          background: "var(--grad-scroll-progress)",
           backdropFilter: "blur(12px)",
           borderBottom: "1px solid oklch(1 0 0 / 6%)",
           transition: "opacity 280ms ease, transform 280ms ease",
