@@ -13,6 +13,7 @@
  */
 import { Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { BrandLockup } from "@/components/Logomark";
 import { getSydneyDate } from "@/lib/date";
 import { useAuth } from "@/lib/useAuth";
 import { useLiveEditionMeta } from "@/lib/useLiveEditionMeta";
@@ -87,19 +88,21 @@ export function Hero({ onGenerateAll }: { onGenerateAll?: () => void }) {
       />
 
       <div className="relative h-full flex flex-col p-6 sm:p-8 lg:p-10">
-        {/* Quiet top slug — just date + edition. */}
+        {/* Top slug — canonical brand lockup, then date + edition. The
+            lockup is required on hero sections per brand guide §2.1. */}
         <div className="flex items-center justify-between gap-4 flex-wrap text-[var(--color-fg-subtle)]">
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className="live-dot" aria-hidden="true" />
-            <span className="overline" style={{ letterSpacing: "0.2em" }}>
-              {todayLabel}
-            </span>
-          </div>
+          <BrandLockup size={32} byline />
           {edition && (
             <span className="overline" style={{ letterSpacing: "0.2em" }}>
               Edition No. {edition.number} · 07:00 AEST
             </span>
           )}
+        </div>
+        <div className="mt-3 flex items-center gap-3 flex-wrap text-[var(--color-fg-subtle)]">
+          <span className="live-dot" aria-hidden="true" />
+          <span className="overline" style={{ letterSpacing: "0.2em" }}>
+            {todayLabel}
+          </span>
         </div>
 
         {/* Bottom-anchored editorial stack. */}

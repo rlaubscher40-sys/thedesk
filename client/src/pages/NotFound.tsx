@@ -7,6 +7,7 @@
  */
 import { Link } from "wouter";
 import { ArrowRight } from "lucide-react";
+import { BrandLockup } from "@/components/Logomark";
 
 export default function NotFound() {
   return (
@@ -21,6 +22,10 @@ export default function NotFound() {
           }}
           aria-hidden="true"
         />
+
+        <div className="flex justify-center mb-8 first-paint-mark">
+          <BrandLockup size={32} />
+        </div>
 
         <p
           className="overline-amber mb-6 first-paint-mark"
