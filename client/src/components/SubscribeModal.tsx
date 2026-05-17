@@ -1,11 +1,22 @@
 /**
  * First-visit Subscribe modal.
  *
- * Appears 30 seconds after the user lands on the Today page, ONCE per
- * device. The form captures the email through tRPC (double-opt-in) and
- * stays in-app to show the "check your inbox" confirmation state — no
- * hand-off to Substack mid-flow. Substack is offered as a separate "Read
- * the long-form essays" link below the form for users who already use it.
+ * Triggers when the reader has clearly engaged with the content — past
+ * the lead card and at least 1.4 viewport-heights into the feed —
+ * rather than on a blind 30-second timer. The earlier timing felt
+ * aggressive in tester feedback: it kept interrupting people mid-
+ * scroll while they were still assessing the product.
+ *
+ * Backstop: a 90-second timer fires the modal anyway, so passive
+ * readers who never scroll (open in a tab and come back later) still
+ * see it once. Shown ONCE per device, regardless of which trigger
+ * fires first.
+ *
+ * The form captures the email through tRPC (double-opt-in) and stays
+ * in-app to show the "check your inbox" confirmation state — no
+ * hand-off to Substack mid-flow. Substack is offered as a separate
+ * "Read the long-form essays" link below the form for users who
+ * already use it.
  *
  * Either dismissing or completing the form marks the modal dismissed
  * permanently.
@@ -19,7 +30,15 @@ import { trpc } from "@/lib/trpc";
 
 const STORAGE_KEY = "thedesk:subscribe-modal-seen";
 const SUBSTACK_URL = "https://rubenlaubscher.substack.com/";
-const SHOW_DELAY_MS = 30_000;
+/** Backstop timer for readers who never scroll — open the tab, leave
+ *  it, come back. 90s is long enough that scroll-engaged readers hit
+ *  the scroll trigger first. */
+const BACKSTOP_DELAY_MS = 90_000;
+/** Scroll distance (in viewport heights) before the modal fires. ~1.4
+ *  vh puts the reader past the lead card and into the stacked feed —
+ *  they've seen enough of the product to make a real subscribe
+ *  decision. */
+const SCROLL_TRIGGER_VH = 1.4;
 
 export function SubscribeModal() {
   const [location] = useLocation();
@@ -32,8 +51,25 @@ export function SubscribeModal() {
     if (location !== "/") return;
     if (typeof window === "undefined") return;
     if (window.localStorage.getItem(STORAGE_KEY) === "1") return;
-    const t = window.setTimeout(() => setOpen(true), SHOW_DELAY_MS);
-    return () => window.clearTimeout(t);
+
+    let fired = false;
+    function fire() {
+      if (fired) return;
+      fired = true;
+      setOpen(true);
+    }
+
+    function onScroll() {
+      const threshold = window.innerHeight * SCROLL_TRIGGER_VH;
+      if (window.scrollY >= threshold) fire();
+    }
+
+    const backstop = window.setTimeout(fire, BACKSTOP_DELAY_MS);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.clearTimeout(backstop);
+      window.removeEventListener("scroll", onScroll);
+    };
   }, [location]);
 
   function dismiss(reason: "later" | "subscribed") {
@@ -144,7 +180,7 @@ export function SubscribeModal() {
                 Get the weekly edition in your inbox.
               </h2>
               <p className="text-base text-[var(--color-fg-muted)] leading-relaxed mb-6">
-                One long-form essay on Sundays. The Daily Brief on weekdays. No spam, no broadcast — just the stories I think a partner conversation should know about.
+                One long-form essay on Sundays. The Daily Brief on weekdays. No spam, no broadcast, just the stories I think a partner conversation should know about.
               </p>
 
               <form onSubmit={subscribe} className="space-y-2.5">

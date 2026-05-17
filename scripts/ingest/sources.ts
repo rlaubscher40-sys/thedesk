@@ -52,6 +52,21 @@ function googleNews(query: string): string {
   return `https://news.google.com/rss/search?${params.toString()}`;
 }
 
+/**
+ * Global Google News query — same shape, US/global geo. Used for the
+ * international tier so partner conversations don't only have an
+ * Australian lens.
+ */
+function googleNewsGlobal(query: string): string {
+  const params = new URLSearchParams({
+    q: query,
+    hl: "en-US",
+    gl: "US",
+    ceid: "US:en",
+  });
+  return `https://news.google.com/rss/search?${params.toString()}`;
+}
+
 export const SOURCES: Source[] = [
   // ── Tier 1: Official / regulators ────────────────────────────────────────
   {
@@ -165,7 +180,49 @@ export const SOURCES: Source[] = [
     maxItems: 2,
   },
 
-  // ── Tier 4: Trending signals ─────────────────────────────────────────────
+  // ── Tier 4: International sources ───────────────────────────────────────
+  // Per the editorial brief, coverage should be worldwide-first, Aus-
+  // second. The tiers above are all AU-bound; this tier pulls global
+  // signal so partner conversations have an international lens for the
+  // macro, markets, and policy beats that move regardless of border.
+  {
+    name: "BBC Business",
+    url: "https://feeds.bbci.co.uk/news/business/rss.xml",
+    category: "MARKETS",
+    maxItems: 3,
+  },
+  {
+    name: "Reuters · Business",
+    url: googleNewsGlobal('site:reuters.com (business OR markets OR economy)'),
+    category: "MARKETS",
+    maxItems: 3,
+  },
+  {
+    name: "Global · Central banks",
+    url: googleNewsGlobal('Federal Reserve OR ECB OR "Bank of England" OR "Bank of Japan" rates'),
+    category: "MACRO",
+    maxItems: 3,
+  },
+  {
+    name: "Global · US property & mortgage",
+    url: googleNewsGlobal('US "housing market" OR "mortgage rates" OR "home prices"'),
+    category: "PROPERTY",
+    maxItems: 2,
+  },
+  {
+    name: "Global · China & geopolitics",
+    url: googleNewsGlobal('China economy OR property OR "Xi Jinping"'),
+    category: "GEOPOLITICS",
+    maxItems: 2,
+  },
+  {
+    name: "Global · Markets & rates",
+    url: googleNewsGlobal('"10-year yield" OR "S&P 500" OR "dollar index"'),
+    category: "MARKETS",
+    maxItems: 2,
+  },
+
+  // ── Tier 5: Trending signals ─────────────────────────────────────────────
   // Reddit RSS endpoints used to be free for unauthenticated bots — now
   // their cloudflare layer returns 403 on Actions IPs without an OAuth
   // token. Each failed fetch was blowing the full 8s rss-parser timeout
@@ -176,7 +233,7 @@ export const SOURCES: Source[] = [
     name: "Google · Top headlines AU",
     url: "https://news.google.com/rss?hl=en-AU&gl=AU&ceid=AU:en",
     category: "OTHER",
-    maxItems: 3,
+    maxItems: 2,
   },
 ];
 

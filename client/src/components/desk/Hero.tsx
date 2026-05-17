@@ -14,6 +14,7 @@
 import { Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { getSydneyDate } from "@/lib/date";
+import { useAuth } from "@/lib/useAuth";
 import { useLiveEditionMeta } from "@/lib/useLiveEditionMeta";
 
 export function Hero({ onGenerateAll }: { onGenerateAll?: () => void }) {
@@ -22,6 +23,11 @@ export function Hero({ onGenerateAll }: { onGenerateAll?: () => void }) {
   // edition link still lands on the newest edition.
   const todayLabel = getSydneyDate();
   const edition = useLiveEditionMeta();
+  // "Gen all Say This" is an editorial-side rerun control — it asks the
+  // server to regenerate the persona-tailored line on every story. Not
+  // something a partner reader should ever see, so gate on admin.
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   function handleGen() {
     if (onGenerateAll) {
       onGenerateAll();
@@ -128,20 +134,22 @@ export function Hero({ onGenerateAll }: { onGenerateAll?: () => void }) {
               A sixty-second scan of what's moving Australian property —
               written for brokers, advisers, accountants and buyer's agents.
             </p>
-            <button
-              onClick={handleGen}
-              className="group inline-flex items-center gap-2.5 rounded px-5 py-2.5 text-xs font-mono uppercase tracking-[0.2em] transition-all active:scale-[0.98] shrink-0"
-              style={{
-                background:
-                  "linear-gradient(135deg, oklch(0.78 0.18 70) 0%, oklch(0.88 0.19 82) 60%, oklch(0.65 0.16 60) 100%)",
-                color: "oklch(0.10 0.018 260)",
-                boxShadow:
-                  "0 1px 0 oklch(1 0 0 / 18%) inset, 0 10px 24px oklch(0.75 0.18 70 / 28%)",
-              }}
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              Gen all Say This
-            </button>
+            {isAdmin && (
+              <button
+                onClick={handleGen}
+                className="group inline-flex items-center gap-2.5 rounded px-5 py-2.5 text-xs font-mono uppercase tracking-[0.2em] transition-all active:scale-[0.98] shrink-0"
+                style={{
+                  background:
+                    "linear-gradient(135deg, oklch(0.78 0.18 70) 0%, oklch(0.88 0.19 82) 60%, oklch(0.65 0.16 60) 100%)",
+                  color: "oklch(0.10 0.018 260)",
+                  boxShadow:
+                    "0 1px 0 oklch(1 0 0 / 18%) inset, 0 10px 24px oklch(0.75 0.18 70 / 28%)",
+                }}
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                Gen all Say This
+              </button>
+            )}
           </div>
         </div>
       </div>
