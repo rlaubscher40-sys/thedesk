@@ -42,6 +42,11 @@ export default function DailyFeed() {
   const feedQuery = trpc.feed.getByDate.useQuery(undefined, {
     staleTime: 60_000,
   });
+  // Distinguish "no DB configured" (demo mode → render seed) from "DB
+  // configured but empty" (production after a wipe → render empty state
+  // with a re-run hint, not stale placeholders).
+  const demoModeQuery = trpc.system.demoMode.useQuery();
+  const isDemo = demoModeQuery.data?.demoMode ?? false;
 
   const allFeedItems = feedQuery.data ?? [];
   const liveCategories = useMemo(() => {
@@ -117,6 +122,11 @@ export default function DailyFeed() {
       </SectionErrorBoundary>
 
       {/* ── Live feed (DB-driven) ────────────────────────────────────── */}
+      {!hasLiveData && !isDemo && feedQuery.isSuccess && (
+        // Real DB, zero items. Don't show seed placeholders — they were
+        // misleading after a wipe. Tell the editor what to do next.
+        <EmptyFeedState />
+      )}
       {hasLiveData ? (
         <>
           {/* Scan strip — every story today as dot points so partners can
@@ -163,8 +173,9 @@ export default function DailyFeed() {
             </SectionErrorBoundary>
           )}
         </>
-      ) : (
-        // ── Seed fallback (dev mode / pre-ingest) ───────────────────
+      ) : isDemo ? (
+        // ── Seed fallback — demo mode only. With a real DB but zero
+        //    items we render <EmptyFeedState /> above this block instead.
         <>
           {featured && (
             <SectionErrorBoundary section="Featured">
@@ -210,7 +221,7 @@ export default function DailyFeed() {
             </div>
           )}
         </>
-      )}
+      ) : null}
 
       {hasLiveData && feedItems.length === 0 && (
         <div className="panel p-8 rounded-sm text-center text-sm text-[var(--color-fg-muted)]">
@@ -248,6 +259,39 @@ function SectionDivider({ label }: { label: string }) {
         className="block flex-1 h-px bg-[var(--color-border)]"
         aria-hidden="true"
       />
+    </div>
+  );
+}
+
+/**
+ * Real-DB-but-empty Today state. Shown after a wipe / before the first
+ * daily-feed workflow run. Distinct from the seed fallback (demo mode)
+ * so the editor knows to re-fire the ingest rather than wonder why
+ * static placeholders are still showing up.
+ */
+function EmptyFeedState() {
+  return (
+    <div className="panel rounded p-8 sm:p-10 text-center">
+      <p
+        className="overline-amber mb-3 inline-block"
+        style={{ letterSpacing: "0.24em", fontSize: "10px" }}
+      >
+        Today's feed
+      </p>
+      <h2 className="font-serif text-2xl font-bold mb-3 leading-tight">
+        Nothing in the feed yet.
+      </h2>
+      <p className="text-sm text-[var(--color-fg-muted)] max-w-[58ch] mx-auto leading-relaxed mb-5">
+        The daily-feed workflow on GitHub Actions hasn't run yet today, or
+        it was just wiped. Re-fire it from the Actions tab to populate
+        Today with fresh items.
+      </p>
+      <p
+        className="font-mono uppercase text-[var(--color-fg-subtle)]"
+        style={{ fontSize: "10px", letterSpacing: "0.18em" }}
+      >
+        GitHub → Actions → Daily Feed → Run workflow
+      </p>
     </div>
   );
 }
