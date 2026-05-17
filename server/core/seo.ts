@@ -176,8 +176,42 @@ async function handleEditionImage(
   }
 }
 
+/**
+ * Serve a hero-library image. URL: /api/images/hero-library/:id. Same
+ * aggressive cache headers as edition images — library bytes never
+ * mutate in place (admins delete + replace), so an immutable cache is
+ * safe.
+ */
+async function handleHeroLibraryImage(
+  req: Request,
+  res: Response
+): Promise<void> {
+  const id = parseInt(req.params.id ?? "", 10);
+  if (!Number.isFinite(id) || id <= 0) {
+    res.status(400).send("Bad id");
+    return;
+  }
+  try {
+    const row = await db.getHeroLibraryBytes(id);
+    if (!row) {
+      res.status(404).send("Not found");
+      return;
+    }
+    res.set("Content-Type", row.contentType);
+    res.set("Cache-Control", "public, max-age=86400, immutable");
+    res.send(row.bytes);
+  } catch (err) {
+    console.warn(
+      `[seo] hero library fetch failed for ${id}:`,
+      (err as Error).message
+    );
+    res.status(500).send("Image fetch failed");
+  }
+}
+
 export function registerSeoRoutes(app: Express): void {
   app.get("/api/images/edition/:id/:kind", handleEditionImage);
+  app.get("/api/images/hero-library/:id", handleHeroLibraryImage);
   app.get("/editions/:n", handleEditionMeta);
 
   app.get("/sitemap.xml", async (req: Request, res: Response) => {

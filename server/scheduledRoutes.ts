@@ -14,7 +14,7 @@ import { parse as parseCookieHeader } from "cookie";
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import { env } from "./core/env";
-import { generateImage } from "./core/image";
+import { resolveHeroForEdition } from "./core/heroSelection";
 import { sdk } from "./core/sdk";
 import * as db from "./db";
 import {
@@ -242,9 +242,17 @@ function registerWeeklyEditionRoute(app: Express): void {
       if (!inserted) return;
 
       // Hero image and take are independent — run them in parallel.
+      // Hero defaults to the library (zero OpenAI cost when there's an
+      // image to reuse). Falls back to fresh generation if the library
+      // is empty, and seeds the library on that fallback so future
+      // editions can reuse it.
       const [imageResult, takeResult] = await Promise.allSettled([
-        generateImage({
-          prompt: editionHeroPrompt({ weekRange: edition.weekRange, topics: edition.topics }),
+        resolveHeroForEdition({
+          editionId: inserted.id,
+          prompt: editionHeroPrompt({
+            weekRange: edition.weekRange,
+            topics: edition.topics,
+          }),
         }),
         generateRubensTake({
           weekRange: edition.weekRange,
@@ -253,17 +261,18 @@ function registerWeeklyEditionRoute(app: Express): void {
         }),
       ]);
 
-      if (imageResult.status === "fulfilled" && imageResult.value) {
-        await db.storeEditionAsset({
-          editionId: inserted.id,
-          kind: "hero",
-          contentType: imageResult.value.contentType,
-          bytes: imageResult.value.bytes,
-        });
-        await db.updateHeroImage(inserted.id, db.editionAssetUrl(inserted.id, "hero"));
-        console.log(`[scheduled] hero image generated for Edition ${edition.editionNumber}`);
-      } else if (imageResult.status === "rejected") {
+      if (imageResult.status === "rejected") {
         console.warn(`[scheduled] hero image failed:`, imageResult.reason);
+      } else if (imageResult.value.ok) {
+        await db.updateHeroImage(inserted.id, db.editionAssetUrl(inserted.id, "hero"));
+        console.log(
+          `[scheduled] hero image set for Edition ${edition.editionNumber} (source: ${imageResult.value.source})`
+        );
+      } else {
+        console.warn(
+          `[scheduled] hero image unavailable for Edition ${edition.editionNumber}:`,
+          imageResult.value.reason
+        );
       }
 
       if (takeResult.status === "fulfilled") {
@@ -436,10 +445,16 @@ function registerSynthesizeEditionRoute(app: Express): void {
         );
       }
 
-      // Step 2: hero image + Ruben's Take in parallel.
+      // Step 2: hero image + Ruben's Take in parallel. Hero picks from
+      // the library by default — see resolveHeroForEdition for the
+      // library-vs-generate decision.
       const [imageResult, takeResult] = await Promise.allSettled([
-        generateImage({
-          prompt: editionHeroPrompt({ weekRange, topics: finalEdition.topics }),
+        resolveHeroForEdition({
+          editionId: inserted.id,
+          prompt: editionHeroPrompt({
+            weekRange,
+            topics: finalEdition.topics,
+          }),
         }),
         generateRubensTake({
           weekRange,
@@ -447,13 +462,7 @@ function registerSynthesizeEditionRoute(app: Express): void {
           keyMetrics: finalEdition.keyMetrics,
         }),
       ]);
-      if (imageResult.status === "fulfilled" && imageResult.value) {
-        await db.storeEditionAsset({
-          editionId: inserted.id,
-          kind: "hero",
-          contentType: imageResult.value.contentType,
-          bytes: imageResult.value.bytes,
-        });
+      if (imageResult.status === "fulfilled" && imageResult.value.ok) {
         await db.updateHeroImage(inserted.id, db.editionAssetUrl(inserted.id, "hero"));
       }
       let rubensTake: string | null = null;

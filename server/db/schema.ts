@@ -297,6 +297,41 @@ export const editionAssets = mysqlTable("edition_assets", {
 export type EditionAsset = typeof editionAssets.$inferSelect;
 export type InsertEditionAsset = typeof editionAssets.$inferInsert;
 
+// ─── Hero image library ────────────────────────────────────────────────────
+
+/**
+ * Reusable hero-image pool. Instead of burning an OpenAI image-gen call
+ * on every weekly edition, we generate ~15-20 strong editorial covers up
+ * front, cycle through them least-recently-used first, and only fall
+ * back to fresh generation when the library is empty (or the admin
+ * explicitly asks for a custom image on a landmark edition).
+ *
+ * Cost savings aside, this also removes a Sunday-7am failure point: if
+ * OpenAI rate-limits or errors, the edition still ships with a library
+ * image instead of going out without a cover.
+ */
+export const heroLibrary = mysqlTable("hero_library", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Optional admin label — "Macro · navy + amber", "Property · skyline" etc. */
+  label: varchar("label", { length: 128 }),
+  /** The prompt that produced this image — stored so the admin can see
+   *  what generated each cover and tune future seeds. */
+  promptUsed: text("promptUsed"),
+  contentType: varchar("contentType", { length: 64 }).notNull(),
+  bytes: mediumBlob("bytes").notNull(),
+  /** Set to true to keep the row but exclude it from the rotation. Used
+   *  when a cover lands but no longer fits the brand. */
+  retired: boolean("retired").default(false).notNull(),
+  /** Timestamp of the most recent edition that used this image — drives
+   *  the least-recently-used pick. Null = never used. */
+  lastUsedAt: timestamp("lastUsedAt"),
+  usedCount: int("usedCount").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type HeroLibraryItem = typeof heroLibrary.$inferSelect;
+export type InsertHeroLibraryItem = typeof heroLibrary.$inferInsert;
+
 // ─── Featured LinkedIn posts ────────────────────────────────────────────────
 
 /**

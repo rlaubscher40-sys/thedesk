@@ -87,6 +87,24 @@ const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
     name: "0011 · feedback_submissions index",
     sql: "CREATE INDEX idx_feedback_status_created ON feedback_submissions (status, createdAt)",
   },
+  {
+    name: "0012 · hero_library table",
+    sql: `CREATE TABLE hero_library (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      label VARCHAR(128),
+      promptUsed TEXT,
+      contentType VARCHAR(64) NOT NULL,
+      bytes MEDIUMBLOB NOT NULL,
+      retired BOOLEAN NOT NULL DEFAULT FALSE,
+      lastUsedAt TIMESTAMP NULL,
+      usedCount INT NOT NULL DEFAULT 0,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`,
+  },
+  {
+    name: "0012 · hero_library index",
+    sql: "CREATE INDEX idx_hero_library_pick ON hero_library (retired, lastUsedAt)",
+  },
 ];
 
 /** MySQL/TiDB error codes / fragments we treat as "already applied". */

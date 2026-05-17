@@ -138,7 +138,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
         {item.imageUrl && (
           <img
             src={item.imageUrl}
-            alt=""
+            alt={item.category}
             // object-top so any rare max-height clamp on a tall portrait
             // preserves the top of the image (faces) rather than centring
             // the crop through somebody's chin.
@@ -212,7 +212,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
             <button
               onClick={toggleQueue}
               aria-label={inQueueId ? "Remove from queue" : "Save to queue"}
-              className="p-1.5 rounded text-[var(--color-fg-subtle)] hover:text-amber-300 transition-colors"
+              className="p-2 sm:p-1.5 rounded text-[var(--color-fg-subtle)] hover:text-amber-300 transition-colors"
             >
               {inQueueId ? (
                 <BookmarkCheck className="h-4 w-4 text-amber-400" />
@@ -223,7 +223,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
             <button
               onClick={() => setLinkedInOpen(true)}
               aria-label="Share to LinkedIn"
-              className="p-1.5 rounded text-[var(--color-fg-subtle)] hover:text-amber-300 transition-colors"
+              className="p-2 sm:p-1.5 rounded text-[var(--color-fg-subtle)] hover:text-amber-300 transition-colors"
             >
               <Linkedin className="h-4 w-4" />
             </button>
@@ -242,7 +242,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
                     ? "Unpin (let category priority decide order)"
                     : "Pin this story as the Today lead"
                 }
-                className="p-1.5 rounded text-[var(--color-fg-subtle)] hover:text-amber-300 transition-colors disabled:opacity-50"
+                className="p-2 sm:p-1.5 rounded text-[var(--color-fg-subtle)] hover:text-amber-300 transition-colors disabled:opacity-50"
               >
                 {isPinned ? (
                   <PinOff className="h-4 w-4 text-amber-400" />
@@ -257,7 +257,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
                 disabled={deleteItem.isPending}
                 aria-label="Delete story (admin)"
                 title="Delete story (admin only)"
-                className="p-1.5 rounded text-[var(--color-fg-subtle)] hover:text-red-400 transition-colors disabled:opacity-50"
+                className="p-2 sm:p-1.5 rounded text-[var(--color-fg-subtle)] hover:text-red-400 transition-colors disabled:opacity-50"
               >
                 <Trash2 className="h-4 w-4" />
               </button>

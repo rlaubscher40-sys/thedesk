@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import * as db from "../db";
+import { resolveHeroForEdition } from "../core/heroSelection";
 import { generateImage } from "../core/image";
 import { adminProcedure, publicProcedure, router } from "../core/trpc";
 import {
@@ -229,29 +230,39 @@ export const editionsRouter = router({
     return { success: true } as const;
   }),
 
-  /** Admin: regenerate the EditionReader hero image. */
-  generateHeroImage: adminProcedure.input(editionIdInput).mutation(async ({ input }) => {
-    const edition = await db.getEditionById(input.editionId);
-    if (!edition) throw new TRPCError({ code: "NOT_FOUND", message: "Edition not found" });
-    const result = await generateImage({
-      prompt: editionHeroPrompt({ weekRange: edition.weekRange, topics: edition.topics }),
-    });
-    if (!result) {
-      throw new TRPCError({
-        code: "PRECONDITION_FAILED",
-        message: "Image generation is not configured. Set OPENAI_API_KEY to enable.",
+  /**
+   * Admin: set / refresh the EditionReader hero image.
+   *
+   * Default behaviour is to pick the next image from the hero library
+   * (least-recently-used). Pass `forceFresh: true` to skip the library
+   * and call OpenAI — use that for landmark editions where the cover
+   * needs to be tied to the week's content.
+   */
+  generateHeroImage: adminProcedure
+    .input(editionIdInput.extend({ forceFresh: z.boolean().optional() }))
+    .mutation(async ({ input }) => {
+      const edition = await db.getEditionById(input.editionId);
+      if (!edition)
+        throw new TRPCError({ code: "NOT_FOUND", message: "Edition not found" });
+      const result = await resolveHeroForEdition({
+        editionId: edition.id,
+        prompt: editionHeroPrompt({
+          weekRange: edition.weekRange,
+          topics: edition.topics,
+        }),
+        forceFresh: input.forceFresh ?? false,
       });
-    }
-    await db.storeEditionAsset({
-      editionId: edition.id,
-      kind: "hero",
-      contentType: result.contentType,
-      bytes: result.bytes,
-    });
-    const url = db.editionAssetUrl(edition.id, "hero");
-    await db.updateHeroImage(edition.id, url);
-    return { url };
-  }),
+      if (!result.ok) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message:
+            "Hero library is empty and image generation is not configured. Seed the library or set OPENAI_API_KEY.",
+        });
+      }
+      const url = db.editionAssetUrl(edition.id, "hero");
+      await db.updateHeroImage(edition.id, url);
+      return { url, source: result.source };
+    }),
 
   /**
    * Admin: delete an edition. Used to clean up a thin first-pass synthesis

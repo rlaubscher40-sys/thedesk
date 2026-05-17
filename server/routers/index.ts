@@ -7,6 +7,7 @@ import { authRouter } from "./auth";
 import { editionsRouter } from "./editions";
 import { feedRouter } from "./feed";
 import { feedbackRouter } from "./feedback";
+import { heroLibraryRouter } from "./heroLibrary";
 import { readingQueueRouter } from "./readingQueue";
 import { linkedInRouter } from "./linkedIn";
 import { metricsRouter } from "./metrics";
@@ -29,6 +30,7 @@ export const appRouter = router({
   subscribers: subscribersRouter,
   linkedIn: linkedInRouter,
   metrics: metricsRouter,
+  heroLibrary: heroLibraryRouter,
 });
 
 export type AppRouter = typeof appRouter;
