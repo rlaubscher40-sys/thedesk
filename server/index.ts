@@ -62,15 +62,17 @@ async function startServer() {
   //    becomes a thing (then bring Redis).
   //
   //    Two buckets:
-  //    · /api/trpc       — 200 / minute. Generous for legit usage
-  //                        (every page hit triggers several batched
-  //                        queries) but kills bot-grade traffic.
+  //    · /api/trpc       — 90 / minute. Real users sit well under this
+  //                        even when flipping fast between Today /
+  //                        Archive / Edition — tRPC batches their
+  //                        queries. Scrapers hammering one page after
+  //                        another trip the limit inside a few seconds.
   //    · /api/auth/login — 10 / 5 minutes. Defends the only password
   //                        endpoint from credential-stuffing. Real
   //                        humans never trip this.
   const trpcLimiter = rateLimit({
     windowMs: 60_000,
-    limit: 200,
+    limit: 90,
     standardHeaders: "draft-7",
     legacyHeaders: false,
     message: { error: "Too many requests. Slow down." },
