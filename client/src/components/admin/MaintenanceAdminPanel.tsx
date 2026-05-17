@@ -4,12 +4,14 @@
  *
  *   - Catch-up DB migrations (idempotent — safe to re-run)
  *   - Delete a thin / broken edition by edition number
+ *   - Wipe all feed items / wipe all metrics (clean-slate reset before
+ *     re-running the daily ingest workflows)
  *
  * The whole panel exists so the editor can recover the site from a phone
  * without opening TiDB Cloud's SQL editor (which is desktop-only).
  */
 import { useState } from "react";
-import { AlertTriangle, Database, Trash2 } from "lucide-react";
+import { AlertTriangle, Database, Eraser, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 
@@ -54,6 +56,46 @@ export function MaintenanceAdminPanel() {
     },
     onError: (err) => toast.error(err.message ?? "Delete failed"),
   });
+
+  const purgeFeed = trpc.system.purgeFeed.useMutation({
+    onSuccess: (res) => {
+      toast.success(`Wiped ${res.deletedCount} feed item${res.deletedCount === 1 ? "" : "s"}`);
+      utils.feed.getByDate.invalidate();
+    },
+    onError: (err) => toast.error(err.message ?? "Wipe failed"),
+  });
+  const purgeMetrics = trpc.system.purgeMetrics.useMutation({
+    onSuccess: (res) => {
+      toast.success(
+        `Wiped ${res.deletedCount} metric${res.deletedCount === 1 ? "" : "s"}` +
+          (res.historyDeletedCount
+            ? ` + ${res.historyDeletedCount} history rows`
+            : "")
+      );
+      utils.metrics.list.invalidate();
+      utils.metrics.histories.invalidate();
+    },
+    onError: (err) => toast.error(err.message ?? "Wipe failed"),
+  });
+
+  function handleWipeFeed() {
+    if (
+      !confirm(
+        "Wipe ALL feed items? This deletes every story in the daily feed across every date. Used before re-running the daily-feed workflow for a clean slate."
+      )
+    )
+      return;
+    purgeFeed.mutate({ confirm: "WIPE" });
+  }
+  function handleWipeMetrics() {
+    if (
+      !confirm(
+        "Wipe ALL metrics + 30-day history? Used before re-running the daily-metrics workflow for a clean slate. Sparklines will redraw from scratch."
+      )
+    )
+      return;
+    purgeMetrics.mutate({ confirm: "WIPE" });
+  }
 
   function handleDelete() {
     const n = parseInt(editionNumber, 10);
@@ -198,6 +240,59 @@ export function MaintenanceAdminPanel() {
           <span>
             Deletes immediately. No soft-delete. Re-fire the Weekly Edition
             workflow after to regenerate.
+          </span>
+        </p>
+      </div>
+
+      {/* Clean-slate wipes — used before re-running the daily-feed and
+          daily-metrics workflows when you want a fresh starting state. */}
+      <div className="space-y-4 pt-5 border-t border-[var(--color-border)]">
+        <div>
+          <p
+            className="overline mb-1.5"
+            style={{ letterSpacing: "0.18em", color: "oklch(0.78 0.16 15)" }}
+          >
+            3 · Clean-slate wipes
+          </p>
+          <p className="text-xs text-[var(--color-fg-subtle)] leading-relaxed max-w-[60ch]">
+            Reset the feed or the metrics tables before re-firing the
+            corresponding GitHub Actions workflow. Each wipe is immediate
+            and irreversible — confirmation prompt only.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={handleWipeFeed}
+            disabled={purgeFeed.isPending}
+            className="inline-flex items-center gap-1.5 rounded px-3.5 py-2 text-[10px] font-mono uppercase tracking-[0.18em] transition-colors disabled:opacity-50"
+            style={{
+              background: "oklch(0.68 0.20 15 / 12%)",
+              color: "oklch(0.78 0.16 15)",
+              boxShadow: "inset 0 0 0 1px oklch(0.68 0.20 15 / 30%)",
+            }}
+          >
+            <Eraser className="h-3 w-3" />
+            {purgeFeed.isPending ? "Wiping…" : "Wipe feed items"}
+          </button>
+          <button
+            onClick={handleWipeMetrics}
+            disabled={purgeMetrics.isPending}
+            className="inline-flex items-center gap-1.5 rounded px-3.5 py-2 text-[10px] font-mono uppercase tracking-[0.18em] transition-colors disabled:opacity-50"
+            style={{
+              background: "oklch(0.68 0.20 15 / 12%)",
+              color: "oklch(0.78 0.16 15)",
+              boxShadow: "inset 0 0 0 1px oklch(0.68 0.20 15 / 30%)",
+            }}
+          >
+            <Eraser className="h-3 w-3" />
+            {purgeMetrics.isPending ? "Wiping…" : "Wipe metrics + history"}
+          </button>
+        </div>
+        <p className="flex items-start gap-1.5 text-[10px] text-[var(--color-fg-subtle)] leading-relaxed">
+          <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0 text-amber-400/60" />
+          <span>
+            After wiping, manually re-fire the matching workflow on GitHub
+            Actions: Daily Feed → Daily Metrics → Weekly Edition.
           </span>
         </p>
       </div>
