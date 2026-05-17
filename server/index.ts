@@ -42,8 +42,13 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
 
-  app.use(express.json({ limit: "50mb" }));
-  app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  // Tight body limit — nothing on the API accepts payloads larger than
+  // a few hundred KB (largest is the weekly-edition synthesis result,
+  // which lands well under 1MB). 50MB was inherited from an earlier
+  // image-bytes-over-the-wire flow that no longer exists. Keeping the
+  // ceiling low protects every endpoint from memory-bomb spam.
+  app.use(express.json({ limit: "4mb" }));
+  app.use(express.urlencoded({ limit: "4mb", extended: true }));
 
   registerOAuthRoutes(app);
   registerSeoRoutes(app);

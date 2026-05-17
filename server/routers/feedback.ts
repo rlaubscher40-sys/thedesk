@@ -14,7 +14,19 @@ import { adminProcedure, publicProcedure, router } from "../core/trpc";
 const submitInput = z.object({
   kind: z.enum(["bug", "idea", "praise"]),
   message: z.string().min(3).max(2000),
-  pageUrl: z.string().max(512).optional().nullable(),
+  // Validate the URL parses AND uses an http(s) scheme. Belt + braces:
+  // some URL validators accept "javascript:" as valid; the explicit
+  // protocol check guarantees the admin can't be phished via a
+  // malicious pageUrl clicked from the feedback inbox.
+  pageUrl: z
+    .string()
+    .url()
+    .max(512)
+    .refine((u) => /^https?:\/\//i.test(u), {
+      message: "pageUrl must be http(s)",
+    })
+    .optional()
+    .nullable(),
   userAgent: z.string().max(512).optional().nullable(),
   contactEmail: z.string().email().max(320).optional().nullable(),
   reporterLabel: z.string().max(128).optional().nullable(),
