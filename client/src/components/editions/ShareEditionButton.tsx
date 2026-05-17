@@ -90,7 +90,7 @@ export function ShareEditionButton({ edition }: { edition: Edition }) {
           <div
             role="menu"
             className="absolute right-0 top-full mt-2 z-40 w-56 panel rounded-sm py-1.5 shadow-xl"
-            style={{ background: "oklch(0.13 0.018 260)" }}
+            style={{ background: "var(--color-panel-tile-bg)" }}
           >
             <MenuItem onClick={copyLink} icon={copied ? Check : Copy}>
               {copied ? "Link copied" : "Copy link"}

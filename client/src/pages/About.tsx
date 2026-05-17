@@ -38,10 +38,7 @@ export default function About() {
         <span className="hero-cover-shine absolute inset-0" aria-hidden="true" />
         <div
           className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(115deg, oklch(0.07 0.018 260 / 92%) 0%, oklch(0.07 0.018 260 / 65%) 45%, oklch(0.07 0.018 260 / 25%) 100%)",
-          }}
+          style={{ background: "var(--grad-hero-overlay)" }}
         />
         <div
           className="absolute inset-0 rounded-sm pointer-events-none"
@@ -172,10 +169,7 @@ export default function About() {
         <aside className="lg:sticky lg:top-8 self-start space-y-6">
           <div
             className="panel rounded-sm p-6 sm:p-7"
-            style={{
-              background:
-                "linear-gradient(135deg, oklch(0.15 0.022 260) 0%, oklch(0.10 0.022 260) 100%)",
-            }}
+            style={{ background: "var(--grad-panel-soft)" }}
           >
             <div className="flex items-center gap-5">
               <AuthorHeadshot />

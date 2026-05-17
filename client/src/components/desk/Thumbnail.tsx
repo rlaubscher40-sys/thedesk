@@ -60,7 +60,7 @@ export function Thumbnail({
         background: `
           radial-gradient(circle at 78% 22%, ${cat}55 0%, transparent 55%),
           radial-gradient(circle at 12% 88%, hsl(${(hue + 200) % 360}, 60%, 30%) 0%, transparent 55%),
-          linear-gradient(135deg, oklch(0.14 0.018 260), oklch(0.08 0.018 260))
+          linear-gradient(135deg, var(--color-bg-elevated), var(--color-bg-deep))
         `,
       }}
       aria-hidden="true"

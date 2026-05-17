@@ -18,10 +18,7 @@ export function FromTheDeskIntro() {
   return (
     <section
       className="panel rounded-sm p-5 sm:p-7 flex items-center gap-5 sm:gap-7"
-      style={{
-        background:
-          "linear-gradient(135deg, oklch(0.15 0.022 260) 0%, oklch(0.10 0.022 260) 100%)",
-      }}
+      style={{ background: "var(--grad-panel-soft)" }}
     >
       <div className="relative shrink-0">
         <div

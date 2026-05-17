@@ -379,7 +379,7 @@ function SidebarLink({
           </span>
         )}
         {!collapsed && item.path === "/queue" && unreadCount > 0 && (
-          <span className="font-mono text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[oklch(0.18_0.018_260)] text-[var(--color-fg-muted)] tabular-nums">
+          <span className="font-mono text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[var(--color-panel-tile-bg)] text-[var(--color-fg-muted)] tabular-nums">
             {unreadCount}
           </span>
         )}

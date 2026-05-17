@@ -43,6 +43,32 @@
   /* Distinct teal hue so GEOPOLITICS reads as its own beat rather than
      aliasing onto POLICY's purple. */
   --color-geopolitics: oklch(0.7 0.15 180);
+
+  /* Reusable gradient tokens. Components that previously hardcoded
+     `linear-gradient(135deg, oklch(0.15 ...) ...)` inline now reference
+     these so light mode can flip them in one place. */
+  --grad-panel-soft: linear-gradient(
+    135deg,
+    oklch(0.15 0.022 260) 0%,
+    oklch(0.10 0.022 260) 100%
+  );
+  --grad-hero-overlay: linear-gradient(
+    115deg,
+    oklch(0.07 0.018 260 / 92%) 0%,
+    oklch(0.07 0.018 260 / 65%) 45%,
+    oklch(0.07 0.018 260 / 25%) 100%
+  );
+  --grad-hero-fade-bottom: linear-gradient(
+    180deg,
+    transparent,
+    oklch(0.11 0.018 260 / 75%)
+  );
+  --grad-hero-fade-top: linear-gradient(
+    180deg,
+    oklch(0.11 0.018 260 / 60%),
+    transparent
+  );
+  --color-panel-tile-bg: oklch(0.13 0.018 260);
 }
 
 /* ─── Light mode ─────────────────────────────────────────────────────────
@@ -82,6 +108,35 @@
   --color-science: oklch(0.55 0.20 15);
   --color-economics: oklch(0.60 0.16 72);
   --color-geopolitics: oklch(0.55 0.15 180);
+
+  /* Panel-soft gradient flips to a near-paper card with a hairline
+     darker bottom so it still lifts off the warm canvas. */
+  --grad-panel-soft: linear-gradient(
+    135deg,
+    oklch(0.995 0.003 82) 0%,
+    oklch(0.95 0.006 82) 100%
+  );
+  /* Hero overlay needs to keep the hero text legible. In light mode the
+     hero photo still tilts dark (the SVGs were authored that way), so
+     we shade lighter at the top and let the photo show through more,
+     and we tint the foreground text dark via inline styles. */
+  --grad-hero-overlay: linear-gradient(
+    115deg,
+    oklch(0.97 0.005 82 / 88%) 0%,
+    oklch(0.97 0.005 82 / 65%) 45%,
+    oklch(0.97 0.005 82 / 30%) 100%
+  );
+  --grad-hero-fade-bottom: linear-gradient(
+    180deg,
+    transparent,
+    oklch(0.97 0.005 82 / 75%)
+  );
+  --grad-hero-fade-top: linear-gradient(
+    180deg,
+    oklch(0.97 0.005 82 / 50%),
+    transparent
+  );
+  --color-panel-tile-bg: oklch(0.97 0.006 82);
 }
 
 /* Hide the heavy gradient/animated chrome in light mode — the warm paper
@@ -92,6 +147,14 @@
 }
 .light .hero-cover-shine {
   opacity: 0.4;
+}
+
+/* Hero illustrations are authored dark. In light mode soften + fade
+   them so they read as a textural backdrop rather than a black hole
+   under the editorial type. */
+.light .hero-cover-img {
+  filter: brightness(1.4) contrast(0.78) saturate(0.6);
+  opacity: 0.5;
 }
 
 /* Panels in light mode get a soft hairline + warm-white fill that reads
