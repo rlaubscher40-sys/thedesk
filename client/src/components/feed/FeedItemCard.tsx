@@ -215,8 +215,11 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
         </h3>
       </Link>
 
-      {/* Lede. */}
-      <p className="text-base text-[var(--color-fg-muted)] leading-relaxed">
+      {/* Lede. Clamped to keep grid rows visually uniform — summaries
+          arrive at wildly different lengths from the LLM enrichment,
+          and an uncapped paragraph blows the row height. The full
+          summary still surfaces on the story page. */}
+      <p className="text-base text-[var(--color-fg-muted)] leading-relaxed line-clamp-3">
         {item.summary}
       </p>
 

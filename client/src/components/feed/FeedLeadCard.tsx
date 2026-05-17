@@ -33,6 +33,17 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
   const isAdmin = user?.role === "admin";
   const utils = trpc.useUtils();
 
+  // Fallback hero plate: when the story has no og:image, pull a
+  // deterministic image from the hero library so the lead card doesn't
+  // sit as a bare category-text gradient. Keyed by item.id so the same
+  // lead always gets the same fallback. The query is suspended when
+  // imageUrl is already present.
+  const libraryFallback = trpc.heroLibrary.pickForSeed.useQuery(
+    { seed: item.id },
+    { enabled: !item.imageUrl, staleTime: 60 * 60 * 1000 }
+  );
+  const fallbackUrl = !item.imageUrl ? libraryFallback.data?.url ?? null : null;
+
   const deleteItem = trpc.feed.deleteItem.useMutation({
     onSuccess: () => {
       toast.success("Story removed");
@@ -135,7 +146,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
           `,
         }}
       >
-        {item.imageUrl && (
+        {item.imageUrl ? (
           <img
             src={item.imageUrl}
             alt={item.category}
@@ -147,10 +158,20 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
             decoding="async"
             onLoad={onImageLoad}
           />
-        )}
-        {/* Category supersized — the cover plate's typographic moment.
-            Hidden when a real photo is present. */}
-        {!item.imageUrl && (
+        ) : fallbackUrl ? (
+          // Hero-library fallback — used when the story didn't come with
+          // an og:image. Deterministic per item ID so the cover doesn't
+          // flicker between renders.
+          <img
+            src={fallbackUrl}
+            alt={item.category}
+            className="absolute inset-0 w-full h-full object-cover object-center"
+            loading="lazy"
+            decoding="async"
+          />
+        ) : (
+          // Final fallback — library empty too. Render the category
+          // gradient + supersized category name we've always had.
           <span
             className="absolute font-serif font-bold pointer-events-none select-none"
             style={{

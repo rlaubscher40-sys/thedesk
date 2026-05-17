@@ -98,16 +98,30 @@ export default function DailyFeed() {
   // angles attached — i.e. the LLM judged it commercially relevant.
   // Stories without either (trending / awareness pieces — shark
   // attacks, celebrity news, off-beat global signals) drop into the
-  // "Further signals" strip so the grid stays visually uniform and the
-  // angle-bearing cards aren't sitting next to taller / shorter ones.
+  // "Further signals" strip.
+  //
+  // Two extra rules on the grid:
+  //   · Cards are rounded DOWN to a multiple of 3 so the grid always
+  //     ends on a complete row. Leftover angle-bearing cards spill
+  //     into "Further signals" rather than sitting orphaned with
+  //     empty columns beside them.
+  //   · The lede on every grid card is line-clamped (see
+  //     FeedItemCard) so summaries of wildly different lengths
+  //     don't blow row heights apart.
   const liveLead = feedItems[0];
   const liveRest = feedItems.slice(1);
-  const liveGrid = liveRest.filter(
-    (it) => (it.sayThis && it.sayThis.length > 0) || (it.partnerTag && it.partnerTag.length > 0)
-  );
-  const liveSignals = liveRest.filter(
-    (it) => !((it.sayThis && it.sayThis.length > 0) || (it.partnerTag && it.partnerTag.length > 0))
-  );
+  const hasAngles = (it: typeof feedItems[number]): boolean =>
+    Boolean((it.sayThis && it.sayThis.length > 0) || (it.partnerTag && it.partnerTag.length > 0));
+  const allAngled = liveRest.filter(hasAngles);
+  const nonAngled = liveRest.filter((it) => !hasAngles(it));
+  // Desktop grid is 3-col. Round down to a complete row.
+  const GRID_COLS = 3;
+  const gridSize = Math.floor(allAngled.length / GRID_COLS) * GRID_COLS;
+  const liveGrid = allAngled.slice(0, gridSize);
+  // Anything that didn't fit a complete row joins the signals strip —
+  // angle-bearing or not — so the page never shows a lonely card with
+  // two empty columns beside it.
+  const liveSignals = [...allAngled.slice(gridSize), ...nonAngled];
 
   return (
     <div className="space-y-12">

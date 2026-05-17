@@ -1,20 +1,17 @@
 /**
  * Compact horizontal strip for "Further signals" — stories that landed
  * in the daily feed for awareness but didn't earn the full Say This /
- * Partner Angles treatment. Trending / off-beat content that belongs
- * in the brief without pretending to be commercially actionable.
+ * Partner Angles treatment, plus any angle-bearing leftovers that
+ * couldn't fit a complete grid row.
  *
- * Layout: thumbnail left (when present), editorial column right. Single
- * column of full-width rows, tighter padding than the grid cards, no
- * angle blocks. Visually demoted relative to FeedItemCard so the eye
- * naturally treats them as supporting context.
+ * Layout: single-column text strip with category-accent left edge.
+ * No thumbnail — at the strip's height the thumbnails created
+ * inconsistent vertical gaps (image natural aspect ratios pulled
+ * the row taller than text-only rows). Tighter padding than the grid
+ * cards, no angle blocks. Visually demoted relative to FeedItemCard
+ * so the eye treats them as supporting context.
  */
-import {
-  Bookmark,
-  BookmarkCheck,
-  ExternalLink,
-  Trash2,
-} from "lucide-react";
+import { Bookmark, BookmarkCheck, ExternalLink, Trash2 } from "lucide-react";
 import { Link } from "wouter";
 import { toast } from "sonner";
 import type { DailyFeedItem } from "@shared/types";
@@ -66,34 +63,9 @@ export function FeedSignalStrip({ item }: { item: DailyFeedItem }) {
     <article
       className={cn(
         "panel hover-lift rounded-sm overflow-hidden",
-        "grid grid-cols-[88px_minmax(0,1fr)] sm:grid-cols-[120px_minmax(0,1fr)] gap-0",
         categoryAccentClass(item.category)
       )}
     >
-      {/* Compact thumbnail (or category gradient fallback). */}
-      <Link
-        href={`/story/${item.id}`}
-        className="relative block overflow-hidden"
-        style={{
-          background: `
-            radial-gradient(circle at 70% 30%, ${categoryColour(item.category)}40 0%, transparent 60%),
-            var(--grad-panel-soft)
-          `,
-        }}
-      >
-        {item.imageUrl && (
-          <img
-            src={item.imageUrl}
-            alt={item.category}
-            loading="lazy"
-            decoding="async"
-            className="absolute inset-0 w-full h-full object-cover object-top"
-          />
-        )}
-      </Link>
-
-      {/* Editorial column — overline row, headline, two-line summary,
-          tight source/action footer. */}
       <div className="p-4 sm:p-5 min-w-0 flex flex-col justify-center">
         <div className="flex items-center justify-between gap-3 mb-1.5">
           <div className="flex items-center gap-2 overline truncate min-w-0">
