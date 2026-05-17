@@ -110,6 +110,12 @@ export default function ArchivePage() {
         overline="The Desk · Archive"
         title="Search and browse"
         kicker="Every weekly edition, every daily item. Find by keyword or follow a thread."
+        actions={
+          <ArchiveMetaPanel
+            totalStories={Array.from(counts.values()).reduce((a, b) => a + b, 0)}
+            categoryCount={categories.length}
+          />
+        }
       />
 
       {/* Search input. */}
@@ -485,6 +491,60 @@ function SearchResults({
           </ul>
         </section>
       )}
+    </div>
+  );
+}
+
+/**
+ * Editorial meta panel for the Archive header. Earns the right-side
+ * whitespace with two corpus stats: total stories indexed across
+ * every category, and how many categories are active for the current
+ * user (after their topic-allowlist preference).
+ */
+function ArchiveMetaPanel({
+  totalStories,
+  categoryCount,
+}: {
+  totalStories: number;
+  categoryCount: number;
+}) {
+  if (!totalStories && !categoryCount) return null;
+  return (
+    <div
+      className="hidden md:block panel rounded-sm px-5 py-4 space-y-3.5 text-right shrink-0"
+      style={{ minWidth: 200 }}
+    >
+      {totalStories > 0 && (
+        <ArchiveMetaRow
+          label="Stories archived"
+          value={totalStories.toLocaleString("en-AU")}
+        />
+      )}
+      {categoryCount > 0 && (
+        <ArchiveMetaRow
+          label="Categories indexed"
+          value={String(categoryCount).padStart(2, "0")}
+        />
+      )}
+    </div>
+  );
+}
+
+function ArchiveMetaRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="space-y-1">
+      <p
+        className="font-mono uppercase text-[var(--color-fg-subtle)]"
+        style={{ fontSize: "9px", letterSpacing: "0.22em" }}
+      >
+        {label}
+      </p>
+      <p
+        className="font-mono text-[var(--color-fg)] tabular-nums"
+        style={{ fontSize: "12px", letterSpacing: "0.04em" }}
+      >
+        {value}
+      </p>
     </div>
   );
 }
