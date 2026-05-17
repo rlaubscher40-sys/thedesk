@@ -3,16 +3,16 @@
  * editorial covers that the weekly cron cycles through instead of
  * generating fresh every Sunday.
  *
- * Everything in here is admin-only. The library never reaches end
- * users directly — they see library images embedded into edition
- * pages via the existing `editions.heroImageUrl` flow.
+ * Most procedures here are admin-only. The one public exception is
+ * `pickForSeed`, which the daily-feed lead card uses as a fallback
+ * when a story has no og:image — same library, different surface.
  */
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { generateImage } from "../core/image";
 import * as db from "../db";
 import { libraryHeroPrompt } from "../prompts";
-import { adminProcedure, router } from "../core/trpc";
+import { adminProcedure, publicProcedure, router } from "../core/trpc";
 
 const idInput = z.object({ id: z.number().int().positive() });
 
@@ -25,6 +25,27 @@ export const heroLibraryRouter = router({
       url: db.heroLibraryUrl(item.id),
     }));
   }),
+
+  /**
+   * Public: deterministic library pick keyed by a numeric seed
+   * (typically the feed item ID). Same seed always returns the same
+   * image so a lead card doesn't flicker between different fallbacks
+   * across re-renders or sessions.
+   *
+   * Returns `{ url: null }` when the library is empty or every row
+   * is retired — the caller then renders its own fallback chrome.
+   */
+  pickForSeed: publicProcedure
+    .input(z.object({ seed: z.number().int() }))
+    .query(async ({ input }) => {
+      const items = await db.listHeroLibrary();
+      const active = items.filter((it) => !it.retired);
+      if (active.length === 0) return { url: null as string | null };
+      const idx = Math.abs(input.seed) % active.length;
+      const picked = active[idx];
+      if (!picked) return { url: null as string | null };
+      return { url: db.heroLibraryUrl(picked.id) };
+    }),
 
   /**
    * Generate a new library image and store it. The prompt is generic
