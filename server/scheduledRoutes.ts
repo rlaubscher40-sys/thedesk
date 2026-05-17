@@ -158,13 +158,24 @@ function registerDailyFeedRoute(app: Express): void {
                   : Promise.resolve(null),
               ]);
 
-              if (tag.status === "fulfilled" && tag.value) {
-                await db.updateFeedItemPartnerTag(id, tag.value);
+              // Persist Say This and Partner Angles as a PAIR. If
+              // either prompt SKIPped (or failed) the story renders
+              // with no angles at all — the alternative is half-
+              // equipped cards (a Say This with no Partner Angles
+              // beneath it, or vice versa) which read as broken.
+              const tagValue =
+                tag.status === "fulfilled" && tag.value ? tag.value : null;
+              const sayValue =
+                say.status === "fulfilled" && say.value ? say.value : null;
+              if (tagValue && sayValue) {
+                await db.updateFeedItemPartnerTag(id, tagValue);
+                await db.updateFeedItemSayThis(id, sayValue);
                 tagOk++;
-              }
-              if (say.status === "fulfilled" && say.value) {
-                await db.updateFeedItemSayThis(id, say.value);
                 sayOk++;
+              } else if (tagValue || sayValue) {
+                console.log(
+                  `[scheduled] dropped half-equipped angles for "${item.title.slice(0, 60)}…" (tag=${tagValue ? "ok" : "skip"}, say=${sayValue ? "ok" : "skip"})`
+                );
               }
               if (
                 img.status === "fulfilled" &&

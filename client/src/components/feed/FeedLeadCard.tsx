@@ -323,11 +323,13 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
         )}
 
         {/* Editor's take — Ruben's note overrides the auto-generated
-            sayThis line when set. */}
-        {(item.rubensNote || item.sayThis) && (
+            sayThis line when set. Say This + Partner Angles are
+            paired — neither renders without the other unless an
+            admin has hand-written a Ruben's note. */}
+        {(item.rubensNote || (item.sayThis && item.partnerTag)) && (
           <div className="mt-6 pt-6 border-t border-[var(--color-border)]">
             <RubensNoteBlock itemId={item.id} note={item.rubensNote} />
-            {!item.rubensNote && item.sayThis && (
+            {!item.rubensNote && item.sayThis && item.partnerTag && (
               <SayThisLine sayThis={item.sayThis} category={item.category} />
             )}
           </div>
@@ -335,7 +337,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
 
         {/* PartnerTagBlock paints its own border-t + top margin so we
             don't wrap it here — would create a double hairline. */}
-        <PartnerTagBlock raw={item.partnerTag} />
+        {item.partnerTag && <PartnerTagBlock raw={item.partnerTag} />}
 
         <LinkedInPostModal
           open={linkedInOpen}

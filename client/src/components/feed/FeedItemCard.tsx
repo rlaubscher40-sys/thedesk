@@ -235,11 +235,16 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
       )}
 
       <RubensNoteBlock itemId={item.id} note={item.rubensNote} />
-      {!item.rubensNote && item.sayThis && (
+      {/* Say This and Partner Angles are paired — never one without
+          the other. If the ingest enrichment SKIPped one (story has
+          no genuine partner-channel angle), we treat the whole story
+          as "no angles" rather than render half the block. RubensNote
+          is an editorial override and always shows when present. */}
+      {!item.rubensNote && item.sayThis && item.partnerTag && (
         <SayThisLine sayThis={item.sayThis} category={item.category} />
       )}
 
-      <PartnerTagBlock raw={item.partnerTag} />
+      {item.partnerTag && <PartnerTagBlock raw={item.partnerTag} />}
 
       <LinkedInPostModal
         open={linkedInOpen}
