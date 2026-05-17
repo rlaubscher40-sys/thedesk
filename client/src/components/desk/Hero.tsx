@@ -9,7 +9,7 @@
  *   BY RUBEN LAUBSCHER
  *   [✦ GEN ALL SAY THIS]
  *
- * Backed by /public/hero.svg with a gradient veil + film-grain overlay.
+ * Backed by /public/hero.jpg with a gradient veil + film-grain overlay.
  */
 import { Sparkles } from "lucide-react";
 import { toast } from "sonner";
@@ -52,7 +52,7 @@ export function Hero({ onGenerateAll }: { onGenerateAll?: () => void }) {
       {/* Photographic backdrop. Drifts slowly via .hero-cover-img. This is
           the LCP element on the Today landing page. */}
       <img
-        src="/hero.svg"
+        src="/hero.jpg"
         alt=""
         aria-hidden="true"
         className="hero-cover-img absolute inset-0 w-full h-full object-cover"
