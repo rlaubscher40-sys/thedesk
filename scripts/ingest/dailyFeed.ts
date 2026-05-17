@@ -18,17 +18,19 @@ import { fetchSource, type FetchedItem } from "./lib/rss";
 import { postJSON } from "./lib/post";
 
 /**
- * Sport / entertainment / celebrity headlines that slip through even our
- * topic-targeted Google News queries (a "broker channel" search can pull
- * a story about an NRL team's media broker, etc.). Filtering at ingest
- * time is cheaper than asking the LLM to re-categorise everything.
+ * Sport / entertainment / lifestyle / hyper-local headlines that slip
+ * through even our topic-targeted Google News queries (a "broker
+ * channel" search can pull a story about an NRL team's media broker;
+ * the ABC News Business feed occasionally bundles celebrity / lifestyle
+ * filler; etc.). Filtering at ingest time is cheaper than asking the
+ * LLM to re-categorise everything.
  *
  * Each pattern is matched against title + summary. One match = drop.
  * Keep patterns strict — false negatives are far less costly than false
  * positives (an irrelevant story showing up beats a legitimate one going
  * missing).
  */
-const SPORT_AND_ENTERTAINMENT_PATTERNS: RegExp[] = [
+const IRRELEVANT_PATTERNS: RegExp[] = [
   // League acronyms
   /\bnrl\b/i,
   /\bafl\b/i,
@@ -54,6 +56,16 @@ const SPORT_AND_ENTERTAINMENT_PATTERNS: RegExp[] = [
   /\bcommonwealth games\b/i,
   /\bsuper bowl\b/i,
 
+  // Combat sport (the Rousey/Carano leak was here)
+  /\bmma\b/i,
+  /\bufc\b/i,
+  /\bboxing match\b/i,
+  /\bheavyweight (champion|title|fight)\b/i,
+  /\b(knockout|tko|kayos?|kayoed)\b/i,
+  /\bcage fight/i,
+  /\boctagon\b/i,
+  /\b(stops|defeats|beats|knocks out) [A-Z][a-z]+ in (round|the [a-z]+ round)/i,
+
   // Entertainment / reality
   /\beurovision\b/i,
   /\bbachelor(?:ette)?\b/i,
@@ -62,11 +74,33 @@ const SPORT_AND_ENTERTAINMENT_PATTERNS: RegExp[] = [
   /\bmafs\b/i,
   /\bmarried at first sight\b/i,
   /\bbig brother\b/i,
+
+  // Lifestyle / wellness / personal-essay filler (caught "How studying
+  // friendship changed my loneliness" — a real example from a tester
+  // pass). These are first-person essays that ABC / Guardian / The
+  // Conversation lifestyle desks bundle into business feeds.
+  /\bmy (loneliness|anxiety|depression|grief|burnout|cancer|divorce)\b/i,
+  /\bhow (i|studying|reading|writing|moving|leaving) (changed|saved|fixed|cured)\b/i,
+  /\bpersonal essay\b/i,
+  /\bhoroscope|astrology|tarot|zodiac\b/i,
+  /\brecipe\b/i,
+  /\b(travel|holiday) (guide|destination|tips)\b/i,
+
+  // Hyper-local "best of <small town>" / "how to choose a <X> in
+  // <town>" content (caught "How to choose a mortgage broker in Lake
+  // Macquarie"). Listicles with a place name in the title are
+  // typically affiliate-driven local content, not industry signal.
+  /\bbest .{1,40} in (lake macquarie|wollongong|geelong|townsville|cairns|toowoomba|ballarat|bendigo|hobart|launceston|darwin|alice springs|mackay|rockhampton|bunbury|albury|wagga|tamworth|orange|dubbo)\b/i,
+  /\bhow to (choose|find|pick) .{1,40} in (lake macquarie|wollongong|geelong|townsville|cairns|toowoomba|ballarat|bendigo|hobart|launceston|darwin|alice springs|mackay|rockhampton|bunbury|albury|wagga|tamworth|orange|dubbo)\b/i,
+
+  // Generic clickbait headers
+  /^\d+ (things|reasons|ways) (you|to)\b/i,
+  /\byou (won'?t believe|need to know) what\b/i,
 ];
 
-function isSportOrEntertainment(item: FetchedItem): boolean {
+function isIrrelevant(item: FetchedItem): boolean {
   const haystack = `${item.title}\n${item.summary}`;
-  return SPORT_AND_ENTERTAINMENT_PATTERNS.some((re) => re.test(haystack));
+  return IRRELEVANT_PATTERNS.some((re) => re.test(haystack));
 }
 
 function todayInSydney(): string {
@@ -136,13 +170,13 @@ async function main(): Promise<void> {
   const fetched = (await Promise.all(SOURCES.map(fetchSource))).flat();
   console.log(`[ingest] fetched ${fetched.length} raw items`);
 
-  // Filter out obvious sport / entertainment headlines. The partner-channel
-  // audience does not need them, and Google News topic queries occasionally
-  // leak them through (e.g. a "broker" search returning a story about an
-  // NRL team's broadcast broker).
+  // Filter out obvious sport / entertainment / lifestyle / hyper-local
+  // headlines. Catches the kind of filler that bundled feeds (ABC News
+  // Business, Guardian Business) occasionally leak — MMA bouts under
+  // MARKETS, lifestyle essays under ECONOMICS, etc.
   const relevant = fetched.filter((item) => {
-    if (isSportOrEntertainment(item)) {
-      console.log(`[ingest] dropped (sport/entertainment): ${item.title.slice(0, 80)}`);
+    if (isIrrelevant(item)) {
+      console.log(`[ingest] dropped (off-beat): ${item.title.slice(0, 80)}`);
       return false;
     }
     return true;

@@ -48,7 +48,7 @@ const validResponse = JSON.stringify({
       whyItMatters: "Brokers and BAs now have a stable rate to price serviceability conversations around.",
       whatToWatch: ["Next CPI release on May 28"],
       talkingPoints: {
-        Brokers: "Lock in the conversation on serviceability while the rate is stable.",
+        Broker: "Lock in the conversation on serviceability while the rate is stable.",
       },
     },
     {
@@ -60,7 +60,7 @@ const validResponse = JSON.stringify({
       whyItMatters: "Advisers should prepare clients for incremental capacity, not a step change.",
       whatToWatch: ["Submissions close June 14"],
       talkingPoints: {
-        "Financial Advisers": "Frame this as marginal capacity, not a green light.",
+        Adviser: "Frame this as marginal capacity, not a green light.",
       },
     },
     {
@@ -72,7 +72,7 @@ const validResponse = JSON.stringify({
       whyItMatters: "Buyer's agents can frame this as a sustained trend, not a blip.",
       whatToWatch: ["June listings"],
       talkingPoints: {
-        "Buyer's Agents": "Six weeks above 65 is a trend, not a print.",
+        "Buyers Agent": "Six weeks above 65 is a trend, not a print.",
       },
     },
     {
@@ -84,7 +84,7 @@ const validResponse = JSON.stringify({
       whyItMatters: "BAs covering regional industrial corridors should monitor defence-zone announcements.",
       whatToWatch: ["Q3 defence procurement update"],
       talkingPoints: {
-        "Buyer's Agents": "Defence pipeline still anchors industrial corridors.",
+        "Buyers Agent": "Defence pipeline still anchors industrial corridors.",
       },
     },
     {
@@ -96,7 +96,7 @@ const validResponse = JSON.stringify({
       whyItMatters: "Mortgage brokers can pilot document-handling agents without bespoke ML cost.",
       whatToWatch: ["Adoption benchmarks Q3"],
       talkingPoints: {
-        Brokers: "Pilot doc-handling automation on a low-risk workflow first.",
+        Broker: "Pilot doc-handling automation on a low-risk workflow first.",
       },
     },
   ],

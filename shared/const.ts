@@ -17,15 +17,19 @@ export const NOT_ADMIN_ERR_MSG = "You do not have required permission (10002)";
 export const DEFAULT_SITE_URL = "https://thedeskglobal.manus.space";
 
 /**
- * Partner personas surfaced on every daily feed item. The order is the order
- * shown in the UI, so do not reorder without a coordinated change in the
- * sidebar persona selector.
+ * Partner personas. The canonical four — matches `PARTNER_TAG_LABELS`
+ * (`shared/schemas.ts`), the `PERSONA_COLOUR` map
+ * (`client/src/lib/persona.tsx`), and the four-line Partner angles block
+ * that runs under every tagged story. See `docs/brand-guidelines.md`
+ * Section 2 for what each persona reads The Desk for.
+ *
+ * Order is the order shown in any UI that lists them.
  */
 export const PARTNER_PERSONAS = [
-  "Brokers",
-  "Financial Advisers",
-  "Accountants",
-  "SMSF Specialists",
+  "Institutional",
+  "Broker",
+  "Adviser",
+  "Buyers Agent",
 ] as const;
 export type PartnerPersona = (typeof PARTNER_PERSONAS)[number];
 

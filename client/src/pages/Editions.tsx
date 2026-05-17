@@ -12,6 +12,7 @@
  * top frees the reader to occupy the full width.
  */
 import { useEffect, useMemo } from "react";
+import { CalendarClock } from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import { PageHeader } from "@/components/PageHeader";
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
@@ -101,7 +102,9 @@ export default function EditionsPage() {
         actions={user?.role === "admin" ? <BackfillRubensTakeButton /> : undefined}
       />
 
-      {/* Horizontal selector row. */}
+      {/* Horizontal selector row. Empty + loading states handled by the
+          reader block below so the chrome doesn't double-render an empty
+          message — see the EmptyEditions component. */}
       <SectionErrorBoundary section="Editions selector">
         {listQuery.isLoading ? (
           <SelectorSkeleton />
@@ -110,27 +113,65 @@ export default function EditionsPage() {
             editions={listQuery.data}
             activeNumber={selectedNumber}
           />
-        ) : (
-          <p className="text-sm text-[var(--color-fg-muted)]">
-            No editions published yet.
-          </p>
-        )}
+        ) : null}
       </SectionErrorBoundary>
 
       {/* Full-width reader. */}
       <div className="mt-12">
         <SectionErrorBoundary section="Edition reader">
-          {editionQuery.isLoading ? (
+          {listQuery.isLoading || editionQuery.isLoading ? (
             <EditionReaderSkeleton />
           ) : editionQuery.data ? (
             <EditionReader edition={editionQuery.data} priorMetrics={priorMetrics} />
           ) : (
-            <p className="text-sm text-[var(--color-fg-muted)]">
-              Select an edition to begin reading.
-            </p>
+            <EmptyEditions />
           )}
         </SectionErrorBoundary>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Real empty state for the editions page — what a partner-tester sees
+ * when no editions have shipped yet. Previously this rendered a flat
+ * "Select an edition to begin reading" string which read as broken.
+ */
+function EmptyEditions() {
+  return (
+    <div
+      className="panel rounded p-10 sm:p-14 text-center max-w-[640px] mx-auto"
+      style={{ background: "var(--grad-panel-soft)" }}
+    >
+      <div
+        className="inline-flex items-center justify-center rounded-full mb-5"
+        style={{
+          width: 56,
+          height: 56,
+          background: "oklch(0.75 0.18 70 / 12%)",
+          boxShadow: "inset 0 0 0 1px oklch(0.75 0.18 70 / 30%)",
+        }}
+      >
+        <CalendarClock
+          className="h-6 w-6 text-amber-300"
+          strokeWidth={1.4}
+        />
+      </div>
+      <p
+        className="overline-amber mb-3"
+        style={{ letterSpacing: "0.24em", fontSize: "10px" }}
+      >
+        Editions · Coming Sunday
+      </p>
+      <h2 className="font-serif text-2xl sm:text-3xl font-bold leading-tight mb-3">
+        The first Weekly Edition lands soon.
+      </h2>
+      <p className="text-sm text-[var(--color-fg-muted)] leading-relaxed max-w-[44ch] mx-auto">
+        Sundays 7am AEST. A long-form read on what shifted in Australian
+        property partnerships that week, written for brokers, advisers,
+        accountants and buyer&apos;s agents. The Daily Brief ships every
+        weekday in the meantime.
+      </p>
     </div>
   );
 }
