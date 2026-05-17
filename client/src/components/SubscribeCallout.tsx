@@ -9,6 +9,7 @@
  * to a specific page (edition-foot, story-foot, etc.).
  */
 import { useState } from "react";
+import { Honeypot } from "@/components/Honeypot";
 import { ArrowRight, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -29,6 +30,7 @@ export function SubscribeCallout({
   subhead?: string;
 }) {
   const [email, setEmail] = useState("");
+  const [hp, setHp] = useState("");
   const [subscribed, setSubscribed] = useState(false);
 
   const subscribe = trpc.subscribers.subscribe.useMutation({
@@ -53,7 +55,7 @@ export function SubscribeCallout({
       toast.error("That email doesn't look right");
       return;
     }
-    subscribe.mutate({ email, source });
+    subscribe.mutate({ email, source, _hp: hp });
   }
 
   const busy = subscribe.isPending;
@@ -146,6 +148,7 @@ export function SubscribeCallout({
           </div>
         ) : (
           <form onSubmit={onSubmit} className="flex flex-col gap-2.5">
+            <Honeypot value={hp} onChange={setHp} />
             <label htmlFor={`subscribe-${source}`} className="sr-only">
               Email address
             </label>

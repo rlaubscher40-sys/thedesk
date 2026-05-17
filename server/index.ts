@@ -14,6 +14,7 @@ if (sentryActive) {
 
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import express from "express";
+import rateLimit from "express-rate-limit";
 import { createServer } from "node:http";
 import net from "node:net";
 import { createContext } from "./core/context";
@@ -42,6 +43,12 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
 
+  // Railway terminates TLS at its proxy. `trust proxy` makes req.ip
+  // resolve to the real client IP from x-forwarded-for instead of the
+  // proxy hop — without this every rate-limit bucket would key on a
+  // single Railway internal IP and effectively allow nothing.
+  app.set("trust proxy", 1);
+
   // Tight body limit — nothing on the API accepts payloads larger than
   // a few hundred KB (largest is the weekly-edition synthesis result,
   // which lands well under 1MB). 50MB was inherited from an earlier
@@ -50,12 +57,41 @@ async function startServer() {
   app.use(express.json({ limit: "4mb" }));
   app.use(express.urlencoded({ limit: "4mb", extended: true }));
 
+  // ── Rate limits — keyed per IP, in-memory store. Railway runs a
+  //    single instance so in-memory is fine until horizontal scale
+  //    becomes a thing (then bring Redis).
+  //
+  //    Two buckets:
+  //    · /api/trpc       — 200 / minute. Generous for legit usage
+  //                        (every page hit triggers several batched
+  //                        queries) but kills bot-grade traffic.
+  //    · /api/auth/login — 10 / 5 minutes. Defends the only password
+  //                        endpoint from credential-stuffing. Real
+  //                        humans never trip this.
+  const trpcLimiter = rateLimit({
+    windowMs: 60_000,
+    limit: 200,
+    standardHeaders: "draft-7",
+    legacyHeaders: false,
+    message: { error: "Too many requests. Slow down." },
+  });
+  const loginLimiter = rateLimit({
+    windowMs: 5 * 60_000,
+    limit: 10,
+    standardHeaders: "draft-7",
+    legacyHeaders: false,
+    skipSuccessfulRequests: true,
+    message: { error: "Too many login attempts. Try again in a few minutes." },
+  });
+  app.use("/api/auth/login", loginLimiter);
+
   registerOAuthRoutes(app);
   registerSeoRoutes(app);
   registerScheduledRoutes(app);
 
   app.use(
     "/api/trpc",
+    trpcLimiter,
     createExpressMiddleware({
       router: appRouter,
       createContext,

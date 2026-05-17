@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import { CheckCircle2, ExternalLink, Rss, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
+import { Honeypot } from "@/components/Honeypot";
 import { trpc } from "@/lib/trpc";
 
 const STORAGE_KEY = "thedesk:subscribe-modal-seen";
@@ -24,6 +25,7 @@ export function SubscribeModal() {
   const [location] = useLocation();
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
+  const [hp, setHp] = useState("");
   const [done, setDone] = useState(false);
 
   useEffect(() => {
@@ -58,7 +60,7 @@ export function SubscribeModal() {
       toast.error("That email doesn't look right");
       return;
     }
-    subscribeMut.mutate({ email, source: "first-visit-modal" });
+    subscribeMut.mutate({ email, source: "first-visit-modal", _hp: hp });
   }
 
   const busy = subscribeMut.isPending;
@@ -146,6 +148,7 @@ export function SubscribeModal() {
               </p>
 
               <form onSubmit={subscribe} className="space-y-2.5">
+                <Honeypot value={hp} onChange={setHp} />
                 <input
                   type="email"
                   inputMode="email"
