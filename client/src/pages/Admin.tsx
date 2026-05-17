@@ -15,6 +15,7 @@ import { ArrowRight, CheckCircle2, FileText, Lock, Sparkles } from "lucide-react
 import { PageHeader } from "@/components/PageHeader";
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
 import { AnalyticsAdminPanel } from "@/components/admin/AnalyticsAdminPanel";
+import { FeedbackAdminPanel } from "@/components/admin/FeedbackAdminPanel";
 import { LinkedInAdminPanel } from "@/components/admin/LinkedInAdminPanel";
 import { MaintenanceAdminPanel } from "@/components/admin/MaintenanceAdminPanel";
 import { MetricsAdminPanel } from "@/components/admin/MetricsAdminPanel";
@@ -153,6 +154,14 @@ export default function AdminPage() {
           </div>
         )}
       </SectionErrorBoundary>
+
+      {/* Feedback inbox sits near the top of the admin so new
+          submissions are the first thing the editor sees on /admin. */}
+      <div className="mt-10">
+        <SectionErrorBoundary section="Feedback inbox">
+          <FeedbackAdminPanel />
+        </SectionErrorBoundary>
+      </div>
 
       <div className="mt-10">
         <SectionErrorBoundary section="Metrics admin">

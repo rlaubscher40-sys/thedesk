@@ -239,6 +239,36 @@ export const dailyMetricHistory = mysqlTable(
 export type DailyMetricHistory = typeof dailyMetricHistory.$inferSelect;
 export type InsertDailyMetricHistory = typeof dailyMetricHistory.$inferInsert;
 
+// ─── Feedback submissions ──────────────────────────────────────────────────
+
+/**
+ * Reader-submitted feedback during the partner-testing window. Captured
+ * via the floating Feedback button on every page. Each entry records the
+ * reader's note, the page they were on, their user-agent, and an
+ * optional contact email so the admin can follow up.
+ *
+ * `kind` partitions submissions into Bug / Idea / Praise so the inbox
+ * is triageable at a glance. `status` flips from "new" to "reviewed"
+ * once the admin reads it; nothing's auto-archived.
+ */
+export const feedbackSubmissions = mysqlTable("feedback_submissions", {
+  id: int("id").autoincrement().primaryKey(),
+  kind: varchar("kind", { length: 16 }).notNull(), // "bug" | "idea" | "praise"
+  message: text("message").notNull(),
+  pageUrl: varchar("pageUrl", { length: 512 }),
+  userAgent: varchar("userAgent", { length: 512 }),
+  contactEmail: varchar("contactEmail", { length: 320 }),
+  /** Free-form reporter label — "Ruben's friend Sarah", "broker tester",
+   *  etc. Captured so the admin doesn't have to remember who submitted
+   *  what during a wide testing window. */
+  reporterLabel: varchar("reporterLabel", { length: 128 }),
+  status: varchar("status", { length: 16 }).default("new").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type FeedbackSubmission = typeof feedbackSubmissions.$inferSelect;
+export type InsertFeedbackSubmission = typeof feedbackSubmissions.$inferInsert;
+
 // ─── Edition asset blobs (hero + substack images) ──────────────────────────
 
 /**

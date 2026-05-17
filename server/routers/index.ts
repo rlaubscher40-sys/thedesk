@@ -6,6 +6,7 @@ import { router } from "../core/trpc";
 import { authRouter } from "./auth";
 import { editionsRouter } from "./editions";
 import { feedRouter } from "./feed";
+import { feedbackRouter } from "./feedback";
 import { readingQueueRouter } from "./readingQueue";
 import { linkedInRouter } from "./linkedIn";
 import { metricsRouter } from "./metrics";
@@ -20,6 +21,7 @@ export const appRouter = router({
   auth: authRouter,
   editions: editionsRouter,
   feed: feedRouter,
+  feedback: feedbackRouter,
   topics: topicsRouter,
   readingQueue: readingQueueRouter,
   trends: trendsRouter,

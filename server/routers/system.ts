@@ -69,6 +69,24 @@ const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
     name: "0010 · daily_feed_items.priority",
     sql: "ALTER TABLE daily_feed_items ADD priority int NOT NULL DEFAULT 50",
   },
+  {
+    name: "0011 · feedback_submissions table",
+    sql: `CREATE TABLE feedback_submissions (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      kind VARCHAR(16) NOT NULL,
+      message TEXT NOT NULL,
+      pageUrl VARCHAR(512),
+      userAgent VARCHAR(512),
+      contactEmail VARCHAR(320),
+      reporterLabel VARCHAR(128),
+      status VARCHAR(16) NOT NULL DEFAULT 'new',
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`,
+  },
+  {
+    name: "0011 · feedback_submissions index",
+    sql: "CREATE INDEX idx_feedback_status_created ON feedback_submissions (status, createdAt)",
+  },
 ];
 
 /** MySQL/TiDB error codes / fragments we treat as "already applied". */
