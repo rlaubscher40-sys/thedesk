@@ -100,20 +100,32 @@ function PartnerTagLine({
     <button
       type="button"
       onClick={onFocus}
+      // Grid template gives every row identical column widths so the
+      // labels align cleanly down a column — and full-length labels
+      // like "INSTITUTIONAL" don't get ellipsis-truncated.
       className={cn(
-        "block w-full text-left text-sm leading-relaxed transition-all rounded py-1 px-2 -mx-2",
+        "grid grid-cols-[120px_minmax(0,1fr)] items-baseline gap-3 w-full text-left rounded py-1.5 px-2 -mx-2 transition-all",
         focused
           ? "opacity-100 hover:bg-white/5"
           : "opacity-35 hover:opacity-75 hover:bg-white/5"
       )}
     >
       <span
-        className="font-mono text-[10px] uppercase tracking-wider mr-3 inline-block w-24 truncate align-middle"
-        style={{ color: "oklch(0.85 0.16 75 / 80%)", letterSpacing: "0.14em" }}
+        className="font-mono uppercase tabular-nums"
+        style={{
+          color: "oklch(0.85 0.16 75 / 80%)",
+          letterSpacing: "0.14em",
+          fontSize: "10px",
+        }}
       >
         {label}
       </span>
-      <span className="text-[var(--color-fg-muted)] align-middle">{text}</span>
+      <span
+        className="text-[var(--color-fg-muted)] leading-relaxed"
+        style={{ fontSize: "14.5px" }}
+      >
+        {text}
+      </span>
     </button>
   );
 }
