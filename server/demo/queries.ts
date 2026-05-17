@@ -202,15 +202,19 @@ export function getSignalFrequency(limit: number) {
 
 // ─── Daily feed ─────────────────────────────────────────────────────────────
 
+function byPriorityThenRecent(a: DailyFeedItem, b: DailyFeedItem): number {
+  const dp = (b.priority ?? 50) - (a.priority ?? 50);
+  if (dp !== 0) return dp;
+  return b.createdAt.getTime() - a.createdAt.getTime();
+}
+
 export function listFeedItems(date?: string): DailyFeedItem[] {
   if (date) {
     return [...demo.feed]
       .filter((i) => i.feedDate === date)
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      .sort(byPriorityThenRecent);
   }
-  return [...demo.feed]
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-    .slice(0, 30);
+  return [...demo.feed].sort(byPriorityThenRecent).slice(0, 30);
 }
 
 export function getFeedItemById(id: number): DailyFeedItem | undefined {
@@ -259,6 +263,7 @@ export function createFeedItems(items: InsertDailyFeedItem[]): void {
       partnerTag: item.partnerTag ?? null,
       sayThis: item.sayThis ?? null,
       rubensNote: item.rubensNote ?? null,
+      priority: item.priority ?? 50,
       promotedToEdition: false,
       createdAt: new Date(),
     });
@@ -283,6 +288,11 @@ export function updateFeedItemSayThis(id: number, sayThis: string): void {
 export function updateFeedItemRubensNote(id: number, rubensNote: string | null): void {
   const item = demo.feed.find((i) => i.id === id);
   if (item) item.rubensNote = rubensNote;
+}
+
+export function updateFeedItemPriority(id: number, priority: number): void {
+  const item = demo.feed.find((i) => i.id === id);
+  if (item) item.priority = priority;
 }
 
 export function updateFeedItemImageUrl(id: number, imageUrl: string): void {

@@ -65,6 +65,10 @@ const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
     name: "0009 · daily_metrics.sourceUrl",
     sql: "ALTER TABLE daily_metrics ADD sourceUrl text",
   },
+  {
+    name: "0010 · daily_feed_items.priority",
+    sql: "ALTER TABLE daily_feed_items ADD priority int NOT NULL DEFAULT 50",
+  },
 ];
 
 /** MySQL/TiDB error codes / fragments we treat as "already applied". */
