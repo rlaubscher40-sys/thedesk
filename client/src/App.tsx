@@ -15,6 +15,7 @@ import { Skeleton } from "./components/ui/Skeleton";
 import { Toaster } from "./components/ui/Toaster";
 import { PersonaProvider } from "./lib/persona";
 import { ThemeProvider } from "./lib/theme";
+import { UserPrefsProvider } from "./lib/userPrefs";
 
 // Lazy-load every page. The bundle for / loads only DailyFeed; the rest come on demand.
 const DailyFeed = lazy(() => import("./pages/DailyFeed"));
@@ -32,6 +33,7 @@ const Terms = lazy(() => import("./pages/Terms"));
 const EditorialStandards = lazy(() => import("./pages/EditorialStandards"));
 const Corrections = lazy(() => import("./pages/Corrections"));
 const ConfirmSubscription = lazy(() => import("./pages/ConfirmSubscription"));
+const Settings = lazy(() => import("./pages/Settings"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 function KeyboardShortcuts() {
@@ -109,6 +111,7 @@ function Routes() {
             <Route path="/editorial-standards" component={EditorialStandards} />
             <Route path="/corrections" component={Corrections} />
             <Route path="/confirm-subscription" component={ConfirmSubscription} />
+            <Route path="/settings" component={Settings} />
             <Route component={NotFound} />
           </Switch>
         </Suspense>
@@ -121,6 +124,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider>
+        <UserPrefsProvider>
         <PersonaProvider>
           <Toaster />
           <AppLayout>
@@ -132,6 +136,7 @@ export default function App() {
           <OnboardingModal />
           <SubscribeModal />
         </PersonaProvider>
+        </UserPrefsProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );

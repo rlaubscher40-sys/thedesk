@@ -60,6 +60,16 @@ export function AnimatedBackground() {
       typeof window !== "undefined" && window.innerWidth < 768;
     if (isSmallViewport) return;
 
+    // Light mode reads as paper — the indigo particle field looks wrong
+    // floating on a warm-white canvas. Skip the canvas entirely when
+    // the .light class is on the html element.
+    if (
+      typeof document !== "undefined" &&
+      document.documentElement.classList.contains("light")
+    ) {
+      return;
+    }
+
     let dpr = Math.min(window.devicePixelRatio || 1, 2);
     let width = window.innerWidth;
     let height = window.innerHeight;

@@ -70,7 +70,9 @@ function isActive(location: string, path: string): boolean {
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { user, isAuthenticated } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  // Use the *resolved* theme (dark/light) for sidebar icon rendering —
+  // "system" is a user-facing choice, not a render state.
+  const { resolvedTheme: theme, toggleTheme } = useTheme();
   const [location] = useLocation();
 
   const [collapsed, setCollapsed] = useState(false);
@@ -123,7 +125,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--color-bg)] text-[var(--color-fg)] relative">
-      <AnimatedBackground />
+      {theme === "dark" && <AnimatedBackground />}
       <DemoModeBanner />
       <LiveTicker />
       <TopRule />
@@ -414,17 +416,17 @@ function SidebarFooter({
   return (
     <div className="px-5 py-4 border-t border-[var(--color-border)]">
       {isAuthenticated ? (
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center">
-            <span className="text-xs font-semibold text-amber-300">
-              {userName?.[0]?.toUpperCase() ?? "R"}
-            </span>
+        <Link href="/settings" className="block">
+          <div className="flex items-center gap-2.5 group">
+            <SidebarAvatar name={userName ?? "Ruben"} />
+            <div className="min-w-0">
+              <p className="text-xs font-medium truncate group-hover:text-amber-300 transition-colors">
+                {userName ?? "Ruben"}
+              </p>
+              <p className="overline">Partner · Settings →</p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="text-xs font-medium truncate">{userName ?? "Ruben"}</p>
-            <p className="overline">Partner</p>
-          </div>
-        </div>
+        </Link>
       ) : hasOAuthConfig() ? (
         // OAuth is configured — show the sign-in CTA pointing at the portal.
         <a
@@ -584,5 +586,36 @@ function MobileTabBar({ location, unreadCount }: { location: string; unreadCount
         })}
       </div>
     </nav>
+  );
+}
+
+/**
+ * Avatar for the authenticated sidebar slot. Renders /ruben.jpg (the
+ * curator's headshot) when it loads, falls back to the initial-letter
+ * disc on error. Same pattern as the AuthorByline + AuthorHeadshot
+ * components — the headshot is the canonical "this is who's
+ * curating" signal across the product.
+ */
+function SidebarAvatar({ name }: { name: string }) {
+  const [failed, setFailed] = useState(false);
+  const initial = name?.[0]?.toUpperCase() ?? "R";
+  return (
+    <div
+      className="w-7 h-7 rounded-full overflow-hidden border border-amber-500/30 bg-amber-500/15 flex items-center justify-center shrink-0"
+      style={{ boxShadow: "0 0 12px oklch(0.75 0.18 70 / 15%)" }}
+    >
+      {failed ? (
+        <span className="text-xs font-semibold text-amber-300">{initial}</span>
+      ) : (
+        <img
+          src="/ruben.jpg"
+          alt=""
+          className="w-full h-full object-cover"
+          loading="lazy"
+          decoding="async"
+          onError={() => setFailed(true)}
+        />
+      )}
+    </div>
   );
 }
