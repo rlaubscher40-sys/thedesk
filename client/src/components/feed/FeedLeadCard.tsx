@@ -106,8 +106,8 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
         style={{
           background: `
             radial-gradient(circle at 78% 22%, ${categoryColour(item.category)}50 0%, transparent 55%),
-            radial-gradient(circle at 14% 86%, oklch(0.55 0.18 270 / 18%) 0%, transparent 55%),
-            linear-gradient(135deg, oklch(0.16 0.022 260) 0%, oklch(0.08 0.022 260) 100%)
+            radial-gradient(circle at 14% 86%, ${categoryColour(item.category)}1a 0%, transparent 55%),
+            var(--grad-panel-soft)
           `,
         }}
       >
@@ -148,7 +148,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
           aria-hidden="true"
         />
         <span
-          className="absolute inset-0 pointer-events-none"
+          className="absolute inset-0 pointer-events-none cover-vignette"
           style={{
             background:
               "radial-gradient(circle at 50% 50%, transparent 50%, oklch(0.08 0.018 260 / 60%) 100%)",

@@ -63,19 +63,12 @@ export default function About() {
             <span
               className="block first-paint-content"
               style={{
-                background:
-                  "linear-gradient(135deg, oklch(0.96 0.08 88) 0%, oklch(0.82 0.20 76) 60%, oklch(0.65 0.16 60) 100%)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
-                // background-clip:text crops at the glyph bounding box,
-                // which doesn't account for Playfair's italic descender
-                // on the "p". Extra horizontal padding + a negative
-                // left margin keeps the visual baseline flush while
-                // giving the descender room to render unclipped.
-                paddingLeft: "0.12em",
-                paddingRight: "0.08em",
-                marginLeft: "-0.12em",
+                // Solid amber instead of background-clip:text. The gradient
+                // approach kept clipping Playfair's italic descender on the
+                // leading "p" of "partner" — every paddingLeft hack just
+                // shifted the symptom. Solid color renders inside its own
+                // glyph box cleanly.
+                color: "oklch(0.82 0.18 76)",
               }}
             >
               partner conversations.
@@ -269,7 +262,7 @@ function AuthorHeadshot() {
           />
         ) : (
           <div
-            className="w-full h-full flex items-center justify-center font-serif font-bold"
+            className="avatar-initial-disc w-full h-full flex items-center justify-center font-serif font-bold"
             style={{
               background:
                 "linear-gradient(135deg, oklch(0.32 0.06 260), oklch(0.16 0.04 260) 60%, oklch(0.32 0.18 70 / 50%))",

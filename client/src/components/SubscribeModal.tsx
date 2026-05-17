@@ -82,10 +82,7 @@ export function SubscribeModal() {
       >
         <div
           className="relative h-32 overflow-hidden"
-          style={{
-            background:
-              "radial-gradient(circle at 78% 22%, oklch(0.78 0.18 70 / 35%) 0%, transparent 55%), linear-gradient(135deg, oklch(0.16 0.022 260), oklch(0.08 0.022 260))",
-          }}
+          style={{ background: "var(--grad-modal-bg)" }}
           aria-hidden="true"
         >
           <span className="absolute inset-0 noise-overlay" style={{ opacity: 0.5 }} />

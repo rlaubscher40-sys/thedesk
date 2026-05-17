@@ -20,9 +20,9 @@ export function DemoModeBanner() {
       role="status"
       className="fixed bottom-4 right-4 z-40 inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-mono uppercase tracking-[0.18em]"
       style={{
-        background: "oklch(0.16 0.022 260 / 90%)",
+        background: "var(--color-banner-bg)",
         backdropFilter: "blur(6px)",
-        color: "oklch(0.78 0.18 70)",
+        color: "var(--color-amber)",
         boxShadow: "inset 0 0 0 1px oklch(0.78 0.18 70 / 28%)",
       }}
     >

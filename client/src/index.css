@@ -69,6 +69,39 @@
     transparent
   );
   --color-panel-tile-bg: oklch(0.13 0.018 260);
+
+  /* Bigger / dramatic panels (Subscribe CTA, modal). Carries amber bleed. */
+  --grad-cta-deep: linear-gradient(
+    135deg,
+    oklch(0.13 0.022 260) 0%,
+    oklch(0.10 0.022 260) 60%,
+    oklch(0.18 0.045 70) 100%
+  );
+  /* Modal backdrop — slightly more saturated than panel-soft. */
+  --grad-modal-bg: radial-gradient(
+      circle at 78% 22%,
+      oklch(0.78 0.18 70 / 35%) 0%,
+      transparent 55%
+    ),
+    linear-gradient(135deg, oklch(0.16 0.022 260), oklch(0.08 0.022 260));
+  /* Toast surface. */
+  --color-toast-bg: oklch(0.17 0.018 260);
+  /* Top demo-mode strip. */
+  --color-banner-bg: oklch(0.16 0.022 260 / 90%);
+  /* Scroll-progress capsule. */
+  --grad-scroll-progress: linear-gradient(
+    180deg,
+    oklch(0.11 0.018 260 / 92%),
+    oklch(0.11 0.018 260 / 70%)
+  );
+  /* Hero placeholder used by EditionHero when no cover image scraped. */
+  --grad-hero-placeholder: linear-gradient(
+    135deg,
+    oklch(0.14 0.02 260) 0%,
+    oklch(0.10 0.02 260) 35%,
+    oklch(0.18 0.03 260) 60%,
+    oklch(0.32 0.18 70 / 30%) 100%
+  );
 }
 
 /* ─── Light mode ─────────────────────────────────────────────────────────
@@ -137,6 +170,33 @@
     transparent
   );
   --color-panel-tile-bg: oklch(0.97 0.006 82);
+
+  --grad-cta-deep: linear-gradient(
+    135deg,
+    oklch(0.99 0.005 82) 0%,
+    oklch(0.95 0.008 82) 60%,
+    oklch(0.92 0.06 76) 100%
+  );
+  --grad-modal-bg: radial-gradient(
+      circle at 78% 22%,
+      oklch(0.65 0.18 60 / 14%) 0%,
+      transparent 55%
+    ),
+    linear-gradient(135deg, oklch(0.995 0.003 82), oklch(0.95 0.006 82));
+  --color-toast-bg: oklch(0.99 0.005 82);
+  --color-banner-bg: oklch(0.92 0.06 76 / 90%);
+  --grad-scroll-progress: linear-gradient(
+    180deg,
+    oklch(0.97 0.005 82 / 92%),
+    oklch(0.97 0.005 82 / 70%)
+  );
+  --grad-hero-placeholder: linear-gradient(
+    135deg,
+    oklch(0.96 0.006 82) 0%,
+    oklch(0.92 0.008 82) 35%,
+    oklch(0.95 0.012 78) 60%,
+    oklch(0.65 0.18 60 / 22%) 100%
+  );
 }
 
 /* Hide the heavy gradient/animated chrome in light mode — the warm paper
@@ -155,6 +215,76 @@
 .light .hero-cover-img {
   filter: brightness(1.4) contrast(0.78) saturate(0.6);
   opacity: 0.5;
+}
+
+/* Lead-card centre-fade vignette is a dark wash designed to deepen the
+   cover plate on a dark canvas. In light mode it just adds an ugly
+   spot of grey to the middle of every story image — hide it. */
+.light .cover-vignette {
+  display: none;
+}
+
+/* Avatar fallback gradients (initial-letter discs that render only
+   when an image errors) are authored as dark indigo/amber blends.
+   They show readable amber on dark mode; in light mode flip to a
+   warm paper-tinted gradient with the same accent so the initial
+   letter still has contrast. */
+.light .avatar-initial-disc {
+  background: linear-gradient(
+    135deg,
+    oklch(0.92 0.02 80),
+    oklch(0.88 0.03 76) 60%,
+    oklch(0.78 0.16 70 / 35%)
+  ) !important;
+  color: oklch(0.45 0.18 60) !important;
+}
+
+/* Tailwind's amber colour scale was tuned for dark backgrounds — at
+   amber-200/300/400 the values are pale yellow that wash out on a warm
+   paper canvas. Override to a deeper amber in light mode so the
+   editorial accent stays readable. */
+.light .text-amber-200,
+.light .text-amber-300,
+.light .text-amber-400,
+.light .text-amber-500 {
+  color: oklch(0.55 0.18 60);
+}
+.light .hover\:text-amber-200:hover,
+.light .hover\:text-amber-300:hover,
+.light .hover\:text-amber-400:hover {
+  color: oklch(0.45 0.18 58);
+}
+
+/* Background tints using amber-500/10 etc. read invisibly on a light
+   canvas. Bump the alpha so the chip / tile / panel still reads as
+   tinted in light mode. */
+.light .bg-amber-500\/10,
+.light .bg-amber-500\/15 {
+  background-color: oklch(0.55 0.18 60 / 16%);
+}
+
+/* Same fix for the green / rose status accents Tailwind uses for the
+   trend-up / trend-down indicators on metric tiles. */
+.light .text-emerald-300 {
+  color: oklch(0.45 0.17 155);
+}
+.light .text-rose-300 {
+  color: oklch(0.48 0.20 15);
+}
+
+/* Tinted overlays that use white-alpha (oklch(1 0 0 / X%)) become
+   invisible on a white canvas. The .panel-hover class redefines its
+   own background in light mode (earlier rule); this catches the rest. */
+.light .bg-white\/\[0\.02\],
+.light .bg-white\/\[0\.03\],
+.light .bg-white\/\[0\.04\],
+.light .bg-white\/\[0\.05\],
+.light .bg-white\/5 {
+  background-color: oklch(0 0 0 / 4%);
+}
+.light .hover\:bg-white\/5:hover,
+.light .hover\:bg-white\/\[0\.03\]:hover {
+  background-color: oklch(0 0 0 / 6%);
 }
 
 /* Panels in light mode get a soft hairline + warm-white fill that reads

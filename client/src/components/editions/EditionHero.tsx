@@ -193,8 +193,7 @@ function HeroPlaceholder() {
       className="aspect-[16/5] w-full rounded-sm mb-8 relative overflow-hidden noise-overlay"
       style={{
         maxHeight: 420,
-        background:
-          "linear-gradient(135deg, oklch(0.14 0.02 260) 0%, oklch(0.10 0.02 260) 35%, oklch(0.18 0.03 260) 60%, oklch(0.32 0.18 70 / 30%) 100%)",
+        background: "var(--grad-hero-placeholder)",
       }}
       aria-hidden="true"
     >
