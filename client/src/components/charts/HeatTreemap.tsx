@@ -137,6 +137,15 @@ export function HeatTreemap({
         const colour = categoryColour(t.category);
         const showLabel = t.w > 70 && t.h > 38;
         const showCount = t.w > 50 && t.h > 22;
+        // Rough char-width budget at 10px mono + 2 letter-spacing ≈ 9px
+        // per char. Truncate the category label so it never overflows
+        // the tile (GEOPOLITICS, DEMOGRAPHICS et al were spilling out
+        // of small cells).
+        const labelBudget = Math.max(3, Math.floor((t.w - 20) / 9));
+        const labelText =
+          t.category.length > labelBudget
+            ? `${t.category.slice(0, Math.max(2, labelBudget - 1))}…`
+            : t.category;
         return (
           <g
             key={t.category}
@@ -174,7 +183,7 @@ export function HeatTreemap({
                 letterSpacing="2"
                 opacity="0.9"
               >
-                {t.category}
+                {labelText}
               </text>
             )}
             {showCount && (

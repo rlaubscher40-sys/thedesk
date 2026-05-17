@@ -56,9 +56,6 @@ export default function About() {
             style={{
               fontSize: "clamp(44px, 6vw, 84px)",
               lineHeight: "0.98",
-              // Explicit padding-left so the italic descenders of the
-              // gradient text don't crop at the panel edge.
-              paddingLeft: "2px",
               maxWidth: "22ch",
             }}
           >
@@ -71,9 +68,14 @@ export default function About() {
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 backgroundClip: "text",
-                // Tiny right-pad too, keeps the trailing period inside
-                // the gradient bounding box on big screens.
+                // background-clip:text crops at the glyph bounding box,
+                // which doesn't account for Playfair's italic descender
+                // on the "p". Extra horizontal padding + a negative
+                // left margin keeps the visual baseline flush while
+                // giving the descender room to render unclipped.
+                paddingLeft: "0.12em",
                 paddingRight: "0.08em",
+                marginLeft: "-0.12em",
               }}
             >
               partner conversations.

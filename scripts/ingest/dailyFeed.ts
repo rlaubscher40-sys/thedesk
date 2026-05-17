@@ -191,7 +191,16 @@ async function main(): Promise<void> {
   console.log(`[ingest] done.`);
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+main()
+  .then(() => {
+    // Force exit so dangling keepalive sockets from RSS fetches +
+    // og:image scrapes don't hold the Node process open past `done`.
+    // Without this the GitHub Actions runner sits idle until the
+    // step's timeout-minutes ceiling, then "Cancels" a script that
+    // had already finished cleanly.
+    process.exit(0);
+  })
+  .catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
