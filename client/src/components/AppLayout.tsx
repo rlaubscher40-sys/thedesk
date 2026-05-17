@@ -33,7 +33,7 @@ import { AnimatedBackground } from "./AnimatedBackground";
 import { DemoModeBanner } from "./DemoModeBanner";
 import { FeedbackButton } from "./FeedbackButton";
 import { LiveTicker } from "./LiveTicker";
-import { Logomark } from "./Logomark";
+import { BrandLockup } from "./Logomark";
 import { StreakBadge } from "./StreakBadge";
 
 type NavItem = {
@@ -209,8 +209,7 @@ function MobileHeader({ onOpen }: { onOpen: () => void }) {
       >
         <Menu className="h-4 w-4" />
       </button>
-      <Logomark size={22} animated={false} />
-      <span className="font-serif font-bold text-lg wordmark leading-none">The Desk</span>
+      <BrandLockup size={24} byline={false} animated={false} />
       <span className="live-dot ml-1" aria-hidden="true" />
     </div>
   );
@@ -304,26 +303,11 @@ function SidebarHeader({
   return (
     <div className="px-5 pt-7 pb-5">
       <div className="flex items-start justify-between gap-2">
-        {/* Restrained brand lockup — logomark + wordmark + single live
-            indicator beneath. The by-line link and edition marker
-            moved out; their information was redundant against the rest
-            of the page chrome. */}
-        <div className="flex items-start gap-2.5 first-paint-mark min-w-0">
-          <Logomark size={26} animated />
-          <div className="leading-none min-w-0">
-            <span className="font-serif font-bold tracking-tight text-[19px] leading-none wordmark block">
-              The Desk
-            </span>
-            <div className="flex items-center gap-1.5 mt-2.5">
-              <span className="live-dot" aria-hidden="true" />
-              <span
-                className="overline text-[var(--color-fg-subtle)]"
-                style={{ fontSize: "8px", letterSpacing: "0.18em" }}
-              >
-                Live · Sydney
-              </span>
-            </div>
-          </div>
+        {/* Canonical brand lockup — mark + Playfair wordmark + INTELLIGENCE
+            byline. Per brand guide §2.2 the byline is the lockup's only
+            sub-mark text, so the previous "Live · Sydney" strip is gone. */}
+        <div className="first-paint-mark min-w-0">
+          <BrandLockup size={26} animated />
         </div>
         <button
           onClick={onToggleCollapse}
