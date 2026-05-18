@@ -18,6 +18,7 @@ import rateLimit from "express-rate-limit";
 import { createServer } from "node:http";
 import net from "node:net";
 import { createContext } from "./core/context";
+import { registerHealthRoutes, recordExpressError } from "./core/healthRoutes";
 import { registerOAuthRoutes } from "./core/oauth";
 import { registerSeoRoutes } from "./core/seo";
 import { serveStatic, setupVite } from "./core/vite";
@@ -89,6 +90,7 @@ async function startServer() {
 
   registerOAuthRoutes(app);
   registerSeoRoutes(app);
+  registerHealthRoutes(app);
   registerScheduledRoutes(app);
 
   app.use(
@@ -105,6 +107,12 @@ async function startServer() {
   } else {
     serveStatic(app);
   }
+
+  // Persist uncaught errors into the local server_errors table BEFORE
+  // Sentry's handler so the admin /health page sees everything,
+  // whether or not Sentry is configured. recordExpressError calls
+  // next(err) so the existing chain continues.
+  app.use(recordExpressError);
 
   // Last in the chain so it catches anything routes / SPA fallback let
   // through. No-op when SENTRY_DSN isn't set.

@@ -7,6 +7,7 @@ import { authRouter } from "./auth";
 import { editionsRouter } from "./editions";
 import { feedRouter } from "./feed";
 import { feedbackRouter } from "./feedback";
+import { healthRouter } from "./health";
 import { heroLibraryRouter } from "./heroLibrary";
 import { readingQueueRouter } from "./readingQueue";
 import { linkedInRouter } from "./linkedIn";
@@ -23,6 +24,7 @@ export const appRouter = router({
   editions: editionsRouter,
   feed: feedRouter,
   feedback: feedbackRouter,
+  health: healthRouter,
   topics: topicsRouter,
   readingQueue: readingQueueRouter,
   trends: trendsRouter,

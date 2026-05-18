@@ -13,11 +13,15 @@ import type {
   InsertEdition,
   InsertFeaturedLinkedInPost,
   InsertReadingQueueItem,
+  InsertServerError,
   InsertSubscriber,
+  InsertUptimePing,
   ReadingQueueItem,
+  ServerError,
   Subscriber,
+  UptimePing,
 } from "../db/schema";
-import { allocId, demo, demoUser } from "./store";
+import { allocId, demo, demoUser, trimRing } from "./store";
 
 // ─── Editions ───────────────────────────────────────────────────────────────
 
@@ -723,4 +727,73 @@ export function listMetricHistories(
     out[m.metricKey] = series;
   }
   return out;
+}
+
+// ─── Health ─────────────────────────────────────────────────────────────────
+// Bounded ring buffers in memory. Keep ~200 entries each so the demo
+// session doesn't grow unbounded.
+
+const ERROR_CAP = 200;
+const PING_CAP = 600;
+
+export function recordServerError(data: InsertServerError): void {
+  const row: ServerError = {
+    id: allocId(),
+    occurredAt: new Date(),
+    level: data.level ?? "error",
+    message: data.message,
+    stack: data.stack ?? null,
+    method: data.method ?? null,
+    route: data.route ?? null,
+    statusCode: data.statusCode ?? null,
+    userAgent: data.userAgent ?? null,
+  };
+  demo.serverErrors = trimRing([...demo.serverErrors, row], ERROR_CAP);
+}
+
+export function listRecentServerErrors(limit: number): ServerError[] {
+  return [...demo.serverErrors]
+    .sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime())
+    .slice(0, limit);
+}
+
+export function countServerErrorsSince(since: Date): number {
+  return demo.serverErrors.filter((e) => e.occurredAt >= since).length;
+}
+
+export function clearServerErrors(): void {
+  demo.serverErrors = [];
+}
+
+export function recordUptimePing(data: InsertUptimePing): void {
+  const row: UptimePing = {
+    id: allocId(),
+    pingedAt: new Date(),
+    statusCode: data.statusCode,
+    latencyMs: data.latencyMs,
+    source: data.source ?? "external",
+    region: data.region ?? null,
+  };
+  demo.uptimePings = trimRing([...demo.uptimePings, row], PING_CAP);
+}
+
+export function listRecentUptimePings(limit: number): UptimePing[] {
+  return [...demo.uptimePings]
+    .sort((a, b) => b.pingedAt.getTime() - a.pingedAt.getTime())
+    .slice(0, limit);
+}
+
+export function uptimeWindowStats(since: Date): {
+  total: number;
+  up: number;
+  avgLatencyMs: number;
+} {
+  const rows = demo.uptimePings.filter((p) => p.pingedAt >= since);
+  const total = rows.length;
+  const up = rows.filter((p) => p.statusCode >= 200 && p.statusCode < 300).length;
+  const avgLatencyMs =
+    total === 0
+      ? 0
+      : Math.round(rows.reduce((sum, p) => sum + p.latencyMs, 0) / total);
+  return { total, up, avgLatencyMs };
 }
