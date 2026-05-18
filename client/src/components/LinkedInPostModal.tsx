@@ -90,7 +90,7 @@ export function LinkedInPostModal({ open, onOpenChange, initialText, heading }: 
           value={text}
           onChange={(e) => setText(e.target.value)}
           rows={12}
-          className="w-full bg-black/20 border border-[var(--color-border)] rounded p-3 text-sm font-sans resize-y focus:outline-none focus:border-amber-500/50"
+          className="w-full bg-[var(--color-bg-deep)] border border-[var(--color-border)] rounded p-3 text-sm font-sans resize-y focus:outline-none focus:border-[var(--color-amber)]/50"
           aria-label="Post text"
         />
 

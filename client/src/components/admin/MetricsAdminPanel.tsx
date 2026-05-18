@@ -69,7 +69,7 @@ export function MetricsAdminPanel() {
         <h2 className="font-serif text-2xl font-bold leading-tight">Metrics strip</h2>
         <p className="text-sm text-[var(--color-fg-muted)] mt-1.5 max-w-[60ch]">
           Add or update any metric. Reuse an existing key (like
-          <code className="font-mono mx-1 px-1 bg-black/30 rounded">cash_rate</code>)
+          <code className="font-mono mx-1 px-1 bg-[var(--color-bg-deep)] rounded">cash_rate</code>)
           to override the automated daily ingest. Or add new ones for things
           the ingest doesn't cover yet (CPI, unemployment, auction clearance).
         </p>
@@ -90,7 +90,7 @@ export function MetricsAdminPanel() {
               onChange={(e) => setMetricKey(e.target.value)}
               placeholder="cpi_yoy"
               required
-              className="w-full px-3 py-2 rounded text-sm font-mono bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors"
+              className="w-full px-3 py-2 rounded text-sm font-mono bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors"
             />
           </div>
           <div>
@@ -106,7 +106,7 @@ export function MetricsAdminPanel() {
               onChange={(e) => setLabel(e.target.value)}
               placeholder="CPI YoY"
               required
-              className="w-full px-3 py-2 rounded text-sm bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors"
+              className="w-full px-3 py-2 rounded text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors"
             />
           </div>
         </div>
@@ -124,7 +124,7 @@ export function MetricsAdminPanel() {
               onChange={(e) => setValue(e.target.value)}
               placeholder="3.4"
               required
-              className="w-full px-3 py-2 rounded text-sm tabular-nums bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors"
+              className="w-full px-3 py-2 rounded text-sm tabular-nums bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors"
             />
           </div>
           <div>
@@ -139,7 +139,7 @@ export function MetricsAdminPanel() {
               value={unit}
               onChange={(e) => setUnit(e.target.value)}
               placeholder="%"
-              className="w-full px-3 py-2 rounded text-sm bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors"
+              className="w-full px-3 py-2 rounded text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors"
             />
           </div>
           <div>
@@ -155,7 +155,7 @@ export function MetricsAdminPanel() {
               onChange={(e) => setDisplayOrder(e.target.value)}
               min={0}
               max={9999}
-              className="w-full px-3 py-2 rounded text-sm tabular-nums bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors"
+              className="w-full px-3 py-2 rounded text-sm tabular-nums bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors"
             />
           </div>
         </div>
@@ -173,7 +173,7 @@ export function MetricsAdminPanel() {
               onChange={(e) => setContext(e.target.value)}
               maxLength={256}
               placeholder="ANZ now expects extended hold"
-              className="w-full px-3 py-2 rounded text-sm bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors"
+              className="w-full px-3 py-2 rounded text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors"
             />
           </div>
           <div>
@@ -186,7 +186,7 @@ export function MetricsAdminPanel() {
             <select
               value={groupKey}
               onChange={(e) => setGroupKey(e.target.value)}
-              className="w-full px-3 py-2 rounded text-sm bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors"
+              className="w-full px-3 py-2 rounded text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors"
             >
               <option value="MACRO">Macro & rates</option>
               <option value="PROPERTY">Property</option>
@@ -221,7 +221,7 @@ export function MetricsAdminPanel() {
             {metrics.map((m) => (
               <li
                 key={m.id}
-                className="grid grid-cols-[48px_minmax(0,1fr)_120px_100px] items-center gap-4 p-3 rounded bg-black/20 border border-[var(--color-border)]"
+                className="grid grid-cols-[48px_minmax(0,1fr)_120px_100px] items-center gap-4 p-3 rounded bg-[var(--color-bg-deep)] border border-[var(--color-border)]"
               >
                 <span className="font-mono tabular-nums text-[var(--color-fg-subtle)] text-xs">
                   {m.displayOrder}

@@ -161,7 +161,7 @@ export function SubscribeCallout({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@firm.com"
-              className="px-4 py-3 rounded text-sm bg-black/40 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/60 transition-colors"
+              className="px-4 py-3 rounded text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/60 transition-colors"
               style={{ fontSize: "15px" }}
             />
             <button

@@ -50,7 +50,7 @@ export function EditionListItem({
             src={heroImageUrl}
             alt=""
             loading="lazy"
-            className="h-16 w-16 rounded object-cover bg-black/30 shrink-0"
+            className="h-16 w-16 rounded object-cover bg-[var(--color-bg-deep)] shrink-0"
           />
         ) : (
           <div

@@ -122,7 +122,7 @@ export function TopicEditDrawer({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               maxLength={300}
-              className="w-full px-3 py-2 rounded text-sm bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors"
+              className="w-full px-3 py-2 rounded text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors"
             />
           </Field>
 
@@ -132,7 +132,7 @@ export function TopicEditDrawer({
               onChange={(e) => setSummary(e.target.value)}
               rows={3}
               maxLength={2000}
-              className="w-full px-3 py-2 rounded text-sm bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors leading-relaxed"
+              className="w-full px-3 py-2 rounded text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors leading-relaxed"
             />
           </Field>
 
@@ -143,7 +143,7 @@ export function TopicEditDrawer({
               rows={2}
               maxLength={2000}
               placeholder="One sentence answering: why does the partner channel care about this specifically, right now?"
-              className="w-full px-3 py-2 rounded text-sm bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors leading-relaxed"
+              className="w-full px-3 py-2 rounded text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors leading-relaxed"
             />
           </Field>
 
@@ -153,7 +153,7 @@ export function TopicEditDrawer({
               onChange={(e) => setBody(e.target.value)}
               rows={14}
               maxLength={20000}
-              className="w-full px-3 py-2 rounded text-sm bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors leading-relaxed font-serif"
+              className="w-full px-3 py-2 rounded text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors leading-relaxed font-serif"
             />
             <p className="font-mono text-[10px] text-[var(--color-fg-subtle)] mt-1 tabular-nums">
               {body.trim().split(/\s+/).filter(Boolean).length} words
@@ -166,7 +166,7 @@ export function TopicEditDrawer({
               onChange={(e) => setKeyTakeaway(e.target.value)}
               rows={2}
               maxLength={2000}
-              className="w-full px-3 py-2 rounded text-sm bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors leading-relaxed font-serif"
+              className="w-full px-3 py-2 rounded text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors leading-relaxed font-serif"
             />
           </Field>
 
@@ -175,7 +175,7 @@ export function TopicEditDrawer({
               value={watch}
               onChange={(e) => setWatch(e.target.value)}
               rows={4}
-              className="w-full px-3 py-2 rounded text-sm bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors leading-relaxed"
+              className="w-full px-3 py-2 rounded text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors leading-relaxed"
               placeholder={"May 21: ABS labour force\nJune 16: RBA decision"}
             />
           </Field>

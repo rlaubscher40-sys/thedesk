@@ -72,7 +72,7 @@ export default function Login() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
-            className="w-full px-4 py-3 rounded-sm text-base bg-black/30 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors"
+            className="w-full px-4 py-3 rounded-sm text-base bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors"
             aria-label="Admin password"
           />
           <button

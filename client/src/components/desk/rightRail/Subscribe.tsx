@@ -56,7 +56,7 @@ export function Subscribe({ source = "right-rail" }: { source?: string }) {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@firm.com"
-          className="px-3 py-2 rounded text-sm bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors"
+          className="px-3 py-2 rounded text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors"
           aria-label="Email address"
         />
         <button

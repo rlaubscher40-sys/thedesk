@@ -262,7 +262,7 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
                     ? "What would make this more useful for partner conversations?"
                     : "What's working for you?"
               }
-              className="w-full px-3 py-2 rounded text-sm bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors leading-relaxed"
+              className="w-full px-3 py-2 rounded text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors leading-relaxed"
             />
           </label>
 
@@ -281,7 +281,7 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
                 onChange={(e) => setReporterLabel(e.target.value)}
                 maxLength={128}
                 placeholder="Sarah B."
-                className="w-full px-3 py-2 rounded text-sm bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors"
+                className="w-full px-3 py-2 rounded text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors"
               />
             </label>
             <label className="block">
@@ -297,7 +297,7 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
                 onChange={(e) => setContactEmail(e.target.value)}
                 maxLength={320}
                 placeholder="you@firm.com"
-                className="w-full px-3 py-2 rounded text-sm bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors"
+                className="w-full px-3 py-2 rounded text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors"
               />
             </label>
           </div>

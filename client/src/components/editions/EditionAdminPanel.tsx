@@ -335,7 +335,7 @@ function SubstackDraftEditor({ edition }: { edition: Edition }) {
       {hasDraft && (
         <div className="space-y-3">
           {imageUrl && (
-            <div className="aspect-[2/1] w-full overflow-hidden rounded bg-black/30">
+            <div className="aspect-[2/1] w-full overflow-hidden rounded bg-[var(--color-bg-deep)]">
               <img src={imageUrl} alt="Draft hero" className="w-full h-full object-cover" loading="lazy" />
             </div>
           )}
@@ -344,21 +344,21 @@ function SubstackDraftEditor({ edition }: { edition: Edition }) {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Title"
-            className="w-full bg-black/20 border border-[var(--color-border)] rounded p-2.5 font-serif text-lg focus:outline-none focus:border-amber-500/50"
+            className="w-full bg-[var(--color-bg-deep)] border border-[var(--color-border)] rounded p-2.5 font-serif text-lg focus:outline-none focus:border-[var(--color-amber)]/50"
           />
           <input
             type="text"
             value={subtitle}
             onChange={(e) => setSubtitle(e.target.value)}
             placeholder="Subtitle"
-            className="w-full bg-black/20 border border-[var(--color-border)] rounded p-2.5 text-sm text-[var(--color-fg-muted)] focus:outline-none focus:border-amber-500/50"
+            className="w-full bg-[var(--color-bg-deep)] border border-[var(--color-border)] rounded p-2.5 text-sm text-[var(--color-fg-muted)] focus:outline-none focus:border-[var(--color-amber)]/50"
           />
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
             placeholder="Essay body"
             rows={14}
-            className="w-full bg-black/20 border border-[var(--color-border)] rounded p-3 text-sm font-sans resize-y leading-relaxed focus:outline-none focus:border-amber-500/50"
+            className="w-full bg-[var(--color-bg-deep)] border border-[var(--color-border)] rounded p-3 text-sm font-sans resize-y leading-relaxed focus:outline-none focus:border-[var(--color-amber)]/50"
           />
           <div className="flex items-center justify-between flex-wrap gap-2">
             <p

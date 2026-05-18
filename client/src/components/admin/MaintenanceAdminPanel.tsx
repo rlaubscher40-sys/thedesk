@@ -219,7 +219,7 @@ export function MaintenanceAdminPanel() {
             placeholder="Edition #"
             value={editionNumber}
             onChange={(e) => setEditionNumber(e.target.value)}
-            className="w-32 px-3 py-2 rounded text-sm font-mono tabular-nums bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors"
+            className="w-32 px-3 py-2 rounded text-sm font-mono tabular-nums bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors"
           />
           <button
             onClick={handleDelete}

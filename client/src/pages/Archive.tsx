@@ -127,7 +127,7 @@ export default function ArchivePage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search the archive…"
-          className="w-full pl-11 pr-12 py-3.5 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded text-base focus:outline-none focus:border-amber-400/40 transition-colors"
+          className="w-full pl-11 pr-12 py-3.5 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded text-base focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors"
         />
         {query && (
           <button

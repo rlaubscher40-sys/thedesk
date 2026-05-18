@@ -64,7 +64,7 @@ export function RubensNoteBlock({
           rows={3}
           maxLength={600}
           placeholder="Your editorial take on this story, replaces the AI line."
-          className="w-full px-3 py-2 rounded text-sm bg-black/30 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors font-serif italic leading-relaxed"
+          className="w-full px-3 py-2 rounded text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors font-serif italic leading-relaxed"
           autoFocus
         />
         <div className="flex items-center gap-2 mt-2">

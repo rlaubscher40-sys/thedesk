@@ -196,7 +196,7 @@ export function SubscribeModal() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@firm.com"
-                  className="w-full px-4 py-3 rounded-sm text-base bg-black/30 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors"
+                  className="w-full px-4 py-3 rounded-sm text-base bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors"
                   aria-label="Email address"
                 />
                 <div className="flex items-center gap-2 flex-wrap">

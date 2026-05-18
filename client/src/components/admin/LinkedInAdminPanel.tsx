@@ -80,7 +80,7 @@ export function LinkedInAdminPanel() {
             onChange={(e) => setPostUrl(e.target.value)}
             placeholder="https://www.linkedin.com/posts/..."
             required
-            className="px-3 py-2 rounded text-sm bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors"
+            className="px-3 py-2 rounded text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors"
             aria-label="LinkedIn post URL"
           />
           <input
@@ -90,7 +90,7 @@ export function LinkedInAdminPanel() {
             min={0}
             max={9999}
             placeholder="Order"
-            className="px-3 py-2 rounded text-sm bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors"
+            className="px-3 py-2 rounded text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors"
             aria-label="Display order"
           />
         </div>
@@ -100,7 +100,7 @@ export function LinkedInAdminPanel() {
           rows={3}
           placeholder="Excerpt, 1-3 sentences from the post body."
           required
-          className="w-full px-3 py-2 rounded text-sm bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors"
+          className="w-full px-3 py-2 rounded text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors"
           aria-label="Post excerpt"
         />
         <button
@@ -128,7 +128,7 @@ export function LinkedInAdminPanel() {
             {posts.map((post) => (
               <li
                 key={post.id}
-                className="grid grid-cols-[48px_1fr_auto] items-center gap-4 p-3 rounded bg-black/20 border border-[var(--color-border)]"
+                className="grid grid-cols-[48px_1fr_auto] items-center gap-4 p-3 rounded bg-[var(--color-bg-deep)] border border-[var(--color-border)]"
               >
                 <span className="font-mono tabular-nums text-[var(--color-fg-subtle)] text-xs">
                   {post.displayOrder}

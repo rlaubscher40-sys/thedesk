@@ -177,7 +177,7 @@ function HeroLibraryCard({
         opacity: item.retired ? 0.55 : 1,
       }}
     >
-      <div className="relative aspect-[3/2] overflow-hidden bg-black/30">
+      <div className="relative aspect-[3/2] overflow-hidden bg-[var(--color-bg-deep)]">
         <img
           src={item.url}
           alt={item.label ?? `Cover #${item.id}`}
@@ -219,7 +219,7 @@ function HeroLibraryCard({
               }
             }}
             placeholder="Label (optional)"
-            className="px-2 py-1 rounded text-xs bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors"
+            className="px-2 py-1 rounded text-xs bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors"
           />
         ) : (
           <button
