@@ -50,22 +50,11 @@
     <link rel="alternate" type="application/rss+xml" title="The Desk RSS" href="/feed.xml" />
 
     <!--
-      Plausible analytics — cookieless, privacy-friendly, EU-friendly.
-      Loaded only when VITE_PLAUSIBLE_DOMAIN is set (e.g. "thedesk.com.au").
-      Sign up at plausible.io, add the domain, then set the env var on
-      Railway and redeploy. No GDPR cookie banner needed.
+      Analytics is now self-hosted. The React app fires a beacon to
+      /api/analytics/pageview on every route change (see
+      client/src/lib/analytics.ts). No third-party script, no
+      cookies, no fingerprinting, no off-prem data.
     -->
-    <script>
-      (function () {
-        var domain = "%VITE_PLAUSIBLE_DOMAIN%";
-        if (!domain || domain.indexOf("VITE_PLAUSIBLE_DOMAIN") !== -1) return;
-        var s = document.createElement("script");
-        s.defer = true;
-        s.setAttribute("data-domain", domain);
-        s.src = "https://plausible.io/js/script.js";
-        document.head.appendChild(s);
-      })();
-    </script>
 
     <script type="application/ld+json">
       {

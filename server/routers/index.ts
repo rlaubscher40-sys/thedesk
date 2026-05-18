@@ -3,6 +3,7 @@
  * a one-screen index of every callable procedure.
  */
 import { router } from "../core/trpc";
+import { analyticsRouter } from "./analytics";
 import { authRouter } from "./auth";
 import { editionsRouter } from "./editions";
 import { feedRouter } from "./feed";
@@ -21,6 +22,7 @@ import { trendsRouter } from "./trends";
 export const appRouter = router({
   system: systemRouter,
   auth: authRouter,
+  analytics: analyticsRouter,
   editions: editionsRouter,
   feed: feedRouter,
   feedback: feedbackRouter,
