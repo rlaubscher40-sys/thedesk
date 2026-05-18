@@ -239,6 +239,16 @@
   opacity: 0.5;
 }
 
+/* Editorial illustrations on feed cards (lead-story Australia
+   outline, library fallbacks) are also authored dark. They don't
+   want the Ken Burns drift the hero gets, but they do want the
+   same light-mode soften so they don't punch as black rectangles
+   on the warm-cream canvas. */
+.light .editorial-art-img {
+  filter: brightness(1.35) contrast(0.82) saturate(0.65);
+  opacity: 0.62;
+}
+
 /* Lead-card centre-fade vignette is a dark wash designed to deepen the
    cover plate on a dark canvas. In light mode it just adds an ugly
    spot of grey to the middle of every story image — hide it. */

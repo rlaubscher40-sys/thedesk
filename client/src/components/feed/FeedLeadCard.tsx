@@ -153,7 +153,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
             // object-top so any rare max-height clamp on a tall portrait
             // preserves the top of the image (faces) rather than centring
             // the crop through somebody's chin.
-            className="absolute inset-0 w-full h-full object-cover object-top"
+            className="editorial-art-img absolute inset-0 w-full h-full object-cover object-top"
             loading="lazy"
             decoding="async"
             onLoad={onImageLoad}
@@ -165,7 +165,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
           <img
             src={fallbackUrl}
             alt={item.category}
-            className="absolute inset-0 w-full h-full object-cover object-center"
+            className="editorial-art-img absolute inset-0 w-full h-full object-cover object-center"
             loading="lazy"
             decoding="async"
           />
