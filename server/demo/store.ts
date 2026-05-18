@@ -14,8 +14,10 @@ import type {
   FeaturedLinkedInPost,
   FeedbackSubmission,
   ReadingQueueItem,
-  User,
+  ServerError,
   Subscriber,
+  UptimePing,
+  User,
 } from "../db/schema";
 import { env } from "../core/env";
 import { editionsSeed } from "./seedEditions";
@@ -53,7 +55,17 @@ export const demo = {
   linkedInPosts: linkedInSeed(),
   metrics: metricsSeed(),
   feedback: [] as FeedbackSubmission[],
+  // Health: in-memory ring buffers. Bounded so a long-running demo
+  // doesn't grow unbounded; old entries fall off the front.
+  serverErrors: [] as ServerError[],
+  uptimePings: [] as UptimePing[],
 };
+
+/** Trim a ring-buffer array to a max length, dropping oldest entries. */
+export function trimRing<T>(arr: T[], maxLen: number): T[] {
+  if (arr.length <= maxLen) return arr;
+  return arr.slice(arr.length - maxLen);
+}
 
 function metricsSeed(): DailyMetric[] {
   const now = new Date();

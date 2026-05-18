@@ -405,3 +405,48 @@ export const conversationTracker = mysqlTable("conversation_tracker", {
 
 export type ConversationEntry = typeof conversationTracker.$inferSelect;
 export type InsertConversationEntry = typeof conversationTracker.$inferInsert;
+
+// ─── Server errors ──────────────────────────────────────────────────────────
+// Captured by the Express error middleware. Inspected via the
+// /admin/health panel. One row per uncaught exception. If we ever
+// need release tracking or minified-JS stack symbolication, that's
+// the moment to swap to a hosted error tracker.
+
+export const serverErrors = mysqlTable("server_errors", {
+  id: int("id").autoincrement().primaryKey(),
+  occurredAt: timestamp("occurredAt").defaultNow().notNull(),
+  /** "error" / "warn". Reserved for future levels. */
+  level: varchar("level", { length: 16 }).notNull().default("error"),
+  /** Trimmed first line of err.message, ~512 chars. */
+  message: varchar("message", { length: 512 }).notNull(),
+  /** Full err.stack, untruncated. */
+  stack: text("stack"),
+  method: varchar("method", { length: 16 }),
+  route: varchar("route", { length: 256 }),
+  statusCode: int("statusCode"),
+  userAgent: varchar("userAgent", { length: 256 }),
+});
+
+export type ServerError = typeof serverErrors.$inferSelect;
+export type InsertServerError = typeof serverErrors.$inferInsert;
+
+// ─── Uptime pings ───────────────────────────────────────────────────────────
+// Written by an external cron (GitHub Actions, Cloudflare Workers,
+// etc.) hitting /api/healthz on a schedule. The admin /health page
+// renders a rolling-window uptime % off this table.
+
+export const uptimePings = mysqlTable("uptime_pings", {
+  id: int("id").autoincrement().primaryKey(),
+  pingedAt: timestamp("pingedAt").defaultNow().notNull(),
+  /** HTTP status the monitor saw. 200 = up. */
+  statusCode: int("statusCode").notNull(),
+  /** Round-trip latency in milliseconds. */
+  latencyMs: int("latencyMs").notNull(),
+  /** Free-form identifier for the monitor. */
+  source: varchar("source", { length: 64 }).notNull().default("external"),
+  /** Region the monitor ran in, when known. */
+  region: varchar("region", { length: 32 }),
+});
+
+export type UptimePing = typeof uptimePings.$inferSelect;
+export type InsertUptimePing = typeof uptimePings.$inferInsert;

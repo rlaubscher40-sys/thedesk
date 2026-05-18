@@ -16,6 +16,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
 import { AnalyticsAdminPanel } from "@/components/admin/AnalyticsAdminPanel";
 import { FeedbackAdminPanel } from "@/components/admin/FeedbackAdminPanel";
+import { HealthAdminPanel } from "@/components/admin/HealthAdminPanel";
 import { HeroLibraryAdminPanel } from "@/components/admin/HeroLibraryAdminPanel";
 import { LinkedInAdminPanel } from "@/components/admin/LinkedInAdminPanel";
 import { MaintenanceAdminPanel } from "@/components/admin/MaintenanceAdminPanel";
@@ -155,6 +156,15 @@ export default function AdminPage() {
           </div>
         )}
       </SectionErrorBoundary>
+
+      {/* Service health sits at the top of the admin chrome so any
+          incidents (errors stacking up, uptime dropping, ingest stale)
+          are the first thing the curator sees on /admin. */}
+      <div className="mt-10">
+        <SectionErrorBoundary section="Service health">
+          <HealthAdminPanel />
+        </SectionErrorBoundary>
+      </div>
 
       {/* Feedback inbox sits near the top of the admin so new
           submissions are the first thing the editor sees on /admin. */}
