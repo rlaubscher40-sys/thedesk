@@ -45,9 +45,25 @@ export async function createSubscriber(data: InsertSubscriber): Promise<Subscrib
   if (isDemoMode()) return demoQueries.createSubscriber(data);
   const db = getDb();
   if (!db) return undefined;
-  // MySQL has no clean upsert-returning, so look up + insert.
+  // MySQL has no clean upsert-returning, so look up + insert. If a row
+  // already exists for this email we refresh its confirmToken instead
+  // of returning a stale row — the caller (subscribe mutation) generated
+  // a fresh token for the email it just sent, and persisting that token
+  // is the whole point of this call. Without the update the email links
+  // resolve to nothing and confirm fails with "invalid or expired".
+  // Confirmed rows are left untouched: a re-subscribe by a confirmed
+  // address is a no-op the router handles earlier.
   const existing = await findSubscriberByEmail(data.email);
-  if (existing) return existing;
+  if (existing) {
+    if (existing.confirmedAt) return existing;
+    if (data.confirmToken) {
+      await db
+        .update(subscribers)
+        .set({ confirmToken: data.confirmToken })
+        .where(eq(subscribers.id, existing.id));
+    }
+    return findSubscriberByEmail(data.email);
+  }
   await db.insert(subscribers).values(data);
   return findSubscriberByEmail(data.email);
 }
