@@ -1,5 +1,5 @@
 /**
- * The Archive — unified browse + search page.
+ * The Archive, unified browse + search page.
  *
  * Empty query: browse-by-category mode. Categories render as a grid of
  * thread cards, each showing the most recent feed items in that category.
@@ -8,7 +8,7 @@
  * Non-empty query: search results across editions and feed items, with the
  * same category chips above so the user can keep narrowing.
  *
- * Replaces both the old SearchPage and the old TopicThreads index — they
+ * Replaces both the old SearchPage and the old TopicThreads index, they
  * served related needs and one unified page reads cleaner.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -29,7 +29,7 @@ function parseSearch(search: string): { q: string; cat: string | null } {
 }
 
 export default function ArchivePage() {
-  // URL query state — /archive?q=foo and /archive?cat=PROPERTY both deep-link,
+  // URL query state, /archive?q=foo and /archive?cat=PROPERTY both deep-link,
   // and the legacy /search redirect carries its query across via this.
   const search = useSearch();
   const [, navigate] = useLocation();
@@ -39,7 +39,7 @@ export default function ArchivePage() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Auto-focus the search input on desktop so the user can start typing
-  // immediately. On mobile we skip this — focusing pops the keyboard the
+  // immediately. On mobile we skip this, focusing pops the keyboard the
   // instant the page loads, which obscures the category chips and is
   // jarring when the user came here to browse, not search.
   useEffect(() => {
@@ -71,7 +71,7 @@ export default function ArchivePage() {
 
   // User's topic-allowlist preference. Applied to the overview's category
   // thread cards and to the search results, but NOT to the explicit
-  // category drill-down — if the reader taps a chip the assumption is
+  // category drill-down, if the reader taps a chip the assumption is
   // they want to see that category regardless of their global filter.
   const { isCategoryAllowed } = useUserPrefs();
 
@@ -110,6 +110,12 @@ export default function ArchivePage() {
         overline="The Desk · Archive"
         title="Search and browse"
         kicker="Every weekly edition, every daily item. Find by keyword or follow a thread."
+        actions={
+          <ArchiveMetaPanel
+            totalStories={Array.from(counts.values()).reduce((a, b) => a + b, 0)}
+            categoryCount={categories.length}
+          />
+        }
       />
 
       {/* Search input. */}
@@ -121,7 +127,7 @@ export default function ArchivePage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search the archive…"
-          className="w-full pl-11 pr-12 py-3.5 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded text-base focus:outline-none focus:border-amber-400/40 transition-colors"
+          className="w-full pl-11 pr-12 py-3.5 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded text-base focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors"
         />
         {query && (
           <button
@@ -134,7 +140,7 @@ export default function ArchivePage() {
         )}
       </div>
 
-      {/* Category chip row — drives the drill-down filter. */}
+      {/* Category chip row, drives the drill-down filter. */}
       <SectionErrorBoundary section="Category chips">
         {categories.length > 0 && (
           <CategoryChips
@@ -485,6 +491,60 @@ function SearchResults({
           </ul>
         </section>
       )}
+    </div>
+  );
+}
+
+/**
+ * Editorial meta panel for the Archive header. Earns the right-side
+ * whitespace with two corpus stats: total stories indexed across
+ * every category, and how many categories are active for the current
+ * user (after their topic-allowlist preference).
+ */
+function ArchiveMetaPanel({
+  totalStories,
+  categoryCount,
+}: {
+  totalStories: number;
+  categoryCount: number;
+}) {
+  if (!totalStories && !categoryCount) return null;
+  return (
+    <div
+      className="hidden md:block panel rounded-sm px-5 py-4 space-y-3.5 text-right shrink-0"
+      style={{ minWidth: 200 }}
+    >
+      {totalStories > 0 && (
+        <ArchiveMetaRow
+          label="Stories archived"
+          value={totalStories.toLocaleString("en-AU")}
+        />
+      )}
+      {categoryCount > 0 && (
+        <ArchiveMetaRow
+          label="Categories indexed"
+          value={String(categoryCount).padStart(2, "0")}
+        />
+      )}
+    </div>
+  );
+}
+
+function ArchiveMetaRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="space-y-1">
+      <p
+        className="font-mono uppercase text-[var(--color-fg-subtle)]"
+        style={{ fontSize: "10px", letterSpacing: "0.22em" }}
+      >
+        {label}
+      </p>
+      <p
+        className="font-mono text-[var(--color-fg)] tabular-nums"
+        style={{ fontSize: "12px", letterSpacing: "0.04em" }}
+      >
+        {value}
+      </p>
     </div>
   );
 }

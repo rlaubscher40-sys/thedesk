@@ -1,11 +1,11 @@
 /**
- * Admin tRPC for the hero-image library — the small pool of reusable
+ * Admin tRPC for the hero-image library, the small pool of reusable
  * editorial covers that the weekly cron cycles through instead of
  * generating fresh every Sunday.
  *
  * Most procedures here are admin-only. The one public exception is
  * `pickForSeed`, which the daily-feed lead card uses as a fallback
- * when a story has no og:image — same library, different surface.
+ * when a story has no og:image, same library, different surface.
  */
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -39,7 +39,7 @@ export const heroLibraryRouter = router({
    * same cover at the same time, which reads as a duplicate.
    *
    * Returns `{ url: null }` when the library is empty or every row
-   * is retired — the caller then renders its own fallback chrome.
+   * is retired, the caller then renders its own fallback chrome.
    */
   pickForSeed: publicProcedure
     .input(z.object({ seed: z.number().int() }))
@@ -107,7 +107,7 @@ export const heroLibraryRouter = router({
       return { id, url: db.heroLibraryUrl(id) };
     }),
 
-  /** Toggle the retired flag — keeps the row but excludes it from
+  /** Toggle the retired flag, keeps the row but excludes it from
    *  the rotation. Reversible via the same endpoint. */
   setRetired: adminProcedure
     .input(idInput.extend({ retired: z.boolean() }))
@@ -125,7 +125,7 @@ export const heroLibraryRouter = router({
     }),
 
   /** Hard delete a row. Existing editions that used it keep their
-   *  copy in `edition_assets` — only future picks are affected. */
+   *  copy in `edition_assets`, only future picks are affected. */
   remove: adminProcedure.input(idInput).mutation(async ({ input }) => {
     await db.deleteHeroLibraryItem(input.id);
     return { success: true } as const;

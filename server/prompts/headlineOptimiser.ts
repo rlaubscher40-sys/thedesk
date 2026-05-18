@@ -1,6 +1,6 @@
 /**
  * Generates SEO-tuned meta tags + three alternative web headlines for an
- * edition. Runs after the synthesis + editor-QC passes — i.e. on a clean
+ * edition. Runs after the synthesis + editor-QC passes, i.e. on a clean
  * edition. Cheap (~one short LLM call) and the output is stored on the
  * edition row so the admin can swap or A/B later.
  */
@@ -35,12 +35,12 @@ const schema = z.object({
 function buildPrompt(input: HeadlineOptimiserInput): string {
   const topicLines = input.topics
     .slice(0, 6)
-    .map((t, i) => `  ${i + 1}. [${t.category}] ${t.title} — ${t.summary}`)
+    .map((t, i) => `  ${i + 1}. [${t.category}] ${t.title}, ${t.summary}`)
     .join("\n");
 
   return `You are optimising the headline + share metadata for a weekly edition of The Desk.
 
-The Desk is a daily / weekly intelligence brief for Australian property investment professionals — brokers, advisers, accountants, buyer's agents, SMSF specialists. Editorially serious, plain-spoken, commercially sharp. Curated by Ruben Laubscher (Head of Partnerships, InvestorKit).
+The Desk is a daily / weekly intelligence brief for Australian property investment professionals, brokers, advisers, accountants, buyer's agents, SMSF specialists. Editorially serious, plain-spoken, commercially sharp. Curated by Ruben Laubscher (Head of Partnerships, InvestorKit).
 
 Week: ${input.weekRange}
 
@@ -60,15 +60,15 @@ ${voiceRules}
 
 Produce metadata optimised for these distinct surfaces:
 
-1. metaTitle — Google search results. 50-60 chars sweet spot, 70 max. Front-loads the most clickable keyword. Names the edition by its argument, not its number.
+1. metaTitle, Google search results. 50-60 chars sweet spot, 70 max. Front-loads the most clickable keyword. Names the edition by its argument, not its number.
 
-2. metaDescription — Google meta description. 145-160 chars. One sentence that promises the read. Not a recap — a hook.
+2. metaDescription, Google meta description. 145-160 chars. One sentence that promises the read. Not a recap, a hook.
 
-3. socialTitle — LinkedIn / Twitter / Slack card. 60-70 chars. Punchier than metaTitle; can be more opinionated. Still no question marks, still no hype words.
+3. socialTitle, LinkedIn / Twitter / Slack card. 60-70 chars. Punchier than metaTitle; can be more opinionated. Still no question marks, still no hype words.
 
-4. socialDescription — social card subtitle. 180-200 chars. Two short sentences. Establishes credibility (mention the week's standout data point) AND curiosity (what the read uncovers).
+4. socialDescription, social card subtitle. 180-200 chars. Two short sentences. Establishes credibility (mention the week's standout data point) AND curiosity (what the read uncovers).
 
-5. headlineVariants — three alternative web headlines for the edition page itself. Each 8-14 words. Each takes a different angle: one names the data point, one names the implication, one frames the question the reader brought. Specific, not generic.
+5. headlineVariants, three alternative web headlines for the edition page itself. Each 8-14 words. Each takes a different angle: one names the data point, one names the implication, one frames the question the reader brought. Specific, not generic.
 
 Output a SINGLE JSON object, NOTHING ELSE:
 

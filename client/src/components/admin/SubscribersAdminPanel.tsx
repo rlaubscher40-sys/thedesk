@@ -1,5 +1,5 @@
 /**
- * Admin view of the subscriber list. Read-only for now — until email
+ * Admin view of the subscriber list. Read-only for now, until email
  * delivery is wired, this is just the "who's signed up" surface.
  */
 import { Mail } from "lucide-react";
@@ -27,7 +27,7 @@ export function SubscribersAdminPanel() {
         <h2 className="font-serif text-2xl font-bold leading-tight">Subscribers</h2>
         <p className="text-sm text-[var(--color-fg-muted)] mt-1.5 max-w-[60ch]">
           Everyone who's filled in a subscribe form. Confirmation emails are
-          captured but not yet sent — wire Resend to start delivering.
+          captured but not yet sent, wire Resend to start delivering.
         </p>
       </div>
 

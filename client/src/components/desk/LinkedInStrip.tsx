@@ -1,11 +1,11 @@
 /**
- * "Ruben on LinkedIn" strip — horizontal scroll of hand-curated LinkedIn
+ * "Ruben on LinkedIn" strip, horizontal scroll of hand-curated LinkedIn
  * posts. Cards link out to the original post. Hidden entirely when
  * there are no live posts so the page doesn't show an empty section.
  *
  * Why hand-curated and not auto-scraped: LinkedIn has no public API for
  * post content and aggressively blocks scrapers. Manual curation is also
- * editorially better — only the posts Ruben thinks are worth surfacing
+ * editorially better, only the posts Ruben thinks are worth surfacing
  * make the strip, which is the whole pitch.
  */
 import { ExternalLink, Linkedin } from "lucide-react";

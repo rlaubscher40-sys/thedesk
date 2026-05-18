@@ -1,12 +1,12 @@
 /**
  * Intelligence dashboard. Three layers, top to bottom:
  *
- *   1. "This week in motion" hero — biggest 7-day movers, market-stress
+ *   1. "This week in motion" hero, biggest 7-day movers, market-stress
  *      signal, next dates to watch. Editorial front-page.
- *   2. Grouped metric grid — every live daily_metrics row with a 30-day
+ *   2. Grouped metric grid, every live daily_metrics row with a 30-day
  *      sparkline, sectioned by groupKey (Macro / Property / Labour /
  *      Markets / Demographics).
- *   3. Editorial telemetry — category heat + signal cadence across recent
+ *   3. Editorial telemetry, category heat + signal cadence across recent
  *      editions. These remain edition-level since they describe editorial
  *      output, not market data.
  */
@@ -46,6 +46,12 @@ export default function TrendsPage() {
         overline="The Desk · Trends"
         title="The numbers"
         kicker="What's moving, what isn't, and where the conversations are concentrating."
+        actions={
+          <TrendsMetaPanel
+            metricCount={metricsQuery.data?.length ?? 0}
+            historyDays={30}
+          />
+        }
       />
 
       <SectionErrorBoundary section="This week in motion">
@@ -233,5 +239,55 @@ function SignalCadence({
         </span>
       </div>
     </>
+  );
+}
+
+/**
+ * Editorial meta panel for the Trends header. Earns the right-side
+ * whitespace with three telemetry stats: how many live daily_metrics
+ * series are tracked, the rolling history window for the sparklines,
+ * and the live-data refresh cadence. Same mono-overline pattern as
+ * Editions and Archive so the masthead reads consistently.
+ */
+function TrendsMetaPanel({
+  metricCount,
+  historyDays,
+}: {
+  metricCount: number;
+  historyDays: number;
+}) {
+  return (
+    <div
+      className="hidden md:block panel rounded-sm px-5 py-4 space-y-3.5 text-right shrink-0"
+      style={{ minWidth: 200 }}
+    >
+      {metricCount > 0 && (
+        <TrendsMetaRow
+          label="Live metrics"
+          value={String(metricCount).padStart(2, "0")}
+        />
+      )}
+      <TrendsMetaRow label="History window" value={`${historyDays} days`} />
+      <TrendsMetaRow label="Refresh" value="Every 5 min" />
+    </div>
+  );
+}
+
+function TrendsMetaRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="space-y-1">
+      <p
+        className="font-mono uppercase text-[var(--color-fg-subtle)]"
+        style={{ fontSize: "10px", letterSpacing: "0.22em" }}
+      >
+        {label}
+      </p>
+      <p
+        className="font-mono text-[var(--color-fg)] tabular-nums"
+        style={{ fontSize: "12px", letterSpacing: "0.04em" }}
+      >
+        {value}
+      </p>
+    </div>
   );
 }

@@ -8,6 +8,7 @@ import { ArrowDown, ArrowUp, Minus } from "lucide-react";
 import type { Edition } from "@shared/types";
 import type { KeyMetrics } from "@shared/schemas";
 import { AuthorByline } from "@/components/desk/AuthorByline";
+import { BrandLockup } from "@/components/Logomark";
 import { resolveMetricTrend } from "@/lib/metrics";
 import { ShareEditionButton } from "./ShareEditionButton";
 
@@ -24,7 +25,7 @@ export function EditionHero({
   const folio = `EDITION No. ${edition.editionNumber} · WEEK OF ${edition.weekOf} · SYDNEY`;
   return (
     <header className="mb-12 relative">
-      {/* Top folio — printed broadsheet header. Sits above the hero with
+      {/* Top folio, printed broadsheet header. Sits above the hero with
           a hairline rule above and below, mono uppercase, character-
           spaced. */}
       <div className="mb-8">
@@ -38,12 +39,7 @@ export function EditionHero({
           </p>
           <div className="flex items-center gap-4">
             {edition.marketStress && <MarketStressBadge level={edition.marketStress} />}
-            <p
-              className="font-mono uppercase text-[var(--color-fg-subtle)]"
-              style={{ fontSize: "10px", letterSpacing: "0.24em" }}
-            >
-              The Desk · Daily Intelligence
-            </p>
+            <BrandLockup size={22} byline={false} />
           </div>
         </div>
         <div className="h-px bg-[var(--color-border-strong)]" aria-hidden="true" />
@@ -52,13 +48,13 @@ export function EditionHero({
 
       {/* Wide-format hero image. Capped at 420px so the cover doesn't
           dwarf the rest of the page on tall monitors. Aspect ratio
-          tightened from 2:1 to 16:5 (≈3.2:1) — short cinematic band. */}
+          tightened from 2:1 to 16:5 (≈3.2:1), short cinematic band. */}
       {edition.heroImageUrl ? (
         <div
           className="aspect-[16/5] w-full overflow-hidden rounded-sm mb-8 bg-[var(--color-bg-elevated)] relative"
           style={{ maxHeight: 420 }}
         >
-          {/* Ken Burns drift — slow scale + translate3d so the cover
+          {/* Ken Burns drift, slow scale + translate3d so the cover
               feels alive without competing with the content. This is the
               page's LCP element so it MUST NOT be lazy-loaded; fetchpriority
               tells the browser to fetch it ahead of the JS bundles. */}
@@ -84,7 +80,7 @@ export function EditionHero({
             style={{ background: "var(--grad-hero-fade-bottom)" }}
             aria-hidden="true"
           />
-          {/* Edge inner ring — extra gloss. */}
+          {/* Edge inner ring, extra gloss. */}
           <div
             className="absolute inset-0 pointer-events-none rounded"
             style={{
@@ -97,7 +93,7 @@ export function EditionHero({
         <HeroPlaceholder />
       )}
 
-      {/* Editorial slug — edition number + reading time on the left,
+      {/* Editorial slug, edition number + reading time on the left,
           Share button on the right. */}
       <div className="flex items-center justify-between gap-4 mt-8 mb-5 flex-wrap">
         <div className="flex items-baseline gap-4">
@@ -123,7 +119,7 @@ export function EditionHero({
         <ShareEditionButton edition={edition} />
       </div>
 
-      {/* Hero title — tighter clamp than display-1 so it doesn't dwarf
+      {/* Hero title, tighter clamp than display-1 so it doesn't dwarf
           the rest of the page. The italic tagline finishes the sentence. */}
       <h1
         className="font-serif font-bold tracking-tight"
@@ -139,7 +135,7 @@ export function EditionHero({
         Weekly intelligence for property partnerships.
       </p>
 
-      {/* Ruben's Take + In-brief scan strip — two-column on desktop so the
+      {/* Ruben's Take + In-brief scan strip, two-column on desktop so the
           take doesn't sit lonely on the left half of a wide canvas. The
           scan strip carries the first 6 signals as quick hits the reader
           can absorb before diving in. Single column on mobile, take first
@@ -179,7 +175,7 @@ export function EditionHero({
         </div>
       )}
 
-      {/* Metric strip — dense, mono, tabular. */}
+      {/* Metric strip, dense, mono, tabular. */}
       {edition.keyMetrics && Object.keys(edition.keyMetrics).length > 0 && (
         <MetricsStrip metrics={edition.keyMetrics} prior={priorMetrics ?? null} />
       )}
@@ -277,7 +273,7 @@ function MetricTile({
           className="inline-flex items-center gap-1 font-mono tabular-nums"
           style={{ color: colour, fontSize: "11px" }}
           title={`${trend} vs prior · ${sentiment}`}
-          aria-label={`${trend} versus prior — ${sentiment}`}
+          aria-label={`${trend} versus prior, ${sentiment}`}
         >
           <Icon className="h-3 w-3" strokeWidth={2.5} />
           {hasDelta && trend !== "flat" && (
@@ -322,7 +318,7 @@ function MarketStressBadge({ level }: { level: string }) {
 }
 
 /**
- * "In brief" scan strip — the first six edition signals as dot-point hits,
+ * "In brief" scan strip, the first six edition signals as dot-point hits,
  * sized so a reader can absorb the whole week at a glance before diving
  * into the topic deck. Rendered next to Ruben's Take on desktop; stacks
  * underneath on mobile.

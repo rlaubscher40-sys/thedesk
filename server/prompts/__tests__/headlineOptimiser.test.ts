@@ -58,14 +58,14 @@ describe("optimiseHeadlines", () => {
   it("strips em dashes from each field", async () => {
     vi.mocked(invokeLLM).mockResolvedValueOnce(
       JSON.stringify({
-        metaTitle: "Cash rate holds — third meeting",
+        metaTitle: "Cash rate holds, third meeting",
         metaDescription:
-          "The third RBA hold — broker channel gets stability for serviceability conversations heading into next quarter.",
-        socialTitle: "Three holds — counting",
+          "The third RBA hold, broker channel gets stability for serviceability conversations heading into next quarter.",
+        socialTitle: "Three holds, counting",
         socialDescription:
-          "Three holds — what it means for the broker channel this week. Plus the auction-clearance trend that's no longer noise here.",
+          "Three holds, what it means for the broker channel this week. Plus the auction-clearance trend that's no longer noise here.",
         headlineVariants: [
-          "Cash rate holds for the third meeting — brokers get a runway",
+          "Cash rate holds for the third meeting, brokers get a runway",
           "The hold gives brokers a runway",
           "What does steady rates change",
         ],

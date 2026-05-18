@@ -10,7 +10,7 @@ function isSecureRequest(req: Request): boolean {
 
 /**
  * Session cookie options. `sameSite: "lax"` is the right default for our
- * same-origin login flow — the cookie ships with top-level navigations
+ * same-origin login flow, the cookie ships with top-level navigations
  * back to the site, but cross-site requests can't trigger authenticated
  * actions. (The old `"none"` was needed for the cross-origin OAuth
  * redirect that no longer exists.)

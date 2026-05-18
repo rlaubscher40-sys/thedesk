@@ -6,7 +6,7 @@
  *   - Anonymous: localStorage bookmarks. Hydrated by a single feed.getByIds
  *     batch fetch so the same UI can render either source.
  *
- * Both modes share status tabs (All / Unread / Read — Unread/Read only
+ * Both modes share status tabs (All / Unread / Read, Unread/Read only
  * meaningful when authenticated) and a "group by category" toggle that
  * folds the queue into category sections.
  */
@@ -494,8 +494,8 @@ function EmptyState() {
           className="inline-flex items-center gap-1.5 rounded px-3.5 py-2 text-[10px] font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.98]"
           style={{
             background:
-              "linear-gradient(135deg, oklch(0.78 0.18 70) 0%, oklch(0.88 0.19 82) 55%, oklch(0.65 0.16 60) 100%)",
-            color: "oklch(0.10 0.018 260)",
+              "var(--grad-cta-amber)",
+            color: "var(--color-on-amber)",
           }}
         >
           Open Today

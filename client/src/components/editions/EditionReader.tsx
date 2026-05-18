@@ -1,6 +1,6 @@
 /**
  * Top-level reader for a single edition. Slim because every section is its
- * own component with its own error boundary (issue #3) — see EditionHero,
+ * own component with its own error boundary (issue #3), see EditionHero,
  * LeadStory, TopicCard, SignalsBriefs, EditionAdminPanel.
  */
 import type { Edition } from "@shared/types";
@@ -20,7 +20,7 @@ import { TopicCard } from "./TopicCard";
 /**
  * Flatten an edition into a plain-text script the browser's SpeechSynthesis
  * can read end-to-end. Keeps the natural reading order: take, letter, lead,
- * each topic in turn. Signals + dates are skipped — they're scannable, not
+ * each topic in turn. Signals + dates are skipped, they're scannable, not
  * listenable.
  */
 function buildAudioScript(edition: Edition): string {
@@ -42,7 +42,7 @@ export function EditionReader({
   priorMetrics,
 }: {
   edition: Edition;
-  /** Prior edition's keyMetrics — drives the trend arrows on the
+  /** Prior edition's keyMetrics, drives the trend arrows on the
       metrics strip. */
   priorMetrics?: KeyMetrics | null;
 }) {
@@ -149,7 +149,7 @@ export function EditionReader({
       )}
 
       {/* End-of-read Subscribe panel. Highest-conversion surface in the
-          product — the reader has just spent 10 minutes with the editor's
+          product, the reader has just spent 10 minutes with the editor's
           voice, so the offer to keep getting it lands at the right moment. */}
       <SectionErrorBoundary section="Subscribe">
         <div className="mt-16 mb-12">

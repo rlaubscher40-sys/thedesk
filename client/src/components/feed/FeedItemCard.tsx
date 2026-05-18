@@ -134,7 +134,7 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
         categoryAccentClass(item.category)
       )}
     >
-      {/* Metadata bar — category in colour, source + actions on the right. */}
+      {/* Metadata bar, category in colour, source + actions on the right. */}
       <div className="flex items-start justify-between gap-3 mb-4">
         <div className="flex items-center gap-2.5 min-w-0">
           <span
@@ -208,14 +208,14 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
         </div>
       </div>
 
-      {/* Headline — display-3 serif, hover shifts to amber. */}
+      {/* Headline, display-3 serif, hover shifts to amber. */}
       <Link href={`/story/${item.id}`} className="block group">
         <h3 className="display-3 mb-3 group-hover:text-amber-200 transition-colors">
           {item.title}
         </h3>
       </Link>
 
-      {/* Lede. Clamped to keep grid rows visually uniform — summaries
+      {/* Lede. Clamped to keep grid rows visually uniform, summaries
           arrive at wildly different lengths from the LLM enrichment,
           and an uncapped paragraph blows the row height. The full
           summary still surfaces on the story page. */}
@@ -263,7 +263,7 @@ function buildLinkedInDraft(item: DailyFeedItem): string {
     item.summary,
     item.sayThis ? `\nMy take: ${item.sayThis}` : "",
     "",
-    `Via The Desk — ${SITE_DISPLAY}`,
+    `Via The Desk · ${SITE_DISPLAY}`,
   ];
   return lines.filter((l) => l !== "" || true).join("\n").trim();
 }

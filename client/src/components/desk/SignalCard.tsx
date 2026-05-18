@@ -1,6 +1,6 @@
 /**
  * "Further signals" card. Single-column, wide. Lighter weight than the
- * featured / more cards — no Partner Angles list, smaller thumbnail.
+ * featured / more cards, no Partner Angles list, smaller thumbnail.
  *
  * Two-column inside: editorial column left, small 56×56 thumbnail
  * mounted in the top-right.

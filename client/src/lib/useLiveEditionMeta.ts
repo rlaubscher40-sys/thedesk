@@ -47,7 +47,7 @@ export function useLiveEditionMeta(): LiveEditionMeta | null {
     };
   }
 
-  // Real DB but no editions yet — let the caller render an honest
+  // Real DB but no editions yet, let the caller render an honest
   // "—" or empty state rather than seed placeholder data.
   return null;
 }

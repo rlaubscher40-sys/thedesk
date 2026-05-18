@@ -477,7 +477,7 @@ export function countNewFeedback(): number {
 // ─── Users ──────────────────────────────────────────────────────────────────
 
 export function upsertUser(): void {
-  /* No-op in demo mode — the user is fixed. */
+  /* No-op in demo mode, the user is fixed. */
 }
 
 export function getUserByOpenId(openId: string) {
@@ -635,7 +635,7 @@ export function upsertDailyMetric(input: {
 }
 
 /**
- * Edition asset demo stubs — no-op stores so the demo console doesn't
+ * Edition asset demo stubs, no-op stores so the demo console doesn't
  * error when image generation runs, and a null fetcher so the Express
  * route returns 404 in demo mode (the SVG fallback renders client-side).
  */
@@ -656,7 +656,7 @@ export function getLatestEditionAsset(
 }
 
 /**
- * Hero-library demo stubs — empty list, null picks, no-op writes. Demo
+ * Hero-library demo stubs, empty list, null picks, no-op writes. Demo
  * mode skips image generation entirely so the library never gets
  * populated, and these stubs make sure the routers/cron don't error.
  */

@@ -1,5 +1,5 @@
 /**
- * Featured story — front-page lead. Full-width card with a left coloured
+ * Featured story, front-page lead. Full-width card with a left coloured
  * accent bar matching the story's category, larger headline, full dek,
  * SAY THIS quote block, expandable analyst-note context, partner-angles
  * list, and a source-attribution footer.
@@ -39,7 +39,7 @@ export function FeaturedCard({ story }: { story: Story }) {
       style={{ boxShadow: `inset 3px 0 0 0 ${colour}` }}
     >
       <div className="p-8 sm:p-12 lg:p-16">
-        {/* Editorial mast — FEATURED · CATEGORY double-pill + actions. */}
+        {/* Editorial mast, FEATURED · CATEGORY double-pill + actions. */}
         <div className="flex items-start justify-between gap-3 mb-8 flex-wrap">
           <div className="flex items-center gap-3 min-w-0 flex-wrap">
             <FeaturedPill category={story.category} />
@@ -67,7 +67,7 @@ export function FeaturedCard({ story }: { story: Story }) {
           </div>
         </div>
 
-        {/* Headline — display-2 scale. */}
+        {/* Headline, display-2 scale. */}
         <h2 className="display-2 mb-7 max-w-[28ch]">{story.headline}</h2>
 
         {/* Dek. */}
@@ -107,7 +107,7 @@ export function FeaturedCard({ story }: { story: Story }) {
               "border-[var(--color-border-strong)]"
             )}
           >
-            Use the Share button on the Say This block — it copies the line and opens LinkedIn.
+            Use the Share button on the Say This block, it copies the line and opens LinkedIn.
           </p>
         )}
       </div>

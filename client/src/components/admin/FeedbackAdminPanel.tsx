@@ -173,7 +173,7 @@ function FeedbackRow({
             <span
               className="font-mono uppercase tracking-[0.18em] rounded-sm px-1.5 py-0.5"
               style={{
-                fontSize: "9px",
+                fontSize: "10px",
                 background: "oklch(0.78 0.18 70 / 18%)",
                 color: "oklch(0.92 0.18 80)",
               }}
@@ -248,7 +248,7 @@ function shortPath(url: string): string {
 }
 
 function shortUserAgent(ua: string): string {
-  // Coarse browser-family extraction — enough for the admin to know
+  // Coarse browser-family extraction, enough for the admin to know
   // "iOS Safari" vs "Chrome desktop" at a glance.
   if (/iPhone|iPad/.test(ua)) return "iOS Safari";
   if (/Android/.test(ua)) return "Android";

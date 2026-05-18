@@ -1,5 +1,5 @@
 /**
- * Subscribe rail card — email + Subscribe button. Posts to the
+ * Subscribe rail card, email + Subscribe button. Posts to the
  * `subscribers.subscribe` tRPC mutation (double-opt-in: a confirm token is
  * returned which would normally arrive by email). Falls back to a toast on
  * server error so the rail never breaks the page.
@@ -25,7 +25,7 @@ export function Subscribe({ source = "right-rail" }: { source?: string }) {
       }
     },
     onError: () => {
-      toast.error("Couldn't subscribe right now — try again in a minute.");
+      toast.error("Couldn't subscribe right now, try again in a minute.");
     },
   });
 
@@ -56,18 +56,16 @@ export function Subscribe({ source = "right-rail" }: { source?: string }) {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@firm.com"
-          className="px-3 py-2 rounded text-sm bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors"
+          className="px-3 py-2 rounded text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors"
           aria-label="Email address"
         />
         <button
           type="submit"
           disabled={busy}
-          className="px-3.5 py-2 rounded text-xs font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.98] disabled:opacity-50"
+          className="px-3.5 py-2 rounded text-xs font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.98] disabled:opacity-50 text-[var(--color-on-amber)]"
           style={{
-            background:
-              "linear-gradient(135deg, oklch(0.78 0.18 70) 0%, oklch(0.88 0.19 82) 50%, oklch(0.68 0.16 60) 100%)",
-            color: "oklch(0.10 0.018 260)",
-            boxShadow: "0 4px 16px oklch(0.75 0.18 70 / 25%)",
+            background: "var(--grad-cta-amber)",
+            boxShadow: "0 4px 16px var(--color-amber-glow)",
           }}
         >
           {busy ? "Subscribing…" : "Subscribe"}

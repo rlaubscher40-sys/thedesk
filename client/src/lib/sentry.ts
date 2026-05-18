@@ -17,7 +17,7 @@ export function initSentry(): void {
     environment:
       (import.meta.env.VITE_SENTRY_ENVIRONMENT as string | undefined) ??
       "production",
-    // Modest sample rate — for a low-volume editorial product we don't
+    // Modest sample rate, for a low-volume editorial product we don't
     // need full-trace performance data, but a small sample lets us
     // spot regressions.
     tracesSampleRate: 0.1,

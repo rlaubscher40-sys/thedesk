@@ -1,6 +1,6 @@
 /**
  * Card for a single edition topic. Designed as a proper article, not a
- * preview — but collapsible: by default only the headline, italic summary
+ * preview, but collapsible: by default only the headline, italic summary
  * and "why it matters" hook show, with a button to expand the full deep
  * dive (body, key takeaway, what to watch, talking points). Keeps the
  * topic deck scannable without losing the long-form value.
@@ -83,7 +83,7 @@ export function TopicCard({
             style={{
               color: colour,
               letterSpacing: "0.22em",
-              fontSize: "9px",
+              fontSize: "10px",
             }}
           >
             Why this matters
@@ -94,7 +94,7 @@ export function TopicCard({
         </div>
       )}
 
-      {/* Deep dive — collapsed by default. The summary + whyItMatters give
+      {/* Deep dive, collapsed by default. The summary + whyItMatters give
           the reader enough to decide whether to expand. */}
       {expanded && (
         <>

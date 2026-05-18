@@ -1,5 +1,5 @@
 /**
- * Public corrections log. A newsroom-grade trust signal — we publish the
+ * Public corrections log. A newsroom-grade trust signal, we publish the
  * mistakes we've made and how we fixed them. Entries are kept in this file
  * so the log itself is in version control (no CMS overhead). When a
  * correction is warranted, add an entry to the array below.
@@ -18,7 +18,7 @@ type Correction = {
 };
 
 /**
- * The log itself. Empty is a perfectly reasonable initial state — we keep
+ * The log itself. Empty is a perfectly reasonable initial state, we keep
  * the page live so readers know the channel exists.
  */
 const CORRECTIONS: Correction[] = [];
@@ -39,9 +39,10 @@ export default function Corrections() {
         </h1>
         <p className="text-sm text-[var(--color-fg-muted)]">
           Where we've fixed something publicly. Reply to any brief to flag an
-          error — you'll get a same-day response.
+          error, you'll get a same-day response.
         </p>
       </header>
+      <div className="editorial-rule-soft" aria-hidden="true" />
 
       <section className="mt-8">
         {CORRECTIONS.length === 0 ? (
@@ -50,9 +51,9 @@ export default function Corrections() {
               No corrections logged yet.
             </p>
             <p>
-              That's the goal, not the brag. If you spot something wrong — a
+              That's the goal, not the brag. If you spot something wrong, a
               misquoted figure, a misattributed source, a date that doesn't
-              check out — email{" "}
+              check out, email{" "}
               <a
                 href="mailto:ruben@investorkit.com.au"
                 className="text-amber-300 hover:text-amber-200 transition-colors"
@@ -75,7 +76,7 @@ export default function Corrections() {
                 <div>
                   <p
                     className="overline-amber"
-                    style={{ letterSpacing: "0.2em", fontSize: "9px" }}
+                    style={{ letterSpacing: "0.2em", fontSize: "10px" }}
                   >
                     Issued
                   </p>
@@ -88,7 +89,7 @@ export default function Corrections() {
                   </p>
                   <p
                     className="overline-amber mt-4"
-                    style={{ letterSpacing: "0.2em", fontSize: "9px" }}
+                    style={{ letterSpacing: "0.2em", fontSize: "10px" }}
                   >
                     Ref
                   </p>
@@ -117,7 +118,7 @@ export default function Corrections() {
       <section className="mt-10 pt-6 border-t border-[var(--color-border)]">
         <h2 className="font-serif text-2xl mt-2">How we handle them</h2>
         <p className="mt-3 text-[var(--color-fg-muted)]">
-          Factual errors are corrected at the source — the affected story is
+          Factual errors are corrected at the source, the affected story is
           updated with an "Updated" timestamp and a brief note explaining what
           changed. The fix is then logged here so the record is public, not
           just patched. Edits that don't change meaning (typos, copy polish)

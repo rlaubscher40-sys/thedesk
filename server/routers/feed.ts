@@ -17,7 +17,7 @@ export const feedRouter = router({
     .query(async ({ input }) => db.getFeedItemById(input.id)),
 
   /**
-   * Batch fetch — used by the anonymous reading queue which keeps a
+   * Batch fetch, used by the anonymous reading queue which keeps a
    * localStorage list of saved item ids and needs to hydrate them all
    * in one request. Capped at 60 so callers can't pull the world.
    */

@@ -5,7 +5,7 @@
  * anonymous and can read everything that's public. Admin operations are
  * gated by a single `ADMIN_PASSWORD` env var:
  *
- *   1. POST /api/auth/login with { password } — verified against
+ *   1. POST /api/auth/login with { password }, verified against
  *      env.adminPassword, sets a signed JWT cookie.
  *   2. Subsequent requests carry the cookie. `authenticateRequest()`
  *      verifies it and returns the synthetic admin user.
@@ -36,7 +36,7 @@ class AuthSdk {
     const expected = env.adminPassword;
     if (!expected) return false;
     if (password.length !== expected.length) return false;
-    // Constant-time compare — protects against timing attacks even at this scale.
+    // Constant-time compare, protects against timing attacks even at this scale.
     let mismatch = 0;
     for (let i = 0; i < expected.length; i++) {
       mismatch |= expected.charCodeAt(i) ^ password.charCodeAt(i);

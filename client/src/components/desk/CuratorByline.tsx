@@ -19,7 +19,7 @@ export function CuratorByline() {
       target="_blank"
       rel="noopener noreferrer"
       className="mt-3 inline-flex items-center gap-2 group"
-      aria-label="Curated by Ruben Laubscher — open LinkedIn"
+      aria-label="Curated by Ruben Laubscher, open LinkedIn"
     >
       <span
         className="block rounded-full overflow-hidden relative shrink-0"
@@ -33,7 +33,7 @@ export function CuratorByline() {
         {!failed ? (
           <img
             src={HEADSHOT}
-            alt=""
+            alt="Ruben Laubscher"
             className="w-full h-full object-cover"
             loading="lazy"
             decoding="async"
@@ -55,7 +55,7 @@ export function CuratorByline() {
       </span>
       <span
         className="font-mono uppercase text-[var(--color-fg-subtle)] group-hover:text-amber-300 transition-colors"
-        style={{ fontSize: "9px", letterSpacing: "0.2em" }}
+        style={{ fontSize: "10px", letterSpacing: "0.2em" }}
       >
         Curated · Ruben Laubscher
       </span>

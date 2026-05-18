@@ -1,11 +1,11 @@
 /**
- * "Today in brief" scan strip — dot-point summary of today's stories so a
+ * "Today in brief" scan strip, dot-point summary of today's stories so a
  * reader can absorb the day in 10 seconds before drilling into the lead
  * card and the rest of the feed.
  *
  * Each row: category accent, the headline as a tap target to the
  * underlying /story/:id page, and the sayThis line (if present) as
- * a faded sub-line. Collapsible — defaults expanded on desktop and
+ * a faded sub-line. Collapsible, defaults expanded on desktop and
  * collapsed on mobile, choice persists to localStorage.
  */
 import { useEffect, useState } from "react";

@@ -46,7 +46,7 @@ export function buildSubstackDraftPrompt(input: SubstackDraftInput): string {
 
 This essay is based on his weekly intelligence edition: ${input.weekRange}
 
-Ruben's Take (editorial hook, already written by Ruben): ${input.rubensTake || "(not yet written — write your own scene-setting opener)"}
+Ruben's Take (editorial hook, already written by Ruben): ${input.rubensTake || "(not yet written, write your own scene-setting opener)"}
 
 Top topics from this edition:
 ${formatTopics(input.topics)}

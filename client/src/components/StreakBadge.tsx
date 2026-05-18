@@ -3,7 +3,7 @@
  * (a single visit isn't a streak yet). Tier-coloured: amber → emerald
  * → champagne as the streak grows. Tooltip surfaces the longest run.
  *
- * Bigger than v2 — the count was reading as a forgettable secondary
+ * Bigger than v2, the count was reading as a forgettable secondary
  * stat. Now it's a small editorial moment: glowing flame, big serif
  * number, tier label below in mono, longest-run accent if relevant.
  * Fills the available sidebar width.
@@ -92,14 +92,14 @@ export function StreakBadge({ collapsed }: { collapsed?: boolean }) {
           </div>
           <p
             className="font-mono uppercase tracking-[0.16em] mt-1.5 truncate"
-            style={{ color: `${style.colour}cc`, fontSize: "9px" }}
+            style={{ color: `${style.colour}cc`, fontSize: "10px" }}
           >
             {style.label}
           </p>
           {longest > current && (
             <p
               className="font-mono tabular-nums mt-0.5"
-              style={{ color: `${style.colour}99`, fontSize: "9px", letterSpacing: "0.12em" }}
+              style={{ color: `${style.colour}99`, fontSize: "10px", letterSpacing: "0.12em" }}
               title={`Longest run: ${longest} days`}
             >
               ↑ {longest} best

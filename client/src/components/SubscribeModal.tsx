@@ -1,7 +1,7 @@
 /**
  * First-visit Subscribe modal.
  *
- * Triggers when the reader has clearly engaged with the content — past
+ * Triggers when the reader has clearly engaged with the content, past
  * the lead card and at least 1.4 viewport-heights into the feed —
  * rather than on a blind 30-second timer. The earlier timing felt
  * aggressive in tester feedback: it kept interrupting people mid-
@@ -13,7 +13,7 @@
  * fires first.
  *
  * The form captures the email through tRPC (double-opt-in) and stays
- * in-app to show the "check your inbox" confirmation state — no
+ * in-app to show the "check your inbox" confirmation state, no
  * hand-off to Substack mid-flow. Substack is offered as a separate
  * "Read the long-form essays" link below the form for users who
  * already use it.
@@ -22,15 +22,16 @@
  * permanently.
  */
 import { useEffect, useState } from "react";
-import { CheckCircle2, ExternalLink, Rss, Sparkles, X } from "lucide-react";
+import { CheckCircle2, ExternalLink, Rss, X } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 import { Honeypot } from "@/components/Honeypot";
+import { Logomark } from "@/components/Logomark";
 import { trpc } from "@/lib/trpc";
 
 const STORAGE_KEY = "thedesk:subscribe-modal-seen";
 const SUBSTACK_URL = "https://rubenlaubscher.substack.com/";
-/** Backstop timer for readers who never scroll — open the tab, leave
+/** Backstop timer for readers who never scroll, open the tab, leave
  *  it, come back. 90s is long enough that scroll-engaged readers hit
  *  the scroll trigger first. */
 const BACKSTOP_DELAY_MS = 90_000;
@@ -85,7 +86,7 @@ export function SubscribeModal() {
   const subscribeMut = trpc.subscribers.subscribe.useMutation({
     onSuccess: () => setDone(true),
     onError: () => {
-      toast.error("Couldn't subscribe right now — try again in a minute.");
+      toast.error("Couldn't subscribe right now, try again in a minute.");
     },
   });
 
@@ -127,7 +128,9 @@ export function SubscribeModal() {
           {done ? (
             <CheckCircle2 className="absolute top-6 left-7 h-8 w-8 text-amber-300/80" strokeWidth={1.4} />
           ) : (
-            <Sparkles className="absolute top-6 left-7 h-8 w-8 text-amber-300/80" strokeWidth={1.4} />
+            <div className="absolute top-6 left-7">
+              <Logomark size={32} animated={false} />
+            </div>
           )}
         </div>
 
@@ -155,7 +158,7 @@ export function SubscribeModal() {
                 Check your inbox.
               </h2>
               <p className="text-base text-[var(--color-fg-muted)] leading-relaxed mb-6">
-                A confirmation link is on its way to <span className="text-[var(--color-fg)]">{email}</span>. Click it to lock in your subscription — it expires in 24 hours.
+                A confirmation link is on its way to <span className="text-[var(--color-fg)]">{email}</span>. Click it to lock in your subscription, it expires in 24 hours.
               </p>
               <button
                 onClick={() => dismiss("subscribed")}
@@ -193,24 +196,22 @@ export function SubscribeModal() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@firm.com"
-                  className="w-full px-4 py-3 rounded-sm text-base bg-black/30 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors"
+                  className="w-full px-4 py-3 rounded-sm text-base bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors"
                   aria-label="Email address"
                 />
                 <div className="flex items-center gap-2 flex-wrap">
                   <button
                     type="submit"
                     disabled={busy}
-                    className="flex-1 min-w-[180px] inline-flex items-center justify-center gap-2 rounded-sm px-4 py-3 text-xs font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.98] disabled:opacity-50"
+                    className="flex-1 min-w-[180px] inline-flex items-center justify-center gap-2 rounded-sm px-4 py-3 text-xs font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.98] disabled:opacity-50 text-[var(--color-on-amber)]"
                     style={{
-                      background:
-                        "linear-gradient(135deg, oklch(0.78 0.18 70) 0%, oklch(0.88 0.19 82) 55%, oklch(0.65 0.16 60) 100%)",
-                      color: "oklch(0.10 0.018 260)",
+                      background: "var(--grad-cta-amber)",
                       boxShadow:
-                        "0 1px 0 oklch(1 0 0 / 18%) inset, 0 4px 14px oklch(0.75 0.18 70 / 28%)",
+                        "0 1px 0 oklch(1 0 0 / 18%) inset, 0 4px 14px var(--color-amber-glow)",
                     }}
                   >
                     <Rss className="h-3.5 w-3.5" />
-                    {busy ? "Subscribing…" : "Subscribe — it's free"}
+                    {busy ? "Subscribing…" : "Subscribe, it's free"}
                   </button>
                   <button
                     type="button"

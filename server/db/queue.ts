@@ -10,7 +10,7 @@ export async function getEnrichedQueue(userId: number) {
   if (isDemoMode()) return demoQueries.getEnrichedQueue(userId);
   const db = getDb();
   if (!db) return [];
-  // Left-join to feed items in a single round-trip — the reference code did N+1.
+  // Left-join to feed items in a single round-trip, the reference code did N+1.
   const rows = await db
     .select({
       queue: readingQueue,

@@ -92,13 +92,13 @@ export default function StoryPage() {
                 itemQuery.data.summary,
                 itemQuery.data.sayThis ? `\nMy take: ${itemQuery.data.sayThis}` : "",
                 "",
-                `Via The Desk — ${SITE_DISPLAY}`,
+                `Via The Desk · ${SITE_DISPLAY}`,
               ]
                 .join("\n")
                 .trim()}
             />
 
-            {/* End-of-read Subscribe panel. Compact variant — story pages
+            {/* End-of-read Subscribe panel. Compact variant, story pages
                 are shorter reads than editions. */}
             <div className="mt-12">
               <SubscribeCallout source="story-foot" variant="story" />

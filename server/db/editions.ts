@@ -15,10 +15,10 @@ export async function listEditions(): Promise<Edition[]> {
 /**
  * Lean list for list views. Drops the heavy text columns the editions
  * list / picker / Trends hero never read:
- *   - `fullText`        — multi-KB editor's letter
- *   - `substackDraftBody` — multi-KB essay draft
- *   - `topics`          — JSON deck (only needed when reading one edition)
- *   - `signals`         — array of strings, only used in the reader
+ *   - `fullText`       , multi-KB editor's letter
+ *   - `substackDraftBody`, multi-KB essay draft
+ *   - `topics`         , JSON deck (only needed when reading one edition)
+ *   - `signals`        , array of strings, only used in the reader
  *
  * On a 30-edition list this cuts the JSON payload from MBs to tens of
  * KBs and keeps the React Query cache lightweight on mobile.
@@ -62,7 +62,7 @@ export async function listEditionSummaries() {
       datesToWatch: editions.datesToWatch,
       metaTitle: editions.metaTitle,
       socialTitle: editions.socialTitle,
-      // SQL-side boolean — "draft exists with non-empty body".
+      // SQL-side boolean, "draft exists with non-empty body".
       hasDraft: sql<boolean>`(${editions.substackDraftBody} IS NOT NULL AND ${editions.substackDraftBody} <> '')`,
     })
     .from(editions)

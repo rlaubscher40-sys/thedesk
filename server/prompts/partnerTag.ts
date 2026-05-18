@@ -19,7 +19,7 @@ Story title: ${input.title}
 Summary: ${input.summary || "(no summary)"}
 Existing single-persona angle: ${input.existingTag || "(none)"}
 
-FIRST, check whether this story has genuine partner-channel relevance — property, lending, regulation, macro / markets, super, ATO, RBA, APRA, broker / adviser workflows. If the story is sport, entertainment, lifestyle, celebrity, true crime, weather, or any other beat with NO real partner-channel hook: respond with exactly the literal token SKIP and nothing else. Do not invent a contrived angle just to fill four lines.
+FIRST, check whether this story has genuine partner-channel relevance, property, lending, regulation, macro / markets, super, ATO, RBA, APRA, broker / adviser workflows. If the story is sport, entertainment, lifestyle, celebrity, true crime, weather, or any other beat with NO real partner-channel hook: respond with exactly the literal token SKIP and nothing else. Do not invent a contrived angle just to fill four lines.
 
 Otherwise, write EXACTLY 4 lines, one per persona, in this format:
 ${PARTNER_TAG_LABELS[0]}: [one sentence, max 20 words, for corporate employers / HR / salary packaging / financial wellness programs]
@@ -37,7 +37,7 @@ Rules:
 
 /**
  * Generate a 4-persona tag. Returns null when:
- *   - the LLM emits the SKIP token (genuinely off-topic story — the
+ *   - the LLM emits the SKIP token (genuinely off-topic story, the
  *     story stays in the feed but doesn't get partner angles forced
  *     onto it)
  *   - the response is malformed (missing labels)

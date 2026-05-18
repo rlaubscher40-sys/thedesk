@@ -1,5 +1,5 @@
 /**
- * Today — full-bleed daily-intelligence dashboard.
+ * Today, full-bleed daily-intelligence dashboard.
  *
  * Wired to the database when there are real feed items, falls back to the
  * curated seed Story array when the DB is empty (dev / first-boot / preview).
@@ -9,10 +9,11 @@
  *   - Grid below = items 2..7 (six in a 3-up at lg)
  *   - Signal column = everything beyond that, single-column
  *
- * Seed layout (untouched — same demo as before):
+ * Seed layout (untouched, same demo as before):
  *   - Featured → More → Further sections from the static stories array
  */
 import { useMemo, useState } from "react";
+import { useLocation, useSearch } from "wouter";
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
 import { StaggerList } from "@/components/StaggerList";
 import { DatePager } from "@/components/desk/DatePager";
@@ -33,17 +34,68 @@ import { FeedItemCard } from "@/components/feed/FeedItemCard";
 import { FeedSignalStrip } from "@/components/feed/FeedSignalStrip";
 import { TodayInBrief } from "@/components/feed/TodayInBrief";
 import { editionMeta, stories } from "@/data/editions/2026-05-15";
+import { getSydneyIsoDate } from "@/lib/date";
 import { useFilteredFeed } from "@/lib/useFilteredFeed";
 import { trpc } from "@/lib/trpc";
+
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export default function DailyFeed() {
   const [filter, setFilter] = useState<CategoryFilter>("ALL");
 
-  // Pull today's items from the DB. `staleTime` keeps it warm for a minute
-  // so navigating away and back doesn't refetch.
-  const feedQuery = trpc.feed.getByDate.useQuery(undefined, {
-    staleTime: 60_000,
+  // ── Historical day paging. The Today page accepts `?date=YYYY-MM-DD` so
+  //    a reader can step back through past days; missing/invalid param
+  //    resolves to the Sydney "today". DatePager is controlled, the prev /
+  //    next chevrons walk the `getRecentDates` list (days that actually have
+  //    items) rather than blindly decrementing the calendar.
+  const search = useSearch();
+  const [, navigate] = useLocation();
+  const todayIso = getSydneyIsoDate();
+  const dateParam = new URLSearchParams(search).get("date");
+  const date = dateParam && ISO_DATE_RE.test(dateParam) ? dateParam : todayIso;
+  const isToday = date === todayIso;
+
+  const recentDatesQuery = trpc.feed.getRecentDates.useQuery(undefined, {
+    staleTime: 5 * 60_000,
   });
+  const availableDates = recentDatesQuery.data ?? [];
+
+  const { prevDate, nextDate } = useMemo(() => {
+    // Available dates are newest-first; the current `date` may or may not
+    // be in the list (today might not have items yet).
+    let prev: string | null = null;
+    for (const d of availableDates) {
+      if (d < date) {
+        prev = d;
+        break;
+      }
+    }
+    let next: string | null = null;
+    for (let i = availableDates.length - 1; i >= 0; i--) {
+      const candidate = availableDates[i];
+      if (candidate && candidate > date) {
+        next = candidate;
+        break;
+      }
+    }
+    // If we're viewing a past date and today is newer than every available
+    // date, still allow navigating forward to today (which might be empty
+    // but is reachable as the canonical "Today").
+    if (!next && date < todayIso) next = todayIso;
+    return { prevDate: prev, nextDate: next };
+  }, [availableDates, date, todayIso]);
+
+  function gotoDate(target: string) {
+    if (target === todayIso) navigate("/");
+    else navigate(`/?date=${target}`);
+  }
+
+  // Pull the selected day's items from the DB. `staleTime` keeps it warm
+  // for a minute so navigating away and back doesn't refetch.
+  const feedQuery = trpc.feed.getByDate.useQuery(
+    { date },
+    { staleTime: 60_000 }
+  );
   // Distinguish "no DB configured" (demo mode → render seed) from "DB
   // configured but empty" (production after a wipe → render empty state
   // with a re-run hint, not stale placeholders).
@@ -95,8 +147,8 @@ export default function DailyFeed() {
   //
   // The split is editorial, not positional: a story earns the full
   // "More from today" treatment if it has a Say This line or partner
-  // angles attached — i.e. the LLM judged it commercially relevant.
-  // Stories without either (trending / awareness pieces — shark
+  // angles attached, i.e. the LLM judged it commercially relevant.
+  // Stories without either (trending / awareness pieces, shark
   // attacks, celebrity news, off-beat global signals) drop into the
   // "Further signals" strip.
   //
@@ -140,7 +192,7 @@ export default function DailyFeed() {
   const gridSize = Math.floor(angledSorted.length / GRID_COLS) * GRID_COLS;
   const liveGrid = angledSorted.slice(0, gridSize);
   // Anything that didn't fit a complete row joins the signals strip —
-  // angle-bearing or not — so the page never shows a lonely card with
+  // angle-bearing or not, so the page never shows a lonely card with
   // two empty columns beside it.
   const liveSignals = [...angledSorted.slice(gridSize), ...nonAngled];
 
@@ -156,7 +208,14 @@ export default function DailyFeed() {
 
       <div className="space-y-5">
         <div className="flex items-center justify-between gap-4 flex-wrap">
-          <DatePager />
+          <DatePager
+            date={date}
+            isToday={isToday}
+            canGoPrev={prevDate !== null}
+            canGoNext={nextDate !== null}
+            onPrev={() => prevDate && gotoDate(prevDate)}
+            onNext={() => nextDate && gotoDate(nextDate)}
+          />
           <PersonaSwitcher />
         </div>
         <SectionErrorBoundary section="Filters">
@@ -175,13 +234,13 @@ export default function DailyFeed() {
 
       {/* ── Live feed (DB-driven) ────────────────────────────────────── */}
       {!hasLiveData && !isDemo && feedQuery.isSuccess && (
-        // Real DB, zero items. Don't show seed placeholders — they were
+        // Real DB, zero items. Don't show seed placeholders, they were
         // misleading after a wipe. Tell the editor what to do next.
         <EmptyFeedState />
       )}
       {hasLiveData ? (
         <>
-          {/* Scan strip — every story today as dot points so partners can
+          {/* Scan strip, every story today as dot points so partners can
               absorb the day in 10 seconds before drilling in. */}
           <SectionErrorBoundary section="Today in brief">
             <TodayInBrief items={feedItems} />
@@ -226,7 +285,7 @@ export default function DailyFeed() {
           )}
         </>
       ) : isDemo ? (
-        // ── Seed fallback — demo mode only. With a real DB but zero
+        // ── Seed fallback, demo mode only. With a real DB but zero
         //    items we render <EmptyFeedState /> above this block instead.
         <>
           {featured && (
@@ -285,7 +344,7 @@ export default function DailyFeed() {
         <LinkedInStrip />
       </SectionErrorBoundary>
 
-      {/* Support strip replaces the right rail — four cards in one band. */}
+      {/* Support strip replaces the right rail, four cards in one band. */}
       <SectionErrorBoundary section="Support strip">
         <section className="pt-4">
           <SectionDivider label="The desk" />

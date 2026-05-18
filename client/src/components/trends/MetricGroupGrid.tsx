@@ -1,10 +1,10 @@
 /**
- * Trends-page metric grid — every live `daily_metrics` row rendered as a
+ * Trends-page metric grid, every live `daily_metrics` row rendered as a
  * tile with a real 30-day sparkline (from `daily_metric_history`), sectioned
  * by groupKey so MACRO / PROPERTY / LABOUR / MARKETS / DEMOGRAPHICS each
  * land in their own panel.
  *
- * This is the deeper sibling of the Today-page MetricsStrip — same data,
+ * This is the deeper sibling of the Today-page MetricsStrip, same data,
  * larger tiles, longer sparklines, room to render the context blurb at
  * full width.
  */
@@ -157,7 +157,7 @@ function MetricRow({
         {metric.source && (
           <span
             className="overline text-[var(--color-fg-subtle)]"
-            style={{ letterSpacing: "0.16em", fontSize: "9px" }}
+            style={{ letterSpacing: "0.16em", fontSize: "10px" }}
           >
             {metric.source}
           </span>

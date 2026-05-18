@@ -1,5 +1,5 @@
 /**
- * Admin login. There's only one user (Ruben) — entering the right password
+ * Admin login. There's only one user (Ruben), entering the right password
  * sets a signed session cookie and redirects to /admin. Public visitors
  * never see this page; they get to everything that's public without
  * authenticating.
@@ -7,6 +7,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { Loader2, Lock } from "lucide-react";
+import { BrandLockup } from "@/components/Logomark";
 import { trpc } from "@/lib/trpc";
 
 export default function Login() {
@@ -36,7 +37,7 @@ export default function Login() {
       await utils.auth.me.invalidate();
       navigate("/admin");
     } catch (err) {
-      setError("Network error — try again.");
+      setError("Network error, try again.");
     } finally {
       setBusy(false);
     }
@@ -45,32 +46,22 @@ export default function Login() {
   return (
     <div className="max-w-md mx-auto py-16">
       <div className="panel rounded-sm p-8 sm:p-10 space-y-6">
-        <div className="flex items-center gap-3">
-          <span
-            className="h-9 w-9 rounded-full flex items-center justify-center shrink-0"
-            style={{
-              background: "oklch(0.78 0.18 70 / 14%)",
-              boxShadow: "inset 0 0 0 1px oklch(0.78 0.18 70 / 32%)",
-            }}
+        <BrandLockup size={36} />
+        <div>
+          <p
+            className="overline-amber"
+            style={{ letterSpacing: "0.22em", fontSize: "10px" }}
           >
-            <Lock className="h-4 w-4 text-amber-300" />
-          </span>
-          <div>
-            <p
-              className="overline-amber"
-              style={{ letterSpacing: "0.22em", fontSize: "10px" }}
-            >
-              The Desk · Admin
-            </p>
-            <h1 className="font-serif text-2xl font-bold leading-tight mt-1">
-              Sign in
-            </h1>
-          </div>
+            Curator access
+          </p>
+          <h1 className="font-serif text-2xl font-bold leading-tight mt-1">
+            Sign in
+          </h1>
         </div>
 
         <p className="text-sm text-[var(--color-fg-muted)] leading-relaxed">
           The public site is open to all readers. This page is for the curator
-          — sign in to access /admin and any owner-only controls.
+         , sign in to access /admin and any owner-only controls.
         </p>
 
         <form onSubmit={submit} className="space-y-3">
@@ -81,19 +72,17 @@ export default function Login() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
-            className="w-full px-4 py-3 rounded-sm text-base bg-black/30 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors"
+            className="w-full px-4 py-3 rounded-sm text-base bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors"
             aria-label="Admin password"
           />
           <button
             type="submit"
             disabled={busy || !password}
-            className="inline-flex items-center justify-center gap-2 w-full rounded-sm px-4 py-3 text-xs font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.98] disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 w-full rounded-sm px-4 py-3 text-xs font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.98] disabled:opacity-50 text-[var(--color-on-amber)]"
             style={{
-              background:
-                "linear-gradient(135deg, oklch(0.78 0.18 70) 0%, oklch(0.88 0.19 82) 55%, oklch(0.65 0.16 60) 100%)",
-              color: "oklch(0.10 0.018 260)",
+              background: "var(--grad-cta-amber)",
               boxShadow:
-                "0 1px 0 oklch(1 0 0 / 18%) inset, 0 4px 14px oklch(0.75 0.18 70 / 28%)",
+                "0 1px 0 oklch(1 0 0 / 18%) inset, 0 4px 14px var(--color-amber-glow)",
             }}
           >
             {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Lock className="h-3.5 w-3.5" />}

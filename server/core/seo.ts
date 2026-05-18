@@ -1,5 +1,5 @@
 /**
- * SEO routes — sitemap.xml + feed.xml + per-edition meta tag injection.
+ * SEO routes, sitemap.xml + feed.xml + per-edition meta tag injection.
  *
  * The XML routes pull the editions list from the database and emit
  * properly-formed XML. The edition route intercepts `/editions/:n` HTML
@@ -15,6 +15,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { DEFAULT_SITE_URL } from "../../shared/const";
 import * as db from "../db";
+import { renderEditionCard } from "../og/editionCard";
 
 function siteUrl(req: Request): string {
   if (process.env.SITE_URL) return process.env.SITE_URL.replace(/\/+$/, "");
@@ -44,7 +45,7 @@ function htmlEscape(s: string): string {
 /**
  * Intercept `/editions/:n` HTML requests, look up the edition, and serve
  * the static index.html with that edition's meta tags substituted in.
- * Production only — in dev the vite middleware owns the catch-all.
+ * Production only, in dev the vite middleware owns the catch-all.
  *
  * Calls next() (falling through to the SPA shell) on any miss: bad
  * editionNumber, edition not found, non-HTML accept header, missing build,
@@ -78,24 +79,21 @@ async function handleEditionMeta(
     const description =
       edition.metaDescription ??
       edition.rubensTake ??
-      `Weekly intelligence for property partnerships — Edition ${edition.editionNumber}.`;
+      `Weekly intelligence for property partnerships, Edition ${edition.editionNumber}.`;
     const ogTitle = edition.socialTitle ?? title;
     const ogDescription = edition.socialDescription ?? description;
-    // heroImageUrl is a relative path post-refactor (`/api/images/...`).
-    // OG/Twitter crawlers need an absolute URL — prepend the site origin.
-    const heroPath = edition.heroImageUrl;
-    const ogImage = heroPath
-      ? heroPath.startsWith("http")
-        ? heroPath
-        : `${siteUrl(req)}${heroPath}`
-      : null;
+    // Branded per-edition OG card, same surface as the masthead, so
+    // a LinkedIn / X / Slack share preview reads as continuous with
+    // the site rather than as whatever hero illustration we happened
+    // to stock the article with.
+    const ogImage = `${siteUrl(req)}/og/editions/${edition.editionNumber}.png`;
     const canonical = `${siteUrl(req)}/editions/${edition.editionNumber}`;
 
     // Replace the static defaults in place.
     html = html
       .replace(
         /<title>[\s\S]*?<\/title>/,
-        `<title>${htmlEscape(title)} — The Desk</title>`
+        `<title>${htmlEscape(title)}, The Desk</title>`
       )
       .replace(
         /<meta\s+name="description"\s+content="[^"]*"\s*\/?>/,
@@ -111,22 +109,23 @@ async function handleEditionMeta(
       );
 
     // Append the tags index.html doesn't ship by default. og:type flips
-    // to "article" for editions; the rest are additive.
+    // to "article" for editions; the rest are additive. The default
+    // index.html already declares og:image at 1200x630 pointing at the
+    // homepage card, so we override that to the per-edition card here
+    // (the in-place rewrite below replaces the existing tag).
     const additions = [
       `<meta property="og:type" content="article" />`,
       `<meta property="og:url" content="${htmlEscape(canonical)}" />`,
-      ogImage
-        ? `<meta property="og:image" content="${htmlEscape(ogImage)}" />`
-        : null,
       `<meta name="twitter:title" content="${htmlEscape(ogTitle)}" />`,
       `<meta name="twitter:description" content="${htmlEscape(ogDescription)}" />`,
-      ogImage
-        ? `<meta name="twitter:image" content="${htmlEscape(ogImage)}" />`
-        : null,
+      `<meta name="twitter:image" content="${htmlEscape(ogImage)}" />`,
       `<link rel="canonical" href="${htmlEscape(canonical)}" />`,
-    ]
-      .filter(Boolean)
-      .join("\n    ");
+    ].join("\n    ");
+
+    html = html.replace(
+      /<meta\s+property="og:image"\s+content="[^"]*"\s*\/?>/,
+      `<meta property="og:image" content="${htmlEscape(ogImage)}" />`
+    );
 
     html = html.replace("</head>", `    ${additions}\n  </head>`);
 
@@ -146,7 +145,7 @@ async function handleEditionMeta(
  * Serve a stored AI-generated image (hero or substack) for an edition.
  * URL: /api/images/edition/:id/:kind  → returns the binary with the
  * stored content-type. 404 if the edition has no asset of that kind.
- * Aggressively cacheable — images regenerate at most once a week.
+ * Aggressively cacheable, images regenerate at most once a week.
  */
 async function handleEditionImage(
   req: Request,
@@ -178,7 +177,7 @@ async function handleEditionImage(
 
 /**
  * Serve a hero-library image. URL: /api/images/hero-library/:id. Same
- * aggressive cache headers as edition images — library bytes never
+ * aggressive cache headers as edition images, library bytes never
  * mutate in place (admins delete + replace), so an immutable cache is
  * safe.
  */
@@ -209,9 +208,47 @@ async function handleHeroLibraryImage(
   }
 }
 
+/**
+ * Branded OG card for an edition. Rendered with satori + resvg from
+ * the bundled Playfair / JetBrains Mono TTFs (see server/og). Cached
+ * in memory per-edition and immutable downstream, the cache key
+ * busts whenever the edition is republished, so an updated headline
+ * propagates to the next preview without manual purging.
+ */
+async function handleEditionOgCard(
+  req: Request,
+  res: Response
+): Promise<void> {
+  const editionNumber = parseInt(req.params.n ?? "", 10);
+  if (!Number.isFinite(editionNumber) || editionNumber <= 0) {
+    res.status(400).send("Bad edition number");
+    return;
+  }
+  try {
+    const edition = await db.getEditionByNumber(editionNumber);
+    if (!edition) {
+      res.status(404).send("Not found");
+      return;
+    }
+    const png = await renderEditionCard(edition);
+    res.set("Content-Type", "image/png");
+    res.set("Cache-Control", "public, max-age=86400, immutable");
+    res.send(png);
+  } catch (err) {
+    console.warn(
+      `[seo] og card render failed for edition ${editionNumber}:`,
+      (err as Error).message
+    );
+    // Fall through to the static brand card so the share preview still
+    // looks branded rather than broken.
+    res.redirect(302, "/og-card.png");
+  }
+}
+
 export function registerSeoRoutes(app: Express): void {
   app.get("/api/images/edition/:id/:kind", handleEditionImage);
   app.get("/api/images/hero-library/:id", handleHeroLibraryImage);
+  app.get("/og/editions/:n.png", handleEditionOgCard);
   app.get("/editions/:n", handleEditionMeta);
 
   app.get("/sitemap.xml", async (req: Request, res: Response) => {

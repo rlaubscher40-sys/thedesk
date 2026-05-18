@@ -46,7 +46,7 @@ export async function upsertDailyMetric(input: {
   source?: string | null;
   context?: string | null;
   groupKey?: string | null;
-  /** Audit-trail URL — passed through from news extraction. */
+  /** Audit-trail URL, passed through from news extraction. */
   sourceUrl?: string | null;
   asOf: Date;
   displayOrder?: number;
@@ -98,7 +98,7 @@ export async function upsertDailyMetric(input: {
   }
 
   // Append the numeric value to the history table so the dashboard can
-  // render sparklines. Best-effort — non-numeric values (very rare) are
+  // render sparklines. Best-effort, non-numeric values (very rare) are
   // skipped silently.
   const numericValue = parseNumeric(input.value);
   if (numericValue !== null) {

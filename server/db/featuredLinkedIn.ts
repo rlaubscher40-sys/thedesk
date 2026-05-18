@@ -8,7 +8,7 @@ import {
   type InsertFeaturedLinkedInPost,
 } from "./schema";
 
-/** Posts visible to readers — live only, in display order then newest first. */
+/** Posts visible to readers, live only, in display order then newest first. */
 export async function listLiveLinkedInPosts(limit = 6): Promise<FeaturedLinkedInPost[]> {
   if (isDemoMode()) return demoQueries.listLiveLinkedInPosts(limit);
   const db = getDb();

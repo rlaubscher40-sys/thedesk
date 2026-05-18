@@ -1,5 +1,5 @@
 /**
- * Active partner persona — drives the "VIEW AS" switch and every card's
+ * Active partner persona, drives the "VIEW AS" switch and every card's
  * highlighted angle / Say This line. Persisted to localStorage so the
  * choice survives a reload.
  */

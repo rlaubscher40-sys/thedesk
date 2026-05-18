@@ -1,5 +1,5 @@
 /**
- * Hero image library — a small pool of reusable editorial covers that
+ * Hero image library, a small pool of reusable editorial covers that
  * the weekly-edition cron cycles through least-recently-used first,
  * instead of burning an OpenAI image-gen call every Sunday.
  *
@@ -20,7 +20,7 @@ import {
 } from "./schema";
 
 /**
- * Lightweight projection — same columns as the row but without the
+ * Lightweight projection, same columns as the row but without the
  * mediumblob bytes. Used by the admin list view, which renders
  * thumbnails via the public `/api/images/hero-library/:id` route
  * rather than shipping every blob inline.
@@ -38,7 +38,7 @@ const LIST_COLUMNS = {
   createdAt: heroLibrary.createdAt,
 };
 
-/** All library rows, newest first. No bytes — admin list view only. */
+/** All library rows, newest first. No bytes, admin list view only. */
 export async function listHeroLibrary(): Promise<HeroLibraryListItem[]> {
   if (isDemoMode()) {
     return demoQueries.listHeroLibrary?.() ?? [];

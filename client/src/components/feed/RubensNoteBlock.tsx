@@ -1,5 +1,5 @@
 /**
- * "Ruben's note" — editorial override that takes visual precedence on a
+ * "Ruben's note", editorial override that takes visual precedence on a
  * feed card. When set, replaces the AI-generated SayThisLine. Admin sees
  * an edit affordance; everyone else just reads it.
  */
@@ -63,8 +63,8 @@ export function RubensNoteBlock({
           onChange={(e) => setDraft(e.target.value)}
           rows={3}
           maxLength={600}
-          placeholder="Your editorial take on this story — replaces the AI line."
-          className="w-full px-3 py-2 rounded text-sm bg-black/30 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors font-serif italic leading-relaxed"
+          placeholder="Your editorial take on this story, replaces the AI line."
+          className="w-full px-3 py-2 rounded text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors font-serif italic leading-relaxed"
           autoFocus
         />
         <div className="flex items-center gap-2 mt-2">
@@ -74,8 +74,8 @@ export function RubensNoteBlock({
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-[10px] font-mono uppercase tracking-[0.18em] disabled:opacity-50"
             style={{
               background:
-                "linear-gradient(135deg, oklch(0.78 0.18 70) 0%, oklch(0.88 0.19 82) 55%, oklch(0.65 0.16 60) 100%)",
-              color: "oklch(0.10 0.018 260)",
+                "var(--grad-cta-amber)",
+              color: "var(--color-on-amber)",
             }}
           >
             <Save className="h-3 w-3" />
@@ -97,7 +97,7 @@ export function RubensNoteBlock({
   }
 
   if (!note) {
-    // Admin, no note yet — show a quiet "add note" affordance.
+    // Admin, no note yet, show a quiet "add note" affordance.
     return (
       <button
         onClick={() => setEditing(true)}

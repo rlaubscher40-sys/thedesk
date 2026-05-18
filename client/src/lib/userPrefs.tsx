@@ -1,5 +1,5 @@
 /**
- * Reader preferences — topic interest filters and notification choices.
+ * Reader preferences, topic interest filters and notification choices.
  * Stored entirely in localStorage for now (no auth wall, no server
  * round-trip). When real subscriber accounts arrive these flips can
  * migrate to a subscribers.prefs JSON column without changing the API.
@@ -102,7 +102,7 @@ export function UserPrefsProvider({ children }: { children: ReactNode }) {
       const upper = category.toUpperCase();
       // Only gate categories the settings UI lets the user pick. Anything
       // outside SELECTABLE_CATEGORIES (e.g. OTHER, custom ingest categories)
-      // always shows — otherwise opting into ANY topic would silently hide
+      // always shows, otherwise opting into ANY topic would silently hide
       // every uncategorised story forever.
       if (!(SELECTABLE_CATEGORIES as readonly string[]).includes(upper)) {
         return true;

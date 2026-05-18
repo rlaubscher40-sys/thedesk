@@ -1,5 +1,5 @@
 /**
- * 404 — Signal lost.
+ * 404, Signal lost.
  *
  * Editorial treatment instead of a default error page: oversized serif
  * "404" with a scan-line glitch effect, a "TRANSMISSION LOST" overline,
@@ -7,6 +7,7 @@
  */
 import { Link } from "wouter";
 import { ArrowRight } from "lucide-react";
+import { BrandLockup } from "@/components/Logomark";
 
 export default function NotFound() {
   return (
@@ -21,6 +22,10 @@ export default function NotFound() {
           }}
           aria-hidden="true"
         />
+
+        <div className="flex justify-center mb-8 first-paint-mark">
+          <BrandLockup size={32} />
+        </div>
 
         <p
           className="overline-amber mb-6 first-paint-mark"
@@ -53,7 +58,7 @@ export default function NotFound() {
         </h1>
 
         <p className="font-serif italic text-xl text-[var(--color-fg-muted)] mb-12 leading-snug max-w-xl mx-auto">
-          That signal hasn't reached this frequency. Most pages on The Desk live behind one of the routes below — try one.
+          That signal hasn't reached this frequency. Most pages on The Desk live behind one of the routes below, try one.
         </p>
 
         <div className="flex items-center justify-center gap-3 flex-wrap">

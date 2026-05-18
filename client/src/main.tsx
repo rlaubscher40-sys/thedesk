@@ -18,7 +18,7 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 30_000,
       retry: (failureCount, err) => {
-        // Don't retry unauth errors — we redirect the user instead.
+        // Don't retry unauth errors, we redirect the user instead.
         if (err instanceof TRPCClientError && err.message === UNAUTHED_ERR_MSG) return false;
         return failureCount < 2;
       },
@@ -61,3 +61,19 @@ createRoot(document.getElementById("root")!).render(
     </QueryClientProvider>
   </trpc.Provider>
 );
+
+// Dismiss the first-paint splash once the React tree has committed
+// (see index.html). Two rAFs ensures we tick past the first commit
+// frame so the user actually sees the app underneath before the
+// splash fades, otherwise it can race the first skeleton paint and
+// look like a flash.
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    const splash = document.getElementById("boot-splash");
+    if (!splash) return;
+    splash.classList.add("done");
+    splash.addEventListener("transitionend", () => splash.remove(), { once: true });
+    // Safety net for browsers that swallow the transitionend event.
+    setTimeout(() => splash.remove(), 1200);
+  });
+});

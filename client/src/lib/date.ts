@@ -24,6 +24,33 @@ export function getSydneyIsoDate(): string {
   return `${y}-${m}-${d}`;
 }
 
+/** Label for the next Weekly Edition's ship day, Sunday 07:00 AEST.
+ *  If it's currently Sunday before 7am Sydney, returns today; otherwise
+ *  the upcoming Sunday. Returned as "Sun 24 May". */
+export function getNextEditionLabel(): string {
+  const parts = new Intl.DateTimeFormat("en-AU", {
+    timeZone: "Australia/Sydney",
+    weekday: "short",
+    hour: "numeric",
+    hour12: false,
+  }).formatToParts(new Date());
+  const weekdayShort = parts.find((p) => p.type === "weekday")?.value ?? "";
+  const hour = parseInt(parts.find((p) => p.type === "hour")?.value ?? "0", 10);
+  const idx: Record<string, number> = {
+    Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
+  };
+  const today = idx[weekdayShort] ?? 0;
+  const daysAhead = today === 0 ? (hour < 7 ? 0 : 7) : 7 - today;
+  const target = new Date();
+  target.setDate(target.getDate() + daysAhead);
+  return target.toLocaleDateString("en-AU", {
+    timeZone: "Australia/Sydney",
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+}
+
 /** "2026-W17" identifier for week of `date` (ISO week). */
 export function getIsoWeekId(date = new Date()): string {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));

@@ -25,7 +25,7 @@ export function initSentry(): boolean {
 }
 
 /**
- * Last-resort Express handler — logs any error that escaped a tRPC
+ * Last-resort Express handler, logs any error that escaped a tRPC
  * procedure or route handler to Sentry, then forwards a minimal error
  * response. Mount AFTER all routes.
  */

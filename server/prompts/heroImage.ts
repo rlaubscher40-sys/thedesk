@@ -1,8 +1,8 @@
 /**
  * Hero-image prompt builder. Two flavours:
- *   - `editionHeroPrompt`  — the cinematic intelligence-briefing image used on
+ *   - `editionHeroPrompt` , the cinematic intelligence-briefing image used on
  *                            the EditionReader hero.
- *   - `substackHeroPrompt` — the Substack essay hero image.
+ *   - `substackHeroPrompt`, the Substack essay hero image.
  * Both pick a category-flavoured visual cue so different weeks look different.
  */
 import type { EditionTopic } from "../../shared/schemas";

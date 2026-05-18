@@ -10,7 +10,7 @@ export type TrpcContext = {
 };
 
 export async function createContext(opts: CreateExpressContextOptions): Promise<TrpcContext> {
-  // In demo mode there's no auth backend — pretend every request is the
+  // In demo mode there's no auth backend, pretend every request is the
   // configured admin user so the whole UI is reachable without a sign-in.
   if (isDemoMode()) {
     return { req: opts.req, res: opts.res, user: demoUser };

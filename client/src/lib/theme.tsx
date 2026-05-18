@@ -1,11 +1,19 @@
 /**
- * Theme context. Three user-facing modes: "dark", "light", "system".
- * The resolved theme (after applying the system preference when "system"
- * is selected) is applied as a `.light` class on <html> so the CSS
- * overrides in index.css take effect.
+ * Theme + reading-size context.
  *
- * Persisted to localStorage. System mode listens to prefers-color-scheme
- * and flips live when the OS toggles.
+ * Theme has three user-facing modes: dark / light / system. The
+ * resolved theme is applied as a `.light` class on <html> (CSS in
+ * index.css picks it up).
+ *
+ * Reading size has two values: default / comfortable. Comfortable
+ * applies a `.comfortable` class on <html> which scales the root
+ * font-size up so every rem-based body, overline, and headline lifts
+ * proportionally, without disturbing pixel-perfect chrome (lockup,
+ * icons, hairline rules) measured in absolute px.
+ *
+ * Both prefs persist to localStorage. The inline script at the top of
+ * client/index.html mirrors this logic so the right classes are on
+ * <html> before paint (no flash).
  */
 import {
   createContext,
@@ -18,29 +26,34 @@ import {
 
 export type ThemeMode = "dark" | "light" | "system";
 export type ResolvedTheme = "dark" | "light";
+export type ReadingSize = "default" | "comfortable";
 
 type Ctx = {
-  /** What the user picked. */
   theme: ThemeMode;
-  /** What's actually applied (system resolved). */
   resolvedTheme: ResolvedTheme;
-  /** What the OS currently prefers. */
   systemPreferred: ResolvedTheme;
-  /** Cycle dark → light → system (legacy toggle button). */
   toggleTheme: () => void;
-  /** Direct picker for the Settings page. */
   setTheme: (mode: ThemeMode) => void;
+  readingSize: ReadingSize;
+  setReadingSize: (size: ReadingSize) => void;
 };
 
 const ThemeContext = createContext<Ctx | null>(null);
 
 const STORAGE_KEY = "thedesk:theme";
+const READING_SIZE_KEY = "thedesk:reading-size";
 
 function readStored(): ThemeMode {
   if (typeof window === "undefined") return "dark";
   const stored = window.localStorage.getItem(STORAGE_KEY);
   if (stored === "light" || stored === "dark" || stored === "system") return stored;
   return "dark";
+}
+
+function readStoredReadingSize(): ReadingSize {
+  if (typeof window === "undefined") return "default";
+  const stored = window.localStorage.getItem(READING_SIZE_KEY);
+  return stored === "comfortable" ? "comfortable" : "default";
 }
 
 function readSystem(): ResolvedTheme {
@@ -51,6 +64,7 @@ function readSystem(): ResolvedTheme {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<ThemeMode>(readStored);
   const [systemPreferred, setSystemPreferred] = useState<ResolvedTheme>(readSystem);
+  const [readingSize, setReadingSizeState] = useState<ReadingSize>(readStoredReadingSize);
 
   // Listen for OS theme flips so "system" mode follows live.
   useEffect(() => {
@@ -70,7 +84,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     window.localStorage.setItem(STORAGE_KEY, theme);
   }, [resolvedTheme, theme]);
 
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle("comfortable", readingSize === "comfortable");
+    window.localStorage.setItem(READING_SIZE_KEY, readingSize);
+  }, [readingSize]);
+
   const setTheme = useCallback((next: ThemeMode) => setThemeState(next), []);
+  const setReadingSize = useCallback(
+    (next: ReadingSize) => setReadingSizeState(next),
+    []
+  );
 
   // Legacy toggle: cycle dark → light → system → dark.
   const toggleTheme = useCallback(() => {
@@ -81,7 +105,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   return (
     <ThemeContext.Provider
-      value={{ theme, resolvedTheme, systemPreferred, toggleTheme, setTheme }}
+      value={{
+        theme,
+        resolvedTheme,
+        systemPreferred,
+        toggleTheme,
+        setTheme,
+        readingSize,
+        setReadingSize,
+      }}
     >
       {children}
     </ThemeContext.Provider>

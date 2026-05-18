@@ -32,7 +32,7 @@ function formatMetrics(metrics: KeyMetrics | null | undefined): string {
 }
 
 export function buildRubensTakePrompt(input: RubensTakeInput): string {
-  return `You are writing "Ruben's Take" for The Desk — a weekly intelligence briefing for property investment professionals curated by Ruben Laubscher, Head of Partnerships at InvestorKit.
+  return `You are writing "Ruben's Take" for The Desk, a weekly intelligence briefing for property investment professionals curated by Ruben Laubscher, Head of Partnerships at InvestorKit.
 
 This week's edition covers: ${input.weekRange}
 
@@ -52,11 +52,11 @@ ${rubensVoiceSamples}
 Write Ruben's Take: 2 to 4 sentences that sound like the opening of a Substack essay.
 
 Rules:
-- Opens with a scene, observation, or counterintuitive reframe — NOT a summary of the news
+- Opens with a scene, observation, or counterintuitive reframe, NOT a summary of the news
 - Short punchy sentences mixed with one longer analytical sentence
 - Calm authority. Anti-noise. Anti-certainty-performance.
 - The angle should be non-obvious: what does this week's news mean for property investors that most people are missing?
-- Ends with a question or an invitation to think further — never a CTA
+- Ends with a question or an invitation to think further, never a CTA
 - Output ONLY the 2-4 sentences. No title, no label, no preamble.`;
 }
 

@@ -6,7 +6,7 @@
  *
  * The `editions.heroImageUrl` (and substack equivalent) text column
  * stores a short `/api/images/edition/:id/:kind` URL instead of an
- * inline data URL — keeps every list/get query lightweight.
+ * inline data URL, keeps every list/get query lightweight.
  */
 import { and, desc, eq } from "drizzle-orm";
 import * as demoQueries from "../demo/queries";
@@ -38,7 +38,7 @@ export async function storeEditionAsset(args: {
   if (!db) throw new Error("storeEditionAsset: database unavailable");
 
   // Wipe previous rows for this slot so the table doesn't grow unbounded
-  // — historical images aren't useful.
+  //, historical images aren't useful.
   await db
     .delete(editionAssets)
     .where(

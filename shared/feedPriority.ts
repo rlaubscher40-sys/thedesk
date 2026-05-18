@@ -6,15 +6,15 @@
  * lands as the hero rather than just the most recently ingested one.
  *
  * Two layers compose the default:
- *   - Category baseline — partnership pros' hierarchy of interest. Budget,
+ *   - Category baseline, partnership pros' hierarchy of interest. Budget,
  *     RBA decisions, lending policy and property data dominate. AI and
  *     tech stories matter but rarely lead. Sport / entertainment never
  *     leads.
- *   - Source bonus — primary regulators and serious mastheads outrank
+ *   - Source bonus, primary regulators and serious mastheads outrank
  *     aggregators and social.
  *
  * The admin can override the computed priority on any item via
- * `feed.setPriority` — manual control always wins.
+ * `feed.setPriority`, manual control always wins.
  */
 
 const CATEGORY_BASELINE: Record<string, number> = {
