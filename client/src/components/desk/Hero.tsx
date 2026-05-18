@@ -146,13 +146,11 @@ export function Hero({ onGenerateAll }: { onGenerateAll?: () => void }) {
             {isAdmin && (
               <button
                 onClick={handleGen}
-                className="group inline-flex items-center gap-2.5 rounded px-5 py-2.5 text-xs font-mono uppercase tracking-[0.2em] transition-all active:scale-[0.98] shrink-0"
+                className="group inline-flex items-center gap-2.5 rounded px-5 py-2.5 text-xs font-mono uppercase tracking-[0.2em] transition-all active:scale-[0.98] shrink-0 text-[var(--color-on-amber)]"
                 style={{
-                  background:
-                    "linear-gradient(135deg, oklch(0.78 0.18 70) 0%, oklch(0.88 0.19 82) 60%, oklch(0.65 0.16 60) 100%)",
-                  color: "oklch(0.10 0.018 260)",
+                  background: "var(--grad-cta-amber)",
                   boxShadow:
-                    "0 1px 0 oklch(1 0 0 / 18%) inset, 0 10px 24px oklch(0.75 0.18 70 / 28%)",
+                    "0 1px 0 oklch(1 0 0 / 18%) inset, 0 10px 24px var(--color-amber-glow)",
                 }}
               >
                 <Sparkles className="h-3.5 w-3.5" />

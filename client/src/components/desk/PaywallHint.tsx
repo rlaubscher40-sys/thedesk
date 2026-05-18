@@ -53,8 +53,8 @@ export function PaywallHint() {
         className="inline-flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-[10px] font-mono uppercase tracking-[0.18em] shrink-0 transition-all active:scale-[0.98]"
         style={{
           background:
-            "linear-gradient(135deg, oklch(0.78 0.18 70) 0%, oklch(0.88 0.19 82) 55%, oklch(0.65 0.16 60) 100%)",
-          color: "oklch(0.10 0.018 260)",
+            "var(--grad-cta-amber)",
+          color: "var(--color-on-amber)",
           boxShadow:
             "0 1px 0 oklch(1 0 0 / 18%) inset, 0 4px 14px oklch(0.75 0.18 70 / 25%)",
         }}

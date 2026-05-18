@@ -109,8 +109,8 @@ export function LinkedInAdminPanel() {
           className="inline-flex items-center gap-1.5 rounded px-3.5 py-2 text-[10px] font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.98] disabled:opacity-50"
           style={{
             background:
-              "linear-gradient(135deg, oklch(0.78 0.18 70) 0%, oklch(0.88 0.19 82) 55%, oklch(0.65 0.16 60) 100%)",
-            color: "oklch(0.10 0.018 260)",
+              "var(--grad-cta-amber)",
+            color: "var(--color-on-amber)",
             boxShadow: "0 4px 14px oklch(0.75 0.18 70 / 25%)",
           }}
         >

@@ -42,6 +42,7 @@ export default function Corrections() {
           error, you'll get a same-day response.
         </p>
       </header>
+      <div className="editorial-rule-soft" aria-hidden="true" />
 
       <section className="mt-8">
         {CORRECTIONS.length === 0 ? (

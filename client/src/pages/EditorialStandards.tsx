@@ -24,6 +24,7 @@ export default function EditorialStandards() {
           you can hold us to that.
         </p>
       </header>
+      <div className="editorial-rule-soft" aria-hidden="true" />
 
       <section className="space-y-4">
         <h2 className="font-serif text-2xl mt-8">Who curates</h2>

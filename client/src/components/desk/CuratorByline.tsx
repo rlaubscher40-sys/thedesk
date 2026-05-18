@@ -33,7 +33,7 @@ export function CuratorByline() {
         {!failed ? (
           <img
             src={HEADSHOT}
-            alt=""
+            alt="Ruben Laubscher"
             className="w-full h-full object-cover"
             loading="lazy"
             decoding="async"

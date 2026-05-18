@@ -62,12 +62,10 @@ export function Subscribe({ source = "right-rail" }: { source?: string }) {
         <button
           type="submit"
           disabled={busy}
-          className="px-3.5 py-2 rounded text-xs font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.98] disabled:opacity-50"
+          className="px-3.5 py-2 rounded text-xs font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.98] disabled:opacity-50 text-[var(--color-on-amber)]"
           style={{
-            background:
-              "linear-gradient(135deg, oklch(0.78 0.18 70) 0%, oklch(0.88 0.19 82) 50%, oklch(0.68 0.16 60) 100%)",
-            color: "oklch(0.10 0.018 260)",
-            boxShadow: "0 4px 16px oklch(0.75 0.18 70 / 25%)",
+            background: "var(--grad-cta-amber)",
+            boxShadow: "0 4px 16px var(--color-amber-glow)",
           }}
         >
           {busy ? "Subscribing…" : "Subscribe"}

@@ -142,7 +142,7 @@ export function BrandLockup({
         {byline && (
           <p
             className="overline text-[var(--color-fg-subtle)] mt-1.5"
-            style={{ fontSize: 9, letterSpacing: "0.22em" }}
+            style={{ fontSize: 11, letterSpacing: "0.22em" }}
           >
             INTELLIGENCE
           </p>

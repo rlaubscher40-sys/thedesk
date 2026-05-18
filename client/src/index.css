@@ -21,6 +21,10 @@
   --color-amber-bright: oklch(0.88 0.19 82);
   --color-amber-dim: oklch(0.75 0.18 70 / 18%);
   --color-amber-glow: oklch(0.75 0.18 70 / 35%);
+  /* Ink colour for text sitting on top of an amber CTA. Stays near-
+     navy in both themes so the contrast against amber gold is the
+     same in dark and light mode. */
+  --color-on-amber: oklch(0.10 0.018 260);
 
   /* Secondary accent — oxidised copper / rust. Sits opposite the
      amber on the colour wheel, used sparingly for callouts,
@@ -77,6 +81,15 @@
     oklch(0.10 0.022 260) 60%,
     oklch(0.18 0.045 70) 100%
   );
+  /* Bright amber CTA — Hero "Gen all", Login "Sign in", Subscribe
+     buttons. The canonical warm-amber surface; do not inline-redefine
+     this gradient anywhere in components. */
+  --grad-cta-amber: linear-gradient(
+    135deg,
+    oklch(0.78 0.18 70) 0%,
+    oklch(0.88 0.19 82) 60%,
+    oklch(0.65 0.16 60) 100%
+  );
   /* Modal backdrop — slightly more saturated than panel-soft. */
   --grad-modal-bg: radial-gradient(
       circle at 78% 22%,
@@ -126,6 +139,7 @@
   --color-amber-bright: oklch(0.72 0.20 64);
   --color-amber-dim: oklch(0.65 0.18 60 / 14%);
   --color-amber-glow: oklch(0.65 0.18 60 / 22%);
+  --color-on-amber: oklch(0.10 0.018 260);
 
   --color-ink: oklch(0.55 0.18 25);
   --color-ink-bright: oklch(0.62 0.20 28);
@@ -176,6 +190,14 @@
     oklch(0.99 0.005 82) 0%,
     oklch(0.95 0.008 82) 60%,
     oklch(0.92 0.06 76) 100%
+  );
+  /* Light-mode amber CTA pulls deeper amber so it doesn't blow out on
+     warm paper (brand guide §3.2). */
+  --grad-cta-amber: linear-gradient(
+    135deg,
+    oklch(0.72 0.20 64) 0%,
+    oklch(0.80 0.20 70) 60%,
+    oklch(0.58 0.16 50) 100%
   );
   --grad-modal-bg: radial-gradient(
       circle at 78% 22%,

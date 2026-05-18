@@ -170,8 +170,8 @@ export function SubscribeCallout({
               className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded text-[11px] font-mono uppercase tracking-[0.2em] transition-all active:scale-[0.98] disabled:opacity-60"
               style={{
                 background:
-                  "linear-gradient(135deg, oklch(0.78 0.18 70) 0%, oklch(0.88 0.19 82) 55%, oklch(0.65 0.16 60) 100%)",
-                color: "oklch(0.10 0.018 260)",
+                  "var(--grad-cta-amber)",
+                color: "var(--color-on-amber)",
                 boxShadow:
                   "0 1px 0 oklch(1 0 0 / 18%) inset, 0 6px 20px oklch(0.75 0.18 70 / 30%)",
               }}

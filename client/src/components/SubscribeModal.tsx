@@ -203,13 +203,11 @@ export function SubscribeModal() {
                   <button
                     type="submit"
                     disabled={busy}
-                    className="flex-1 min-w-[180px] inline-flex items-center justify-center gap-2 rounded-sm px-4 py-3 text-xs font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.98] disabled:opacity-50"
+                    className="flex-1 min-w-[180px] inline-flex items-center justify-center gap-2 rounded-sm px-4 py-3 text-xs font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.98] disabled:opacity-50 text-[var(--color-on-amber)]"
                     style={{
-                      background:
-                        "linear-gradient(135deg, oklch(0.78 0.18 70) 0%, oklch(0.88 0.19 82) 55%, oklch(0.65 0.16 60) 100%)",
-                      color: "oklch(0.10 0.018 260)",
+                      background: "var(--grad-cta-amber)",
                       boxShadow:
-                        "0 1px 0 oklch(1 0 0 / 18%) inset, 0 4px 14px oklch(0.75 0.18 70 / 28%)",
+                        "0 1px 0 oklch(1 0 0 / 18%) inset, 0 4px 14px var(--color-amber-glow)",
                     }}
                   >
                     <Rss className="h-3.5 w-3.5" />
