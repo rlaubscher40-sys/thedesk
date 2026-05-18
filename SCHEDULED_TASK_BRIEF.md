@@ -166,7 +166,7 @@ through the existing Manus SDK.
 3. **Add the same key to GitHub repo Secrets**, plus the public URL of the
    site:
    - `SCHEDULED_API_KEY` — same value as the server env var
-   - `INGEST_BASE_URL` — e.g. `https://thedeskglobal.manus.space` (no
+   - `INGEST_BASE_URL` — e.g. `https://thedesk.au` (no
      trailing slash)
 4. **Confirm timings.** The cron expressions are UTC. The defaults assume
    Sydney AEST (UTC+10). Edit the `cron:` line in each workflow if you'd
@@ -180,7 +180,7 @@ the GitHub Actions UI for testing without waiting for the cron.
 Locally, either script runs the same way:
 
 ```bash
-export INGEST_BASE_URL=https://thedeskglobal.manus.space
+export INGEST_BASE_URL=https://thedesk.au
 export SCHEDULED_API_KEY=...
 
 pnpm ingest:daily

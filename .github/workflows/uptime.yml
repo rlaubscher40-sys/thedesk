@@ -23,7 +23,7 @@ jobs:
     steps:
       - name: Ping healthz + post result
         env:
-          SITE_URL: ${{ vars.SITE_URL || 'https://thedeskglobal.manus.space' }}
+          SITE_URL: ${{ vars.SITE_URL || 'https://thedesk.au' }}
           SCHEDULED_API_KEY: ${{ secrets.SCHEDULED_API_KEY }}
         run: |
           set +e

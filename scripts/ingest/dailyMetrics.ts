@@ -41,7 +41,7 @@ async function fetchYahooQuote(symbol: string): Promise<{
     const res = await fetch(url, {
       headers: {
         "User-Agent":
-          "Mozilla/5.0 (compatible; TheDeskBot/1.0; +https://thedesk.com.au)",
+          "Mozilla/5.0 (compatible; TheDeskBot/1.0; +https://thedesk.au)",
       },
     });
     if (!res.ok) {
@@ -93,7 +93,7 @@ async function fetchCashRate(): Promise<{ rate: number; asOf: Date } | null> {
       {
         headers: {
           "User-Agent":
-            "Mozilla/5.0 (compatible; TheDeskBot/1.0; +https://thedesk.com.au)",
+            "Mozilla/5.0 (compatible; TheDeskBot/1.0; +https://thedesk.au)",
         },
       }
     );

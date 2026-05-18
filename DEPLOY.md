@@ -93,11 +93,11 @@ Optional:
 
 ## 4. Custom domain
 
-1. Railway → Settings → Networking → Custom Domain → add `thedesk.com.au` (or whatever you bought).
+1. Railway → Settings → Networking → Custom Domain → add `thedesk.au` (or whatever you bought).
 2. Railway gives you a CNAME target. Copy it.
 3. At your registrar (or Cloudflare if you use it for DNS), add a CNAME:
    ```
-   thedesk.com.au   CNAME   <railway-target>.up.railway.app
+   thedesk.au   CNAME   <railway-target>.up.railway.app
    www              CNAME   <railway-target>.up.railway.app
    ```
 4. Wait 5-30 minutes for DNS to propagate. Railway auto-issues a Let's Encrypt cert.
@@ -111,7 +111,7 @@ They just need two secrets:
 
 1. GitHub repo → Settings → Secrets and variables → Actions → New secret:
    ```
-   INGEST_BASE_URL       https://thedesk.com.au   (or your Railway URL, no trailing slash)
+   INGEST_BASE_URL       https://thedesk.au   (or your Railway URL, no trailing slash)
    SCHEDULED_API_KEY     <same value as on Railway>
    ```
 
@@ -123,7 +123,7 @@ They just need two secrets:
 
 ## 6. Sign in to the admin
 
-1. Open `https://thedesk.com.au/login`.
+1. Open `https://thedesk.au/login`.
 2. Type the `ADMIN_PASSWORD` you set on Railway.
 3. You're now signed in for a year. You can:
    - Manage featured LinkedIn posts at `/admin`

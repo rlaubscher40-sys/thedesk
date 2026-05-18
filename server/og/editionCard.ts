@@ -285,7 +285,7 @@ function buildCard(edition: Edition) {
                           letterSpacing: "0.22em",
                           textTransform: "uppercase",
                         },
-                        children: "thedesk.global",
+                        children: "thedesk.au",
                       },
                     },
                   ],

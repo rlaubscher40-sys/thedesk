@@ -14,7 +14,7 @@ export const NOT_ADMIN_ERR_MSG = "You do not have required permission (10002)";
  * Override via `VITE_SITE_URL` (Vite-compiled client code) or `SITE_URL`
  * (Node scripts). When neither is set, falls back to the demo URL.
  */
-export const DEFAULT_SITE_URL = "https://thedeskglobal.manus.space";
+export const DEFAULT_SITE_URL = "https://thedesk.au";
 
 /**
  * Partner personas. The canonical four, matches `PARTNER_TAG_LABELS`

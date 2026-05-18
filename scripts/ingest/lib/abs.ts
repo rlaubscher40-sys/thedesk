@@ -13,7 +13,7 @@
  */
 
 const UA =
-  "Mozilla/5.0 (compatible; TheDeskBot/1.0; +https://thedesk.com.au)";
+  "Mozilla/5.0 (compatible; TheDeskBot/1.0; +https://thedesk.au)";
 
 export type AbsResult = {
   metricKey: string;
