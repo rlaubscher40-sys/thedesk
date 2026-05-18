@@ -1,7 +1,7 @@
 /**
  * Edition for 15 May 2026.
  *
- * Drives the Today page end-to-end — stories, partner angles per persona,
+ * Drives the Today page end-to-end, stories, partner angles per persona,
  * right-rail metrics + topics + ticker. Adjust freely; the UI walks these
  * arrays without any further JSX changes.
  */
@@ -56,7 +56,7 @@ export type Story = {
   section: "featured" | "more" | "further";
   source: string;
   sourceUrl: string;
-  /** Optional favicon URL — we fall back to a category-coloured glyph. */
+  /** Optional favicon URL, we fall back to a category-coloured glyph. */
   sourceFavicon?: string;
   /** Optional thumbnail for "more from today" cards. */
   thumbnail?: string;
@@ -65,7 +65,7 @@ export type Story = {
   dek: string;
   /** Persona-keyed angles + Say This lines. Always exactly four entries. */
   partnerAngles: PartnerAngle[];
-  /** Optional analyst note — rendered behind the "Show context" expander. */
+  /** Optional analyst note, rendered behind the "Show context" expander. */
   context?: string;
   /** "5 min" style reading-time chip on Featured cards. */
   readingTime?: string;
@@ -103,7 +103,7 @@ export const editionMeta = {
   number: 1010,
   date: "2026-05-15",
   weekday: "FRIDAY",
-  /** "FRIDAY 15 MAY 2026" — pre-formatted for the hero pill. */
+  /** "FRIDAY 15 MAY 2026", pre-formatted for the hero pill. */
   longDate: "FRIDAY 15 MAY 2026",
   weekRange: "12-18 May 2026",
   publishedAt: "07:00 AEST",
@@ -119,28 +119,28 @@ export const stories: Story[] = [
     sourceUrl: "https://example.com/rba-may-decision",
     headline: "RBA holds at 4.35%, language softens on services inflation",
     readingTime: "3 min",
-    dek: "The Reserve Bank held the cash rate, with the post-meeting statement removing the 'further tightening cannot be ruled out' line. Markets read a dovish shift, swaps repricing for a first cut in November. Governor's press conference repeated 'patient transmission' three times — the Bank is signalling that the lag from prior tightening is still working.",
+    dek: "The Reserve Bank held the cash rate, with the post-meeting statement removing the 'further tightening cannot be ruled out' line. Markets read a dovish shift, swaps repricing for a first cut in November. Governor's press conference repeated 'patient transmission' three times, the Bank is signalling that the lag from prior tightening is still working.",
     context:
-      "Two readings of the statement matter: (1) the dropped sentence on further tightening is the dovish read the bond market has run with; (2) the 'patient transmission' line is the new conditional for a November cut. Watch the next monthly CPI on May 28 — if services inflation prints below 4.5% YoY, swaps will price in a cut at the next meeting, not November. The conversation to lead with brokers this week is not about the hold itself; it's about what happens to fixed-rate roll-off volumes in mid-June.",
+      "Two readings of the statement matter: (1) the dropped sentence on further tightening is the dovish read the bond market has run with; (2) the 'patient transmission' line is the new conditional for a November cut. Watch the next monthly CPI on May 28, if services inflation prints below 4.5% YoY, swaps will price in a cut at the next meeting, not November. The conversation to lead with brokers this week is not about the hold itself; it's about what happens to fixed-rate roll-off volumes in mid-June.",
     partnerAngles: [
       {
         persona: "Institutional",
         angle:
           "Use the language softening as the trigger for a year-end wellbeing-program rate review with corporate clients.",
         sayThis:
-          "The RBA dropped 'further tightening' for the first time in 14 months — a quiet but meaningful pivot for any employer running a salary-packaging or financial-wellness program.",
+          "The RBA dropped 'further tightening' for the first time in 14 months, a quiet but meaningful pivot for any employer running a salary-packaging or financial-wellness program.",
       },
       {
         persona: "Broker",
         angle:
           "Pivot client conversations to fixed-rate roll-offs landing in mid-June, not the cash rate itself.",
         sayThis:
-          "The decision was the easy part. Watch what your broker channel does in the four weeks after a hold — that's where the real action is.",
+          "The decision was the easy part. Watch what your broker channel does in the four weeks after a hold, that's where the real action is.",
       },
       {
         persona: "Adviser",
         angle:
-          "Refresh the 'rates higher for longer' framing — patient transmission gives clients permission to plan.",
+          "Refresh the 'rates higher for longer' framing, patient transmission gives clients permission to plan.",
         sayThis:
           "If your clients have been waiting for clarity on rates, this is the closest thing they're going to get. The path is patience.",
       },
@@ -165,7 +165,7 @@ export const stories: Story[] = [
     headline: "APRA opens consultation on the 3% serviceability buffer",
     dek: "The regulator opened a consultation paper hinting at a possible buffer review, while committing to nothing specific. Submissions close June 20.",
     context:
-      "Don't sell timing you can't deliver. The earliest a revised regime could land is late Q3. The signal in the paper is direction, not timing — APRA wants the option to ease without committing to it.",
+      "Don't sell timing you can't deliver. The earliest a revised regime could land is late Q3. The signal in the paper is direction, not timing, APRA wants the option to ease without committing to it.",
     partnerAngles: [
       {
         persona: "Institutional",
@@ -234,7 +234,7 @@ export const stories: Story[] = [
     headline: "Energy bills lift the monthly CPI to 3.4% YoY",
     dek: "Electricity contributed a quarter of the headline print on the July reset. Housing-related inflation softer than expected.",
     context:
-      "The energy reset rolls off the year-on-year base in October. Watch the Q3 monthly CPI — if the underlying trend has held, headline drops sharply and the RBA's path looks clearer.",
+      "The energy reset rolls off the year-on-year base in October. Watch the Q3 monthly CPI, if the underlying trend has held, headline drops sharply and the RBA's path looks clearer.",
     partnerAngles: [
       {
         persona: "Institutional",
@@ -321,7 +321,7 @@ export const stories: Story[] = [
       },
       {
         persona: "Buyers Agent",
-        angle: "Indirect — but Sydney's tech-corridor postcodes are inversely correlated with chip news.",
+        angle: "Indirect, but Sydney's tech-corridor postcodes are inversely correlated with chip news.",
         sayThis: "Sydney's tech-corridor markets are tied to this. Quietly.",
       },
     ],
@@ -387,13 +387,13 @@ export const stories: Story[] = [
       },
       {
         persona: "Buyers Agent",
-        angle: "Indirect — but a hedge against the geopolitics-and-tech narrative for property allocators.",
+        angle: "Indirect, but a hedge against the geopolitics-and-tech narrative for property allocators.",
         sayThis: "Property allocators sleep better on news like this. It's a quiet positive.",
       },
     ],
   },
 
-  // ── Trending / Culture — broadly relevant items that DON'T deserve
+  // ── Trending / Culture, broadly relevant items that DON'T deserve
   // a forced partner angle for every persona. These demonstrate the
   // smart Say This filtering: if the active persona has no angle, the
   // card shows a quiet "Not relevant to X this week" note instead of
@@ -425,7 +425,7 @@ export const stories: Story[] = [
     source: "r/AusFinance",
     sourceUrl: "https://example.com/reddit-ausfinance",
     headline: "AusFinance pivots: 'rates higher for longer' fading from the top of the sub",
-    dek: "Sentiment shift on the largest Australian finance subreddit — top-three threads this week are now about fixed-rate roll-off strategy, not the cash rate path. Anecdotal but directional.",
+    dek: "Sentiment shift on the largest Australian finance subreddit, top-three threads this week are now about fixed-rate roll-off strategy, not the cash rate path. Anecdotal but directional.",
     partnerAngles: [
       {
         persona: "Broker",
@@ -455,7 +455,7 @@ export const topics: Topic[] = [
 
 export const tickerItems: TickerItem[] = [
   { label: "RBA holds cash rate at 4.35%, language softens", category: "MACRO" },
-  { label: "Sydney auction clearance 67.4% — sixth week above 65", category: "PROPERTY" },
+  { label: "Sydney auction clearance 67.4%, sixth week above 65", category: "PROPERTY" },
   { label: "APRA opens consultation on 3% serviceability buffer", category: "MACRO" },
   { label: "IMF flags Iran sanctions risk to global oil supply", category: "GEOPOLITICS" },
   { label: "US-China reopen semiconductor working group", category: "GEOPOLITICS" },

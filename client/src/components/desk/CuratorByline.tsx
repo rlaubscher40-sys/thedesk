@@ -19,7 +19,7 @@ export function CuratorByline() {
       target="_blank"
       rel="noopener noreferrer"
       className="mt-3 inline-flex items-center gap-2 group"
-      aria-label="Curated by Ruben Laubscher — open LinkedIn"
+      aria-label="Curated by Ruben Laubscher, open LinkedIn"
     >
       <span
         className="block rounded-full overflow-hidden relative shrink-0"

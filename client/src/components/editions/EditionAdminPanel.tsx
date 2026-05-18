@@ -58,7 +58,7 @@ export function EditionAdminPanel({ edition }: { edition: Edition }) {
   );
 }
 
-// ─── Delete edition (destructive — admin only) ──────────────────────────────
+// ─── Delete edition (destructive, admin only) ──────────────────────────────
 
 function DeleteEditionButton({ edition }: { edition: Edition }) {
   const [, navigate] = useLocation();
@@ -103,12 +103,12 @@ function ForwardEdition({ edition }: { edition: Edition }) {
       typeof window === "undefined"
         ? `/editions/${edition.editionNumber}`
         : `${window.location.origin}/editions/${edition.editionNumber}`;
-    const subject = `The Desk · Edition ${edition.editionNumber} — ${edition.weekRange}`;
-    const take = edition.rubensTake ? `\n\n"${edition.rubensTake}"\n— Ruben` : "";
+    const subject = `The Desk · Edition ${edition.editionNumber} · ${edition.weekRange}`;
+    const take = edition.rubensTake ? `\n\n"${edition.rubensTake}"\n· Ruben` : "";
     const body =
       `Thought you'd find this week's edition useful.${take}\n\n` +
       `Read it here: ${url}\n\n` +
-      `If it lands, subscribe — Ruben writes two of these a week:\n` +
+      `If it lands, subscribe, Ruben writes two of these a week:\n` +
       `https://rubenlaubscher.substack.com/`;
     const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.location.href = mailto;
@@ -288,13 +288,13 @@ function SubstackDraftEditor({ edition }: { edition: Edition }) {
         <div>
           <p className="overline mb-1">Substack draft</p>
           <p className="text-xs text-[var(--color-fg-muted)]">
-            {hasDraft ? "Draft loaded — edit and save below." : "No draft yet."}
+            {hasDraft ? "Draft loaded, edit and save below." : "No draft yet."}
           </p>
         </div>
         <div className="flex items-center gap-2">
           {hasDraft && (
             <>
-              {/* Regenerate image only — improvement #7 in the brief. */}
+              {/* Regenerate image only, improvement #7 in the brief. */}
               <Button
                 variant="outline"
                 size="sm"
@@ -402,7 +402,7 @@ function buildLinkedInDraftFromEssay({
     .map((p) => p.trim())
     .filter(Boolean);
   const teaser = paragraphs.slice(0, 2).join("\n\n");
-  return [`${title}`, subtitle, "", teaser, "", `Via The Desk — ${SITE_DISPLAY}`]
+  return [`${title}`, subtitle, "", teaser, "", `Via The Desk · ${SITE_DISPLAY}`]
     .join("\n")
     .trim();
 }
@@ -436,7 +436,7 @@ export function BackfillRubensTakeButton() {
  * Copy the Substack draft (title + subtitle + body) to the clipboard in a
  * paste-friendly format. Substack's editor handles paragraph breaks
  * cleanly when you paste plain text with double-newlines between
- * paragraphs, so we ship that. No HTML — Substack's HTML paste is finicky.
+ * paragraphs, so we ship that. No HTML, Substack's HTML paste is finicky.
  */
 function CopyForSubstackButton({
   title,
@@ -454,7 +454,7 @@ function CopyForSubstackButton({
       .join("\n\n");
     try {
       await navigator.clipboard.writeText(payload);
-      toast.success("Draft copied — paste into Substack");
+      toast.success("Draft copied, paste into Substack");
     } catch {
       toast.error("Clipboard write failed");
     }

@@ -44,7 +44,7 @@ export default function Terms() {
         <p>
           You're welcome to quote, share or paste excerpts from The Desk
           into client conversations, internal notes, LinkedIn posts and
-          presentations — that's literally what the "Say This" feature is
+          presentations, that's literally what the "Say This" feature is
           for. Republishing whole stories or editions without attribution
           isn't OK.
         </p>

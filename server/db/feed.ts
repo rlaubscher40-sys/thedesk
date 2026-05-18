@@ -68,7 +68,7 @@ export async function getFeedItemById(id: number): Promise<DailyFeedItem | undef
 }
 
 /**
- * Batch fetch by ids. Order is NOT preserved — caller should resort
+ * Batch fetch by ids. Order is NOT preserved, caller should resort
  * if it cares. Used by the anonymous reading queue to hydrate
  * localStorage bookmarks in a single request.
  */
@@ -84,7 +84,7 @@ export async function getFeedItemsByIds(ids: number[]): Promise<DailyFeedItem[]>
 }
 
 /**
- * Paginated archive query — feed items across all dates, optionally
+ * Paginated archive query, feed items across all dates, optionally
  * filtered by category. Used by the /archive page.
  */
 export async function listArchive(opts: {
@@ -185,7 +185,7 @@ export async function listFeedItemsBetween(
     .orderBy(desc(dailyFeedItems.createdAt));
 }
 
-/** Items missing a sayThis line — used by the backfill admin procedure. */
+/** Items missing a sayThis line, used by the backfill admin procedure. */
 export async function listFeedItemsMissingSayThis(limit = 50): Promise<DailyFeedItem[]> {
   if (isDemoMode()) return demoQueries.listFeedItemsMissingSayThis(limit);
   const db = getDb();

@@ -45,11 +45,11 @@ async function startServer() {
 
   // Railway terminates TLS at its proxy. `trust proxy` makes req.ip
   // resolve to the real client IP from x-forwarded-for instead of the
-  // proxy hop — without this every rate-limit bucket would key on a
+  // proxy hop, without this every rate-limit bucket would key on a
   // single Railway internal IP and effectively allow nothing.
   app.set("trust proxy", 1);
 
-  // Tight body limit — nothing on the API accepts payloads larger than
+  // Tight body limit, nothing on the API accepts payloads larger than
   // a few hundred KB (largest is the weekly-edition synthesis result,
   // which lands well under 1MB). 50MB was inherited from an earlier
   // image-bytes-over-the-wire flow that no longer exists. Keeping the
@@ -57,17 +57,17 @@ async function startServer() {
   app.use(express.json({ limit: "4mb" }));
   app.use(express.urlencoded({ limit: "4mb", extended: true }));
 
-  // ── Rate limits — keyed per IP, in-memory store. Railway runs a
+  // ── Rate limits, keyed per IP, in-memory store. Railway runs a
   //    single instance so in-memory is fine until horizontal scale
   //    becomes a thing (then bring Redis).
   //
   //    Two buckets:
-  //    · /api/trpc       — 90 / minute. Real users sit well under this
+  //    · /api/trpc      , 90 / minute. Real users sit well under this
   //                        even when flipping fast between Today /
-  //                        Archive / Edition — tRPC batches their
+  //                        Archive / Edition, tRPC batches their
   //                        queries. Scrapers hammering one page after
   //                        another trip the limit inside a few seconds.
-  //    · /api/auth/login — 10 / 5 minutes. Defends the only password
+  //    · /api/auth/login, 10 / 5 minutes. Defends the only password
   //                        endpoint from credential-stuffing. Real
   //                        humans never trip this.
   const trpcLimiter = rateLimit({

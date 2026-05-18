@@ -38,7 +38,7 @@ export function HeroLibraryAdminPanel() {
       utils.heroLibrary.list.invalidate();
     },
     onError: (err) =>
-      toast.error(err.message ?? "Couldn't generate — check OPENAI_API_KEY"),
+      toast.error(err.message ?? "Couldn't generate, check OPENAI_API_KEY"),
   });
 
   const setRetired = trpc.heroLibrary.setRetired.useMutation({
@@ -72,7 +72,7 @@ export function HeroLibraryAdminPanel() {
         <p className="text-sm text-[var(--color-fg-muted)] mt-1.5 max-w-[64ch] leading-relaxed">
           The weekly cron picks from this pool least-recently-used first, so
           most editions cost zero OpenAI image calls. Aim for ~15-20 covers in
-          rotation — each then only repeats every 3-5 months. Generate fresh
+          rotation, each then only repeats every 3-5 months. Generate fresh
           covers when one no longer fits, retire the ones you&apos;re tired of.
         </p>
       </div>

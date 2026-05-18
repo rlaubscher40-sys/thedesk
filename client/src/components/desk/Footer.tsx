@@ -2,10 +2,10 @@
  * Site footer. Three rows:
  *
  *   1. Brand line + edition meta + nav links
- *   2. Legal disclaimer ("General information only — not financial advice")
+ *   2. Legal disclaimer ("General information only, not financial advice")
  *   3. Publisher line (curator + InvestorKit ABN + copyright)
  *
- * The disclaimer is required for an Australian audience — ASIC treats
+ * The disclaimer is required for an Australian audience, ASIC treats
  * commentary on rates / property as "general advice" by default and
  * expects a visible disclaimer that the content isn't personal advice.
  */
@@ -20,7 +20,7 @@ export function Footer() {
   const edition = useLiveEditionMeta();
   return (
     <footer className="mt-16 border-t border-[var(--color-border)] pt-6 pb-10 space-y-5 text-[var(--color-fg-subtle)]">
-      {/* Row 1 — canonical lockup + edition + nav. The lockup replaces
+      {/* Row 1, canonical lockup + edition + nav. The lockup replaces
           the prior plain-text "The Desk · ..." string so the footer
           carries the same brand surface as every other masthead. */}
       <div className="flex items-center justify-between flex-wrap gap-6">
@@ -60,7 +60,7 @@ export function Footer() {
         </nav>
       </div>
 
-      {/* Row 2 — disclaimer. */}
+      {/* Row 2, disclaimer. */}
       <p
         className="text-[11px] leading-relaxed max-w-[78ch]"
         style={{ color: "var(--color-fg-subtle)" }}
@@ -75,7 +75,7 @@ export function Footer() {
         to your circumstances and seek qualified advice.
       </p>
 
-      {/* Row 3 — publisher. */}
+      {/* Row 3, publisher. */}
       <p
         className="font-mono tracking-[0.12em]"
         style={{ fontSize: "10px" }}

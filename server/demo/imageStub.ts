@@ -1,5 +1,5 @@
 /**
- * Demo image generator — photographic-style editorial cover art.
+ * Demo image generator, photographic-style editorial cover art.
  *
  * Composes layered gradients, architectural silhouettes, atmospheric
  * haze and film grain to feel like the cover of an intelligence
@@ -36,7 +36,7 @@ function hash(s: string): number {
 }
 
 function pickTemplate(prompt: string, h: number): Template {
-  // Earlier versions of this dispatcher tried to be clever — match the
+  // Earlier versions of this dispatcher tried to be clever, match the
   // prompt's category against a regex and pick the "appropriate"
   // template. The problem: every macro/budget/rba prompt hashed to the
   // civic template, so every weekly edition with a macro lead looked
@@ -52,8 +52,8 @@ function pickTemplate(prompt: string, h: number): Template {
     "data-hall",
     "masthead",
   ];
-  // Use the prompt to keep the original signal — different prompts still
-  // produce different templates — but ignore category matching.
+  // Use the prompt to keep the original signal, different prompts still
+  // produce different templates, but ignore category matching.
   void prompt;
   return all[h % all.length]!;
 }
@@ -83,7 +83,7 @@ type Palette = {
   cool: string;
   /** Foreground architecture / silhouettes. */
   ink: string;
-  /** Accent — the amber editorial overlay. */
+  /** Accent, the amber editorial overlay. */
   accent: string;
 };
 
@@ -245,7 +245,7 @@ function renderTemplate(t: Template, h: number, prompt: string, p: Palette): str
 // ─── Cityscape (financial district at blue hour) ────────────────────────────
 
 function cityscapeSvg(h: number, p: Palette): string {
-  // Two layers of building silhouettes — distant (paler, atmospheric) and
+  // Two layers of building silhouettes, distant (paler, atmospheric) and
   // foreground (full ink). Each is a deterministic sequence of rectangles
   // with varying widths/heights. Lit window grid on the foreground layer.
 
@@ -259,12 +259,12 @@ function cityscapeSvg(h: number, p: Palette): string {
       const buildingH = 80 + ((seed * 17) % 280);
       const y = baseY - buildingH;
       parts += `<rect x="${x}" y="${y}" width="${w - 8}" height="${buildingH}" fill="${baseColor}" fill-opacity="${opacity}"/>`;
-      // Roof aerial — random tiny mast.
+      // Roof aerial, random tiny mast.
       if (seed % 3 === 0) {
         parts += `<line x1="${x + w / 2 - 4}" y1="${y}" x2="${x + w / 2 - 4}" y2="${y - 12}" stroke="${baseColor}" stroke-opacity="${opacity * 0.7}" stroke-width="1.5"/>`;
       }
       if (withWindows) {
-        // Window grid — 4-6 columns, every other row lit.
+        // Window grid, 4-6 columns, every other row lit.
         const cols = 3 + (seed % 4);
         const rows = Math.floor(buildingH / 22);
         for (let c = 0; c < cols; c++) {
@@ -331,7 +331,7 @@ function civicSvg(h: number, p: Palette): string {
   // Parliament-style dome silhouette with columns, dramatic backlight,
   // rim of sky above. Light shafts radiate from behind the dome.
 
-  // Flagpole on top — deterministic but rotates slightly.
+  // Flagpole on top, deterministic but rotates slightly.
   const flagSway = ((h % 7) - 3) * 0.5;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 800" preserveAspectRatio="xMidYMid slice">
@@ -572,7 +572,7 @@ function worldSvg(h: number, p: Palette): string {
   ];
 
   function projectToSphere(d: string): string {
-    // No real projection — just shift to centre the continents on the
+    // No real projection, just shift to centre the continents on the
     // visible sphere face and rotate slightly.
     return d;
   }
@@ -625,7 +625,7 @@ function worldSvg(h: number, p: Palette): string {
       <g fill="hsl(225, 50%, 16%)" stroke="${p.warm}" stroke-opacity="0.3" stroke-width="0.8">
         ${continents.map((d) => `<path d="${projectToSphere(d)}"/>`).join("")}
       </g>
-      <!-- Illuminated coastlines — bright amber edge to suggest city lights. -->
+      <!-- Illuminated coastlines, bright amber edge to suggest city lights. -->
       <g fill="none" stroke="${p.warm}" stroke-opacity="0.55" stroke-width="1.2">
         ${continents.map((d) => `<path d="${projectToSphere(d)}"/>`).join("")}
       </g>
@@ -744,7 +744,7 @@ function mastheadSvg(h: number, p: Palette, prompt: string): string {
     <text x="80" y="210" font-family="JetBrains Mono, monospace" font-size="13" letter-spacing="6" fill="${p.warm}" fill-opacity="0.7">EDITION No. ${editionNum}</text>
     <text x="1520" y="210" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="13" letter-spacing="6" fill="${p.warm}" fill-opacity="0.7">SYDNEY · 7AM AEST</text>
 
-    <!-- Wordmark — outlined behind, solid in front. -->
+    <!-- Wordmark, outlined behind, solid in front. -->
     <text x="800" y="490" text-anchor="middle" font-family="Playfair Display, serif" font-weight="800" font-size="220" letter-spacing="-10" fill="none" stroke="${p.warm}" stroke-opacity="0.18" stroke-width="2">The Desk</text>
     <text x="800" y="480" text-anchor="middle" font-family="Playfair Display, serif" font-weight="800" font-size="220" letter-spacing="-10" fill="${p.warm}" fill-opacity="0.92">The Desk</text>
 

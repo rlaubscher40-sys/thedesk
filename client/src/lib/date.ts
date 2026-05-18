@@ -24,7 +24,7 @@ export function getSydneyIsoDate(): string {
   return `${y}-${m}-${d}`;
 }
 
-/** Label for the next Weekly Edition's ship day — Sunday 07:00 AEST.
+/** Label for the next Weekly Edition's ship day, Sunday 07:00 AEST.
  *  If it's currently Sunday before 7am Sydney, returns today; otherwise
  *  the upcoming Sunday. Returned as "Sun 24 May". */
 export function getNextEditionLabel(): string {

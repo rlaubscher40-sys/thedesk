@@ -64,7 +64,7 @@ export function MetricsStrip() {
   const { data: liveMetrics } = trpc.metrics.list.useQuery(undefined, {
     staleTime: 5 * 60_000,
   });
-  // Sparkline history. Cached longer — daily ingest writes one point a day.
+  // Sparkline history. Cached longer, daily ingest writes one point a day.
   const { data: histories } = trpc.metrics.histories.useQuery(undefined, {
     staleTime: 30 * 60_000,
   });
@@ -197,7 +197,7 @@ function Tile({ tile }: { tile: Tile }) {
         <span
           className="inline-flex items-center gap-1 font-mono tabular-nums shrink-0"
           style={{ color: colour, fontSize: "10px" }}
-          aria-label={`${trend} versus prior — ${sentiment}`}
+          aria-label={`${trend} versus prior, ${sentiment}`}
         >
           <Icon className="h-3 w-3" strokeWidth={2.5} />
           {hasDelta && trend !== "flat" && (

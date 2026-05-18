@@ -1,11 +1,11 @@
 /**
- * SAY THIS quote block — the editorial moment on each card.
+ * SAY THIS quote block, the editorial moment on each card.
  *
  * Renders the active persona's Say This line in italic serif inside a
  * tinted panel. Three actions sit below: Copy, Share (opens LinkedIn
  * compose, copies text first), Copy link (copies the source URL).
  *
- * Each action shows a 2-second toast on success — the toast layer is
+ * Each action shows a 2-second toast on success, the toast layer is
  * announced via role="status" by sonner so screen readers pick it up.
  */
 import { useState } from "react";
@@ -52,9 +52,9 @@ export function SayThis({ story, persona, sayThis }: Props) {
 
   async function share() {
     try {
-      await navigator.clipboard.writeText(`${sayThis}\n\nVia The Desk — ${SITE_DISPLAY}`);
+      await navigator.clipboard.writeText(`${sayThis}\n\nVia The Desk · ${SITE_DISPLAY}`);
       window.open(LINKEDIN_COMPOSE_URL, "_blank", "noopener,noreferrer");
-      toast.success("Copied. LinkedIn open in a new tab — paste in.");
+      toast.success("Copied. LinkedIn open in a new tab, paste in.");
     } catch {
       toast.error("Couldn't open share intent");
     }

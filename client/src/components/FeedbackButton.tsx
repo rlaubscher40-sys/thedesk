@@ -121,11 +121,11 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
 
   const submit = trpc.feedback.submit.useMutation({
     onSuccess: () => {
-      toast.success("Thanks — Ruben sees this");
+      toast.success("Thanks, Ruben sees this");
       setMessage("");
       onClose();
     },
-    onError: () => toast.error("Couldn't send — try again in a sec"),
+    onError: () => toast.error("Couldn't send, try again in a sec"),
   });
 
   function handleSubmit(e: React.FormEvent) {
@@ -308,7 +308,7 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
             <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0 text-amber-400/60" />
             <span>
               We capture the page URL and your browser type so Ruben can
-              reproduce. Nothing else — no tracking pixels.
+              reproduce. Nothing else, no tracking pixels.
             </span>
           </p>
 

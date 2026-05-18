@@ -1,6 +1,6 @@
 /**
  * Horizontal chip selector for picking which day's feed to view. Editorial
- * brass-rail styling — mono caps, amber active state with a glow underline.
+ * brass-rail styling, mono caps, amber active state with a glow underline.
  */
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/cn";

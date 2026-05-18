@@ -1,5 +1,5 @@
 /**
- * Date pager — < dd/mm/yyyy > with a TODAY badge when the displayed
+ * Date pager, < dd/mm/yyyy > with a TODAY badge when the displayed
  * date is the Sydney "today". Controlled component: the parent owns
  * the selected date and decides which neighbours are reachable.
  *
@@ -13,7 +13,7 @@ import { cn } from "@/lib/cn";
 type Props = {
   /** Currently displayed date as YYYY-MM-DD. */
   date: string;
-  /** True when `date` is the Sydney "today" — shows the TODAY badge. */
+  /** True when `date` is the Sydney "today", shows the TODAY badge. */
   isToday: boolean;
   /** True when there's an older feed-day to navigate back to. */
   canGoPrev: boolean;

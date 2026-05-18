@@ -2,7 +2,7 @@
  * Section-level error boundary. Two flavours:
  *   - `ErrorBoundary` for the whole app shell.
  *   - `SectionErrorBoundary` for individual page sections (issue #3 in the
- *     brief — one section failing should not nuke the page).
+ *     brief, one section failing should not nuke the page).
  *
  * Both share the same implementation and only differ in the fallback shown.
  */

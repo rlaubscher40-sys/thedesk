@@ -1,5 +1,5 @@
 /**
- * Admin login. There's only one user (Ruben) — entering the right password
+ * Admin login. There's only one user (Ruben), entering the right password
  * sets a signed session cookie and redirects to /admin. Public visitors
  * never see this page; they get to everything that's public without
  * authenticating.
@@ -37,7 +37,7 @@ export default function Login() {
       await utils.auth.me.invalidate();
       navigate("/admin");
     } catch (err) {
-      setError("Network error — try again.");
+      setError("Network error, try again.");
     } finally {
       setBusy(false);
     }
@@ -61,7 +61,7 @@ export default function Login() {
 
         <p className="text-sm text-[var(--color-fg-muted)] leading-relaxed">
           The public site is open to all readers. This page is for the curator
-          — sign in to access /admin and any owner-only controls.
+         , sign in to access /admin and any owner-only controls.
         </p>
 
         <form onSubmit={submit} className="space-y-3">

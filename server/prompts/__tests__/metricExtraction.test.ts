@@ -2,7 +2,7 @@
  * Smoke tests for news-driven metric extraction. Mocks invokeLLM and
  * verifies:
  *   - A well-formed response yields the right shape including sourceUrl.
- *   - sourceIndex maps to the actual article URL — we don't trust the
+ *   - sourceIndex maps to the actual article URL, we don't trust the
  *     model to emit URLs verbatim.
  *   - found:false returns null (no fabricated metrics).
  *   - Malformed JSON returns null rather than throwing (best-effort).
@@ -103,7 +103,7 @@ describe("extractMetricFromNews", () => {
         asOf: null,
         context: null,
         // Within the schema's allowed range (0–20) but beyond the
-        // 2-article fixture — should map to no URL rather than crash.
+        // 2-article fixture, should map to no URL rather than crash.
         sourceIndex: 5,
       })
     );

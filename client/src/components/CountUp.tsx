@@ -1,7 +1,7 @@
 /**
  * Animated number tween. Counts up from 0 (or from a previous value) to
  * the target on mount and when the target changes. Used on KPI tiles so
- * a metric like "4.35%" doesn't just snap into view — it dials.
+ * a metric like "4.35%" doesn't just snap into view, it dials.
  *
  * Honours prefers-reduced-motion by jumping straight to the final value.
  */

@@ -1,4 +1,4 @@
-/** Category presentation helpers — colour mapping + accent class. */
+/** Category presentation helpers, colour mapping + accent class. */
 import type { Category } from "@shared/const";
 
 const ACCENT_CLASS: Record<string, string> = {

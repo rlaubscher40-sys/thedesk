@@ -2,7 +2,7 @@
  * Demo mode in-memory store.
  *
  * Activates automatically when DATABASE_URL is unset. Lets the entire UI be
- * driven through tRPC without any real services — useful for visual review,
+ * driven through tRPC without any real services, useful for visual review,
  * local feedback and screenshot work.
  *
  * The seed data below is plausible-shaped, not real intelligence. Edit freely.
@@ -21,7 +21,7 @@ import { env } from "../core/env";
 import { editionsSeed } from "./seedEditions";
 import { feedSeed } from "./seedFeed";
 
-/** Cheap dev detector — when no DB is configured, switch the whole app to seed data. */
+/** Cheap dev detector, when no DB is configured, switch the whole app to seed data. */
 export function isDemoMode(): boolean {
   return !env.databaseUrl;
 }
@@ -116,7 +116,7 @@ function linkedInSeed(): FeaturedLinkedInPost[] {
       id: 801,
       postUrl: "https://www.linkedin.com/posts/ruben-laubscher_sydney-clearance-rates-activity-7195000000000000001-DESK/",
       excerpt:
-        "Sydney clearance over 65% for six straight weeks. The volume is finally catching up to the price story. Watch June listings — that's the test.",
+        "Sydney clearance over 65% for six straight weeks. The volume is finally catching up to the price story. Watch June listings, that's the test.",
       authorName: "Ruben Laubscher",
       displayOrder: 20,
       isLive: true,
@@ -126,7 +126,7 @@ function linkedInSeed(): FeaturedLinkedInPost[] {
       id: 802,
       postUrl: "https://www.linkedin.com/posts/ruben-laubscher_fixed-rate-rolloff-activity-7195000000000000002-DESK/",
       excerpt:
-        "Fixed-rate roll-offs land in mid-June. The decision was the easy part — broker channel share through June is where the real action is.",
+        "Fixed-rate roll-offs land in mid-June. The decision was the easy part, broker channel share through June is where the real action is.",
       authorName: "Ruben Laubscher",
       displayOrder: 30,
       isLive: true,
@@ -137,7 +137,7 @@ function linkedInSeed(): FeaturedLinkedInPost[] {
 
 // Generate hero gradients for every seeded edition so the demo doesn't open
 // on the bare placeholder. The image stub is deterministic per prompt, so we
-// inject a per-boot salt — the cover stays stable for the life of the
+// inject a per-boot salt, the cover stays stable for the life of the
 // server but rerolls when you restart, matching the brief's "not static
 // every time" feel.
 import { demoImage } from "./imageStub";
@@ -151,7 +151,7 @@ for (const edition of demo.editions) {
         edition.heroImageUrl = url;
       })
       .catch(() => {
-        /* Non-fatal — falls back to the SSR placeholder. */
+        /* Non-fatal, falls back to the SSR placeholder. */
       });
   }
 }

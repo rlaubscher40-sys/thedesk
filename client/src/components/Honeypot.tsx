@@ -1,5 +1,5 @@
 /**
- * Honeypot input — visually hidden but DOM-present so form-filler bots
+ * Honeypot input, visually hidden but DOM-present so form-filler bots
  * spot it and fill it. Real human users never see it; if a submission
  * arrives with the honeypot non-empty, the server rejects it (Zod
  * input validates max-length 0).

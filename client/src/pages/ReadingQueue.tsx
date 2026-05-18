@@ -6,7 +6,7 @@
  *   - Anonymous: localStorage bookmarks. Hydrated by a single feed.getByIds
  *     batch fetch so the same UI can render either source.
  *
- * Both modes share status tabs (All / Unread / Read — Unread/Read only
+ * Both modes share status tabs (All / Unread / Read, Unread/Read only
  * meaningful when authenticated) and a "group by category" toggle that
  * folds the queue into category sections.
  */

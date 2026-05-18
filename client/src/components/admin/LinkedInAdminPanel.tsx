@@ -27,7 +27,7 @@ export function LinkedInAdminPanel() {
       utils.linkedIn.listAll.invalidate();
       utils.linkedIn.list.invalidate();
     },
-    onError: (err) => toast.error(err.message || "Couldn't add — check the URL"),
+    onError: (err) => toast.error(err.message || "Couldn't add, check the URL"),
   });
 
   const update = trpc.linkedIn.update.useMutation({
@@ -98,7 +98,7 @@ export function LinkedInAdminPanel() {
           value={excerpt}
           onChange={(e) => setExcerpt(e.target.value)}
           rows={3}
-          placeholder="Excerpt — 1-3 sentences from the post body."
+          placeholder="Excerpt, 1-3 sentences from the post body."
           required
           className="w-full px-3 py-2 rounded text-sm bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors"
           aria-label="Post excerpt"

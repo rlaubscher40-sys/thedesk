@@ -13,7 +13,7 @@ import type { DailyMetric } from "@shared/types";
 /**
  * The subset of Edition fields this hero reads. Typed locally so it
  * accepts both the full Edition and the leaner EditionSummary returned
- * by editions.list — neither needs topics/body/signals/fullText here.
+ * by editions.list, neither needs topics/body/signals/fullText here.
  */
 type EditionLite = {
   editionNumber: number;

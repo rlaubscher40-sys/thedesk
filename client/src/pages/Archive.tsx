@@ -1,5 +1,5 @@
 /**
- * The Archive — unified browse + search page.
+ * The Archive, unified browse + search page.
  *
  * Empty query: browse-by-category mode. Categories render as a grid of
  * thread cards, each showing the most recent feed items in that category.
@@ -8,7 +8,7 @@
  * Non-empty query: search results across editions and feed items, with the
  * same category chips above so the user can keep narrowing.
  *
- * Replaces both the old SearchPage and the old TopicThreads index — they
+ * Replaces both the old SearchPage and the old TopicThreads index, they
  * served related needs and one unified page reads cleaner.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -29,7 +29,7 @@ function parseSearch(search: string): { q: string; cat: string | null } {
 }
 
 export default function ArchivePage() {
-  // URL query state — /archive?q=foo and /archive?cat=PROPERTY both deep-link,
+  // URL query state, /archive?q=foo and /archive?cat=PROPERTY both deep-link,
   // and the legacy /search redirect carries its query across via this.
   const search = useSearch();
   const [, navigate] = useLocation();
@@ -39,7 +39,7 @@ export default function ArchivePage() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Auto-focus the search input on desktop so the user can start typing
-  // immediately. On mobile we skip this — focusing pops the keyboard the
+  // immediately. On mobile we skip this, focusing pops the keyboard the
   // instant the page loads, which obscures the category chips and is
   // jarring when the user came here to browse, not search.
   useEffect(() => {
@@ -71,7 +71,7 @@ export default function ArchivePage() {
 
   // User's topic-allowlist preference. Applied to the overview's category
   // thread cards and to the search results, but NOT to the explicit
-  // category drill-down — if the reader taps a chip the assumption is
+  // category drill-down, if the reader taps a chip the assumption is
   // they want to see that category regardless of their global filter.
   const { isCategoryAllowed } = useUserPrefs();
 
@@ -140,7 +140,7 @@ export default function ArchivePage() {
         )}
       </div>
 
-      {/* Category chip row — drives the drill-down filter. */}
+      {/* Category chip row, drives the drill-down filter. */}
       <SectionErrorBoundary section="Category chips">
         {categories.length > 0 && (
           <CategoryChips

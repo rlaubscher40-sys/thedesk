@@ -2,7 +2,7 @@
  * Feedback inbox. Public submit endpoint behind a floating button on
  * every page; admin endpoints to list / mark reviewed / delete.
  *
- * No auth on submit — testers are mostly anonymous and asking for a
+ * No auth on submit, testers are mostly anonymous and asking for a
  * sign-in before they can leave feedback would lose 80% of them.
  * Simple rate-limit by user-agent length / message length / a basic
  * honeypot field would be a good follow-up if abuse becomes a problem.
@@ -14,7 +14,7 @@ import { adminProcedure, publicProcedure, router } from "../core/trpc";
 const submitInput = z.object({
   kind: z.enum(["bug", "idea", "praise"]),
   message: z.string().min(3).max(2000),
-  // Honeypot — the client never sets this. Form-filler bots will set
+  // Honeypot, the client never sets this. Form-filler bots will set
   // every field. A non-empty value here means it's a bot; reject.
   // Field name intentionally bland so signature-based bots can't spot
   // and skip it. Server treats any truthy value as spam.
@@ -54,7 +54,7 @@ export const feedbackRouter = router({
   /** Admin: list every submission, newest first. */
   list: adminProcedure.query(async () => db.listFeedback()),
 
-  /** Public: how many "new" entries — used to badge the admin nav. */
+  /** Public: how many "new" entries, used to badge the admin nav. */
   newCount: publicProcedure.query(async () => {
     return { count: await db.countNewFeedback() };
   }),

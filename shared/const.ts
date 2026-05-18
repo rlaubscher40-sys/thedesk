@@ -17,7 +17,7 @@ export const NOT_ADMIN_ERR_MSG = "You do not have required permission (10002)";
 export const DEFAULT_SITE_URL = "https://thedeskglobal.manus.space";
 
 /**
- * Partner personas. The canonical four — matches `PARTNER_TAG_LABELS`
+ * Partner personas. The canonical four, matches `PARTNER_TAG_LABELS`
  * (`shared/schemas.ts`), the `PERSONA_COLOUR` map
  * (`client/src/lib/persona.tsx`), and the four-line Partner angles block
  * that runs under every tagged story. See `docs/brand-guidelines.md`
@@ -50,8 +50,8 @@ export type Category = (typeof CATEGORIES)[number];
 
 /** LinkedIn character thresholds for the share modal counter. */
 export const LINKEDIN_LIMITS = {
-  /** Optimal upper bound — counter goes green up to here. */
+  /** Optimal upper bound, counter goes green up to here. */
   recommended: 2500,
-  /** Hard upper bound — LinkedIn truncates beyond ~3,000. */
+  /** Hard upper bound, LinkedIn truncates beyond ~3,000. */
   max: 3000,
 } as const;

@@ -1,11 +1,11 @@
 /**
  * Author byline. Two variants:
  *
- *   · "compact" — single row: small avatar + name + role + LinkedIn /
+ *   · "compact", single row: small avatar + name + role + LinkedIn /
  *     Subscribe chips. The print-magazine byline that sits under a
  *     pull-quote or at the end of an article.
  *
- *   · "card" — larger format with a stacked name+role block. Used in
+ *   · "card", larger format with a stacked name+role block. Used in
  *     the sidebar footer where vertical space is plentiful.
  *
  * The headshot is loaded from /ruben.jpg. Falls back to an "R"
@@ -117,7 +117,7 @@ function Headshot({
   );
 }
 
-// ─── Compact byline — print-style strip below a quote ──────────────────────
+// ─── Compact byline, print-style strip below a quote ──────────────────────
 
 type BylineImpl = {
   src: string;
@@ -177,7 +177,7 @@ function BylineCompact({
   );
 }
 
-// ─── Card byline — larger stacked block ────────────────────────────────────
+// ─── Card byline, larger stacked block ────────────────────────────────────
 
 function BylineCard({
   src,

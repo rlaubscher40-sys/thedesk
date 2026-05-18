@@ -13,7 +13,7 @@ import { useBookmarks } from "@/lib/useBookmarks";
 type Props = {
   /** Local id used in localStorage (story.id from the data file). */
   id: string;
-  /** Story headline — included in the toast. */
+  /** Story headline, included in the toast. */
   title: string;
 };
 

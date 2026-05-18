@@ -1,9 +1,9 @@
 /**
  * The lead story on an Edition reader. Visually crushes the topic-card
- * grid below it — display-2 serif title, italic lede, drop-cap body
+ * grid below it, display-2 serif title, italic lede, drop-cap body
  * flowing in two columns on wide screens, talking points inline.
  *
- * Expanded by default (it's the lead — readers come for it), but the
+ * Expanded by default (it's the lead, readers come for it), but the
  * deep dive can be collapsed by tapping the toggle for readers who only
  * want the headline + lede pass.
  */
@@ -47,7 +47,7 @@ export function LeadStory({
       style={{ boxShadow: `inset 3px 0 0 0 ${colour}` }}
     >
       <div className="p-8 sm:p-12 lg:p-16">
-        {/* Editorial badge — slim gold rule + small mono label. */}
+        {/* Editorial badge, slim gold rule + small mono label. */}
         <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
           <div className="inline-flex items-center gap-3">
             <span
@@ -79,7 +79,7 @@ export function LeadStory({
           )}
         </div>
 
-        {/* Display-2 title — bounded width so the line wraps editorially
+        {/* Display-2 title, bounded width so the line wraps editorially
             rather than running 120ch wide. */}
         <h2 className="display-2 mb-7 max-w-[26ch]">{topic.title}</h2>
 
@@ -114,7 +114,7 @@ export function LeadStory({
 
         {expanded && (
           <>
-            {/* Body — two text columns on lg+, with a column rule and drop-cap
+            {/* Body, two text columns on lg+, with a column rule and drop-cap
                 on the first paragraph. The column rule lifts the page off a
                 generic "long paragraph" feel and into broadsheet register. */}
             {topic.body && (
@@ -134,7 +134,7 @@ export function LeadStory({
               </div>
             )}
 
-            {/* Key takeaway — full-width band, separator above. */}
+            {/* Key takeaway, full-width band, separator above. */}
             {topic.keyTakeaway && (
               <div className="mt-10 pt-7 border-t border-[var(--color-border)]">
                 <p
@@ -154,7 +154,7 @@ export function LeadStory({
               <TalkingPointsBlock points={topic.talkingPoints} />
             )}
 
-            {/* What to watch — bottom strip, 2 columns on sm+. */}
+            {/* What to watch, bottom strip, 2 columns on sm+. */}
             {topic.whatToWatch && topic.whatToWatch.length > 0 && (
               <div className="mt-10 pt-7 border-t border-[var(--color-border)]">
                 <p

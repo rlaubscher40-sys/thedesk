@@ -60,12 +60,12 @@ export function editionsSeed(): Edition[] {
           category: "MACRO",
           partnerRelevance: ["Brokers", "Financial Advisers"],
           body:
-            "The Reserve Bank held the cash rate at 4.35% in a decision the swap market had priced 30 minutes before. The interesting part of the press conference was the line about 'patient transmission' — the Bank is telling the market that the lagged effect of the prior tightening is still working through.\n\nIn the four weeks after the last two holds, broker channel share moved from 73.8% to 74.6%. Not dramatic, but directionally significant. Sitting still in a refi market favours the incumbent broker.\n\nThe practical read for partner conversations: the question to ask is not 'are rates moving?' Everyone is asking that. Ask 'where are your fixed-rate roll-offs landing in June?'",
+            "The Reserve Bank held the cash rate at 4.35% in a decision the swap market had priced 30 minutes before. The interesting part of the press conference was the line about 'patient transmission', the Bank is telling the market that the lagged effect of the prior tightening is still working through.\n\nIn the four weeks after the last two holds, broker channel share moved from 73.8% to 74.6%. Not dramatic, but directionally significant. Sitting still in a refi market favours the incumbent broker.\n\nThe practical read for partner conversations: the question to ask is not 'are rates moving?' Everyone is asking that. Ask 'where are your fixed-rate roll-offs landing in June?'",
           keyTakeaway:
             "Channel share moves in the four weeks after a hold. June fixed-rate roll-off is the real number to watch.",
           whatToWatch: [
             "Mid-June fixed-rate roll-off volume (RBA data releases on the 15th)",
-            "May broker channel share — published end of month",
+            "May broker channel share, published end of month",
             "Wage price index print on the 21st",
           ],
           talkingPoints: {
@@ -90,7 +90,7 @@ export function editionsSeed(): Edition[] {
           keyTakeaway:
             "Direction softer, timing distant. Don't price client conversations off this yet.",
           whatToWatch: [
-            "Bank submissions — CBA traditionally telegraphs APRA's direction",
+            "Bank submissions, CBA traditionally telegraphs APRA's direction",
             "ABA's response paper, expected end of June",
           ],
           talkingPoints: {
@@ -105,12 +105,12 @@ export function editionsSeed(): Edition[] {
           category: "PROPERTY",
           partnerRelevance: ["Buyers Agents"],
           body:
-            "The 67.4% clearance rate this weekend was the sixth in a row above 65%. The number to watch underneath it is auction volume — 932 listings, up 18% on the same week last year. Stock is moving and the under-$1.5m segment is doing most of the work.\n\nThe prestige segment ($3m+) cleared 51%. Buyers in that band are still patient, but agents are reporting more pre-auction offers. That usually precedes a clearance lift by 4-6 weeks.",
+            "The 67.4% clearance rate this weekend was the sixth in a row above 65%. The number to watch underneath it is auction volume, 932 listings, up 18% on the same week last year. Stock is moving and the under-$1.5m segment is doing most of the work.\n\nThe prestige segment ($3m+) cleared 51%. Buyers in that band are still patient, but agents are reporting more pre-auction offers. That usually precedes a clearance lift by 4-6 weeks.",
           keyTakeaway:
             "The bottom half of the market is hot. The top half is warming.",
           whatToWatch: [
             "Pre-auction offer volumes in the $3m+ band",
-            "New listing volumes — June is the test",
+            "New listing volumes, June is the test",
           ],
           talkingPoints: {
             "Buyers Agents":
@@ -128,7 +128,7 @@ export function editionsSeed(): Edition[] {
           keyTakeaway:
             "If energy resets keep the headline elevated, the RBA's patience extends. That's the real read.",
           whatToWatch: [
-            "Q3 monthly CPI — electricity will roll off the YoY base in October",
+            "Q3 monthly CPI, electricity will roll off the YoY base in October",
             "New rent indices from CoreLogic and SQM",
           ],
           talkingPoints: {
@@ -272,7 +272,7 @@ export function editionsSeed(): Edition[] {
         "ASX 200": "8,075",
       },
       signals: [
-        "Wages firmer than expected — the RBA's 'patient transmission' line is getting tested.",
+        "Wages firmer than expected, the RBA's 'patient transmission' line is getting tested.",
         "Listings up 14% YoY in capital cities. Stock catching up with demand.",
         "Apprenticeship reform is a trades-supply story 24-36 months out.",
       ],

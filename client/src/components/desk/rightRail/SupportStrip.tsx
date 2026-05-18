@@ -1,6 +1,6 @@
 /**
  * Four-up support strip pinned to the bottom of the Today page. Replaces
- * the old right rail — which was forcing the main feed to share width
+ * the old right rail, which was forcing the main feed to share width
  * with metadata that doesn't deserve a full vertical column.
  *
  * Composition: Topics · Reading Queue · Latest Edition · Subscribe.

@@ -1,9 +1,9 @@
 /**
- * Category heat treemap — a Squarify-light layout. Each category gets a
+ * Category heat treemap, a Squarify-light layout. Each category gets a
  * tile sized proportional to its share of total signal volume, coloured
  * by category, with the category label and count overlaid.
  *
- * Pure SVG — no D3. The layout walks the list in descending order and
+ * Pure SVG, no D3. The layout walks the list in descending order and
  * stacks tiles into rows, switching orientation when a row's worst-case
  * aspect ratio gets worse than the alternative.
  *

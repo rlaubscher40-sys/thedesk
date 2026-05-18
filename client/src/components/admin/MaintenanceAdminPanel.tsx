@@ -2,7 +2,7 @@
  * One-tap maintenance affordances for editorial chores that previously
  * needed a SQL editor:
  *
- *   - Catch-up DB migrations (idempotent — safe to re-run)
+ *   - Catch-up DB migrations (idempotent, safe to re-run)
  *   - Delete a thin / broken edition by edition number
  *   - Wipe all feed items / wipe all metrics (clean-slate reset before
  *     re-running the daily ingest workflows)
@@ -37,7 +37,7 @@ export function MaintenanceAdminPanel() {
             : `All ${res.skipped.length} already applied`;
         toast.success(summary);
       } else {
-        toast.error(`${res.failed.length} failed — see panel`);
+        toast.error(`${res.failed.length} failed, see panel`);
       }
     },
     onError: (err) => toast.error(err.message ?? "Catch-up failed"),
@@ -132,7 +132,7 @@ export function MaintenanceAdminPanel() {
             1 · Catch-up migrations
           </p>
           <p className="text-xs text-[var(--color-fg-subtle)] leading-relaxed max-w-[60ch]">
-            Adds any columns and tables the new code expects. Safe to re-run —
+            Adds any columns and tables the new code expects. Safe to re-run,
             columns that already exist are skipped silently.
           </p>
         </div>
@@ -154,7 +154,7 @@ export function MaintenanceAdminPanel() {
           <div className="mt-4 space-y-2 text-xs">
             {lastResult.demoMode && (
               <p className="text-amber-300 font-mono">
-                Demo mode — nothing was actually run.
+                Demo mode, nothing was actually run.
               </p>
             )}
             {lastResult.applied.length > 0 && (
@@ -244,7 +244,7 @@ export function MaintenanceAdminPanel() {
         </p>
       </div>
 
-      {/* Clean-slate wipes — used before re-running the daily-feed and
+      {/* Clean-slate wipes, used before re-running the daily-feed and
           daily-metrics workflows when you want a fresh starting state. */}
       <div className="space-y-4 pt-5 border-t border-[var(--color-border)]">
         <div>
@@ -257,7 +257,7 @@ export function MaintenanceAdminPanel() {
           <p className="text-xs text-[var(--color-fg-subtle)] leading-relaxed max-w-[60ch]">
             Reset the feed or the metrics tables before re-firing the
             corresponding GitHub Actions workflow. Each wipe is immediate
-            and irreversible — confirmation prompt only.
+            and irreversible, confirmation prompt only.
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">

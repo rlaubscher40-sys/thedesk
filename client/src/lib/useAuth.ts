@@ -1,7 +1,7 @@
 import { trpc } from "@/lib/trpc";
 
 /**
- * Lightweight auth state hook — returns the current user (or null) plus an
+ * Lightweight auth state hook, returns the current user (or null) plus an
  * `isAuthenticated` flag. Cached at app scope by React Query.
  */
 export function useAuth() {

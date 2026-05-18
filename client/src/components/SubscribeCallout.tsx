@@ -1,6 +1,6 @@
 /**
  * Editorial Subscribe panel. Designed as a deliberate "you've just read 10
- * minutes of analysis — here's how to keep getting it" beat at the bottom
+ * minutes of analysis, here's how to keep getting it" beat at the bottom
  * of long reads. Bigger, more confident than the sidebar rail card; the
  * highest-conversion surface in the product.
  *
@@ -82,7 +82,7 @@ export function SubscribeCallout({
           "inset 0 0 0 1px oklch(0.75 0.18 70 / 14%), 0 14px 40px oklch(0 0 0 / 30%)",
       }}
     >
-      {/* Amber wash in the corner — anchors the eye. */}
+      {/* Amber wash in the corner, anchors the eye. */}
       <div
         className="absolute -top-12 -right-12 h-48 w-48 pointer-events-none rounded-full"
         style={{

@@ -1,6 +1,6 @@
 /**
  * Privacy page. Plain-language summary of what The Desk collects, how it's
- * used, and how to ask for changes. Kept short on purpose — readers don't
+ * used, and how to ask for changes. Kept short on purpose, readers don't
  * read long privacy policies, and a B2B audience scrutinises every line.
  */
 import { useDocumentTitle } from "@/lib/useDocumentTitle";

@@ -2,18 +2,18 @@
  * Email-list / newsletter subscribers.
  *
  * Public:
- *   · subscribe   — captures email + optional name + source. Generates a
+ *   · subscribe  , captures email + optional name + source. Generates a
  *                   confirm token (double opt-in pattern). In production a
  *                   confirmation email would be sent; the demo just stores
  *                   the row with the token visible.
- *   · confirm     — exchanges the token for a confirmedAt timestamp.
- *   · unsubscribe — flips unsubscribedAt; safe to call multiple times.
- *   · count       — confirmed-and-not-unsubscribed total. Used by the
+ *   · confirm    , exchanges the token for a confirmedAt timestamp.
+ *   · unsubscribe, flips unsubscribedAt; safe to call multiple times.
+ *   · count      , confirmed-and-not-unsubscribed total. Used by the
  *                   sidebar/CTA to flex "Join 1,247 readers" once we
  *                   have enough subscribers to be worth flexing.
  *
  * Admin:
- *   · list        — full list. Drives the Admin console's subscriber
+ *   · list       , full list. Drives the Admin console's subscriber
  *                   table.
  */
 import { TRPCError } from "@trpc/server";
@@ -35,10 +35,10 @@ export const subscribersRouter = router({
       z.object({
         email: emailSchema,
         name: z.string().min(1).max(128).optional(),
-        /** Touchpoint identifier — "sidebar", "modal", "hero",
+        /** Touchpoint identifier, "sidebar", "modal", "hero",
          *  "edition-footer", etc. */
         source: z.string().min(1).max(64).optional(),
-        // Honeypot — must be empty. Form-filler bots flood every field;
+        // Honeypot, must be empty. Form-filler bots flood every field;
         // a truthy value here means it's a bot and the row is rejected
         // before it ever touches the subscribers table.
         _hp: z.string().max(0).optional(),
@@ -47,7 +47,7 @@ export const subscribersRouter = router({
     .mutation(async ({ input }) => {
       const existing = await db.findSubscriberByEmail(input.email);
       if (existing && existing.confirmedAt) {
-        // Already subscribed and confirmed — no-op success so the UI
+        // Already subscribed and confirmed, no-op success so the UI
         // doesn't expose whether the address is on the list.
         return {
           status: "already-confirmed" as const,

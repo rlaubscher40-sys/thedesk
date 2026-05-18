@@ -2,7 +2,7 @@
  * Tiny admin block that surfaces the Plausible dashboard URL so the editor
  * doesn't have to leave the product to check readership. No API integration
  * (Plausible's stats API requires a separate paid tier on the hosted plan,
- * and we don't want to ship the API key client-side anyway) — just a
+ * and we don't want to ship the API key client-side anyway), just a
  * one-tap pivot to the dashboard with the domain pre-filled.
  *
  * Hidden entirely when VITE_PLAUSIBLE_DOMAIN isn't configured.
@@ -27,7 +27,7 @@ export function AnalyticsAdminPanel() {
           Readers
         </h2>
         <p className="text-sm text-[var(--color-fg-muted)] mt-1.5 max-w-[60ch]">
-          Live numbers — visitors, top editions, referrers — sit in your
+          Live numbers, visitors, top editions, referrers, sit in your
           Plausible dashboard. One tap.
         </p>
       </div>

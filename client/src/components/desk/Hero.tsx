@@ -19,12 +19,12 @@ import { useAuth } from "@/lib/useAuth";
 import { useLiveEditionMeta } from "@/lib/useLiveEditionMeta";
 
 export function Hero({ onGenerateAll }: { onGenerateAll?: () => void }) {
-  // Today's date in Sydney + the latest live edition's number — both
+  // Today's date in Sydney + the latest live edition's number, both
   // pulled from real data rather than the static seed editionMeta. The
   // edition link still lands on the newest edition.
   const todayLabel = getSydneyDate();
   const edition = useLiveEditionMeta();
-  // "Gen all Say This" is an editorial-side rerun control — it asks the
+  // "Gen all Say This" is an editorial-side rerun control, it asks the
   // server to regenerate the persona-tailored line on every story. Not
   // something a partner reader should ever see, so gate on admin.
   const { user } = useAuth();
@@ -43,11 +43,12 @@ export function Hero({ onGenerateAll }: { onGenerateAll?: () => void }) {
     <section
       className="relative overflow-hidden rounded-sm"
       style={{
-        // 30vh on mobile (~250-280px on a typical phone), 40vh on
-        // desktop. Floor + ceiling keep the photo readable on weird
-        // viewports. Tuned to keep the first story above the fold on
-        // 1280×800 — the prior 540px max pushed it below.
-        height: "clamp(280px, 40vh, 440px)",
+        // 30vh on mobile, 42vh on desktop. Bumped the ceiling from 440
+        // to 500 after the canonical BrandLockup landed at the top of
+        // the slug area, the prior height was clipping the admin
+        // button at the bottom on tall content. The first story still
+        // sits above the fold on 1280x800.
+        height: "clamp(320px, 42vh, 500px)",
       }}
     >
       {/* Photographic backdrop. Drifts slowly via .hero-cover-img. This is
@@ -88,21 +89,26 @@ export function Hero({ onGenerateAll }: { onGenerateAll?: () => void }) {
       />
 
       <div className="relative h-full flex flex-col p-6 sm:p-8 lg:p-10">
-        {/* Top slug — canonical brand lockup, then date + edition. The
-            lockup is required on hero sections per brand guide §2.1. */}
-        <div className="flex items-center justify-between gap-4 flex-wrap text-[var(--color-fg-subtle)]">
+        {/* Top slug, canonical brand lockup on the left, date + edition
+            stacked tight on the right. The lockup is required on hero
+            sections per brand guide §2.1; the prior layout split date
+            onto its own row, costing ~30px of vertical that the bottom
+            stack needs. */}
+        <div className="flex items-start justify-between gap-4 flex-wrap text-[var(--color-fg-subtle)]">
           <BrandLockup size={32} byline />
-          {edition && (
-            <span className="overline" style={{ letterSpacing: "0.2em" }}>
-              Edition No. {edition.number} · 07:00 AEST
-            </span>
-          )}
-        </div>
-        <div className="mt-3 flex items-center gap-3 flex-wrap text-[var(--color-fg-subtle)]">
-          <span className="live-dot" aria-hidden="true" />
-          <span className="overline" style={{ letterSpacing: "0.2em" }}>
-            {todayLabel}
-          </span>
+          <div className="flex flex-col items-end gap-1.5 leading-none">
+            {edition && (
+              <span className="overline" style={{ letterSpacing: "0.2em" }}>
+                Edition No. {edition.number} · 07:00 AEST
+              </span>
+            )}
+            <div className="flex items-center gap-2">
+              <span className="live-dot" aria-hidden="true" />
+              <span className="overline" style={{ letterSpacing: "0.2em" }}>
+                {todayLabel}
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Bottom-anchored editorial stack. */}
@@ -134,8 +140,8 @@ export function Hero({ onGenerateAll }: { onGenerateAll?: () => void }) {
 
           <div className="flex items-end justify-between gap-6 mt-4 flex-wrap">
             <p className="font-serif text-base sm:text-lg text-[var(--color-fg-muted)] max-w-[44ch] leading-snug">
-              A sixty-second scan of what's moving Australian property —
-              written for brokers, advisers, accountants and buyer's agents.
+              A sixty-second scan of what's moving Australian property.
+              Written for brokers, advisers, accountants and buyer's agents.
             </p>
             {isAdmin && (
               <button

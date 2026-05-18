@@ -1,5 +1,5 @@
 /**
- * SEO routes — sitemap.xml + feed.xml + per-edition meta tag injection.
+ * SEO routes, sitemap.xml + feed.xml + per-edition meta tag injection.
  *
  * The XML routes pull the editions list from the database and emit
  * properly-formed XML. The edition route intercepts `/editions/:n` HTML
@@ -45,7 +45,7 @@ function htmlEscape(s: string): string {
 /**
  * Intercept `/editions/:n` HTML requests, look up the edition, and serve
  * the static index.html with that edition's meta tags substituted in.
- * Production only — in dev the vite middleware owns the catch-all.
+ * Production only, in dev the vite middleware owns the catch-all.
  *
  * Calls next() (falling through to the SPA shell) on any miss: bad
  * editionNumber, edition not found, non-HTML accept header, missing build,
@@ -79,10 +79,10 @@ async function handleEditionMeta(
     const description =
       edition.metaDescription ??
       edition.rubensTake ??
-      `Weekly intelligence for property partnerships — Edition ${edition.editionNumber}.`;
+      `Weekly intelligence for property partnerships, Edition ${edition.editionNumber}.`;
     const ogTitle = edition.socialTitle ?? title;
     const ogDescription = edition.socialDescription ?? description;
-    // Branded per-edition OG card — same surface as the masthead, so
+    // Branded per-edition OG card, same surface as the masthead, so
     // a LinkedIn / X / Slack share preview reads as continuous with
     // the site rather than as whatever hero illustration we happened
     // to stock the article with.
@@ -93,7 +93,7 @@ async function handleEditionMeta(
     html = html
       .replace(
         /<title>[\s\S]*?<\/title>/,
-        `<title>${htmlEscape(title)} — The Desk</title>`
+        `<title>${htmlEscape(title)}, The Desk</title>`
       )
       .replace(
         /<meta\s+name="description"\s+content="[^"]*"\s*\/?>/,
@@ -145,7 +145,7 @@ async function handleEditionMeta(
  * Serve a stored AI-generated image (hero or substack) for an edition.
  * URL: /api/images/edition/:id/:kind  → returns the binary with the
  * stored content-type. 404 if the edition has no asset of that kind.
- * Aggressively cacheable — images regenerate at most once a week.
+ * Aggressively cacheable, images regenerate at most once a week.
  */
 async function handleEditionImage(
   req: Request,
@@ -177,7 +177,7 @@ async function handleEditionImage(
 
 /**
  * Serve a hero-library image. URL: /api/images/hero-library/:id. Same
- * aggressive cache headers as edition images — library bytes never
+ * aggressive cache headers as edition images, library bytes never
  * mutate in place (admins delete + replace), so an immutable cache is
  * safe.
  */
@@ -211,7 +211,7 @@ async function handleHeroLibraryImage(
 /**
  * Branded OG card for an edition. Rendered with satori + resvg from
  * the bundled Playfair / JetBrains Mono TTFs (see server/og). Cached
- * in memory per-edition and immutable downstream — the cache key
+ * in memory per-edition and immutable downstream, the cache key
  * busts whenever the edition is republished, so an updated headline
  * propagates to the next preview without manual purging.
  */

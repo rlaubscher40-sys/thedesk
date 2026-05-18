@@ -248,7 +248,7 @@ function shortPath(url: string): string {
 }
 
 function shortUserAgent(ua: string): string {
-  // Coarse browser-family extraction — enough for the admin to know
+  // Coarse browser-family extraction, enough for the admin to know
   // "iOS Safari" vs "Chrome desktop" at a glance.
   if (/iPhone|iPad/.test(ua)) return "iOS Safari";
   if (/Android/.test(ua)) return "Android";

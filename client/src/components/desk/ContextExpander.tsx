@@ -1,5 +1,5 @@
 /**
- * "Show context" expander — when expanded reveals an analyst note in
+ * "Show context" expander, when expanded reveals an analyst note in
  * mono type. aria-expanded toggles for assistive tech. The note panel
  * animates open with a CSS max-height transition.
  */

@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
  *
  * Single overline + display title + optional kicker. Soft hairline under it.
  * Apple/Aesop register: generous negative space, restrained accent, the
- * type does the work — not chrome around it.
+ * type does the work, not chrome around it.
  */
 export function PageHeader({
   overline,

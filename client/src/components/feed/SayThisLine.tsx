@@ -1,5 +1,5 @@
 /**
- * The "Say This" line on a feed item — a copy-ready one-liner the partner
+ * The "Say This" line on a feed item, a copy-ready one-liner the partner
  * can paste straight into a client conversation. Pure clipboard, no
  * server-side logging.
  */
@@ -11,7 +11,7 @@ export function SayThisLine({
   sayThis,
 }: {
   sayThis: string;
-  /** Accepted but unused — preserved so callers can keep passing context
+  /** Accepted but unused, preserved so callers can keep passing context
    *  for future analytics without a signature change. */
   editionId?: number;
   category?: string;
@@ -47,7 +47,7 @@ export function SayThisLine({
       </div>
       <div className="flex-1 min-w-0">
         <p className="overline-amber mb-1.5">Say this</p>
-        {/* Quote rendered in serif but NOT italic — italic Playfair at
+        {/* Quote rendered in serif but NOT italic, italic Playfair at
             body sizes was reading as cramped on a tinted background. The
             opening + closing glyphs frame the pull quote without making
             the actual text hard to read. */}

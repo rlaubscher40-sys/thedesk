@@ -1,7 +1,7 @@
 /**
  * localStorage-backed bookmarks. Stores a Set of story ids. Used by the
  * desk cards so the bookmark icon toggles instantly without needing a
- * server round-trip — the tRPC reading-queue mutation runs alongside
+ * server round-trip, the tRPC reading-queue mutation runs alongside
  * when the user is authenticated.
  */
 import { useCallback, useEffect, useState } from "react";

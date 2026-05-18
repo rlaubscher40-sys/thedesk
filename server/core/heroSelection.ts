@@ -2,7 +2,7 @@
  * Hero-image selection for weekly editions.
  *
  * Three paths, in order of preference:
- *   1. `useLibrary` (default) — pick the least-recently-used image
+ *   1. `useLibrary` (default), pick the least-recently-used image
  *      from `hero_library`, copy its bytes to `edition_assets` for this
  *      edition, mark the library row used. Zero OpenAI calls.
  *   2. Library empty → fall back to fresh OpenAI generation. The
@@ -51,7 +51,7 @@ export async function resolveHeroForEdition(args: {
     }
   }
 
-  // Library empty (or admin forced fresh) — call OpenAI.
+  // Library empty (or admin forced fresh), call OpenAI.
   const generated = await generateImage({ prompt: args.prompt });
   if (!generated) {
     return { ok: false, reason: "image generation unavailable" };

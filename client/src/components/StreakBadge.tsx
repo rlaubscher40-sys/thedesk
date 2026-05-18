@@ -3,7 +3,7 @@
  * (a single visit isn't a streak yet). Tier-coloured: amber → emerald
  * → champagne as the streak grows. Tooltip surfaces the longest run.
  *
- * Bigger than v2 — the count was reading as a forgettable secondary
+ * Bigger than v2, the count was reading as a forgettable secondary
  * stat. Now it's a small editorial moment: glowing flame, big serif
  * number, tier label below in mono, longest-run accent if relevant.
  * Fills the available sidebar width.

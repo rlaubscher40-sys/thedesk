@@ -1,6 +1,6 @@
 /**
  * Admin panel for the daily metrics strip. Lets the editor add or override
- * any metric — useful for AU-specific data the automated ingest doesn't
+ * any metric, useful for AU-specific data the automated ingest doesn't
  * yet cover (CPI, unemployment, auction clearance, listings volume).
  *
  * Form is intentionally generic: any metricKey/label/value/unit combo.

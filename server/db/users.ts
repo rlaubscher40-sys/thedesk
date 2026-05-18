@@ -6,7 +6,7 @@ import { type InsertUser, type User, users } from "./schema";
 
 /**
  * Upsert the admin user row. There's only ever one user (Ruben) so this is
- * always called with `openId: "admin"` — but the function stays generic so
+ * always called with `openId: "admin"`, but the function stays generic so
  * the schema doesn't need to change.
  */
 export async function upsertUser(user: InsertUser): Promise<void> {

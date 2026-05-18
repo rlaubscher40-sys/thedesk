@@ -68,7 +68,7 @@ function EditionChip({ edition, active }: { edition: Edition; active: boolean })
           : undefined,
       }}
     >
-      {/* Thumbnail strip — squat 16:5 so the row reads as a row of
+      {/* Thumbnail strip, squat 16:5 so the row reads as a row of
           horizontal cards rather than a tile grid. */}
       <div
         className="relative w-full overflow-hidden"

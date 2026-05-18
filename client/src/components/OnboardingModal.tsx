@@ -1,6 +1,6 @@
 /**
  * 4-step onboarding modal. Shows once per user (tracked in localStorage), or
- * never if dismissed. Keeps state inline — no need for a context.
+ * never if dismissed. Keeps state inline, no need for a context.
  */
 import { useEffect, useState } from "react";
 import { ArrowRight, Sparkles } from "lucide-react";
@@ -28,7 +28,7 @@ const STEPS = [
   {
     overline: "Step 3 of 4 · Reading Queue",
     title: "Save anything for later.",
-    body: "Bookmark feed items and external URLs into the Reading Queue. Adding and removing is optimistic — you don't wait for the server.",
+    body: "Bookmark feed items and external URLs into the Reading Queue. Adding and removing is optimistic, you don't wait for the server.",
   },
   {
     overline: "Step 4 of 4 · Make it yours",

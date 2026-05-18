@@ -2,7 +2,7 @@
  * Admin-only inline editor for a single topic on an edition. Opens as a
  * full-screen drawer on mobile, a side panel on desktop. Saves go through
  * editions.updateTopic, which patches just the affected topic in the
- * stored topics array — no full-edition regen needed for typos or one-
+ * stored topics array, no full-edition regen needed for typos or one-
  * paragraph fixes.
  */
 import { useEffect, useState } from "react";
@@ -30,7 +30,7 @@ export function TopicEditDrawer({
   const [whyItMatters, setWhyItMatters] = useState(topic.whyItMatters ?? "");
   const [body, setBody] = useState(topic.body ?? "");
   const [keyTakeaway, setKeyTakeaway] = useState(topic.keyTakeaway ?? "");
-  // whatToWatch edited as newline-separated text — easier than a list editor.
+  // whatToWatch edited as newline-separated text, easier than a list editor.
   const [watch, setWatch] = useState((topic.whatToWatch ?? []).join("\n"));
 
   // Re-seed when the drawer opens with a different topic.

@@ -5,7 +5,7 @@
  * single source of truth.
  *
  * Anything else that needs to validate or type-check edition JSON should import
- * from here — never re-declare these shapes.
+ * from here, never re-declare these shapes.
  */
 import { z } from "zod";
 import { CATEGORIES, PARTNER_PERSONAS } from "./const";
@@ -39,7 +39,7 @@ export const editionTopicSchema = z.object({
   partnerRelevance: z.array(z.string()).optional(),
   /** 300-600 word deep-dive body. */
   body: z.string().optional(),
-  /** One-sentence takeaway — the line Ruben repeats verbatim to a client. */
+  /** One-sentence takeaway, the line Ruben repeats verbatim to a client. */
   keyTakeaway: z.string().optional(),
   /**
    * One explicit sentence answering "why does the partner channel care
@@ -58,7 +58,7 @@ export type EditionTopic = z.infer<typeof editionTopicSchema>;
 /**
  * `keyMetrics` is a free-form object so editions can ship whatever the week
  * needs (cash rate, AUD/USD, ASX200…). We allow strings and numbers but not
- * nested objects — keep things flat so the UI can render them in one strip.
+ * nested objects, keep things flat so the UI can render them in one strip.
  */
 export const keyMetricsSchema = z.record(z.string(), z.union([z.string(), z.number()]));
 export type KeyMetrics = z.infer<typeof keyMetricsSchema>;

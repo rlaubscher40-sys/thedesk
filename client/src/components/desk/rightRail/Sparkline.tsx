@@ -1,10 +1,10 @@
 /**
- * Tiny inline SVG sparkline. No chart library — just a polyline through
+ * Tiny inline SVG sparkline. No chart library, just a polyline through
  * normalised points. Renders nothing when there are fewer than 2
  * datapoints (a flat line would mislead).
  *
  * Auto-coloured by trend: amber when the series ends above where it
- * started (sentiment ignored — that's the tile's job), grey when flat,
+ * started (sentiment ignored, that's the tile's job), grey when flat,
  * cool-blue when ending lower.
  */
 export function Sparkline({
@@ -34,7 +34,7 @@ export function Sparkline({
     .join(" ");
 
   // End-vs-start trend governs the stroke colour. Amber for up, slate-cool
-  // for down — matches the rest of the dashboard.
+  // for down, matches the rest of the dashboard.
   const start = values[0]!;
   const end = values[values.length - 1]!;
   const direction = end > start * 1.001 ? "up" : end < start * 0.999 ? "down" : "flat";

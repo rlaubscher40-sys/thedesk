@@ -32,7 +32,7 @@ export function StoryCard({ story }: { story: Story }) {
         categoryAccentClass(story.category)
       )}
     >
-      {/* Top row — pill on the left, thumbnail + bookmark on the right. */}
+      {/* Top row, pill on the left, thumbnail + bookmark on the right. */}
       <div className="flex items-start justify-between gap-4 mb-5">
         <CategoryPill category={story.category} />
         <div className="flex items-start gap-2 shrink-0">

@@ -2,7 +2,7 @@
  * The 4-line partner-relevance block shown under every feed item with a tag.
  * Renders one labelled paragraph per persona, dimmed except the active one.
  *
- * On mobile (<768px) the block collapses by default — only the active
+ * On mobile (<768px) the block collapses by default, only the active
  * persona's line is shown, with a chevron to expand the other three.
  * Saves vertical real estate on what's typically a long scroll of
  * stacked feed cards. Choice persists in localStorage so a reader's
@@ -101,7 +101,7 @@ function PartnerTagLine({
       type="button"
       onClick={onFocus}
       // Grid template gives every row identical column widths so the
-      // labels align cleanly down a column — and full-length labels
+      // labels align cleanly down a column, and full-length labels
       // like "INSTITUTIONAL" don't get ellipsis-truncated.
       className={cn(
         "grid grid-cols-[120px_minmax(0,1fr)] items-baseline gap-3 w-full text-left rounded py-1.5 px-2 -mx-2 transition-all",
@@ -113,7 +113,7 @@ function PartnerTagLine({
       <span
         className="font-mono uppercase tabular-nums"
         style={{
-          // Per-persona accent — matches the VIEW AS pill colour for the
+          // Per-persona accent, matches the VIEW AS pill colour for the
           // same label. Was a single amber for every row before, which
           // collapsed the visual distinction between the four personas.
           color: PERSONA_COLOUR[label],

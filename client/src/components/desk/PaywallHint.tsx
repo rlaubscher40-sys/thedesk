@@ -1,6 +1,6 @@
 /**
  * Soft paywall hint for stories tagged `tier: "paid"`. Doesn't actually
- * hide content in demo mode — it just signals which items are
+ * hide content in demo mode, it just signals which items are
  * paid-tier and routes the user to subscribe.
  *
  * Hidden entirely once the signed-in user has `isPremium: true`, so paid

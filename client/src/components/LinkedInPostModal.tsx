@@ -2,12 +2,12 @@
  * LinkedIn share modal.
  *
  * Why this exists: LinkedIn's URL-share API does not accept pre-filled post
- * text (issue #5 in the brief — `share-offsite?text=...` is silently
+ * text (issue #5 in the brief, `share-offsite?text=...` is silently
  * ignored). The least-bad workaround is to copy the text to the clipboard and
  * open a fresh post composer; the user pastes themselves. This component
  * automates exactly that flow and shows live feedback.
  *
- * It also addresses issue #6 — a colour-coded character counter that maps to
+ * It also addresses issue #6, a colour-coded character counter that maps to
  * LinkedIn's real truncation thresholds.
  */
 import { Check, Copy, ExternalLink, Linkedin } from "lucide-react";

@@ -3,14 +3,14 @@
  * frozen, typed config object instead of touching env vars directly.
  *
  * Required in production:
- *   DATABASE_URL       — MySQL/TiDB connection string
- *   JWT_SECRET         — signs the admin session cookie
- *   ANTHROPIC_API_KEY  — LLM enrichment (partnerTag, sayThis, synthesis, etc.)
- *   ADMIN_PASSWORD     — gates the /admin console
+ *   DATABASE_URL      , MySQL/TiDB connection string
+ *   JWT_SECRET        , signs the admin session cookie
+ *   ANTHROPIC_API_KEY , LLM enrichment (partnerTag, sayThis, synthesis, etc.)
+ *   ADMIN_PASSWORD    , gates the /admin console
  *
  * Optional:
- *   SCHEDULED_API_KEY  — auth header for the /api/ingest/* scheduler endpoints
- *   OPENAI_API_KEY     — enables AI image generation for the weekly hero;
+ *   SCHEDULED_API_KEY , auth header for the /api/ingest/* scheduler endpoints
+ *   OPENAI_API_KEY    , enables AI image generation for the weekly hero;
  *                        omit to skip image generation entirely
  */
 const requiredInProd = [
@@ -23,7 +23,7 @@ const requiredInProd = [
 if (process.env.NODE_ENV === "production") {
   for (const key of requiredInProd) {
     if (!process.env[key]) {
-      console.warn(`[env] ${key} is not set — features that depend on it will fail`);
+      console.warn(`[env] ${key} is not set, features that depend on it will fail`);
     }
   }
 }

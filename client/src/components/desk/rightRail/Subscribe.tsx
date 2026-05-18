@@ -1,5 +1,5 @@
 /**
- * Subscribe rail card — email + Subscribe button. Posts to the
+ * Subscribe rail card, email + Subscribe button. Posts to the
  * `subscribers.subscribe` tRPC mutation (double-opt-in: a confirm token is
  * returned which would normally arrive by email). Falls back to a toast on
  * server error so the rail never breaks the page.
@@ -25,7 +25,7 @@ export function Subscribe({ source = "right-rail" }: { source?: string }) {
       }
     },
     onError: () => {
-      toast.error("Couldn't subscribe right now — try again in a minute.");
+      toast.error("Couldn't subscribe right now, try again in a minute.");
     },
   });
 

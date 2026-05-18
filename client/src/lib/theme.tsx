@@ -8,7 +8,7 @@
  * Reading size has two values: default / comfortable. Comfortable
  * applies a `.comfortable` class on <html> which scales the root
  * font-size up so every rem-based body, overline, and headline lifts
- * proportionally — without disturbing pixel-perfect chrome (lockup,
+ * proportionally, without disturbing pixel-perfect chrome (lockup,
  * icons, hairline rules) measured in absolute px.
  *
  * Both prefs persist to localStorage. The inline script at the top of

@@ -91,12 +91,12 @@ function deriveChipsFromKeyMetrics(
 ): Array<{ category: string; label: string }> {
   // The lean list query doesn't carry the topics array, but we can use
   // the same set of categories the metrics strip groups by as a stand-in.
-  // Keep it simple — three rotating chips that signal "macro/property/
+  // Keep it simple, three rotating chips that signal "macro/property/
   // markets feel" without lying about exact topic coverage.
   const labels = ["MACRO", "PROPERTY", "MARKETS"];
   // If we ever extend the list query to ship a `topicCategories` derived
   // field we can swap this for the real thing. For now: keys of
-  // keyMetrics are a soft hint — if "Cash rate" is there, MACRO wins.
+  // keyMetrics are a soft hint, if "Cash rate" is there, MACRO wins.
   if (edition.keyMetrics) {
     const keys = Object.keys(edition.keyMetrics).map((k) => k.toLowerCase());
     const inferred: string[] = [];

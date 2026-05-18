@@ -1,7 +1,7 @@
 /**
  * First-visit Subscribe modal.
  *
- * Triggers when the reader has clearly engaged with the content — past
+ * Triggers when the reader has clearly engaged with the content, past
  * the lead card and at least 1.4 viewport-heights into the feed —
  * rather than on a blind 30-second timer. The earlier timing felt
  * aggressive in tester feedback: it kept interrupting people mid-
@@ -13,7 +13,7 @@
  * fires first.
  *
  * The form captures the email through tRPC (double-opt-in) and stays
- * in-app to show the "check your inbox" confirmation state — no
+ * in-app to show the "check your inbox" confirmation state, no
  * hand-off to Substack mid-flow. Substack is offered as a separate
  * "Read the long-form essays" link below the form for users who
  * already use it.
@@ -31,7 +31,7 @@ import { trpc } from "@/lib/trpc";
 
 const STORAGE_KEY = "thedesk:subscribe-modal-seen";
 const SUBSTACK_URL = "https://rubenlaubscher.substack.com/";
-/** Backstop timer for readers who never scroll — open the tab, leave
+/** Backstop timer for readers who never scroll, open the tab, leave
  *  it, come back. 90s is long enough that scroll-engaged readers hit
  *  the scroll trigger first. */
 const BACKSTOP_DELAY_MS = 90_000;
@@ -86,7 +86,7 @@ export function SubscribeModal() {
   const subscribeMut = trpc.subscribers.subscribe.useMutation({
     onSuccess: () => setDone(true),
     onError: () => {
-      toast.error("Couldn't subscribe right now — try again in a minute.");
+      toast.error("Couldn't subscribe right now, try again in a minute.");
     },
   });
 
@@ -158,7 +158,7 @@ export function SubscribeModal() {
                 Check your inbox.
               </h2>
               <p className="text-base text-[var(--color-fg-muted)] leading-relaxed mb-6">
-                A confirmation link is on its way to <span className="text-[var(--color-fg)]">{email}</span>. Click it to lock in your subscription — it expires in 24 hours.
+                A confirmation link is on its way to <span className="text-[var(--color-fg)]">{email}</span>. Click it to lock in your subscription, it expires in 24 hours.
               </p>
               <button
                 onClick={() => dismiss("subscribed")}
@@ -213,7 +213,7 @@ export function SubscribeModal() {
                     }}
                   >
                     <Rss className="h-3.5 w-3.5" />
-                    {busy ? "Subscribing…" : "Subscribe — it's free"}
+                    {busy ? "Subscribing…" : "Subscribe, it's free"}
                   </button>
                   <button
                     type="button"

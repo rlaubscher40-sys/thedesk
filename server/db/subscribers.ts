@@ -37,7 +37,7 @@ export async function findSubscriberByToken(
 }
 
 /**
- * Insert a new subscriber, or — if the email already exists — return the
+ * Insert a new subscriber, or, if the email already exists, return the
  * existing row so the caller can decide whether to re-send a confirm
  * email or treat the call as a no-op.
  */

@@ -1,5 +1,5 @@
 /**
- * Today's Topics rail card — counts categories across today's live feed
+ * Today's Topics rail card, counts categories across today's live feed
  * items. Each row: category label + glowing progress bar (normalised
  * against the max count) + count.
  *

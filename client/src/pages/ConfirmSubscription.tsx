@@ -1,7 +1,7 @@
 /**
  * Landing page for the double-opt-in confirmation link. The Subscribe
  * mutation issues a confirmToken; the (forthcoming) email will point
- * here with ?token=... — this page calls the confirm mutation and
+ * here with ?token=..., this page calls the confirm mutation and
  * tells the reader what happened.
  *
  * Until email delivery is wired up, the same page handles in-product

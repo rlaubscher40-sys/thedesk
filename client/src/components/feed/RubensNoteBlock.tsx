@@ -1,5 +1,5 @@
 /**
- * "Ruben's note" — editorial override that takes visual precedence on a
+ * "Ruben's note", editorial override that takes visual precedence on a
  * feed card. When set, replaces the AI-generated SayThisLine. Admin sees
  * an edit affordance; everyone else just reads it.
  */
@@ -63,7 +63,7 @@ export function RubensNoteBlock({
           onChange={(e) => setDraft(e.target.value)}
           rows={3}
           maxLength={600}
-          placeholder="Your editorial take on this story — replaces the AI line."
+          placeholder="Your editorial take on this story, replaces the AI line."
           className="w-full px-3 py-2 rounded text-sm bg-black/30 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors font-serif italic leading-relaxed"
           autoFocus
         />
@@ -97,7 +97,7 @@ export function RubensNoteBlock({
   }
 
   if (!note) {
-    // Admin, no note yet — show a quiet "add note" affordance.
+    // Admin, no note yet, show a quiet "add note" affordance.
     return (
       <button
         onClick={() => setEditing(true)}

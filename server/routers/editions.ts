@@ -29,7 +29,7 @@ export const editionsRouter = router({
   /**
    * Lean list view of every edition. Drops the heavy text columns
    * (fullText / substackDraftBody / topics / signals) the list never
-   * reads — cuts the payload from MBs to tens of KBs once you have a
+   * reads, cuts the payload from MBs to tens of KBs once you have a
    * year of editions, and keeps the React Query cache light. Callers
    * that need the full document fetch it through getByNumber.
    */
@@ -214,7 +214,7 @@ export const editionsRouter = router({
       ...(input.title !== undefined ? { title: input.title } : {}),
       ...(input.summary !== undefined ? { summary: input.summary } : {}),
       // Pass nulls through as "clear this optional field" rather than
-      // unset — undefined means "don't touch", null means "blank it".
+      // unset, undefined means "don't touch", null means "blank it".
       ...(input.body !== undefined ? { body: input.body ?? undefined } : {}),
       ...(input.whyItMatters !== undefined
         ? { whyItMatters: input.whyItMatters ?? undefined }
@@ -235,7 +235,7 @@ export const editionsRouter = router({
    *
    * Default behaviour is to pick the next image from the hero library
    * (least-recently-used). Pass `forceFresh: true` to skip the library
-   * and call OpenAI — use that for landmark editions where the cover
+   * and call OpenAI, use that for landmark editions where the cover
    * needs to be tied to the week's content.
    */
   generateHeroImage: adminProcedure

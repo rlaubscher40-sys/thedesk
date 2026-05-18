@@ -1,5 +1,5 @@
 /**
- * Tiny inline sparkline. SVG, no library — just enough to sit next to a
+ * Tiny inline sparkline. SVG, no library, just enough to sit next to a
  * KPI value and tell the eye where it's been.
  *
  * Renders a smooth path through the points plus an area fill below.
@@ -9,7 +9,7 @@ import { useId } from "react";
 
 type Props = {
   values: number[];
-  /** Pixel width — defaults to compact KPI tile size. */
+  /** Pixel width, defaults to compact KPI tile size. */
   width?: number;
   height?: number;
   /** Stroke colour (CSS string). */

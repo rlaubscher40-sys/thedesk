@@ -2,7 +2,7 @@
  * Horizontally scrollable category filter row sitting beneath the date
  * pager. Selecting a chip filters the feed below.
  *
- * Categories are computed from whatever's actually on the page — in
+ * Categories are computed from whatever's actually on the page, in
  * live mode that's the distinct set of categories across the day's
  * feed items; in seed mode it's the legacy seed categories. Either way,
  * we never show a chip the user can't actually filter to.
@@ -25,7 +25,7 @@ const LABELS: Record<string, string> = {
   GEOPOLITICS: "Geopolitics",
   SCIENCE: "Science",
   OTHER: "Other",
-  // Legacy seed-only categories — preserved so the seed fallback still
+  // Legacy seed-only categories, preserved so the seed fallback still
   // renders something sensible during dev / first boot.
   CLIMATE: "Climate",
   SPORT: "Sport, Culture and Entertainment",
@@ -41,7 +41,7 @@ export function FilterChips({
 }: {
   active: CategoryFilter;
   onChange: (next: CategoryFilter) => void;
-  /** Categories to render as chips (excludes ALL — that's always first). */
+  /** Categories to render as chips (excludes ALL, that's always first). */
   categories: string[];
 }) {
   const chips = [
