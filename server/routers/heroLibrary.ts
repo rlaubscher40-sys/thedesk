@@ -32,6 +32,12 @@ export const heroLibraryRouter = router({
    * image so a lead card doesn't flicker between different fallbacks
    * across re-renders or sessions.
    *
+   * Excludes the most-recently-used library image from the pool —
+   * that's almost certainly the one currently on the latest weekly
+   * edition (the cron picks LRU and bumps `lastUsedAt`). Without this
+   * exclusion the Today lead and the live edition can land on the
+   * same cover at the same time, which reads as a duplicate.
+   *
    * Returns `{ url: null }` when the library is empty or every row
    * is retired, the caller then renders its own fallback chrome.
    */
@@ -41,8 +47,21 @@ export const heroLibraryRouter = router({
       const items = await db.listHeroLibrary();
       const active = items.filter((it) => !it.retired);
       if (active.length === 0) return { url: null as string | null };
-      const idx = Math.abs(input.seed) % active.length;
-      const picked = active[idx];
+      // Single-image library: no choice but to reuse it.
+      let pool = active;
+      if (active.length > 1) {
+        // Sort by lastUsedAt DESC, drop the top one — that's the
+        // current edition's cover. Nulls (never used) sort last under
+        // DESC so they stay in the pool.
+        const sorted = [...active].sort((a, b) => {
+          const ta = a.lastUsedAt ? new Date(a.lastUsedAt).getTime() : 0;
+          const tb = b.lastUsedAt ? new Date(b.lastUsedAt).getTime() : 0;
+          return tb - ta;
+        });
+        pool = sorted.slice(1);
+      }
+      const idx = Math.abs(input.seed) % pool.length;
+      const picked = pool[idx];
       if (!picked) return { url: null as string | null };
       return { url: db.heroLibraryUrl(picked.id) };
     }),
@@ -50,8 +69,13 @@ export const heroLibraryRouter = router({
   /**
    * Generate a new library image and store it. The prompt is generic
    * (not tied to any single edition's content) so the result can be
-   * reused across many weeks. Optional `seed` argument lets the admin
-   * walk through visual variants when seeding a fresh library.
+   * reused across many weeks.
+   *
+   * When the admin clicks "Generate" without a specific seed, we walk
+   * the seed pool in sequence based on the current library size — so
+   * back-to-back clicks roll through different visual subjects rather
+   * than getting unlucky with Math.random() and producing five
+   * near-identical covers.
    */
   generate: adminProcedure
     .input(
@@ -61,7 +85,11 @@ export const heroLibraryRouter = router({
       })
     )
     .mutation(async ({ input }) => {
-      const prompt = libraryHeroPrompt({ seed: input.seed });
+      const seed =
+        typeof input.seed === "number"
+          ? input.seed
+          : (await db.listHeroLibrary()).length;
+      const prompt = libraryHeroPrompt({ seed });
       const result = await generateImage({ prompt });
       if (!result) {
         throw new TRPCError({

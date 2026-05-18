@@ -162,18 +162,39 @@ export default function DailyFeed() {
   //     don't blow row heights apart.
   const liveLead = feedItems[0];
   const liveRest = feedItems.slice(1);
+  // Only items with BOTH partnerTag AND sayThis earn the full grid
+  // treatment — they're rendered as a pair in FeedItemCard. A story
+  // with one but not the other reads as half-equipped, so we treat it
+  // the same as a no-angles item and demote it to the signals strip.
   const hasAngles = (it: typeof feedItems[number]): boolean =>
-    Boolean((it.sayThis && it.sayThis.length > 0) || (it.partnerTag && it.partnerTag.length > 0));
+    Boolean(
+      it.sayThis &&
+        it.sayThis.length > 0 &&
+        it.partnerTag &&
+        it.partnerTag.length > 0
+    );
   const allAngled = liveRest.filter(hasAngles);
   const nonAngled = liveRest.filter((it) => !hasAngles(it));
+  // Sort the grid by approximate rendered card height (title + summary
+  // + sayThis char counts) so adjacent cards in the same row look
+  // similar — first row is the most uniform, taller cards cascade
+  // down. Without this the first row often had the biggest visual
+  // variance because feedItems arrives in priority order, which has
+  // nothing to do with content length.
+  const cardSize = (it: typeof feedItems[number]): number =>
+    it.title.length +
+    (it.summary?.length ?? 0) +
+    (it.sayThis?.length ?? 0) +
+    (it.partnerTag?.length ?? 0);
+  const angledSorted = [...allAngled].sort((a, b) => cardSize(a) - cardSize(b));
   // Desktop grid is 3-col. Round down to a complete row.
   const GRID_COLS = 3;
-  const gridSize = Math.floor(allAngled.length / GRID_COLS) * GRID_COLS;
-  const liveGrid = allAngled.slice(0, gridSize);
+  const gridSize = Math.floor(angledSorted.length / GRID_COLS) * GRID_COLS;
+  const liveGrid = angledSorted.slice(0, gridSize);
   // Anything that didn't fit a complete row joins the signals strip —
   // angle-bearing or not, so the page never shows a lonely card with
   // two empty columns beside it.
-  const liveSignals = [...allAngled.slice(gridSize), ...nonAngled];
+  const liveSignals = [...angledSorted.slice(gridSize), ...nonAngled];
 
   return (
     <div className="space-y-12">
