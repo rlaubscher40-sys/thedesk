@@ -35,6 +35,7 @@ import { FeedSignalStrip } from "@/components/feed/FeedSignalStrip";
 import { TodayInBrief } from "@/components/feed/TodayInBrief";
 import { editionMeta, stories } from "@/data/editions/2026-05-15";
 import { getSydneyIsoDate } from "@/lib/date";
+import { useAuth } from "@/lib/useAuth";
 import { useFilteredFeed } from "@/lib/useFilteredFeed";
 import { trpc } from "@/lib/trpc";
 
@@ -378,9 +379,12 @@ function SectionDivider({ label }: { label: string }) {
  * Real-DB-but-empty Today state. Shown after a wipe / before the first
  * daily-feed workflow run. Distinct from the seed fallback (demo mode)
  * so the editor knows to re-fire the ingest rather than wonder why
- * static placeholders are still showing up.
+ * static placeholders are still showing up. Editor copy is gated to
+ * admins so a partner reader doesn't see GitHub Actions plumbing.
  */
 function EmptyFeedState() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   return (
     <div className="panel rounded p-8 sm:p-10 text-center">
       <p
@@ -390,19 +394,21 @@ function EmptyFeedState() {
         Today's feed
       </p>
       <h2 className="font-serif text-2xl font-bold mb-3 leading-tight">
-        Nothing in the feed yet.
+        The desk is quiet.
       </h2>
       <p className="text-sm text-[var(--color-fg-muted)] max-w-[58ch] mx-auto leading-relaxed mb-5">
-        The daily-feed workflow on GitHub Actions hasn't run yet today, or
-        it was just wiped. Re-fire it from the Actions tab to populate
-        Today with fresh items.
+        {isAdmin
+          ? "The daily-feed workflow hasn't run yet today, or it was just wiped. Re-fire from GitHub Actions to repopulate."
+          : "Today's brief hasn't landed yet. New stories arrive at 7am AEST on weekdays."}
       </p>
-      <p
-        className="font-mono uppercase text-[var(--color-fg-subtle)]"
-        style={{ fontSize: "10px", letterSpacing: "0.18em" }}
-      >
-        GitHub → Actions → Daily Feed → Run workflow
-      </p>
+      {isAdmin && (
+        <p
+          className="font-mono uppercase text-[var(--color-fg-subtle)]"
+          style={{ fontSize: "10px", letterSpacing: "0.18em" }}
+        >
+          GitHub · Actions · Daily Feed · Run workflow
+        </p>
+      )}
     </div>
   );
 }

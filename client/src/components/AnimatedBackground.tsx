@@ -258,8 +258,11 @@ export function AnimatedBackground() {
             width: 900,
             height: 900,
             borderRadius: "50%",
+            // Brand-token amber via color-mix so the orb pulls from
+            // --color-amber and naturally tracks the light-mode shift
+            // if this component ever runs outside dark mode.
             background:
-              "radial-gradient(circle, oklch(0.75 0.18 70 / 7%) 0%, transparent 60%)",
+              "radial-gradient(circle, color-mix(in oklch, var(--color-amber) 7%, transparent) 0%, transparent 60%)",
             filter: "blur(80px)",
           }}
         />
@@ -271,6 +274,9 @@ export function AnimatedBackground() {
             width: 800,
             height: 800,
             borderRadius: "50%",
+            // Indigo accent orb; opposite corner balances the amber
+            // bloom above. No brand token for indigo — it's decorative
+            // chrome only, anchored to the dark canvas hue.
             background:
               "radial-gradient(circle, oklch(0.55 0.18 270 / 6%) 0%, transparent 60%)",
             filter: "blur(80px)",
