@@ -78,12 +78,14 @@ export function FeedbackButton() {
         onClick={() => setOpen(true)}
         aria-label="Send feedback"
         title="Send feedback"
-        className="fixed z-40 bottom-24 right-4 lg:bottom-6 lg:right-6 inline-flex items-center gap-2 rounded-full pl-3 pr-4 py-2.5 text-[10px] font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.96] shadow-lg"
+        className="fixed z-40 right-4 lg:right-6 lg:bottom-6 inline-flex items-center gap-2 rounded-full pl-3 pr-4 py-2.5 text-[10px] font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.96] shadow-lg bottom-[calc(env(safe-area-inset-bottom,_0px)_+_88px)]"
         style={{
-          background:
-            "var(--grad-cta-amber)",
+          // Mobile: 88px clearance above the bottom tab bar (z-50,
+          // ~70px tall with safe-area). lg+ uses standard 24px corner
+          // since the tab bar doesn't render at that breakpoint.
+          background: "var(--grad-cta-amber)",
           color: "var(--color-on-amber)",
-          boxShadow: "0 8px 24px oklch(0.75 0.18 70 / 35%)",
+          boxShadow: "0 8px 24px var(--color-amber-glow)",
         }}
       >
         <MessageSquarePlus className="h-3.5 w-3.5" strokeWidth={2.5} />
