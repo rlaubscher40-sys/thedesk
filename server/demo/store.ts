@@ -13,6 +13,7 @@ import type {
   Edition,
   FeaturedLinkedInPost,
   FeedbackSubmission,
+  PageView,
   ReadingQueueItem,
   ServerError,
   Subscriber,
@@ -59,6 +60,7 @@ export const demo = {
   // doesn't grow unbounded; old entries fall off the front.
   serverErrors: [] as ServerError[],
   uptimePings: [] as UptimePing[],
+  pageViews: [] as PageView[],
 };
 
 /** Trim a ring-buffer array to a max length, dropping oldest entries. */

@@ -450,3 +450,27 @@ export const uptimePings = mysqlTable("uptime_pings", {
 
 export type UptimePing = typeof uptimePings.$inferSelect;
 export type InsertUptimePing = typeof uptimePings.$inferInsert;
+
+// ─── Page views ─────────────────────────────────────────────────────────────
+// Cookieless, fingerprint-free analytics. No IP, no full user-agent,
+// no persistent identifier. `sessionId` is an ephemeral token the
+// browser allocates in sessionStorage (cleared on tab close) so we
+// can count unique sessions for a day without ever knowing who they
+// belong to. Referrer is reduced to hostname before persistence.
+
+export const pageViews = mysqlTable("page_views", {
+  id: int("id").autoincrement().primaryKey(),
+  viewedAt: timestamp("viewedAt").defaultNow().notNull(),
+  /** Path only; query strings dropped client-side. */
+  path: varchar("path", { length: 256 }).notNull(),
+  /** Hostname of the referring document. null when same-origin or
+   *  Referer header missing. Never the full URL — that can leak
+   *  query strings and identifiers. */
+  referrer: varchar("referrer", { length: 256 }),
+  /** Ephemeral sessionStorage token. Lets us compute "unique
+   *  sessions" within a window without persistent identification. */
+  sessionId: varchar("sessionId", { length: 64 }).notNull(),
+});
+
+export type PageView = typeof pageViews.$inferSelect;
+export type InsertPageView = typeof pageViews.$inferInsert;

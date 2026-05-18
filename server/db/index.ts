@@ -14,3 +14,4 @@ export * from "./editionAssets";
 export * from "./heroLibrary";
 export * from "./feedback";
 export * from "./health";
+export * from "./analytics";

@@ -12,10 +12,12 @@ import type {
   InsertDailyFeedItem,
   InsertEdition,
   InsertFeaturedLinkedInPost,
+  InsertPageView,
   InsertReadingQueueItem,
   InsertServerError,
   InsertSubscriber,
   InsertUptimePing,
+  PageView,
   ReadingQueueItem,
   ServerError,
   Subscriber,
@@ -796,4 +798,79 @@ export function uptimeWindowStats(since: Date): {
       ? 0
       : Math.round(rows.reduce((sum, p) => sum + p.latencyMs, 0) / total);
   return { total, up, avgLatencyMs };
+}
+
+// ─── Analytics ──────────────────────────────────────────────────────────────
+
+const PAGEVIEW_CAP = 500;
+
+export function recordPageView(data: InsertPageView): void {
+  const row: PageView = {
+    id: allocId(),
+    viewedAt: new Date(),
+    path: data.path,
+    referrer: data.referrer ?? null,
+    sessionId: data.sessionId,
+  };
+  demo.pageViews = trimRing([...demo.pageViews, row], PAGEVIEW_CAP);
+}
+
+export function listRecentPageViews(limit: number): PageView[] {
+  return [...demo.pageViews]
+    .sort((a, b) => b.viewedAt.getTime() - a.viewedAt.getTime())
+    .slice(0, limit);
+}
+
+export function pageViewSummary(since: Date): {
+  views: number;
+  sessions: number;
+} {
+  const rows = demo.pageViews.filter((v) => v.viewedAt >= since);
+  const sessions = new Set(rows.map((r) => r.sessionId)).size;
+  return { views: rows.length, sessions };
+}
+
+export function topPaths(
+  since: Date,
+  limit: number
+): Array<{ path: string; views: number }> {
+  const counts = new Map<string, number>();
+  for (const v of demo.pageViews) {
+    if (v.viewedAt < since) continue;
+    counts.set(v.path, (counts.get(v.path) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([path, views]) => ({ path, views }))
+    .sort((a, b) => b.views - a.views)
+    .slice(0, limit);
+}
+
+export function topReferrers(
+  since: Date,
+  limit: number
+): Array<{ referrer: string; views: number }> {
+  const counts = new Map<string, number>();
+  for (const v of demo.pageViews) {
+    if (v.viewedAt < since) continue;
+    if (!v.referrer) continue;
+    counts.set(v.referrer, (counts.get(v.referrer) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([referrer, views]) => ({ referrer, views }))
+    .sort((a, b) => b.views - a.views)
+    .slice(0, limit);
+}
+
+export function pageViewsByDay(
+  since: Date
+): Array<{ day: string; views: number }> {
+  const buckets = new Map<string, number>();
+  for (const v of demo.pageViews) {
+    if (v.viewedAt < since) continue;
+    const day = v.viewedAt.toISOString().slice(0, 10);
+    buckets.set(day, (buckets.get(day) ?? 0) + 1);
+  }
+  return [...buckets.entries()]
+    .map(([day, views]) => ({ day, views }))
+    .sort((a, b) => (b.day > a.day ? 1 : -1));
 }

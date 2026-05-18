@@ -197,7 +197,6 @@ function EnvCoverage({ env }: { env: Record<string, boolean> }) {
     ["anthropic", "ANTHROPIC_API_KEY"],
     ["openai", "OPENAI_API_KEY"],
     ["resend", "RESEND_API_KEY"],
-    ["plausible", "VITE_PLAUSIBLE_DOMAIN"],
     ["siteUrl", "SITE_URL"],
     ["scheduledKey", "SCHEDULED_API_KEY"],
   ];

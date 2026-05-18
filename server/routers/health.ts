@@ -49,7 +49,6 @@ export const healthRouter = router({
         anthropic: envFlag("ANTHROPIC_API_KEY"),
         openai: envFlag("OPENAI_API_KEY"),
         resend: envFlag("RESEND_API_KEY"),
-        plausible: envFlag("VITE_PLAUSIBLE_DOMAIN"),
         siteUrl: envFlag("SITE_URL") || envFlag("VITE_SITE_URL"),
         scheduledKey: envFlag("SCHEDULED_API_KEY"),
         database: envFlag("DATABASE_URL"),

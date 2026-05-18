@@ -13,6 +13,7 @@ import { OnboardingModal } from "./components/OnboardingModal";
 import { SubscribeModal } from "./components/SubscribeModal";
 import { Skeleton } from "./components/ui/Skeleton";
 import { Toaster } from "./components/ui/Toaster";
+import { trackPageView } from "./lib/analytics";
 import { PersonaProvider } from "./lib/persona";
 import { ThemeProvider } from "./lib/theme";
 import { UserPrefsProvider } from "./lib/userPrefs";
@@ -77,6 +78,14 @@ function Routes() {
   // Wrap routes in AnimatePresence so navigations fade between pages instead
   // of snapping. Honour prefers-reduced-motion, disable transitions when set.
   const [location] = useLocation();
+
+  // Fire a privacy-preserving page-view beacon on every route change.
+  // Replaces the Plausible script; persists to the page_views table
+  // and surfaces in the admin /analytics panel.
+  useEffect(() => {
+    trackPageView();
+  }, [location]);
+
   const prefersReducedMotion =
     typeof window !== "undefined" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;

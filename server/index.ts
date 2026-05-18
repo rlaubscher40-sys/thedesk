@@ -9,6 +9,7 @@ import express from "express";
 import rateLimit from "express-rate-limit";
 import { createServer } from "node:http";
 import net from "node:net";
+import { registerAnalyticsRoutes } from "./core/analyticsRoutes";
 import { createContext } from "./core/context";
 import { registerHealthRoutes, recordExpressError } from "./core/healthRoutes";
 import { registerOAuthRoutes } from "./core/oauth";
@@ -83,6 +84,7 @@ async function startServer() {
   registerOAuthRoutes(app);
   registerSeoRoutes(app);
   registerHealthRoutes(app);
+  registerAnalyticsRoutes(app);
   registerScheduledRoutes(app);
 
   app.use(
