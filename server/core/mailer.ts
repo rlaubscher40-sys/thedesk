@@ -27,7 +27,7 @@ type SendResult =
 
 export async function send(input: SendInput): Promise<SendResult> {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.MAIL_FROM ?? "The Desk <hello@thedesk.global>";
+  const from = process.env.MAIL_FROM ?? "The Desk <hello@thedesk.au>";
 
   if (!apiKey) {
     console.log(

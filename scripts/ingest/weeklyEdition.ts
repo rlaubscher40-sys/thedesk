@@ -9,7 +9,7 @@
  * credentials.
  *
  * Required env:
- *   INGEST_BASE_URL    — the deployed site URL, e.g. https://thedesk.com.au
+ *   INGEST_BASE_URL    — the deployed site URL, e.g. https://thedesk.au
  *   SCHEDULED_API_KEY  — matches the server's SCHEDULED_API_KEY env var
  */
 import { postJSON } from "./lib/post";
