@@ -75,7 +75,10 @@ export const subscribersRouter = router({
       // functional without provider credentials. Failures don't block
       // the API response, the row is already persisted and an admin
       // can resend manually if delivery is needed.
-      const confirmUrl = `${siteOrigin()}/confirm?token=${token}`;
+      // The confirm page is mounted at /confirm-subscription in
+      // App.tsx; the email's CTA links here. Don't change the path
+      // without also updating the React route, or the link 404s.
+      const confirmUrl = `${siteOrigin()}/confirm-subscription?token=${token}`;
       void sendConfirmEmail({ to: input.email, confirmUrl }).catch((err) =>
         console.warn(`[subscribers] confirm email send failed:`, err)
       );
