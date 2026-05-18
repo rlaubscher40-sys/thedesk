@@ -1,8 +1,8 @@
 /**
  * Two POST endpoints fired by the external scheduler:
  *
- *   POST /api/scheduled/daily-feed   — bulk ingest of daily scan items
- *   POST /api/scheduled/weekly-edition — single weekly edition payload
+ *   POST /api/scheduled/daily-feed  , bulk ingest of daily scan items
+ *   POST /api/scheduled/weekly-edition, single weekly edition payload
  *
  * Both authenticate against SCHEDULED_API_KEY (header or `?key=`), validate the
  * payload via Zod, persist what's valid, and schedule LLM enrichment in
@@ -100,7 +100,7 @@ function registerDailyFeedRoute(app: Express): void {
         sayThis: sanitiseText(item.sayThis ?? null),
         promotedToEdition: false,
         // Editorial-impact baseline. The admin can override per-item via
-        // feed.setPriority — manual control always wins.
+        // feed.setPriority, manual control always wins.
         priority: defaultFeedPriority({ category, source }),
       };
     });
@@ -148,7 +148,7 @@ function registerDailyFeedRoute(app: Express): void {
                       summary: item.summary,
                       category: item.category,
                     }),
-                // Feed items don't use AI thumbnails post-refactor — they
+                // Feed items don't use AI thumbnails post-refactor, they
                 // rely on the og:image scraped during ingest. Wiring per-
                 // item asset storage is doable (mirror the edition_assets
                 // pattern keyed on feedItemId) but isn't worth the schema
@@ -241,7 +241,7 @@ function registerWeeklyEditionRoute(app: Express): void {
       const inserted = await db.getEditionByNumber(edition.editionNumber);
       if (!inserted) return;
 
-      // Hero image and take are independent — run them in parallel.
+      // Hero image and take are independent, run them in parallel.
       // Hero defaults to the library (zero OpenAI cost when there's an
       // image to reuse). Falls back to fresh generation if the library
       // is empty, and seeds the library on that fallback so future
@@ -343,7 +343,7 @@ function registerSynthesizeEditionRoute(app: Express): void {
       return;
     }
 
-    // Refuse to overwrite — if an edition already exists for this week, bail
+    // Refuse to overwrite, if an edition already exists for this week, bail
     // out and let the caller decide what to do.
     const existing = await db.listEditions();
     const dup = existing.find((e) => e.weekOf === weekOf);
@@ -403,7 +403,7 @@ function registerSynthesizeEditionRoute(app: Express): void {
     // ── Background: editor QC + hero + take + headline SEO ─────────────────
     // The QC pass and headline optimiser run on the LIVE edition so a slow
     // call doesn't hold up the synthesise endpoint. Each step is best-effort
-    // — a failure logs and moves on, the edition stays usable either way.
+    //, a failure logs and moves on, the edition stays usable either way.
     setImmediate(async () => {
       const inserted = await db.getEditionByNumber(editionNumber);
       if (!inserted) return;
@@ -446,7 +446,7 @@ function registerSynthesizeEditionRoute(app: Express): void {
       }
 
       // Step 2: hero image + Ruben's Take in parallel. Hero picks from
-      // the library by default — see resolveHeroForEdition for the
+      // the library by default, see resolveHeroForEdition for the
       // library-vs-generate decision.
       const [imageResult, takeResult] = await Promise.allSettled([
         resolveHeroForEdition({

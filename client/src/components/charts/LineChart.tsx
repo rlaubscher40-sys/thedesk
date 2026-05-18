@@ -1,5 +1,5 @@
 /**
- * Custom multi-series line chart. Pure SVG — no chart library. Designed
+ * Custom multi-series line chart. Pure SVG, no chart library. Designed
  * to look hand-tuned rather than off-the-shelf: thin lines, soft area
  * fills, mono-typed axes, a faint metro-grid background, hover marker
  * with an inline value readout that follows the cursor.
@@ -53,7 +53,7 @@ export function LineChart({
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const [width, setWidth] = useState(720);
 
-  // Measure container width — keeps the chart responsive without a
+  // Measure container width, keeps the chart responsive without a
   // ResizeObserver subscription.
   useMemo(() => {
     if (typeof window === "undefined") return;
@@ -83,7 +83,7 @@ export function LineChart({
   const yToPx = (v: number) => padY + innerH - ((v - yMin) / yRange) * innerH;
   const xToPx = (i: number) => padX + i * stepX;
 
-  // Tick values along the y-axis — five evenly spaced.
+  // Tick values along the y-axis, five evenly spaced.
   const yTicks = useMemo(() => {
     const n = 5;
     return Array.from({ length: n }, (_, i) => yMin + (i / (n - 1)) * yRange);
@@ -125,7 +125,7 @@ export function LineChart({
           ))}
         </defs>
 
-        {/* Background grid — soft horizontals only. */}
+        {/* Background grid, soft horizontals only. */}
         <g>
           {yTicks.map((t, i) => (
             <line
@@ -140,7 +140,7 @@ export function LineChart({
           ))}
         </g>
 
-        {/* Y-axis tick labels — mono, dim. */}
+        {/* Y-axis tick labels, mono, dim. */}
         <g
           fontFamily="JetBrains Mono, monospace"
           fontSize="10"
@@ -214,7 +214,7 @@ export function LineChart({
           </g>
         )}
 
-        {/* X-axis labels — mono, dim. */}
+        {/* X-axis labels, mono, dim. */}
         <g
           fontFamily="JetBrains Mono, monospace"
           fontSize="10"

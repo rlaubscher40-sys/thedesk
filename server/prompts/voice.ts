@@ -1,7 +1,7 @@
 /**
  * Reusable fragments describing Ruben's editorial voice. Composed into the
  * actual generation prompts in this directory so the voice rules stay in one
- * place — change `voiceRules` once and every generator inherits it.
+ * place, change `voiceRules` once and every generator inherits it.
  */
 
 export const voiceRules = `RUBEN'S VOICE (non-negotiable):
@@ -23,7 +23,7 @@ VOICE CHARACTERISTICS:
 - Short, declarative sentences mixed with one longer analytical sentence
 - Calm authority, anti-noise
 - Non-obvious angle: start from a counterintuitive observation, never the obvious headline
-- Opens with a scene, a number, or a specific moment — never a news summary
+- Opens with a scene, a number, or a specific moment, never a news summary
 - Closes on a question or an invitation to think further, never a call to action
 - First person, present tense where possible
 - The lesson emerges from the story, never stated up front`;
@@ -54,7 +54,7 @@ export const rubenSystemPrompt = `You are a ghostwriter for Ruben Laubscher, Hea
 
 /**
  * Strip the few characters the model is fond of slipping past the ban list.
- * Cheap defence-in-depth — the voice rules in the prompt are the real guard.
+ * Cheap defence-in-depth, the voice rules in the prompt are the real guard.
  */
 export function stripBannedChars(text: string): string {
   return text

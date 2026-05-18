@@ -38,7 +38,7 @@ export function HeroLibraryAdminPanel() {
       utils.heroLibrary.list.invalidate();
     },
     onError: (err) =>
-      toast.error(err.message ?? "Couldn't generate — check OPENAI_API_KEY"),
+      toast.error(err.message ?? "Couldn't generate, check OPENAI_API_KEY"),
   });
 
   const setRetired = trpc.heroLibrary.setRetired.useMutation({
@@ -72,7 +72,7 @@ export function HeroLibraryAdminPanel() {
         <p className="text-sm text-[var(--color-fg-muted)] mt-1.5 max-w-[64ch] leading-relaxed">
           The weekly cron picks from this pool least-recently-used first, so
           most editions cost zero OpenAI image calls. Aim for ~15-20 covers in
-          rotation — each then only repeats every 3-5 months. Generate fresh
+          rotation, each then only repeats every 3-5 months. Generate fresh
           covers when one no longer fits, retire the ones you&apos;re tired of.
         </p>
       </div>
@@ -84,8 +84,8 @@ export function HeroLibraryAdminPanel() {
           className="inline-flex items-center gap-1.5 rounded px-3.5 py-2 text-[10px] font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.98] disabled:opacity-50"
           style={{
             background:
-              "linear-gradient(135deg, oklch(0.78 0.18 70) 0%, oklch(0.88 0.19 82) 55%, oklch(0.65 0.16 60) 100%)",
-            color: "oklch(0.10 0.018 260)",
+              "var(--grad-cta-amber)",
+            color: "var(--color-on-amber)",
             boxShadow: "0 4px 14px oklch(0.75 0.18 70 / 25%)",
           }}
         >
@@ -177,7 +177,7 @@ function HeroLibraryCard({
         opacity: item.retired ? 0.55 : 1,
       }}
     >
-      <div className="relative aspect-[3/2] overflow-hidden bg-black/30">
+      <div className="relative aspect-[3/2] overflow-hidden bg-[var(--color-bg-deep)]">
         <img
           src={item.url}
           alt={item.label ?? `Cover #${item.id}`}
@@ -219,7 +219,7 @@ function HeroLibraryCard({
               }
             }}
             placeholder="Label (optional)"
-            className="px-2 py-1 rounded text-xs bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors"
+            className="px-2 py-1 rounded text-xs bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors"
           />
         ) : (
           <button

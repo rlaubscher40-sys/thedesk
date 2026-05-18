@@ -81,8 +81,8 @@ export function FeedbackButton() {
         className="fixed z-40 bottom-24 right-4 lg:bottom-6 lg:right-6 inline-flex items-center gap-2 rounded-full pl-3 pr-4 py-2.5 text-[10px] font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.96] shadow-lg"
         style={{
           background:
-            "linear-gradient(135deg, oklch(0.78 0.18 70) 0%, oklch(0.88 0.19 82) 55%, oklch(0.65 0.16 60) 100%)",
-          color: "oklch(0.10 0.018 260)",
+            "var(--grad-cta-amber)",
+          color: "var(--color-on-amber)",
           boxShadow: "0 8px 24px oklch(0.75 0.18 70 / 35%)",
         }}
       >
@@ -121,11 +121,11 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
 
   const submit = trpc.feedback.submit.useMutation({
     onSuccess: () => {
-      toast.success("Thanks — Ruben sees this");
+      toast.success("Thanks, Ruben sees this");
       setMessage("");
       onClose();
     },
-    onError: () => toast.error("Couldn't send — try again in a sec"),
+    onError: () => toast.error("Couldn't send, try again in a sec"),
   });
 
   function handleSubmit(e: React.FormEvent) {
@@ -262,7 +262,7 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
                     ? "What would make this more useful for partner conversations?"
                     : "What's working for you?"
               }
-              className="w-full px-3 py-2 rounded text-sm bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors leading-relaxed"
+              className="w-full px-3 py-2 rounded text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors leading-relaxed"
             />
           </label>
 
@@ -281,7 +281,7 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
                 onChange={(e) => setReporterLabel(e.target.value)}
                 maxLength={128}
                 placeholder="Sarah B."
-                className="w-full px-3 py-2 rounded text-sm bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors"
+                className="w-full px-3 py-2 rounded text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors"
               />
             </label>
             <label className="block">
@@ -297,7 +297,7 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
                 onChange={(e) => setContactEmail(e.target.value)}
                 maxLength={320}
                 placeholder="you@firm.com"
-                className="w-full px-3 py-2 rounded text-sm bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors"
+                className="w-full px-3 py-2 rounded text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors"
               />
             </label>
           </div>
@@ -308,7 +308,7 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
             <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0 text-amber-400/60" />
             <span>
               We capture the page URL and your browser type so Ruben can
-              reproduce. Nothing else — no tracking pixels.
+              reproduce. Nothing else, no tracking pixels.
             </span>
           </p>
 
@@ -326,8 +326,8 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
               className="inline-flex items-center gap-1.5 rounded px-4 py-2 text-[10px] font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.98] disabled:opacity-50"
               style={{
                 background:
-                  "linear-gradient(135deg, oklch(0.78 0.18 70) 0%, oklch(0.88 0.19 82) 55%, oklch(0.65 0.16 60) 100%)",
-                color: "oklch(0.10 0.018 260)",
+                  "var(--grad-cta-amber)",
+                color: "var(--color-on-amber)",
               }}
             >
               <Send className="h-3 w-3" />

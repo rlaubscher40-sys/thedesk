@@ -1,10 +1,10 @@
 /**
  * Rounded category pill. Coloured by category. Three variants:
  *
- *   · solid   — amber gradient fill (used for FEATURED + category on the
+ *   · solid  , amber gradient fill (used for FEATURED + category on the
  *               lead story so it reads as "this is THE story today")
- *   · outline — coloured border + text matching the category. Default.
- *   · ghost   — neutral border, used on Further signals where the
+ *   · outline, coloured border + text matching the category. Default.
+ *   · ghost  , neutral border, used on Further signals where the
  *               accent should be quieter
  */
 import { categoryColour } from "@/lib/category";
@@ -81,7 +81,7 @@ export function CategoryPill({ category, variant = "outline", className }: Props
 }
 
 /**
- * "RUBEN'S PICK · MACRO" double pill — the editorial mast on the lead
+ * "RUBEN'S PICK · MACRO" double pill, the editorial mast on the lead
  * story. The first half names the curator (the value prop of a daily
  * brief: someone picked this for you); the second half names the
  * category.

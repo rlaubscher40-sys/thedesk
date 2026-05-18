@@ -4,7 +4,7 @@
  *
  * `getLastVisit()` returns the previous timestamp on first call within a
  * session, then immediately stamps a new one. That means the count is
- * computed once per page mount — it doesn't keep dropping to zero as you
+ * computed once per page mount, it doesn't keep dropping to zero as you
  * scroll.
  */
 import { useEffect, useState } from "react";

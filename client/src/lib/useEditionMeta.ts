@@ -3,7 +3,7 @@
  * crawlers (LinkedIn, Twitter/X, Slack, Facebook, Discord) execute JS
  * before grabbing OG tags, so this gets us a correct preview card for
  * the share button surface. Google still sees the static tags from
- * index.html — server-side meta injection would cover that gap; see
+ * index.html, server-side meta injection would cover that gap; see
  * server/core/seo.ts for the eventual home for that.
  *
  * Cleans up on unmount so navigating back to a non-edition page restores
@@ -47,7 +47,7 @@ export function useEditionMeta(meta: EditionMeta | null): void {
     if (typeof document === "undefined") return;
 
     const previousTitle = document.title;
-    document.title = `${meta.title} — The Desk`;
+    document.title = `${meta.title}, The Desk`;
 
     const trackers: Array<() => void> = [];
 

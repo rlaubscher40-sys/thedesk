@@ -1,13 +1,13 @@
 /**
  * Edition audio player. Uses the browser's SpeechSynthesis API to read the
- * edition aloud — zero infra, free, works offline once the voice is loaded.
+ * edition aloud, zero infra, free, works offline once the voice is loaded.
  *
  * Voice quality varies by OS (macOS / iOS have excellent neural voices;
  * Android is decent; desktop Linux can be rougher). We pick the best
  * en-AU voice when one's available, otherwise fall back to en-* and let
  * the OS choose.
  *
- * Not all browsers expose voices — feature-detected. Hidden when unsupported.
+ * Not all browsers expose voices, feature-detected. Hidden when unsupported.
  */
 import { useEffect, useRef, useState } from "react";
 import { Headphones, Pause, Play, Square } from "lucide-react";

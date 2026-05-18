@@ -88,7 +88,7 @@ function splitSystem(messages: LlmMessage[]): {
  * Append a JSON-shape instruction to the system prompt so the model
  * returns parseable JSON. Anthropic supports structured outputs natively
  * via `output_config.format`, but our callers already pass raw schemas and
- * parse the response themselves — a textual instruction is the smallest
+ * parse the response themselves, a textual instruction is the smallest
  * possible change.
  */
 function augmentSystemForJson(
@@ -153,7 +153,7 @@ function extractText(response: Anthropic.Message): string {
 
 /**
  * Invoke the LLM with a JSON schema response format and return the parsed
- * object. Throws on parse failure — the caller is expected to surface a
+ * object. Throws on parse failure, the caller is expected to surface a
  * useful error or fall back gracefully.
  */
 export async function invokeLLMJson<T>(

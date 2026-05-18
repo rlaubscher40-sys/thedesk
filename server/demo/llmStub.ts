@@ -31,7 +31,7 @@ const SUBSTACK_DRAFT_JSON = JSON.stringify({
 const PARTNER_TAG_BLOCK = [
   "Institutional: Use the language softening as a trigger for a year-end wellbeing-program rate review.",
   "Broker: Conversation pivots to fixed-rate roll-offs landing in mid-June.",
-  "Adviser: Refresh the 'rates higher for longer' framing — patience gives clients permission to plan.",
+  "Adviser: Refresh the 'rates higher for longer' framing, patience gives clients permission to plan.",
   "Buyers Agent: Sentiment shifts before listings do. Expect more pre-auction offers in the next four weeks.",
 ].join("\n");
 
@@ -40,7 +40,7 @@ const PARTNER_TAG_BLOCK = [
  * message to decide which canned response to return.
  */
 export async function demoLlm(params: InvokeLlmParams): Promise<string> {
-  // Light artificial latency — makes the UI's loading state visible.
+  // Light artificial latency, makes the UI's loading state visible.
   await new Promise((r) => setTimeout(r, 600));
 
   const text = params.messages.map((m) => m.content).join("\n").toLowerCase();
@@ -51,7 +51,7 @@ export async function demoLlm(params: InvokeLlmParams): Promise<string> {
   // before any text-content matching.
   if (isJson) return SUBSTACK_DRAFT_JSON;
 
-  // 4-persona partner-tag block — easy to fingerprint by its labels.
+  // 4-persona partner-tag block, easy to fingerprint by its labels.
   if (text.includes("write exactly 4 lines") || text.includes("institutional:")) {
     return PARTNER_TAG_BLOCK;
   }

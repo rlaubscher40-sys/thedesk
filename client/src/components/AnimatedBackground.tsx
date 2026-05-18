@@ -1,7 +1,7 @@
 /**
  * Canvas-based atmospheric backdrop.
  *
- * Replaces the CSS gradient orbs with a real particle field — a slow
+ * Replaces the CSS gradient orbs with a real particle field, a slow
  * constellation of dots with thin connection lines, a handful of vertical
  * data-stream slivers that climb the right edge, and an occasional
  * full-height scan line sweeping top-to-bottom. Pure canvas, no per-frame
@@ -52,7 +52,7 @@ export function AnimatedBackground() {
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduced) return;
 
-    // Mobile bails out — the particle field's O(n²) connection-line pass
+    // Mobile bails out, the particle field's O(n²) connection-line pass
     // is the most expensive frame in the app, and on a mid-range Android
     // it shows up in Lighthouse as main-thread blocking. The static
     // gradient washes below the canvas still render so the look survives.
@@ -60,7 +60,7 @@ export function AnimatedBackground() {
       typeof window !== "undefined" && window.innerWidth < 768;
     if (isSmallViewport) return;
 
-    // Light mode reads as paper — the indigo particle field looks wrong
+    // Light mode reads as paper, the indigo particle field looks wrong
     // floating on a warm-white canvas. Skip the canvas entirely when
     // the .light class is on the html element.
     if (
@@ -192,7 +192,7 @@ export function AnimatedBackground() {
         ctx!.stroke();
       }
 
-      // ── Scan line — spawns occasionally, sweeps the viewport ─────
+      // ── Scan line, spawns occasionally, sweeps the viewport ─────
       scanCooldown -= dt;
       if (scanCooldown <= 0) {
         scanLines.push(spawnScan());
@@ -244,7 +244,7 @@ export function AnimatedBackground() {
         aria-hidden="true"
       />
       {/* A pair of soft gradient washes sit above the canvas to anchor
-          the colour palette — amber upper-right, indigo lower-left. */}
+          the colour palette, amber upper-right, indigo lower-left. */}
       <div
         className="fixed inset-0 pointer-events-none"
         style={{ zIndex: 0 }}

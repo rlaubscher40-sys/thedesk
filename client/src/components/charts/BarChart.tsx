@@ -144,7 +144,7 @@ export function BarChart({
                   fill={s.colour}
                   fillOpacity="0.6"
                 />
-                {/* Top cap — heavier 2px slab on top for newspaper feel. */}
+                {/* Top cap, heavier 2px slab on top for newspaper feel. */}
                 <rect x={x} y={y} width={barWidth} height={2} fill={s.colour} />
               </g>
             );

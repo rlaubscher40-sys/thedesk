@@ -1,7 +1,7 @@
 /**
  * Front-page lead. Wider, taller, gets a full hero "cover plate" on the
  * left and the editorial column on the right. The hero plate is a
- * category-tinted gradient panel — no AI imagery on individual feed items
+ * category-tinted gradient panel, no AI imagery on individual feed items
  * in demo mode, so we render an editorial gradient cover with the category
  * label set large.
  */
@@ -59,7 +59,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
   const [linkedInOpen, setLinkedInOpen] = useState(false);
   // Adopt the image's natural aspect ratio once it loads so news og:images
   // of any shape (landscape banners, square portraits, vertical scrolls)
-  // fill the cover plate exactly — no object-cover crops, no empty
+  // fill the cover plate exactly, no object-cover crops, no empty
   // gradient bands above or below. Capped to a sensible window so a
   // single weird tall image doesn't blow the grid.
   const [imageAspect, setImageAspect] = useState<number | null>(null);
@@ -84,7 +84,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
 
   // Admin priority toggle: pin to 100 (locks the story as the lead) or
   // reset to default 50. Categories/sources keep ingest-time defaults at
-  // 50-80 — pinning at 100 always wins.
+  // 50-80, pinning at 100 always wins.
   const isPinned = (item.priority ?? 50) >= 100;
   const setPriority = trpc.feed.setPriority.useMutation({
     onSuccess: () => {
@@ -109,7 +109,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
     item.summary,
     item.sayThis ? `\nMy take: ${item.sayThis}` : "",
     "",
-    `Via The Desk — ${SITE_DISPLAY}`,
+    `Via The Desk · ${SITE_DISPLAY}`,
   ].join("\n").trim();
 
   return (
@@ -124,7 +124,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
         categoryAccentClass(item.category)
       )}
     >
-      {/* Hero plate — og:image when scraped, otherwise an editorial
+      {/* Hero plate, og:image when scraped, otherwise an editorial
           gradient keyed to the category. The category gradient ALWAYS
           renders as the background, even when an image is present —
           object-contain on the image means odd aspect ratios (very
@@ -134,7 +134,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
         href={`/story/${item.id}`}
         // The card has its own max-width now (960px), so the image
         // can take its full natural aspect without dominating the
-        // viewport. No more max-height clamp — that was the source
+        // viewport. No more max-height clamp, that was the source
         // of the zoom-in crop.
         className="relative block overflow-hidden w-full"
         style={{
@@ -159,7 +159,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
             onLoad={onImageLoad}
           />
         ) : fallbackUrl ? (
-          // Hero-library fallback — used when the story didn't come with
+          // Hero-library fallback, used when the story didn't come with
           // an og:image. Deterministic per item ID so the cover doesn't
           // flicker between renders.
           <img
@@ -170,7 +170,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
             decoding="async"
           />
         ) : (
-          // Final fallback — library empty too. Render the category
+          // Final fallback, library empty too. Render the category
           // gradient + supersized category name we've always had.
           <span
             className="absolute font-serif font-bold pointer-events-none select-none"
@@ -205,7 +205,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
           aria-hidden="true"
         />
 
-        {/* "LEAD STORY" badge — bottom-left, sits over the cover image.
+        {/* "LEAD STORY" badge, bottom-left, sits over the cover image.
             Source + date moved into the editorial column below so the
             badge isn't fighting tiny text overlaid on a photo. */}
         <div className="absolute bottom-5 left-5">
@@ -218,9 +218,9 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
         </div>
       </Link>
 
-      {/* Editorial column — sits below the cover plate at the full
+      {/* Editorial column, sits below the cover plate at the full
           card width (960px max via the parent article). Hairline rules
-          group the sections — title+lede / source / take / angles. */}
+          group the sections, title+lede / source / take / angles. */}
       <div className="px-6 py-7 sm:px-10 sm:py-9 flex flex-col">
         <div className="flex items-start justify-between gap-3 mb-4">
           <span
@@ -292,7 +292,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
           </h2>
         </Link>
 
-        {/* Lede. Plain serif rather than italic — italic Playfair gets squished
+        {/* Lede. Plain serif rather than italic, italic Playfair gets squished
             at body sizes on a dark background and was reading as cramped. The
             magazine register stays via the serif face and the surrounding
             chrome; the italic was carrying too much load. */}
@@ -322,7 +322,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
           </div>
         )}
 
-        {/* Editor's take — Ruben's note overrides the auto-generated
+        {/* Editor's take, Ruben's note overrides the auto-generated
             sayThis line when set. */}
         {(item.rubensNote || item.sayThis) && (
           <div className="mt-6 pt-6 border-t border-[var(--color-border)]">
@@ -334,7 +334,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
         )}
 
         {/* PartnerTagBlock paints its own border-t + top margin so we
-            don't wrap it here — would create a double hairline. */}
+            don't wrap it here, would create a double hairline. */}
         <PartnerTagBlock raw={item.partnerTag} />
 
         <LinkedInPostModal

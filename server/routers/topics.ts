@@ -14,7 +14,7 @@ export const topicsRouter = router({
 
   list: publicProcedure.query(async () => db.listAllCategories()),
 
-  /** All-time counts per category — used to colour the Topics overview. */
+  /** All-time counts per category, used to colour the Topics overview. */
   itemCounts: publicProcedure.query(async () => db.getCategoryHeat(3650)),
 
   /** Up to 3 most recent feed items per category, grouped. */

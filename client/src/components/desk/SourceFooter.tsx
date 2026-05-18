@@ -1,7 +1,7 @@
 /**
  * Tiny source-attribution footer for desk cards. Renders a category-coloured
  * glyph chip + source name + "Read original →" link. The glyph stands in
- * for a real favicon — colour keyed to the story's category so the eye
+ * for a real favicon, colour keyed to the story's category so the eye
  * picks it out at a glance.
  */
 import { ExternalLink } from "lucide-react";

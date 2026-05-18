@@ -1,5 +1,5 @@
 /**
- * Editor's letter — the 800-1200 word narrative thread that runs across an
+ * Editor's letter, the 800-1200 word narrative thread that runs across an
  * edition's topics. Collapsed by default on mobile so the lead and topic
  * deck land sooner; expanded by default on desktop where the two-column
  * broadsheet layout actually earns its room. Choice persists in

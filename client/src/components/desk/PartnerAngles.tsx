@@ -1,7 +1,7 @@
 /**
  * Renders the four Partner Angles on a card. The row matching the active
  * persona is highlighted; the others dim to 40% opacity. Clicking a
- * dimmed row promotes that persona globally — same as the VIEW AS pills.
+ * dimmed row promotes that persona globally, same as the VIEW AS pills.
  */
 import { cn } from "@/lib/cn";
 import { PERSONA_COLOUR, usePersona } from "@/lib/persona";

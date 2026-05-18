@@ -11,7 +11,7 @@ const SHOWN_AT_TOP = 6;
 
 export function SignalsBriefs({ signals }: { signals: string[] }) {
   const filtered = signals.filter((s) => s && s.trim().length > 0);
-  // Drop the first six — they appear in the hero scan strip. If there's
+  // Drop the first six, they appear in the hero scan strip. If there's
   // nothing left after that, render nothing.
   const remaining = filtered.slice(SHOWN_AT_TOP);
   if (remaining.length === 0) return null;

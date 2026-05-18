@@ -75,7 +75,7 @@ function PageFallback() {
 
 function Routes() {
   // Wrap routes in AnimatePresence so navigations fade between pages instead
-  // of snapping. Honour prefers-reduced-motion — disable transitions when set.
+  // of snapping. Honour prefers-reduced-motion, disable transitions when set.
   const [location] = useLocation();
   const prefersReducedMotion =
     typeof window !== "undefined" &&

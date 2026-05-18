@@ -1,6 +1,6 @@
 /**
  * Wraps a list of children so each fades + slides in with a stagger delay.
- * Light Framer Motion sugar — drop it around any grid or vertical list and
+ * Light Framer Motion sugar, drop it around any grid or vertical list and
  * its direct children animate on mount and on key change.
  */
 import { motion, useReducedMotion, type Variants } from "framer-motion";
@@ -14,7 +14,7 @@ type Props = {
   stagger?: number;
   /** Initial vertical offset in px. */
   yOffset?: number;
-  /** Forces re-mount on change — useful when the underlying list changes. */
+  /** Forces re-mount on change, useful when the underlying list changes. */
   cacheKey?: string;
   children: ReactNode;
 };

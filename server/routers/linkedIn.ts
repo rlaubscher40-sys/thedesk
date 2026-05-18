@@ -2,14 +2,14 @@
  * Featured LinkedIn posts.
  *
  * Public:
- *   · list — live posts in display order. Used by the "Ruben on LinkedIn"
+ *   · list, live posts in display order. Used by the "Ruben on LinkedIn"
  *            strip on the Today page.
  *
  * Admin:
- *   · listAll — full list including hidden rows. Drives the admin form.
- *   · add     — create a new featured post.
- *   · update  — patch any field (excerpt, order, isLive, etc.).
- *   · remove  — hard delete.
+ *   · listAll, full list including hidden rows. Drives the admin form.
+ *   · add    , create a new featured post.
+ *   · update , patch any field (excerpt, order, isLive, etc.).
+ *   · remove , hard delete.
  */
 import { z } from "zod";
 import * as db from "../db";

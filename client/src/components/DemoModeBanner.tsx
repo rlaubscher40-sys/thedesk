@@ -1,6 +1,6 @@
 /**
  * Tiny "demo mode" indicator shown when the server is running on seed data.
- * Lit by a tRPC sentinel query — appears as a compact pill in the
+ * Lit by a tRPC sentinel query, appears as a compact pill in the
  * bottom-right corner of the viewport rather than a full-width top banner,
  * so it tells developers and reviewers the data isn't real without
  * dominating the editorial frame.

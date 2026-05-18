@@ -1,5 +1,5 @@
 /**
- * Bottom-right toast that surfaces today's top signal — the first item from
+ * Bottom-right toast that surfaces today's top signal, the first item from
  * the daily feed if there is one. Dismissed by the user, then quiet for the
  * rest of the day.
  */

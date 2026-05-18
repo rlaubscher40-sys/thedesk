@@ -1,6 +1,6 @@
 /**
  * Privacy page. Plain-language summary of what The Desk collects, how it's
- * used, and how to ask for changes. Kept short on purpose — readers don't
+ * used, and how to ask for changes. Kept short on purpose, readers don't
  * read long privacy policies, and a B2B audience scrutinises every line.
  */
 import { useDocumentTitle } from "@/lib/useDocumentTitle";
@@ -23,6 +23,7 @@ export default function Privacy() {
           Last updated: {new Date().toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" })}
         </p>
       </header>
+      <div className="editorial-rule-soft" aria-hidden="true" />
 
       <section className="space-y-4">
         <h2 className="font-serif text-2xl mt-8">What we collect</h2>

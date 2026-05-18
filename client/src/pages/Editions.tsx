@@ -2,9 +2,9 @@
  * Editions page.
  *
  * Editorial flow, top-to-bottom:
- *   1. PageHeader — title, kicker, Backfill button (admin)
- *   2. Horizontal EditionSelector — every edition as a card row
- *   3. EditionReader — full-width reader for the selected edition
+ *   1. PageHeader, title, kicker, Backfill button (admin)
+ *   2. Horizontal EditionSelector, every edition as a card row
+ *   3. EditionReader, full-width reader for the selected edition
  *
  * Previously the editions list was a sticky-left-rail and the reader sat
  * in the right column. On wide viewports the rail wasted ~25% of the
@@ -75,7 +75,7 @@ export default function EditionsPage() {
           description:
             edition.metaDescription ??
             edition.rubensTake ??
-            `Weekly intelligence for property partnerships — Edition ${edition.editionNumber}.`,
+            `Weekly intelligence for property partnerships, Edition ${edition.editionNumber}.`,
           ogTitle:
             edition.socialTitle ??
             edition.metaTitle ??
@@ -112,7 +112,7 @@ export default function EditionsPage() {
 
       {/* Horizontal selector row. Empty + loading states handled by the
           reader block below so the chrome doesn't double-render an empty
-          message — see the EmptyEditions component. */}
+          message, see the EmptyEditions component. */}
       <SectionErrorBoundary section="Editions selector">
         {listQuery.isLoading ? (
           <SelectorSkeleton />
@@ -141,7 +141,7 @@ export default function EditionsPage() {
 }
 
 /**
- * Real empty state for the editions page — what a partner-tester sees
+ * Real empty state for the editions page, what a partner-tester sees
  * when no editions have shipped yet. Previously this rendered a flat
  * "Select an edition to begin reading" string which read as broken.
  */
@@ -191,7 +191,7 @@ function EmptyEditions() {
  * whitespace next to the "Weekly deep dives" title. Three lines: when
  * the next edition lands, how many have shipped to date, and the
  * average read time. Falls back gracefully when there are no editions
- * yet — only the "next edition" row renders, so the panel still has
+ * yet, only the "next edition" row renders, so the panel still has
  * editorial weight without empty zeroes.
  */
 function EditionsMetaPanel({

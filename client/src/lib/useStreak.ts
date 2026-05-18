@@ -3,9 +3,9 @@
  * has loaded the Today page. Persisted in localStorage.
  *
  * Rules:
- *   · Same day as last visit — no change.
- *   · Exactly one day after last visit — streak + 1.
- *   · Any other gap — streak resets to 1.
+ *   · Same day as last visit, no change.
+ *   · Exactly one day after last visit, streak + 1.
+ *   · Any other gap, streak resets to 1.
  *
  * Returns the current streak, longest streak, and a "badge tier" so the
  * sidebar pill can change colour at 3 / 7 / 14 / 30 days.
@@ -62,7 +62,7 @@ export function useStreak() {
     const today = getSydneyIsoDate();
     const stored = read();
     if (stored?.lastVisit === today) {
-      // Same-day revisit — no change.
+      // Same-day revisit, no change.
       setState(stored);
       return;
     }

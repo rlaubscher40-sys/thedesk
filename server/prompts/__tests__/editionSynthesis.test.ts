@@ -7,7 +7,7 @@
  *   - A malformed response surfaces a clear error rather than silently
  *     returning partial data.
  *
- * The Anthropic SDK is never imported here — we mock the project's
+ * The Anthropic SDK is never imported here, we mock the project's
  * invokeLLM wrapper, so a CI run never touches the live API.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -41,7 +41,7 @@ const validResponse = JSON.stringify({
   topics: [
     {
       title: "Cash rate holds, broker channel keeps pricing",
-      summary: "The RBA held at 4.35% — the third hold in a row.",
+      summary: "The RBA held at 4.35%, the third hold in a row.",
       category: "MACRO",
       body: "What happened. The RBA held. Why it matters. Brokers can plan around stability. What to watch. Next month's CPI. What it means for you. Lock the conversation on serviceability.",
       keyTakeaway: "The hold gives brokers a clear runway.",
@@ -178,7 +178,7 @@ describe("synthesizeWeeklyEdition", () => {
   it("throws when topics or signals fall below the schema minimum", async () => {
     const thin = JSON.stringify({
       ...JSON.parse(validResponse),
-      topics: [JSON.parse(validResponse).topics[0]], // just one — below min 5
+      topics: [JSON.parse(validResponse).topics[0]], // just one, below min 5
     });
     vi.mocked(invokeLLM).mockResolvedValueOnce(thin);
 

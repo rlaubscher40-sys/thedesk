@@ -1,12 +1,12 @@
 /**
  * Intelligence dashboard. Three layers, top to bottom:
  *
- *   1. "This week in motion" hero — biggest 7-day movers, market-stress
+ *   1. "This week in motion" hero, biggest 7-day movers, market-stress
  *      signal, next dates to watch. Editorial front-page.
- *   2. Grouped metric grid — every live daily_metrics row with a 30-day
+ *   2. Grouped metric grid, every live daily_metrics row with a 30-day
  *      sparkline, sectioned by groupKey (Macro / Property / Labour /
  *      Markets / Demographics).
- *   3. Editorial telemetry — category heat + signal cadence across recent
+ *   3. Editorial telemetry, category heat + signal cadence across recent
  *      editions. These remain edition-level since they describe editorial
  *      output, not market data.
  */

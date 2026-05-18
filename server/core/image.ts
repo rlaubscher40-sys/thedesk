@@ -5,7 +5,7 @@
  * (e.g. in the `edition_assets` table) and exposing them via a URL.
  *
  * Returning bytes rather than a data URL keeps every editions-list / get
- * query lightweight — storing a 250KB+ data URL inline in heroImageUrl
+ * query lightweight, storing a 250KB+ data URL inline in heroImageUrl
  * meant every page load shipped the image as text and triggered rendering
  * issues at scale.
  *
@@ -13,7 +13,7 @@
  *   - Does NOT accept `response_format`. Always returns base64 in `b64_json`.
  *   - Always returns binary, never a URL.
  *   - `quality` defaults to "low". "medium" is the right balance for a
- *     1536x1024 hero — sharper than low, half the cost of high.
+ *     1536x1024 hero, sharper than low, half the cost of high.
  */
 import sharp from "sharp";
 import { isDemoMode } from "../demo/store";
@@ -60,14 +60,14 @@ export async function generateImage(
   options: GenerateImageOptions
 ): Promise<GeneratedImage> {
   if (isDemoMode()) {
-    // Demo mode kept the old shape ({ url }) — translate so callers
+    // Demo mode kept the old shape ({ url }), translate so callers
     // upstream don't have to special-case it.
     const stub = await demoImage(options);
     if (!stub) return null;
     return null; // demo stays without binary; placeholders render client-side
   }
   if (!env.openAiApiKey) {
-    console.warn("[image] skipped — OPENAI_API_KEY not set");
+    console.warn("[image] skipped, OPENAI_API_KEY not set");
     return null;
   }
 

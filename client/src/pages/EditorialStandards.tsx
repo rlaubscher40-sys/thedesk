@@ -24,12 +24,13 @@ export default function EditorialStandards() {
           you can hold us to that.
         </p>
       </header>
+      <div className="editorial-rule-soft" aria-hidden="true" />
 
       <section className="space-y-4">
         <h2 className="font-serif text-2xl mt-8">Who curates</h2>
         <p>
           Every edition is hand-curated by Ruben Laubscher, Head of
-          Partnerships at InvestorKit — Australia's most awarded data-driven
+          Partnerships at InvestorKit, Australia's most awarded data-driven
           buyer's agency. The angle on each story reflects an editorial
           judgement about what the partner channel needs to know that
           morning.
@@ -47,7 +48,7 @@ export default function EditorialStandards() {
         <h2 className="font-serif text-2xl mt-8">Use of AI</h2>
         <p>
           The Desk uses large language models to support the editorial
-          workflow — specifically to draft per-persona angles ("Say This"
+          workflow, specifically to draft per-persona angles ("Say This"
           lines, partner-tag rows) once a story has been selected and
           summarised. The story selection, the framing, and the editor's
           take are human judgements. The AI does not pick stories, decide

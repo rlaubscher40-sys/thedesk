@@ -1,10 +1,10 @@
 /**
  * Lazy-initialised Drizzle client. Returns null when DATABASE_URL is missing
- * so the rest of the app can boot in tests without a live database — every
+ * so the rest of the app can boot in tests without a live database, every
  * query helper that imports this checks for null.
  *
  * SSL is required for TiDB Serverless (rejects unencrypted connections).
- * We always opt into TLS — local MySQL setups accept it too, so this is a
+ * We always opt into TLS, local MySQL setups accept it too, so this is a
  * safe default everywhere.
  */
 import { createPool } from "mysql2";

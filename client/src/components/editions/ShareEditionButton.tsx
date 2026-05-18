@@ -2,14 +2,14 @@
  * Share button on the EditionReader. Opens a small popover with three
  * actions:
  *
- *   · Copy link    — copies the canonical /editions/{n} URL
- *   · LinkedIn     — opens LinkedIn's share intent (copies the link +
+ *   · Copy link   , copies the canonical /editions/{n} URL
+ *   · LinkedIn    , opens LinkedIn's share intent (copies the link +
  *                    opens the composer, since LinkedIn ignores
  *                    ?text= URL params)
- *   · X / Twitter  — opens X's tweet intent pre-filled with the
+ *   · X / Twitter , opens X's tweet intent pre-filled with the
  *                    edition headline + link
  *
- * Drives organic reach — every edition becomes shareable, every
+ * Drives organic reach, every edition becomes shareable, every
  * shared link routes back into the funnel.
  */
 import { useState } from "react";
@@ -28,7 +28,7 @@ export function ShareEditionButton({ edition }: { edition: Edition }) {
     typeof window === "undefined"
       ? `/editions/${edition.editionNumber}`
       : `${window.location.origin}/editions/${edition.editionNumber}`;
-  const tweet = `${edition.weekRange} · Edition ${edition.editionNumber} — weekly intelligence for property partnerships. Via @ruben_laubscher`;
+  const tweet = `${edition.weekRange} · Edition ${edition.editionNumber}, weekly intelligence for property partnerships. Via @ruben_laubscher`;
 
   async function copyLink() {
     try {
@@ -45,7 +45,7 @@ export function ShareEditionButton({ edition }: { edition: Edition }) {
     try {
       await navigator.clipboard.writeText(`${tweet}\n\n${url}`);
       window.open(LINKEDIN_COMPOSE_URL, "_blank", "noopener,noreferrer");
-      toast.success("Copied. LinkedIn composer opened — paste in.");
+      toast.success("Copied. LinkedIn composer opened, paste in.");
     } catch {
       toast.error("Couldn't open share intent");
     }

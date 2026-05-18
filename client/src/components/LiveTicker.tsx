@@ -6,7 +6,7 @@
  *
  * Renders the list twice for seamless wrap-around (CSS keyframe
  * translates by 50%). Paused on hover. Hidden when there's nothing in
- * the feed — never falls back to seed placeholders since stale ticker
+ * the feed, never falls back to seed placeholders since stale ticker
  * items in a "LIVE" strip is worse than no ticker at all.
  */
 import { useMemo } from "react";

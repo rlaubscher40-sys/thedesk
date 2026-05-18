@@ -27,7 +27,7 @@ export function LinkedInAdminPanel() {
       utils.linkedIn.listAll.invalidate();
       utils.linkedIn.list.invalidate();
     },
-    onError: (err) => toast.error(err.message || "Couldn't add — check the URL"),
+    onError: (err) => toast.error(err.message || "Couldn't add, check the URL"),
   });
 
   const update = trpc.linkedIn.update.useMutation({
@@ -80,7 +80,7 @@ export function LinkedInAdminPanel() {
             onChange={(e) => setPostUrl(e.target.value)}
             placeholder="https://www.linkedin.com/posts/..."
             required
-            className="px-3 py-2 rounded text-sm bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors"
+            className="px-3 py-2 rounded text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors"
             aria-label="LinkedIn post URL"
           />
           <input
@@ -90,7 +90,7 @@ export function LinkedInAdminPanel() {
             min={0}
             max={9999}
             placeholder="Order"
-            className="px-3 py-2 rounded text-sm bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors"
+            className="px-3 py-2 rounded text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors"
             aria-label="Display order"
           />
         </div>
@@ -98,9 +98,9 @@ export function LinkedInAdminPanel() {
           value={excerpt}
           onChange={(e) => setExcerpt(e.target.value)}
           rows={3}
-          placeholder="Excerpt — 1-3 sentences from the post body."
+          placeholder="Excerpt, 1-3 sentences from the post body."
           required
-          className="w-full px-3 py-2 rounded text-sm bg-black/20 border border-[var(--color-border)] focus:outline-none focus:border-amber-400/40 transition-colors"
+          className="w-full px-3 py-2 rounded text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors"
           aria-label="Post excerpt"
         />
         <button
@@ -109,8 +109,8 @@ export function LinkedInAdminPanel() {
           className="inline-flex items-center gap-1.5 rounded px-3.5 py-2 text-[10px] font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.98] disabled:opacity-50"
           style={{
             background:
-              "linear-gradient(135deg, oklch(0.78 0.18 70) 0%, oklch(0.88 0.19 82) 55%, oklch(0.65 0.16 60) 100%)",
-            color: "oklch(0.10 0.018 260)",
+              "var(--grad-cta-amber)",
+            color: "var(--color-on-amber)",
             boxShadow: "0 4px 14px oklch(0.75 0.18 70 / 25%)",
           }}
         >
@@ -128,7 +128,7 @@ export function LinkedInAdminPanel() {
             {posts.map((post) => (
               <li
                 key={post.id}
-                className="grid grid-cols-[48px_1fr_auto] items-center gap-4 p-3 rounded bg-black/20 border border-[var(--color-border)]"
+                className="grid grid-cols-[48px_1fr_auto] items-center gap-4 p-3 rounded bg-[var(--color-bg-deep)] border border-[var(--color-border)]"
               >
                 <span className="font-mono tabular-nums text-[var(--color-fg-subtle)] text-xs">
                   {post.displayOrder}

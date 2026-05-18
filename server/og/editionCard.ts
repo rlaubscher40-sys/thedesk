@@ -3,14 +3,14 @@
  *
  * Renders a branded 1200×630 PNG for sharing edition links on
  * LinkedIn / X / Slack. The card carries the canonical lockup, the
- * edition's title, week-of, and Ruben's byline — same surface as the
+ * edition's title, week-of, and Ruben's byline, same surface as the
  * masthead so the link preview reads as continuous with the site.
  *
  * Pipeline: satori turns a JSX-like tree into SVG with embedded text
  * (using the bundled Playfair / JetBrains Mono TTFs), then resvg-js
  * rasterises the SVG to PNG. Both fonts are committed under
  * server/og/fonts/ and copied next to the build output by the build
- * script — runtime path is fonts/* relative to import.meta.url.
+ * script, runtime path is fonts/* relative to import.meta.url.
  *
  * Cached in memory per-edition keyed by editionNumber + updatedAt
  * timestamp, with a hard cap so a long-running process doesn't grow
@@ -318,7 +318,7 @@ export async function renderEditionCard(edition: Edition): Promise<Buffer> {
   const tree = buildCard(edition);
 
   // `satori` accepts the JSX-like object tree directly. The `as any`
-  // is the cost of skipping React on a server-only path — we're not
+  // is the cost of skipping React on a server-only path, we're not
   // using JSX, just the shape satori expects.
   const svg = await satori(tree as never, {
     width: 1200,

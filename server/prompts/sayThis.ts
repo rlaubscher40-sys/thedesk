@@ -1,6 +1,6 @@
 /**
  * Generates the one-line "Say This" conversation starter stamped on every
- * daily feed item. Distinct from partnerTag (4-line / per-persona) — sayThis
+ * daily feed item. Distinct from partnerTag (4-line / per-persona), sayThis
  * is the universal, single-sentence opener Ruben can paste straight into a
  * client message or LinkedIn comment.
  */
@@ -19,7 +19,7 @@ Story: ${input.title}
 Category: ${input.category}
 Summary: ${input.summary || "(no summary)"}
 
-FIRST, check whether this story is genuinely commercially relevant to the partner channel — property, mortgages, lending, regulation, macro / markets, super, ATO, RBA, APRA, the kind of thing a broker or adviser actually mentions in a client conversation.
+FIRST, check whether this story is genuinely commercially relevant to the partner channel, property, mortgages, lending, regulation, macro / markets, super, ATO, RBA, APRA, the kind of thing a broker or adviser actually mentions in a client conversation.
 
 If the story is sport, entertainment, lifestyle, celebrity, true crime, weather, or any other beat that has NO real partner-channel angle: respond with exactly the literal token SKIP and nothing else. Do not invent a contrived angle.
 
@@ -34,7 +34,7 @@ Output ONLY the single line, OR the literal token SKIP. No preamble, no quotes, 
 
 /**
  * Generate the one-line sayThis. Returns null when the LLM emits the
- * SKIP token (genuinely off-topic story — no partner-channel angle),
+ * SKIP token (genuinely off-topic story, no partner-channel angle),
  * when output is malformed, or on any error. The caller treats null
  * as "this story doesn't get a Say This line", which is the right
  * behaviour for trending / off-beat stories that belong in the feed

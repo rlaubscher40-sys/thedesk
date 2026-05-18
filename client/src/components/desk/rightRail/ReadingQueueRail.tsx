@@ -1,5 +1,5 @@
 /**
- * Reading Queue rail card — shows the local bookmark count + the most
+ * Reading Queue rail card, shows the local bookmark count + the most
  * recently bookmarked story title. "View all saved →" routes to /queue.
  */
 import { ArrowRight, Bookmark } from "lucide-react";
@@ -44,7 +44,7 @@ export function ReadingQueueRail() {
         </p>
       ) : (
         <p className="text-sm text-[var(--color-fg-muted)]">
-          Bookmark anything on this page — saves locally and syncs when you sign in.
+          Bookmark anything on this page, saves locally and syncs when you sign in.
         </p>
       )}
       <Link

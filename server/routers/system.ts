@@ -12,13 +12,13 @@ import { adminProcedure, publicProcedure, router } from "../core/trpc";
 
 /**
  * Catch-up migrations. Each statement runs inside a try/catch so the
- * function is idempotent — re-running it after a partial apply just
+ * function is idempotent, re-running it after a partial apply just
  * skips the columns/tables that already exist. The returned report
  * lists which statements ran, which were already present, and any
  * unexpected errors.
  *
  * This is a STOPGAP. Production-correct path is `drizzle-kit migrate`
- * baked into the Railway start command — but that requires journal/
+ * baked into the Railway start command, but that requires journal/
  * state alignment work. This button lets the editor catch up from
  * mobile without that.
  */
@@ -120,9 +120,9 @@ const HARMLESS_ERROR_PATTERNS = [
  * which is more reliable than substring-matching error messages.
  */
 const HARMLESS_ERROR_CODES = new Set<string | number>([
-  "ER_DUP_FIELDNAME", // 1060 — ALTER TABLE ADD column that already exists
-  "ER_TABLE_EXISTS_ERROR", // 1050 — CREATE TABLE for an existing table
-  "ER_DUP_KEYNAME", // 1061 — CREATE INDEX for an existing index
+  "ER_DUP_FIELDNAME", // 1060, ALTER TABLE ADD column that already exists
+  "ER_TABLE_EXISTS_ERROR", // 1050, CREATE TABLE for an existing table
+  "ER_DUP_KEYNAME", // 1061, CREATE INDEX for an existing index
   1060,
   1050,
   1061,
@@ -194,7 +194,7 @@ export const systemRouter = router({
           skipped.push(stmt.name);
           continue;
         }
-        // Genuine failure — surface the most informative message we can
+        // Genuine failure, surface the most informative message we can
         // reach: the underlying SQL error wins over Drizzle's wrapper.
         const cause = (err as { cause?: { sqlMessage?: string; message?: string } })
           .cause;
@@ -242,7 +242,7 @@ export const systemRouter = router({
   /**
    * Wipe ALL feed items. Used to reset the Today/Archive feed before a
    * fresh daily-feed workflow run. The `confirm` payload guards against
-   * accidental fires from the typed-client perspective — the UI passes
+   * accidental fires from the typed-client perspective, the UI passes
    * the literal string "WIPE" to acknowledge the action.
    */
   purgeFeed: adminProcedure

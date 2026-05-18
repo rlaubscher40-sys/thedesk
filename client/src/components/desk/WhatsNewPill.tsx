@@ -4,7 +4,7 @@
  * counts stories whose `createdAt` is newer.
  *
  * Hidden on the very first visit (no prior timestamp) and when there's
- * nothing new — there's no point shouting "0 new".
+ * nothing new, there's no point shouting "0 new".
  */
 import { Sparkles } from "lucide-react";
 import { useLastVisit } from "@/lib/useLastVisit";
@@ -21,7 +21,7 @@ export function WhatsNewPill({
   if (!lastVisit) return null;
 
   const ago = Date.now() - lastVisit.getTime();
-  // If they were here in the last 90 seconds it's basically a reload — don't
+  // If they were here in the last 90 seconds it's basically a reload, don't
   // call that out. (The page mount already overwrote the timestamp.)
   if (ago < 90_000) return null;
 

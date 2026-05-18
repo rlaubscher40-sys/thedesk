@@ -1,5 +1,5 @@
 /**
- * Row in the Editions list. Visually dense — thumbnail, edition number, the
+ * Row in the Editions list. Visually dense, thumbnail, edition number, the
  * week range, and a draft badge when the Substack draft has been saved
  * (improvement #8 in the brief). Active state uses an amber-tinted border
  * and inner glow.
@@ -50,7 +50,7 @@ export function EditionListItem({
             src={heroImageUrl}
             alt=""
             loading="lazy"
-            className="h-16 w-16 rounded object-cover bg-black/30 shrink-0"
+            className="h-16 w-16 rounded object-cover bg-[var(--color-bg-deep)] shrink-0"
           />
         ) : (
           <div
@@ -107,7 +107,7 @@ export function EditionListItem({
 }
 
 /**
- * Improvement #8 — small amber pill on edition list items that have a saved
+ * Improvement #8, small amber pill on edition list items that have a saved
  * Substack draft.
  */
 function DraftBadge() {

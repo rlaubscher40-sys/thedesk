@@ -1,5 +1,5 @@
 /**
- * About page — editorial broadsheet layout. Two changes after the v1
+ * About page, editorial broadsheet layout. Two changes after the v1
  * audit: the wordmark in the hero was clipping at the left edge ("p" of
  * "partner conversations." cut off because the gradient text bleed
  * landed outside the bounding box), and the prose column was max-w-68ch
@@ -20,7 +20,7 @@ const LINKEDIN_URL = "https://www.linkedin.com/in/ruben-laubscher/";
 export default function About() {
   return (
     <div className="space-y-12">
-      {/* Hero — full-bleed editorial header. Title gets its own padding
+      {/* Hero, full-bleed editorial header. Title gets its own padding
           on every edge so the gradient text doesn't clip at the left. */}
       <section
         className="relative overflow-hidden rounded-sm panel"
@@ -65,7 +65,7 @@ export default function About() {
               style={{
                 // Solid amber instead of background-clip:text. The gradient
                 // approach kept clipping Playfair's italic descender on the
-                // leading "p" of "partner" — every paddingLeft hack just
+                // leading "p" of "partner", every paddingLeft hack just
                 // shifted the symptom. Solid color renders inside its own
                 // glyph box cleanly.
                 color: "oklch(0.82 0.18 76)",
@@ -77,7 +77,7 @@ export default function About() {
         </div>
       </section>
 
-      {/* Editorial rule — the defining horizontal element per brand
+      {/* Editorial rule, the defining horizontal element per brand
           guide §6.3. PageHeader carries it on every other page; the
           About hero is custom so we render it explicitly. */}
       <div className="editorial-rule-soft -mt-6" aria-hidden="true" />
@@ -106,7 +106,7 @@ export default function About() {
           </p>
           <p>
             Sundays the weekly edition lands. Long-form pieces, market
-            metrics, signals worth tracking, and Ruben's Take — a 2 to 4
+            metrics, signals worth tracking, and Ruben's Take, a 2 to 4
             sentence editorial opinion that opens the issue. From there a
             full Substack draft is one click away.
           </p>
@@ -118,7 +118,7 @@ export default function About() {
             {[
               "Open Today first thing. Copy a Say This line into a partner conversation.",
               "Drop saved articles into the Reading Queue. Tag and triage them when you have a minute.",
-              "Open Editions on Sunday for the weekly deep dive — long-form, with the take, signals, and dates to watch.",
+              "Open Editions on Sunday for the weekly deep dive, long-form, with the take, signals, and dates to watch.",
               "Press / from anywhere to search. ⌘K opens the command palette.",
             ].map((line, i) => (
               <li key={i} className="flex gap-4 items-baseline">
@@ -140,7 +140,7 @@ export default function About() {
           </p>
           <p>
             Built by Ruben Laubscher, Head of Partnerships at InvestorKit
-            (Australia's most awarded buyer's agency). The Desk is private —
+            (Australia's most awarded buyer's agency). The Desk is private,
             partners and the firm only.
           </p>
 
@@ -152,7 +152,7 @@ export default function About() {
             drafting per-persona angles after a story has been selected and
             summarised. The human editor picks the story, frames it, and
             writes the take. The AI helps phrase the four "Say This" lines so
-            each persona — broker, adviser, accountant, buyer's agent — gets
+            each persona, broker, adviser, accountant, buyer's agent, gets
             language tuned to their conversation. Full disclosure is on the{" "}
             <a
               href="/editorial-standards"
@@ -164,7 +164,7 @@ export default function About() {
           </p>
         </article>
 
-        {/* ── Sidebar — author card + production meta. Sticky on lg+ so
+        {/* ── Sidebar, author card + production meta. Sticky on lg+ so
             it stays visible as the prose scrolls. */}
         <aside className="lg:sticky lg:top-8 self-start space-y-6">
           <div

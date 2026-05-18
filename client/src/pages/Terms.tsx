@@ -21,6 +21,7 @@ export default function Terms() {
           Last updated: {new Date().toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" })}
         </p>
       </header>
+      <div className="editorial-rule-soft" aria-hidden="true" />
 
       <section className="space-y-4">
         <h2 className="font-serif text-2xl mt-8">General information only</h2>
@@ -44,7 +45,7 @@ export default function Terms() {
         <p>
           You're welcome to quote, share or paste excerpts from The Desk
           into client conversations, internal notes, LinkedIn posts and
-          presentations — that's literally what the "Say This" feature is
+          presentations, that's literally what the "Say This" feature is
           for. Republishing whole stories or editions without attribution
           isn't OK.
         </p>

@@ -3,7 +3,7 @@
  * has a copy button that writes to the clipboard.
  *
  * The reader's active persona (from PersonaSwitcher / localStorage) is
- * surfaced first and visually highlighted — the others sit below at reduced
+ * surfaced first and visually highlighted, the others sit below at reduced
  * opacity. Matches the daily-feed PartnerAngles behaviour so the persona
  * choice is honoured across the whole product.
  */
@@ -46,7 +46,7 @@ export function TalkingPointsBlock({ points }: { points: TalkingPoints }) {
       <p className="overline mb-3">Talking points</p>
       <ul className="space-y-2.5">
         {sorted.map(([partner, line], idx) => (
-          // partner key is defensive — duplicate keys in the source JSON would
+          // partner key is defensive, duplicate keys in the source JSON would
           // otherwise trigger React key warnings (issue #1).
           <TalkingPointLine
             key={`${partner || "partner"}-${idx}`}

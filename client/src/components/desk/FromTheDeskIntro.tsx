@@ -1,6 +1,6 @@
 /**
  * Prominent author strip that sits just below the Hero on Today. Bigger
- * than the CuratorByline used inside cards — this one's the "if you don't
+ * than the CuratorByline used inside cards, this one's the "if you don't
  * know who Ruben is yet, here's why his read on the day is worth your
  * time" moment.
  *
@@ -73,7 +73,7 @@ export function FromTheDeskIntro() {
           Ruben Laubscher
         </h2>
         <p className="text-sm text-[var(--color-fg-muted)] mt-1.5 leading-snug max-w-[60ch]">
-          One daily read for the partner channel — built so brokers, advisers,
+          One daily read for the partner channel, built so brokers, advisers,
           accountants and buyer's agents walk into the next conversation
           sharper than the last. Head of Partnerships at{" "}
           <span className="text-[var(--color-fg)]">InvestorKit</span>,

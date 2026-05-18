@@ -1,5 +1,5 @@
 /**
- * Common chrome for each right-rail card — overline header + optional
+ * Common chrome for each right-rail card, overline header + optional
  * footer line + the section's children.
  */
 import type { ReactNode } from "react";

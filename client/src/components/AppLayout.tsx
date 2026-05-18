@@ -1,5 +1,5 @@
 /**
- * App shell — collapsible left sidebar on desktop, slide-out drawer + bottom
+ * App shell, collapsible left sidebar on desktop, slide-out drawer + bottom
  * tab bar on mobile. Pages render inside <main>. Keeps presentation concerns
  * in one place so pages can stay small.
  */
@@ -111,7 +111,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   }, []);
 
   // Sidebar badge reads from the SAME source as the footer "Reading queue"
-  // rail card — localStorage bookmarks. The server-side reading queue is
+  // rail card, localStorage bookmarks. The server-side reading queue is
   // only ever populated when a user signs in (which is rare on this site),
   // so showing it separately created a "1 in sidebar / 0 in footer"
   // state mismatch that read as a bug to reviewers.
@@ -185,7 +185,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </button>
       )}
 
-      {/* Floating feedback affordance — hidden on /admin and pre-auth
+      {/* Floating feedback affordance, hidden on /admin and pre-auth
           chrome. Sits bottom-right, visible on every reader-facing
           surface throughout the testing window. */}
       <FeedbackButton />
@@ -263,7 +263,7 @@ function DesktopSidebar({
           />
         ))}
       </nav>
-      {/* Reading streak chip — sits between the nav and the footer. Only
+      {/* Reading streak chip, sits between the nav and the footer. Only
           renders once a 2+ day streak is logged. */}
       <StreakBadge collapsed={collapsed} />
       <SidebarFooter
@@ -303,7 +303,7 @@ function SidebarHeader({
   return (
     <div className="px-5 pt-7 pb-5">
       <div className="flex items-start justify-between gap-2">
-        {/* Canonical brand lockup — mark + Playfair wordmark + INTELLIGENCE
+        {/* Canonical brand lockup, mark + Playfair wordmark + INTELLIGENCE
             byline. Per brand guide §2.2 the byline is the lockup's only
             sub-mark text, so the previous "Live · Sydney" strip is gone. */}
         <div className="first-paint-mark min-w-0">
@@ -319,10 +319,10 @@ function SidebarHeader({
         </button>
       </div>
 
-      {/* Today's date — a single quiet line. */}
+      {/* Today's date, a single quiet line. */}
       <p
         className="overline mt-5 pt-4 border-t border-[var(--color-border)] text-[var(--color-fg-subtle)]"
-        style={{ fontSize: "8px", letterSpacing: "0.2em" }}
+        style={{ fontSize: "10px", letterSpacing: "0.2em" }}
       >
         {currentDate}
       </p>
@@ -421,7 +421,7 @@ function SidebarFooter({
           </div>
         </Link>
       ) : hasOAuthConfig() ? (
-        // OAuth is configured — show the sign-in CTA pointing at the portal.
+        // OAuth is configured, show the sign-in CTA pointing at the portal.
         <a
           href={getLoginUrl()}
           className="flex items-center gap-2 text-xs text-[var(--color-fg-muted)] hover:text-amber-300"
@@ -429,7 +429,7 @@ function SidebarFooter({
           <LogIn className="h-3.5 w-3.5" /> Sign in
         </a>
       ) : (
-        // Demo / fresh codespace — no OAuth backend wired up. Render a
+        // Demo / fresh codespace, no OAuth backend wired up. Render a
         // passive placeholder while the auth.me query resolves to the demo
         // user (which it will, in one tick).
         <p className="text-xs text-[var(--color-fg-subtle)]">Loading…</p>
@@ -437,7 +437,7 @@ function SidebarFooter({
       <div className="flex items-center justify-between mt-3 gap-2">
         <p className="overline truncate">7am AEST daily</p>
         <div className="flex items-center gap-2">
-          {/* Cmd+K discovery hint — also a clickable shortcut. */}
+          {/* Cmd+K discovery hint, also a clickable shortcut. */}
           <kbd
             className="font-mono inline-flex items-center gap-1 rounded border border-[var(--color-border)] bg-white/[0.04] px-1.5 py-0.5 text-[10px] text-[var(--color-fg-subtle)]"
             title="Press ⌘K to search anywhere"
@@ -463,8 +463,8 @@ function SidebarFooter({
         className="mt-4 flex items-center justify-center gap-1.5 rounded-sm px-3 py-2 text-[10px] font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.98]"
         style={{
           background:
-            "linear-gradient(135deg, oklch(0.78 0.18 70) 0%, oklch(0.88 0.19 82) 55%, oklch(0.65 0.16 60) 100%)",
-          color: "oklch(0.10 0.018 260)",
+            "var(--grad-cta-amber)",
+          color: "var(--color-on-amber)",
           boxShadow:
             "0 1px 0 oklch(1 0 0 / 18%) inset, 0 4px 14px oklch(0.75 0.18 70 / 25%)",
         }}
@@ -524,7 +524,7 @@ function MobileSidebar({
             );
           })}
         </nav>
-        {/* Footer Sign in — the desktop sidebar has its own, mobile didn't.
+        {/* Footer Sign in, the desktop sidebar has its own, mobile didn't.
             Without this there's no reachable login affordance on mobile,
             so visiting /admin straight from a URL traps you on Forbidden. */}
         {!isAuthenticated && (
@@ -586,7 +586,7 @@ function MobileTabBar({ location, unreadCount }: { location: string; unreadCount
  * Avatar for the authenticated sidebar slot. Renders /ruben.jpg (the
  * curator's headshot) when it loads, falls back to the initial-letter
  * disc on error. Same pattern as the AuthorByline + AuthorHeadshot
- * components — the headshot is the canonical "this is who's
+ * components, the headshot is the canonical "this is who's
  * curating" signal across the product.
  */
 function SidebarAvatar({ name }: { name: string }) {
@@ -602,7 +602,7 @@ function SidebarAvatar({ name }: { name: string }) {
       ) : (
         <img
           src="/ruben.jpg"
-          alt=""
+          alt="Ruben Laubscher"
           className="w-full h-full object-cover"
           loading="lazy"
           decoding="async"

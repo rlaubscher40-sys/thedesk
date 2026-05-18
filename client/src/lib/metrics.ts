@@ -14,9 +14,9 @@ export type Sentiment = "good" | "bad" | "neutral";
  * Direction-of-good lookup. Defaults to "neutral" so unrecognised
  * metric labels render in the muted amber rather than mis-coloured.
  *
- *   · Rates / costs / risk metrics — DOWN is good.
- *   · Activity / income / channel / index metrics — UP is good.
- *   · Anything else — neutral.
+ *   · Rates / costs / risk metrics, DOWN is good.
+ *   · Activity / income / channel / index metrics, UP is good.
+ *   · Anything else, neutral.
  */
 export function directionOfGood(label: string): "up" | "down" | "neutral" {
   const k = label.toLowerCase();

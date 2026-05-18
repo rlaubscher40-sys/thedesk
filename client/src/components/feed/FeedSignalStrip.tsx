@@ -1,11 +1,11 @@
 /**
- * Compact horizontal strip for "Further signals" — stories that landed
+ * Compact horizontal strip for "Further signals", stories that landed
  * in the daily feed for awareness but didn't earn the full Say This /
  * Partner Angles treatment, plus any angle-bearing leftovers that
  * couldn't fit a complete grid row.
  *
  * Layout: single-column text strip with category-accent left edge.
- * No thumbnail — at the strip's height the thumbnails created
+ * No thumbnail, at the strip's height the thumbnails created
  * inconsistent vertical gaps (image natural aspect ratios pulled
  * the row taller than text-only rows). Tighter padding than the grid
  * cards, no angle blocks. Visually demoted relative to FeedItemCard

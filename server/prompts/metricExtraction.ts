@@ -59,14 +59,14 @@ GUIDANCE: ${args.guidance}
 RECENT ARTICLES:
 ${articleBlock}
 
-Return a SINGLE JSON object matching this exact shape, NOTHING ELSE — no preamble, no markdown fences:
+Return a SINGLE JSON object matching this exact shape, NOTHING ELSE, no preamble, no markdown fences:
 
 {
   "found": true | false,
-  "value": "string representation of the number, e.g. \\"67.2\\" or \\"933,137\\" — null if not found",
+  "value": "string representation of the number, e.g. \\"67.2\\" or \\"933,137\\", null if not found",
   "asOf": "ISO date the figure refers to (YYYY-MM-DD), null if unclear",
-  "context": "8-12 word editorial blurb explaining what the figure means, e.g. \\"Preliminary, week ending May 15\\" — null if no clean blurb",
-  "sourceIndex": 1-based index of the article you took the figure from, e.g. 2 — null if not found
+  "context": "8-12 word editorial blurb explaining what the figure means, e.g. \\"Preliminary, week ending May 15\\", null if no clean blurb",
+  "sourceIndex": 1-based index of the article you took the figure from, e.g. 2, null if not found
 }
 
 Rules:
@@ -120,7 +120,7 @@ export async function extractMetricFromNews(args: {
 
   const asOf = validated.data.asOf ? new Date(validated.data.asOf) : null;
   // Map the LLM's 1-based sourceIndex back to the actual article URL.
-  // We don't trust the model to emit URLs verbatim — too many ways to
+  // We don't trust the model to emit URLs verbatim, too many ways to
   // hallucinate slightly-wrong ones.
   const idx = validated.data.sourceIndex;
   const sourceUrl =

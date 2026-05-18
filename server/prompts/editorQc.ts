@@ -6,7 +6,7 @@
  *
  * Returns a revised SynthesisOutput plus an audit log of what was changed
  * so the pipeline can log it for inspection. The pipeline applies the
- * revision as-is — no diff merging — to keep the contract simple.
+ * revision as-is, no diff merging, to keep the contract simple.
  */
 import { z } from "zod";
 import {
@@ -63,7 +63,7 @@ function buildPrompt(input: SynthesisShape): string {
 
 Audit on these specific axes:
 
-1. VOICE — banned phrases that slipped past the writer's rubric:
+1. VOICE, banned phrases that slipped past the writer's rubric:
    - Em dashes (replace with comma or full stop)
    - Hype words: "groundbreaking", "game-changing", "unprecedented", "incredible", "exciting"
    - AI tells: "delve", "navigate", "in today's landscape", "it's worth noting", "robust", "leverage", "seamless", "unlock", "ecosystem"
@@ -71,12 +71,12 @@ Audit on these specific axes:
    - Question marks in titles, summaries or takeaways
    - First-person editorial voice ("I think", "in my view")
 
-2. CLARITY — copy that drifts vague:
+2. CLARITY, copy that drifts vague:
    - Sentences that could be sharper. Cut padding adjectives.
-   - "Significant", "substantial", "considerable" without a number behind them — either add the number or replace with concrete language.
+   - "Significant", "substantial", "considerable" without a number behind them, either add the number or replace with concrete language.
    - Buried lede in any topic summary.
 
-3. CORRECTNESS — logical and grammatical:
+3. CORRECTNESS, logical and grammatical:
    - Internal contradictions across topics (e.g. one topic says rates held, another assumes a cut)
    - Numbers without sources (replace "around 70%" with "around 70%, per CoreLogic" if the daily-feed input supports it; otherwise weaken to "near 70%")
    - Subject-verb agreement, dangling modifiers.
@@ -86,15 +86,15 @@ Audit on these specific axes:
    - Same metric quoted with different units across topics? Pick one.
    - Australian English throughout (colour, behaviour, organisation, realise).
 
-5. AUDIENCE HOOK — every topic MUST have a whyItMatters field that is:
+5. AUDIENCE HOOK, every topic MUST have a whyItMatters field that is:
    - Specific to brokers / advisers / buyer's agents / SMSF specialists in Australia
    - One sentence
    - Not a paraphrase of keyTakeaway or summary
-   - Not generic ("this matters for the property market") — concrete
+   - Not generic ("this matters for the property market"), concrete
 
 If whyItMatters is missing on any topic, write one. If it's generic, rewrite it.
 
-6. STRUCTURE — each topic body must implicitly walk: what happened → why it matters → what to watch → what it means for you. If a topic is missing one of these beats, repair the body.
+6. STRUCTURE, each topic body must implicitly walk: what happened → why it matters → what to watch → what it means for you. If a topic is missing one of these beats, repair the body.
 
 ---
 
@@ -124,14 +124,14 @@ Rules for the revised output:
 - Keep the topic count and order identical to the input.
 - Keep the keyMetrics values unchanged (you're not re-extracting data).
 - Preserve all fields. If a topic had a body, return a body. If it had whatToWatch, return whatToWatch.
-- Edits should be conservative — fix what's broken, don't rewrite for taste.
+- Edits should be conservative, fix what's broken, don't rewrite for taste.
 - whyItMatters is REQUIRED on every topic in the revised output, even if you had to write it from scratch.
 - If the input is already clean, set approved=true, notes=[], and return revised identical to input.
 - Output valid JSON only. No trailing commas, no comments, no markdown fences.`;
 }
 
 /**
- * Run the QC pass. Throws if the model returns invalid JSON or shape — the
+ * Run the QC pass. Throws if the model returns invalid JSON or shape, the
  * caller (pipeline) should catch and fall back to the original synthesis.
  */
 export async function runEditorQc(
@@ -142,7 +142,7 @@ export async function runEditorQc(
       { role: "system", content: rubenSystemPrompt },
       { role: "user", content: buildPrompt(input) },
     ],
-    // Big budget — the revised output can be as long as the input.
+    // Big budget, the revised output can be as long as the input.
     maxTokens: 12_000,
   });
 

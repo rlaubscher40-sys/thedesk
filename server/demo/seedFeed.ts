@@ -69,11 +69,11 @@ export function feedSeed(): DailyFeedItem[] {
         "The Reserve Bank held the cash rate, with the post-meeting statement removing the 'further tightening cannot be ruled out' line. Markets read a dovish shift, swaps repricing for a first cut in November.",
       category: "MACRO",
       sayThis:
-        "The decision was the easy part. Watch broker channel share through June — that's where the real action is.",
+        "The decision was the easy part. Watch broker channel share through June, that's where the real action is.",
       partnerTag: partnerTag({
         inst: "Use the language softening as the trigger for an end-of-year wellbeing-program rate review.",
         broker: "Conversation pivots to fixed-rate roll-offs landing in mid-June, not the cash rate itself.",
-        adviser: "Refresh the 'rates higher for longer' framing — the patient line gives clients permission to plan.",
+        adviser: "Refresh the 'rates higher for longer' framing, the patient line gives clients permission to plan.",
         ba: "Sentiment shifts before listings do. Expect more pre-auction offers in the next four weeks.",
       }),
     }),
@@ -107,7 +107,7 @@ export function feedSeed(): DailyFeedItem[] {
       partnerTag: partnerTag({
         inst: "Property-confidence story for employer wellness conversations on home-deposit support.",
         broker: "Pre-approval lead time is the new constraint. Tighten your pipeline.",
-        adviser: "Investor activity ticking up — re-engage clients sitting on deposit cash.",
+        adviser: "Investor activity ticking up, re-engage clients sitting on deposit cash.",
         ba: "Capacity is the bigger conversation than price. If a mid-tier paused intake, that's where their referrals sit.",
       }),
     }),
@@ -144,7 +144,7 @@ export function feedSeed(): DailyFeedItem[] {
         inst: "Wellbeing program conversations on SMSF strategy gain a fresh hook.",
         broker: "SMSF-specialist accreditation just got more valuable. Check your aggregator's training.",
         adviser: "Material change for clients running property SMSFs. Worth a proactive call.",
-        ba: "Reach out to your SMSF-specialist referrers — pipelines reopen on rate moves.",
+        ba: "Reach out to your SMSF-specialist referrers, pipelines reopen on rate moves.",
       }),
     }),
     make({
@@ -153,7 +153,7 @@ export function feedSeed(): DailyFeedItem[] {
       source: "ABS",
       sourceUrl: "https://example.com/wpi-q1",
       summary:
-        "3.8% YoY beat consensus 3.6%. Private-sector services up the most — the segment the RBA wants softer.",
+        "3.8% YoY beat consensus 3.6%. Private-sector services up the most, the segment the RBA wants softer.",
       category: "ECONOMICS",
       sayThis:
         "Composition matters. The beat came from where the RBA wants cooling.",
@@ -161,7 +161,7 @@ export function feedSeed(): DailyFeedItem[] {
         inst: "Wage pressure persists in services. HR-side conversations should price for it.",
         broker: "Borrowing capacity narrative holds; nominal incomes still trending up.",
         adviser: "The 'patience' line gets tested. Don't promise client outlooks the RBA hasn't committed to.",
-        ba: "Buyer income growth in services-heavy postcodes still firm — keep them in the pipeline.",
+        ba: "Buyer income growth in services-heavy postcodes still firm, keep them in the pipeline.",
       }),
     }),
     make({
@@ -176,7 +176,7 @@ export function feedSeed(): DailyFeedItem[] {
         "Demand is fine. Capacity at the mid-tier is the constraint.",
       partnerTag: partnerTag({
         inst: "Employer-program partners may face wait-list friction with smaller BAs.",
-        broker: "Refer clients to BAs with structured intake — pause patterns are spreading.",
+        broker: "Refer clients to BAs with structured intake, pause patterns are spreading.",
         adviser: "If your preferred BA paused intake, line up a backup before client requests stack.",
         ba: "If a competitor just paused, that's where referrals are sitting. Pick up the phone.",
       }),

@@ -1,11 +1,11 @@
 /**
- * Reader settings — theme, topic interest filters, notification stubs,
+ * Reader settings, theme, topic interest filters, notification stubs,
  * and account actions. Everything except theme persists to localStorage
  * via the UserPrefsProvider; theme has its own ThemeProvider.
  *
  * Visible to anyone (no auth wall). When real subscriber accounts arrive
  * the prefs will migrate to a server-side subscribers.prefs JSON column
- * — the shape is already JSON-friendly.
+ *, the shape is already JSON-friendly.
  */
 import { useState } from "react";
 import {
@@ -74,7 +74,7 @@ function AppearanceCard() {
     <SettingsCard
       icon={Monitor}
       title="Appearance"
-      kicker="Dark by default — the brief reads as a print broadsheet at night. Light is for daylight desks."
+      kicker="Dark by default, the brief reads as a print broadsheet at night. Light is for daylight desks."
     >
       <ThemeSegmented current={theme} onChange={setTheme} systemPreferred={systemPreferred} />
       <div className="mt-7 pt-6 border-t border-[var(--color-border)]">
@@ -244,7 +244,7 @@ function TopicsCard() {
     <SettingsCard
       icon={Layers}
       title="Topics"
-      kicker="Pick the beats you want surfaced. Leave them all off to see everything — the default."
+      kicker="Pick the beats you want surfaced. Leave them all off to see everything, the default."
     >
       <div className="flex items-center justify-between mb-3">
         <p className="text-xs text-[var(--color-fg-subtle)] font-mono uppercase tracking-[0.14em]">
@@ -331,7 +331,7 @@ function NotificationsCard() {
     <SettingsCard
       icon={Bell}
       title="Notifications"
-      kicker="Email delivery isn't wired up yet — these flags pre-stage your choice for when it goes live."
+      kicker="Email delivery isn't wired up yet, these flags pre-stage your choice for when it goes live."
     >
       <ul className="space-y-3 mt-2">
         {rows.map((row) => {
