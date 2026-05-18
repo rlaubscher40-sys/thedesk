@@ -132,7 +132,7 @@ export function FeedSignalStrip({ item }: { item: DailyFeedItem }) {
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 mt-2 overline-amber hover:text-amber-200 transition-colors w-fit"
-            style={{ fontSize: "9px", letterSpacing: "0.2em" }}
+            style={{ fontSize: "10px", letterSpacing: "0.2em" }}
           >
             <ExternalLink className="h-2.5 w-2.5" /> Read original
           </a>

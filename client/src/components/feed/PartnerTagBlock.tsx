@@ -60,7 +60,7 @@ export function PartnerTagBlock({ raw }: Props) {
           onClick={() => setExpanded((v) => !v)}
           aria-expanded={expanded}
           className="inline-flex items-center gap-1 text-[var(--color-fg-subtle)] hover:text-amber-300 font-mono uppercase transition-colors"
-          style={{ fontSize: "9px", letterSpacing: "0.18em" }}
+          style={{ fontSize: "10px", letterSpacing: "0.18em" }}
           title={expanded ? "Collapse" : `Show all ${PARTNER_TAG_LABELS.length}`}
         >
           {expanded ? "Collapse" : `+${hiddenCount} more`}

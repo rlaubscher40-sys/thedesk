@@ -75,7 +75,7 @@ export default function Corrections() {
                 <div>
                   <p
                     className="overline-amber"
-                    style={{ letterSpacing: "0.2em", fontSize: "9px" }}
+                    style={{ letterSpacing: "0.2em", fontSize: "10px" }}
                   >
                     Issued
                   </p>
@@ -88,7 +88,7 @@ export default function Corrections() {
                   </p>
                   <p
                     className="overline-amber mt-4"
-                    style={{ letterSpacing: "0.2em", fontSize: "9px" }}
+                    style={{ letterSpacing: "0.2em", fontSize: "10px" }}
                   >
                     Ref
                   </p>

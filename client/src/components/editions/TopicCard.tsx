@@ -83,7 +83,7 @@ export function TopicCard({
             style={{
               color: colour,
               letterSpacing: "0.22em",
-              fontSize: "9px",
+              fontSize: "10px",
             }}
           >
             Why this matters

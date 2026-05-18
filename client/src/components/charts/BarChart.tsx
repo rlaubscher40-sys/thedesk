@@ -176,7 +176,7 @@ export function BarChart({
         >
           <p
             className="overline mb-1.5 text-[var(--color-fg-subtle)]"
-            style={{ fontSize: "9px", letterSpacing: "0.18em" }}
+            style={{ fontSize: "10px", letterSpacing: "0.18em" }}
           >
             {xLabels[hoverIdx]}
           </p>

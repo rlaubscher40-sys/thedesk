@@ -55,7 +55,7 @@ export function CuratorByline() {
       </span>
       <span
         className="font-mono uppercase text-[var(--color-fg-subtle)] group-hover:text-amber-300 transition-colors"
-        style={{ fontSize: "9px", letterSpacing: "0.2em" }}
+        style={{ fontSize: "10px", letterSpacing: "0.2em" }}
       >
         Curated · Ruben Laubscher
       </span>

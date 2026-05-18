@@ -92,14 +92,14 @@ export function StreakBadge({ collapsed }: { collapsed?: boolean }) {
           </div>
           <p
             className="font-mono uppercase tracking-[0.16em] mt-1.5 truncate"
-            style={{ color: `${style.colour}cc`, fontSize: "9px" }}
+            style={{ color: `${style.colour}cc`, fontSize: "10px" }}
           >
             {style.label}
           </p>
           {longest > current && (
             <p
               className="font-mono tabular-nums mt-0.5"
-              style={{ color: `${style.colour}99`, fontSize: "9px", letterSpacing: "0.12em" }}
+              style={{ color: `${style.colour}99`, fontSize: "10px", letterSpacing: "0.12em" }}
               title={`Longest run: ${longest} days`}
             >
               ↑ {longest} best

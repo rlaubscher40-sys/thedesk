@@ -236,7 +236,7 @@ function HeroLibraryCard({
         )}
         <p
           className="overline text-[var(--color-fg-subtle)]"
-          style={{ letterSpacing: "0.14em", fontSize: "9px" }}
+          style={{ letterSpacing: "0.14em", fontSize: "10px" }}
         >
           Used {item.usedCount}× · {lastUsedLabel}
         </p>

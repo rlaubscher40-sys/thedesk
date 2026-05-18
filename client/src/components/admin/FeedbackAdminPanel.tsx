@@ -173,7 +173,7 @@ function FeedbackRow({
             <span
               className="font-mono uppercase tracking-[0.18em] rounded-sm px-1.5 py-0.5"
               style={{
-                fontSize: "9px",
+                fontSize: "10px",
                 background: "oklch(0.78 0.18 70 / 18%)",
                 color: "oklch(0.92 0.18 80)",
               }}

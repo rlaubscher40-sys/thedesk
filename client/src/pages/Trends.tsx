@@ -278,7 +278,7 @@ function TrendsMetaRow({ label, value }: { label: string; value: string }) {
     <div className="space-y-1">
       <p
         className="font-mono uppercase text-[var(--color-fg-subtle)]"
-        style={{ fontSize: "9px", letterSpacing: "0.22em" }}
+        style={{ fontSize: "10px", letterSpacing: "0.22em" }}
       >
         {label}
       </p>
