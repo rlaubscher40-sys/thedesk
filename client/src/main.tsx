@@ -5,13 +5,15 @@ import superjson from "superjson";
 import { UNAUTHED_ERR_MSG } from "@shared/const";
 import App from "./App";
 import { getLoginUrl } from "./lib/auth";
-import { initSentry } from "./lib/sentry";
+import { initErrorReporter } from "./lib/errorReporter";
 import { trpc } from "./lib/trpc";
 import "./index.css";
 
-// Browser error monitoring. No-op when VITE_SENTRY_DSN isn't set, so the
-// dev environment stays quiet.
-initSentry();
+// Browser error reporter. Sends window.error + unhandledrejection
+// to /api/errors/client, which writes into the same server_errors
+// table the admin /health panel reads. No third-party SDK; the
+// internal tracker replaced Sentry.
+initErrorReporter();
 
 const queryClient = new QueryClient({
   defaultOptions: {

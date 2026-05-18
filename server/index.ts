@@ -3,14 +3,6 @@
  * client; in production it falls back to the static bundle in dist/public.
  */
 import "dotenv/config";
-import { initSentry, registerSentryErrorHandler } from "./core/sentry";
-
-// Init Sentry FIRST so anything that throws during the rest of the
-// bootstrap path (DB connect, route registration) still reports.
-const sentryActive = initSentry();
-if (sentryActive) {
-  console.log("[boot] Sentry initialised");
-}
 
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import express from "express";
@@ -108,15 +100,24 @@ async function startServer() {
     serveStatic(app);
   }
 
-  // Persist uncaught errors into the local server_errors table BEFORE
-  // Sentry's handler so the admin /health page sees everything,
-  // whether or not Sentry is configured. recordExpressError calls
-  // next(err) so the existing chain continues.
+  // Persist uncaught errors into the local server_errors table. The
+  // admin /health page reads from there; Sentry was removed in favour
+  // of the internal tracker. recordExpressError calls next(err) and
+  // the final handler below sends the JSON 500 response.
   app.use(recordExpressError);
 
-  // Last in the chain so it catches anything routes / SPA fallback let
-  // through. No-op when SENTRY_DSN isn't set.
-  registerSentryErrorHandler(app);
+  app.use(
+    (
+      _err: Error,
+      _req: import("express").Request,
+      res: import("express").Response,
+      _next: import("express").NextFunction
+    ): void => {
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Internal server error" });
+      }
+    }
+  );
 
   const preferredPort = parseInt(process.env.PORT ?? "3000", 10);
   const port = await findAvailablePort(preferredPort);

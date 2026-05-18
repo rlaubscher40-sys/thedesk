@@ -59,6 +59,12 @@ const recordPingSchema = z.object({
   region: z.string().max(32).optional(),
 });
 
+const clientErrorSchema = z.object({
+  message: z.string().min(1).max(512),
+  stack: z.string().max(8_000).nullable().optional(),
+  url: z.string().max(512).optional(),
+});
+
 async function handleRecordPing(req: Request, res: Response): Promise<void> {
   if (!authorised(req)) {
     res.status(401).send("Unauthorised");
@@ -116,7 +122,34 @@ export function recordExpressError(
   next(err);
 }
 
+async function handleClientError(req: Request, res: Response): Promise<void> {
+  // No auth gate — browsers POST whenever they throw. Rate-limited
+  // upstream by the same /api limiter that fronts tRPC. Schema is
+  // strict and the row is bounded, so abuse just fills the ring
+  // buffer (admin can clear from /admin).
+  const parsed = clientErrorSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Bad client-error payload" });
+    return;
+  }
+  await db.recordServerError({
+    level: "error",
+    message: parsed.data.message,
+    stack: parsed.data.stack ?? null,
+    // Encode as a client-side error by stashing "CLIENT" in the
+    // method slot. The admin /health panel keys off this to label
+    // the row distinctly without needing a schema migration.
+    method: "CLIENT",
+    route: parsed.data.url ?? null,
+    statusCode: null,
+    userAgent: req.header("user-agent")?.slice(0, 256) ?? null,
+  });
+  // 204 No Content — caller ignores the body anyway.
+  res.status(204).end();
+}
+
 export function registerHealthRoutes(app: Express): void {
   app.get("/api/healthz", handleHealthz);
   app.post("/api/uptime/record", handleRecordPing);
+  app.post("/api/errors/client", handleClientError);
 }

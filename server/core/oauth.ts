@@ -28,7 +28,6 @@ export function registerOAuthRoutes(app: Express): void {
       openAiConfigured: env.openAiApiKey.length > 0,
       databaseConfigured: env.databaseUrl.length > 0,
       scheduledKeyConfigured: env.scheduledApiKey.length > 0,
-      sentryConfigured: Boolean(process.env.SENTRY_DSN),
       environment: env.isProduction ? "production" : "development",
     });
   });
