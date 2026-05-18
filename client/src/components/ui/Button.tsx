@@ -23,7 +23,7 @@ const buttonStyles = cva(
       size: {
         sm: "h-7 px-2.5 text-xs rounded",
         md: "h-9 px-3.5 text-sm rounded",
-        lg: "h-11 px-5 text-base rounded-md",
+        lg: "h-11 px-5 text-base rounded-sm",
         icon: "h-8 w-8 rounded",
       },
     },

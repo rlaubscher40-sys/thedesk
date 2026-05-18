@@ -253,8 +253,8 @@ export const stories: Story[] = [
       },
       {
         persona: "Buyers Agent",
-        angle: "Tenant negotiation leverage tilts slightly back to landlords in markets where rents have plateaued.",
-        sayThis: "Where rents have plateaued, leverage swings back to the landlord. Negotiate accordingly.",
+        angle: "Tenant negotiation power tilts slightly back to landlords in markets where rents have plateaued.",
+        sayThis: "Where rents have plateaued, the bargaining power swings back to the landlord. Negotiate accordingly.",
       },
     ],
   },

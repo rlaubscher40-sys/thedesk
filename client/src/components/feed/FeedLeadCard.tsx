@@ -120,7 +120,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
         // card is centred under the page header; image fills the card
         // width, editorial flows below without needing its own
         // internal max-width.
-        "panel hover-lift rounded overflow-hidden mx-auto w-full max-w-[960px]",
+        "panel hover-lift reveal-on-hover rounded overflow-hidden mx-auto w-full max-w-[960px]",
         categoryAccentClass(item.category)
       )}
     >
@@ -229,16 +229,19 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
           >
             {item.category}
           </span>
-          <div className="flex items-center gap-1 -mr-2">
+          <div className="flex items-center gap-1 -mr-2 reveal-target">
             <button
               onClick={toggleQueue}
               aria-label={inQueueId ? "Remove from queue" : "Save to queue"}
               className="p-2 sm:p-1.5 rounded text-[var(--color-fg-subtle)] hover:text-amber-300 transition-colors"
             >
               {inQueueId ? (
-                <BookmarkCheck className="h-4 w-4 text-amber-400" />
+                <BookmarkCheck
+                  key="saved"
+                  className="h-4 w-4 text-amber-400 bookmark-pop"
+                />
               ) : (
-                <Bookmark className="h-4 w-4" />
+                <Bookmark key="empty" className="h-4 w-4" />
               )}
             </button>
             <button

@@ -52,12 +52,13 @@ export function ScrollProgress({ revealAt = 320 }: { revealAt?: number }) {
       >
         <div
           ref={barRef}
-          className="h-full origin-left transition-transform duration-150 ease-out"
+          className="h-full origin-left"
           style={{
             background:
-              "linear-gradient(90deg, oklch(0.75 0.18 70) 0%, oklch(0.88 0.19 82) 100%)",
-            boxShadow: "0 0 12px oklch(0.75 0.18 70 / 50%)",
+              "linear-gradient(90deg, var(--color-amber) 0%, var(--color-amber-bright) 100%)",
+            boxShadow: "0 0 12px var(--color-amber-glow)",
             transform: "scaleX(0)",
+            transition: "transform 150ms cubic-bezier(0.16, 1, 0.3, 1)",
           }}
         />
       </div>
@@ -68,8 +69,9 @@ export function ScrollProgress({ revealAt = 320 }: { revealAt?: number }) {
         style={{
           background: "var(--grad-scroll-progress)",
           backdropFilter: "blur(12px)",
-          borderBottom: "1px solid oklch(1 0 0 / 6%)",
-          transition: "opacity 280ms ease, transform 280ms ease",
+          borderBottom: "1px solid var(--color-border)",
+          transition:
+            "opacity 280ms cubic-bezier(0.16, 1, 0.3, 1), transform 280ms cubic-bezier(0.16, 1, 0.3, 1)",
           opacity: revealed ? 1 : 0,
           transform: revealed ? "translateY(0)" : "translateY(-110%)",
         }}

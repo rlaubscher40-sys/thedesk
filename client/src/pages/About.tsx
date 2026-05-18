@@ -13,11 +13,13 @@
  */
 import { useState } from "react";
 import { ExternalLink, Linkedin } from "lucide-react";
+import { useDocumentTitle } from "@/lib/useDocumentTitle";
 
 const SUBSTACK_URL = "https://rubenlaubscher.substack.com/";
 const LINKEDIN_URL = "https://www.linkedin.com/in/ruben-laubscher/";
 
 export default function About() {
+  useDocumentTitle("About");
   return (
     <div className="space-y-12">
       {/* Hero, full-bleed editorial header. Title gets its own padding
@@ -63,12 +65,13 @@ export default function About() {
             <span
               className="block first-paint-content"
               style={{
-                // Solid amber instead of background-clip:text. The gradient
-                // approach kept clipping Playfair's italic descender on the
-                // leading "p" of "partner", every paddingLeft hack just
-                // shifted the symptom. Solid color renders inside its own
-                // glyph box cleanly.
-                color: "oklch(0.82 0.18 76)",
+                // Solid brand amber. Pulls from the --color-amber-bright
+                // token so the hue shifts to the deeper light-mode amber
+                // automatically (index.css §3.2). Prior literal
+                // oklch(0.82 0.18 76) was light-mode-broken: it dropped
+                // to near-invisible contrast on the warm cream canvas
+                // because the value never re-tuned for the lighter bg.
+                color: "var(--color-amber-bright)",
               }}
             >
               partner conversations.

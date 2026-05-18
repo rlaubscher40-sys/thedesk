@@ -121,7 +121,14 @@ export function Hero({ onGenerateAll }: { onGenerateAll?: () => void }) {
           </p>
           <h1
             className="font-serif font-bold tracking-tight"
-            style={{ fontSize: "clamp(40px, 5vw, 72px)", lineHeight: "0.94" }}
+            style={{
+              // Tighter floor (32px from 40px) so the headline never
+              // pushes 'Desk.' off the bottom of the hero card on
+              // iPhone-SE-width viewports (375px). The clamp ceiling
+              // unchanged so the desktop treatment keeps its weight.
+              fontSize: "clamp(32px, 5vw, 72px)",
+              lineHeight: "0.94",
+            }}
           >
             <span className="block first-paint-mark text-[var(--color-fg)]">Today's</span>
             <span
@@ -146,6 +153,7 @@ export function Hero({ onGenerateAll }: { onGenerateAll?: () => void }) {
             {isAdmin && (
               <button
                 onClick={handleGen}
+                title="Regenerate the four persona angles ('Say This') for every story in today's feed"
                 className="group inline-flex items-center gap-2.5 rounded px-5 py-2.5 text-xs font-mono uppercase tracking-[0.2em] transition-all active:scale-[0.98] shrink-0 text-[var(--color-on-amber)]"
                 style={{
                   background: "var(--grad-cta-amber)",

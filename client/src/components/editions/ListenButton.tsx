@@ -96,7 +96,7 @@ export function ListenButton({
       {state === "idle" && (
         <button
           onClick={start}
-          className="inline-flex items-center gap-1.5 rounded-sm px-3 py-2 sm:py-1.5 text-[10px] font-mono uppercase tracking-[0.16em] min-h-[36px] text-[var(--color-fg-muted)] hover:text-amber-300 transition-colors"
+          className="inline-flex items-center gap-1.5 rounded-sm px-3 py-2 sm:py-1.5 text-[10px] font-mono uppercase tracking-[0.16em] min-h-[44px] text-[var(--color-fg-muted)] hover:text-amber-300 transition-colors"
           aria-label={label}
           title={label}
         >
@@ -108,7 +108,7 @@ export function ListenButton({
         <>
           <button
             onClick={pause}
-            className="inline-flex items-center gap-1.5 rounded-sm px-3 py-2 sm:py-1.5 text-[10px] font-mono uppercase tracking-[0.16em] min-h-[36px] text-amber-300 hover:text-amber-200 transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-sm px-3 py-2 sm:py-1.5 text-[10px] font-mono uppercase tracking-[0.16em] min-h-[44px] text-amber-300 hover:text-amber-200 transition-colors"
             aria-label="Pause"
             title="Pause"
           >
@@ -129,7 +129,7 @@ export function ListenButton({
         <>
           <button
             onClick={resume}
-            className="inline-flex items-center gap-1.5 rounded-sm px-3 py-2 sm:py-1.5 text-[10px] font-mono uppercase tracking-[0.16em] min-h-[36px] text-amber-300 hover:text-amber-200 transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-sm px-3 py-2 sm:py-1.5 text-[10px] font-mono uppercase tracking-[0.16em] min-h-[44px] text-amber-300 hover:text-amber-200 transition-colors"
             aria-label="Resume"
             title="Resume"
           >

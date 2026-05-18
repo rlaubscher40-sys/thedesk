@@ -130,7 +130,7 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
   return (
     <article
       className={cn(
-        "panel panel-hover hover-lift p-6 sm:p-7 rounded",
+        "panel panel-hover hover-lift reveal-on-hover p-6 sm:p-7 rounded",
         categoryAccentClass(item.category)
       )}
     >
@@ -151,16 +151,19 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
           </span>
           <span className="overline truncate">{item.source}</span>
         </div>
-        <div className="flex items-center gap-1 shrink-0 -mr-1.5">
+        <div className="flex items-center gap-1 shrink-0 -mr-1.5 reveal-target">
           <button
             onClick={toggleQueue}
             aria-label={inQueueId ? "Remove from queue" : "Save to queue"}
             className="p-2 sm:p-1.5 rounded text-[var(--color-fg-subtle)] hover:text-amber-300 transition-colors"
           >
             {inQueueId ? (
-              <BookmarkCheck className="h-4 w-4 text-amber-400" />
+              <BookmarkCheck
+                key="saved"
+                className="h-4 w-4 text-amber-400 bookmark-pop"
+              />
             ) : (
-              <Bookmark className="h-4 w-4" />
+              <Bookmark key="empty" className="h-4 w-4" />
             )}
           </button>
           <button

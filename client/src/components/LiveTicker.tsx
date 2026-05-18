@@ -37,6 +37,10 @@ export function LiveTicker() {
       className="relative overflow-hidden border-b border-[var(--color-border)] bg-[var(--color-bg-deep)] group"
       style={{ height: "30px" }}
       aria-label="Live intelligence ticker"
+      // Headlines scroll continuously; screen readers shouldn't
+      // re-read the same item every cycle. The ticker is decorative
+      // chrome — the items also live in the feed below.
+      aria-live="off"
     >
       <div className="absolute inset-y-0 left-0 z-20 flex items-center gap-2 px-4 bg-[var(--color-bg-deep)] border-r border-[var(--color-border)] shrink-0">
         <span className="live-dot" aria-hidden="true" />

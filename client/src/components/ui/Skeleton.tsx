@@ -6,5 +6,15 @@ import type { HTMLAttributes } from "react";
  * The animation class lives in index.css under .skeleton.
  */
 export function Skeleton({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("skeleton h-4 w-full", className)} aria-hidden="true" {...props} />;
+  // aria-busy signals to assistive tech that the region is loading;
+  // aria-hidden keeps the shimmer out of the announcement queue so
+  // screen readers don't read 'graphic graphic graphic'.
+  return (
+    <div
+      className={cn("skeleton h-4 w-full", className)}
+      aria-hidden="true"
+      aria-busy="true"
+      {...props}
+    />
+  );
 }

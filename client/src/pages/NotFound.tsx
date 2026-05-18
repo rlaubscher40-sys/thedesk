@@ -8,8 +8,10 @@
 import { Link } from "wouter";
 import { ArrowRight } from "lucide-react";
 import { BrandLockup } from "@/components/Logomark";
+import { useDocumentTitle } from "@/lib/useDocumentTitle";
 
 export default function NotFound() {
+  useDocumentTitle("Not found");
   return (
     <div className="min-h-[70vh] flex items-center justify-center">
       <div className="relative max-w-2xl mx-auto px-6 py-16 text-center">

@@ -6,7 +6,9 @@
 import { motion, useReducedMotion, type Variants } from "framer-motion";
 import type { ReactNode } from "react";
 
-const EASE_OUT_QUART = [0.16, 1, 0.3, 1] as const;
+// The brand-canonical easing curve (see index.css). Repeated literally
+// here because Framer Motion's variants type requires the tuple.
+const BRAND_EASE = [0.16, 1, 0.3, 1] as const;
 
 type Props = {
   className?: string;
@@ -40,7 +42,7 @@ export function StaggerList({
         show: {
           opacity: 1,
           y: 0,
-          transition: { duration: 0.35, ease: EASE_OUT_QUART },
+          transition: { duration: 0.35, ease: BRAND_EASE },
         },
       };
 
