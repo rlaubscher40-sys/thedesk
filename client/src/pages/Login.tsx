@@ -9,8 +9,10 @@ import { useLocation } from "wouter";
 import { Loader2, Lock } from "lucide-react";
 import { BrandLockup } from "@/components/Logomark";
 import { trpc } from "@/lib/trpc";
+import { useDocumentTitle } from "@/lib/useDocumentTitle";
 
 export default function Login() {
+  useDocumentTitle("Sign in");
   const [, navigate] = useLocation();
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);

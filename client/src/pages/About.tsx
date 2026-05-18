@@ -13,11 +13,13 @@
  */
 import { useState } from "react";
 import { ExternalLink, Linkedin } from "lucide-react";
+import { useDocumentTitle } from "@/lib/useDocumentTitle";
 
 const SUBSTACK_URL = "https://rubenlaubscher.substack.com/";
 const LINKEDIN_URL = "https://www.linkedin.com/in/ruben-laubscher/";
 
 export default function About() {
+  useDocumentTitle("About");
   return (
     <div className="space-y-12">
       {/* Hero, full-bleed editorial header. Title gets its own padding

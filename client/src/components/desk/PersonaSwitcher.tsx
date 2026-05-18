@@ -85,7 +85,7 @@ export function PersonaSwitcher() {
       {showCaption && (
         <p
           className="text-[12px] sm:text-[11px] text-[var(--color-fg-muted)] leading-snug pl-1 max-w-[60ch]"
-          style={{ animation: "fade-in 0.35s ease-out" }}
+          style={{ animation: "fade-in 0.35s cubic-bezier(0.16, 1, 0.3, 1)" }}
         >
           <span
             aria-hidden="true"

@@ -59,7 +59,7 @@ export function PaywallHint() {
             "0 1px 0 oklch(1 0 0 / 18%) inset, 0 4px 14px oklch(0.75 0.18 70 / 25%)",
         }}
       >
-        Subscribe to unlock
+        Subscribe to read on
       </a>
     </div>
   );

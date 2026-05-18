@@ -12,12 +12,17 @@ import { Flame } from "lucide-react";
 import { useStreak, type StreakTier } from "@/lib/useStreak";
 import { cn } from "@/lib/cn";
 
+// Tier accents drawn from existing brand tokens rather than inlined
+// oklch literals: amber for the early tiers (it's the brand accent),
+// property-green at the fortnight milestone, amber-bright at the
+// monthly peak. Keeping these as token references means light-mode
+// shifts the hues automatically per index.css §3.2.
 const TIER_STYLE: Record<StreakTier, { colour: string; label: string }> = {
   none: { colour: "var(--color-fg-subtle)", label: "" },
-  starter: { colour: "oklch(0.82 0.18 72)", label: "On a run" },
-  weekly: { colour: "oklch(0.88 0.18 80)", label: "Weekly habit" },
-  fortnight: { colour: "oklch(0.78 0.17 155)", label: "Two weeks running" },
-  monthly: { colour: "oklch(0.94 0.16 84)", label: "Monthly streak" },
+  starter: { colour: "var(--color-amber)", label: "On a run" },
+  weekly: { colour: "var(--color-amber-bright)", label: "Weekly habit" },
+  fortnight: { colour: "var(--color-property)", label: "Two weeks running" },
+  monthly: { colour: "var(--color-amber-bright)", label: "Monthly streak" },
 };
 
 export function StreakBadge({ collapsed }: { collapsed?: boolean }) {
