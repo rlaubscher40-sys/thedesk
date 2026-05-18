@@ -120,6 +120,9 @@ function Routes() {
             <Route path="/editorial-standards" component={EditorialStandards} />
             <Route path="/corrections" component={Corrections} />
             <Route path="/confirm-subscription" component={ConfirmSubscription} />
+            {/* /confirm alias kept so older confirm-emails (which built
+                their CTA against the shorter path) still resolve. */}
+            <Route path="/confirm" component={ConfirmSubscription} />
             <Route path="/settings" component={Settings} />
             <Route component={NotFound} />
           </Switch>
