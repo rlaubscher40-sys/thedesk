@@ -62,7 +62,7 @@ export function LiveTicker() {
                   {item.category && (
                     <span
                       className="font-mono uppercase tracking-[0.18em] mr-2.5"
-                      style={{ color: categoryColour(item.category), fontSize: "9px" }}
+                      style={{ color: categoryColour(item.category), fontSize: "10px" }}
                     >
                       {item.category}
                     </span>

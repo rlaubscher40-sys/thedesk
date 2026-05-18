@@ -5,10 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 
     <!--
-      Theme-flash prevention. Runs synchronously before paint so the
-      page renders in the user's persisted theme rather than flashing
-      the default dark canvas at light-mode visitors. Mirrors the logic
-      in client/src/lib/theme.tsx — readStored + readSystem.
+      Theme + reading-size flash prevention. Runs synchronously before
+      paint so the page renders in the user's persisted theme and font
+      scale rather than flashing the dark default at light-mode visitors
+      or shrinking from comfortable to default. Mirrors the logic in
+      client/src/lib/theme.tsx.
     -->
     <script>
       (function () {
@@ -21,6 +22,9 @@
               : mode;
           if (resolved === "light") document.documentElement.classList.add("light");
           document.documentElement.style.colorScheme = resolved;
+
+          var size = localStorage.getItem("thedesk:reading-size");
+          if (size === "comfortable") document.documentElement.classList.add("comfortable");
         } catch (e) {}
       })();
     </script>

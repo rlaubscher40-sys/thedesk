@@ -15,7 +15,7 @@
   --color-bg-deep: oklch(0.08 0.018 260);
   --color-fg: oklch(0.94 0.005 80);
   --color-fg-muted: oklch(0.68 0.012 260);
-  --color-fg-subtle: oklch(0.5 0.012 260);
+  --color-fg-subtle: oklch(0.62 0.012 260);
 
   --color-amber: oklch(0.75 0.18 70);
   --color-amber-bright: oklch(0.88 0.19 82);
@@ -116,7 +116,7 @@
   --color-bg-deep: oklch(0.92 0.006 82);
   --color-fg: oklch(0.16 0.018 260);
   --color-fg-muted: oklch(0.40 0.015 260);
-  --color-fg-subtle: oklch(0.55 0.012 260);
+  --color-fg-subtle: oklch(0.42 0.015 260);
   --color-border: oklch(0 0 0 / 12%);
   --color-border-strong: oklch(0 0 0 / 22%);
 
@@ -397,7 +397,7 @@
 
   .overline {
     font-family: var(--font-mono);
-    font-size: 0.625rem;
+    font-size: 0.75rem;
     font-weight: 600;
     letter-spacing: 0.16em;
     text-transform: uppercase;
@@ -406,7 +406,7 @@
 
   .overline-amber {
     font-family: var(--font-mono);
-    font-size: 0.625rem;
+    font-size: 0.75rem;
     font-weight: 600;
     letter-spacing: 0.16em;
     text-transform: uppercase;
@@ -476,6 +476,16 @@
     background-size: 200% 100%;
     animation: shimmer 1.4s ease-in-out infinite;
     border-radius: 4px;
+  }
+
+  /* ─── Reading size ─────────────────────────────────────
+     The .comfortable class on <html> bumps the root font-size so every
+     rem-based body, overline, and headline lifts ~12.5% without
+     disturbing pixel-perfect chrome (lockup spacing, icons, hairlines)
+     measured in absolute px. Defaults remain brand-correct.
+  */
+  html.comfortable {
+    font-size: 18px;
   }
 
   /* ─── Brand mark colour ─────────────────────────────────

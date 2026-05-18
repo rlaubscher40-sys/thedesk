@@ -17,6 +17,7 @@ import {
   Moon,
   Sun,
   Trash2,
+  Type,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
@@ -68,7 +69,7 @@ export default function SettingsPage() {
 // ─── Appearance ─────────────────────────────────────────────────────────────
 
 function AppearanceCard() {
-  const { theme, setTheme, systemPreferred } = useTheme();
+  const { theme, setTheme, systemPreferred, readingSize, setReadingSize } = useTheme();
   return (
     <SettingsCard
       icon={Monitor}
@@ -76,7 +77,81 @@ function AppearanceCard() {
       kicker="Dark by default — the brief reads as a print broadsheet at night. Light is for daylight desks."
     >
       <ThemeSegmented current={theme} onChange={setTheme} systemPreferred={systemPreferred} />
+      <div className="mt-7 pt-6 border-t border-[var(--color-border)]">
+        <div className="flex items-center gap-2 mb-4">
+          <Type className="h-3.5 w-3.5 text-[var(--color-fg-muted)]" />
+          <p
+            className="font-mono uppercase tracking-[0.18em] text-[var(--color-fg-muted)]"
+            style={{ fontSize: "11px" }}
+          >
+            Reading size
+          </p>
+        </div>
+        <ReadingSizeSegmented current={readingSize} onChange={setReadingSize} />
+      </div>
     </SettingsCard>
+  );
+}
+
+function ReadingSizeSegmented({
+  current,
+  onChange,
+}: {
+  current: "default" | "comfortable";
+  onChange: (s: "default" | "comfortable") => void;
+}) {
+  const options: Array<{
+    key: "default" | "comfortable";
+    label: string;
+    sub: string;
+  }> = [
+    { key: "default", label: "Default", sub: "Brand-spec broadsheet register" },
+    { key: "comfortable", label: "Comfortable", sub: "Body and overlines lift ~12.5%" },
+  ];
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {options.map((opt) => {
+        const active = current === opt.key;
+        return (
+          <button
+            key={opt.key}
+            onClick={() => onChange(opt.key)}
+            aria-pressed={active}
+            className={cn(
+              "panel rounded-sm p-4 text-left transition-all",
+              active && "ring-1 ring-amber-400/60"
+            )}
+            style={
+              active
+                ? {
+                    background: "oklch(0.78 0.18 70 / 10%)",
+                    boxShadow: "inset 0 0 0 1px oklch(0.78 0.18 70 / 50%)",
+                  }
+                : undefined
+            }
+          >
+            <div className="flex items-center gap-2 mb-1.5">
+              <span
+                className="font-mono uppercase tracking-[0.16em]"
+                style={{
+                  color: active ? "var(--color-amber)" : "var(--color-fg)",
+                  fontSize: opt.key === "comfortable" ? "12px" : "10px",
+                }}
+              >
+                {opt.label}
+              </span>
+              {active && <Check className="h-3 w-3 ml-auto text-amber-300" />}
+            </div>
+            <p
+              className="text-[var(--color-fg-subtle)] leading-relaxed"
+              style={{ fontSize: opt.key === "comfortable" ? "13px" : "11px" }}
+            >
+              {opt.sub}
+            </p>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 

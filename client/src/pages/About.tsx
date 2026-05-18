@@ -176,7 +176,7 @@ export default function About() {
               <div className="min-w-0 flex-1">
                 <p
                   className="overline-amber"
-                  style={{ letterSpacing: "0.22em", fontSize: "9px" }}
+                  style={{ letterSpacing: "0.22em", fontSize: "10px" }}
                 >
                   Curator
                 </p>

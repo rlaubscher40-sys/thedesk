@@ -157,7 +157,7 @@ function MetricRow({
         {metric.source && (
           <span
             className="overline text-[var(--color-fg-subtle)]"
-            style={{ letterSpacing: "0.16em", fontSize: "9px" }}
+            style={{ letterSpacing: "0.16em", fontSize: "10px" }}
           >
             {metric.source}
           </span>
