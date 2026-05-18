@@ -27,21 +27,54 @@ jobs:
           SCHEDULED_API_KEY: ${{ secrets.SCHEDULED_API_KEY }}
         run: |
           set +e
+
+          # ── Health probe ─────────────────────────────────────────────
           start=$(date +%s%3N)
           status=$(curl --max-time 30 --silent --output /dev/null --write-out "%{http_code}" "$SITE_URL/api/healthz" || echo "000")
           end=$(date +%s%3N)
           latency=$((end - start))
-          set -e
 
-          echo "Ping result: $status in ${latency}ms"
+          echo "::notice::healthz → ${status} in ${latency}ms (target: $SITE_URL)"
 
+          # ── Record-ping POST ─────────────────────────────────────────
+          # Diagnose-friendly: capture body + http code separately, log
+          # both, and don't use --fail so the workflow's own status
+          # never masks the actual server response.
           if [ -z "$SCHEDULED_API_KEY" ]; then
-            echo "::warning::SCHEDULED_API_KEY not set; skipping uptime record POST."
+            echo "::warning::SCHEDULED_API_KEY not set — skipping the record POST. Add it under repo Settings → Secrets and variables → Actions and set the same value in Railway's env."
             exit 0
           fi
 
-          curl --silent --show-error --fail \
+          body_file=$(mktemp)
+          record_status=$(curl --max-time 30 --silent --output "$body_file" --write-out "%{http_code}" \
             -X POST "$SITE_URL/api/uptime/record" \
             -H "Content-Type: application/json" \
             -H "x-scheduled-key: $SCHEDULED_API_KEY" \
-            -d "{\"statusCode\": $status, \"latencyMs\": $latency, \"source\": \"github-actions\", \"region\": \"github\"}"
+            -d "{\"statusCode\": $status, \"latencyMs\": $latency, \"source\": \"github-actions\", \"region\": \"github\"}")
+
+          body=$(cat "$body_file")
+          rm -f "$body_file"
+
+          if [ "$record_status" = "200" ] || [ "$record_status" = "204" ]; then
+            echo "::notice::record POST → ${record_status} ok"
+            exit 0
+          fi
+
+          # Surface the real cause so the next failure isn't 'curl exit 22'.
+          echo "::error::record POST → ${record_status}"
+          echo "Response body: ${body}"
+          case "$record_status" in
+            401)
+              echo "::error::Auth rejected. The SCHEDULED_API_KEY GitHub secret does not match the value Railway has in its env. Re-copy from Railway → Variables and paste into GitHub → Secrets."
+              ;;
+            404)
+              echo "::error::/api/uptime/record returned 404. The server build doesn't include the health-tracker code yet. Wait for the Railway redeploy to finish (Settings → Deployments) and trigger this workflow again from the Actions tab."
+              ;;
+            5*)
+              echo "::error::Server-side failure. Check Railway's logs around the time of this ping."
+              ;;
+            000)
+              echo "::error::No HTTP response at all. SITE_URL may be wrong (currently '$SITE_URL') or Railway is down. Check the deploy status."
+              ;;
+          esac
+          exit 1
