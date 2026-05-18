@@ -20,7 +20,14 @@ import { TRPCError } from "@trpc/server";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import * as db from "../db";
+import { sendConfirmEmail } from "../core/mailer";
 import { adminProcedure, publicProcedure, router } from "../core/trpc";
+import { DEFAULT_SITE_URL } from "../../shared/const";
+
+function siteOrigin(): string {
+  const v = process.env.SITE_URL ?? process.env.VITE_SITE_URL ?? DEFAULT_SITE_URL;
+  return v.replace(/\/+$/, "");
+}
 
 const emailSchema = z
   .string()
@@ -63,11 +70,20 @@ export const subscribersRouter = router({
         source: input.source ?? null,
       });
 
-      // In production this is where we'd send the confirm email. The
-      // demo returns the token so the caller can construct the
-      // confirm URL itself.
+      // Fire-and-forget confirm email. mailer.send is a no-op when
+      // RESEND_API_KEY is unset (dev / demo), so this path stays
+      // functional without provider credentials. Failures don't block
+      // the API response, the row is already persisted and an admin
+      // can resend manually if delivery is needed.
+      const confirmUrl = `${siteOrigin()}/confirm?token=${token}`;
+      void sendConfirmEmail({ to: input.email, confirmUrl }).catch((err) =>
+        console.warn(`[subscribers] confirm email send failed:`, err)
+      );
+
       return {
         status: "pending-confirm" as const,
+        // Token returned so dev / demo can construct the confirm URL
+        // by hand when RESEND_API_KEY isn't wired up.
         confirmToken: token,
       };
     }),
