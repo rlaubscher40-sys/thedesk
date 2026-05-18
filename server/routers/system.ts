@@ -105,6 +105,57 @@ const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
     name: "0012 · hero_library index",
     sql: "CREATE INDEX idx_hero_library_pick ON hero_library (retired, lastUsedAt)",
   },
+  {
+    name: "0013 · server_errors table",
+    sql: `CREATE TABLE server_errors (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      occurredAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      level VARCHAR(16) NOT NULL DEFAULT 'error',
+      message VARCHAR(512) NOT NULL,
+      stack TEXT,
+      method VARCHAR(16),
+      route VARCHAR(256),
+      statusCode INT,
+      userAgent VARCHAR(256)
+    )`,
+  },
+  {
+    name: "0013 · server_errors index",
+    sql: "CREATE INDEX idx_server_errors_recent ON server_errors (occurredAt)",
+  },
+  {
+    name: "0014 · uptime_pings table",
+    sql: `CREATE TABLE uptime_pings (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      pingedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      statusCode INT NOT NULL,
+      latencyMs INT NOT NULL,
+      source VARCHAR(64) NOT NULL DEFAULT 'external',
+      region VARCHAR(32)
+    )`,
+  },
+  {
+    name: "0014 · uptime_pings index",
+    sql: "CREATE INDEX idx_uptime_pings_recent ON uptime_pings (pingedAt)",
+  },
+  {
+    name: "0015 · page_views table",
+    sql: `CREATE TABLE page_views (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      viewedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      path VARCHAR(256) NOT NULL,
+      referrer VARCHAR(256),
+      sessionId VARCHAR(64) NOT NULL
+    )`,
+  },
+  {
+    name: "0015 · page_views index by time",
+    sql: "CREATE INDEX idx_page_views_recent ON page_views (viewedAt)",
+  },
+  {
+    name: "0015 · page_views index by path",
+    sql: "CREATE INDEX idx_page_views_path ON page_views (path, viewedAt)",
+  },
 ];
 
 /** MySQL/TiDB error codes / fragments we treat as "already applied". */
