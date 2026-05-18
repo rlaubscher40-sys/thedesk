@@ -586,6 +586,18 @@
   */
   /* Subtle hover lift — premium-feeling, not theatrical. Apple-style:
      2px Y, deeper shadow, no amber wash on the ring. */
+  /* Default press-state — every <button> gets a 50ms scale(0.98) on
+     :active so a tap registers as a tactile press, not a no-op. CTAs
+     that already set their own active: class override this naturally
+     because Tailwind utilities have higher specificity than the
+     element selector. */
+  button:not([disabled]) {
+    transition: transform 50ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  button:not([disabled]):active {
+    transform: scale(0.98);
+  }
+
   .hover-lift {
     transition:
       transform 260ms cubic-bezier(0.16, 1, 0.3, 1),
@@ -693,6 +705,20 @@
 @keyframes fade-in {
   from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Quick spring used when a bookmark / save action toggles ON. Apply
+   .bookmark-pop to the icon wrapper momentarily after a true→false
+   transition; the brand curve gives a small bounce that signals
+   capture without becoming a celebration. */
+@keyframes bookmark-pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.25); }
+  70%  { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+.bookmark-pop {
+  animation: bookmark-pop 360ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes pulse-ring {

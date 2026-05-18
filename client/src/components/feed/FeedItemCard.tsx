@@ -158,9 +158,12 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
             className="p-2 sm:p-1.5 rounded text-[var(--color-fg-subtle)] hover:text-amber-300 transition-colors"
           >
             {inQueueId ? (
-              <BookmarkCheck className="h-4 w-4 text-amber-400" />
+              <BookmarkCheck
+                key="saved"
+                className="h-4 w-4 text-amber-400 bookmark-pop"
+              />
             ) : (
-              <Bookmark className="h-4 w-4" />
+              <Bookmark key="empty" className="h-4 w-4" />
             )}
           </button>
           <button
