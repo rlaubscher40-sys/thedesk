@@ -3,7 +3,7 @@
  *
  *   1. Brand line + edition meta + nav links
  *   2. Legal disclaimer ("General information only, not financial advice")
- *   3. Publisher line (curator + InvestorKit ABN + copyright)
+ *   3. Publisher line (curator + copyright)
  *
  * The disclaimer is required for an Australian audience, ASIC treats
  * commentary on rates / property as "general advice" by default and
@@ -12,9 +12,6 @@
 import { Link } from "wouter";
 import { BrandLockup } from "@/components/Logomark";
 import { useLiveEditionMeta } from "@/lib/useLiveEditionMeta";
-
-// TODO: replace with the real InvestorKit ABN before going public.
-const INVESTORKIT_ABN = "ABN 00 000 000 000";
 
 export function Footer() {
   const edition = useLiveEditionMeta();
@@ -80,7 +77,7 @@ export function Footer() {
         className="font-mono tracking-[0.12em]"
         style={{ fontSize: "10px" }}
       >
-        Curated by Ruben Laubscher · Head of Partnerships, InvestorKit · {INVESTORKIT_ABN} ·{" "}
+        Curated by Ruben Laubscher · Head of Partnerships, InvestorKit ·{" "}
         © {new Date().getFullYear()} The Desk
       </p>
     </footer>

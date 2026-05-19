@@ -25,7 +25,7 @@ export function Subscribe({ source = "right-rail" }: { source?: string }) {
       }
     },
     onError: () => {
-      toast.error("Couldn't subscribe right now, try again in a minute.");
+      toast.error("Couldn't subscribe. Try again in a minute.");
     },
   });
 
