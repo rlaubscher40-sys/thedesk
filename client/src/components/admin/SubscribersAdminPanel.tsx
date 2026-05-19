@@ -26,8 +26,9 @@ export function SubscribersAdminPanel() {
         </p>
         <h2 className="font-serif text-2xl font-bold leading-tight">Subscribers</h2>
         <p className="text-sm text-[var(--color-fg-muted)] mt-1.5 max-w-[60ch]">
-          Everyone who's filled in a subscribe form. Confirmation emails are
-          captured but not yet sent, wire Resend to start delivering.
+          Everyone who's filled in a subscribe form. Confirmation emails
+          send through Resend the moment the form posts; the row flips
+          to confirmed when the recipient clicks the link.
         </p>
       </div>
 
