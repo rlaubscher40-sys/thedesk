@@ -86,7 +86,7 @@ export function SubscribeModal() {
   const subscribeMut = trpc.subscribers.subscribe.useMutation({
     onSuccess: () => setDone(true),
     onError: () => {
-      toast.error("Couldn't subscribe right now, try again in a minute.");
+      toast.error("Couldn't subscribe. Try again in a minute.");
     },
   });
 

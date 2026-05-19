@@ -127,7 +127,7 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
       setMessage("");
       onClose();
     },
-    onError: () => toast.error("Couldn't send, try again in a sec"),
+    onError: () => toast.error("Couldn't send. Try again in a moment."),
   });
 
   function handleSubmit(e: React.FormEvent) {
