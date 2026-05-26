@@ -31,6 +31,7 @@ import { useAuth } from "@/lib/useAuth";
 import { trpc } from "@/lib/trpc";
 import { AnimatedBackground } from "./AnimatedBackground";
 import { DemoModeBanner } from "./DemoModeBanner";
+import { IosSafariNudge } from "./IosSafariNudge";
 import { FeedbackButton } from "./FeedbackButton";
 import { LiveTicker } from "./LiveTicker";
 import { BrandLockup } from "./Logomark";
@@ -189,6 +190,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           chrome. Sits bottom-right, visible on every reader-facing
           surface throughout the testing window. */}
       <FeedbackButton />
+      <IosSafariNudge />
     </div>
   );
 }
