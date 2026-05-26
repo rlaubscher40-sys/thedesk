@@ -64,6 +64,12 @@ createRoot(document.getElementById("root")!).render(
   </trpc.Provider>
 );
 
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}
+
 // Dismiss the first-paint splash once the React tree has committed
 // (see index.html). Two rAFs ensures we tick past the first commit
 // frame so the user actually sees the app underneath before the
