@@ -98,6 +98,19 @@ export async function listSubscribers(): Promise<Subscriber[]> {
   return db.select().from(subscribers).orderBy(desc(subscribers.createdAt));
 }
 
+export async function listConfirmedSubscribers(): Promise<Subscriber[]> {
+  if (isDemoMode()) {
+    const all = await demoQueries.listSubscribers();
+    return all.filter((s) => s.confirmedAt && !s.unsubscribedAt);
+  }
+  const db = getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(subscribers)
+    .where(and(isNotNull(subscribers.confirmedAt), isNull(subscribers.unsubscribedAt)));
+}
+
 export async function countConfirmedSubscribers(): Promise<number> {
   if (isDemoMode()) return demoQueries.countConfirmedSubscribers();
   const db = getDb();

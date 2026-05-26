@@ -19,6 +19,7 @@ import {
   PanelLeftOpen,
   Search,
   Settings,
+  Smartphone,
   Sun,
   X,
 } from "lucide-react";
@@ -53,6 +54,7 @@ const NAV_ITEMS: NavItem[] = [
   { path: "/archive", label: "Archive", icon: Search },
   { path: "/trends", label: "Trends", icon: BarChart3 },
   { path: "/queue", label: "Reading Queue", icon: Bookmark },
+  { path: "/install", label: "Get the App", icon: Smartphone },
   { path: "/about", label: "About", icon: Info },
   { path: "/admin", label: "Admin", icon: Settings, requiresAdmin: true },
 ];

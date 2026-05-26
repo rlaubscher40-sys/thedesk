@@ -15,6 +15,10 @@ import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import { env } from "./core/env";
 import { resolveHeroForEdition } from "./core/heroSelection";
+import {
+  editionUnsubscribeUrl,
+  sendEditionNotificationEmail,
+} from "./core/mailer";
 import { sdk } from "./core/sdk";
 import * as db from "./db";
 import {
@@ -33,6 +37,11 @@ import {
   synthesizeWeeklyEdition,
 } from "./prompts";
 import Parser from "rss-parser";
+
+function siteOrigin(): string {
+  const v = process.env.SITE_URL ?? process.env.VITE_SITE_URL ?? "https://thedesk.au";
+  return v.replace(/\/+$/, "");
+}
 
 // ─── Auth ───────────────────────────────────────────────────────────────────
 
@@ -292,6 +301,10 @@ function registerWeeklyEditionRoute(app: Express): void {
       } else {
         console.warn(`[scheduled] Ruben's Take failed:`, takeResult.reason);
       }
+
+      // Notify subscribers now that enrichment is complete so the email
+      // links to a fully-rendered edition (hero image + take in place).
+      void notifySubscribers(edition.editionNumber, edition.weekRange);
     });
   };
   app.post("/api/scheduled/weekly-edition", handler);
@@ -500,10 +513,43 @@ function registerSynthesizeEditionRoute(app: Express): void {
           `[headline-optimiser] Edition ${editionNumber} skipped: ${(err as Error).message}`
         );
       }
+
+      void notifySubscribers(editionNumber, weekRange);
     });
   };
   app.post("/api/scheduled/synthesize-edition", handler);
   app.post("/api/ingest/synthesize-edition", handler);
+}
+
+// ─── Subscriber notification ─────────────────────────────────────────────────
+
+async function notifySubscribers(editionNumber: number, weekRange: string): Promise<void> {
+  try {
+    const subs = await db.listConfirmedSubscribers();
+    if (subs.length === 0) return;
+    const origin = siteOrigin();
+    const editionUrl = `${origin}/editions/${editionNumber}`;
+    const results = await Promise.allSettled(
+      subs.map((sub) =>
+        sendEditionNotificationEmail({
+          to: sub.email,
+          name: sub.name,
+          editionNumber,
+          weekRange,
+          editionUrl,
+          unsubscribeUrl: editionUnsubscribeUrl(sub.email, origin),
+        })
+      )
+    );
+    const delivered = results.filter(
+      (r) => r.status === "fulfilled" && r.value.delivered
+    ).length;
+    console.log(
+      `[mailer] Edition ${editionNumber}: notified ${delivered}/${subs.length} subscribers`
+    );
+  } catch (err) {
+    console.warn(`[mailer] subscriber notification failed:`, err);
+  }
 }
 
 // ─── Daily metrics ──────────────────────────────────────────────────────────
