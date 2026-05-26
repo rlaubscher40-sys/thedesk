@@ -10,6 +10,7 @@ import rateLimit from "express-rate-limit";
 import { createServer } from "node:http";
 import net from "node:net";
 import { registerAnalyticsRoutes } from "./core/analyticsRoutes";
+import { registerUnsubscribeRoute } from "./core/unsubscribeRoute";
 import { createContext } from "./core/context";
 import { registerHealthRoutes, recordExpressError } from "./core/healthRoutes";
 import { registerOAuthRoutes } from "./core/oauth";
@@ -85,6 +86,7 @@ async function startServer() {
   registerSeoRoutes(app);
   registerHealthRoutes(app);
   registerAnalyticsRoutes(app);
+  registerUnsubscribeRoute(app);
   registerScheduledRoutes(app);
 
   app.use(
