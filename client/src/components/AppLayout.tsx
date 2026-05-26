@@ -65,6 +65,7 @@ const MOBILE_TABS: NavItem[] = [
   { path: "/archive", label: "Archive", icon: Search },
   { path: "/trends", label: "Trends", icon: BarChart3 },
   { path: "/queue", label: "Queue", icon: Bookmark },
+  { path: "/install", label: "Get App", icon: Smartphone },
 ];
 
 function isActive(location: string, path: string): boolean {
