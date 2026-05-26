@@ -3,30 +3,35 @@ import { Share2, X } from "lucide-react";
 
 const DISMISSED_KEY = "thedesk:ios-safari-nudge-dismissed";
 
-function shouldShow(): boolean {
-  if (typeof window === "undefined") return false;
+type NudgeVariant = "switch-to-safari" | "add-to-home-screen" | null;
+
+function detectVariant(): NudgeVariant {
+  if (typeof window === "undefined") return null;
   // Already installed as a PWA — no nudge needed
-  if ((window.navigator as Navigator & { standalone?: boolean }).standalone) return false;
+  if ((window.navigator as Navigator & { standalone?: boolean }).standalone) return null;
   // Already dismissed
-  if (localStorage.getItem(DISMISSED_KEY)) return false;
+  if (localStorage.getItem(DISMISSED_KEY)) return null;
 
   const ua = navigator.userAgent;
   const isIos = /iPhone|iPad|iPod/i.test(ua);
-  if (!isIos) return false;
+  if (!isIos) return null;
 
-  // These tokens appear in third-party browser UAs on iOS; Safari has none of them
+  // Third-party browsers on iOS (Chrome, Firefox, Edge, Opera, Google app)
   const isNonSafariBrowser = /CriOS|FxiOS|EdgiOS|OPiOS|GSA/i.test(ua);
-  return isNonSafariBrowser;
+  if (isNonSafariBrowser) return "switch-to-safari";
+
+  // Safari on iOS — no automatic install banner, user needs the manual prompt
+  return "add-to-home-screen";
 }
 
 export function IosSafariNudge() {
-  const [visible, setVisible] = useState(() => shouldShow());
+  const [variant, setVariant] = useState<NudgeVariant>(() => detectVariant());
 
-  if (!visible) return null;
+  if (!variant) return null;
 
   function dismiss() {
     localStorage.setItem(DISMISSED_KEY, "1");
-    setVisible(false);
+    setVariant(null);
   }
 
   return (
@@ -41,11 +46,19 @@ export function IosSafariNudge() {
       }}
     >
       <Share2 className="h-4 w-4 mt-0.5 shrink-0 text-amber-400" />
-      <p className="flex-1 text-[13px] leading-snug text-[var(--color-fg-muted)]">
-        To install The Desk on your home screen, open this page in{" "}
-        <span className="text-amber-300 font-medium">Safari</span>, then tap{" "}
-        <span className="text-amber-300 font-medium">Share → Add to Home Screen</span>.
-      </p>
+      {variant === "add-to-home-screen" ? (
+        <p className="flex-1 text-[13px] leading-snug text-[var(--color-fg-muted)]">
+          Install The Desk: tap the{" "}
+          <span className="text-amber-300 font-medium">Share</span> button below, then{" "}
+          <span className="text-amber-300 font-medium">Add to Home Screen</span>.
+        </p>
+      ) : (
+        <p className="flex-1 text-[13px] leading-snug text-[var(--color-fg-muted)]">
+          To install The Desk, open this page in{" "}
+          <span className="text-amber-300 font-medium">Safari</span>, then tap{" "}
+          <span className="text-amber-300 font-medium">Share → Add to Home Screen</span>.
+        </p>
+      )}
       <button
         type="button"
         onClick={dismiss}
