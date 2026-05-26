@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { useDocumentTitle } from "@/lib/useDocumentTitle";
-import { CheckCircle, Monitor, Share2, Smartphone, Tablet } from "lucide-react";
+import { clearDeferredPrompt, getDeferredPrompt } from "@/lib/installPrompt";
+import { CheckCircle, Download, Monitor, Share2, Smartphone, Tablet } from "lucide-react";
 
 type Platform = "ios" | "android" | "desktop";
 
@@ -13,30 +15,32 @@ function detectPlatform(): Platform {
 
 function isStandalone(): boolean {
   if (typeof window === "undefined") return false;
-  return !!(window.navigator as Navigator & { standalone?: boolean }).standalone ||
-    window.matchMedia("(display-mode: standalone)").matches;
+  return (
+    !!(window.navigator as Navigator & { standalone?: boolean }).standalone ||
+    window.matchMedia("(display-mode: standalone)").matches
+  );
+}
+
+function canShare(): boolean {
+  return typeof navigator !== "undefined" && typeof navigator.share === "function";
 }
 
 type Step = { icon: string; text: React.ReactNode };
 
 const IOS_STEPS: Step[] = [
-  { icon: "1", text: <>Open this page in <strong>Safari</strong> (not Chrome or Firefox)</> },
-  { icon: "2", text: <>Tap the <strong>Share</strong> button — the box with an arrow pointing up, in the toolbar at the bottom of the screen</> },
-  { icon: "3", text: <>Scroll down and tap <strong>Add to Home Screen</strong></> },
-  { icon: "4", text: <>Tap <strong>Add</strong> in the top-right corner</> },
+  { icon: "1", text: <>Make sure you're in <strong>Safari</strong> (not Chrome or Firefox)</> },
+  { icon: "2", text: <>Tap <strong>Add to Home Screen</strong> using the button below, or tap the Share icon (⬆) in Safari's toolbar</> },
+  { icon: "3", text: <>Tap <strong>Add</strong> in the top-right corner</> },
 ];
 
 const ANDROID_STEPS: Step[] = [
-  { icon: "1", text: <>Open this page in <strong>Chrome</strong></> },
-  { icon: "2", text: <>Tap the <strong>three-dot menu</strong> in the top-right corner</> },
-  { icon: "3", text: <>Tap <strong>Add to Home Screen</strong> or <strong>Install App</strong></> },
-  { icon: "4", text: <>Tap <strong>Install</strong> when prompted</> },
+  { icon: "1", text: <>Tap <strong>Install App</strong> using the button below</> },
+  { icon: "2", text: <>Or open in <strong>Chrome</strong>, tap the three-dot menu, then <strong>Add to Home Screen</strong></> },
 ];
 
 const DESKTOP_STEPS: Step[] = [
-  { icon: "1", text: <>Open this page in <strong>Chrome</strong> or <strong>Edge</strong></> },
-  { icon: "2", text: <>Look for the <strong>install icon</strong> (a computer with a down-arrow) in the address bar on the right</> },
-  { icon: "3", text: <>Click it and choose <strong>Install</strong></> },
+  { icon: "1", text: <>Click <strong>Install App</strong> using the button below</> },
+  { icon: "2", text: <>Or look for the <strong>install icon</strong> in the address bar on the right (Chrome / Edge)</> },
 ];
 
 function StepList({ steps }: { steps: Step[] }) {
@@ -59,23 +63,79 @@ function StepList({ steps }: { steps: Step[] }) {
   );
 }
 
+function InstallButton({ platform }: { platform: Platform }) {
+  const [done, setDone] = useState(false);
+
+  if (done) {
+    return (
+      <div className="flex items-center gap-2 text-[13px] text-amber-300 font-mono">
+        <CheckCircle className="h-4 w-4" /> Done — check your home screen
+      </div>
+    );
+  }
+
+  // iOS Safari: open the native share sheet (closest we can get to a one-tap install)
+  if (platform === "ios" && canShare()) {
+    return (
+      <button
+        onClick={() =>
+          navigator.share({ title: "The Desk", url: window.location.origin }).catch(() => {})
+        }
+        className="inline-flex items-center gap-2 px-5 py-3 rounded-sm font-mono text-[11px] uppercase tracking-[0.18em] font-semibold transition-all active:scale-[0.97]"
+        style={{
+          background: "var(--grad-cta-amber, oklch(0.75 0.18 70))",
+          color: "oklch(0.13 0.018 260)",
+          boxShadow: "0 4px 14px oklch(0.75 0.18 70 / 30%)",
+        }}
+      >
+        <Share2 className="h-4 w-4" />
+        Add to Home Screen
+      </button>
+    );
+  }
+
+  // Android / Desktop: use the deferred beforeinstallprompt if available
+  const deferred = getDeferredPrompt();
+  if (deferred) {
+    return (
+      <button
+        onClick={async () => {
+          await deferred.prompt();
+          const { outcome } = await deferred.userChoice;
+          if (outcome === "accepted") {
+            clearDeferredPrompt();
+            setDone(true);
+          }
+        }}
+        className="inline-flex items-center gap-2 px-5 py-3 rounded-sm font-mono text-[11px] uppercase tracking-[0.18em] font-semibold transition-all active:scale-[0.97]"
+        style={{
+          background: "var(--grad-cta-amber, oklch(0.75 0.18 70))",
+          color: "oklch(0.13 0.018 260)",
+          boxShadow: "0 4px 14px oklch(0.75 0.18 70 / 30%)",
+        }}
+      >
+        <Download className="h-4 w-4" />
+        Install App
+      </button>
+    );
+  }
+
+  return null;
+}
+
 type CardProps = {
   title: string;
   icon: React.ReactNode;
   steps: Step[];
   active: boolean;
-  label: string;
+  platform: Platform;
 };
 
-function PlatformCard({ title, icon, steps, active, label }: CardProps) {
+function PlatformCard({ title, icon, steps, active, platform }: CardProps) {
   return (
     <div
       className="panel rounded-sm p-6"
-      style={
-        active
-          ? { boxShadow: "inset 0 0 0 1px oklch(0.75 0.18 70 / 40%)" }
-          : undefined
-      }
+      style={active ? { boxShadow: "inset 0 0 0 1px oklch(0.75 0.18 70 / 40%)" } : undefined}
     >
       <div className="flex items-center gap-3 mb-1">
         <span className={active ? "text-amber-400" : "text-[var(--color-fg-muted)]"}>
@@ -87,11 +147,16 @@ function PlatformCard({ title, icon, steps, active, label }: CardProps) {
             className="ml-auto font-mono text-[9px] uppercase tracking-[0.18em] px-2 py-0.5 rounded-full text-amber-300"
             style={{ background: "oklch(0.75 0.18 70 / 12%)", border: "1px solid oklch(0.75 0.18 70 / 28%)" }}
           >
-            {label}
+            Your device
           </span>
         )}
       </div>
       <StepList steps={steps} />
+      {active && (
+        <div className="mt-5">
+          <InstallButton platform={platform} />
+        </div>
+      )}
     </div>
   );
 }
@@ -119,50 +184,40 @@ export default function InstallApp() {
         <p className="overline-amber mb-3" style={{ letterSpacing: "0.22em", fontSize: "10px" }}>
           Get the App
         </p>
-        <h1 className="font-serif font-bold tracking-tight text-[var(--color-fg)]"
-          style={{ fontSize: "clamp(28px, 4vw, 42px)", lineHeight: 1.05 }}>
+        <h1
+          className="font-serif font-bold tracking-tight text-[var(--color-fg)]"
+          style={{ fontSize: "clamp(28px, 4vw, 42px)", lineHeight: 1.05 }}
+        >
           Install The Desk on your device.
         </h1>
         <p className="mt-3 text-[var(--color-fg-muted)] text-[15px] leading-relaxed max-w-prose">
-          The Desk is a Progressive Web App — no App Store required. Install it
-          directly from your browser and it'll live on your home screen like any
-          native app.
+          No App Store required. Install directly from your browser and it'll live
+          on your home screen like any native app.
         </p>
       </div>
 
       <div className="space-y-4">
         <PlatformCard
-          title="iPhone &amp; iPad"
+          title="iPhone & iPad"
           icon={<Smartphone className="h-5 w-5" />}
           steps={IOS_STEPS}
           active={platform === "ios"}
-          label="Your device"
+          platform="ios"
         />
         <PlatformCard
           title="Android"
           icon={<Tablet className="h-5 w-5" />}
           steps={ANDROID_STEPS}
           active={platform === "android"}
-          label="Your device"
+          platform="android"
         />
         <PlatformCard
           title="Desktop"
           icon={<Monitor className="h-5 w-5" />}
           steps={DESKTOP_STEPS}
           active={platform === "desktop"}
-          label="Your device"
+          platform="desktop"
         />
-      </div>
-
-      <div
-        className="flex items-start gap-3 rounded-sm px-4 py-3"
-        style={{ background: "oklch(0.75 0.18 70 / 8%)", border: "1px solid oklch(0.75 0.18 70 / 20%)" }}
-      >
-        <Share2 className="h-4 w-4 mt-0.5 shrink-0 text-amber-400" />
-        <p className="text-[13px] leading-snug text-[var(--color-fg-muted)]">
-          <span className="text-amber-300 font-medium">Your current device is highlighted above.</span>{" "}
-          Follow those steps and The Desk will appear on your home screen within seconds.
-        </p>
       </div>
     </div>
   );

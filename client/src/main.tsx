@@ -7,7 +7,10 @@ import App from "./App";
 import { getLoginUrl } from "./lib/auth";
 import { initErrorReporter } from "./lib/errorReporter";
 import { trpc } from "./lib/trpc";
+import { initInstallPrompt } from "./lib/installPrompt";
 import "./index.css";
+
+initInstallPrompt();
 
 // Browser error reporter. Sends window.error + unhandledrejection
 // to /api/errors/client, which writes into the same server_errors
