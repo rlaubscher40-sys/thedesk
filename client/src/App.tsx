@@ -35,6 +35,7 @@ const EditorialStandards = lazy(() => import("./pages/EditorialStandards"));
 const Corrections = lazy(() => import("./pages/Corrections"));
 const ConfirmSubscription = lazy(() => import("./pages/ConfirmSubscription"));
 const Settings = lazy(() => import("./pages/Settings"));
+const InstallApp = lazy(() => import("./pages/InstallApp"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 function KeyboardShortcuts() {
@@ -124,6 +125,7 @@ function Routes() {
                 their CTA against the shorter path) still resolve. */}
             <Route path="/confirm" component={ConfirmSubscription} />
             <Route path="/settings" component={Settings} />
+            <Route path="/install" component={InstallApp} />
             <Route component={NotFound} />
           </Switch>
         </Suspense>
