@@ -130,7 +130,13 @@ async function handleEditionMeta(
     html = html.replace("</head>", `    ${additions}\n  </head>`);
 
     res.set("Content-Type", "text/html; charset=utf-8");
-    res.set("Cache-Control", "public, max-age=300");
+    // Never let an intermediary serve this shell without revalidating: it
+    // hard-codes the current content-hashed chunk filenames, so a stale
+    // copy (the old max-age=300 allowed up to 5 min of it) makes the
+    // browser request chunks a fresh deploy has already deleted —
+    // "Failed to fetch dynamically imported module". `no-cache` still
+    // permits efficient 304s, it just forces a revalidation first.
+    res.set("Cache-Control", "no-cache");
     res.send(html);
   } catch (err) {
     console.warn(
