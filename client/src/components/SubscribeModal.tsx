@@ -21,7 +21,7 @@
  * Either dismissing or completing the form marks the modal dismissed
  * permanently.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, ExternalLink, Rss, X } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
@@ -47,6 +47,8 @@ export function SubscribeModal() {
   const [email, setEmail] = useState("");
   const [hp, setHp] = useState("");
   const [done, setDone] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (location !== "/") return;
@@ -72,6 +74,65 @@ export function SubscribeModal() {
       window.removeEventListener("scroll", onScroll);
     };
   }, [location]);
+
+  // The modal is hand-rolled (not Radix), so its keyboard affordances are
+  // wired explicitly: send initial focus inside, trap Tab within the
+  // dialog, and close on Escape. Re-binds when `done` flips so Escape
+  // dismisses with the right reason and focus lands on the new view.
+  useEffect(() => {
+    if (!open) return;
+    // Capture the element to return focus to, once per open.
+    if (!restoreFocusRef.current) {
+      restoreFocusRef.current = document.activeElement as HTMLElement | null;
+    }
+    const focusables = () =>
+      Array.from(
+        dialogRef.current?.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        ) ?? []
+      );
+    // Prefer the email field so a keyboard user can type straight away;
+    // fall back to the first focusable (e.g. the "Got it" button on the
+    // post-subscribe view, which has no input).
+    const t = window.setTimeout(() => {
+      const target =
+        dialogRef.current?.querySelector<HTMLElement>('input[type="email"]') ??
+        focusables()[0];
+      target?.focus();
+    }, 0);
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        dismiss(done ? "subscribed" : "later");
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const items = focusables();
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (!first || !last) return;
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.clearTimeout(t);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open, done]);
+
+  // Restore focus to the trigger element when the modal fully closes.
+  useEffect(() => {
+    if (open) return;
+    restoreFocusRef.current?.focus?.();
+    restoreFocusRef.current = null;
+  }, [open]);
 
   function dismiss(reason: "later" | "subscribed") {
     window.localStorage.setItem(STORAGE_KEY, "1");
@@ -114,9 +175,11 @@ export function SubscribeModal() {
         aria-hidden="true"
       />
       <div
+        ref={dialogRef}
         className="relative w-full max-w-lg panel rounded-sm shadow-2xl overflow-hidden animate-fade-in"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
+        aria-modal="true"
         aria-labelledby="subscribe-modal-title"
       >
         <div

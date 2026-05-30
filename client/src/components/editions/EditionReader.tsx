@@ -61,9 +61,38 @@ export function EditionReader({
         <ListenButton text={audioScript} />
       </div>
 
+      {/* Table of contents. Editions run long (3000+ words), so give
+          readers a jump-nav into each topic. Only worth showing once
+          there are a few topics; anchors resolve to the scroll-mt'd
+          wrappers below. */}
+      {topics.length >= 3 && (
+        <nav aria-label="In this edition" className="panel rounded-sm px-5 py-4 mb-10">
+          <p className="overline mb-3">In this edition</p>
+          <ol className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
+            {topics.map((t, i) => (
+              <li key={`toc-${i}`}>
+                <a
+                  href={`#topic-${i}`}
+                  className="group flex items-baseline gap-3 text-sm text-[var(--color-fg-muted)] hover:text-amber-200 transition-colors"
+                >
+                  <span className="font-mono text-xs text-[var(--color-fg-subtle)] tabular-nums shrink-0">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <span className="leading-snug group-hover:underline underline-offset-2">
+                    {t.title || t.category}
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ol>
+        </nav>
+      )}
+
       {lead && (
         <SectionErrorBoundary section="Lead story">
-          <LeadStory topic={lead} editionId={edition.id} topicIndex={0} />
+          <div id="topic-0" className="scroll-mt-24">
+            <LeadStory topic={lead} editionId={edition.id} topicIndex={0} />
+          </div>
         </SectionErrorBoundary>
       )}
 
@@ -96,12 +125,18 @@ export function EditionReader({
             {rest.map((topic, idx) => (
               // The composed key keeps duplicate titles unique (issue #1).
               // topicIndex is +1 because the lead is at array position 0.
-              <TopicCard
+              // The wrapper carries the TOC anchor + scroll offset.
+              <div
                 key={`${topic.title || "topic"}-${idx}`}
-                topic={topic}
-                editionId={edition.id}
-                topicIndex={idx + 1}
-              />
+                id={`topic-${idx + 1}`}
+                className="scroll-mt-24"
+              >
+                <TopicCard
+                  topic={topic}
+                  editionId={edition.id}
+                  topicIndex={idx + 1}
+                />
+              </div>
             ))}
           </StaggerList>
         </SectionErrorBoundary>

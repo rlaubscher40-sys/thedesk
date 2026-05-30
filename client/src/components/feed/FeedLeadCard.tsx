@@ -120,7 +120,10 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
         // card is centred under the page header; image fills the card
         // width, editorial flows below without needing its own
         // internal max-width.
-        "panel hover-lift reveal-on-hover rounded overflow-hidden mx-auto w-full max-w-[960px]",
+        // Lead carries more visual weight than the grid cards below: a
+        // thicker category accent (3px vs the grid's 2px) and a resting
+        // drop shadow lift it off the page as "today's front page".
+        "panel hover-lift reveal-on-hover rounded overflow-hidden mx-auto w-full max-w-[960px] border-l-[3px] shadow-[0_14px_44px_-20px_oklch(0_0_0/65%)]",
         categoryAccentClass(item.category)
       )}
     >
@@ -149,7 +152,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
         {item.imageUrl ? (
           <img
             src={item.imageUrl}
-            alt={item.category}
+            alt={item.title}
             // object-top so any rare max-height clamp on a tall portrait
             // preserves the top of the image (faces) rather than centring
             // the crop through somebody's chin.
@@ -164,7 +167,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
           // flicker between renders.
           <img
             src={fallbackUrl}
-            alt={item.category}
+            alt={item.title}
             className="editorial-art-img absolute inset-0 w-full h-full object-cover object-center"
             loading="lazy"
             decoding="async"

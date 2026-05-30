@@ -10,6 +10,19 @@
   --font-serif: "Playfair Display", ui-serif, Georgia, serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
+  /* ─── Motion & shape tokens ──────────────────────────────────
+     Single source of truth for easing and corner radius so the
+     brand's snap/spring feel and rounding stay consistent. The
+     emphasized curve is the canonical brand ease (also mirrored as
+     a tuple in StaggerList.tsx, which Framer needs literally). */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-pulse: cubic-bezier(0.215, 0.61, 0.355, 1);
+
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+
   --color-bg: oklch(0.11 0.018 260);
   --color-bg-elevated: oklch(0.16 0.018 260);
   --color-bg-deep: oklch(0.08 0.018 260);
@@ -558,7 +571,7 @@
     inset: 0;
     border-radius: 9999px;
     background: var(--color-amber);
-    animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+    animation: pulse-ring 2s var(--ease-pulse) infinite;
     opacity: 0.6;
   }
   .live-dot::after {
@@ -577,16 +590,16 @@
   */
   .first-paint-mark {
     opacity: 0;
-    animation: first-paint-fade 800ms cubic-bezier(0.16, 1, 0.3, 1) 100ms forwards;
+    animation: first-paint-fade 800ms var(--ease-emphasized) 100ms forwards;
   }
   .first-paint-rule {
     transform: scaleX(0);
     transform-origin: left center;
-    animation: first-paint-sweep 900ms cubic-bezier(0.16, 1, 0.3, 1) 250ms forwards;
+    animation: first-paint-sweep 900ms var(--ease-emphasized) 250ms forwards;
   }
   .first-paint-content {
     opacity: 0;
-    animation: first-paint-fade 700ms cubic-bezier(0.16, 1, 0.3, 1) 500ms forwards;
+    animation: first-paint-fade 700ms var(--ease-emphasized) 500ms forwards;
   }
 
   /* ─── Card hover lift ───────────────────────────────────
@@ -602,7 +615,7 @@
      because Tailwind utilities have higher specificity than the
      element selector. */
   button:not([disabled]) {
-    transition: transform 50ms cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 50ms var(--ease-emphasized);
   }
   button:not([disabled]):active {
     transform: scale(0.98);
@@ -610,7 +623,7 @@
 
   .hover-lift {
     transition:
-      transform 260ms cubic-bezier(0.16, 1, 0.3, 1),
+      transform 260ms var(--ease-emphasized),
       box-shadow 260ms ease,
       border-color 220ms ease;
     will-change: transform;
@@ -632,7 +645,7 @@
   */
   .reveal-target {
     opacity: 0;
-    transition: opacity 220ms cubic-bezier(0.16, 1, 0.3, 1);
+    transition: opacity 220ms var(--ease-emphasized);
   }
   .reveal-on-hover:hover .reveal-target,
   .reveal-on-hover:focus-within .reveal-target {
@@ -653,7 +666,7 @@
   }
   .reveal-mask > * {
     display: inline-block;
-    animation: reveal-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: reveal-up 0.8s var(--ease-emphasized) both;
   }
 
   /* ─── Hero cover motion ────────────────────────────────────
@@ -728,7 +741,7 @@
   100% { transform: scale(1); }
 }
 .bookmark-pop {
-  animation: bookmark-pop 360ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: bookmark-pop 360ms var(--ease-emphasized);
 }
 
 @keyframes pulse-ring {
