@@ -163,10 +163,20 @@ function confirmEmailHtml({ confirmUrl }: { confirmUrl: string }): string {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="supported-color-schemes" content="dark" />
     <title>Confirm your subscription</title>
+    <style>
+      :root { color-scheme: dark; }
+      body, .email-body { background-color: ${NAVY} !important; color: ${FG} !important; }
+      .email-wrap { background-color: ${NAVY} !important; }
+      /* Gmail dark-mode override: Gmail wraps email body in <u> */
+      u + .email-body { background-color: ${NAVY} !important; }
+      u + .email-body .email-wrap { background-color: ${NAVY} !important; }
+    </style>
   </head>
-  <body style="margin:0;padding:0;background:${NAVY};font-family:Georgia,'Times New Roman',serif;color:${FG};">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${NAVY};">
+  <body class="email-body" style="margin:0;padding:0;background:${NAVY};font-family:Georgia,'Times New Roman',serif;color:${FG};">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="email-wrap" style="background:${NAVY};">
       <tr>
         <td align="center" style="padding:48px 16px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:${NAVY};">
@@ -282,10 +292,20 @@ function editionNotificationHtml({
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="supported-color-schemes" content="dark" />
     <title>Edition #${editionNumber} — ${weekRange}</title>
+    <style>
+      :root { color-scheme: dark; }
+      body, .email-body { background-color: ${NAVY} !important; color: ${FG} !important; }
+      .email-wrap { background-color: ${NAVY} !important; }
+      /* Gmail dark-mode override: Gmail wraps email body in <u> */
+      u + .email-body { background-color: ${NAVY} !important; }
+      u + .email-body .email-wrap { background-color: ${NAVY} !important; }
+    </style>
   </head>
-  <body style="margin:0;padding:0;background:${NAVY};font-family:Georgia,'Times New Roman',serif;color:${FG};">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${NAVY};">
+  <body class="email-body" style="margin:0;padding:0;background:${NAVY};font-family:Georgia,'Times New Roman',serif;color:${FG};">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="email-wrap" style="background:${NAVY};">
       <tr>
         <td align="center" style="padding:48px 16px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:${NAVY};">
