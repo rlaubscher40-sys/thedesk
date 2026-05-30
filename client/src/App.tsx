@@ -3,7 +3,7 @@
  * bundle stays under what one screen needs.
  */
 import { AnimatePresence, motion } from "framer-motion";
-import { Suspense, lazy, useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { Route, Switch, useLocation, useSearch } from "wouter";
 import { AppLayout } from "./components/AppLayout";
 import { BreakingSignalToast } from "./components/BreakingSignalToast";
@@ -14,29 +14,33 @@ import { SubscribeModal } from "./components/SubscribeModal";
 import { Skeleton } from "./components/ui/Skeleton";
 import { Toaster } from "./components/ui/Toaster";
 import { trackPageView } from "./lib/analytics";
+import { lazyWithReload } from "./lib/chunkReload";
 import { PersonaProvider } from "./lib/persona";
 import { ThemeProvider } from "./lib/theme";
 import { UserPrefsProvider } from "./lib/userPrefs";
 
-// Lazy-load every page. The bundle for / loads only DailyFeed; the rest come on demand.
-const DailyFeed = lazy(() => import("./pages/DailyFeed"));
-const Editions = lazy(() => import("./pages/Editions"));
-const ReadingQueue = lazy(() => import("./pages/ReadingQueue"));
-const TopicThreads = lazy(() => import("./pages/TopicThreads"));
-const Trends = lazy(() => import("./pages/Trends"));
-const About = lazy(() => import("./pages/About"));
-const StoryPage = lazy(() => import("./pages/StoryPage"));
-const AdminPage = lazy(() => import("./pages/Admin"));
-const Archive = lazy(() => import("./pages/Archive"));
-const Login = lazy(() => import("./pages/Login"));
-const Privacy = lazy(() => import("./pages/Privacy"));
-const Terms = lazy(() => import("./pages/Terms"));
-const EditorialStandards = lazy(() => import("./pages/EditorialStandards"));
-const Corrections = lazy(() => import("./pages/Corrections"));
-const ConfirmSubscription = lazy(() => import("./pages/ConfirmSubscription"));
-const Settings = lazy(() => import("./pages/Settings"));
-const InstallApp = lazy(() => import("./pages/InstallApp"));
-const NotFound = lazy(() => import("./pages/NotFound"));
+// Lazy-load every page. The bundle for / loads only DailyFeed; the rest
+// come on demand. `lazyWithReload` recovers from stale-deploy chunk
+// failures (see lib/chunkReload) so a redeploy can't strand a user on a
+// page whose chunk hash has since changed.
+const DailyFeed = lazyWithReload(() => import("./pages/DailyFeed"), "DailyFeed");
+const Editions = lazyWithReload(() => import("./pages/Editions"), "Editions");
+const ReadingQueue = lazyWithReload(() => import("./pages/ReadingQueue"), "ReadingQueue");
+const TopicThreads = lazyWithReload(() => import("./pages/TopicThreads"), "TopicThreads");
+const Trends = lazyWithReload(() => import("./pages/Trends"), "Trends");
+const About = lazyWithReload(() => import("./pages/About"), "About");
+const StoryPage = lazyWithReload(() => import("./pages/StoryPage"), "StoryPage");
+const AdminPage = lazyWithReload(() => import("./pages/Admin"), "Admin");
+const Archive = lazyWithReload(() => import("./pages/Archive"), "Archive");
+const Login = lazyWithReload(() => import("./pages/Login"), "Login");
+const Privacy = lazyWithReload(() => import("./pages/Privacy"), "Privacy");
+const Terms = lazyWithReload(() => import("./pages/Terms"), "Terms");
+const EditorialStandards = lazyWithReload(() => import("./pages/EditorialStandards"), "EditorialStandards");
+const Corrections = lazyWithReload(() => import("./pages/Corrections"), "Corrections");
+const ConfirmSubscription = lazyWithReload(() => import("./pages/ConfirmSubscription"), "ConfirmSubscription");
+const Settings = lazyWithReload(() => import("./pages/Settings"), "Settings");
+const InstallApp = lazyWithReload(() => import("./pages/InstallApp"), "InstallApp");
+const NotFound = lazyWithReload(() => import("./pages/NotFound"), "NotFound");
 
 function KeyboardShortcuts() {
   const [, navigate] = useLocation();
