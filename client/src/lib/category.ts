@@ -15,9 +15,13 @@ const ACCENT_CLASS: Record<string, string> = {
 };
 
 /**
- * Raw oklch values mirroring the CSS variables in index.css. Charts (Recharts)
- * paint with real SVG `fill`/`stroke` values, not CSS vars, so these are kept
- * as resolved colours rather than `var(...)` references.
+ * Raw oklch values mirroring the dark-theme CSS variables in index.css.
+ * Charts (Recharts) paint with real SVG `fill`/`stroke` values, not CSS vars,
+ * so these are kept as resolved colours rather than `var(...)` references —
+ * which is also why this map must be kept in sync with the --color-* tokens
+ * by hand. (Known limitation: because these are the dark values, category
+ * text rendered via this helper isn't theme-aware; the theme-aware AA-tuned
+ * values live on the --color-* tokens used by the .accent-* borders.)
  */
 const CATEGORY_COLOUR: Record<string, string> = {
   PROPERTY: "oklch(0.72 0.17 155)",
@@ -27,7 +31,9 @@ const CATEGORY_COLOUR: Record<string, string> = {
   MARKETS: "oklch(0.72 0.18 45)",
   AI: "oklch(0.7 0.18 210)",
   SCIENCE: "oklch(0.68 0.2 15)",
-  ECONOMICS: "oklch(0.75 0.16 78)",
+  // Chartreuse-gold — moved out of the amber zone to separate from MACRO
+  // (matches --color-economics in index.css). See contrast/ΔE audit.
+  ECONOMICS: "oklch(0.74 0.155 110)",
   GEOPOLITICS: "oklch(0.7 0.15 180)",
   OTHER: "oklch(0.62 0.012 260)",
 };

@@ -68,7 +68,10 @@
   --color-markets: oklch(0.72 0.18 45);
   --color-ai: oklch(0.7 0.18 210);
   --color-science: oklch(0.68 0.2 15);
-  --color-economics: oklch(0.75 0.16 78);
+  /* Chartreuse-gold (hue 110), deliberately moved out of the amber zone
+     so ECONOMICS no longer collides with MACRO (was hue 78; ΔE vs macro
+     0.043 → 0.124). Reads as "money-green", clear of PROPERTY's hue 155. */
+  --color-economics: oklch(0.74 0.155 110);
   /* Distinct teal hue so GEOPOLITICS reads as its own beat rather than
      aliasing onto POLICY's purple. */
   --color-geopolitics: oklch(0.7 0.15 180);
@@ -188,7 +191,8 @@
   --color-markets: oklch(0.55 0.18 38);
   --color-ai: oklch(0.49 0.18 210);
   --color-science: oklch(0.55 0.20 15);
-  --color-economics: oklch(0.54 0.16 72);
+  /* Chartreuse-gold, light-theme pair (gamut-fit chroma at this depth). */
+  --color-economics: oklch(0.53 0.111 110);
   --color-geopolitics: oklch(0.50 0.15 180);
 
   /* Panel-soft gradient flips to a near-paper card with a hairline
