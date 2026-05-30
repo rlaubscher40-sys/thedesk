@@ -130,6 +130,14 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--color-bg)] text-[var(--color-fg)] relative">
+      {/* First focusable element in the tree: lets keyboard / screen-reader
+          users jump straight past the sidebar and chrome to the content. */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:px-4 focus:py-2 focus:rounded focus:bg-[var(--color-amber)] focus:text-[var(--color-on-amber)] focus:text-sm focus:font-medium focus:shadow-lg"
+      >
+        Skip to content
+      </a>
       {theme === "dark" && <AnimatedBackground />}
       <DemoModeBanner />
       <LiveTicker />
@@ -157,7 +165,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           isAuthenticated={isAuthenticated}
         />
 
-        <main className="flex-1 overflow-y-auto relative">
+        <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto relative focus:outline-none">
           <MobileHeader onOpen={() => setMobileOpen(true)} />
           <div className="editorial-rule shrink-0" aria-hidden="true" />
           {/* The container is wider than the previous max-w-5xl so the

@@ -33,6 +33,7 @@ import { FeedLeadCard } from "@/components/feed/FeedLeadCard";
 import { FeedItemCard } from "@/components/feed/FeedItemCard";
 import { FeedSignalStrip } from "@/components/feed/FeedSignalStrip";
 import { TodayInBrief } from "@/components/feed/TodayInBrief";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { editionMeta, stories } from "@/data/editions/2026-05-15";
 import { getSydneyIsoDate } from "@/lib/date";
 import { useAuth } from "@/lib/useAuth";
@@ -234,6 +235,10 @@ export default function DailyFeed() {
       </SectionErrorBoundary>
 
       {/* ── Live feed (DB-driven) ────────────────────────────────────── */}
+      {/* First load, query in flight: mirror the lead + grid layout with
+          shimmer placeholders so the page has shape instead of dropping
+          to blank space under the metrics strip until data arrives. */}
+      {feedQuery.isLoading && !isDemo && <FeedSkeleton />}
       {!hasLiveData && !isDemo && feedQuery.isSuccess && (
         // Real DB, zero items. Don't show seed placeholders, they were
         // misleading after a wipe. Tell the editor what to do next.
@@ -354,6 +359,36 @@ export default function DailyFeed() {
       </SectionErrorBoundary>
 
       <Footer />
+    </div>
+  );
+}
+
+/** Loading placeholder shaped like the live feed: one lead card over a
+ *  three-up grid. Keeps perceived layout stable while the query resolves. */
+function FeedSkeleton() {
+  return (
+    <div aria-busy="true">
+      <SectionDivider label="Today's lead" />
+      <div className="panel rounded overflow-hidden mx-auto w-full max-w-[960px] mb-12">
+        <Skeleton className="w-full aspect-[5/3] rounded-none" />
+        <div className="px-6 py-7 sm:px-10 sm:py-9 space-y-4">
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-8 w-3/4" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-5/6" />
+        </div>
+      </div>
+      <SectionDivider label="More from today" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="panel rounded p-5 space-y-3">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-6 w-4/5" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-2/3" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

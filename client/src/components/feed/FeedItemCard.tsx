@@ -5,6 +5,7 @@
  */
 import { useState } from "react";
 import {
+  ArrowRight,
   Bookmark,
   BookmarkCheck,
   ExternalLink,
@@ -225,6 +226,18 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
       <p className="text-base text-[var(--color-fg-muted)] leading-relaxed line-clamp-3">
         {item.summary}
       </p>
+
+      {/* The summary clamps to 3 lines, so signal that the full read
+          lives on the story page rather than leaving the truncation
+          ambiguous. Distinct from "Read original" below, which leaves
+          the site for the source. */}
+      <Link
+        href={`/story/${item.id}`}
+        className="mt-2 inline-flex items-center gap-1 text-xs text-[var(--color-fg-subtle)] hover:text-amber-200 transition-colors"
+      >
+        Read more
+        <ArrowRight className="h-3 w-3" />
+      </Link>
 
       {item.sourceUrl && (
         <a
