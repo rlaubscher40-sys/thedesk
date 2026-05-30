@@ -1,6 +1,12 @@
-const CACHE = "thedesk-shell-v1";
+// Bump this whenever the caching strategy changes so `activate` purges
+// older caches. v1 served the navigation shell cache-first and never
+// refreshed it, which pinned browsers to a stale index.html — that old
+// HTML kept requesting content-hashed chunks (e.g. Editions-*.js) that
+// later deploys had already removed, producing "Failed to fetch
+// dynamically imported module" on routes like /editions.
+const CACHE = "thedesk-shell-v2";
 
-// Static assets that form the app shell — cache on install, serve from cache
+// Static assets that form the app shell — cached on install for offline.
 const SHELL = [
   "/",
   "/manifest.json",
@@ -39,15 +45,29 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Navigation requests: serve cached shell, fall back to network
+  // Navigation requests: NETWORK-FIRST. The HTML shell links the current,
+  // content-hashed JS/CSS chunks, so it must always reflect the deployed
+  // build — serving a stale cached copy makes the browser ask for chunk
+  // filenames a later deploy has already deleted. Fetch fresh, refresh
+  // the cached fallback, and fall back to cache only when offline.
   if (request.mode === "navigate") {
     event.respondWith(
-      caches.match("/").then((cached) => cached ?? fetch(request))
+      fetch(request)
+        .then((response) => {
+          const clone = response.clone();
+          caches.open(CACHE).then((cache) => cache.put("/", clone));
+          return response;
+        })
+        .catch(() =>
+          caches.match("/").then((cached) => cached ?? caches.match(request))
+        )
     );
     return;
   }
 
-  // Static assets: cache-first
+  // Static assets: cache-first. Vite content-hashes these filenames, so
+  // they're immutable — a new build ships new names rather than mutating
+  // existing ones, meaning cache-first can never serve stale code here.
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;

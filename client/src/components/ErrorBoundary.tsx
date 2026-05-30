@@ -8,6 +8,7 @@
  */
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
+import { hardReload, isChunkLoadError } from "../lib/chunkReload";
 import { Button } from "./ui/Button";
 
 type Props = {
@@ -62,16 +63,33 @@ class BaseBoundary extends Component<Props, State> {
 export function ErrorBoundary({ children }: { children: ReactNode }) {
   return (
     <BaseBoundary
-      fallback={(err, reset) => (
-        <div className="min-h-screen flex items-center justify-center p-6 bg-[var(--color-bg)]">
-          <div className="max-w-md w-full panel p-6">
-            <p className="overline mb-3">The Desk · App error</p>
-            <h2 className="text-lg font-serif mb-2">Something broke at the top of the stack.</h2>
-            <p className="text-sm text-[var(--color-fg-muted)] mb-4 break-words">{err.message}</p>
-            <Button onClick={reset}>Reload</Button>
+      fallback={(err) => {
+        // A stale-deploy chunk failure can't be cleared by resetting
+        // React state — the module is gone from the server. Show
+        // tailored copy and make the button do a real cache-busting
+        // reload so the browser pulls the current build. (lazyWithReload
+        // already attempts one automatic reload; if we're here that
+        // first attempt was used up, so this button is the manual cure.)
+        const isChunk = isChunkLoadError(err);
+        return (
+          <div className="min-h-screen flex items-center justify-center p-6 bg-[var(--color-bg)]">
+            <div className="max-w-md w-full panel p-6">
+              <p className="overline mb-3">The Desk · App error</p>
+              <h2 className="text-lg font-serif mb-2">
+                {isChunk
+                  ? "A new version is available."
+                  : "Something broke at the top of the stack."}
+              </h2>
+              <p className="text-sm text-[var(--color-fg-muted)] mb-4 break-words">
+                {isChunk
+                  ? "This tab is running an older build. Reload to pick up the latest version of The Desk."
+                  : err.message}
+              </p>
+              <Button onClick={() => void hardReload()}>Reload</Button>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      }}
     >
       {children}
     </BaseBoundary>
