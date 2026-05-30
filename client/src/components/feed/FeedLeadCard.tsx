@@ -18,11 +18,11 @@ import {
 import { Link } from "wouter";
 import { toast } from "sonner";
 import type { DailyFeedItem } from "@shared/types";
-import { cn } from "@/lib/cn";
 import { categoryAccentClass, categoryColour } from "@/lib/category";
 import { SITE_DISPLAY } from "@/lib/siteUrl";
 import { useAuth } from "@/lib/useAuth";
 import { trpc } from "@/lib/trpc";
+import { Card } from "../ui/Card";
 import { LinkedInPostModal } from "../LinkedInPostModal";
 import { PartnerTagBlock } from "./PartnerTagBlock";
 import { RubensNoteBlock } from "./RubensNoteBlock";
@@ -113,19 +113,17 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
   ].join("\n").trim();
 
   return (
-    <article
-      className={cn(
-        // Single-column stack with a sane max-width on the card itself
-        // so the lead doesn't span a 1400px viewport edge-to-edge. The
-        // card is centred under the page header; image fills the card
-        // width, editorial flows below without needing its own
-        // internal max-width.
-        // Lead carries more visual weight than the grid cards below: a
-        // thicker category accent (3px vs the grid's 2px) and a resting
-        // drop shadow lift it off the page as "today's front page".
-        "panel hover-lift reveal-on-hover rounded overflow-hidden mx-auto w-full max-w-[960px] border-l-[3px] shadow-[0_14px_44px_-20px_oklch(0_0_0/65%)]",
-        categoryAccentClass(item.category)
-      )}
+    // Single-column stack with a sane max-width so the lead doesn't span a
+    // 1400px viewport edge-to-edge; the image fills the card width and the
+    // editorial column flows below. `lead` carries the front-page weight
+    // (thicker accent + resting shadow) that sets it above the grid cards.
+    <Card
+      lift
+      revealOnHover
+      lead
+      clip
+      className="mx-auto w-full max-w-[960px]"
+      accentClass={categoryAccentClass(item.category)}
     >
       {/* Hero plate, og:image when scraped, otherwise an editorial
           gradient keyed to the category. The category gradient ALWAYS
@@ -352,6 +350,6 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
           heading="Share this story on LinkedIn"
         />
       </div>
-    </article>
+    </Card>
   );
 }

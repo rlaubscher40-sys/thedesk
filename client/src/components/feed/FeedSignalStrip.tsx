@@ -15,10 +15,10 @@ import { Bookmark, BookmarkCheck, ExternalLink, Trash2 } from "lucide-react";
 import { Link } from "wouter";
 import { toast } from "sonner";
 import type { DailyFeedItem } from "@shared/types";
-import { cn } from "@/lib/cn";
 import { categoryAccentClass, categoryColour } from "@/lib/category";
 import { useAuth } from "@/lib/useAuth";
 import { trpc } from "@/lib/trpc";
+import { Card } from "../ui/Card";
 
 export function FeedSignalStrip({ item }: { item: DailyFeedItem }) {
   const { user, isAuthenticated } = useAuth();
@@ -60,11 +60,11 @@ export function FeedSignalStrip({ item }: { item: DailyFeedItem }) {
   }
 
   return (
-    <article
-      className={cn(
-        "panel hover-lift rounded-sm overflow-hidden",
-        categoryAccentClass(item.category)
-      )}
+    <Card
+      lift
+      clip
+      radius="sm"
+      accentClass={categoryAccentClass(item.category)}
     >
       <div className="p-4 sm:p-5 min-w-0 flex flex-col justify-center">
         <div className="flex items-center justify-between gap-3 mb-1.5">
@@ -138,6 +138,6 @@ export function FeedSignalStrip({ item }: { item: DailyFeedItem }) {
           </a>
         )}
       </div>
-    </article>
+    </Card>
   );
 }
