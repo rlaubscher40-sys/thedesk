@@ -39,6 +39,18 @@
      same in dark and light mode. */
   --color-on-amber: oklch(0.10 0.018 260);
 
+  /* Brand accent. Semantically separate from the MACRO *category* (which
+     currently happens to share the amber hue): reach for --color-accent
+     on brand moments — links, rules, focus — and --color-macro only for
+     the category chip, so the two can diverge later without a sweep.
+     --color-accent-text is tuned to clear WCAG AA for small text/links on
+     both the page and panel surfaces in each theme (see the contrast
+     audit); the brighter --color-accent stays for fills/CTAs where text
+     contrast isn't the constraint. */
+  --color-accent: oklch(0.75 0.18 70);
+  --color-accent-bright: oklch(0.88 0.19 82);
+  --color-accent-text: oklch(0.85 0.16 75 / 80%);
+
   /* Secondary accent — oxidised copper / rust. Sits opposite the
      amber on the colour wheel, used sparingly for callouts,
      directional deltas, and one-off accent moments. */
@@ -153,6 +165,13 @@
   --color-amber-dim: oklch(0.65 0.18 60 / 14%);
   --color-amber-glow: oklch(0.65 0.18 60 / 22%);
   --color-on-amber: oklch(0.10 0.018 260);
+
+  --color-accent: oklch(0.65 0.18 60);
+  --color-accent-bright: oklch(0.72 0.20 64);
+  /* Darkened so amber-as-small-text clears AA on the warm paper canvas:
+     the old 0.85L overline-amber sat at ~2:1 here. 0.54L ≈ 4.8:1 on bg,
+     ≈ 5.3:1 on panels. */
+  --color-accent-text: oklch(0.54 0.16 55);
 
   --color-ink: oklch(0.55 0.18 25);
   --color-ink-bright: oklch(0.62 0.20 28);
@@ -459,7 +478,9 @@
     font-weight: 600;
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: oklch(0.85 0.16 75 / 80%);
+    /* Theme-aware: dark keeps the soft amber glow; light pulls deeper so
+       this small uppercase text clears WCAG AA on the paper canvas. */
+    color: var(--color-accent-text);
   }
 
   /* ─── Editorial type scale ────────────────────────────────── */
@@ -483,6 +504,28 @@
     font-size: clamp(1.5rem, 3vw, 2.25rem);
     line-height: 1.1;
     letter-spacing: -0.025em;
+  }
+  /* Mid-tier headline — fills the jump between display-3 and body for
+     card titles and sub-section heads. */
+  .display-4 {
+    font-family: var(--font-serif);
+    font-weight: 700;
+    font-size: clamp(1.2rem, 2.2vw, 1.6rem);
+    line-height: 1.18;
+    letter-spacing: -0.02em;
+  }
+
+  /* ─── Text tiers ──────────────────────────────────────────────
+     Named body/caption sizes so prose and fine print stop reaching
+     for ad-hoc text-base / text-sm. */
+  .body-lg {
+    font-size: 1.0625rem;
+    line-height: 1.72;
+  }
+  .caption {
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: var(--color-fg-muted);
   }
 
   /* ─── Panel ───────────────────────────────────────────────── */

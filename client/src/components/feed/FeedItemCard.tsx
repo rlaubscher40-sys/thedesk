@@ -17,12 +17,12 @@ import {
 import { Link } from "wouter";
 import { toast } from "sonner";
 import type { DailyFeedItem } from "@shared/types";
-import { cn } from "@/lib/cn";
 import { categoryAccentClass } from "@/lib/category";
 import { SITE_DISPLAY } from "@/lib/siteUrl";
 import { useAuth } from "@/lib/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Button } from "../ui/Button";
+import { Card } from "../ui/Card";
 import { LinkedInPostModal } from "../LinkedInPostModal";
 import { PartnerTagBlock } from "./PartnerTagBlock";
 import { RubensNoteBlock } from "./RubensNoteBlock";
@@ -129,11 +129,12 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
   const linkedInDraft = buildLinkedInDraft(item);
 
   return (
-    <article
-      className={cn(
-        "panel panel-hover hover-lift reveal-on-hover p-6 sm:p-7 rounded",
-        categoryAccentClass(item.category)
-      )}
+    <Card
+      panelHover
+      lift
+      revealOnHover
+      padding="lg"
+      accentClass={categoryAccentClass(item.category)}
     >
       {/* Metadata bar, category in colour, source + actions on the right. */}
       <div className="flex items-start justify-between gap-3 mb-4">
@@ -268,7 +269,7 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
         initialText={linkedInDraft}
         heading="Share this story on LinkedIn"
       />
-    </article>
+    </Card>
   );
 }
 
