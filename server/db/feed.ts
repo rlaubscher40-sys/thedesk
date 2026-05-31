@@ -158,6 +158,13 @@ export async function updateFeedItemSayThis(id: number, sayThis: string) {
   await db.update(dailyFeedItems).set({ sayThis }).where(eq(dailyFeedItems.id, id));
 }
 
+export async function updateFeedItemWhyItMatters(id: number, whyItMatters: string) {
+  if (isDemoMode()) return demoQueries.updateFeedItemWhyItMatters(id, whyItMatters);
+  const db = getDb();
+  if (!db) return;
+  await db.update(dailyFeedItems).set({ whyItMatters }).where(eq(dailyFeedItems.id, id));
+}
+
 export async function updateFeedItemRubensNote(id: number, rubensNote: string | null) {
   if (isDemoMode()) return demoQueries.updateFeedItemRubensNote(id, rubensNote);
   const db = getDb();

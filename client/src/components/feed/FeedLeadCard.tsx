@@ -27,6 +27,7 @@ import { LinkedInPostModal } from "../LinkedInPostModal";
 import { PartnerTagBlock } from "./PartnerTagBlock";
 import { RubensNoteBlock } from "./RubensNoteBlock";
 import { SayThisLine } from "./SayThisLine";
+import { WhyItMattersLine } from "./WhyItMattersLine";
 
 export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
   const { user, isAuthenticated } = useAuth();
@@ -323,6 +324,14 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
             <p className="overline text-[var(--color-fg-subtle)]">
               {item.source} · {item.feedDate}
             </p>
+          </div>
+        )}
+
+        {/* "Why it matters" — analytical context, independent of the
+            partner-angle pairing. Gives the reader the stakes at a glance. */}
+        {item.whyItMatters && (
+          <div className="mt-6 pt-6 border-t border-[var(--color-border)]">
+            <WhyItMattersLine whyItMatters={item.whyItMatters} category={item.category} />
           </div>
         )}
 

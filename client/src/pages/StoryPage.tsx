@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { PartnerTagBlock } from "@/components/feed/PartnerTagBlock";
 import { SayThisLine } from "@/components/feed/SayThisLine";
+import { WhyItMattersLine } from "@/components/feed/WhyItMattersLine";
 import { categoryAccentClass } from "@/lib/category";
 import { cn } from "@/lib/cn";
 import { SITE_DISPLAY } from "@/lib/siteUrl";
@@ -78,6 +79,12 @@ export default function StoryPage() {
               </Button>
             </div>
 
+            {itemQuery.data.whyItMatters && (
+              <WhyItMattersLine
+                whyItMatters={itemQuery.data.whyItMatters}
+                category={itemQuery.data.category}
+              />
+            )}
             {itemQuery.data.sayThis && (
               <SayThisLine sayThis={itemQuery.data.sayThis} category={itemQuery.data.category} />
             )}

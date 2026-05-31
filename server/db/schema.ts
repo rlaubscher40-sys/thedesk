@@ -122,6 +122,11 @@ export const dailyFeedItems = mysqlTable("daily_feed_items", {
   partnerTag: text("partnerTag"),
   /** One-liner conversation starter. */
   sayThis: text("sayThis"),
+  /** One-sentence "so what" — the analytical implication or thing to watch
+   *  for. Distinct from `summary` (what happened) and `sayThis` (a client
+   *  script): this is the context a reader needs to grasp the stakes in a
+   *  single scan. Generated during enrichment, shown on every card type. */
+  whyItMatters: text("whyItMatters"),
   /** Editorial override, admin-authored note that appears on the story card
    *  as a highlighted Ruben quote. When set, takes visual precedence over
    *  the AI-generated sayThis. */

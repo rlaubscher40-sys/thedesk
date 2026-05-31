@@ -33,6 +33,7 @@ import {
   generatePartnerTag,
   generateRubensTake,
   generateSayThis,
+  generateWhyItMatters,
   optimiseHeadlines,
   runEditorQc,
   synthesizeWeeklyEdition,
@@ -109,6 +110,7 @@ function registerDailyFeedRoute(app: Express): void {
         imageUrl: item.imageUrl ?? null,
         partnerTag: sanitiseText(item.partnerTag ?? null),
         sayThis: sanitiseText(item.sayThis ?? null),
+        whyItMatters: sanitiseText(item.whyItMatters ?? null),
         promotedToEdition: false,
         // Editorial-impact baseline. The admin can override per-item via
         // feed.setPriority, manual control always wins.
@@ -134,6 +136,7 @@ function registerDailyFeedRoute(app: Express): void {
         try {
           let tagOk = 0;
           let sayOk = 0;
+          let whyOk = 0;
           let imgOk = 0;
           await Promise.all(
             // Zip each input item to the row it became by position — the IDs
@@ -143,8 +146,8 @@ function registerDailyFeedRoute(app: Express): void {
               const id = insertedIds[index];
               if (!id) return;
 
-              // All three enrichments fan out in parallel per item.
-              const [tag, say, img] = await Promise.allSettled([
+              // All enrichments fan out in parallel per item.
+              const [tag, say, why, img] = await Promise.allSettled([
                 item.partnerTag
                   ? Promise.resolve(item.partnerTag)
                   : generatePartnerTag({
@@ -155,6 +158,13 @@ function registerDailyFeedRoute(app: Express): void {
                 item.sayThis
                   ? Promise.resolve(item.sayThis)
                   : generateSayThis({
+                      title: item.title,
+                      summary: item.summary,
+                      category: item.category,
+                    }),
+                item.whyItMatters
+                  ? Promise.resolve(item.whyItMatters)
+                  : generateWhyItMatters({
                       title: item.title,
                       summary: item.summary,
                       category: item.category,
@@ -188,6 +198,14 @@ function registerDailyFeedRoute(app: Express): void {
                   `[scheduled] dropped half-equipped angles for "${item.title.slice(0, 60)}…" (tag=${tagValue ? "ok" : "skip"}, say=${sayValue ? "ok" : "skip"})`
                 );
               }
+              // "Why it matters" stands alone — it's context, not a partner
+              // angle, so it persists independent of the say/tag pairing.
+              const whyValue =
+                why.status === "fulfilled" && why.value ? why.value : null;
+              if (whyValue) {
+                await db.updateFeedItemWhyItMatters(id, whyValue);
+                whyOk++;
+              }
               if (
                 img.status === "fulfilled" &&
                 img.value &&
@@ -200,7 +218,7 @@ function registerDailyFeedRoute(app: Express): void {
             })
           );
           console.log(
-            `[scheduled] enriched ${feedDate}: ${tagOk} partnerTags, ${sayOk} sayThis, ${imgOk} images`
+            `[scheduled] enriched ${feedDate}: ${tagOk} partnerTags, ${sayOk} sayThis, ${whyOk} whyItMatters, ${imgOk} images`
           );
         } catch (err) {
           console.error("[scheduled] daily-feed enrichment error:", err);

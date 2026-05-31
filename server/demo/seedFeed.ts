@@ -42,16 +42,24 @@ export function feedSeed(): DailyFeedItem[] {
   const make = (
     item: Omit<
       DailyFeedItem,
-      "id" | "createdAt" | "promotedToEdition" | "imageUrl" | "rubensNote" | "priority"
+      | "id"
+      | "createdAt"
+      | "promotedToEdition"
+      | "imageUrl"
+      | "rubensNote"
+      | "whyItMatters"
+      | "priority"
     > & {
       imageUrl?: string | null;
       rubensNote?: string | null;
+      whyItMatters?: string | null;
       priority?: number;
     }
   ): DailyFeedItem => ({
     id: id++,
     promotedToEdition: false,
     rubensNote: item.rubensNote ?? null,
+    whyItMatters: item.whyItMatters ?? null,
     priority: item.priority ?? 50,
     createdAt: new Date(Date.now() - id * 1000 * 60 * 17),
     ...item,
@@ -68,6 +76,8 @@ export function feedSeed(): DailyFeedItem[] {
       summary:
         "The Reserve Bank held the cash rate, with the post-meeting statement removing the 'further tightening cannot be ruled out' line. Markets read a dovish shift, swaps repricing for a first cut in November.",
       category: "MACRO",
+      whyItMatters:
+        "Dropping the tightening-bias line is the clearest signal yet that the cash rate has peaked, watch swaps pricing and fixed-rate roll-offs over June for the first real demand response.",
       sayThis:
         "The decision was the easy part. Watch broker channel share through June, that's where the real action is.",
       partnerTag: partnerTag({

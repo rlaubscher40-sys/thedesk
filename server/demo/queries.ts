@@ -271,6 +271,7 @@ export function createFeedItems(items: InsertDailyFeedItem[]): number[] {
       imageUrl: item.imageUrl ?? null,
       partnerTag: item.partnerTag ?? null,
       sayThis: item.sayThis ?? null,
+      whyItMatters: item.whyItMatters ?? null,
       rubensNote: item.rubensNote ?? null,
       priority: item.priority ?? 50,
       promotedToEdition: false,
@@ -293,6 +294,11 @@ export function deleteFeedItem(id: number): void {
 export function updateFeedItemSayThis(id: number, sayThis: string): void {
   const item = demo.feed.find((i) => i.id === id);
   if (item) item.sayThis = sayThis;
+}
+
+export function updateFeedItemWhyItMatters(id: number, whyItMatters: string): void {
+  const item = demo.feed.find((i) => i.id === id);
+  if (item) item.whyItMatters = whyItMatters;
 }
 
 export function updateFeedItemRubensNote(id: number, rubensNote: string | null): void {
