@@ -85,6 +85,8 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
                 feedSource: item.source,
                 feedSourceUrl: item.sourceUrl,
                 feedDate: item.feedDate,
+                nudgeSentAt: null,
+                nudgeResponse: null,
               },
               ...old,
             ]

@@ -149,6 +149,38 @@ export async function markDailyBriefSent(ids: number[], date: string): Promise<v
     .where(inArray(subscribers.id, ids));
 }
 
+/** Confirmed subscribers who haven't received this week's recap yet.
+ *  `weekOf` is the Monday ISO date of the target week (YYYY-MM-DD). */
+export async function listSubscribersForWeeklyRecap(weekOf: string): Promise<Subscriber[]> {
+  if (isDemoMode()) return [];
+  const db = getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(subscribers)
+    .where(
+      and(
+        isNotNull(subscribers.confirmedAt),
+        isNull(subscribers.unsubscribedAt),
+        or(
+          isNull(subscribers.lastWeeklyRecapDate),
+          ne(subscribers.lastWeeklyRecapDate, weekOf)
+        )
+      )
+    );
+}
+
+/** Mark these subscriber IDs as having received the weekly recap for `weekOf`. */
+export async function markWeeklyRecapSent(ids: number[], weekOf: string): Promise<void> {
+  if (isDemoMode() || ids.length === 0) return;
+  const db = getDb();
+  if (!db) return;
+  await db
+    .update(subscribers)
+    .set({ lastWeeklyRecapDate: weekOf })
+    .where(inArray(subscribers.id, ids));
+}
+
 export async function countConfirmedSubscribers(): Promise<number> {
   if (isDemoMode()) return demoQueries.countConfirmedSubscribers();
   const db = getDb();
