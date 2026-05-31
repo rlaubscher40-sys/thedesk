@@ -64,7 +64,7 @@ export default function ConfirmSubscription() {
         </p>
 
         {state.kind === "missing" && <MissingToken />}
-        {state.kind === "ready" && <ReadyState onConfirm={handleConfirm} />}
+        {state.kind === "ready" && <ReadyState onConfirm={handleConfirm} loading={false} />}
         {state.kind === "pending" && <PendingState />}
         {state.kind === "ok" && <ConfirmedState email={state.email} />}
         {state.kind === "error" && <ErrorState message={state.message} />}
@@ -88,7 +88,7 @@ function MissingToken() {
   );
 }
 
-function ReadyState({ onConfirm }: { onConfirm: () => void }) {
+function ReadyState({ onConfirm, loading }: { onConfirm: () => void; loading: boolean }) {
   return (
     <>
       <h1 className="font-serif text-2xl font-bold leading-tight">
@@ -99,7 +99,8 @@ function ReadyState({ onConfirm }: { onConfirm: () => void }) {
       </p>
       <button
         onClick={onConfirm}
-        className="inline-flex items-center gap-1.5 rounded px-3.5 py-2 text-[10px] font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.98] mt-2"
+        disabled={loading}
+        className="inline-flex items-center gap-1.5 rounded px-3.5 py-2 text-[10px] font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.98] mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
         style={{
           background: "var(--grad-cta-amber)",
           color: "var(--color-on-amber)",

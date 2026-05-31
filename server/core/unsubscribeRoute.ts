@@ -1,4 +1,4 @@
-import { createHmac } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import type { Express } from "express";
 import { env } from "./env";
 import * as db from "../db";
@@ -44,7 +44,9 @@ export function registerUnsubscribeRoute(app: Express): void {
     const expected = createHmac("sha256", env.cookieSecret || "dev")
       .update(email)
       .digest("base64url");
-    if (sig !== expected) {
+    const sigOk = sig.length === expected.length &&
+      timingSafeEqual(Buffer.from(sig), Buffer.from(expected));
+    if (!sigOk) {
       res.status(403).send(PAGE("This unsubscribe link is invalid or has already been used.", false));
       return;
     }

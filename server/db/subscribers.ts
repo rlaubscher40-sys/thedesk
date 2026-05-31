@@ -55,11 +55,15 @@ export async function createSubscriber(data: InsertSubscriber): Promise<Subscrib
   // address is a no-op the router handles earlier.
   const existing = await findSubscriberByEmail(data.email);
   if (existing) {
-    if (existing.confirmedAt) return existing;
+    // Leave confirmed+active rows alone; the router handles them.
+    if (existing.confirmedAt && !existing.unsubscribedAt) return existing;
     if (data.confirmToken) {
+      // Refresh the token and also clear unsubscribedAt so a re-subscriber
+      // who had previously unsubscribed is treated as a fresh subscription
+      // once they confirm again.
       await db
         .update(subscribers)
-        .set({ confirmToken: data.confirmToken })
+        .set({ confirmToken: data.confirmToken, unsubscribedAt: null })
         .where(eq(subscribers.id, existing.id));
     }
     return findSubscriberByEmail(data.email);
@@ -76,7 +80,7 @@ export async function confirmSubscriber(token: string): Promise<Subscriber | und
   if (!row) return undefined;
   await db
     .update(subscribers)
-    .set({ confirmedAt: new Date(), confirmToken: null })
+    .set({ confirmedAt: new Date(), confirmToken: null, unsubscribedAt: null })
     .where(eq(subscribers.id, row.id));
   return findSubscriberByEmail(row.email);
 }
