@@ -29,7 +29,7 @@ type Props = {
 export function AuthorByline({
   src = "/ruben.jpg",
   name = "Ruben Laubscher",
-  role = "Head of Partnerships · InvestorKit",
+  role = "Head of Partnerships",
   linkedin = "https://www.linkedin.com/in/ruben-laubscher/",
   substack = "https://rubenlaubscher.substack.com/",
   variant = "compact",

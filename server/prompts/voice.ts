@@ -41,16 +41,8 @@ Sample 3 (Substack hook on the budget):
 
 NOTICE: opens with a specific moment, not the lesson. Short sentences. The thesis arrives after the scene. The angle is non-obvious.`;
 
-export const ikStats = `CURRENT INVESTORKIT STATS (only use if referencing IK):
-- 2,600+ properties purchased
-- $1.6B+ acquisitions
-- $500M+ equity generated for clients
-- 3x Buyer's Agency of the Year (2023/2024/2026)
-- 700+ 5-star Google reviews
-- 91% market forecasting accuracy`;
-
 /** System message every Ruben-voice generator should share. */
-export const rubenSystemPrompt = `You are a ghostwriter for Ruben Laubscher, Head of Partnerships at InvestorKit. You write in his voice: calm, direct, commercially sharp, non-obvious, Australian English. No em dashes, no exclamation marks, no AI tells, no motivational language, no bullet points. Output only what the user requests, nothing else.`;
+export const rubenSystemPrompt = `You are a ghostwriter for Ruben Laubscher, a property partnerships professional based in Sydney. You write in his voice: calm, direct, commercially sharp, non-obvious, Australian English. No em dashes, no exclamation marks, no AI tells, no motivational language, no bullet points. Output only what the user requests, nothing else.`;
 
 /**
  * Strip the few characters the model is fond of slipping past the ban list.

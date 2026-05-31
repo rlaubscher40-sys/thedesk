@@ -752,7 +752,7 @@ function mastheadSvg(h: number, p: Palette, prompt: string): string {
     <line x1="80" y1="600" x2="1520" y2="600" stroke="${p.warm}" stroke-opacity="0.4"/>
     <line x1="80" y1="606" x2="1520" y2="606" stroke="${p.warm}" stroke-opacity="0.12"/>
     <text x="800" y="660" text-anchor="middle" font-family="Playfair Display, serif" font-style="italic" font-size="30" fill="${p.warm}" fill-opacity="0.78">Intelligence for property partnerships</text>
-    <text x="800" y="710" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" letter-spacing="6" fill="${p.warm}" fill-opacity="0.45">BY RUBEN LAUBSCHER · INVESTORKIT</text>
+    <text x="800" y="710" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" letter-spacing="6" fill="${p.warm}" fill-opacity="0.45">BY RUBEN LAUBSCHER</text>
 
     ${commonFinish(p)}
   </svg>`;

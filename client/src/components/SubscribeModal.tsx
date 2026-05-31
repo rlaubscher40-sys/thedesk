@@ -299,7 +299,7 @@ export function SubscribeModal() {
                 className="overline mt-6 text-[var(--color-fg-subtle)]"
                 style={{ letterSpacing: "0.18em" }}
               >
-                By Ruben Laubscher · Head of Partnerships · InvestorKit
+                By Ruben Laubscher · Head of Partnerships
               </p>
             </>
           )}

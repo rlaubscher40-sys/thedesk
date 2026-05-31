@@ -13,7 +13,7 @@ export type SayThisInput = {
 };
 
 function buildPrompt(input: SayThisInput): string {
-  return `You are writing for Ruben Laubscher, Head of Partnerships at InvestorKit (Australia's leading data-driven buyer agency). He uses these lines verbatim in conversations with brokers, advisers and buyer's agents about Australian property, finance, lending, regulation, and adjacent macro / markets stories.
+  return `You are writing for Ruben Laubscher, a property partnerships professional based in Sydney. He uses these lines verbatim in conversations with brokers, advisers and buyer's agents about Australian property, finance, lending, regulation, and adjacent macro / markets stories.
 
 Story: ${input.title}
 Category: ${input.category}

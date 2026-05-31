@@ -271,7 +271,7 @@ function buildCard(edition: Edition) {
                           letterSpacing: "0.18em",
                           textTransform: "uppercase",
                         },
-                        children: "By Ruben Laubscher · Head of Partnerships, InvestorKit",
+                        children: "By Ruben Laubscher · Head of Partnerships",
                       },
                     },
                     {

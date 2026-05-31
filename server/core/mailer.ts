@@ -88,7 +88,7 @@ export async function sendConfirmEmail({
     "If you didn't ask for this, ignore the message and nothing happens.",
     "",
     "The Desk · Daily intelligence for property partnerships",
-    "Curated by Ruben Laubscher, Head of Partnerships at InvestorKit.",
+    "Curated by Ruben Laubscher.",
   ].join("\n");
   return send({
     to,
@@ -208,7 +208,7 @@ export async function sendAlreadyConfirmedEmail({
             <tr>
               <td>
                 <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.18em;color:${FG_SUBTLE};text-transform:uppercase;margin:0 0 8px;">The Desk · Daily intelligence for property partnerships</p>
-                <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0;">Curated by Ruben Laubscher, Head of Partnerships at InvestorKit. Australian English throughout.</p>
+                <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0;">Curated by Ruben Laubscher. Australian English throughout.</p>
               </td>
             </tr>
           </table>
@@ -230,7 +230,7 @@ export async function sendAlreadyConfirmedEmail({
     `Browse editions: ${editionsUrl}`,
     "",
     "The Desk · Daily intelligence for property partnerships",
-    "Curated by Ruben Laubscher, Head of Partnerships at InvestorKit.",
+    "Curated by Ruben Laubscher.",
   ].join("\n");
 
   return send({ to, subject: "You're already on the list · The Desk", html, text });
@@ -267,7 +267,7 @@ export async function sendEditionNotificationEmail({
     "",
     "—",
     "The Desk · Daily intelligence for property partnerships",
-    "Curated by Ruben Laubscher, Head of Partnerships at InvestorKit.",
+    "Curated by Ruben Laubscher.",
     "",
     `Unsubscribe: ${unsubscribeUrl}`,
   ].join("\n");
@@ -326,7 +326,7 @@ export async function sendDailyBriefEmail({
     "",
     "—",
     "The Desk · Daily intelligence for property partnerships",
-    "Curated by Ruben Laubscher, Head of Partnerships at InvestorKit.",
+    "Curated by Ruben Laubscher.",
     "",
     `Unsubscribe: ${unsubscribeUrl}`,
   ].join("\n");
@@ -384,7 +384,7 @@ export async function sendWeeklyRecapEmail({
     "",
     "—",
     "The Desk · Daily intelligence for property partnerships",
-    "Curated by Ruben Laubscher, Head of Partnerships at InvestorKit.",
+    "Curated by Ruben Laubscher.",
     "",
     `Unsubscribe: ${unsubscribeUrl}`,
   ].join("\n");
@@ -547,7 +547,7 @@ function confirmEmailHtml({ confirmUrl }: { confirmUrl: string }): string {
             <tr>
               <td>
                 <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.18em;color:${FG_SUBTLE};text-transform:uppercase;margin:0 0 8px;">The Desk · Daily intelligence for property partnerships</p>
-                <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0;">Curated by Ruben Laubscher, Head of Partnerships at InvestorKit. Australian English throughout.</p>
+                <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0;">Curated by Ruben Laubscher. Australian English throughout.</p>
               </td>
             </tr>
           </table>
@@ -682,7 +682,7 @@ function dailyBriefHtml({
             <tr>
               <td>
                 <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.18em;color:${FG_SUBTLE};text-transform:uppercase;margin:0 0 8px;">The Desk · Daily intelligence for property partnerships</p>
-                <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0 0 12px;">Curated by Ruben Laubscher, Head of Partnerships at InvestorKit. Australian English throughout.</p>
+                <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0 0 12px;">Curated by Ruben Laubscher. Australian English throughout.</p>
                 <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.12em;color:${FG_SUBTLE};margin:0;">
                   <a href="${unsubscribeUrl}" style="color:${FG_SUBTLE};text-decoration:underline;">Unsubscribe</a>
                 </p>
@@ -815,7 +815,7 @@ function editionNotificationHtml({
             <tr>
               <td>
                 <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.18em;color:${FG_SUBTLE};text-transform:uppercase;margin:0 0 8px;">The Desk · Daily intelligence for property partnerships</p>
-                <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0 0 12px;">Curated by Ruben Laubscher, Head of Partnerships at InvestorKit. Australian English throughout.</p>
+                <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0 0 12px;">Curated by Ruben Laubscher. Australian English throughout.</p>
                 <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.12em;color:${FG_SUBTLE};margin:0;">
                   <a href="${unsubscribeUrl}" style="color:${FG_SUBTLE};text-decoration:underline;">Unsubscribe</a>
                 </p>
@@ -958,7 +958,7 @@ function weeklyRecapHtml({
             <tr>
               <td>
                 <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.18em;color:${FG_SUBTLE};text-transform:uppercase;margin:0 0 8px;">The Desk · Daily intelligence for property partnerships</p>
-                <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0 0 12px;">Curated by Ruben Laubscher, Head of Partnerships at InvestorKit. Australian English throughout.</p>
+                <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0 0 12px;">Curated by Ruben Laubscher. Australian English throughout.</p>
                 <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.12em;color:${FG_SUBTLE};margin:0;">
                   <a href="${unsubscribeUrl}" style="color:${FG_SUBTLE};text-decoration:underline;">Unsubscribe</a>
                 </p>
@@ -1090,7 +1090,7 @@ function talkingPointNudgeHtml({
             <tr>
               <td>
                 <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.18em;color:${FG_SUBTLE};text-transform:uppercase;margin:0 0 8px;">The Desk · Daily intelligence for property partnerships</p>
-                <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0;">Curated by Ruben Laubscher, Head of Partnerships at InvestorKit.</p>
+                <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0;">Curated by Ruben Laubscher.</p>
               </td>
             </tr>
           </table>

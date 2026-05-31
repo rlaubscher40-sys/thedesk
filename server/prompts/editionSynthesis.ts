@@ -64,7 +64,7 @@ function formatItems(items: DailyFeedItem[]): string {
 }
 
 function buildPrompt(input: SynthesisInput): string {
-  return `You are compiling the WEEKLY EDITION of The Desk, a deep-dive intelligence briefing for Australian property investment professionals, curated by Ruben Laubscher (Head of Partnerships, InvestorKit).
+  return `You are compiling the WEEKLY EDITION of The Desk, a deep-dive intelligence briefing for Australian property investment professionals, curated by Ruben Laubscher.
 
 This is the long-form companion to the daily feed. Readers come here to UNDERSTAND, not skim. Each topic gets a full analytical treatment, context, argument, evidence, implication, what to do about it. Think Bloomberg Opinion, FT Lex, or Stratechery, not a press release recap.
 

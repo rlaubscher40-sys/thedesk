@@ -52,9 +52,9 @@ export default function Terms() {
 
         <h2 className="font-serif text-2xl mt-8">No liability</h2>
         <p>
-          To the maximum extent allowed by law, neither Ruben Laubscher nor
-          InvestorKit accepts liability for any loss arising from reliance
-          on anything published on The Desk.
+          To the maximum extent allowed by law, Ruben Laubscher accepts no
+          liability for any loss arising from reliance on anything published
+          on The Desk.
         </p>
 
         <h2 className="font-serif text-2xl mt-8">Changes</h2>
