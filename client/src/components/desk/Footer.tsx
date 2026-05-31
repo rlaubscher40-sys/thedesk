@@ -77,7 +77,7 @@ export function Footer() {
         className="font-mono tracking-[0.12em]"
         style={{ fontSize: "10px" }}
       >
-        Curated by Ruben Laubscher · Head of Partnerships, InvestorKit ·{" "}
+        Curated by Ruben Laubscher ·{" "}
         © {new Date().getFullYear()} The Desk
       </p>
     </footer>

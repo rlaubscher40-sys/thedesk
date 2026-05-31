@@ -29,11 +29,9 @@ export default function EditorialStandards() {
       <section className="space-y-4">
         <h2 className="font-serif text-2xl mt-8">Who curates</h2>
         <p>
-          Every edition is hand-curated by Ruben Laubscher, Head of
-          Partnerships at InvestorKit, Australia's most awarded data-driven
-          buyer's agency. The angle on each story reflects an editorial
-          judgement about what the partner channel needs to know that
-          morning.
+          Every edition is hand-curated by Ruben Laubscher. The angle on each
+          story reflects an editorial judgement about what the partner channel
+          needs to know that morning.
         </p>
 
         <h2 className="font-serif text-2xl mt-8">Sourcing</h2>
@@ -58,11 +56,10 @@ export default function EditorialStandards() {
 
         <h2 className="font-serif text-2xl mt-8">Conflicts of interest</h2>
         <p>
-          Ruben is Head of Partnerships at InvestorKit and may comment on
-          markets, brokers, lenders or research firms with whom InvestorKit
-          has a commercial relationship. Where that matters to a specific
-          story, the story carries a disclosure footer. When in doubt, we
-          err toward disclosure.
+          Ruben may comment on markets, brokers, lenders or research firms
+          with whom he has a commercial relationship. Where that matters to a
+          specific story, the story carries a disclosure footer. When in
+          doubt, we err toward disclosure.
         </p>
 
         <h2 className="font-serif text-2xl mt-8">Corrections</h2>

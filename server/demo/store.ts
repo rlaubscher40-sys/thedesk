@@ -180,6 +180,8 @@ demo.queue.push({
   customTitle: null,
   articleText: null,
   isRead: false,
+  nudgeSentAt: null,
+  nudgeResponse: null,
   createdAt: new Date(Date.now() - 1000 * 60 * 60 * 6),
 });
 

@@ -18,8 +18,11 @@ import { env } from "./core/env";
 import { resolveHeroForEdition } from "./core/heroSelection";
 import {
   editionUnsubscribeUrl,
+  nudgeResponseUrl,
   sendDailyBriefEmail,
   sendEditionNotificationEmail,
+  sendTalkingPointNudgeEmail,
+  sendWeeklyRecapEmail,
 } from "./core/mailer";
 import { sdk } from "./core/sdk";
 import * as db from "./db";
@@ -765,14 +768,204 @@ function registerExtractMetricsRoute(app: Express): void {
   app.post("/api/ingest/extract-metrics", handler);
 }
 
+// ─── Weekly recap ────────────────────────────────────────────────────────────
+
+/** Returns the ISO Monday date of the week containing `iso`. */
+function weekMondayOf(iso: string): string {
+  const d = new Date(iso + "T12:00:00Z");
+  const dayNum = d.getUTCDay() || 7; // Mon=1 … Sun=7
+  const monday = new Date(d);
+  monday.setUTCDate(d.getUTCDate() - (dayNum - 1));
+  return monday.toISOString().slice(0, 10);
+}
+
+async function sendWeeklyRecap(weekOf: string): Promise<void> {
+  try {
+    // Mon–Fri of the target week.
+    const fridayOffset = new Date(weekOf + "T12:00:00Z");
+    fridayOffset.setUTCDate(fridayOffset.getUTCDate() + 4);
+    const weekEnd = fridayOffset.toISOString().slice(0, 10);
+
+    const items = await db.listFeedItemsBetween(weekOf, weekEnd);
+    if (items.length === 0) return;
+
+    const talkingPoints = items
+      .filter((it) => it.sayThis && it.partnerTag)
+      .map((it) => ({
+        title: it.title,
+        category: it.category,
+        sayThis: it.sayThis!,
+      }));
+
+    const subs = await db.listSubscribersForWeeklyRecap(weekOf);
+    if (subs.length === 0) return;
+
+    const origin = siteOrigin();
+    const mondayFmt = new Date(weekOf + "T12:00:00Z").toLocaleString("en-AU", {
+      day: "numeric", month: "short", timeZone: "UTC",
+    });
+    const fridayFmt = fridayOffset.toLocaleString("en-AU", {
+      day: "numeric", month: "short", timeZone: "UTC",
+    });
+    const weekRange = `${mondayFmt} – ${fridayFmt}`;
+
+    const results = await Promise.allSettled(
+      subs.map((sub) =>
+        sendWeeklyRecapEmail({
+          to: sub.email,
+          name: sub.name,
+          weekRange,
+          storyCount: items.length,
+          talkingPoints,
+          thisWeekUrl: `${origin}/this-week`,
+          unsubscribeUrl: editionUnsubscribeUrl(sub.email, origin),
+        })
+      )
+    );
+    const delivered = results.filter(
+      (r) => r.status === "fulfilled" && r.value.delivered
+    ).length;
+    await db.markWeeklyRecapSent(subs.map((s) => s.id), weekOf);
+    console.log(
+      `[mailer] weekly recap ${weekOf}: delivered ${delivered}/${subs.length}`
+    );
+  } catch (err) {
+    console.warn("[mailer] weekly recap failed:", err);
+  }
+}
+
+function registerWeeklyRecapRoute(app: Express): void {
+  const weeklyRecapBodySchema = z.object({
+    /** ISO date of any day in the target week. Defaults to today. */
+    anyDateInWeek: z.string().regex(/^\d{4}-\d{2}-\d{2}$/u).optional(),
+  });
+  const handler = async (req: Request, res: Response) => {
+    if (!(await authenticateScheduled(req))) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const parsed = weeklyRecapBodySchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid payload", issues: parsed.error.flatten() });
+      return;
+    }
+    const target = parsed.data.anyDateInWeek ?? new Date().toISOString().slice(0, 10);
+    const weekOf = weekMondayOf(target);
+    res.json({ success: true, weekOf });
+    void sendWeeklyRecap(weekOf);
+  };
+  app.post("/api/scheduled/weekly-recap", handler);
+  app.post("/api/ingest/weekly-recap", handler);
+}
+
+// ─── Talking-point nudge ─────────────────────────────────────────────────────
+
+function registerNudgeCheckRoute(app: Express): void {
+  const handler = async (req: Request, res: Response) => {
+    if (!(await authenticateScheduled(req))) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    let sent = 0;
+    try {
+      const candidates = await db.findQueueItemsNeedingNudge();
+      const origin = siteOrigin();
+      await Promise.allSettled(
+        candidates.map(async (c) => {
+          if (!c.userEmail) return;
+          const result = await sendTalkingPointNudgeEmail({
+            to: c.userEmail,
+            storyTitle: c.feedTitle,
+            category: c.feedCategory,
+            sayThis: c.sayThis,
+            yesUrl: nudgeResponseUrl(c.queueId, "yes", origin),
+            notYetUrl: nudgeResponseUrl(c.queueId, "not-yet", origin),
+          });
+          if (result.delivered) {
+            await db.markNudgeSent(c.queueId);
+            sent++;
+          }
+        })
+      );
+    } catch (err) {
+      console.warn("[mailer] nudge-check failed:", err);
+    }
+    console.log(`[mailer] nudge-check: sent ${sent} nudges`);
+    res.json({ success: true, sent });
+  };
+  app.post("/api/scheduled/nudge-check", handler);
+  app.post("/api/ingest/nudge-check", handler);
+}
+
+function registerNudgeRespondRoute(app: Express): void {
+  const NAVY = "#0C1220";
+  const AMBER = "#D4A853";
+  const FG = "#F0EDE8";
+  const FG_MUTED = "#9BA3B5";
+
+  app.get("/api/nudge/respond", async (req: Request, res: Response) => {
+    const id = parseInt(typeof req.query.id === "string" ? req.query.id : "", 10);
+    const sig = typeof req.query.sig === "string" ? req.query.sig : "";
+    const result = typeof req.query.result === "string" ? req.query.result : "";
+
+    if (!id || !sig || !["yes", "not-yet"].includes(result)) {
+      res.status(400).send("Invalid link.");
+      return;
+    }
+
+    const { createHmac } = await import("node:crypto");
+    const expected = createHmac("sha256", process.env.JWT_SECRET ?? "dev")
+      .update(`nudge:${id}`)
+      .digest("base64url");
+
+    if (sig !== expected) {
+      res.status(403).send("Invalid or expired link.");
+      return;
+    }
+
+    await db.recordNudgeResponse(id, result);
+
+    const isYes = result === "yes";
+    const headline = isYes ? "Great — logged as a win." : "Got it — noted.";
+    const subtext = isYes
+      ? "That angle landed. The Desk will keep surfacing more like it."
+      : "Thanks for the honesty. Knowing when it doesn't land is just as useful.";
+
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.send(`<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>${headline}</title>
+    <style>
+      html, body { background: ${NAVY}; color: ${FG}; font-family: Georgia, 'Times New Roman', serif; margin: 0; padding: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    </style>
+  </head>
+  <body>
+    <div style="max-width:420px;padding:48px 24px;text-align:center;">
+      <div style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${AMBER};text-transform:uppercase;margin-bottom:16px;">The Desk</div>
+      <h1 style="font-size:26px;font-weight:700;line-height:1.15;letter-spacing:-0.02em;margin:0 0 12px;">${headline}</h1>
+      <p style="font-size:16px;line-height:1.55;color:${FG_MUTED};margin:0 0 28px;">${subtext}</p>
+      <a href="${siteOrigin()}" style="display:inline-block;padding:13px 28px;background:${AMBER};color:${NAVY};font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;text-decoration:none;font-weight:600;border-radius:4px;">Back to The Desk →</a>
+    </div>
+  </body>
+</html>`);
+  });
+}
+
 export function registerScheduledRoutes(app: Express): void {
   registerDailyFeedRoute(app);
   registerWeeklyEditionRoute(app);
   registerSynthesizeEditionRoute(app);
   registerDailyMetricsRoute(app);
   registerExtractMetricsRoute(app);
+  registerWeeklyRecapRoute(app);
+  registerNudgeCheckRoute(app);
+  registerNudgeRespondRoute(app);
   console.log(
-    "[scheduled] registered /api/{scheduled,ingest}/{daily-feed,weekly-edition,synthesize-edition,daily-metrics,extract-metrics}"
+    "[scheduled] registered /api/{scheduled,ingest}/{daily-feed,weekly-edition,synthesize-edition,daily-metrics,extract-metrics,weekly-recap,nudge-check} + /api/nudge/respond"
   );
 }
 

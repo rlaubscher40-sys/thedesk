@@ -174,6 +174,9 @@ export const subscribers = mysqlTable("subscribers", {
    *  this subscriber. Guards against double-sending when the ingest
    *  workflow is re-run on the same day. */
   lastDailyBriefDate: varchar("lastDailyBriefDate", { length: 10 }),
+  /** ISO week Monday (YYYY-MM-DD) of the last weekly recap email sent.
+   *  Guards against double-sending the Sunday recap. */
+  lastWeeklyRecapDate: varchar("lastWeeklyRecapDate", { length: 10 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
@@ -380,6 +383,10 @@ export const readingQueue = mysqlTable("reading_queue", {
   customTitle: varchar("customTitle", { length: 512 }),
   articleText: text("articleText"),
   isRead: boolean("isRead").default(false).notNull(),
+  /** Set when a "Did you use this?" nudge email has been sent for this item. */
+  nudgeSentAt: timestamp("nudgeSentAt"),
+  /** User's one-tap response to the nudge: "yes" or "not-yet". */
+  nudgeResponse: varchar("nudgeResponse", { length: 16 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

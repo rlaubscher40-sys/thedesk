@@ -75,9 +75,7 @@ export function FromTheDeskIntro() {
         <p className="text-sm text-[var(--color-fg-muted)] mt-1.5 leading-snug max-w-[60ch]">
           One daily read for the partner channel, built so brokers, advisers,
           accountants and buyer's agents walk into the next conversation
-          sharper than the last. Head of Partnerships at{" "}
-          <span className="text-[var(--color-fg)]">InvestorKit</span>,
-          Australia&apos;s most awarded data-driven buyer&apos;s agency.
+          sharper than the last.
         </p>
         <div className="flex items-center gap-2 mt-3 sm:hidden">
           <a

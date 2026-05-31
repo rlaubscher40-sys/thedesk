@@ -55,10 +55,10 @@ export default function Corrections() {
               misquoted figure, a misattributed source, a date that doesn't
               check out, email{" "}
               <a
-                href="mailto:ruben@investorkit.com.au"
+                href="mailto:ruben@thedesk.au"
                 className="text-amber-300 hover:text-amber-200 transition-colors"
               >
-                ruben@investorkit.com.au
+                ruben@thedesk.au
               </a>{" "}
               and we'll correct it on this page.
             </p>

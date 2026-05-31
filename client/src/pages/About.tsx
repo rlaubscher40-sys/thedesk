@@ -142,9 +142,7 @@ export default function About() {
             past whitespace, the page is wrong.
           </p>
           <p>
-            Built by Ruben Laubscher, Head of Partnerships at InvestorKit
-            (Australia's most awarded buyer's agency). The Desk is private,
-            partners and the firm only.
+            Built by Ruben Laubscher. The Desk is private, partners only.
           </p>
 
           <h2 className="font-serif text-3xl font-bold mt-12 mb-5 leading-tight">
@@ -187,7 +185,7 @@ export default function About() {
                   Ruben Laubscher
                 </h2>
                 <p className="text-xs text-[var(--color-fg-muted)] mt-1.5 leading-snug">
-                  Head of Partnerships, InvestorKit. Sydney.
+                  Head of Partnerships · Sydney
                 </p>
               </div>
             </div>
@@ -232,7 +230,7 @@ export default function About() {
               <dt className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-fg-subtle)] self-center">
                 Authority
               </dt>
-              <dd className="text-sm">Ruben Laubscher · InvestorKit</dd>
+              <dd className="text-sm">Ruben Laubscher</dd>
               <dt className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-fg-subtle)] self-center">
                 Location
               </dt>

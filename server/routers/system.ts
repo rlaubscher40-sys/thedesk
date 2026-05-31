@@ -164,6 +164,18 @@ const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
     name: "0017 · subscribers.lastDailyBriefDate",
     sql: "ALTER TABLE subscribers ADD lastDailyBriefDate varchar(10)",
   },
+  {
+    name: "0018 · subscribers.lastWeeklyRecapDate",
+    sql: "ALTER TABLE subscribers ADD lastWeeklyRecapDate varchar(10)",
+  },
+  {
+    name: "0019 · reading_queue.nudgeSentAt",
+    sql: "ALTER TABLE reading_queue ADD nudgeSentAt TIMESTAMP NULL",
+  },
+  {
+    name: "0019 · reading_queue.nudgeResponse",
+    sql: "ALTER TABLE reading_queue ADD nudgeResponse varchar(16) NULL",
+  },
 ];
 
 /** MySQL/TiDB error codes / fragments we treat as "already applied". */

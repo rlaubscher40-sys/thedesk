@@ -32,7 +32,7 @@ function formatMetrics(metrics: KeyMetrics | null | undefined): string {
 }
 
 export function buildRubensTakePrompt(input: RubensTakeInput): string {
-  return `You are writing "Ruben's Take" for The Desk, a weekly intelligence briefing for property investment professionals curated by Ruben Laubscher, Head of Partnerships at InvestorKit.
+  return `You are writing "Ruben's Take" for The Desk, a weekly intelligence briefing for property investment professionals curated by Ruben Laubscher.
 
 This week's edition covers: ${input.weekRange}
 

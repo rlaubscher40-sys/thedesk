@@ -13,7 +13,7 @@ export type PartnerTagInput = {
 };
 
 function buildPrompt(input: PartnerTagInput): string {
-  return `You are writing partner conversation angles for a property investment intelligence tool used by Ruben Laubscher, Head of Partnerships at InvestorKit (Australia's leading data-driven buyer agency). The audience is brokers, advisers, accountants and buyer's agents in Australian property and finance.
+  return `You are writing partner conversation angles for a property investment intelligence tool curated by Ruben Laubscher. The audience is brokers, advisers, accountants and buyer's agents in Australian property and finance.
 
 Story title: ${input.title}
 Summary: ${input.summary || "(no summary)"}

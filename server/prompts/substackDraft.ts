@@ -5,7 +5,7 @@
  */
 import { substackDraftSchema, type EditionTopic, type KeyMetrics, type SubstackDraft } from "../../shared/schemas";
 import { invokeLLM } from "../core/llm";
-import { ikStats, rubenSystemPrompt, rubensVoiceSamples, stripBannedChars, voiceRules } from "./voice";
+import { rubenSystemPrompt, rubensVoiceSamples, stripBannedChars, voiceRules } from "./voice";
 
 export type SubstackDraftInput = {
   weekRange: string;
@@ -42,7 +42,7 @@ function formatMetrics(metrics: KeyMetrics | null | undefined): string {
 }
 
 export function buildSubstackDraftPrompt(input: SubstackDraftInput): string {
-  return `You are ghostwriting a Substack essay for Ruben Laubscher. Ruben is 25, Head of Partnerships at InvestorKit (Australia's most awarded buyer's agency), building the national partnerships division from scratch since March 2026. Based in Sydney. He writes about leadership, property investment, and the decisions that compound.
+  return `You are ghostwriting a Substack essay for Ruben Laubscher. Ruben is 25, a property partnerships professional based in Sydney, building his partnerships practice from scratch since 2026. Based in Sydney. He writes about leadership, property investment, and the decisions that compound.
 
 This essay is based on his weekly intelligence edition: ${input.weekRange}
 
@@ -56,8 +56,6 @@ Key market metrics: ${formatMetrics(input.keyMetrics)}
 ---
 
 ${voiceRules}
-
-${ikStats}
 
 ${rubensVoiceSamples}
 
