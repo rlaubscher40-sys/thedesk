@@ -24,6 +24,21 @@ function parseNumeric(raw: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/** Sydney calendar day (YYYY-MM-DD) for a given instant. Metrics roll over
+ *  on the Sydney day boundary, so same-day comparisons must use it too. */
+function sydneyDay(d: Date): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Australia/Sydney",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(d);
+  const y = parts.find((p) => p.type === "year")?.value;
+  const m = parts.find((p) => p.type === "month")?.value;
+  const day = parts.find((p) => p.type === "day")?.value;
+  return `${y}-${m}-${day}`;
+}
+
 export async function listDailyMetrics(): Promise<DailyMetric[]> {
   if (isDemoMode()) return demoQueries.listDailyMetrics();
   const db = getDb();
@@ -61,7 +76,18 @@ export async function upsertDailyMetric(input: {
     .where(eq(dailyMetrics.metricKey, input.metricKey))
     .limit(1);
 
-  const previousValue = existing[0]?.value ?? null;
+  const prior = existing[0];
+  // Only roll the current value into previousValue when this upsert lands on
+  // a NEW Sydney day. A same-day re-run (cron retry, manual refresh) must
+  // keep the existing previousValue — otherwise previousValue collapses to
+  // today's own value and the dashboard delta reads as zero.
+  const sameDay =
+    prior != null && prior.asOf != null && sydneyDay(prior.asOf) === sydneyDay(input.asOf);
+  const previousValue = prior
+    ? sameDay
+      ? prior.previousValue
+      : prior.value
+    : null;
 
   const row: InsertDailyMetric = {
     metricKey: input.metricKey,

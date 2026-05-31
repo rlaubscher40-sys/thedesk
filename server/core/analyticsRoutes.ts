@@ -62,6 +62,15 @@ function reducePath(raw: string): string {
   return raw.split(/[?#]/, 1)[0]?.slice(0, 256) ?? "/";
 }
 
+/** Hostname from a Host header, dropping the port. Handles bracketed IPv6
+ *  literals like `[::1]:3000` where a naive split(":") would mangle it. */
+function hostnameOnly(host: string | undefined): string | null {
+  if (!host) return null;
+  const ipv6 = host.match(/^\[(.+?)\]/);
+  if (ipv6?.[1]) return ipv6[1];
+  return host.split(":")[0] ?? null;
+}
+
 async function handlePageView(req: Request, res: Response): Promise<void> {
   const ua = req.header("user-agent");
   const dnt = req.header("dnt");
@@ -79,7 +88,7 @@ async function handlePageView(req: Request, res: Response): Promise<void> {
   // Skip the same-origin referrer — that's just internal navigation
   // and we already have the path. Caller can also pass empty.
   const refHost = reduceReferrer(parsed.data.referrer);
-  const ownHost = req.header("host")?.split(":")[0] ?? null;
+  const ownHost = hostnameOnly(req.header("host"));
   const referrer = refHost && refHost !== ownHost ? refHost : null;
 
   await db.recordPageView({

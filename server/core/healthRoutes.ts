@@ -15,6 +15,7 @@
  * uncaught route errors into the `serverErrors` table before letting
  * the existing Sentry / SPA-fallback chain do its thing.
  */
+import { timingSafeEqual } from "node:crypto";
 import type { Express, NextFunction, Request, Response } from "express";
 import { z } from "zod";
 import * as db from "../db";
@@ -25,7 +26,9 @@ function authorised(req: Request): boolean {
   const expected = process.env.SCHEDULED_API_KEY;
   if (!expected) return false;
   const got = req.header(SCHEDULED_KEY_HEADER);
-  return typeof got === "string" && got.length > 0 && got === expected;
+  if (typeof got !== "string" || got.length !== expected.length) return false;
+  // Constant-time compare so response latency doesn't leak the key.
+  return timingSafeEqual(Buffer.from(got), Buffer.from(expected));
 }
 
 async function handleHealthz(_req: Request, res: Response): Promise<void> {
