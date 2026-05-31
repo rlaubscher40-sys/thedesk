@@ -29,14 +29,27 @@ export async function setupVite(app: Express, server: Server): Promise<void> {
 }
 
 export function serveStatic(app: Express): void {
-  // Resolve from the working directory, not from import.meta.dirname, the
-  // server is esbuild-bundled in production so the source path no longer
-  // matches the bundled location at runtime. `process.cwd()` is set by
-  // `node dist/index.js` to the project root regardless.
   const distPath = path.resolve(process.cwd(), "dist", "public");
   if (!fs.existsSync(distPath)) {
     console.error(`[static] missing build directory ${distPath}`);
   }
-  app.use(express.static(distPath));
-  app.use("*", (_req, res) => res.sendFile(path.resolve(distPath, "index.html")));
+  // Hashed assets (JS/CSS chunks) are immutable — cache aggressively.
+  // index.html must never be cached: a stale copy references old chunk
+  // hashes that no longer exist after a deploy, causing browsers to receive
+  // text/html back for a JS request → "not a valid JavaScript MIME type".
+  app.use(
+    express.static(distPath, {
+      setHeaders(res, filePath) {
+        if (path.basename(filePath) === "index.html") {
+          res.setHeader("Cache-Control", "no-store");
+        } else {
+          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        }
+      },
+    })
+  );
+  app.use("*", (_req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    res.sendFile(path.resolve(distPath, "index.html"));
+  });
 }
