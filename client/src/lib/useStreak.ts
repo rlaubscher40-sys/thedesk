@@ -39,7 +39,16 @@ function write(s: Stored) {
 function daysBetween(aIso: string, bIso: string): number {
   const a = new Date(`${aIso}T00:00:00Z`);
   const b = new Date(`${bIso}T00:00:00Z`);
-  return Math.round((b.getTime() - a.getTime()) / 86_400_000);
+  const calGap = Math.round((b.getTime() - a.getTime()) / 86_400_000);
+  if (calGap <= 1) return calGap;
+  // Discount Sat/Sun that fall between the two dates (exclusive of endpoints)
+  // so a Friday → Monday visit counts as a gap of 1, not 3.
+  let weekendDays = 0;
+  for (let i = 1; i < calGap; i++) {
+    const dow = new Date(a.getTime() + i * 86_400_000).getDay();
+    if (dow === 0 || dow === 6) weekendDays++;
+  }
+  return calGap - weekendDays;
 }
 
 export type StreakTier = "none" | "starter" | "weekly" | "fortnight" | "monthly";
@@ -71,7 +80,6 @@ export function useStreak() {
     if (stored?.lastVisit) {
       const gap = daysBetween(stored.lastVisit, today);
       if (gap === 1) nextCurrent = stored.current + 1;
-      else if (gap === 0) nextCurrent = stored.current;
       else nextCurrent = 1;
     }
     const next: Stored = {
