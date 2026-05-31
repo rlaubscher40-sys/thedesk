@@ -229,28 +229,33 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
         {item.summary}
       </p>
 
-      {/* The summary clamps to 3 lines, so signal that the full read
-          lives on the story page rather than leaving the truncation
-          ambiguous. Distinct from "Read original" below, which leaves
-          the site for the source. */}
-      <Link
-        href={`/story/${item.id}`}
-        className="mt-2 inline-flex items-center gap-1 text-xs text-[var(--color-fg-subtle)] hover:text-amber-200 transition-colors"
-      >
-        Read more
-        <ArrowRight className="h-3 w-3" />
-      </Link>
-
-      {item.sourceUrl && (
-        <a
-          href={item.sourceUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 mt-4 overline-amber hover:text-amber-200 transition-colors"
+      {/* Action row. Grouped so "Read more", "Read original" and the admin
+          "Add note" affordance wrap cleanly instead of crowding into each
+          other on a single line. */}
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-4">
+        {/* The summary clamps to 3 lines, so signal that the full read
+            lives on the story page rather than leaving the truncation
+            ambiguous. Distinct from "Read original" below, which leaves
+            the site for the source. */}
+        <Link
+          href={`/story/${item.id}`}
+          className="inline-flex items-center gap-1 text-xs text-[var(--color-fg-subtle)] hover:text-amber-200 transition-colors"
         >
-          <ExternalLink className="h-3 w-3" /> Read original
-        </a>
-      )}
+          Read more
+          <ArrowRight className="h-3 w-3" />
+        </Link>
+
+        {item.sourceUrl && (
+          <a
+            href={item.sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 overline-amber hover:text-amber-200 transition-colors"
+          >
+            <ExternalLink className="h-3 w-3" /> Read original
+          </a>
+        )}
+      </div>
 
       {/* "Why it matters" — analytical context, shown whenever present and
           independent of the partner-angle pairing. It's the so-what that

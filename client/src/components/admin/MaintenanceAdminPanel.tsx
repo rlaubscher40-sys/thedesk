@@ -44,6 +44,16 @@ export function MaintenanceAdminPanel() {
   });
 
   const utils = trpc.useUtils();
+  const backfillWhy = trpc.feed.backfillWhyItMatters.useMutation({
+    onSuccess: (res) => {
+      toast.success(
+        `Why-it-matters: ${res.updated} added, ${res.skipped} skipped (${res.scanned} scanned)`
+      );
+      utils.feed.getByDate.invalidate();
+    },
+    onError: (err) => toast.error(err.message ?? "Backfill failed"),
+  });
+
   const deleteEdition = trpc.system.deleteEditionByNumber.useMutation({
     onSuccess: (res) => {
       if (res.deletedCount > 0) {
@@ -200,11 +210,37 @@ export function MaintenanceAdminPanel() {
         )}
       </div>
 
+      {/* Backfill "Why it matters". */}
+      <div className="space-y-3 pt-5 border-t border-[var(--color-border)]">
+        <div>
+          <p className="overline mb-1.5" style={{ letterSpacing: "0.18em" }}>
+            2 · Backfill "Why it matters"
+          </p>
+          <p className="text-xs text-[var(--color-fg-subtle)] leading-relaxed max-w-[60ch]">
+            Generates the context line for older stories that were ingested
+            before the field existed. Processes up to 20 per run, click again
+            to keep going. New ingests get it automatically.
+          </p>
+        </div>
+        <button
+          onClick={() => backfillWhy.mutate({ limit: 20 })}
+          disabled={backfillWhy.isPending}
+          className="inline-flex items-center gap-2 rounded px-4 py-2 text-[10px] font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.98] disabled:opacity-50"
+          style={{
+            background: "var(--grad-cta-amber)",
+            color: "var(--color-on-amber)",
+          }}
+        >
+          <Database className="h-3 w-3" />
+          {backfillWhy.isPending ? "Generating…" : "Backfill why-it-matters"}
+        </button>
+      </div>
+
       {/* Delete edition. */}
       <div className="space-y-3 pt-5 border-t border-[var(--color-border)]">
         <div>
           <p className="overline mb-1.5" style={{ letterSpacing: "0.18em" }}>
-            2 · Delete an edition
+            3 · Delete an edition
           </p>
           <p className="text-xs text-[var(--color-fg-subtle)] leading-relaxed max-w-[60ch]">
             Clear a thin or broken edition by number so the weekly synthesis
@@ -252,7 +288,7 @@ export function MaintenanceAdminPanel() {
             className="overline mb-1.5"
             style={{ letterSpacing: "0.18em", color: "oklch(0.78 0.16 15)" }}
           >
-            3 · Clean-slate wipes
+            4 · Clean-slate wipes
           </p>
           <p className="text-xs text-[var(--color-fg-subtle)] leading-relaxed max-w-[60ch]">
             Reset the feed or the metrics tables before re-firing the

@@ -329,6 +329,13 @@ export function listFeedItemsMissingSayThis(limit: number): DailyFeedItem[] {
     .slice(0, limit);
 }
 
+export function listFeedItemsMissingWhyItMatters(limit: number): DailyFeedItem[] {
+  return [...demo.feed]
+    .filter((i) => !i.whyItMatters || i.whyItMatters.trim().length === 0)
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .slice(0, limit);
+}
+
 export function getFeedItemsByCategory(category: string, limit: number): DailyFeedItem[] {
   const cat = category.toUpperCase();
   return [...demo.feed]

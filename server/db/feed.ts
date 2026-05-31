@@ -217,6 +217,23 @@ export async function listFeedItemsMissingSayThis(limit = 50): Promise<DailyFeed
   return rows.filter((r) => !r.sayThis || r.sayThis.trim().length === 0).slice(0, limit);
 }
 
+/** Items missing a whyItMatters line, used by the backfill admin procedure.
+ *  Stories ingested before the column existed all have it null, so this
+ *  drives a one-off catch-up over recent feed history. */
+export async function listFeedItemsMissingWhyItMatters(limit = 50): Promise<DailyFeedItem[]> {
+  if (isDemoMode()) return demoQueries.listFeedItemsMissingWhyItMatters(limit);
+  const db = getDb();
+  if (!db) return [];
+  const rows = await db
+    .select()
+    .from(dailyFeedItems)
+    .orderBy(desc(dailyFeedItems.createdAt))
+    .limit(500);
+  return rows
+    .filter((r) => !r.whyItMatters || r.whyItMatters.trim().length === 0)
+    .slice(0, limit);
+}
+
 export async function getFeedItemsByCategory(category: string, limit = 100): Promise<DailyFeedItem[]> {
   if (isDemoMode()) return demoQueries.getFeedItemsByCategory(category, limit);
   const db = getDb();
