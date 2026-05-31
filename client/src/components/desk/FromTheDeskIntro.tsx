@@ -78,7 +78,7 @@ export function FromTheDeskIntro() {
           accountants and buyer's agents walk into the next conversation
           sharper than the last.
         </p>
-        <div className="flex items-center gap-2 mt-3 sm:hidden">
+        <div className="flex flex-wrap items-center gap-2 mt-3 sm:hidden">
           <a
             href={LINKEDIN_URL}
             target="_blank"

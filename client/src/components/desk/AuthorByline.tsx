@@ -162,7 +162,7 @@ function BylineCompact({
         </p>
         <p className="text-xs text-[var(--color-fg-muted)] mt-0.5">{role}</p>
       </div>
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex flex-wrap items-center gap-2">
         <ActionChip
           href={linkedin}
           ariaLabel={`${name} on LinkedIn`}
