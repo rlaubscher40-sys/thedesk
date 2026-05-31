@@ -1,4 +1,4 @@
-import { desc, eq, like, or, sql } from "drizzle-orm";
+import { and, desc, eq, gte, isNotNull, like, or, sql } from "drizzle-orm";
 import * as demoQueries from "../demo/queries";
 import { isDemoMode } from "../demo/store";
 import { getDb } from "./client";
@@ -115,6 +115,25 @@ export async function getRecentFeedDates(limit = 14): Promise<string[]> {
     .orderBy(desc(dailyFeedItems.feedDate))
     .limit(limit);
   return rows.map((r) => r.feedDate);
+}
+
+/**
+ * Returns all sourceUrls that appeared in the feed within the last
+ * `windowDays` calendar days. Used at ingest time to reject re-runs of the
+ * same story that was already published recently.
+ */
+export async function getRecentSourceUrls(windowDays: number): Promise<Set<string>> {
+  if (isDemoMode()) return new Set();
+  const db = getDb();
+  if (!db) return new Set();
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - windowDays);
+  const cutoffStr = cutoff.toISOString().slice(0, 10);
+  const rows = await db
+    .select({ sourceUrl: dailyFeedItems.sourceUrl })
+    .from(dailyFeedItems)
+    .where(and(isNotNull(dailyFeedItems.sourceUrl), gte(dailyFeedItems.feedDate, cutoffStr)));
+  return new Set(rows.map((r) => r.sourceUrl!));
 }
 
 /**
