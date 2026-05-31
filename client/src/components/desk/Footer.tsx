@@ -10,6 +10,7 @@
  * expects a visible disclaimer that the content isn't personal advice.
  */
 import { Link } from "wouter";
+import { Instagram } from "lucide-react";
 import { BrandLockup } from "@/components/Logomark";
 import { useLiveEditionMeta } from "@/lib/useLiveEditionMeta";
 
@@ -72,14 +73,27 @@ export function Footer() {
         to your circumstances and seek qualified advice.
       </p>
 
-      {/* Row 3, publisher. */}
-      <p
-        className="font-mono tracking-[0.12em]"
-        style={{ fontSize: "10px" }}
-      >
-        Curated by Ruben Laubscher ·{" "}
-        © {new Date().getFullYear()} The Desk
-      </p>
+      {/* Row 3, publisher + Instagram. */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <p
+          className="font-mono tracking-[0.12em]"
+          style={{ fontSize: "10px" }}
+        >
+          Curated by Ruben Laubscher ·{" "}
+          © {new Date().getFullYear()} The Desk
+        </p>
+        <a
+          href="https://www.instagram.com/thedesk.au/"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="The Desk on Instagram"
+          className="inline-flex items-center gap-1.5 font-mono uppercase tracking-[0.14em] text-[var(--color-fg-subtle)] hover:text-amber-300 transition-colors"
+          style={{ fontSize: "10px" }}
+        >
+          <Instagram className="h-3 w-3" />
+          @thedesk.au
+        </a>
+      </div>
     </footer>
   );
 }

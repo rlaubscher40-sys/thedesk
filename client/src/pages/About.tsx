@@ -12,11 +12,12 @@
  * uses the canvas. Mobile stacks them linearly.
  */
 import { useState } from "react";
-import { ExternalLink, Linkedin } from "lucide-react";
+import { ExternalLink, Instagram, Linkedin } from "lucide-react";
 import { useDocumentTitle } from "@/lib/useDocumentTitle";
 
 const SUBSTACK_URL = "https://rubenlaubscher.substack.com/";
 const LINKEDIN_URL = "https://www.linkedin.com/in/ruben-laubscher/";
+const INSTAGRAM_URL = "https://www.instagram.com/thedesk.au/";
 
 export default function About() {
   useDocumentTitle("About");
@@ -198,6 +199,15 @@ export default function About() {
               >
                 <Linkedin className="h-3 w-3" />
                 LinkedIn
+              </a>
+              <a
+                href={INSTAGRAM_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-[10px] font-mono uppercase tracking-[0.16em] border border-[var(--color-border)] text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] hover:border-[var(--color-border-strong)] transition-colors"
+              >
+                <Instagram className="h-3 w-3" />
+                Instagram
               </a>
               <a
                 href={SUBSTACK_URL}

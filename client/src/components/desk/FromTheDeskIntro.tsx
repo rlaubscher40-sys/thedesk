@@ -7,11 +7,12 @@
  * Hidden on narrow screens by collapsing into a single line; on desktop
  * the headshot is 80px with a real intro sentence.
  */
-import { ExternalLink, Linkedin } from "lucide-react";
+import { ExternalLink, Instagram, Linkedin } from "lucide-react";
 import { useState } from "react";
 
 const SUBSTACK_URL = "https://rubenlaubscher.substack.com/";
 const LINKEDIN_URL = "https://www.linkedin.com/in/ruben-laubscher/";
+const INSTAGRAM_URL = "https://www.instagram.com/thedesk.au/";
 
 export function FromTheDeskIntro() {
   const [imgFailed, setImgFailed] = useState(false);
@@ -89,6 +90,16 @@ export function FromTheDeskIntro() {
             LinkedIn
           </a>
           <a
+            href={INSTAGRAM_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="The Desk on Instagram"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-[10px] font-mono uppercase tracking-[0.16em] border border-[var(--color-border)] text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] hover:border-[var(--color-border-strong)] transition-colors"
+          >
+            <Instagram className="h-3 w-3" />
+            Instagram
+          </a>
+          <a
             href={SUBSTACK_URL}
             target="_blank"
             rel="noopener noreferrer"
@@ -111,6 +122,16 @@ export function FromTheDeskIntro() {
         >
           <Linkedin className="h-3 w-3" />
           LinkedIn
+        </a>
+        <a
+          href={INSTAGRAM_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="The Desk on Instagram"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-[10px] font-mono uppercase tracking-[0.16em] border border-[var(--color-border)] text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] hover:border-[var(--color-border-strong)] transition-colors"
+        >
+          <Instagram className="h-3 w-3" />
+          Instagram
         </a>
         <a
           href={SUBSTACK_URL}

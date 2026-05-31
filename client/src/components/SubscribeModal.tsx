@@ -22,7 +22,7 @@
  * permanently.
  */
 import { useEffect, useRef, useState } from "react";
-import { CheckCircle2, ExternalLink, Rss, X } from "lucide-react";
+import { CheckCircle2, ExternalLink, Instagram, Rss, X } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 import { Honeypot } from "@/components/Honeypot";
@@ -286,14 +286,25 @@ export function SubscribeModal() {
                 </div>
               </form>
 
-              <a
-                href={SUBSTACK_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 mt-5 text-xs text-[var(--color-fg-subtle)] hover:text-amber-300 transition-colors"
-              >
-                Or read the long-form essays on Substack <ExternalLink className="h-3 w-3" />
-              </a>
+              <div className="flex flex-wrap gap-4 mt-5">
+                <a
+                  href={SUBSTACK_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs text-[var(--color-fg-subtle)] hover:text-amber-300 transition-colors"
+                >
+                  Long-form essays on Substack <ExternalLink className="h-3 w-3" />
+                </a>
+                <a
+                  href="https://www.instagram.com/thedesk.au/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs text-[var(--color-fg-subtle)] hover:text-amber-300 transition-colors"
+                >
+                  <Instagram className="h-3 w-3" />
+                  Follow @thedesk.au
+                </a>
+              </div>
 
               <p
                 className="overline mt-6 text-[var(--color-fg-subtle)]"
