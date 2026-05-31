@@ -208,7 +208,10 @@ export async function sendAlreadyConfirmedEmail({
             <tr>
               <td>
                 <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.18em;color:${FG_SUBTLE};text-transform:uppercase;margin:0 0 8px;">The Desk · Daily intelligence for property partnerships</p>
-                <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0;">Curated by Ruben Laubscher. Australian English throughout.</p>
+                <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0 0 10px;">Curated by Ruben Laubscher. Australian English throughout.</p>
+                <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.12em;color:${FG_SUBTLE};margin:0;">
+                  <a href="https://www.linkedin.com/in/ruben-laubscher/" style="color:${FG_SUBTLE};text-decoration:none;">LinkedIn</a>&nbsp;·&nbsp;<a href="https://www.instagram.com/thedesk.au/" style="color:${FG_SUBTLE};text-decoration:none;">Instagram</a>&nbsp;·&nbsp;<a href="https://rubenlaubscher.substack.com/" style="color:${FG_SUBTLE};text-decoration:none;">Substack</a>&nbsp;·&nbsp;<a href="https://thedesk.au/" style="color:${AMBER};text-decoration:none;">Subscribe to The Desk →</a>
+                </p>
               </td>
             </tr>
           </table>
@@ -547,7 +550,10 @@ function confirmEmailHtml({ confirmUrl }: { confirmUrl: string }): string {
             <tr>
               <td>
                 <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.18em;color:${FG_SUBTLE};text-transform:uppercase;margin:0 0 8px;">The Desk · Daily intelligence for property partnerships</p>
-                <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0;">Curated by Ruben Laubscher. Australian English throughout.</p>
+                <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0 0 10px;">Curated by Ruben Laubscher. Australian English throughout.</p>
+                <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.12em;color:${FG_SUBTLE};margin:0;">
+                  <a href="https://www.linkedin.com/in/ruben-laubscher/" style="color:${FG_SUBTLE};text-decoration:none;">LinkedIn</a>&nbsp;·&nbsp;<a href="https://www.instagram.com/thedesk.au/" style="color:${FG_SUBTLE};text-decoration:none;">Instagram</a>&nbsp;·&nbsp;<a href="https://rubenlaubscher.substack.com/" style="color:${FG_SUBTLE};text-decoration:none;">Substack</a>&nbsp;·&nbsp;<a href="https://thedesk.au/" style="color:${AMBER};text-decoration:none;">Subscribe to The Desk →</a>
+                </p>
               </td>
             </tr>
           </table>
@@ -682,7 +688,10 @@ function dailyBriefHtml({
             <tr>
               <td>
                 <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.18em;color:${FG_SUBTLE};text-transform:uppercase;margin:0 0 8px;">The Desk · Daily intelligence for property partnerships</p>
-                <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0 0 12px;">Curated by Ruben Laubscher. Australian English throughout.</p>
+                <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0 0 10px;">Curated by Ruben Laubscher. Australian English throughout.</p>
+                <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.12em;color:${FG_SUBTLE};margin:0 0 8px;">
+                  <a href="https://www.linkedin.com/in/ruben-laubscher/" style="color:${FG_SUBTLE};text-decoration:none;">LinkedIn</a>&nbsp;·&nbsp;<a href="https://www.instagram.com/thedesk.au/" style="color:${FG_SUBTLE};text-decoration:none;">Instagram</a>&nbsp;·&nbsp;<a href="https://rubenlaubscher.substack.com/" style="color:${FG_SUBTLE};text-decoration:none;">Substack</a>&nbsp;·&nbsp;<a href="https://thedesk.au/" style="color:${AMBER};text-decoration:none;">Subscribe to The Desk →</a>
+                </p>
                 <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.12em;color:${FG_SUBTLE};margin:0;">
                   <a href="${unsubscribeUrl}" style="color:${FG_SUBTLE};text-decoration:underline;">Unsubscribe</a>
                 </p>
@@ -815,7 +824,10 @@ function editionNotificationHtml({
             <tr>
               <td>
                 <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.18em;color:${FG_SUBTLE};text-transform:uppercase;margin:0 0 8px;">The Desk · Daily intelligence for property partnerships</p>
-                <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0 0 12px;">Curated by Ruben Laubscher. Australian English throughout.</p>
+                <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0 0 10px;">Curated by Ruben Laubscher. Australian English throughout.</p>
+                <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.12em;color:${FG_SUBTLE};margin:0 0 8px;">
+                  <a href="https://www.linkedin.com/in/ruben-laubscher/" style="color:${FG_SUBTLE};text-decoration:none;">LinkedIn</a>&nbsp;·&nbsp;<a href="https://www.instagram.com/thedesk.au/" style="color:${FG_SUBTLE};text-decoration:none;">Instagram</a>&nbsp;·&nbsp;<a href="https://rubenlaubscher.substack.com/" style="color:${FG_SUBTLE};text-decoration:none;">Substack</a>&nbsp;·&nbsp;<a href="https://thedesk.au/" style="color:${AMBER};text-decoration:none;">Subscribe to The Desk →</a>
+                </p>
                 <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.12em;color:${FG_SUBTLE};margin:0;">
                   <a href="${unsubscribeUrl}" style="color:${FG_SUBTLE};text-decoration:underline;">Unsubscribe</a>
                 </p>
@@ -958,7 +970,10 @@ function weeklyRecapHtml({
             <tr>
               <td>
                 <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.18em;color:${FG_SUBTLE};text-transform:uppercase;margin:0 0 8px;">The Desk · Daily intelligence for property partnerships</p>
-                <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0 0 12px;">Curated by Ruben Laubscher. Australian English throughout.</p>
+                <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0 0 10px;">Curated by Ruben Laubscher. Australian English throughout.</p>
+                <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.12em;color:${FG_SUBTLE};margin:0 0 8px;">
+                  <a href="https://www.linkedin.com/in/ruben-laubscher/" style="color:${FG_SUBTLE};text-decoration:none;">LinkedIn</a>&nbsp;·&nbsp;<a href="https://www.instagram.com/thedesk.au/" style="color:${FG_SUBTLE};text-decoration:none;">Instagram</a>&nbsp;·&nbsp;<a href="https://rubenlaubscher.substack.com/" style="color:${FG_SUBTLE};text-decoration:none;">Substack</a>&nbsp;·&nbsp;<a href="https://thedesk.au/" style="color:${AMBER};text-decoration:none;">Subscribe to The Desk →</a>
+                </p>
                 <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.12em;color:${FG_SUBTLE};margin:0;">
                   <a href="${unsubscribeUrl}" style="color:${FG_SUBTLE};text-decoration:underline;">Unsubscribe</a>
                 </p>
@@ -1090,7 +1105,10 @@ function talkingPointNudgeHtml({
             <tr>
               <td>
                 <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.18em;color:${FG_SUBTLE};text-transform:uppercase;margin:0 0 8px;">The Desk · Daily intelligence for property partnerships</p>
-                <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0;">Curated by Ruben Laubscher.</p>
+                <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0 0 10px;">Curated by Ruben Laubscher. Australian English throughout.</p>
+                <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.12em;color:${FG_SUBTLE};margin:0;">
+                  <a href="https://www.linkedin.com/in/ruben-laubscher/" style="color:${FG_SUBTLE};text-decoration:none;">LinkedIn</a>&nbsp;·&nbsp;<a href="https://www.instagram.com/thedesk.au/" style="color:${FG_SUBTLE};text-decoration:none;">Instagram</a>&nbsp;·&nbsp;<a href="https://rubenlaubscher.substack.com/" style="color:${FG_SUBTLE};text-decoration:none;">Substack</a>&nbsp;·&nbsp;<a href="https://thedesk.au/" style="color:${AMBER};text-decoration:none;">Subscribe to The Desk →</a>
+                </p>
               </td>
             </tr>
           </table>

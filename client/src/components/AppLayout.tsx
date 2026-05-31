@@ -178,7 +178,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
               column (About, Story) wrap their own column inside. The
               dashboard pages (Today, Editions, Trends, Archive) use the
               whole width. */}
-          <div className="px-5 sm:px-8 lg:px-12 xl:px-16 2xl:px-20 py-8 lg:py-12 pb-24 lg:pb-16">
+          <div
+            className="px-5 sm:px-8 lg:px-12 xl:px-16 2xl:px-20 py-8 lg:py-12"
+            style={{ paddingBottom: "calc(3.5rem + env(safe-area-inset-bottom, 0px))" }}
+          >
             {children}
           </div>
         </main>
@@ -572,7 +575,6 @@ function MobileTabBar({ location, unreadCount }: { location: string; unreadCount
       className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-[var(--color-bg)] border-t border-[var(--color-border)]"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
-      <div className="editorial-rule" aria-hidden="true" />
       <div className="flex items-center justify-around px-2 py-2">
         {tabs.map((item) => {
           const Icon = item.icon;
