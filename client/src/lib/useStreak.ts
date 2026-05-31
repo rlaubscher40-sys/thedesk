@@ -67,7 +67,9 @@ function tierFor(current: number): StreakTier {
 export function useStreak() {
   const [state, setState] = useState<Stored>(() => {
     const stored = read();
-    return stored ?? { lastVisit: "", current: 0, longest: 0, history: [] };
+    if (!stored) return { lastVisit: "", current: 0, longest: 0, history: [] };
+    // Normalize: old localStorage data pre-dates the history field.
+    return { ...stored, history: stored.history ?? [] };
   });
 
   useEffect(() => {
@@ -103,6 +105,6 @@ export function useStreak() {
     current: state.current,
     longest: state.longest,
     tier: tierFor(state.current),
-    history: state.history,
+    history: state.history ?? [],
   };
 }
