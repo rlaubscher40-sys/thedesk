@@ -117,12 +117,24 @@ export async function getRecentFeedDates(limit = 14): Promise<string[]> {
   return rows.map((r) => r.feedDate);
 }
 
-export async function createFeedItems(items: InsertDailyFeedItem[]) {
+/**
+ * Bulk-insert feed items and return their new IDs in the same order as the
+ * input array. mysql2 reports the first auto-increment id; a single
+ * multi-row INSERT assigns consecutive ids, so the rest are derived by
+ * offset. Callers zip these against the input rows to enrich each item
+ * without re-matching by title (titles can collide across sources).
+ */
+export async function createFeedItems(items: InsertDailyFeedItem[]): Promise<number[]> {
   if (isDemoMode()) return demoQueries.createFeedItems(items);
   const db = getDb();
   if (!db) throw new Error("createFeedItems: database unavailable");
-  if (items.length === 0) return;
-  return db.insert(dailyFeedItems).values(items);
+  if (items.length === 0) return [];
+  const result = await db.insert(dailyFeedItems).values(items);
+  const firstId = Number(
+    (result as unknown as Array<{ insertId?: number }>)[0]?.insertId ?? 0
+  );
+  if (!firstId) return [];
+  return items.map((_, i) => firstId + i);
 }
 
 export async function deleteFeedItem(id: number): Promise<void> {

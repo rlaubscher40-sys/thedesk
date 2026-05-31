@@ -255,10 +255,13 @@ export function getRecentFeedDates(limit: number): string[] {
   return [...set];
 }
 
-export function createFeedItems(items: InsertDailyFeedItem[]): void {
+export function createFeedItems(items: InsertDailyFeedItem[]): number[] {
+  const ids: number[] = [];
   for (const item of items) {
+    const id = allocId();
+    ids.push(id);
     demo.feed.unshift({
-      id: allocId(),
+      id,
       feedDate: item.feedDate,
       title: item.title,
       source: item.source,
@@ -274,6 +277,7 @@ export function createFeedItems(items: InsertDailyFeedItem[]): void {
       createdAt: new Date(),
     });
   }
+  return ids;
 }
 
 export function updateFeedItemPartnerTag(id: number, partnerTag: string): void {

@@ -113,6 +113,48 @@ export async function createEdition(data: InsertEdition) {
   return db.insert(editions).values(data);
 }
 
+/** True for a MySQL duplicate-key (unique constraint) violation. */
+function isDuplicateKeyError(err: unknown): boolean {
+  const e = err as { code?: string; errno?: number } | null;
+  return e?.code === "ER_DUP_ENTRY" || e?.errno === 1062;
+}
+
+/**
+ * Allocate the next editionNumber and insert atomically against races.
+ * `getNextEditionNumber` + `createEdition` is a read-then-write that two
+ * concurrent syntheses (for different weeks) can interleave, both picking
+ * the same number — one insert then fails the unique constraint. We retry
+ * on that collision, recomputing the number each pass. `build` receives the
+ * chosen number so number-dependent fields (e.g. pdfUrl) stay consistent.
+ */
+export async function createEditionWithNextNumber(
+  build: (editionNumber: number) => InsertEdition
+): Promise<number> {
+  if (isDemoMode()) {
+    const rows = demoQueries.listEditions();
+    const editionNumber = rows.reduce((m, r) => Math.max(m, r.editionNumber), 0) + 1;
+    demoQueries.createEdition(build(editionNumber));
+    return editionNumber;
+  }
+  const db = getDb();
+  if (!db) throw new Error("createEditionWithNextNumber: database unavailable");
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const editionNumber = await getNextEditionNumber();
+    try {
+      await db.insert(editions).values(build(editionNumber));
+      return editionNumber;
+    } catch (err) {
+      if (isDuplicateKeyError(err)) {
+        lastErr = err;
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastErr ?? new Error("createEditionWithNextNumber: exhausted retries");
+}
+
 export async function deleteEdition(id: number): Promise<void> {
   if (isDemoMode()) return demoQueries.deleteEdition(id);
   const db = getDb();

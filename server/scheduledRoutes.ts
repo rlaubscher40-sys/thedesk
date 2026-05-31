@@ -116,8 +116,9 @@ function registerDailyFeedRoute(app: Express): void {
       };
     });
 
+    let insertedIds: number[];
     try {
-      await db.createFeedItems(items);
+      insertedIds = await db.createFeedItems(items);
     } catch (err) {
       console.error("[scheduled] daily-feed insert failed:", err);
       res.status(500).json({ error: "Database insert failed" });
@@ -128,19 +129,18 @@ function registerDailyFeedRoute(app: Express): void {
 
     // ── Background: partnerTag + sayThis + per-item image enrichment ─────
     const feedDate = items[0]?.feedDate;
-    if (feedDate) {
+    if (feedDate && insertedIds.length === items.length) {
       setImmediate(async () => {
         try {
-          const inserted = await db.listFeedItems(feedDate);
-          const byTitle = new Map<string, number>();
-          for (const row of inserted) byTitle.set(row.title, row.id);
-
           let tagOk = 0;
           let sayOk = 0;
           let imgOk = 0;
           await Promise.all(
-            items.map(async (item) => {
-              const id = byTitle.get(item.title);
+            // Zip each input item to the row it became by position — the IDs
+            // come back from createFeedItems in input order. Matching by title
+            // previously collided when two sources ran the same headline.
+            items.map(async (item, index) => {
+              const id = insertedIds[index];
               if (!id) return;
 
               // All three enrichments fan out in parallel per item.
@@ -391,8 +391,7 @@ function registerSynthesizeEditionRoute(app: Express): void {
       return;
     }
 
-    const editionNumber = await db.getNextEditionNumber();
-    const edition = {
+    const buildEdition = (editionNumber: number) => ({
       editionNumber,
       weekOf,
       weekRange,
@@ -404,9 +403,14 @@ function registerSynthesizeEditionRoute(app: Express): void {
       keyMetrics: synth.keyMetrics,
       marketStress: synth.marketStress,
       datesToWatch: synth.datesToWatch,
-    };
+    });
+    let editionNumber: number;
+    let edition: ReturnType<typeof buildEdition>;
     try {
-      await db.createEdition(edition);
+      // Atomic allocate-and-insert: retries on editionNumber collision so two
+      // concurrent syntheses can't both claim the same number.
+      editionNumber = await db.createEditionWithNextNumber(buildEdition);
+      edition = buildEdition(editionNumber);
     } catch (err) {
       console.error("[synthesize-edition] DB insert failed:", err);
       res.status(500).json({ error: "Database insert failed" });
