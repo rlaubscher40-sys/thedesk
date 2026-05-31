@@ -123,7 +123,7 @@ export async function sendAlreadyConfirmedEmail({
   const FG_SUBTLE = "#6B7280";
 
   const html = `<!doctype html>
-<html lang="en">
+<html lang="en" style="background-color:${NAVY};">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -138,16 +138,16 @@ export async function sendAlreadyConfirmedEmail({
       u + .email-body .email-wrap { background-color: ${NAVY} !important; }
     </style>
   </head>
-  <body class="email-body" style="margin:0;padding:0;background:${NAVY};font-family:Georgia,'Times New Roman',serif;color:${FG};">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="email-wrap" style="background:${NAVY};">
+  <body class="email-body" style="margin:0;padding:0;background-color:${NAVY};font-family:Georgia,'Times New Roman',serif;color:${FG};">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${NAVY}" class="email-wrap" style="background-color:${NAVY};">
       <tr>
-        <td align="center" style="padding:48px 16px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:${NAVY};">
+        <td align="center" bgcolor="${NAVY}" style="padding:48px 16px;background-color:${NAVY};">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${NAVY}" style="max-width:560px;background-color:${NAVY};">
             <tr>
-              <td style="padding:0 0 24px;">
+              <td bgcolor="${NAVY}" style="padding:0 0 24px;background-color:${NAVY};">
                 <table role="presentation" cellpadding="0" cellspacing="0">
                   <tr>
-                    <td style="vertical-align:middle;padding-right:12px;">
+                    <td bgcolor="${NAVY}" style="vertical-align:middle;padding-right:12px;background-color:${NAVY};">
                       <svg width="36" height="42" viewBox="0 0 240 280" xmlns="http://www.w3.org/2000/svg">
                         <g fill="none" stroke="${AMBER}" stroke-linecap="round" stroke-linejoin="round">
                           <g stroke-width="7">
@@ -169,7 +169,7 @@ export async function sendAlreadyConfirmedEmail({
                         </g>
                       </svg>
                     </td>
-                    <td style="vertical-align:middle;">
+                    <td bgcolor="${NAVY}" style="vertical-align:middle;background-color:${NAVY};">
                       <div style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:26px;line-height:1;letter-spacing:-0.02em;color:${AMBER_BRIGHT};">The Desk</div>
                       <div style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.22em;color:${FG_MUTED};text-transform:uppercase;margin-top:6px;">Intelligence</div>
                     </td>
@@ -178,19 +178,19 @@ export async function sendAlreadyConfirmedEmail({
               </td>
             </tr>
             <tr>
-              <td style="padding:0 0 32px;">
+              <td bgcolor="${NAVY}" style="padding:0 0 32px;background-color:${NAVY};">
                 <div style="height:1px;background:linear-gradient(90deg, ${AMBER} 0%, rgba(212,168,83,0) 80%);"></div>
               </td>
             </tr>
             <tr>
-              <td style="padding:0 0 24px;">
+              <td bgcolor="${NAVY}" style="padding:0 0 24px;background-color:${NAVY};">
                 <div style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${AMBER};text-transform:uppercase;margin-bottom:12px;">Already confirmed</div>
                 <h1 style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:32px;line-height:1.05;color:${FG};margin:0 0 16px;letter-spacing:-0.02em;">You're already on the list.</h1>
                 <p style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.55;color:${FG_MUTED};margin:0 0 24px;">This address is already confirmed and receiving The Desk. Your email client may have automatically clicked the original confirmation link — that's a safety feature some providers use, not an error on your end. You won't miss a thing.</p>
               </td>
             </tr>
             <tr>
-              <td style="padding:0 0 32px;">
+              <td bgcolor="${NAVY}" style="padding:0 0 32px;background-color:${NAVY};">
                 <table role="presentation" cellpadding="0" cellspacing="0">
                   <tr>
                     <td style="background:${AMBER};border-radius:4px;">
@@ -201,12 +201,12 @@ export async function sendAlreadyConfirmedEmail({
               </td>
             </tr>
             <tr>
-              <td style="padding:8px 0 16px;">
+              <td bgcolor="${NAVY}" style="padding:8px 0 16px;background-color:${NAVY};">
                 <div style="height:1px;background:rgba(212,168,83,0.4);"></div>
               </td>
             </tr>
             <tr>
-              <td>
+              <td bgcolor="${NAVY}" style="background-color:${NAVY};">
                 <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.18em;color:${FG_SUBTLE};text-transform:uppercase;margin:0 0 8px;">The Desk · Daily intelligence for property partnerships</p>
                 <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0 0 10px;">Curated by Ruben Laubscher. Australian English throughout.</p>
                 <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.12em;color:${FG_SUBTLE};margin:0;">
@@ -453,7 +453,7 @@ function confirmEmailHtml({ confirmUrl }: { confirmUrl: string }): string {
   const FG_SUBTLE = "#6B7280";
 
   return `<!doctype html>
-<html lang="en">
+<html lang="en" style="background-color:${NAVY};">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -469,17 +469,17 @@ function confirmEmailHtml({ confirmUrl }: { confirmUrl: string }): string {
       u + .email-body .email-wrap { background-color: ${NAVY} !important; }
     </style>
   </head>
-  <body class="email-body" style="margin:0;padding:0;background:${NAVY};font-family:Georgia,'Times New Roman',serif;color:${FG};">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="email-wrap" style="background:${NAVY};">
+  <body class="email-body" style="margin:0;padding:0;background-color:${NAVY};font-family:Georgia,'Times New Roman',serif;color:${FG};">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${NAVY}" class="email-wrap" style="background-color:${NAVY};">
       <tr>
-        <td align="center" style="padding:48px 16px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:${NAVY};">
+        <td align="center" bgcolor="${NAVY}" style="padding:48px 16px;background-color:${NAVY};">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${NAVY}" style="max-width:560px;background-color:${NAVY};">
             <!-- Masthead -->
             <tr>
-              <td style="padding:0 0 24px;">
+              <td bgcolor="${NAVY}" style="padding:0 0 24px;background-color:${NAVY};">
                 <table role="presentation" cellpadding="0" cellspacing="0">
                   <tr>
-                    <td style="vertical-align:middle;padding-right:12px;">
+                    <td bgcolor="${NAVY}" style="vertical-align:middle;padding-right:12px;background-color:${NAVY};">
                       <svg width="36" height="42" viewBox="0 0 240 280" xmlns="http://www.w3.org/2000/svg">
                         <g fill="none" stroke="${AMBER}" stroke-linecap="round" stroke-linejoin="round">
                           <g stroke-width="7">
@@ -501,7 +501,7 @@ function confirmEmailHtml({ confirmUrl }: { confirmUrl: string }): string {
                         </g>
                       </svg>
                     </td>
-                    <td style="vertical-align:middle;">
+                    <td bgcolor="${NAVY}" style="vertical-align:middle;background-color:${NAVY};">
                       <div style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:26px;line-height:1;letter-spacing:-0.02em;color:${AMBER_BRIGHT};">The Desk</div>
                       <div style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.22em;color:${FG_MUTED};text-transform:uppercase;margin-top:6px;">Intelligence</div>
                     </td>
@@ -512,14 +512,14 @@ function confirmEmailHtml({ confirmUrl }: { confirmUrl: string }): string {
 
             <!-- Editorial rule -->
             <tr>
-              <td style="padding:0 0 32px;">
+              <td bgcolor="${NAVY}" style="padding:0 0 32px;background-color:${NAVY};">
                 <div style="height:1px;background:linear-gradient(90deg, ${AMBER} 0%, rgba(212,168,83,0) 80%);"></div>
               </td>
             </tr>
 
             <!-- Body -->
             <tr>
-              <td style="padding:0 0 24px;">
+              <td bgcolor="${NAVY}" style="padding:0 0 24px;background-color:${NAVY};">
                 <div style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${AMBER};text-transform:uppercase;margin-bottom:12px;">One more step</div>
                 <h1 style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:36px;line-height:1.05;color:${FG};margin:0 0 16px;letter-spacing:-0.02em;">Confirm your subscription.</h1>
                 <p style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.55;color:${FG_MUTED};margin:0 0 24px;">Tap the button below to lock it in. The link expires in 24 hours. If you didn't ask for this, ignore the message and nothing happens.</p>
@@ -528,7 +528,7 @@ function confirmEmailHtml({ confirmUrl }: { confirmUrl: string }): string {
 
             <!-- CTA -->
             <tr>
-              <td style="padding:0 0 32px;">
+              <td bgcolor="${NAVY}" style="padding:0 0 32px;background-color:${NAVY};">
                 <table role="presentation" cellpadding="0" cellspacing="0">
                   <tr>
                     <td style="background:${AMBER};border-radius:4px;">
@@ -541,14 +541,14 @@ function confirmEmailHtml({ confirmUrl }: { confirmUrl: string }): string {
 
             <!-- Footer rule -->
             <tr>
-              <td style="padding:8px 0 16px;">
+              <td bgcolor="${NAVY}" style="padding:8px 0 16px;background-color:${NAVY};">
                 <div style="height:1px;background:rgba(212,168,83,0.4);"></div>
               </td>
             </tr>
 
             <!-- Footer copy -->
             <tr>
-              <td>
+              <td bgcolor="${NAVY}" style="background-color:${NAVY};">
                 <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.18em;color:${FG_SUBTLE};text-transform:uppercase;margin:0 0 8px;">The Desk · Daily intelligence for property partnerships</p>
                 <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0 0 10px;">Curated by Ruben Laubscher. Australian English throughout.</p>
                 <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.12em;color:${FG_SUBTLE};margin:0;">
@@ -590,7 +590,7 @@ function dailyBriefHtml({
       const context = (item.whyItMatters || item.summary || "").slice(0, 220);
       return `
             <tr>
-              <td style="padding:18px 0;border-top:1px solid ${BORDER};">
+              <td bgcolor="${NAVY}" style="padding:18px 0;border-top:1px solid ${BORDER};background-color:${NAVY};">
                 <div style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.2em;color:${AMBER};text-transform:uppercase;margin-bottom:8px;">${item.category}</div>
                 <h3 style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:18px;line-height:1.25;color:${FG};margin:0 0 8px;letter-spacing:-0.01em;">
                   <a href="${briefUrl}/story/${item.id}" style="color:${FG};text-decoration:none;">${item.title}</a>
@@ -602,7 +602,7 @@ function dailyBriefHtml({
     .join("");
 
   return `<!doctype html>
-<html lang="en">
+<html lang="en" style="background-color:${NAVY};">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -617,16 +617,16 @@ function dailyBriefHtml({
       u + .email-body .email-wrap { background-color: ${NAVY} !important; }
     </style>
   </head>
-  <body class="email-body" style="margin:0;padding:0;background:${NAVY};font-family:Georgia,'Times New Roman',serif;color:${FG};">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="email-wrap" style="background:${NAVY};">
+  <body class="email-body" style="margin:0;padding:0;background-color:${NAVY};font-family:Georgia,'Times New Roman',serif;color:${FG};">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${NAVY}" class="email-wrap" style="background-color:${NAVY};">
       <tr>
-        <td align="center" style="padding:48px 16px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:${NAVY};">
+        <td align="center" bgcolor="${NAVY}" style="padding:48px 16px;background-color:${NAVY};">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${NAVY}" style="max-width:560px;background-color:${NAVY};">
             <tr>
-              <td style="padding:0 0 24px;">
+              <td bgcolor="${NAVY}" style="padding:0 0 24px;background-color:${NAVY};">
                 <table role="presentation" cellpadding="0" cellspacing="0">
                   <tr>
-                    <td style="vertical-align:middle;padding-right:12px;">
+                    <td bgcolor="${NAVY}" style="vertical-align:middle;padding-right:12px;background-color:${NAVY};">
                       <svg width="36" height="42" viewBox="0 0 240 280" xmlns="http://www.w3.org/2000/svg">
                         <g fill="none" stroke="${AMBER}" stroke-linecap="round" stroke-linejoin="round">
                           <g stroke-width="7">
@@ -648,7 +648,7 @@ function dailyBriefHtml({
                         </g>
                       </svg>
                     </td>
-                    <td style="vertical-align:middle;">
+                    <td bgcolor="${NAVY}" style="vertical-align:middle;background-color:${NAVY};">
                       <div style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:26px;line-height:1;letter-spacing:-0.02em;color:${AMBER_BRIGHT};">The Desk</div>
                       <div style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.22em;color:${FG_MUTED};text-transform:uppercase;margin-top:6px;">Intelligence</div>
                     </td>
@@ -657,12 +657,12 @@ function dailyBriefHtml({
               </td>
             </tr>
             <tr>
-              <td style="padding:0 0 32px;">
+              <td bgcolor="${NAVY}" style="padding:0 0 32px;background-color:${NAVY};">
                 <div style="height:1px;background:linear-gradient(90deg, ${AMBER} 0%, rgba(212,168,83,0) 80%);"></div>
               </td>
             </tr>
             <tr>
-              <td style="padding:0 0 8px;">
+              <td bgcolor="${NAVY}" style="padding:0 0 8px;background-color:${NAVY};">
                 <div style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${AMBER};text-transform:uppercase;margin-bottom:12px;">Today's brief · ${displayDate}</div>
                 ${greeting ? `<p style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.55;color:${FG_MUTED};margin:0 0 8px;">Hi ${greeting},</p>` : ""}
                 <p style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.55;color:${FG_MUTED};margin:0;">${items.length} stor${items.length === 1 ? "y" : "ies"} worth knowing before your next conversation.</p>
@@ -670,7 +670,7 @@ function dailyBriefHtml({
             </tr>
             ${storyRows}
             <tr>
-              <td style="padding:28px 0 32px;">
+              <td bgcolor="${NAVY}" style="padding:28px 0 32px;background-color:${NAVY};">
                 <table role="presentation" cellpadding="0" cellspacing="0">
                   <tr>
                     <td style="background:${AMBER};border-radius:4px;">
@@ -681,12 +681,12 @@ function dailyBriefHtml({
               </td>
             </tr>
             <tr>
-              <td style="padding:8px 0 16px;">
+              <td bgcolor="${NAVY}" style="padding:8px 0 16px;background-color:${NAVY};">
                 <div style="height:1px;background:rgba(212,168,83,0.4);"></div>
               </td>
             </tr>
             <tr>
-              <td>
+              <td bgcolor="${NAVY}" style="background-color:${NAVY};">
                 <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.18em;color:${FG_SUBTLE};text-transform:uppercase;margin:0 0 8px;">The Desk · Daily intelligence for property partnerships</p>
                 <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0 0 10px;">Curated by Ruben Laubscher. Australian English throughout.</p>
                 <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.12em;color:${FG_SUBTLE};margin:0 0 8px;">
@@ -726,7 +726,7 @@ function editionNotificationHtml({
   const FG_SUBTLE = "#6B7280";
 
   return `<!doctype html>
-<html lang="en">
+<html lang="en" style="background-color:${NAVY};">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -742,17 +742,17 @@ function editionNotificationHtml({
       u + .email-body .email-wrap { background-color: ${NAVY} !important; }
     </style>
   </head>
-  <body class="email-body" style="margin:0;padding:0;background:${NAVY};font-family:Georgia,'Times New Roman',serif;color:${FG};">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="email-wrap" style="background:${NAVY};">
+  <body class="email-body" style="margin:0;padding:0;background-color:${NAVY};font-family:Georgia,'Times New Roman',serif;color:${FG};">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${NAVY}" class="email-wrap" style="background-color:${NAVY};">
       <tr>
-        <td align="center" style="padding:48px 16px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:${NAVY};">
+        <td align="center" bgcolor="${NAVY}" style="padding:48px 16px;background-color:${NAVY};">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${NAVY}" style="max-width:560px;background-color:${NAVY};">
             <!-- Masthead -->
             <tr>
-              <td style="padding:0 0 24px;">
+              <td bgcolor="${NAVY}" style="padding:0 0 24px;background-color:${NAVY};">
                 <table role="presentation" cellpadding="0" cellspacing="0">
                   <tr>
-                    <td style="vertical-align:middle;padding-right:12px;">
+                    <td bgcolor="${NAVY}" style="vertical-align:middle;padding-right:12px;background-color:${NAVY};">
                       <svg width="36" height="42" viewBox="0 0 240 280" xmlns="http://www.w3.org/2000/svg">
                         <g fill="none" stroke="${AMBER}" stroke-linecap="round" stroke-linejoin="round">
                           <g stroke-width="7">
@@ -774,7 +774,7 @@ function editionNotificationHtml({
                         </g>
                       </svg>
                     </td>
-                    <td style="vertical-align:middle;">
+                    <td bgcolor="${NAVY}" style="vertical-align:middle;background-color:${NAVY};">
                       <div style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:26px;line-height:1;letter-spacing:-0.02em;color:${AMBER_BRIGHT};">The Desk</div>
                       <div style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.22em;color:${FG_MUTED};text-transform:uppercase;margin-top:6px;">Intelligence</div>
                     </td>
@@ -785,14 +785,14 @@ function editionNotificationHtml({
 
             <!-- Editorial rule -->
             <tr>
-              <td style="padding:0 0 32px;">
+              <td bgcolor="${NAVY}" style="padding:0 0 32px;background-color:${NAVY};">
                 <div style="height:1px;background:linear-gradient(90deg, ${AMBER} 0%, rgba(212,168,83,0) 80%);"></div>
               </td>
             </tr>
 
             <!-- Body -->
             <tr>
-              <td style="padding:0 0 24px;">
+              <td bgcolor="${NAVY}" style="padding:0 0 24px;background-color:${NAVY};">
                 <div style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${AMBER};text-transform:uppercase;margin-bottom:12px;">Weekly Edition · ${weekRange}</div>
                 ${greeting ? `<p style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.55;color:${FG_MUTED};margin:0 0 16px;">Hi ${greeting},</p>` : ""}
                 <h1 style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:36px;line-height:1.05;color:${FG};margin:0 0 16px;letter-spacing:-0.02em;">Edition #${editionNumber} is ready.</h1>
@@ -802,7 +802,7 @@ function editionNotificationHtml({
 
             <!-- CTA -->
             <tr>
-              <td style="padding:0 0 32px;">
+              <td bgcolor="${NAVY}" style="padding:0 0 32px;background-color:${NAVY};">
                 <table role="presentation" cellpadding="0" cellspacing="0">
                   <tr>
                     <td style="background:${AMBER};border-radius:4px;">
@@ -815,14 +815,14 @@ function editionNotificationHtml({
 
             <!-- Footer rule -->
             <tr>
-              <td style="padding:8px 0 16px;">
+              <td bgcolor="${NAVY}" style="padding:8px 0 16px;background-color:${NAVY};">
                 <div style="height:1px;background:rgba(212,168,83,0.4);"></div>
               </td>
             </tr>
 
             <!-- Footer copy -->
             <tr>
-              <td>
+              <td bgcolor="${NAVY}" style="background-color:${NAVY};">
                 <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.18em;color:${FG_SUBTLE};text-transform:uppercase;margin:0 0 8px;">The Desk · Daily intelligence for property partnerships</p>
                 <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0 0 10px;">Curated by Ruben Laubscher. Australian English throughout.</p>
                 <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.12em;color:${FG_SUBTLE};margin:0 0 8px;">
@@ -867,7 +867,7 @@ function weeklyRecapHtml({
   const tpRows = talkingPoints.slice(0, 3)
     .map((tp) => `
             <tr>
-              <td style="padding:18px 0;border-top:1px solid ${BORDER};">
+              <td bgcolor="${NAVY}" style="padding:18px 0;border-top:1px solid ${BORDER};background-color:${NAVY};">
                 <div style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.2em;color:${AMBER};text-transform:uppercase;margin-bottom:8px;">${tp.category}</div>
                 <p style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:16px;line-height:1.3;color:${FG};margin:0 0 10px;">${tp.title}</p>
                 <div style="background:rgba(212,168,83,0.08);border:1px solid rgba(212,168,83,0.25);border-radius:4px;padding:12px 14px;">
@@ -883,7 +883,7 @@ function weeklyRecapHtml({
     : `${talkingPoints.length} talking points`;
 
   return `<!doctype html>
-<html lang="en">
+<html lang="en" style="background-color:${NAVY};">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -898,16 +898,16 @@ function weeklyRecapHtml({
       u + .email-body .email-wrap { background-color: ${NAVY} !important; }
     </style>
   </head>
-  <body class="email-body" style="margin:0;padding:0;background:${NAVY};font-family:Georgia,'Times New Roman',serif;color:${FG};">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="email-wrap" style="background:${NAVY};">
+  <body class="email-body" style="margin:0;padding:0;background-color:${NAVY};font-family:Georgia,'Times New Roman',serif;color:${FG};">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${NAVY}" class="email-wrap" style="background-color:${NAVY};">
       <tr>
-        <td align="center" style="padding:48px 16px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:${NAVY};">
+        <td align="center" bgcolor="${NAVY}" style="padding:48px 16px;background-color:${NAVY};">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${NAVY}" style="max-width:560px;background-color:${NAVY};">
             <tr>
-              <td style="padding:0 0 24px;">
+              <td bgcolor="${NAVY}" style="padding:0 0 24px;background-color:${NAVY};">
                 <table role="presentation" cellpadding="0" cellspacing="0">
                   <tr>
-                    <td style="vertical-align:middle;padding-right:12px;">
+                    <td bgcolor="${NAVY}" style="vertical-align:middle;padding-right:12px;background-color:${NAVY};">
                       <svg width="36" height="42" viewBox="0 0 240 280" xmlns="http://www.w3.org/2000/svg">
                         <g fill="none" stroke="${AMBER}" stroke-linecap="round" stroke-linejoin="round">
                           <g stroke-width="7">
@@ -929,7 +929,7 @@ function weeklyRecapHtml({
                         </g>
                       </svg>
                     </td>
-                    <td style="vertical-align:middle;">
+                    <td bgcolor="${NAVY}" style="vertical-align:middle;background-color:${NAVY};">
                       <div style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:26px;line-height:1;letter-spacing:-0.02em;color:${AMBER_BRIGHT};">The Desk</div>
                       <div style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.22em;color:${FG_MUTED};text-transform:uppercase;margin-top:6px;">Intelligence</div>
                     </td>
@@ -938,12 +938,12 @@ function weeklyRecapHtml({
               </td>
             </tr>
             <tr>
-              <td style="padding:0 0 32px;">
+              <td bgcolor="${NAVY}" style="padding:0 0 32px;background-color:${NAVY};">
                 <div style="height:1px;background:linear-gradient(90deg, ${AMBER} 0%, rgba(212,168,83,0) 80%);"></div>
               </td>
             </tr>
             <tr>
-              <td style="padding:0 0 8px;">
+              <td bgcolor="${NAVY}" style="padding:0 0 8px;background-color:${NAVY};">
                 <div style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${AMBER};text-transform:uppercase;margin-bottom:12px;">Your week · ${weekRange}</div>
                 ${greeting ? `<p style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.55;color:${FG_MUTED};margin:0 0 8px;">Hi ${greeting},</p>` : ""}
                 <h1 style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:30px;line-height:1.1;color:${FG};margin:0 0 12px;letter-spacing:-0.02em;">The Desk delivered ${storyCount} stor${storyCount === 1 ? "y" : "ies"} this week.</h1>
@@ -952,7 +952,7 @@ function weeklyRecapHtml({
             </tr>
             ${tpRows}
             <tr>
-              <td style="padding:28px 0 32px;">
+              <td bgcolor="${NAVY}" style="padding:28px 0 32px;background-color:${NAVY};">
                 <table role="presentation" cellpadding="0" cellspacing="0">
                   <tr>
                     <td style="background:${AMBER};border-radius:4px;">
@@ -963,12 +963,12 @@ function weeklyRecapHtml({
               </td>
             </tr>
             <tr>
-              <td style="padding:8px 0 16px;">
+              <td bgcolor="${NAVY}" style="padding:8px 0 16px;background-color:${NAVY};">
                 <div style="height:1px;background:rgba(212,168,83,0.4);"></div>
               </td>
             </tr>
             <tr>
-              <td>
+              <td bgcolor="${NAVY}" style="background-color:${NAVY};">
                 <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.18em;color:${FG_SUBTLE};text-transform:uppercase;margin:0 0 8px;">The Desk · Daily intelligence for property partnerships</p>
                 <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0 0 10px;">Curated by Ruben Laubscher. Australian English throughout.</p>
                 <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.12em;color:${FG_SUBTLE};margin:0 0 8px;">
@@ -1011,7 +1011,7 @@ function talkingPointNudgeHtml({
   const GREEN_BORDER = "rgba(74,222,128,0.3)";
 
   return `<!doctype html>
-<html lang="en">
+<html lang="en" style="background-color:${NAVY};">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -1026,16 +1026,16 @@ function talkingPointNudgeHtml({
       u + .email-body .email-wrap { background-color: ${NAVY} !important; }
     </style>
   </head>
-  <body class="email-body" style="margin:0;padding:0;background:${NAVY};font-family:Georgia,'Times New Roman',serif;color:${FG};">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="email-wrap" style="background:${NAVY};">
+  <body class="email-body" style="margin:0;padding:0;background-color:${NAVY};font-family:Georgia,'Times New Roman',serif;color:${FG};">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${NAVY}" class="email-wrap" style="background-color:${NAVY};">
       <tr>
-        <td align="center" style="padding:48px 16px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:${NAVY};">
+        <td align="center" bgcolor="${NAVY}" style="padding:48px 16px;background-color:${NAVY};">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${NAVY}" style="max-width:480px;background-color:${NAVY};">
             <tr>
-              <td style="padding:0 0 24px;">
+              <td bgcolor="${NAVY}" style="padding:0 0 24px;background-color:${NAVY};">
                 <table role="presentation" cellpadding="0" cellspacing="0">
                   <tr>
-                    <td style="vertical-align:middle;padding-right:12px;">
+                    <td bgcolor="${NAVY}" style="vertical-align:middle;padding-right:12px;background-color:${NAVY};">
                       <svg width="36" height="42" viewBox="0 0 240 280" xmlns="http://www.w3.org/2000/svg">
                         <g fill="none" stroke="${AMBER}" stroke-linecap="round" stroke-linejoin="round">
                           <g stroke-width="7">
@@ -1057,7 +1057,7 @@ function talkingPointNudgeHtml({
                         </g>
                       </svg>
                     </td>
-                    <td style="vertical-align:middle;">
+                    <td bgcolor="${NAVY}" style="vertical-align:middle;background-color:${NAVY};">
                       <div style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:26px;line-height:1;letter-spacing:-0.02em;color:${AMBER_BRIGHT};">The Desk</div>
                       <div style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.22em;color:${FG_MUTED};text-transform:uppercase;margin-top:6px;">Intelligence</div>
                     </td>
@@ -1066,12 +1066,12 @@ function talkingPointNudgeHtml({
               </td>
             </tr>
             <tr>
-              <td style="padding:0 0 32px;">
+              <td bgcolor="${NAVY}" style="padding:0 0 32px;background-color:${NAVY};">
                 <div style="height:1px;background:linear-gradient(90deg, ${AMBER} 0%, rgba(212,168,83,0) 80%);"></div>
               </td>
             </tr>
             <tr>
-              <td style="padding:0 0 24px;">
+              <td bgcolor="${NAVY}" style="padding:0 0 24px;background-color:${NAVY};">
                 <div style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${AMBER};text-transform:uppercase;margin-bottom:12px;">Quick check-in · ${category}</div>
                 <h1 style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:28px;line-height:1.1;color:${FG};margin:0 0 12px;letter-spacing:-0.02em;">Did the angle land?</h1>
                 <p style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.5;color:${FG_MUTED};margin:0 0 20px;">A few days ago you saved this talking point to your queue:</p>
@@ -1084,13 +1084,13 @@ function talkingPointNudgeHtml({
               </td>
             </tr>
             <tr>
-              <td style="padding:0 0 32px;">
+              <td bgcolor="${NAVY}" style="padding:0 0 32px;background-color:${NAVY};">
                 <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
                   <tr>
-                    <td style="width:48%;padding-right:8px;">
+                    <td bgcolor="${NAVY}" style="width:48%;padding-right:8px;background-color:${NAVY};">
                       <a href="${yesUrl}" style="display:block;text-align:center;padding:14px 16px;font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:${NAVY};text-decoration:none;font-weight:600;background:${GREEN};border-radius:4px;">Yes, it landed ✓</a>
                     </td>
-                    <td style="width:48%;padding-left:8px;">
+                    <td bgcolor="${NAVY}" style="width:48%;padding-left:8px;background-color:${NAVY};">
                       <a href="${notYetUrl}" style="display:block;text-align:center;padding:14px 16px;font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:${FG};text-decoration:none;font-weight:600;background:${GREEN_BG};border:1px solid ${GREEN_BORDER};border-radius:4px;">Not yet</a>
                     </td>
                   </tr>
@@ -1098,12 +1098,12 @@ function talkingPointNudgeHtml({
               </td>
             </tr>
             <tr>
-              <td style="padding:8px 0 16px;">
+              <td bgcolor="${NAVY}" style="padding:8px 0 16px;background-color:${NAVY};">
                 <div style="height:1px;background:rgba(212,168,83,0.4);"></div>
               </td>
             </tr>
             <tr>
-              <td>
+              <td bgcolor="${NAVY}" style="background-color:${NAVY};">
                 <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.18em;color:${FG_SUBTLE};text-transform:uppercase;margin:0 0 8px;">The Desk · Daily intelligence for property partnerships</p>
                 <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0 0 10px;">Curated by Ruben Laubscher. Australian English throughout.</p>
                 <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.12em;color:${FG_SUBTLE};margin:0;">
