@@ -156,6 +156,10 @@ const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
     name: "0015 · page_views index by path",
     sql: "CREATE INDEX idx_page_views_path ON page_views (path, viewedAt)",
   },
+  {
+    name: "0016 · daily_feed_items.whyItMatters",
+    sql: "ALTER TABLE daily_feed_items ADD whyItMatters text",
+  },
 ];
 
 /** MySQL/TiDB error codes / fragments we treat as "already applied". */

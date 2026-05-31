@@ -19,6 +19,7 @@ import { categoryAccentClass, categoryColour } from "@/lib/category";
 import { useAuth } from "@/lib/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Card } from "../ui/Card";
+import { WhyItMattersLine } from "./WhyItMattersLine";
 
 export function FeedSignalStrip({ item }: { item: DailyFeedItem }) {
   const { user, isAuthenticated } = useAuth();
@@ -124,6 +125,17 @@ export function FeedSignalStrip({ item }: { item: DailyFeedItem }) {
           <p className="hidden sm:block text-[13px] text-[var(--color-fg-muted)] leading-snug mt-1.5 line-clamp-2 max-w-[76ch]">
             {item.summary}
           </p>
+        )}
+
+        {/* "Why it matters" shows on every breakpoint — including mobile,
+            where the summary is hidden — so signal-strip stories still
+            carry context on a phone instead of just a bare headline. */}
+        {item.whyItMatters && (
+          <WhyItMattersLine
+            whyItMatters={item.whyItMatters}
+            category={item.category}
+            compact
+          />
         )}
 
         {item.sourceUrl && (

@@ -27,6 +27,7 @@ import { LinkedInPostModal } from "../LinkedInPostModal";
 import { PartnerTagBlock } from "./PartnerTagBlock";
 import { RubensNoteBlock } from "./RubensNoteBlock";
 import { SayThisLine } from "./SayThisLine";
+import { WhyItMattersLine } from "./WhyItMattersLine";
 
 export function FeedItemCard({ item }: { item: DailyFeedItem }) {
   const { user, isAuthenticated } = useAuth();
@@ -249,6 +250,13 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
         >
           <ExternalLink className="h-3 w-3" /> Read original
         </a>
+      )}
+
+      {/* "Why it matters" — analytical context, shown whenever present and
+          independent of the partner-angle pairing. It's the so-what that
+          lets a reader grasp the stakes in one scan. */}
+      {item.whyItMatters && (
+        <WhyItMattersLine whyItMatters={item.whyItMatters} category={item.category} />
       )}
 
       <RubensNoteBlock itemId={item.id} note={item.rubensNote} />
