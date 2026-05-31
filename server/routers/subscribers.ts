@@ -53,7 +53,7 @@ export const subscribersRouter = router({
     )
     .mutation(async ({ input }) => {
       const existing = await db.findSubscriberByEmail(input.email);
-      if (existing?.confirmedAt) {
+      if (existing?.confirmedAt && !existing.unsubscribedAt) {
         // Already confirmed. Send a quiet nudge so the subscriber knows
         // they're on the list (covers the case where an email security
         // scanner auto-clicked their confirm link without them realising).

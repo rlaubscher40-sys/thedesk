@@ -8,6 +8,7 @@
  * payload via Zod, persist what's valid, and schedule LLM enrichment in
  * setImmediate so the HTTP response returns quickly.
  */
+import { timingSafeEqual } from "node:crypto";
 import { COOKIE_NAME } from "../shared/const";
 import { defaultFeedPriority } from "../shared/feedPriority";
 import { parse as parseCookieHeader } from "cookie";
@@ -50,7 +51,8 @@ async function authenticateScheduled(req: Request): Promise<boolean> {
     const headerKey = req.headers["x-scheduled-key"];
     const queryKey = typeof req.query.key === "string" ? req.query.key : undefined;
     const provided = (typeof headerKey === "string" ? headerKey : undefined) ?? queryKey;
-    if (provided && provided === env.scheduledApiKey) return true;
+    if (provided && provided.length === env.scheduledApiKey.length &&
+        timingSafeEqual(Buffer.from(provided), Buffer.from(env.scheduledApiKey))) return true;
   }
   // Fallback: an admin session cookie also unlocks the endpoint (useful for
   // local "run the cron by hand" testing).
