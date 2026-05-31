@@ -13,7 +13,9 @@
  *   - Featured → More → Further sections from the static stories array
  */
 import { useMemo, useState } from "react";
+import { Flame } from "lucide-react";
 import { useLocation, useSearch } from "wouter";
+import { useStreak } from "@/lib/useStreak";
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
 import { StaggerList } from "@/components/StaggerList";
 import { DatePager } from "@/components/desk/DatePager";
@@ -44,6 +46,7 @@ const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export default function DailyFeed() {
   const [filter, setFilter] = useState<CategoryFilter>("ALL");
+  const { current: streakDays, tier: streakTier } = useStreak();
 
   // ── Historical day paging. The Today page accepts `?date=YYYY-MM-DD` so
   //    a reader can step back through past days; missing/invalid param
@@ -233,6 +236,27 @@ export default function DailyFeed() {
       <SectionErrorBoundary section="Metrics">
         <MetricsStrip />
       </SectionErrorBoundary>
+
+      {/* Mobile streak chip — the sidebar badge covers desktop, this
+          surfaces the streak on mobile where there's no sidebar. */}
+      {isToday && streakDays >= 2 && (
+        <div className="lg:hidden flex items-center gap-2 px-4 py-2.5 rounded-sm"
+          style={{
+            background: streakTier === "monthly" || streakTier === "fortnight"
+              ? "oklch(0.75 0.12 145 / 12%)"
+              : "oklch(0.78 0.18 70 / 10%)",
+            boxShadow: "inset 0 0 0 1px oklch(0.78 0.18 70 / 25%)",
+          }}
+        >
+          <Flame className="h-3.5 w-3.5 shrink-0 text-amber-400" strokeWidth={2} fill="currentColor" fillOpacity={0.4} />
+          <span className="font-mono uppercase tracking-[0.16em] text-amber-300" style={{ fontSize: "10px" }}>
+            {streakDays}-day streak
+          </span>
+          <span className="font-mono uppercase tracking-[0.12em] text-[var(--color-fg-subtle)]" style={{ fontSize: "10px" }}>
+            · {streakTier === "none" ? "New streak" : streakTier === "starter" ? "On a run" : streakTier === "weekly" ? "Weekly habit" : streakTier === "fortnight" ? "Two weeks" : "Monthly"}
+          </span>
+        </div>
+      )}
 
       {/* ── Live feed (DB-driven) ────────────────────────────────────── */}
       {/* First load, query in flight: mirror the lead + grid layout with

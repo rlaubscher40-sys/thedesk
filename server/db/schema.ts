@@ -170,6 +170,10 @@ export const subscribers = mysqlTable("subscribers", {
   /** True when the subscriber has a paid tier on Substack. Synced
    *  manually or by webhook in production. */
   isPremium: boolean("isPremium").default(false).notNull(),
+  /** Date (YYYY-MM-DD, Sydney) of the last daily brief email sent to
+   *  this subscriber. Guards against double-sending when the ingest
+   *  workflow is re-run on the same day. */
+  lastDailyBriefDate: varchar("lastDailyBriefDate", { length: 10 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

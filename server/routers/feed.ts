@@ -5,6 +5,24 @@ import { generateSayThis, generateWhyItMatters } from "../prompts";
 
 const feedDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/u, "feedDate must be YYYY-MM-DD");
 
+function sydneyTodayIso(): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Australia/Sydney",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  return `${parts.find((p) => p.type === "year")?.value}-${parts.find((p) => p.type === "month")?.value}-${parts.find((p) => p.type === "day")?.value}`;
+}
+
+function weekMondayOf(isoDate: string): string {
+  const d = new Date(`${isoDate}T12:00:00Z`);
+  const dayNum = d.getUTCDay() || 7;
+  const monday = new Date(d);
+  monday.setUTCDate(d.getUTCDate() - (dayNum - 1));
+  return monday.toISOString().slice(0, 10);
+}
+
 export const feedRouter = router({
   /** Today's items by default, or items for a specific YYYY-MM-DD. */
   getByDate: publicProcedure
@@ -30,6 +48,21 @@ export const feedRouter = router({
 
   /** Dates that have at least one feed item, newest first. */
   getRecentDates: publicProcedure.query(async () => db.getRecentFeedDates()),
+
+  /**
+   * All feed items for the current ISO week (Mon–today in Sydney time).
+   * Powers the "This week's talking points" page so readers can prep
+   * for client calls without paging through individual days.
+   */
+  getByWeek: publicProcedure
+    .input(z.object({ anyDate: feedDateSchema.optional() }).optional())
+    .query(async ({ input }) => {
+      const today = sydneyTodayIso();
+      const date = input?.anyDate ?? today;
+      const weekStart = weekMondayOf(date);
+      const weekEnd = date <= today ? date : today;
+      return db.listFeedItemsBetween(weekStart, weekEnd);
+    }),
 
   /** Paginated archive across all dates, optionally filtered by category. */
   archive: publicProcedure

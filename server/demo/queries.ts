@@ -530,6 +530,7 @@ export function createSubscriber(data: InsertSubscriber): Subscriber {
     unsubscribedAt: null,
     source: data.source ?? null,
     isPremium: data.isPremium ?? false,
+    lastDailyBriefDate: null,
     createdAt: new Date(),
   };
   demo.subscribers.unshift(sub);

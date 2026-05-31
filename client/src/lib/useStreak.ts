@@ -19,6 +19,9 @@ type Stored = {
   lastVisit: string; // YYYY-MM-DD (Sydney)
   current: number;
   longest: number;
+  /** Most-recent-first list of Sydney ISO dates the user has visited.
+   *  Capped at 14 entries so the weekday grid always has enough history. */
+  history: string[];
 };
 
 function read(): Stored | null {
@@ -64,7 +67,7 @@ function tierFor(current: number): StreakTier {
 export function useStreak() {
   const [state, setState] = useState<Stored>(() => {
     const stored = read();
-    return stored ?? { lastVisit: "", current: 0, longest: 0 };
+    return stored ?? { lastVisit: "", current: 0, longest: 0, history: [] };
   });
 
   useEffect(() => {
@@ -82,10 +85,15 @@ export function useStreak() {
       if (gap === 1) nextCurrent = stored.current + 1;
       else nextCurrent = 1;
     }
+    const prevHistory = stored?.history ?? [];
+    const nextHistory = prevHistory.includes(today)
+      ? prevHistory
+      : [today, ...prevHistory].slice(0, 14);
     const next: Stored = {
       lastVisit: today,
       current: nextCurrent,
       longest: Math.max(stored?.longest ?? 0, nextCurrent),
+      history: nextHistory,
     };
     write(next);
     setState(next);
@@ -95,5 +103,6 @@ export function useStreak() {
     current: state.current,
     longest: state.longest,
     tier: tierFor(state.current),
+    history: state.history,
   };
 }

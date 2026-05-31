@@ -18,6 +18,7 @@ import { env } from "./core/env";
 import { resolveHeroForEdition } from "./core/heroSelection";
 import {
   editionUnsubscribeUrl,
+  sendDailyBriefEmail,
   sendEditionNotificationEmail,
 } from "./core/mailer";
 import { sdk } from "./core/sdk";
@@ -220,6 +221,10 @@ function registerDailyFeedRoute(app: Express): void {
           console.log(
             `[scheduled] enriched ${feedDate}: ${tagOk} partnerTags, ${sayOk} sayThis, ${whyOk} whyItMatters, ${imgOk} images`
           );
+
+          // Send the daily brief after enrichment so subscribers get
+          // the AI-generated context lines, not raw summaries.
+          void notifyDailyBriefSubscribers(feedDate);
         } catch (err) {
           console.error("[scheduled] daily-feed enrichment error:", err);
         }
@@ -546,6 +551,38 @@ function registerSynthesizeEditionRoute(app: Express): void {
 }
 
 // ─── Subscriber notification ─────────────────────────────────────────────────
+
+async function notifyDailyBriefSubscribers(feedDate: string): Promise<void> {
+  try {
+    const items = await db.listFeedItems(feedDate);
+    if (items.length === 0) return;
+    const subs = await db.listSubscribersForDailyBrief(feedDate);
+    if (subs.length === 0) return;
+    const origin = siteOrigin();
+    const top5 = items.slice(0, 5);
+    const results = await Promise.allSettled(
+      subs.map((sub) =>
+        sendDailyBriefEmail({
+          to: sub.email,
+          name: sub.name,
+          items: top5,
+          feedDate,
+          siteUrl: origin,
+          unsubscribeUrl: editionUnsubscribeUrl(sub.email, origin),
+        })
+      )
+    );
+    const delivered = results.filter(
+      (r) => r.status === "fulfilled" && r.value.delivered
+    ).length;
+    await db.markDailyBriefSent(subs.map((s) => s.id), feedDate);
+    console.log(
+      `[mailer] daily brief ${feedDate}: delivered ${delivered}/${subs.length}`
+    );
+  } catch (err) {
+    console.warn("[mailer] daily brief notification failed:", err);
+  }
+}
 
 async function notifySubscribers(editionNumber: number, weekRange: string): Promise<void> {
   try {

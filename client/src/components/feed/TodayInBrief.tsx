@@ -100,12 +100,12 @@ export function TodayInBrief({ items }: { items: DailyFeedItem[] }) {
                   >
                     {item.title}
                   </p>
-                  {item.sayThis && (
+                  {(item.whyItMatters || item.sayThis) && (
                     <p
                       className="text-[var(--color-fg-subtle)] mt-1 leading-snug line-clamp-1"
                       style={{ fontSize: "12.5px" }}
                     >
-                      {item.sayThis}
+                      {item.whyItMatters ?? item.sayThis}
                     </p>
                   )}
                 </div>

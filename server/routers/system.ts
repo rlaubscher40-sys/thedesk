@@ -160,6 +160,10 @@ const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
     name: "0016 · daily_feed_items.whyItMatters",
     sql: "ALTER TABLE daily_feed_items ADD whyItMatters text",
   },
+  {
+    name: "0017 · subscribers.lastDailyBriefDate",
+    sql: "ALTER TABLE subscribers ADD lastDailyBriefDate varchar(10)",
+  },
 ];
 
 /** MySQL/TiDB error codes / fragments we treat as "already applied". */

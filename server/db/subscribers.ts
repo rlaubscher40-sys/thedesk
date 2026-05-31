@@ -1,4 +1,4 @@
-import { and, desc, eq, isNotNull, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, isNull, ne, or } from "drizzle-orm";
 import * as demoQueries from "../demo/queries";
 import { isDemoMode } from "../demo/store";
 import { getDb } from "./client";
@@ -113,6 +113,40 @@ export async function listConfirmedSubscribers(): Promise<Subscriber[]> {
     .select()
     .from(subscribers)
     .where(and(isNotNull(subscribers.confirmedAt), isNull(subscribers.unsubscribedAt)));
+}
+
+/** Confirmed subscribers who haven't received today's daily brief yet. */
+export async function listSubscribersForDailyBrief(todayDate: string): Promise<Subscriber[]> {
+  if (isDemoMode()) {
+    const all = await demoQueries.listSubscribers();
+    return all.filter((s) => s.confirmedAt && !s.unsubscribedAt);
+  }
+  const db = getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(subscribers)
+    .where(
+      and(
+        isNotNull(subscribers.confirmedAt),
+        isNull(subscribers.unsubscribedAt),
+        or(
+          isNull(subscribers.lastDailyBriefDate),
+          ne(subscribers.lastDailyBriefDate, todayDate)
+        )
+      )
+    );
+}
+
+/** Mark these subscriber IDs as having received today's daily brief. */
+export async function markDailyBriefSent(ids: number[], date: string): Promise<void> {
+  if (isDemoMode() || ids.length === 0) return;
+  const db = getDb();
+  if (!db) return;
+  await db
+    .update(subscribers)
+    .set({ lastDailyBriefDate: date })
+    .where(inArray(subscribers.id, ids));
 }
 
 export async function countConfirmedSubscribers(): Promise<number> {

@@ -9,6 +9,7 @@ import {
   BarChart3,
   BookOpen,
   Bookmark,
+  CalendarDays,
   ChevronUp,
   Info,
   LogIn,
@@ -48,6 +49,7 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { path: "/", label: "Today", icon: Newspaper },
+  { path: "/this-week", label: "This Week", icon: CalendarDays },
   { path: "/editions", label: "Editions", icon: BookOpen },
   // Archive is the unified browse + search surface (the previous separate
   // /search route now redirects here). Quick-jump still lives in ⌘K.
