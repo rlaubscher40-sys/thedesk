@@ -122,20 +122,32 @@ function registerDailyFeedRoute(app: Express): void {
       };
     });
 
+    // Reject any story whose sourceUrl already appeared in the last 14 days.
+    // This prevents re-ingesting the same article on back-to-back days when
+    // an external trigger re-runs or when the same story is picked up twice.
+    const recentUrls = await db.getRecentSourceUrls(14);
+    const freshItems = items.filter(
+      (item) => !item.sourceUrl || !recentUrls.has(item.sourceUrl)
+    );
+    const skippedCount = items.length - freshItems.length;
+    if (skippedCount > 0) {
+      console.log(`[daily-feed] skipped ${skippedCount} duplicate story/stories (seen in last 14 days)`);
+    }
+
     let insertedIds: number[];
     try {
-      insertedIds = await db.createFeedItems(items);
+      insertedIds = await db.createFeedItems(freshItems);
     } catch (err) {
       console.error("[scheduled] daily-feed insert failed:", err);
       res.status(500).json({ error: "Database insert failed" });
       return;
     }
 
-    res.json({ success: true, count: items.length });
+    res.json({ success: true, count: freshItems.length, skipped: skippedCount });
 
     // ── Background: partnerTag + sayThis + per-item image enrichment ─────
-    const feedDate = items[0]?.feedDate;
-    if (feedDate && insertedIds.length === items.length) {
+    const feedDate = freshItems[0]?.feedDate;
+    if (feedDate && insertedIds.length === freshItems.length) {
       setImmediate(async () => {
         try {
           let tagOk = 0;
@@ -146,7 +158,7 @@ function registerDailyFeedRoute(app: Express): void {
             // Zip each input item to the row it became by position — the IDs
             // come back from createFeedItems in input order. Matching by title
             // previously collided when two sources ran the same headline.
-            items.map(async (item, index) => {
+            freshItems.map(async (item, index) => {
               const id = insertedIds[index];
               if (!id) return;
 
