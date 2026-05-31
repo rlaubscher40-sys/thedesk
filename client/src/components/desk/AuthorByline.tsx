@@ -12,7 +12,7 @@
  * gradient initial if the image doesn't load.
  */
 import { useState } from "react";
-import { Linkedin, Rss } from "lucide-react";
+import { Instagram, Linkedin, Rss } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 type Props = {
@@ -21,6 +21,7 @@ type Props = {
   role?: string;
   linkedin?: string;
   substack?: string;
+  instagram?: string;
   /** Compact byline (default) or card. */
   variant?: "compact" | "card";
   className?: string;
@@ -32,6 +33,7 @@ export function AuthorByline({
   role = "Head of Partnerships",
   linkedin = "https://www.linkedin.com/in/ruben-laubscher/",
   substack = "https://rubenlaubscher.substack.com/",
+  instagram = "https://www.instagram.com/thedesk.au/",
   variant = "compact",
   className,
 }: Props) {
@@ -43,6 +45,7 @@ export function AuthorByline({
         role={role}
         linkedin={linkedin}
         substack={substack}
+        instagram={instagram}
         className={className}
       />
     );
@@ -54,6 +57,7 @@ export function AuthorByline({
       role={role}
       linkedin={linkedin}
       substack={substack}
+      instagram={instagram}
       className={className}
     />
   );
@@ -125,6 +129,7 @@ type BylineImpl = {
   role: string;
   linkedin: string;
   substack: string;
+  instagram: string;
   className?: string;
 };
 
@@ -134,6 +139,7 @@ function BylineCompact({
   role,
   linkedin,
   substack,
+  instagram,
   className,
 }: BylineImpl) {
   return (
@@ -165,6 +171,13 @@ function BylineCompact({
           LinkedIn
         </ActionChip>
         <ActionChip
+          href={instagram}
+          ariaLabel="The Desk on Instagram"
+          icon={Instagram}
+        >
+          Instagram
+        </ActionChip>
+        <ActionChip
           href={substack}
           ariaLabel={`Subscribe to ${name}'s Substack`}
           icon={Rss}
@@ -185,6 +198,7 @@ function BylineCard({
   role,
   linkedin,
   substack,
+  instagram,
   className,
 }: BylineImpl) {
   return (
@@ -209,6 +223,13 @@ function BylineCard({
             icon={Linkedin}
           >
             LinkedIn
+          </ActionChip>
+          <ActionChip
+            href={instagram}
+            ariaLabel="The Desk on Instagram"
+            icon={Instagram}
+          >
+            Instagram
           </ActionChip>
           <ActionChip
             href={substack}
