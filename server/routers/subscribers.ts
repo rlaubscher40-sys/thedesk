@@ -20,7 +20,7 @@ import { TRPCError } from "@trpc/server";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import * as db from "../db";
-import { sendConfirmEmail } from "../core/mailer";
+import { sendConfirmEmail, sendAlreadyConfirmedEmail } from "../core/mailer";
 import { adminProcedure, publicProcedure, router } from "../core/trpc";
 import { DEFAULT_SITE_URL } from "../../shared/const";
 
@@ -53,9 +53,17 @@ export const subscribersRouter = router({
     )
     .mutation(async ({ input }) => {
       const existing = await db.findSubscriberByEmail(input.email);
-      if (existing && existing.confirmedAt) {
-        // Already subscribed and confirmed, no-op success so the UI
-        // doesn't expose whether the address is on the list.
+      if (existing?.confirmedAt) {
+        // Already confirmed. Send a quiet nudge so the subscriber knows
+        // they're on the list (covers the case where an email security
+        // scanner auto-clicked their confirm link without them realising).
+        const origin = siteOrigin();
+        void sendAlreadyConfirmedEmail({
+          to: input.email,
+          editionsUrl: `${origin}/editions`,
+        }).catch((err) =>
+          console.warn(`[subscribers] already-confirmed nudge failed:`, err)
+        );
         return {
           status: "already-confirmed" as const,
           confirmToken: null,

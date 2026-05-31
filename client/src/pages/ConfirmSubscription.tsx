@@ -8,7 +8,7 @@
  * manual confirms (the admin can paste the confirm URL for a subscriber
  * directly).
  */
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useSearch } from "wouter";
 import { Check, Loader2, X } from "lucide-react";
 import { useDocumentTitle } from "@/lib/useDocumentTitle";
@@ -16,6 +16,7 @@ import { trpc } from "@/lib/trpc";
 
 type State =
   | { kind: "missing" }
+  | { kind: "ready" }
   | { kind: "pending" }
   | { kind: "ok"; email: string }
   | { kind: "error"; message: string };
@@ -24,35 +25,33 @@ export default function ConfirmSubscription() {
   useDocumentTitle("Confirm subscription");
   const search = useSearch();
   const token = new URLSearchParams(search).get("token") ?? "";
+  // Start in "ready" (show a button) rather than auto-confirming on load.
+  // Email security scanners pre-fetch links to check for phishing — if we
+  // fired the mutation in useEffect, the scanner would consume the token
+  // before the subscriber ever clicks it, leaving them with "invalid link".
   const [state, setState] = useState<State>(
-    token ? { kind: "pending" } : { kind: "missing" }
+    token ? { kind: "ready" } : { kind: "missing" }
   );
 
   const confirm = trpc.subscribers.confirm.useMutation();
 
-  useEffect(() => {
-    if (!token) return;
-    let cancelled = false;
+  function handleConfirm() {
+    if (!token || state.kind === "pending") return;
+    setState({ kind: "pending" });
     confirm
       .mutateAsync({ token })
       .then((res) => {
-        if (cancelled) return;
         setState({ kind: "ok", email: res.email });
       })
       .catch((err: Error) => {
-        if (cancelled) return;
         setState({
           kind: "error",
           message:
             err.message ?? "That confirmation link is invalid or expired.",
         });
       });
-    return () => {
-      cancelled = true;
-    };
-    // confirm.mutateAsync identity is stable enough; intentionally not in deps.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  }
+
 
   return (
     <div className="max-w-md mx-auto py-16">
@@ -65,6 +64,7 @@ export default function ConfirmSubscription() {
         </p>
 
         {state.kind === "missing" && <MissingToken />}
+        {state.kind === "ready" && <ReadyState onConfirm={handleConfirm} />}
         {state.kind === "pending" && <PendingState />}
         {state.kind === "ok" && <ConfirmedState email={state.email} />}
         {state.kind === "error" && <ErrorState message={state.message} />}
@@ -84,6 +84,29 @@ function MissingToken() {
         query parameter. Use the link from your confirmation email, or ask the
         editor to resend it.
       </p>
+    </>
+  );
+}
+
+function ReadyState({ onConfirm }: { onConfirm: () => void }) {
+  return (
+    <>
+      <h1 className="font-serif text-2xl font-bold leading-tight">
+        Confirm your subscription.
+      </h1>
+      <p className="text-sm text-[var(--color-fg-muted)] leading-relaxed">
+        Tap the button below to lock in your subscription to The Desk.
+      </p>
+      <button
+        onClick={onConfirm}
+        className="inline-flex items-center gap-1.5 rounded px-3.5 py-2 text-[10px] font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.98] mt-2"
+        style={{
+          background: "var(--grad-cta-amber)",
+          color: "var(--color-on-amber)",
+        }}
+      >
+        Confirm subscription
+      </button>
     </>
   );
 }
