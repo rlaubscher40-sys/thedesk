@@ -18,7 +18,7 @@ import { cn } from "@/lib/cn";
 // monthly peak. Keeping these as token references means light-mode
 // shifts the hues automatically per index.css §3.2.
 const TIER_STYLE: Record<StreakTier, { colour: string; label: string }> = {
-  none: { colour: "var(--color-fg-subtle)", label: "" },
+  none: { colour: "var(--color-fg-subtle)", label: "New streak" },
   starter: { colour: "var(--color-amber)", label: "On a run" },
   weekly: { colour: "var(--color-amber-bright)", label: "Weekly habit" },
   fortnight: { colour: "var(--color-property)", label: "Two weeks running" },
@@ -27,7 +27,7 @@ const TIER_STYLE: Record<StreakTier, { colour: string; label: string }> = {
 
 export function StreakBadge({ collapsed }: { collapsed?: boolean }) {
   const { current, longest, tier } = useStreak();
-  if (current < 2) return null;
+  if (current < 1) return null;
   const style = TIER_STYLE[tier];
 
   if (collapsed) {
