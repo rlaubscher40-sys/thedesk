@@ -557,6 +557,15 @@ function MobileSidebar({
 }
 
 function MobileTabBar({ location, unreadCount }: { location: string; unreadCount: number }) {
+  const { user, isAuthenticated } = useAuth();
+  const isAdmin = user?.role === "admin";
+
+  // Tabs visible to all readers. Admin gets an extra Settings tab so
+  // they can always reach /admin in one tap without opening the drawer.
+  const tabs = isAdmin
+    ? [...MOBILE_TABS, { path: "/admin", label: "Admin", icon: Settings }]
+    : MOBILE_TABS;
+
   return (
     <nav
       aria-label="Mobile navigation"
@@ -565,7 +574,7 @@ function MobileTabBar({ location, unreadCount }: { location: string; unreadCount
     >
       <div className="editorial-rule" aria-hidden="true" />
       <div className="flex items-center justify-around px-2 py-2">
-        {MOBILE_TABS.map((item) => {
+        {tabs.map((item) => {
           const Icon = item.icon;
           const active = isActive(location, item.path);
           return (
@@ -592,6 +601,18 @@ function MobileTabBar({ location, unreadCount }: { location: string; unreadCount
             </Link>
           );
         })}
+        {/* When not authenticated, show a sign-in tab so admin can
+            always log in from mobile without opening the drawer. */}
+        {!isAuthenticated && (
+          <a href={getLoginUrl()}>
+            <span className="relative flex flex-col items-center gap-1 px-3 py-2 rounded">
+              <LogIn className="h-5 w-5 text-[var(--color-fg-subtle)]" />
+              <span className="font-mono text-[9px] uppercase tracking-wider text-[var(--color-fg-subtle)]">
+                Sign in
+              </span>
+            </span>
+          </a>
+        )}
       </div>
     </nav>
   );
