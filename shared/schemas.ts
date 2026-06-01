@@ -110,6 +110,11 @@ export const dailyFeedIngestItemSchema = z.object({
   whyItMatters: z.string().optional().nullable(),
   /** Optional preset thumbnail. If absent, background enrichment generates one. */
   imageUrl: z.string().url().optional().nullable(),
+  /** Full extracted article body. Used transiently to ground the LLM
+   *  enrichment (why-it-matters / say-this / partner angles) in the actual
+   *  reporting rather than the RSS snippet. NOT persisted, there is no
+   *  column for it on the daily feed table. */
+  articleText: z.string().max(20_000).optional().nullable(),
 });
 export type DailyFeedIngestItem = z.infer<typeof dailyFeedIngestItemSchema>;
 

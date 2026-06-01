@@ -10,14 +10,23 @@ export type PartnerTagInput = {
   title: string;
   summary: string | null;
   existingTag?: string | null;
+  articleText?: string | null;
 };
+
+/** Give the model the full article so each persona angle can hook into a
+ *  concrete detail from the reporting instead of the headline. */
+function articleBlock(articleText: string | null | undefined): string {
+  const text = articleText?.trim();
+  if (!text) return "";
+  return `\n\nFull article text (each persona angle should hook into a specific detail from this — a figure, a rule change, a named development — not the generic headline):\n${text.slice(0, 6000)}\n`;
+}
 
 function buildPrompt(input: PartnerTagInput): string {
   return `You are writing partner conversation angles for a property investment intelligence tool curated by Ruben Laubscher. The audience is brokers, advisers, accountants and buyer's agents in Australian property and finance.
 
 Story title: ${input.title}
 Summary: ${input.summary || "(no summary)"}
-Existing single-persona angle: ${input.existingTag || "(none)"}
+Existing single-persona angle: ${input.existingTag || "(none)"}${articleBlock(input.articleText)}
 
 FIRST, check whether this story has genuine partner-channel relevance, property, lending, regulation, macro / markets, super, ATO, RBA, APRA, broker / adviser workflows. If the story is sport, entertainment, lifestyle, celebrity, true crime, weather, or any other beat with NO real partner-channel hook: respond with exactly the literal token SKIP and nothing else. Do not invent a contrived angle just to fill four lines.
 
