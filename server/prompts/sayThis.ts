@@ -10,14 +10,23 @@ export type SayThisInput = {
   title: string;
   summary: string | null;
   category: string;
+  articleText?: string | null;
 };
+
+/** Hand the model the full article (when scraped) so the opener leans on a
+ *  concrete detail from the reporting rather than the headline. */
+function articleBlock(articleText: string | null | undefined): string {
+  const text = articleText?.trim();
+  if (!text) return "";
+  return `\n\nFull article text (use a specific detail from this — a figure, a named party, a concrete development — so the line sounds like someone who read the piece, not the headline):\n${text.slice(0, 6000)}\n`;
+}
 
 function buildPrompt(input: SayThisInput): string {
   return `You are writing for Ruben Laubscher, a property partnerships professional based in Sydney. He uses these lines verbatim in conversations with brokers, advisers and buyer's agents about Australian property, finance, lending, regulation, and adjacent macro / markets stories.
 
 Story: ${input.title}
 Category: ${input.category}
-Summary: ${input.summary || "(no summary)"}
+Summary: ${input.summary || "(no summary)"}${articleBlock(input.articleText)}
 
 FIRST, check whether this story is genuinely commercially relevant to the partner channel, property, mortgages, lending, regulation, macro / markets, super, ATO, RBA, APRA, the kind of thing a broker or adviser actually mentions in a client conversation.
 

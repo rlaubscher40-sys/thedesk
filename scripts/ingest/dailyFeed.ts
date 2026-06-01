@@ -13,7 +13,7 @@
  *   SCHEDULED_API_KEY  — matches the server's SCHEDULED_API_KEY env var
  */
 import { DAILY_ITEM_MIN, DAILY_ITEM_TARGET, SOURCES } from "./sources";
-import { fetchOgImage } from "./lib/og";
+import { fetchArticle } from "./lib/article";
 import { fetchSource, type FetchedItem } from "./lib/rss";
 import { postJSON } from "./lib/post";
 
@@ -195,20 +195,28 @@ async function main(): Promise<void> {
     );
   }
 
-  // Fetch og:images in parallel, with a per-item budget.
-  console.log(`[ingest] fetching og:images...`);
-  const withImages = await Promise.all(
+  // Fetch each article once for BOTH its og:image and its body text, in
+  // parallel with a per-item budget. The body text rides along in the
+  // payload so the server can enrich each story from the actual reporting
+  // rather than the 480-char RSS snippet.
+  console.log(`[ingest] fetching articles (image + body text)...`);
+  const enriched = await Promise.all(
     picked.map(async (item) => {
-      const imageUrl = item.url ? await fetchOgImage(item.url) : null;
-      return { item, imageUrl };
+      const article = item.url
+        ? await fetchArticle(item.url)
+        : { imageUrl: null, text: null };
+      return { item, imageUrl: article.imageUrl, articleText: article.text };
     })
   );
-  const imagesFound = withImages.filter((x) => x.imageUrl).length;
-  console.log(`[ingest] ${imagesFound}/${picked.length} items have og:image`);
+  const imagesFound = enriched.filter((x) => x.imageUrl).length;
+  const textFound = enriched.filter((x) => x.articleText).length;
+  console.log(
+    `[ingest] ${imagesFound}/${picked.length} items have og:image, ${textFound}/${picked.length} have body text`
+  );
 
   const feedDate = todayInSydney();
   const payload = {
-    items: withImages.map(({ item, imageUrl }) => ({
+    items: enriched.map(({ item, imageUrl, articleText }) => ({
       feedDate,
       title: item.title,
       source: item.source,
@@ -216,6 +224,7 @@ async function main(): Promise<void> {
       summary: item.summary,
       category: item.category,
       imageUrl: imageUrl ?? null,
+      articleText: articleText ?? null,
     })),
   };
 

@@ -17,7 +17,11 @@ vi.mock("../../core/llm", () => ({
 }));
 
 import { invokeLLM } from "../../core/llm";
-import { synthesizeWeeklyEdition } from "../editionSynthesis";
+import {
+  groundKeyMetrics,
+  synthesizeWeeklyEdition,
+  type VerifiedMetric,
+} from "../editionSynthesis";
 
 const fakeItems = [
   {
@@ -189,5 +193,65 @@ describe("synthesizeWeeklyEdition", () => {
         items: fakeItems,
       })
     ).rejects.toThrow(/schema/);
+  });
+
+  it("overrides the model's keyMetrics with verified figures", async () => {
+    vi.mocked(invokeLLM).mockResolvedValueOnce(validResponse);
+
+    const verifiedMetrics: VerifiedMetric[] = [
+      // Model said "4.35%"; verified store says the rate has moved to 3.85%.
+      { metricKey: "cash_rate", label: "RBA cash rate", value: "3.85", unit: "%", context: null, source: "RBA", asOf: new Date("2026-05-06") },
+      { metricKey: "asx200", label: "ASX 200", value: "8,415.20", unit: null, context: null, source: "Yahoo Finance", asOf: new Date("2026-05-12") },
+    ];
+
+    const out = await synthesizeWeeklyEdition({
+      weekRange: "May 6 – May 12, 2026",
+      weekOf: "2026-05-06",
+      items: fakeItems,
+      verifiedMetrics,
+    });
+
+    // Verified value wins over the model's remembered "4.35%".
+    expect(out.keyMetrics["RBA cash rate"]).toBe("3.85%");
+    expect(out.keyMetrics["ASX 200"]).toBe("8,415.20");
+    // The model's stale "Cash rate" entry must not survive alongside it.
+    expect(out.keyMetrics["Cash rate"]).toBeUndefined();
+  });
+});
+
+describe("groundKeyMetrics", () => {
+  const verified: VerifiedMetric[] = [
+    { metricKey: "cash_rate", label: "RBA cash rate", value: "4.35", unit: "%", context: null, source: "RBA", asOf: null },
+    { metricKey: "asx200", label: "ASX 200", value: "8,210.43", unit: null, context: null, source: "Yahoo", asOf: null },
+  ];
+
+  it("returns the model metrics untouched when no verified data exists", () => {
+    const model = { "Cash rate": "9.99%", "Federal deficit": "$28bn" };
+    expect(groundKeyMetrics(model, [])).toEqual(model);
+    expect(groundKeyMetrics(model, undefined)).toEqual(model);
+  });
+
+  it("leads with verified anchors and dedupes the model's stale concept", () => {
+    const model = { "Cash rate": "9.99%", "S&P/ASX 200": "1,000" };
+    const out = groundKeyMetrics(model, verified);
+    expect(out["RBA cash rate"]).toBe("4.35%");
+    expect(out["ASX 200"]).toBe("8,210.43");
+    // Both model entries are concept-duplicates of verified anchors, dropped.
+    expect(out["Cash rate"]).toBeUndefined();
+    expect(out["S&P/ASX 200"]).toBeUndefined();
+  });
+
+  it("keeps model metrics that don't collide with a verified concept", () => {
+    const model = { "Federal deficit": "$28bn", "Cash rate": "9.99%" };
+    const out = groundKeyMetrics(model, verified);
+    expect(out["Federal deficit"]).toBe("$28bn");
+    expect(out["Cash rate"]).toBeUndefined();
+  });
+
+  it("caps the widget at six entries, verified anchors first", () => {
+    const model = { a: "1", b: "2", c: "3", d: "4", e: "5", f: "6" };
+    const out = groundKeyMetrics(model, verified);
+    expect(Object.keys(out)).toHaveLength(6);
+    expect(Object.keys(out).slice(0, 2)).toEqual(["RBA cash rate", "ASX 200"]);
   });
 });

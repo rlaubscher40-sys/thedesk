@@ -39,6 +39,7 @@ import {
   generateSayThis,
   generateWhyItMatters,
   optimiseHeadlines,
+  runDailyItemQc,
   runEditorQc,
   synthesizeWeeklyEdition,
 } from "./prompts";
@@ -119,6 +120,9 @@ function registerDailyFeedRoute(app: Express): void {
         // Editorial-impact baseline. The admin can override per-item via
         // feed.setPriority, manual control always wins.
         priority: defaultFeedPriority({ category, source }),
+        // Transient, used only to ground the LLM enrichment below. Stripped
+        // before the DB insert (no column for it on the feed table).
+        articleText: item.articleText ?? null,
       };
     });
 
@@ -136,7 +140,11 @@ function registerDailyFeedRoute(app: Express): void {
 
     let insertedIds: number[];
     try {
-      insertedIds = await db.createFeedItems(freshItems);
+      // Drop the transient articleText before persisting, the feed table has
+      // no column for it. It stays available on `freshItems` for enrichment.
+      insertedIds = await db.createFeedItems(
+        freshItems.map(({ articleText: _drop, ...row }) => row)
+      );
     } catch (err) {
       console.error("[scheduled] daily-feed insert failed:", err);
       res.status(500).json({ error: "Database insert failed" });
@@ -170,6 +178,7 @@ function registerDailyFeedRoute(app: Express): void {
                       title: item.title,
                       summary: item.summary,
                       existingTag: item.partnerTag,
+                      articleText: item.articleText,
                     }),
                 item.sayThis
                   ? Promise.resolve(item.sayThis)
@@ -177,6 +186,7 @@ function registerDailyFeedRoute(app: Express): void {
                       title: item.title,
                       summary: item.summary,
                       category: item.category,
+                      articleText: item.articleText,
                     }),
                 item.whyItMatters
                   ? Promise.resolve(item.whyItMatters)
@@ -184,6 +194,7 @@ function registerDailyFeedRoute(app: Express): void {
                       title: item.title,
                       summary: item.summary,
                       category: item.category,
+                      articleText: item.articleText,
                     }),
                 // Feed items don't use AI thumbnails post-refactor, they
                 // rely on the og:image scraped during ingest. Wiring per-
@@ -195,15 +206,47 @@ function registerDailyFeedRoute(app: Express): void {
                   : Promise.resolve(null),
               ]);
 
+              // Resolve the three generated lines (null = SKIPped or failed).
+              let tagValue =
+                tag.status === "fulfilled" && tag.value ? tag.value : null;
+              let sayValue =
+                say.status === "fulfilled" && say.value ? say.value : null;
+              let whyValue =
+                why.status === "fulfilled" && why.value ? why.value : null;
+
+              // Second-pass editor: reads the three lines together against the
+              // story, sharpens flat copy and culls contrived angles. Best-
+              // effort, on any failure it returns the originals untouched.
+              // Skipped when the values were preset by the source (we don't
+              // edit hand-supplied content) or when nothing generated.
+              const hadPreset = Boolean(
+                item.partnerTag || item.sayThis || item.whyItMatters
+              );
+              if (!hadPreset && (tagValue || sayValue || whyValue)) {
+                const qc = await runDailyItemQc({
+                  title: item.title,
+                  summary: item.summary,
+                  category: item.category,
+                  articleText: item.articleText,
+                  sayThis: sayValue,
+                  partnerTag: tagValue,
+                  whyItMatters: whyValue,
+                });
+                tagValue = qc.partnerTag;
+                sayValue = qc.sayThis;
+                whyValue = qc.whyItMatters;
+                if (!qc.approved && qc.notes.length > 0) {
+                  console.log(
+                    `[daily-qc] "${item.title.slice(0, 50)}…": ${qc.notes.length} edit(s)`
+                  );
+                }
+              }
+
               // Persist Say This and Partner Angles as a PAIR. If
               // either prompt SKIPped (or failed) the story renders
               // with no angles at all — the alternative is half-
               // equipped cards (a Say This with no Partner Angles
               // beneath it, or vice versa) which read as broken.
-              const tagValue =
-                tag.status === "fulfilled" && tag.value ? tag.value : null;
-              const sayValue =
-                say.status === "fulfilled" && say.value ? say.value : null;
               if (tagValue && sayValue) {
                 await db.updateFeedItemPartnerTag(id, tagValue);
                 await db.updateFeedItemSayThis(id, sayValue);
@@ -216,8 +259,6 @@ function registerDailyFeedRoute(app: Express): void {
               }
               // "Why it matters" stands alone — it's context, not a partner
               // angle, so it persists independent of the say/tag pairing.
-              const whyValue =
-                why.status === "fulfilled" && why.value ? why.value : null;
               if (whyValue) {
                 await db.updateFeedItemWhyItMatters(id, whyValue);
                 whyOk++;
@@ -420,9 +461,22 @@ function registerSynthesizeEditionRoute(app: Express): void {
       return;
     }
 
+    // Pull the verified metrics store (RBA / ABS / market feeds / sourced
+    // extraction) so synthesis grounds its numbers in real data instead of
+    // reconstructing them from RSS snippets and stale model memory.
+    const verifiedMetrics = (await db.listDailyMetrics()).map((m) => ({
+      metricKey: m.metricKey,
+      label: m.label,
+      value: m.value,
+      unit: m.unit,
+      context: m.context,
+      source: m.source,
+      asOf: m.asOf,
+    }));
+
     let synth;
     try {
-      synth = await synthesizeWeeklyEdition({ weekRange, weekOf, items });
+      synth = await synthesizeWeeklyEdition({ weekRange, weekOf, items, verifiedMetrics });
     } catch (err) {
       console.error("[synthesize-edition] LLM synthesis failed:", err);
       res.status(502).json({ error: "Synthesis failed", message: (err as Error).message });

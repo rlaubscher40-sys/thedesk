@@ -20,11 +20,142 @@ import { z } from "zod";
 import { invokeLLM } from "../core/llm";
 import { rubenSystemPrompt, stripBannedChars, voiceRules } from "./voice";
 
+/**
+ * A verified, current figure pulled from the daily_metrics store (RBA cash
+ * rate CSV, ABS releases, market data feeds, sourced news extraction). These
+ * are the source of truth, handed to the model so it stops reconstructing
+ * numbers from stale training data, and used to override the displayed
+ * keyMetrics after generation.
+ */
+export type VerifiedMetric = {
+  metricKey: string;
+  label: string;
+  value: string;
+  unit: string | null;
+  context: string | null;
+  source: string | null;
+  asOf: Date | null;
+};
+
 export type SynthesisInput = {
   weekRange: string;
   weekOf: string;
   items: DailyFeedItem[];
+  verifiedMetrics?: VerifiedMetric[];
 };
+
+// Editorial priority for the weekly keyMetrics widget — the numbers brokers
+// and advisers scrutinise most, in the order they should appear. Verified
+// values for these anchor the widget; the model's own picks fill any
+// remaining slots. Keys match metricKey in the daily_metrics store.
+const WEEKLY_METRIC_PRIORITY = [
+  "cash_rate",
+  "cpi_trimmed",
+  "unemployment",
+  "asx200",
+  "audusd",
+  "dwelling_value",
+  "auction_clearance",
+];
+const MAX_KEY_METRICS = 6;
+
+// Maps a normalised free-text metric label to a canonical metricKey concept,
+// so a model-authored "Cash rate" entry is recognised as the same thing as
+// the verified "RBA cash rate" and isn't duplicated into the widget.
+const METRIC_ALIASES: Record<string, string[]> = {
+  cash_rate: ["cashrate", "rbacashrate", "cashratetarget", "officialcashrate"],
+  cpi_trimmed: ["cpi", "inflation", "trimmedmeancpi", "trimmedmean", "headlineinflation", "coreinflation"],
+  unemployment: ["unemployment", "unemploymentrate", "joblessrate"],
+  asx200: ["asx", "asx200", "spasx200", "asx200index"],
+  audusd: ["audusd", "aud", "australiandollar"],
+  audgbp: ["audgbp"],
+  audeur: ["audeur"],
+  us10y: ["us10y", "us10yyield", "ustreasury10y"],
+  dwelling_value: ["dwellingvalue", "dwellingvalues", "medianvalue", "homevalue", "nataldwellingvalue", "natldwellingvalue"],
+  auction_clearance: ["auctionclearance", "clearancerate", "auctionclearancerate", "sydneyclearance", "melbourneclearance"],
+  consumer_confidence: ["consumerconfidence", "consumersentiment"],
+  mortgage_arrears: ["mortgagearrears", "arrears", "arrearsrate"],
+  wage_growth: ["wagegrowth", "wpi", "wageprice"],
+  building_approvals: ["buildingapprovals", "dwellingapprovals"],
+  net_migration: ["netmigration", "nom", "netoverseasmigration"],
+};
+
+function normaliseLabel(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+/** Resolve a free-text metric label to a canonical metricKey concept, or
+ *  null when it doesn't match any known metric. */
+function conceptOf(label: string): string | null {
+  const n = normaliseLabel(label);
+  for (const [key, aliases] of Object.entries(METRIC_ALIASES)) {
+    if (key === n || aliases.includes(n)) return key;
+  }
+  return null;
+}
+
+/** Render a verified metric as a display string, appending the unit unless
+ *  the value already carries it ("4.35" + "%" → "4.35%"; "8,210.43" → as-is). */
+function formatMetricDisplay(m: VerifiedMetric): string {
+  const v = m.value.trim();
+  const unit = m.unit?.trim();
+  if (!unit || v.endsWith(unit)) return v;
+  return unit === "%" ? `${v}%` : `${v} ${unit}`;
+}
+
+function verifiedMetricsBlock(metrics: VerifiedMetric[] | undefined): string {
+  if (!metrics || metrics.length === 0) return "";
+  const lines = metrics
+    .map((m) => {
+      const asOf = m.asOf ? ` (as of ${m.asOf.toISOString().slice(0, 10)})` : "";
+      const src = m.source ? ` [${m.source}]` : "";
+      const ctx = m.context ? `, ${m.context}` : "";
+      return `- ${m.label}: ${formatMetricDisplay(m)}${asOf}${src}${ctx}`;
+    })
+    .join("\n");
+  return `
+
+VERIFIED METRICS, authoritative and current. These come straight from the RBA, ABS, live market data and sourced reporting. They are the source of truth.
+
+${lines}
+
+Use these EXACT values anywhere you reference them, in the body prose, the signals, the takeaways and especially keyMetrics. Your training data is stale; these are live. Do NOT recall, round away, or invent a different number for any metric covered above. If a figure you want to cite is not in this list, you may use what the source items state, but never contradict a verified value.`;
+}
+
+/**
+ * Replace the model's keyMetrics with verified figures where we have them.
+ * Verified anchors lead (in editorial priority order), then the model's own
+ * picks fill the remaining slots, skipping anything that duplicates a concept
+ * already placed. Falls back to the model's metrics untouched when no
+ * verified data is available (demo mode, empty store, back-synthesis).
+ */
+export function groundKeyMetrics(
+  modelMetrics: KeyMetrics,
+  verified: VerifiedMetric[] | undefined
+): KeyMetrics {
+  if (!verified || verified.length === 0) return modelMetrics;
+  const byKey = new Map(verified.map((m) => [m.metricKey, m]));
+  const out: KeyMetrics = {};
+  const usedConcepts = new Set<string>();
+
+  for (const key of WEEKLY_METRIC_PRIORITY) {
+    if (Object.keys(out).length >= MAX_KEY_METRICS) break;
+    const m = byKey.get(key);
+    if (!m) continue;
+    out[m.label] = formatMetricDisplay(m);
+    usedConcepts.add(key);
+  }
+
+  for (const [label, value] of Object.entries(modelMetrics)) {
+    if (Object.keys(out).length >= MAX_KEY_METRICS) break;
+    const concept = conceptOf(label);
+    if (concept && usedConcepts.has(concept)) continue;
+    out[label] = value;
+    if (concept) usedConcepts.add(concept);
+  }
+
+  return out;
+}
 
 export type SynthesisOutput = {
   topics: EditionTopic[];
@@ -87,6 +218,7 @@ Each topic must synthesise 2-5 related daily items, not just restate one. If two
 Below is every story logged on the daily feed across the week. Synthesise them into a structured weekly edition.
 
 ${formatItems(input.items)}
+${verifiedMetricsBlock(input.verifiedMetrics)}
 
 ---
 
@@ -126,7 +258,10 @@ Output a SINGLE JSON object matching this exact shape, and NOTHING ELSE, no prea
   "keyMetrics": {
     "Cash rate": "4.35%",
     "ASX 200": "8,210",
-    // ... 4-6 numbers that matter this week; values can be strings or numbers
+    // ... 4-6 numbers that matter this week; values can be strings or numbers.
+    // Draw from the VERIFIED METRICS block above using their exact values.
+    // Any verified figure will be reconciled against the source data after
+    // generation, so never substitute a remembered number for a verified one.
   },
   "fullText": "800-1200 word editor's letter. The unifying narrative that flows ACROSS the topics. Answers 'why does it all add up'. Written as Ruben, direct, plain, commercially sharp. First paragraph hooks with the through-line. Middle paragraphs link the topics. Last paragraph leaves the reader with something to think about heading into next week. Use null only if the topics genuinely have no through-line.",
   "readingTime": "10 min",
@@ -212,7 +347,9 @@ export async function synthesizeWeeklyEdition(input: SynthesisInput): Promise<Sy
         : undefined,
     })),
     signals: validated.data.signals.map((s) => stripBannedChars(s)),
-    keyMetrics: validated.data.keyMetrics,
+    // Override the model's figures with verified ones where we have them, so
+    // the displayed widget can never ship a number the model misremembered.
+    keyMetrics: groundKeyMetrics(validated.data.keyMetrics, input.verifiedMetrics),
     readingTime: validated.data.readingTime ?? "6 min",
     fullText: validated.data.fullText ? stripBannedChars(validated.data.fullText) : null,
     marketStress: validated.data.marketStress ?? null,

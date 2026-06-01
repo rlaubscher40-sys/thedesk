@@ -17,19 +17,30 @@ export type WhyItMattersInput = {
   title: string;
   summary: string | null;
   category: string;
+  articleText?: string | null;
 };
+
+/** When the full article body is available, hand it to the model and tell it
+ *  to mine the buried specific (a number, a named party, a second-order
+ *  effect) rather than working from the headline alone. */
+function articleBlock(articleText: string | null | undefined): string {
+  const text = articleText?.trim();
+  if (!text) return "";
+  return `\n\nFull article text (mine this for the specific detail the headline buries — a figure, a named party, a stated consequence — and ground your line in it):\n${text.slice(0, 6000)}\n`;
+}
 
 function buildPrompt(input: WhyItMattersInput): string {
   return `You are writing the "Why it matters" line for a daily intelligence feed read by property and finance professionals (brokers, advisers, accountants, buyer's agents) in Australia.
 
 Story: ${input.title}
 Category: ${input.category}
-Summary: ${input.summary || "(no summary)"}
+Summary: ${input.summary || "(no summary)"}${articleBlock(input.articleText)}
 
 Write ONE sentence (max 30 words) that explains why this story matters — the implication, the second-order consequence, or the specific thing to watch for next. This is NOT a summary of what happened (the reader already has that) and NOT a conversation script. It is the analytical "so what" that lets someone grasp the stakes in a single scan.
 
 Rules:
 - State the consequence, signal, or what to watch — not a recap of the headline
+- Where the full article text is provided, anchor your line in a specific detail from it, not the generic headline takeaway
 - Be concrete and specific; avoid vague phrasing like "this could have implications"
 - Australian English, no em dashes, no question marks, no hashtags
 - Neutral analytical register, not a sales pitch

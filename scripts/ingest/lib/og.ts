@@ -10,12 +10,27 @@ import { DEFAULT_SITE_URL } from "../../../shared/const";
 
 const SITE_URL = process.env.SITE_URL ?? DEFAULT_SITE_URL;
 
-const OG_PATTERNS = [
+export const OG_PATTERNS = [
   /<meta\s+[^>]*property=["']og:image(?::secure_url)?["'][^>]*content=["']([^"']+)["'][^>]*>/i,
   /<meta\s+[^>]*content=["']([^"']+)["'][^>]*property=["']og:image(?::secure_url)?["'][^>]*>/i,
   /<meta\s+[^>]*name=["']twitter:image(?::src)?["'][^>]*content=["']([^"']+)["'][^>]*>/i,
   /<meta\s+[^>]*content=["']([^"']+)["'][^>]*name=["']twitter:image(?::src)?["'][^>]*>/i,
 ];
+
+/** Pull the first usable og:image / twitter:image URL out of a chunk of
+ *  HTML. Shared with the full-article fetcher so both code paths agree on
+ *  what counts as a valid image. */
+export function pickOgImage(html: string): string | null {
+  for (const pattern of OG_PATTERNS) {
+    const m = html.match(pattern);
+    if (m && m[1]) {
+      const candidate = m[1].trim();
+      if (/^https?:\/\//i.test(candidate)) return candidate;
+      if (candidate.startsWith("//")) return "https:" + candidate;
+    }
+  }
+  return null;
+}
 
 export async function fetchOgImage(url: string, timeoutMs = 4_000): Promise<string | null> {
   try {
@@ -50,15 +65,7 @@ export async function fetchOgImage(url: string, timeoutMs = 4_000): Promise<stri
     } catch {
       /* ignore */
     }
-    for (const pattern of OG_PATTERNS) {
-      const m = html.match(pattern);
-      if (m && m[1]) {
-        const candidate = m[1].trim();
-        if (/^https?:\/\//i.test(candidate)) return candidate;
-        if (candidate.startsWith("//")) return "https:" + candidate;
-      }
-    }
-    return null;
+    return pickOgImage(html);
   } catch {
     return null;
   }
