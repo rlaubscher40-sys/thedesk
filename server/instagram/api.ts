@@ -32,6 +32,7 @@ export async function createImageContainer(opts: {
   accessToken: string;
   imageUrl: string;
   caption?: string;
+  altText?: string;
   isCarouselItem?: boolean;
 }): Promise<string> {
   const params: Record<string, string> = {
@@ -40,6 +41,7 @@ export async function createImageContainer(opts: {
   };
   if (opts.isCarouselItem) params.is_carousel_item = "true";
   if (opts.caption) params.caption = opts.caption;
+  if (opts.altText) params.alt_text = opts.altText;
 
   const data = await igPost<{ id: string }>(
     `/${opts.igUserId}/media`,
@@ -56,14 +58,18 @@ export async function createStoryContainer(opts: {
   igUserId: string;
   accessToken: string;
   imageUrl: string;
+  altText?: string;
 }): Promise<string> {
+  const params: Record<string, string> = {
+    media_type: "STORIES",
+    image_url: opts.imageUrl,
+    access_token: opts.accessToken,
+  };
+  if (opts.altText) params.alt_text = opts.altText;
+
   const data = await igPost<{ id: string }>(
     `/${opts.igUserId}/media`,
-    {
-      media_type: "STORIES",
-      image_url: opts.imageUrl,
-      access_token: opts.accessToken,
-    }
+    params
   );
   return data.id;
 }
