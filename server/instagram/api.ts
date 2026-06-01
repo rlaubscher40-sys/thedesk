@@ -93,6 +93,79 @@ export async function createCarouselContainer(opts: {
   return data.id;
 }
 
+export type MediaMetrics = {
+  likes: number | null;
+  comments: number | null;
+  reach: number | null;
+  saved: number | null;
+  shares: number | null;
+  totalInteractions: number | null;
+};
+
+async function igGet<T>(endpoint: string, params: Record<string, string>): Promise<T> {
+  const qs = new URLSearchParams(params);
+  const res = await fetch(`${BASE}${endpoint}?${qs}`);
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(`Instagram API ${res.status} at ${endpoint}: ${detail.slice(0, 500)}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+/**
+ * Fetch engagement metrics for a published media id. Resilient by design:
+ * like/comment counts come from reliable node fields, while the insights
+ * metrics (reach/saved/shares/total_interactions) are fetched separately and
+ * tolerated if the account or API version does not expose them. Any field we
+ * cannot read comes back null.
+ */
+export async function fetchMediaMetrics(opts: {
+  mediaId: string;
+  accessToken: string;
+}): Promise<MediaMetrics> {
+  const metrics: MediaMetrics = {
+    likes: null,
+    comments: null,
+    reach: null,
+    saved: null,
+    shares: null,
+    totalInteractions: null,
+  };
+
+  // 1. Reliable node fields.
+  try {
+    const fields = await igGet<{ like_count?: number; comments_count?: number }>(
+      `/${opts.mediaId}`,
+      { fields: "like_count,comments_count", access_token: opts.accessToken }
+    );
+    metrics.likes = fields.like_count ?? null;
+    metrics.comments = fields.comments_count ?? null;
+  } catch (err) {
+    console.warn(`[instagram] media fields failed for ${opts.mediaId}:`, (err as Error).message);
+  }
+
+  // 2. Insights (best-effort; metric availability varies by API version).
+  try {
+    const insights = await igGet<{
+      data?: Array<{ name: string; values?: Array<{ value: number }> }>;
+    }>(`/${opts.mediaId}/insights`, {
+      metric: "reach,saved,shares,total_interactions",
+      access_token: opts.accessToken,
+    });
+    for (const row of insights.data ?? []) {
+      const value = row.values?.[0]?.value ?? null;
+      if (row.name === "reach") metrics.reach = value;
+      else if (row.name === "saved") metrics.saved = value;
+      else if (row.name === "shares") metrics.shares = value;
+      else if (row.name === "total_interactions") metrics.totalInteractions = value;
+    }
+  } catch (err) {
+    console.warn(`[instagram] insights failed for ${opts.mediaId}:`, (err as Error).message);
+  }
+
+  return metrics;
+}
+
 /** Publish a ready container (single image or carousel). */
 export async function publishContainer(opts: {
   igUserId: string;

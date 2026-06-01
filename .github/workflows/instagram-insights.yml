@@ -1,0 +1,36 @@
+name: Instagram insights refresh
+
+on:
+  schedule:
+    # 21:00 UTC daily ≈ 07:00 Sydney (AEST). Runs the morning after, so the
+    # prior day's feed post has had ~24h to accumulate engagement before we
+    # snapshot its metrics.
+    - cron: "0 21 * * *"
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Why are you running this manually?"
+        required: false
+        default: "manual test"
+
+concurrency:
+  group: instagram-insights
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Trigger Instagram insights refresh
+        env:
+          INGEST_BASE_URL: ${{ secrets.INGEST_BASE_URL }}
+          SCHEDULED_API_KEY: ${{ secrets.SCHEDULED_API_KEY }}
+        run: |
+          BASE="${INGEST_BASE_URL%/}"
+          curl -fsSL \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -H "x-scheduled-key: ${SCHEDULED_API_KEY}" \
+            "${BASE}/api/ingest/instagram-insights" \
+            -d '{}'
