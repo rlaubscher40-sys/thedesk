@@ -575,22 +575,29 @@ async function notifyDailyBriefSubscribers(feedDate: string): Promise<void> {
     if (subs.length === 0) return;
     const origin = siteOrigin();
     const top5 = items.slice(0, 5);
-    const results = await Promise.allSettled(
-      subs.map((sub) =>
-        sendDailyBriefEmail({
+    const deliveredIds: number[] = [];
+    let delivered = 0;
+    for (let i = 0; i < subs.length; i++) {
+      if (i > 0) await new Promise((r) => setTimeout(r, 600));
+      const sub = subs[i];
+      try {
+        const result = await sendDailyBriefEmail({
           to: sub.email,
           name: sub.name,
           items: top5,
           feedDate,
           siteUrl: origin,
           unsubscribeUrl: editionUnsubscribeUrl(sub.email, origin),
-        })
-      )
-    );
-    const delivered = results.filter(
-      (r) => r.status === "fulfilled" && r.value.delivered
-    ).length;
-    await db.markDailyBriefSent(subs.map((s) => s.id), feedDate);
+        });
+        if (result.delivered) {
+          deliveredIds.push(sub.id);
+          delivered++;
+        }
+      } catch {
+        // leave this subscriber unmarked so they're retried next run
+      }
+    }
+    await db.markDailyBriefSent(deliveredIds, feedDate);
     console.log(
       `[mailer] daily brief ${feedDate}: delivered ${delivered}/${subs.length}`
     );
@@ -821,9 +828,13 @@ async function sendWeeklyRecap(weekOf: string): Promise<void> {
     });
     const weekRange = `${mondayFmt} – ${fridayFmt}`;
 
-    const results = await Promise.allSettled(
-      subs.map((sub) =>
-        sendWeeklyRecapEmail({
+    const deliveredIds: number[] = [];
+    let delivered = 0;
+    for (let i = 0; i < subs.length; i++) {
+      if (i > 0) await new Promise((r) => setTimeout(r, 600));
+      const sub = subs[i];
+      try {
+        const result = await sendWeeklyRecapEmail({
           to: sub.email,
           name: sub.name,
           weekRange,
@@ -831,13 +842,16 @@ async function sendWeeklyRecap(weekOf: string): Promise<void> {
           talkingPoints,
           thisWeekUrl: `${origin}/this-week`,
           unsubscribeUrl: editionUnsubscribeUrl(sub.email, origin),
-        })
-      )
-    );
-    const delivered = results.filter(
-      (r) => r.status === "fulfilled" && r.value.delivered
-    ).length;
-    await db.markWeeklyRecapSent(subs.map((s) => s.id), weekOf);
+        });
+        if (result.delivered) {
+          deliveredIds.push(sub.id);
+          delivered++;
+        }
+      } catch {
+        // leave this subscriber unmarked so they're retried next run
+      }
+    }
+    await db.markWeeklyRecapSent(deliveredIds, weekOf);
     console.log(
       `[mailer] weekly recap ${weekOf}: delivered ${delivered}/${subs.length}`
     );
