@@ -10,6 +10,11 @@
  * surface as the masthead: D-Sunrise mark, Playfair "The Desk"
  * wordmark, INTELLIGENCE byline, mid-dot separators. Kept compact so
  * the message renders consistently across Gmail, Outlook, Apple Mail.
+ *
+ * Light-mode-first design: inline styles set the light defaults;
+ * @media (prefers-color-scheme: dark) + [data-ogsc] overrides flip to
+ * the dark navy palette for clients that support it (Apple Mail, newer
+ * Gmail iOS, Outlook on Mac).
  */
 
 import { createHmac } from "node:crypto";
@@ -67,6 +72,176 @@ export async function send(input: SendInput): Promise<SendResult> {
   }
 }
 
+// ─── Shared design tokens ────────────────────────────────────────────────────
+
+// Light mode (inline style defaults)
+const L = {
+  outerBg:  "#F5F3EF",
+  bg:       "#FFFFFF",
+  heading:  "#0C1220",
+  amber:    "#C9992E",   // slightly darker amber for WCAG contrast on white
+  amberBtn: "#D4A853",   // original amber for CTA buttons (navy text = fine)
+  text:     "#1F2937",
+  muted:    "#4B5563",
+  subtle:   "#9CA3AF",
+  border:   "rgba(180,140,60,0.25)",
+};
+
+// Dark mode class names → overridden by @media / [data-ogsc]
+// Classes: em-bg, em-ob, em-h, em-t, em-m, em-s, em-a, em-btn-t
+const DARK_CSS = `
+  @media (prefers-color-scheme:dark){
+    .em-ob{background-color:#0C1220!important}
+    .em-bg{background-color:#0C1220!important}
+    .em-h{color:#F0C75E!important}
+    .em-t{color:#F0EDE8!important}
+    .em-m{color:#9BA3B5!important}
+    .em-s{color:#6B7280!important}
+    .em-a{color:#D4A853!important}
+    .em-btn-t{color:#0C1220!important}
+    .em-rule-full{background:linear-gradient(90deg,#D4A853 0%,rgba(212,168,83,0) 80%)!important}
+    .em-rule-sub{background:rgba(212,168,83,0.4)!important}
+    .em-story-border{border-top-color:rgba(212,168,83,0.18)!important}
+    .em-pill{background:rgba(212,168,83,0.08)!important;border-color:rgba(212,168,83,0.25)!important}
+    .em-pill-t{color:#F0EDE8!important}
+  }
+  [data-ogsc] .em-ob{background-color:#0C1220!important}
+  [data-ogsc] .em-bg{background-color:#0C1220!important}
+  [data-ogsc] .em-h{color:#F0C75E!important}
+  [data-ogsc] .em-t{color:#F0EDE8!important}
+  [data-ogsc] .em-m{color:#9BA3B5!important}
+  [data-ogsc] .em-s{color:#6B7280!important}
+  [data-ogsc] .em-a{color:#D4A853!important}
+  [data-ogsc] .em-btn-t{color:#0C1220!important}
+  u+.em-body .em-ob{background-color:#0C1220!important}
+  u+.em-body .em-bg{background-color:#0C1220!important}
+  u+.em-body .em-h{color:#F0C75E!important}
+  u+.em-body .em-t{color:#F0EDE8!important}
+  u+.em-body .em-m{color:#9BA3B5!important}
+  u+.em-body .em-s{color:#6B7280!important}
+  u+.em-body .em-a{color:#D4A853!important}
+  u+.em-body .em-btn-t{color:#0C1220!important}
+`.trim();
+
+function emailHead(title: string): string {
+  return `<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"/>
+    <meta name="supported-color-schemes" content="light dark"/>
+    <title>${title}</title>
+    <style>${DARK_CSS}</style>
+  </head>`;
+}
+
+const LOGO_SVG = `<svg width="36" height="42" viewBox="0 0 240 280" xmlns="http://www.w3.org/2000/svg">
+  <g fill="none" stroke="#D4A853" stroke-linecap="round" stroke-linejoin="round">
+    <g stroke-width="7">
+      <line x1="56" y1="16" x2="56" y2="264"/>
+      <line x1="56" y1="100" x2="92" y2="100"/>
+      <line x1="56" y1="264" x2="92" y2="264"/>
+      <path d="M 92 100 A 82 82 0 0 1 92 264"/>
+    </g>
+    <path d="M 68.3 177 A 36 36 0 0 1 140.3 177 Z" fill="#D4A853" stroke="none"/>
+    <g stroke-width="3">
+      <line x1="104.3" y1="173" x2="58" y2="173"/>
+      <line x1="104.3" y1="173" x2="61.6" y2="148.3"/>
+      <line x1="104.3" y1="173" x2="79.7" y2="130.3"/>
+      <line x1="104.3" y1="173" x2="104.3" y2="123.7"/>
+      <line x1="104.3" y1="173" x2="128.9" y2="130.3"/>
+      <line x1="104.3" y1="173" x2="147" y2="148.3"/>
+      <line x1="104.3" y1="173" x2="153.6" y2="173"/>
+    </g>
+  </g>
+</svg>`;
+
+function mastheadRow(): string {
+  return `<tr>
+    <td class="em-bg" bgcolor="${L.bg}" style="padding:32px 0 24px;background-color:${L.bg};">
+      <table role="presentation" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="vertical-align:middle;padding-right:12px;">${LOGO_SVG}</td>
+          <td style="vertical-align:middle;">
+            <div class="em-h" style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:26px;line-height:1;letter-spacing:-0.02em;color:${L.heading};">The Desk</div>
+            <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.22em;color:${L.amber};text-transform:uppercase;margin-top:6px;">Intelligence</div>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>`;
+}
+
+function ruleFullRow(): string {
+  return `<tr>
+    <td class="em-bg" bgcolor="${L.bg}" style="padding:0 0 28px;background-color:${L.bg};">
+      <div class="em-rule-full" style="height:1px;background:linear-gradient(90deg,${L.amberBtn} 0%,rgba(212,168,83,0) 80%);"></div>
+    </td>
+  </tr>`;
+}
+
+function ruleSubRow(): string {
+  return `<tr>
+    <td class="em-bg" bgcolor="${L.bg}" style="padding:8px 0 16px;background-color:${L.bg};">
+      <div class="em-rule-sub" style="height:1px;background:${L.border};"></div>
+    </td>
+  </tr>`;
+}
+
+function ctaRow(href: string, label: string): string {
+  return `<tr>
+    <td class="em-bg" bgcolor="${L.bg}" style="padding:0 0 32px;background-color:${L.bg};">
+      <table role="presentation" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="background:${L.amberBtn};border-radius:4px;">
+            <a href="${href}" class="em-btn-t" style="display:inline-block;padding:14px 28px;font-family:'JetBrains Mono',Consolas,monospace;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:${L.heading};text-decoration:none;font-weight:600;">${label}</a>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>`;
+}
+
+function footerRow(unsubscribeUrl?: string): string {
+  const unsub = unsubscribeUrl
+    ? `<p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.12em;color:${L.subtle};margin:8px 0 0;"><a class="em-s" href="${unsubscribeUrl}" style="color:${L.subtle};text-decoration:underline;">Unsubscribe</a></p>`
+    : "";
+  return `${ruleSubRow()}
+  <tr>
+    <td class="em-bg" bgcolor="${L.bg}" style="padding:0 0 32px;background-color:${L.bg};">
+      <p class="em-s" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.18em;color:${L.subtle};text-transform:uppercase;margin:0 0 6px;">The Desk · Daily intelligence for property partnerships</p>
+      <p class="em-s" style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${L.subtle};margin:0 0 8px;">Curated by Ruben Laubscher. Australian English throughout.</p>
+      <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.12em;margin:0;">
+        <a class="em-s" href="https://www.linkedin.com/in/ruben-laubscher/" style="color:${L.subtle};text-decoration:none;">LinkedIn</a>&nbsp;·&nbsp;<a class="em-s" href="https://www.instagram.com/thedesk.au/" style="color:${L.subtle};text-decoration:none;">Instagram</a>&nbsp;·&nbsp;<a class="em-s" href="https://rubenlaubscher.substack.com/" style="color:${L.subtle};text-decoration:none;">Substack</a>&nbsp;·&nbsp;<a href="https://thedesk.au/" style="color:${L.amberBtn};text-decoration:none;">Subscribe to The Desk →</a>
+      </p>
+      ${unsub}
+    </td>
+  </tr>`;
+}
+
+function wrapLayout(title: string, innerRows: string): string {
+  return `<!doctype html>
+<html lang="en">
+${emailHead(title)}
+<body class="em-body em-ob" style="margin:0;padding:0;background-color:${L.outerBg};font-family:Georgia,'Times New Roman',serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="em-ob" bgcolor="${L.outerBg}" style="background-color:${L.outerBg};">
+    <tr>
+      <td align="center" class="em-ob" bgcolor="${L.outerBg}" style="padding:32px 16px;background-color:${L.outerBg};">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="em-bg" bgcolor="${L.bg}" style="max-width:560px;background-color:${L.bg};border-radius:6px;overflow:hidden;">
+          <tr><td style="padding:0 32px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              ${innerRows}
+            </table>
+          </td></tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+// ─── Public send helpers ─────────────────────────────────────────────────────
+
 /** Brand-styled subscribe-confirmation email. */
 export async function sendConfirmEmail({
   to,
@@ -105,9 +280,7 @@ export function editionUnsubscribeUrl(email: string, siteOrigin: string): string
   return `${siteOrigin}/api/unsubscribe?email=${encodeURIComponent(email)}&sig=${sig}`;
 }
 
-/** Sent when someone re-subscribes with an already-confirmed address.
- *  Lets them know they're already on the list (common when an email security
- *  scanner silently consumed their original confirm link). */
+/** Sent when someone re-subscribes with an already-confirmed address. */
 export async function sendAlreadyConfirmedEmail({
   to,
   editionsUrl,
@@ -115,112 +288,20 @@ export async function sendAlreadyConfirmedEmail({
   to: string;
   editionsUrl: string;
 }): Promise<SendResult> {
-  const NAVY = "#0C1220";
-  const AMBER = "#D4A853";
-  const AMBER_BRIGHT = "#F0C75E";
-  const FG = "#F0EDE8";
-  const FG_MUTED = "#9BA3B5";
-  const FG_SUBTLE = "#6B7280";
-
-  const html = `<!doctype html>
-<html lang="en" style="background-color:${NAVY};">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="dark" />
-    <meta name="supported-color-schemes" content="dark" />
-    <title>You're already on the list</title>
-    <style>
-      :root { color-scheme: dark; }
-      body, .email-body { background-color: ${NAVY} !important; color: ${FG} !important; }
-      .email-wrap { background-color: ${NAVY} !important; }
-      u + .email-body { background-color: ${NAVY} !important; }
-      u + .email-body .email-wrap { background-color: ${NAVY} !important; }
-    </style>
-  </head>
-  <body class="email-body" style="margin:0;padding:0;background-color:${NAVY};font-family:Georgia,'Times New Roman',serif;color:${FG};">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${NAVY}" class="email-wrap" style="background-color:${NAVY};">
-      <tr>
-        <td align="center" bgcolor="${NAVY}" style="padding:48px 16px;background-color:${NAVY};">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${NAVY}" style="max-width:560px;background-color:${NAVY};">
-            <tr>
-              <td bgcolor="${NAVY}" style="padding:0 0 24px;background-color:${NAVY};">
-                <table role="presentation" cellpadding="0" cellspacing="0">
-                  <tr>
-                    <td bgcolor="${NAVY}" style="vertical-align:middle;padding-right:12px;background-color:${NAVY};">
-                      <svg width="36" height="42" viewBox="0 0 240 280" xmlns="http://www.w3.org/2000/svg">
-                        <g fill="none" stroke="${AMBER}" stroke-linecap="round" stroke-linejoin="round">
-                          <g stroke-width="7">
-                            <line x1="56" y1="16" x2="56" y2="264"/>
-                            <line x1="56" y1="100" x2="92" y2="100"/>
-                            <line x1="56" y1="264" x2="92" y2="264"/>
-                            <path d="M 92 100 A 82 82 0 0 1 92 264"/>
-                          </g>
-                          <path d="M 68.3 177 A 36 36 0 0 1 140.3 177 Z" fill="${AMBER}" stroke="none"/>
-                          <g stroke-width="3">
-                            <line x1="104.3" y1="173" x2="58" y2="173"/>
-                            <line x1="104.3" y1="173" x2="61.6" y2="148.3"/>
-                            <line x1="104.3" y1="173" x2="79.7" y2="130.3"/>
-                            <line x1="104.3" y1="173" x2="104.3" y2="123.7"/>
-                            <line x1="104.3" y1="173" x2="128.9" y2="130.3"/>
-                            <line x1="104.3" y1="173" x2="147" y2="148.3"/>
-                            <line x1="104.3" y1="173" x2="153.6" y2="173"/>
-                          </g>
-                        </g>
-                      </svg>
-                    </td>
-                    <td bgcolor="${NAVY}" style="vertical-align:middle;background-color:${NAVY};">
-                      <div style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:26px;line-height:1;letter-spacing:-0.02em;color:${AMBER_BRIGHT};">The Desk</div>
-                      <div style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.22em;color:${FG_MUTED};text-transform:uppercase;margin-top:6px;">Intelligence</div>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-            <tr>
-              <td bgcolor="${NAVY}" style="padding:0 0 32px;background-color:${NAVY};">
-                <div style="height:1px;background:linear-gradient(90deg, ${AMBER} 0%, rgba(212,168,83,0) 80%);"></div>
-              </td>
-            </tr>
-            <tr>
-              <td bgcolor="${NAVY}" style="padding:0 0 24px;background-color:${NAVY};">
-                <div style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${AMBER};text-transform:uppercase;margin-bottom:12px;">Already confirmed</div>
-                <h1 style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:32px;line-height:1.05;color:${FG};margin:0 0 16px;letter-spacing:-0.02em;">You're already on the list.</h1>
-                <p style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.55;color:${FG_MUTED};margin:0 0 24px;">This address is already confirmed and receiving The Desk. Your email client may have automatically clicked the original confirmation link — that's a safety feature some providers use, not an error on your end. You won't miss a thing.</p>
-              </td>
-            </tr>
-            <tr>
-              <td bgcolor="${NAVY}" style="padding:0 0 32px;background-color:${NAVY};">
-                <table role="presentation" cellpadding="0" cellspacing="0">
-                  <tr>
-                    <td style="background:${AMBER};border-radius:4px;">
-                      <a href="${editionsUrl}" style="display:inline-block;padding:14px 28px;font-family:'JetBrains Mono',Consolas,monospace;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:${NAVY};text-decoration:none;font-weight:600;">Browse editions →</a>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-            <tr>
-              <td bgcolor="${NAVY}" style="padding:8px 0 16px;background-color:${NAVY};">
-                <div style="height:1px;background:rgba(212,168,83,0.4);"></div>
-              </td>
-            </tr>
-            <tr>
-              <td bgcolor="${NAVY}" style="background-color:${NAVY};">
-                <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.18em;color:${FG_SUBTLE};text-transform:uppercase;margin:0 0 8px;">The Desk · Daily intelligence for property partnerships</p>
-                <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0 0 10px;">Curated by Ruben Laubscher. Australian English throughout.</p>
-                <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.12em;color:${FG_SUBTLE};margin:0;">
-                  <a href="https://www.linkedin.com/in/ruben-laubscher/" style="color:${FG_SUBTLE};text-decoration:none;">LinkedIn</a>&nbsp;·&nbsp;<a href="https://www.instagram.com/thedesk.au/" style="color:${FG_SUBTLE};text-decoration:none;">Instagram</a>&nbsp;·&nbsp;<a href="https://rubenlaubscher.substack.com/" style="color:${FG_SUBTLE};text-decoration:none;">Substack</a>&nbsp;·&nbsp;<a href="https://thedesk.au/" style="color:${AMBER};text-decoration:none;">Subscribe to The Desk →</a>
-                </p>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  </body>
-</html>`;
-
+  const inner = `
+    ${mastheadRow()}
+    ${ruleFullRow()}
+    <tr>
+      <td class="em-bg" bgcolor="${L.bg}" style="padding:0 0 24px;background-color:${L.bg};">
+        <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${L.amber};text-transform:uppercase;margin-bottom:12px;">Already confirmed</div>
+        <h1 class="em-h" style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:30px;line-height:1.05;color:${L.heading};margin:0 0 14px;letter-spacing:-0.02em;">You're already on the list.</h1>
+        <p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.6;color:${L.muted};margin:0 0 24px;">This address is already confirmed and receiving The Desk. Your email client may have automatically clicked the original confirmation link — that's a safety feature some providers use, not an error on your end. You won't miss a thing.</p>
+      </td>
+    </tr>
+    ${ctaRow(editionsUrl, "Browse editions →")}
+    ${footerRow()}
+  `;
+  const html = wrapLayout("You're already on the list", inner);
   const text = [
     "The Desk · Intelligence",
     "",
@@ -235,7 +316,6 @@ export async function sendAlreadyConfirmedEmail({
     "The Desk · Daily intelligence for property partnerships",
     "Curated by Ruben Laubscher.",
   ].join("\n");
-
   return send({ to, subject: "You're already on the list · The Desk", html, text });
 }
 
@@ -349,8 +429,7 @@ export function nudgeResponseUrl(queueItemId: number, result: "yes" | "not-yet",
   return `${siteOrigin}/api/nudge/respond?id=${queueItemId}&sig=${encodeURIComponent(sig)}&result=${result}`;
 }
 
-/** Weekly recap email sent to all subscribers on Sunday evening. Summarises
- *  what The Desk published that week and surfaces the top talking points. */
+/** Weekly recap email sent to all subscribers on Sunday evening. */
 export async function sendWeeklyRecapEmail({
   to,
   name,
@@ -399,8 +478,7 @@ export async function sendWeeklyRecapEmail({
   });
 }
 
-/** Nudge email sent 2-3 days after saving a talking point to the reading
- *  queue. Asks the user whether the client angle landed. */
+/** Nudge email sent 2-3 days after saving a talking point to the reading queue. */
 export async function sendTalkingPointNudgeEmail({
   to,
   storyTitle,
@@ -442,126 +520,23 @@ export async function sendTalkingPointNudgeEmail({
   });
 }
 
-/** Tiny HTML template. Inline styles only so it renders in every
- *  email client without bouncing off stripped <link>/<style> tags. */
+// ─── HTML templates ──────────────────────────────────────────────────────────
+
 function confirmEmailHtml({ confirmUrl }: { confirmUrl: string }): string {
-  const NAVY = "#0C1220";
-  const AMBER = "#D4A853";
-  const AMBER_BRIGHT = "#F0C75E";
-  const FG = "#F0EDE8";
-  const FG_MUTED = "#9BA3B5";
-  const FG_SUBTLE = "#6B7280";
-
-  return `<!doctype html>
-<html lang="en" style="background-color:${NAVY};">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="dark" />
-    <meta name="supported-color-schemes" content="dark" />
-    <title>Confirm your subscription</title>
-    <style>
-      :root { color-scheme: dark; }
-      body, .email-body { background-color: ${NAVY} !important; color: ${FG} !important; }
-      .email-wrap { background-color: ${NAVY} !important; }
-      /* Gmail dark-mode override: Gmail wraps email body in <u> */
-      u + .email-body { background-color: ${NAVY} !important; }
-      u + .email-body .email-wrap { background-color: ${NAVY} !important; }
-    </style>
-  </head>
-  <body class="email-body" style="margin:0;padding:0;background-color:${NAVY};font-family:Georgia,'Times New Roman',serif;color:${FG};">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${NAVY}" class="email-wrap" style="background-color:${NAVY};">
-      <tr>
-        <td align="center" bgcolor="${NAVY}" style="padding:48px 16px;background-color:${NAVY};">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${NAVY}" style="max-width:560px;background-color:${NAVY};">
-            <!-- Masthead -->
-            <tr>
-              <td bgcolor="${NAVY}" style="padding:0 0 24px;background-color:${NAVY};">
-                <table role="presentation" cellpadding="0" cellspacing="0">
-                  <tr>
-                    <td bgcolor="${NAVY}" style="vertical-align:middle;padding-right:12px;background-color:${NAVY};">
-                      <svg width="36" height="42" viewBox="0 0 240 280" xmlns="http://www.w3.org/2000/svg">
-                        <g fill="none" stroke="${AMBER}" stroke-linecap="round" stroke-linejoin="round">
-                          <g stroke-width="7">
-                            <line x1="56" y1="16" x2="56" y2="264"/>
-                            <line x1="56" y1="100" x2="92" y2="100"/>
-                            <line x1="56" y1="264" x2="92" y2="264"/>
-                            <path d="M 92 100 A 82 82 0 0 1 92 264"/>
-                          </g>
-                          <path d="M 68.3 177 A 36 36 0 0 1 140.3 177 Z" fill="${AMBER}" stroke="none"/>
-                          <g stroke-width="3">
-                            <line x1="104.3" y1="173" x2="58" y2="173"/>
-                            <line x1="104.3" y1="173" x2="61.6" y2="148.3"/>
-                            <line x1="104.3" y1="173" x2="79.7" y2="130.3"/>
-                            <line x1="104.3" y1="173" x2="104.3" y2="123.7"/>
-                            <line x1="104.3" y1="173" x2="128.9" y2="130.3"/>
-                            <line x1="104.3" y1="173" x2="147" y2="148.3"/>
-                            <line x1="104.3" y1="173" x2="153.6" y2="173"/>
-                          </g>
-                        </g>
-                      </svg>
-                    </td>
-                    <td bgcolor="${NAVY}" style="vertical-align:middle;background-color:${NAVY};">
-                      <div style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:26px;line-height:1;letter-spacing:-0.02em;color:${AMBER_BRIGHT};">The Desk</div>
-                      <div style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.22em;color:${FG_MUTED};text-transform:uppercase;margin-top:6px;">Intelligence</div>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-
-            <!-- Editorial rule -->
-            <tr>
-              <td bgcolor="${NAVY}" style="padding:0 0 32px;background-color:${NAVY};">
-                <div style="height:1px;background:linear-gradient(90deg, ${AMBER} 0%, rgba(212,168,83,0) 80%);"></div>
-              </td>
-            </tr>
-
-            <!-- Body -->
-            <tr>
-              <td bgcolor="${NAVY}" style="padding:0 0 24px;background-color:${NAVY};">
-                <div style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${AMBER};text-transform:uppercase;margin-bottom:12px;">One more step</div>
-                <h1 style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:36px;line-height:1.05;color:${FG};margin:0 0 16px;letter-spacing:-0.02em;">Confirm your subscription.</h1>
-                <p style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.55;color:${FG_MUTED};margin:0 0 24px;">Tap the button below to lock it in. The link expires in 24 hours. If you didn't ask for this, ignore the message and nothing happens.</p>
-              </td>
-            </tr>
-
-            <!-- CTA -->
-            <tr>
-              <td bgcolor="${NAVY}" style="padding:0 0 32px;background-color:${NAVY};">
-                <table role="presentation" cellpadding="0" cellspacing="0">
-                  <tr>
-                    <td style="background:${AMBER};border-radius:4px;">
-                      <a href="${confirmUrl}" style="display:inline-block;padding:14px 28px;font-family:'JetBrains Mono',Consolas,monospace;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:${NAVY};text-decoration:none;font-weight:600;">Confirm subscription</a>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-
-            <!-- Footer rule -->
-            <tr>
-              <td bgcolor="${NAVY}" style="padding:8px 0 16px;background-color:${NAVY};">
-                <div style="height:1px;background:rgba(212,168,83,0.4);"></div>
-              </td>
-            </tr>
-
-            <!-- Footer copy -->
-            <tr>
-              <td bgcolor="${NAVY}" style="background-color:${NAVY};">
-                <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.18em;color:${FG_SUBTLE};text-transform:uppercase;margin:0 0 8px;">The Desk · Daily intelligence for property partnerships</p>
-                <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0 0 10px;">Curated by Ruben Laubscher. Australian English throughout.</p>
-                <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.12em;color:${FG_SUBTLE};margin:0;">
-                  <a href="https://www.linkedin.com/in/ruben-laubscher/" style="color:${FG_SUBTLE};text-decoration:none;">LinkedIn</a>&nbsp;·&nbsp;<a href="https://www.instagram.com/thedesk.au/" style="color:${FG_SUBTLE};text-decoration:none;">Instagram</a>&nbsp;·&nbsp;<a href="https://rubenlaubscher.substack.com/" style="color:${FG_SUBTLE};text-decoration:none;">Substack</a>&nbsp;·&nbsp;<a href="https://thedesk.au/" style="color:${AMBER};text-decoration:none;">Subscribe to The Desk →</a>
-                </p>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  </body>
-</html>`;
+  const inner = `
+    ${mastheadRow()}
+    ${ruleFullRow()}
+    <tr>
+      <td class="em-bg" bgcolor="${L.bg}" style="padding:0 0 24px;background-color:${L.bg};">
+        <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${L.amber};text-transform:uppercase;margin-bottom:12px;">One more step</div>
+        <h1 class="em-h" style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:34px;line-height:1.05;color:${L.heading};margin:0 0 14px;letter-spacing:-0.02em;">Confirm your subscription.</h1>
+        <p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.6;color:${L.muted};margin:0 0 24px;">Tap the button below to lock it in. The link expires in 24 hours. If you didn't ask for this, ignore the message and nothing happens.</p>
+      </td>
+    </tr>
+    ${ctaRow(confirmUrl, "Confirm subscription")}
+    ${footerRow()}
+  `;
+  return wrapLayout("Confirm your subscription", inner);
 }
 
 function dailyBriefHtml({
@@ -577,132 +552,37 @@ function dailyBriefHtml({
   briefUrl: string;
   unsubscribeUrl: string;
 }): string {
-  const NAVY = "#0C1220";
-  const AMBER = "#D4A853";
-  const AMBER_BRIGHT = "#F0C75E";
-  const FG = "#F0EDE8";
-  const FG_MUTED = "#9BA3B5";
-  const FG_SUBTLE = "#6B7280";
-  const BORDER = "rgba(212,168,83,0.18)";
-
   const storyRows = items
     .map((item) => {
       const context = (item.whyItMatters || item.summary || "").slice(0, 220);
-      return `
-            <tr>
-              <td bgcolor="${NAVY}" style="padding:18px 0;border-top:1px solid ${BORDER};background-color:${NAVY};">
-                <div style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.2em;color:${AMBER};text-transform:uppercase;margin-bottom:8px;">${item.category}</div>
-                <h3 style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:18px;line-height:1.25;color:${FG};margin:0 0 8px;letter-spacing:-0.01em;">
-                  <a href="${briefUrl}/story/${item.id}" style="color:${FG};text-decoration:none;">${item.title}</a>
-                </h3>
-                ${context ? `<p style="font-family:Georgia,'Times New Roman',serif;font-size:14px;line-height:1.55;color:${FG_MUTED};margin:0;">${context}</p>` : ""}
-              </td>
-            </tr>`;
+      return `<tr>
+        <td class="em-bg em-story-border" bgcolor="${L.bg}" style="padding:18px 0;border-top:1px solid ${L.border};background-color:${L.bg};">
+          <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.2em;color:${L.amber};text-transform:uppercase;margin-bottom:8px;">${item.category}</div>
+          <h3 class="em-h" style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:18px;line-height:1.25;color:${L.heading};margin:0 0 8px;letter-spacing:-0.01em;">
+            <a class="em-h" href="${briefUrl}/story/${item.id}" style="color:${L.heading};text-decoration:none;">${item.title}</a>
+          </h3>
+          ${context ? `<p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:14px;line-height:1.6;color:${L.muted};margin:0;">${context}</p>` : ""}
+        </td>
+      </tr>`;
     })
     .join("");
 
-  return `<!doctype html>
-<html lang="en" style="background-color:${NAVY};">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="dark" />
-    <meta name="supported-color-schemes" content="dark" />
-    <title>Today's brief · ${displayDate}</title>
-    <style>
-      :root { color-scheme: dark; }
-      body, .email-body { background-color: ${NAVY} !important; color: ${FG} !important; }
-      .email-wrap { background-color: ${NAVY} !important; }
-      u + .email-body { background-color: ${NAVY} !important; }
-      u + .email-body .email-wrap { background-color: ${NAVY} !important; }
-    </style>
-  </head>
-  <body class="email-body" style="margin:0;padding:0;background-color:${NAVY};font-family:Georgia,'Times New Roman',serif;color:${FG};">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${NAVY}" class="email-wrap" style="background-color:${NAVY};">
-      <tr>
-        <td align="center" bgcolor="${NAVY}" style="padding:48px 16px;background-color:${NAVY};">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${NAVY}" style="max-width:560px;background-color:${NAVY};">
-            <tr>
-              <td bgcolor="${NAVY}" style="padding:0 0 24px;background-color:${NAVY};">
-                <table role="presentation" cellpadding="0" cellspacing="0">
-                  <tr>
-                    <td bgcolor="${NAVY}" style="vertical-align:middle;padding-right:12px;background-color:${NAVY};">
-                      <svg width="36" height="42" viewBox="0 0 240 280" xmlns="http://www.w3.org/2000/svg">
-                        <g fill="none" stroke="${AMBER}" stroke-linecap="round" stroke-linejoin="round">
-                          <g stroke-width="7">
-                            <line x1="56" y1="16" x2="56" y2="264"/>
-                            <line x1="56" y1="100" x2="92" y2="100"/>
-                            <line x1="56" y1="264" x2="92" y2="264"/>
-                            <path d="M 92 100 A 82 82 0 0 1 92 264"/>
-                          </g>
-                          <path d="M 68.3 177 A 36 36 0 0 1 140.3 177 Z" fill="${AMBER}" stroke="none"/>
-                          <g stroke-width="3">
-                            <line x1="104.3" y1="173" x2="58" y2="173"/>
-                            <line x1="104.3" y1="173" x2="61.6" y2="148.3"/>
-                            <line x1="104.3" y1="173" x2="79.7" y2="130.3"/>
-                            <line x1="104.3" y1="173" x2="104.3" y2="123.7"/>
-                            <line x1="104.3" y1="173" x2="128.9" y2="130.3"/>
-                            <line x1="104.3" y1="173" x2="147" y2="148.3"/>
-                            <line x1="104.3" y1="173" x2="153.6" y2="173"/>
-                          </g>
-                        </g>
-                      </svg>
-                    </td>
-                    <td bgcolor="${NAVY}" style="vertical-align:middle;background-color:${NAVY};">
-                      <div style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:26px;line-height:1;letter-spacing:-0.02em;color:${AMBER_BRIGHT};">The Desk</div>
-                      <div style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.22em;color:${FG_MUTED};text-transform:uppercase;margin-top:6px;">Intelligence</div>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-            <tr>
-              <td bgcolor="${NAVY}" style="padding:0 0 32px;background-color:${NAVY};">
-                <div style="height:1px;background:linear-gradient(90deg, ${AMBER} 0%, rgba(212,168,83,0) 80%);"></div>
-              </td>
-            </tr>
-            <tr>
-              <td bgcolor="${NAVY}" style="padding:0 0 8px;background-color:${NAVY};">
-                <div style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${AMBER};text-transform:uppercase;margin-bottom:12px;">Today's brief · ${displayDate}</div>
-                ${greeting ? `<p style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.55;color:${FG_MUTED};margin:0 0 8px;">Hi ${greeting},</p>` : ""}
-                <p style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.55;color:${FG_MUTED};margin:0;">${items.length} stor${items.length === 1 ? "y" : "ies"} worth knowing before your next conversation.</p>
-              </td>
-            </tr>
-            ${storyRows}
-            <tr>
-              <td bgcolor="${NAVY}" style="padding:28px 0 32px;background-color:${NAVY};">
-                <table role="presentation" cellpadding="0" cellspacing="0">
-                  <tr>
-                    <td style="background:${AMBER};border-radius:4px;">
-                      <a href="${briefUrl}" style="display:inline-block;padding:14px 28px;font-family:'JetBrains Mono',Consolas,monospace;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:${NAVY};text-decoration:none;font-weight:600;">Read the full brief →</a>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-            <tr>
-              <td bgcolor="${NAVY}" style="padding:8px 0 16px;background-color:${NAVY};">
-                <div style="height:1px;background:rgba(212,168,83,0.4);"></div>
-              </td>
-            </tr>
-            <tr>
-              <td bgcolor="${NAVY}" style="background-color:${NAVY};">
-                <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.18em;color:${FG_SUBTLE};text-transform:uppercase;margin:0 0 8px;">The Desk · Daily intelligence for property partnerships</p>
-                <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0 0 10px;">Curated by Ruben Laubscher. Australian English throughout.</p>
-                <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.12em;color:${FG_SUBTLE};margin:0 0 8px;">
-                  <a href="https://www.linkedin.com/in/ruben-laubscher/" style="color:${FG_SUBTLE};text-decoration:none;">LinkedIn</a>&nbsp;·&nbsp;<a href="https://www.instagram.com/thedesk.au/" style="color:${FG_SUBTLE};text-decoration:none;">Instagram</a>&nbsp;·&nbsp;<a href="https://rubenlaubscher.substack.com/" style="color:${FG_SUBTLE};text-decoration:none;">Substack</a>&nbsp;·&nbsp;<a href="https://thedesk.au/" style="color:${AMBER};text-decoration:none;">Subscribe to The Desk →</a>
-                </p>
-                <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.12em;color:${FG_SUBTLE};margin:0;">
-                  <a href="${unsubscribeUrl}" style="color:${FG_SUBTLE};text-decoration:underline;">Unsubscribe</a>
-                </p>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  </body>
-</html>`;
+  const inner = `
+    ${mastheadRow()}
+    ${ruleFullRow()}
+    <tr>
+      <td class="em-bg" bgcolor="${L.bg}" style="padding:0 0 8px;background-color:${L.bg};">
+        <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${L.amber};text-transform:uppercase;margin-bottom:10px;">Today's brief · ${displayDate}</div>
+        ${greeting ? `<p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.55;color:${L.muted};margin:0 0 6px;">Hi ${greeting},</p>` : ""}
+        <p class="em-t" style="font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.55;color:${L.text};margin:0;">${items.length} stor${items.length === 1 ? "y" : "ies"} worth knowing before your next conversation.</p>
+      </td>
+    </tr>
+    ${storyRows}
+    <tr><td class="em-bg" bgcolor="${L.bg}" style="padding:12px 0 0;background-color:${L.bg};"></td></tr>
+    ${ctaRow(briefUrl, "Read the full brief →")}
+    ${footerRow(unsubscribeUrl)}
+  `;
+  return wrapLayout(`Today's brief · ${displayDate}`, inner);
 }
 
 function editionNotificationHtml({
@@ -718,127 +598,21 @@ function editionNotificationHtml({
   editionUrl: string;
   unsubscribeUrl: string;
 }): string {
-  const NAVY = "#0C1220";
-  const AMBER = "#D4A853";
-  const AMBER_BRIGHT = "#F0C75E";
-  const FG = "#F0EDE8";
-  const FG_MUTED = "#9BA3B5";
-  const FG_SUBTLE = "#6B7280";
-
-  return `<!doctype html>
-<html lang="en" style="background-color:${NAVY};">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="dark" />
-    <meta name="supported-color-schemes" content="dark" />
-    <title>Edition #${editionNumber} — ${weekRange}</title>
-    <style>
-      :root { color-scheme: dark; }
-      body, .email-body { background-color: ${NAVY} !important; color: ${FG} !important; }
-      .email-wrap { background-color: ${NAVY} !important; }
-      /* Gmail dark-mode override: Gmail wraps email body in <u> */
-      u + .email-body { background-color: ${NAVY} !important; }
-      u + .email-body .email-wrap { background-color: ${NAVY} !important; }
-    </style>
-  </head>
-  <body class="email-body" style="margin:0;padding:0;background-color:${NAVY};font-family:Georgia,'Times New Roman',serif;color:${FG};">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${NAVY}" class="email-wrap" style="background-color:${NAVY};">
-      <tr>
-        <td align="center" bgcolor="${NAVY}" style="padding:48px 16px;background-color:${NAVY};">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${NAVY}" style="max-width:560px;background-color:${NAVY};">
-            <!-- Masthead -->
-            <tr>
-              <td bgcolor="${NAVY}" style="padding:0 0 24px;background-color:${NAVY};">
-                <table role="presentation" cellpadding="0" cellspacing="0">
-                  <tr>
-                    <td bgcolor="${NAVY}" style="vertical-align:middle;padding-right:12px;background-color:${NAVY};">
-                      <svg width="36" height="42" viewBox="0 0 240 280" xmlns="http://www.w3.org/2000/svg">
-                        <g fill="none" stroke="${AMBER}" stroke-linecap="round" stroke-linejoin="round">
-                          <g stroke-width="7">
-                            <line x1="56" y1="16" x2="56" y2="264"/>
-                            <line x1="56" y1="100" x2="92" y2="100"/>
-                            <line x1="56" y1="264" x2="92" y2="264"/>
-                            <path d="M 92 100 A 82 82 0 0 1 92 264"/>
-                          </g>
-                          <path d="M 68.3 177 A 36 36 0 0 1 140.3 177 Z" fill="${AMBER}" stroke="none"/>
-                          <g stroke-width="3">
-                            <line x1="104.3" y1="173" x2="58" y2="173"/>
-                            <line x1="104.3" y1="173" x2="61.6" y2="148.3"/>
-                            <line x1="104.3" y1="173" x2="79.7" y2="130.3"/>
-                            <line x1="104.3" y1="173" x2="104.3" y2="123.7"/>
-                            <line x1="104.3" y1="173" x2="128.9" y2="130.3"/>
-                            <line x1="104.3" y1="173" x2="147" y2="148.3"/>
-                            <line x1="104.3" y1="173" x2="153.6" y2="173"/>
-                          </g>
-                        </g>
-                      </svg>
-                    </td>
-                    <td bgcolor="${NAVY}" style="vertical-align:middle;background-color:${NAVY};">
-                      <div style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:26px;line-height:1;letter-spacing:-0.02em;color:${AMBER_BRIGHT};">The Desk</div>
-                      <div style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.22em;color:${FG_MUTED};text-transform:uppercase;margin-top:6px;">Intelligence</div>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-
-            <!-- Editorial rule -->
-            <tr>
-              <td bgcolor="${NAVY}" style="padding:0 0 32px;background-color:${NAVY};">
-                <div style="height:1px;background:linear-gradient(90deg, ${AMBER} 0%, rgba(212,168,83,0) 80%);"></div>
-              </td>
-            </tr>
-
-            <!-- Body -->
-            <tr>
-              <td bgcolor="${NAVY}" style="padding:0 0 24px;background-color:${NAVY};">
-                <div style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${AMBER};text-transform:uppercase;margin-bottom:12px;">Weekly Edition · ${weekRange}</div>
-                ${greeting ? `<p style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.55;color:${FG_MUTED};margin:0 0 16px;">Hi ${greeting},</p>` : ""}
-                <h1 style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:36px;line-height:1.05;color:${FG};margin:0 0 16px;letter-spacing:-0.02em;">Edition #${editionNumber} is ready.</h1>
-                <p style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.55;color:${FG_MUTED};margin:0 0 24px;">Your weekly intelligence briefing — market signals, talking points, and the context you need before any client conversation this week.</p>
-              </td>
-            </tr>
-
-            <!-- CTA -->
-            <tr>
-              <td bgcolor="${NAVY}" style="padding:0 0 32px;background-color:${NAVY};">
-                <table role="presentation" cellpadding="0" cellspacing="0">
-                  <tr>
-                    <td style="background:${AMBER};border-radius:4px;">
-                      <a href="${editionUrl}" style="display:inline-block;padding:14px 28px;font-family:'JetBrains Mono',Consolas,monospace;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:${NAVY};text-decoration:none;font-weight:600;">Read Edition #${editionNumber} →</a>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-
-            <!-- Footer rule -->
-            <tr>
-              <td bgcolor="${NAVY}" style="padding:8px 0 16px;background-color:${NAVY};">
-                <div style="height:1px;background:rgba(212,168,83,0.4);"></div>
-              </td>
-            </tr>
-
-            <!-- Footer copy -->
-            <tr>
-              <td bgcolor="${NAVY}" style="background-color:${NAVY};">
-                <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.18em;color:${FG_SUBTLE};text-transform:uppercase;margin:0 0 8px;">The Desk · Daily intelligence for property partnerships</p>
-                <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0 0 10px;">Curated by Ruben Laubscher. Australian English throughout.</p>
-                <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.12em;color:${FG_SUBTLE};margin:0 0 8px;">
-                  <a href="https://www.linkedin.com/in/ruben-laubscher/" style="color:${FG_SUBTLE};text-decoration:none;">LinkedIn</a>&nbsp;·&nbsp;<a href="https://www.instagram.com/thedesk.au/" style="color:${FG_SUBTLE};text-decoration:none;">Instagram</a>&nbsp;·&nbsp;<a href="https://rubenlaubscher.substack.com/" style="color:${FG_SUBTLE};text-decoration:none;">Substack</a>&nbsp;·&nbsp;<a href="https://thedesk.au/" style="color:${AMBER};text-decoration:none;">Subscribe to The Desk →</a>
-                </p>
-                <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.12em;color:${FG_SUBTLE};margin:0;">
-                  <a href="${unsubscribeUrl}" style="color:${FG_SUBTLE};text-decoration:underline;">Unsubscribe</a>
-                </p>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  </body>
-</html>`;
+  const inner = `
+    ${mastheadRow()}
+    ${ruleFullRow()}
+    <tr>
+      <td class="em-bg" bgcolor="${L.bg}" style="padding:0 0 24px;background-color:${L.bg};">
+        <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${L.amber};text-transform:uppercase;margin-bottom:12px;">Weekly Edition · ${weekRange}</div>
+        ${greeting ? `<p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.55;color:${L.muted};margin:0 0 14px;">Hi ${greeting},</p>` : ""}
+        <h1 class="em-h" style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:34px;line-height:1.05;color:${L.heading};margin:0 0 14px;letter-spacing:-0.02em;">Edition #${editionNumber} is ready.</h1>
+        <p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.6;color:${L.muted};margin:0 0 24px;">Your weekly intelligence briefing — market signals, talking points, and the context you need before any client conversation this week.</p>
+      </td>
+    </tr>
+    ${ctaRow(editionUrl, `Read Edition #${editionNumber} →`)}
+    ${footerRow(unsubscribeUrl)}
+  `;
+  return wrapLayout(`Edition #${editionNumber} — ${weekRange}`, inner);
 }
 
 function weeklyRecapHtml({
@@ -856,135 +630,38 @@ function weeklyRecapHtml({
   thisWeekUrl: string;
   unsubscribeUrl: string;
 }): string {
-  const NAVY = "#0C1220";
-  const AMBER = "#D4A853";
-  const AMBER_BRIGHT = "#F0C75E";
-  const FG = "#F0EDE8";
-  const FG_MUTED = "#9BA3B5";
-  const FG_SUBTLE = "#6B7280";
-  const BORDER = "rgba(212,168,83,0.18)";
+  const tpSummary = talkingPoints.length === 1 ? "1 talking point" : `${talkingPoints.length} talking points`;
 
   const tpRows = talkingPoints.slice(0, 3)
-    .map((tp) => `
-            <tr>
-              <td bgcolor="${NAVY}" style="padding:18px 0;border-top:1px solid ${BORDER};background-color:${NAVY};">
-                <div style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.2em;color:${AMBER};text-transform:uppercase;margin-bottom:8px;">${tp.category}</div>
-                <p style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:16px;line-height:1.3;color:${FG};margin:0 0 10px;">${tp.title}</p>
-                <div style="background:rgba(212,168,83,0.08);border:1px solid rgba(212,168,83,0.25);border-radius:4px;padding:12px 14px;">
-                  <div style="font-family:'JetBrains Mono',Consolas,monospace;font-size:9px;letter-spacing:0.2em;color:${AMBER};text-transform:uppercase;margin-bottom:6px;">Say this</div>
-                  <p style="font-family:Georgia,'Times New Roman',serif;font-size:14px;line-height:1.5;color:${FG};margin:0;">"${tp.sayThis}"</p>
-                </div>
-              </td>
-            </tr>`)
+    .map((tp) => `<tr>
+      <td class="em-bg em-story-border" bgcolor="${L.bg}" style="padding:18px 0;border-top:1px solid ${L.border};background-color:${L.bg};">
+        <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.2em;color:${L.amber};text-transform:uppercase;margin-bottom:8px;">${tp.category}</div>
+        <p class="em-h" style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:16px;line-height:1.3;color:${L.heading};margin:0 0 10px;">${tp.title}</p>
+        <div class="em-pill" style="background:rgba(180,140,60,0.07);border:1px solid ${L.border};border-radius:4px;padding:12px 14px;">
+          <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:9px;letter-spacing:0.2em;color:${L.amber};text-transform:uppercase;margin-bottom:6px;">Say this</div>
+          <p class="em-t em-pill-t" style="font-family:Georgia,'Times New Roman',serif;font-size:14px;line-height:1.5;color:${L.text};margin:0;">"${tp.sayThis}"</p>
+        </div>
+      </td>
+    </tr>`)
     .join("");
 
-  const tpSummary = talkingPoints.length === 1
-    ? "1 talking point"
-    : `${talkingPoints.length} talking points`;
-
-  return `<!doctype html>
-<html lang="en" style="background-color:${NAVY};">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="dark" />
-    <meta name="supported-color-schemes" content="dark" />
-    <title>Your week on The Desk · ${weekRange}</title>
-    <style>
-      :root { color-scheme: dark; }
-      body, .email-body { background-color: ${NAVY} !important; color: ${FG} !important; }
-      .email-wrap { background-color: ${NAVY} !important; }
-      u + .email-body { background-color: ${NAVY} !important; }
-      u + .email-body .email-wrap { background-color: ${NAVY} !important; }
-    </style>
-  </head>
-  <body class="email-body" style="margin:0;padding:0;background-color:${NAVY};font-family:Georgia,'Times New Roman',serif;color:${FG};">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${NAVY}" class="email-wrap" style="background-color:${NAVY};">
-      <tr>
-        <td align="center" bgcolor="${NAVY}" style="padding:48px 16px;background-color:${NAVY};">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${NAVY}" style="max-width:560px;background-color:${NAVY};">
-            <tr>
-              <td bgcolor="${NAVY}" style="padding:0 0 24px;background-color:${NAVY};">
-                <table role="presentation" cellpadding="0" cellspacing="0">
-                  <tr>
-                    <td bgcolor="${NAVY}" style="vertical-align:middle;padding-right:12px;background-color:${NAVY};">
-                      <svg width="36" height="42" viewBox="0 0 240 280" xmlns="http://www.w3.org/2000/svg">
-                        <g fill="none" stroke="${AMBER}" stroke-linecap="round" stroke-linejoin="round">
-                          <g stroke-width="7">
-                            <line x1="56" y1="16" x2="56" y2="264"/>
-                            <line x1="56" y1="100" x2="92" y2="100"/>
-                            <line x1="56" y1="264" x2="92" y2="264"/>
-                            <path d="M 92 100 A 82 82 0 0 1 92 264"/>
-                          </g>
-                          <path d="M 68.3 177 A 36 36 0 0 1 140.3 177 Z" fill="${AMBER}" stroke="none"/>
-                          <g stroke-width="3">
-                            <line x1="104.3" y1="173" x2="58" y2="173"/>
-                            <line x1="104.3" y1="173" x2="61.6" y2="148.3"/>
-                            <line x1="104.3" y1="173" x2="79.7" y2="130.3"/>
-                            <line x1="104.3" y1="173" x2="104.3" y2="123.7"/>
-                            <line x1="104.3" y1="173" x2="128.9" y2="130.3"/>
-                            <line x1="104.3" y1="173" x2="147" y2="148.3"/>
-                            <line x1="104.3" y1="173" x2="153.6" y2="173"/>
-                          </g>
-                        </g>
-                      </svg>
-                    </td>
-                    <td bgcolor="${NAVY}" style="vertical-align:middle;background-color:${NAVY};">
-                      <div style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:26px;line-height:1;letter-spacing:-0.02em;color:${AMBER_BRIGHT};">The Desk</div>
-                      <div style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.22em;color:${FG_MUTED};text-transform:uppercase;margin-top:6px;">Intelligence</div>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-            <tr>
-              <td bgcolor="${NAVY}" style="padding:0 0 32px;background-color:${NAVY};">
-                <div style="height:1px;background:linear-gradient(90deg, ${AMBER} 0%, rgba(212,168,83,0) 80%);"></div>
-              </td>
-            </tr>
-            <tr>
-              <td bgcolor="${NAVY}" style="padding:0 0 8px;background-color:${NAVY};">
-                <div style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${AMBER};text-transform:uppercase;margin-bottom:12px;">Your week · ${weekRange}</div>
-                ${greeting ? `<p style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.55;color:${FG_MUTED};margin:0 0 8px;">Hi ${greeting},</p>` : ""}
-                <h1 style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:30px;line-height:1.1;color:${FG};margin:0 0 12px;letter-spacing:-0.02em;">The Desk delivered ${storyCount} stor${storyCount === 1 ? "y" : "ies"} this week.</h1>
-                <p style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.55;color:${FG_MUTED};margin:0;">${tpSummary} worth using with clients — ready when you are.</p>
-              </td>
-            </tr>
-            ${tpRows}
-            <tr>
-              <td bgcolor="${NAVY}" style="padding:28px 0 32px;background-color:${NAVY};">
-                <table role="presentation" cellpadding="0" cellspacing="0">
-                  <tr>
-                    <td style="background:${AMBER};border-radius:4px;">
-                      <a href="${thisWeekUrl}" style="display:inline-block;padding:14px 28px;font-family:'JetBrains Mono',Consolas,monospace;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:${NAVY};text-decoration:none;font-weight:600;">Review this week's talking points →</a>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-            <tr>
-              <td bgcolor="${NAVY}" style="padding:8px 0 16px;background-color:${NAVY};">
-                <div style="height:1px;background:rgba(212,168,83,0.4);"></div>
-              </td>
-            </tr>
-            <tr>
-              <td bgcolor="${NAVY}" style="background-color:${NAVY};">
-                <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.18em;color:${FG_SUBTLE};text-transform:uppercase;margin:0 0 8px;">The Desk · Daily intelligence for property partnerships</p>
-                <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0 0 10px;">Curated by Ruben Laubscher. Australian English throughout.</p>
-                <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.12em;color:${FG_SUBTLE};margin:0 0 8px;">
-                  <a href="https://www.linkedin.com/in/ruben-laubscher/" style="color:${FG_SUBTLE};text-decoration:none;">LinkedIn</a>&nbsp;·&nbsp;<a href="https://www.instagram.com/thedesk.au/" style="color:${FG_SUBTLE};text-decoration:none;">Instagram</a>&nbsp;·&nbsp;<a href="https://rubenlaubscher.substack.com/" style="color:${FG_SUBTLE};text-decoration:none;">Substack</a>&nbsp;·&nbsp;<a href="https://thedesk.au/" style="color:${AMBER};text-decoration:none;">Subscribe to The Desk →</a>
-                </p>
-                <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.12em;color:${FG_SUBTLE};margin:0;">
-                  <a href="${unsubscribeUrl}" style="color:${FG_SUBTLE};text-decoration:underline;">Unsubscribe</a>
-                </p>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  </body>
-</html>`;
+  const inner = `
+    ${mastheadRow()}
+    ${ruleFullRow()}
+    <tr>
+      <td class="em-bg" bgcolor="${L.bg}" style="padding:0 0 8px;background-color:${L.bg};">
+        <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${L.amber};text-transform:uppercase;margin-bottom:10px;">Your week · ${weekRange}</div>
+        ${greeting ? `<p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.55;color:${L.muted};margin:0 0 8px;">Hi ${greeting},</p>` : ""}
+        <h1 class="em-h" style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:28px;line-height:1.1;color:${L.heading};margin:0 0 10px;letter-spacing:-0.02em;">The Desk delivered ${storyCount} stor${storyCount === 1 ? "y" : "ies"} this week.</h1>
+        <p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.55;color:${L.muted};margin:0;">${tpSummary} worth using with clients — ready when you are.</p>
+      </td>
+    </tr>
+    ${tpRows}
+    <tr><td class="em-bg" bgcolor="${L.bg}" style="padding:12px 0 0;background-color:${L.bg};"></td></tr>
+    ${ctaRow(thisWeekUrl, "Review this week's talking points →")}
+    ${footerRow(unsubscribeUrl)}
+  `;
+  return wrapLayout(`Your week on The Desk · ${weekRange}`, inner);
 }
 
 function talkingPointNudgeHtml({
@@ -1000,121 +677,37 @@ function talkingPointNudgeHtml({
   yesUrl: string;
   notYetUrl: string;
 }): string {
-  const NAVY = "#0C1220";
-  const AMBER = "#D4A853";
-  const AMBER_BRIGHT = "#F0C75E";
-  const FG = "#F0EDE8";
-  const FG_MUTED = "#9BA3B5";
-  const FG_SUBTLE = "#6B7280";
-  const GREEN = "#4ade80";
-  const GREEN_BG = "rgba(74,222,128,0.08)";
-  const GREEN_BORDER = "rgba(74,222,128,0.3)";
-
-  return `<!doctype html>
-<html lang="en" style="background-color:${NAVY};">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="dark" />
-    <meta name="supported-color-schemes" content="dark" />
-    <title>Did the ${category} angle land?</title>
-    <style>
-      :root { color-scheme: dark; }
-      body, .email-body { background-color: ${NAVY} !important; color: ${FG} !important; }
-      .email-wrap { background-color: ${NAVY} !important; }
-      u + .email-body { background-color: ${NAVY} !important; }
-      u + .email-body .email-wrap { background-color: ${NAVY} !important; }
-    </style>
-  </head>
-  <body class="email-body" style="margin:0;padding:0;background-color:${NAVY};font-family:Georgia,'Times New Roman',serif;color:${FG};">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${NAVY}" class="email-wrap" style="background-color:${NAVY};">
-      <tr>
-        <td align="center" bgcolor="${NAVY}" style="padding:48px 16px;background-color:${NAVY};">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${NAVY}" style="max-width:480px;background-color:${NAVY};">
-            <tr>
-              <td bgcolor="${NAVY}" style="padding:0 0 24px;background-color:${NAVY};">
-                <table role="presentation" cellpadding="0" cellspacing="0">
-                  <tr>
-                    <td bgcolor="${NAVY}" style="vertical-align:middle;padding-right:12px;background-color:${NAVY};">
-                      <svg width="36" height="42" viewBox="0 0 240 280" xmlns="http://www.w3.org/2000/svg">
-                        <g fill="none" stroke="${AMBER}" stroke-linecap="round" stroke-linejoin="round">
-                          <g stroke-width="7">
-                            <line x1="56" y1="16" x2="56" y2="264"/>
-                            <line x1="56" y1="100" x2="92" y2="100"/>
-                            <line x1="56" y1="264" x2="92" y2="264"/>
-                            <path d="M 92 100 A 82 82 0 0 1 92 264"/>
-                          </g>
-                          <path d="M 68.3 177 A 36 36 0 0 1 140.3 177 Z" fill="${AMBER}" stroke="none"/>
-                          <g stroke-width="3">
-                            <line x1="104.3" y1="173" x2="58" y2="173"/>
-                            <line x1="104.3" y1="173" x2="61.6" y2="148.3"/>
-                            <line x1="104.3" y1="173" x2="79.7" y2="130.3"/>
-                            <line x1="104.3" y1="173" x2="104.3" y2="123.7"/>
-                            <line x1="104.3" y1="173" x2="128.9" y2="130.3"/>
-                            <line x1="104.3" y1="173" x2="147" y2="148.3"/>
-                            <line x1="104.3" y1="173" x2="153.6" y2="173"/>
-                          </g>
-                        </g>
-                      </svg>
-                    </td>
-                    <td bgcolor="${NAVY}" style="vertical-align:middle;background-color:${NAVY};">
-                      <div style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:26px;line-height:1;letter-spacing:-0.02em;color:${AMBER_BRIGHT};">The Desk</div>
-                      <div style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.22em;color:${FG_MUTED};text-transform:uppercase;margin-top:6px;">Intelligence</div>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-            <tr>
-              <td bgcolor="${NAVY}" style="padding:0 0 32px;background-color:${NAVY};">
-                <div style="height:1px;background:linear-gradient(90deg, ${AMBER} 0%, rgba(212,168,83,0) 80%);"></div>
-              </td>
-            </tr>
-            <tr>
-              <td bgcolor="${NAVY}" style="padding:0 0 24px;background-color:${NAVY};">
-                <div style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${AMBER};text-transform:uppercase;margin-bottom:12px;">Quick check-in · ${category}</div>
-                <h1 style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:28px;line-height:1.1;color:${FG};margin:0 0 12px;letter-spacing:-0.02em;">Did the angle land?</h1>
-                <p style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.5;color:${FG_MUTED};margin:0 0 20px;">A few days ago you saved this talking point to your queue:</p>
-                <p style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.4;color:${FG};font-weight:700;margin:0 0 16px;">${storyTitle}</p>
-                <div style="background:rgba(212,168,83,0.08);border:1px solid rgba(212,168,83,0.25);border-radius:4px;padding:14px 16px;margin:0 0 28px;">
-                  <div style="font-family:'JetBrains Mono',Consolas,monospace;font-size:9px;letter-spacing:0.2em;color:${AMBER};text-transform:uppercase;margin-bottom:8px;">Say this</div>
-                  <p style="font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.5;color:${FG};margin:0;">"${sayThis}"</p>
-                </div>
-                <p style="font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.5;color:${FG_MUTED};margin:0 0 20px;">Did you use it with a client? One tap — helps track what's working.</p>
-              </td>
-            </tr>
-            <tr>
-              <td bgcolor="${NAVY}" style="padding:0 0 32px;background-color:${NAVY};">
-                <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
-                  <tr>
-                    <td bgcolor="${NAVY}" style="width:48%;padding-right:8px;background-color:${NAVY};">
-                      <a href="${yesUrl}" style="display:block;text-align:center;padding:14px 16px;font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:${NAVY};text-decoration:none;font-weight:600;background:${GREEN};border-radius:4px;">Yes, it landed ✓</a>
-                    </td>
-                    <td bgcolor="${NAVY}" style="width:48%;padding-left:8px;background-color:${NAVY};">
-                      <a href="${notYetUrl}" style="display:block;text-align:center;padding:14px 16px;font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:${FG};text-decoration:none;font-weight:600;background:${GREEN_BG};border:1px solid ${GREEN_BORDER};border-radius:4px;">Not yet</a>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-            <tr>
-              <td bgcolor="${NAVY}" style="padding:8px 0 16px;background-color:${NAVY};">
-                <div style="height:1px;background:rgba(212,168,83,0.4);"></div>
-              </td>
-            </tr>
-            <tr>
-              <td bgcolor="${NAVY}" style="background-color:${NAVY};">
-                <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.18em;color:${FG_SUBTLE};text-transform:uppercase;margin:0 0 8px;">The Desk · Daily intelligence for property partnerships</p>
-                <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${FG_SUBTLE};margin:0 0 10px;">Curated by Ruben Laubscher. Australian English throughout.</p>
-                <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.12em;color:${FG_SUBTLE};margin:0;">
-                  <a href="https://www.linkedin.com/in/ruben-laubscher/" style="color:${FG_SUBTLE};text-decoration:none;">LinkedIn</a>&nbsp;·&nbsp;<a href="https://www.instagram.com/thedesk.au/" style="color:${FG_SUBTLE};text-decoration:none;">Instagram</a>&nbsp;·&nbsp;<a href="https://rubenlaubscher.substack.com/" style="color:${FG_SUBTLE};text-decoration:none;">Substack</a>&nbsp;·&nbsp;<a href="https://thedesk.au/" style="color:${AMBER};text-decoration:none;">Subscribe to The Desk →</a>
-                </p>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  </body>
-</html>`;
+  const inner = `
+    ${mastheadRow()}
+    ${ruleFullRow()}
+    <tr>
+      <td class="em-bg" bgcolor="${L.bg}" style="padding:0 0 24px;background-color:${L.bg};">
+        <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${L.amber};text-transform:uppercase;margin-bottom:12px;">Quick check-in · ${category}</div>
+        <h1 class="em-h" style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:28px;line-height:1.1;color:${L.heading};margin:0 0 12px;letter-spacing:-0.02em;">Did the angle land?</h1>
+        <p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.55;color:${L.muted};margin:0 0 16px;">A few days ago you saved this talking point to your queue:</p>
+        <p class="em-h" style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.4;color:${L.heading};font-weight:700;margin:0 0 14px;">${storyTitle}</p>
+        <div class="em-pill" style="background:rgba(180,140,60,0.07);border:1px solid ${L.border};border-radius:4px;padding:14px 16px;margin:0 0 20px;">
+          <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:9px;letter-spacing:0.2em;color:${L.amber};text-transform:uppercase;margin-bottom:8px;">Say this</div>
+          <p class="em-t em-pill-t" style="font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.5;color:${L.text};margin:0;">"${sayThis}"</p>
+        </div>
+        <p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.5;color:${L.muted};margin:0 0 24px;">Did you use it with a client? One tap — helps track what's working.</p>
+      </td>
+    </tr>
+    <tr>
+      <td class="em-bg" bgcolor="${L.bg}" style="padding:0 0 32px;background-color:${L.bg};">
+        <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+          <tr>
+            <td style="width:48%;padding-right:8px;">
+              <a href="${yesUrl}" style="display:block;text-align:center;padding:14px 16px;font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#FFFFFF;text-decoration:none;font-weight:600;background:#16A34A;border-radius:4px;">Yes, it landed ✓</a>
+            </td>
+            <td style="width:48%;padding-left:8px;">
+              <a href="${notYetUrl}" style="display:block;text-align:center;padding:14px 16px;font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:${L.muted};text-decoration:none;font-weight:600;background:transparent;border:1px solid ${L.border};border-radius:4px;">Not yet</a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    ${footerRow()}
+  `;
+  return wrapLayout(`Did the ${category} angle land?`, inner);
 }
