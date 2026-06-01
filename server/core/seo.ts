@@ -113,6 +113,43 @@ async function handleEditionMeta(
     // index.html already declares og:image at 1200x630 pointing at the
     // homepage card, so we override that to the per-edition card here
     // (the in-place rewrite below replaces the existing tag).
+    const publishedIso = edition.publishedAt
+      ? new Date(edition.publishedAt).toISOString()
+      : new Date().toISOString();
+
+    const articleSchema = {
+      "@context": "https://schema.org",
+      "@type": "NewsArticle",
+      "headline": title,
+      "description": description,
+      "image": ogImage,
+      "url": canonical,
+      "datePublished": publishedIso,
+      "dateModified": publishedIso,
+      "author": {
+        "@type": "Person",
+        "name": "Ruben Laubscher",
+        "jobTitle": "Head of Partnerships",
+        "url": "https://thedesk.au/about",
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "The Desk",
+        "url": "https://thedesk.au",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://thedesk.au/og-card.png",
+          "width": 1200,
+          "height": 630,
+        },
+      },
+      "isPartOf": {
+        "@type": "Periodical",
+        "name": "The Desk",
+        "url": "https://thedesk.au",
+      },
+    };
+
     const additions = [
       `<meta property="og:type" content="article" />`,
       `<meta property="og:url" content="${htmlEscape(canonical)}" />`,
@@ -120,6 +157,7 @@ async function handleEditionMeta(
       `<meta name="twitter:description" content="${htmlEscape(ogDescription)}" />`,
       `<meta name="twitter:image" content="${htmlEscape(ogImage)}" />`,
       `<link rel="canonical" href="${htmlEscape(canonical)}" />`,
+      `<script type="application/ld+json">${JSON.stringify(articleSchema)}</script>`,
     ].join("\n    ");
 
     html = html.replace(
