@@ -20,9 +20,13 @@ import { TRPCError } from "@trpc/server";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import * as db from "../db";
-import { sendConfirmEmail, sendAlreadyConfirmedEmail } from "../core/mailer";
+import { sendConfirmEmail, sendAlreadyConfirmedEmail, sendDailyBriefEmail, editionUnsubscribeUrl } from "../core/mailer";
 import { adminProcedure, publicProcedure, router } from "../core/trpc";
 import { DEFAULT_SITE_URL } from "../../shared/const";
+
+function todayAEST(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
+}
 
 function siteOrigin(): string {
   const v = process.env.SITE_URL ?? process.env.VITE_SITE_URL ?? DEFAULT_SITE_URL;
@@ -130,4 +134,33 @@ export const subscribersRouter = router({
   list: adminProcedure.query(async () => {
     return db.listSubscribers();
   }),
+
+  /** Admin: resend today's daily brief to a single confirmed subscriber. */
+  resendDailyBrief: adminProcedure
+    .input(z.object({ subscriberId: z.number().int().positive() }))
+    .mutation(async ({ input }) => {
+      const subs = await db.listSubscribers();
+      const sub = subs.find((s) => s.id === input.subscriberId);
+      if (!sub || !sub.confirmedAt || sub.unsubscribedAt) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Subscriber not found or not active." });
+      }
+      const today = todayAEST();
+      const items = await db.listFeedItems(today);
+      if (items.length === 0) {
+        throw new TRPCError({ code: "PRECONDITION_FAILED", message: "No feed items for today yet." });
+      }
+      const origin = siteOrigin();
+      const result = await sendDailyBriefEmail({
+        to: sub.email,
+        name: sub.name,
+        items: items.slice(0, 5),
+        feedDate: today,
+        siteUrl: origin,
+        unsubscribeUrl: editionUnsubscribeUrl(sub.email, origin),
+      });
+      if (result.delivered) {
+        await db.markDailyBriefSent([sub.id], today);
+      }
+      return { delivered: result.delivered };
+    }),
 });
