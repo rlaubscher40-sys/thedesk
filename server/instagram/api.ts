@@ -48,6 +48,26 @@ export async function createImageContainer(opts: {
   return data.id;
 }
 
+/**
+ * Create a STORIES container from a single image. Stories are a single 9:16
+ * media item (no carousels), live for 24 hours. Publish with publishContainer.
+ */
+export async function createStoryContainer(opts: {
+  igUserId: string;
+  accessToken: string;
+  imageUrl: string;
+}): Promise<string> {
+  const data = await igPost<{ id: string }>(
+    `/${opts.igUserId}/media`,
+    {
+      media_type: "STORIES",
+      image_url: opts.imageUrl,
+      access_token: opts.accessToken,
+    }
+  );
+  return data.id;
+}
+
 /** Bundle child container IDs into a CAROUSEL container. */
 export async function createCarouselContainer(opts: {
   igUserId: string;

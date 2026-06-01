@@ -16,12 +16,14 @@ import type { DailyFeedItem, Edition } from "../db/schema";
 import { generateInstagramHeadline } from "../prompts/instagramHeadline";
 import {
   renderDailyStoryCard,
+  renderDailyStoryVertical,
   renderWeeklyCoverCard,
   renderWeeklyTopicCard,
 } from "../og/instagramCards";
 import {
   createCarouselContainer,
   createImageContainer,
+  createStoryContainer,
   publishContainer,
 } from "./api";
 import { removeTempImage, storeTempImage } from "./tempStore";
@@ -146,6 +148,31 @@ export async function postDailyCarousel(
     const postId = await publishContainer({ igUserId, accessToken, creationId: carouselId });
 
     console.log(`[instagram] daily carousel posted: ${postId}`);
+
+    // Also share the lead story to the 24h Story. Best-effort: a Story failure
+    // must never fail the feed post that has already gone live.
+    try {
+      const storyBuf = await renderDailyStoryVertical(sanitized[0]!);
+      const storyUuid = storeTempImage(storyBuf);
+      uuids.push(storyUuid);
+      const storyContainerId = await createStoryContainer({
+        igUserId,
+        accessToken,
+        imageUrl: `${siteUrl}/instagram/temp/${storyUuid}.jpg`,
+      });
+      const storyId = await publishContainer({
+        igUserId,
+        accessToken,
+        creationId: storyContainerId,
+      });
+      console.log(`[instagram] daily story posted: ${storyId}`);
+    } catch (err) {
+      console.error(
+        "[instagram] daily story failed (feed post still live):",
+        (err as Error).message
+      );
+    }
+
     return { postId };
   } finally {
     uuids.forEach(removeTempImage);

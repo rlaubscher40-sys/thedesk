@@ -318,6 +318,243 @@ export async function renderDailyStoryCard(
 }
 
 /**
+ * Daily Story frame: 1080×1920 (9:16), for the Instagram Story posted right
+ * after the feed carousel. Features the lead story headline and a prompt back
+ * to the feed for the full briefing. Same brand tokens as the square cards.
+ */
+export async function renderDailyStoryVertical(
+  story: DailyFeedItem
+): Promise<Buffer> {
+  const headline = clamp(story.title, 110);
+  const why = story.whyItMatters ? clamp(story.whyItMatters, 240) : null;
+  const category = (story.category || "NEWS").toUpperCase();
+  const fontSize = headline.length > 80 ? "58px" : "70px";
+
+  const tree = {
+    type: "div",
+    props: {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        width: "1080px",
+        height: "1920px",
+        backgroundColor: NAVY,
+        backgroundImage:
+          "radial-gradient(circle at 82% 10%, rgba(212,168,83,0.14) 0%, transparent 50%)",
+        padding: "120px 80px",
+        justifyContent: "space-between",
+      },
+      children: [
+        // ── Top: branding ──
+        {
+          type: "div",
+          props: {
+            style: { display: "flex", flexDirection: "column", gap: "10px" },
+            children: [
+              {
+                type: "div",
+                props: {
+                  style: {
+                    fontFamily: "JetBrains Mono",
+                    fontSize: "13px",
+                    letterSpacing: "0.3em",
+                    textTransform: "uppercase",
+                    color: AMBER,
+                  },
+                  children: "The Desk · Daily Intelligence",
+                },
+              },
+              {
+                type: "div",
+                props: {
+                  style: {
+                    fontFamily: "JetBrains Mono",
+                    fontSize: "13px",
+                    letterSpacing: "0.18em",
+                    textTransform: "uppercase",
+                    color: FG_MUTED,
+                  },
+                  children: "Today's briefing is live",
+                },
+              },
+            ],
+          },
+        },
+
+        // ── Middle: category + headline + why ──
+        {
+          type: "div",
+          props: {
+            style: { display: "flex", flexDirection: "column", gap: "36px" },
+            children: [
+              // Category pill
+              {
+                type: "div",
+                props: {
+                  style: {
+                    display: "flex",
+                    alignSelf: "flex-start",
+                    backgroundColor: "rgba(212,168,83,0.14)",
+                    border: `1px solid ${AMBER}`,
+                    borderRadius: "4px",
+                    padding: "6px 16px",
+                  },
+                  children: {
+                    type: "div",
+                    props: {
+                      style: {
+                        fontFamily: "JetBrains Mono",
+                        fontSize: "13px",
+                        letterSpacing: "0.22em",
+                        color: AMBER,
+                      },
+                      children: category,
+                    },
+                  },
+                },
+              },
+              // Headline
+              {
+                type: "div",
+                props: {
+                  style: {
+                    fontFamily: "Playfair Display",
+                    fontWeight: 700,
+                    fontSize,
+                    lineHeight: 1.08,
+                    letterSpacing: "-0.02em",
+                    color: FG,
+                  },
+                  children: headline,
+                },
+              },
+              // Why it matters
+              ...(why
+                ? [
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "12px",
+                          borderLeft: `3px solid ${AMBER}`,
+                          paddingLeft: "24px",
+                        },
+                        children: [
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                fontFamily: "JetBrains Mono",
+                                fontSize: "12px",
+                                letterSpacing: "0.25em",
+                                textTransform: "uppercase",
+                                color: AMBER,
+                              },
+                              children: "Why It Matters",
+                            },
+                          },
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                fontFamily: "JetBrains Mono",
+                                fontSize: "21px",
+                                lineHeight: 1.6,
+                                color: FG_MUTED,
+                              },
+                              children: why,
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  ]
+                : []),
+            ],
+          },
+        },
+
+        // ── Bottom: feed prompt + rule + source + domain ──
+        {
+          type: "div",
+          props: {
+            style: { display: "flex", flexDirection: "column", gap: "28px" },
+            children: [
+              {
+                type: "div",
+                props: {
+                  style: {
+                    fontFamily: "Playfair Display",
+                    fontWeight: 700,
+                    fontSize: "30px",
+                    lineHeight: 1.2,
+                    color: FG,
+                  },
+                  children: "See today's top stories on our feed",
+                },
+              },
+              {
+                type: "div",
+                props: {
+                  style: {
+                    display: "flex",
+                    width: "100%",
+                    height: "1px",
+                    backgroundImage: `linear-gradient(90deg, ${AMBER} 0%, rgba(212,168,83,0) 70%)`,
+                  },
+                  children: "",
+                },
+              },
+              {
+                type: "div",
+                props: {
+                  style: {
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  },
+                  children: [
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          fontFamily: "JetBrains Mono",
+                          fontSize: "13px",
+                          letterSpacing: "0.15em",
+                          textTransform: "uppercase",
+                          color: FG_MUTED,
+                        },
+                        children: `via ${clamp(story.source, 30)}`,
+                      },
+                    },
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          fontFamily: "JetBrains Mono",
+                          fontSize: "13px",
+                          letterSpacing: "0.22em",
+                          color: AMBER,
+                        },
+                        children: "thedesk.au",
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      ],
+    },
+  };
+
+  return renderToJpeg(tree, 1080, 1920);
+}
+
+/**
  * Weekly edition cover card: 1080×1350 portrait.
  * Shows edition number, week range, and topic list as a contents page.
  */
