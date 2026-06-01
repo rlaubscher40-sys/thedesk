@@ -14,6 +14,7 @@
  */
 import { DAILY_ITEM_MIN, DAILY_ITEM_TARGET, SOURCES } from "./sources";
 import { fetchArticle } from "./lib/article";
+import { clusterByTitle } from "./lib/cluster";
 import { fetchSource, type FetchedItem } from "./lib/rss";
 import { postJSON } from "./lib/post";
 
@@ -186,7 +187,25 @@ async function main(): Promise<void> {
   const deduped = dedupe(relevant);
   console.log(`[ingest] ${deduped.length} after dedup`);
 
-  const picked = rankAndCap(deduped, DAILY_ITEM_TARGET);
+  // Cluster same-story coverage across outlets so each representative carries
+  // a corroboration count ("5 outlets reporting"). URL dedup above only
+  // catches the exact same link; this catches the same event reported
+  // separately by ABC, the Guardian, the AFR, etc.
+  const clusters = clusterByTitle(deduped);
+  const representatives: FetchedItem[] = clusters.map((c) => ({
+    ...c.item,
+    corroborationCount: c.corroborationCount,
+    corroboratingSources:
+      c.corroborationCount > 1 ? c.corroboratingSources : null,
+  }));
+  const corroborated = representatives.filter(
+    (r) => (r.corroborationCount ?? 1) > 1
+  ).length;
+  console.log(
+    `[ingest] ${representatives.length} stories after clustering (${corroborated} corroborated by 2+ outlets)`
+  );
+
+  const picked = rankAndCap(representatives, DAILY_ITEM_TARGET);
   console.log(`[ingest] selected ${picked.length} items for ingest`);
 
   if (picked.length < DAILY_ITEM_MIN) {
@@ -225,6 +244,8 @@ async function main(): Promise<void> {
       category: item.category,
       imageUrl: imageUrl ?? null,
       articleText: articleText ?? null,
+      corroborationCount: item.corroborationCount ?? 1,
+      corroboratingSources: item.corroboratingSources ?? null,
     })),
   };
 

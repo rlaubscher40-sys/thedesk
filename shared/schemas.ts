@@ -63,8 +63,52 @@ export type EditionTopic = z.infer<typeof editionTopicSchema>;
 export const keyMetricsSchema = z.record(z.string(), z.union([z.string(), z.number()]));
 export type KeyMetrics = z.infer<typeof keyMetricsSchema>;
 
-export const signalsSchema = z.array(z.string().min(1));
+/**
+ * A signal is a one-line brief. It may be a bare string (legacy / hand-typed)
+ * or an object carrying its beat so the reader can scan signals grouped by
+ * topic (rates, property, global…). The union keeps every edition already
+ * stored as a string array valid, no migration needed.
+ */
+export const signalSchema = z.union([
+  z.string().min(1),
+  z.object({
+    text: z.string().min(1),
+    category: z.string().max(32).optional().nullable(),
+  }),
+]);
+export const signalsSchema = z.array(signalSchema);
+export type Signal = z.infer<typeof signalSchema>;
 export type Signals = z.infer<typeof signalsSchema>;
+
+/** The display text of a signal, whichever shape it takes. */
+export function signalText(s: Signal): string {
+  return typeof s === "string" ? s : s.text;
+}
+
+/** The beat/category of a signal, or null for a bare-string signal. */
+export function signalCategory(s: Signal): string | null {
+  return typeof s === "string" ? null : (s.category ?? null);
+}
+
+// ─── Edition look-back (accountability on the prior edition) ────────────────
+
+/**
+ * One resolved call from last week's edition: what was flagged, what actually
+ * happened, and an honest verdict. The accountability loop that turns a feed
+ * into something readers trust, it closes the loop on prior forward-looking
+ * claims (datesToWatch / whatToWatch / takeaways) against the new week.
+ */
+export const lookbackItemSchema = z.object({
+  reference: z.string().min(1).max(280),
+  outcome: z.string().min(1).max(400),
+  verdict: z.enum(["on-track", "played-out", "too-early", "missed"]),
+});
+export const lookbackSchema = z.object({
+  summary: z.string().min(1).max(600),
+  items: z.array(lookbackItemSchema).min(1).max(6),
+});
+export type LookbackItem = z.infer<typeof lookbackItemSchema>;
+export type Lookback = z.infer<typeof lookbackSchema>;
 
 // ─── Partner tag (4-persona block on a daily feed item) ─────────────────────
 
@@ -115,6 +159,11 @@ export const dailyFeedIngestItemSchema = z.object({
    *  reporting rather than the RSS snippet. NOT persisted, there is no
    *  column for it on the daily feed table. */
   articleText: z.string().max(20_000).optional().nullable(),
+  /** Number of distinct outlets that reported this story (from the ingest
+   *  clustering pass). 1 = single source. */
+  corroborationCount: z.number().int().min(1).optional(),
+  /** Distinct source names that corroborated the story, when more than one. */
+  corroboratingSources: z.array(z.string()).optional().nullable(),
 });
 export type DailyFeedIngestItem = z.infer<typeof dailyFeedIngestItemSchema>;
 

@@ -25,6 +25,7 @@ export type DailyItemQcInput = {
   sayThis: string | null;
   partnerTag: string | null;
   whyItMatters: string | null;
+  counterpoint: string | null;
 };
 
 export type DailyItemQcResult = {
@@ -33,6 +34,7 @@ export type DailyItemQcResult = {
   sayThis: string | null;
   partnerTag: string | null;
   whyItMatters: string | null;
+  counterpoint: string | null;
 };
 
 function articleBlock(articleText: string | null | undefined): string {
@@ -48,6 +50,7 @@ function buildPrompt(input: DailyItemQcInput): string {
   if (input.sayThis != null) present.push("sayThis");
   if (input.partnerTag != null) present.push("partnerTag");
   if (input.whyItMatters != null) present.push("whyItMatters");
+  if (input.counterpoint != null) present.push("counterpoint");
 
   return `You are the EDITOR doing a final read of the context lines stamped on a single daily feed story before it ships. The writer filed these in isolation; you see them together against the story. Tighten what's flat, cut what's contrived, fix any voice tell. Edits should be conservative, sharpen, don't rewrite for taste.
 
@@ -61,6 +64,7 @@ sayThis: ${input.sayThis ?? "(none)"}
 partnerTag:
 ${input.partnerTag ?? "(none)"}
 whyItMatters: ${input.whyItMatters ?? "(none)"}
+counterpoint: ${input.counterpoint ?? "(none)"}
 
 ---
 
@@ -79,6 +83,9 @@ partnerTag, four persona angles, EXACTLY these four labels in this order: ${PART
 whyItMatters, the analytical so-what.
 - One sentence, max 30 words. The consequence, signal, or thing to watch, NOT a recap. Concrete, no "this could have implications" filler.
 
+counterpoint, the calm contrarian read.
+- One sentence, max 28 words. The non-obvious tension, bear case, or assumption the consensus might have wrong. It must genuinely complicate the obvious read, not restate it. Cull it if it is contrived.
+
 CULLING: if a line is genuinely contrived or off-topic for the partner channel, set it to null rather than polishing weak content into existence. Note that sayThis and partnerTag travel together downstream, cull both or keep both, never split the pair. NEVER write a line for a field that is "(none)" on file, return null for it.
 
 Output a SINGLE JSON object, NOTHING ELSE, no markdown fences, no preamble:
@@ -88,7 +95,8 @@ Output a SINGLE JSON object, NOTHING ELSE, no markdown fences, no preamble:
   "notes": ["one short note per edit, empty array if nothing changed"],
   "sayThis": "polished line, or null to cull, or the unchanged line",
   "partnerTag": "the four labelled lines separated by newlines, or null",
-  "whyItMatters": "polished line, or null to cull, or the unchanged line"
+  "whyItMatters": "polished line, or null to cull, or the unchanged line",
+  "counterpoint": "polished line, or null to cull, or the unchanged line"
 }
 
 If every line is already sharp, set approved=true, notes=[], and return each field unchanged. For any field that was "(none)", return null. Output valid JSON only, no trailing commas.`;
@@ -129,6 +137,7 @@ function fallback(input: DailyItemQcInput): DailyItemQcResult {
     sayThis: input.sayThis,
     partnerTag: input.partnerTag,
     whyItMatters: input.whyItMatters,
+    counterpoint: input.counterpoint,
   };
 }
 
@@ -141,7 +150,12 @@ export async function runDailyItemQc(
   input: DailyItemQcInput
 ): Promise<DailyItemQcResult> {
   // Nothing to review.
-  if (input.sayThis == null && input.partnerTag == null && input.whyItMatters == null) {
+  if (
+    input.sayThis == null &&
+    input.partnerTag == null &&
+    input.whyItMatters == null &&
+    input.counterpoint == null
+  ) {
     return fallback(input);
   }
 
@@ -163,7 +177,14 @@ export async function runDailyItemQc(
   const fenced = json.match(/```(?:json)?\s*([\s\S]+?)\s*```/);
   if (fenced && fenced[1]) json = fenced[1].trim();
 
-  let parsed: { approved?: unknown; notes?: unknown; sayThis?: unknown; partnerTag?: unknown; whyItMatters?: unknown };
+  let parsed: {
+    approved?: unknown;
+    notes?: unknown;
+    sayThis?: unknown;
+    partnerTag?: unknown;
+    whyItMatters?: unknown;
+    counterpoint?: unknown;
+  };
   try {
     parsed = JSON.parse(json);
   } catch {
@@ -177,5 +198,6 @@ export async function runDailyItemQc(
     sayThis: reconcileLine(input.sayThis, parsed.sayThis, SAY_THIS_MAX_CHARS),
     partnerTag: reconcileTag(input.partnerTag, parsed.partnerTag),
     whyItMatters: reconcileLine(input.whyItMatters, parsed.whyItMatters, WHY_MAX_CHARS),
+    counterpoint: reconcileLine(input.counterpoint, parsed.counterpoint, SAY_THIS_MAX_CHARS),
   };
 }

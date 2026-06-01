@@ -15,6 +15,7 @@ import { EditorsLetter } from "./EditorsLetter";
 import { LeadStory } from "./LeadStory";
 import { ListenButton } from "./ListenButton";
 import { SignalsBriefs } from "./SignalsBriefs";
+import { LookbackSection } from "./LookbackSection";
 import { TopicCard } from "./TopicCard";
 
 /**
@@ -40,11 +41,14 @@ function buildAudioScript(edition: Edition): string {
 export function EditionReader({
   edition,
   priorMetrics,
+  priorMarketStress,
 }: {
   edition: Edition;
   /** Prior edition's keyMetrics, drives the trend arrows on the
       metrics strip. */
   priorMetrics?: KeyMetrics | null;
+  /** Prior edition's marketStress, drives the rising/easing badge. */
+  priorMarketStress?: string | null;
 }) {
   const topics = edition.topics ?? [];
   const [lead, ...rest] = topics;
@@ -54,12 +58,24 @@ export function EditionReader({
     <article>
       <ScrollProgress />
       <SectionErrorBoundary section="Hero">
-        <EditionHero edition={edition} priorMetrics={priorMetrics ?? null} />
+        <EditionHero
+          edition={edition}
+          priorMetrics={priorMetrics ?? null}
+          priorMarketStress={priorMarketStress ?? null}
+        />
       </SectionErrorBoundary>
 
       <div className="flex justify-end -mt-6 mb-8">
         <ListenButton text={audioScript} />
       </div>
+
+      {/* Accountability look-back: how last week's calls played out. Sits up
+          top as a recap before this week's deck. Absent on the first edition. */}
+      {edition.lookback && (
+        <SectionErrorBoundary section="Last week in review">
+          <LookbackSection lookback={edition.lookback} />
+        </SectionErrorBoundary>
+      )}
 
       {/* Table of contents. Editions run long (3000+ words), so give
           readers a jump-nav into each topic. Only worth showing once

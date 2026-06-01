@@ -252,8 +252,8 @@ Output a SINGLE JSON object matching this exact shape, and NOTHING ELSE, no prea
     // ... 5 to 7 topics total spanning the five-beat coverage mandate above. The FIRST topic is the lead, most consequential of the week, longest body, drives the whole edition.
   ],
   "signals": [
-    "one-line signal, short, sharp, max 18 words, names a thing that moved",
-    // ... 8 to 12 total. NOT topic summaries. These are the "what's also moving" rail, quick hits the reader scans across the top of the edition. Cover diverse beats: a rate move, an APRA note, a listings stat, a global headline, a tech / AI item, a cultural beat. Variety > quantity.
+    { "text": "one-line signal, short, sharp, max 18 words, names a thing that moved", "category": "MACRO | PROPERTY | POLICY | MARKETS | AI | TECH | GEOPOLITICS | SCIENCE | ECONOMICS | OTHER" },
+    // ... 8 to 12 total. NOT topic summaries. These are the "what's also moving" rail, quick hits the reader scans across the top of the edition. Each MUST carry a category, the beat it belongs to, so the reader can scan signals grouped. Cover diverse beats: a rate move, an APRA note, a listings stat, a global headline, a tech / AI item, a cultural beat. Variety > quantity.
   ],
   "keyMetrics": {
     "Cash rate": "4.35%",
@@ -346,7 +346,11 @@ export async function synthesizeWeeklyEdition(input: SynthesisInput): Promise<Sy
           )
         : undefined,
     })),
-    signals: validated.data.signals.map((s) => stripBannedChars(s)),
+    signals: validated.data.signals.map((s) =>
+      typeof s === "string"
+        ? stripBannedChars(s)
+        : { ...s, text: stripBannedChars(s.text) }
+    ),
     // Override the model's figures with verified ones where we have them, so
     // the displayed widget can never ship a number the model misremembered.
     keyMetrics: groundKeyMetrics(validated.data.keyMetrics, input.verifiedMetrics),

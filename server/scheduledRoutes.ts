@@ -11,6 +11,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { COOKIE_NAME } from "../shared/const";
 import { defaultFeedPriority } from "../shared/feedPriority";
+import { bestMatch, titleTokens } from "../shared/textSimilarity";
 import { parse as parseCookieHeader } from "cookie";
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
@@ -34,6 +35,8 @@ import {
   editionHeroPrompt,
   extractMetricFromNews,
   feedItemImagePrompt,
+  generateCounterpoint,
+  generateLookback,
   generatePartnerTag,
   generateRubensTake,
   generateSayThis,
@@ -116,6 +119,10 @@ function registerDailyFeedRoute(app: Express): void {
         partnerTag: sanitiseText(item.partnerTag ?? null),
         sayThis: sanitiseText(item.sayThis ?? null),
         whyItMatters: sanitiseText(item.whyItMatters ?? null),
+        // Corroboration is computed at ingest (clustering) and persisted so
+        // the card can show how many outlets ran the story.
+        corroborationCount: item.corroborationCount ?? 1,
+        corroboratingSources: item.corroboratingSources ?? null,
         promotedToEdition: false,
         // Editorial-impact baseline. The admin can override per-item via
         // feed.setPriority, manual control always wins.
@@ -129,13 +136,38 @@ function registerDailyFeedRoute(app: Express): void {
     // Reject any story whose sourceUrl already appeared in the last 14 days.
     // This prevents re-ingesting the same article on back-to-back days when
     // an external trigger re-runs or when the same story is picked up twice.
-    const recentUrls = await db.getRecentSourceUrls(14);
-    const freshItems = items.filter(
+    const [recentUrls, recentItems] = await Promise.all([
+      db.getRecentSourceUrls(14),
+      db.getRecentFeedItems(10),
+    ]);
+    const freshItemsRaw = items.filter(
       (item) => !item.sourceUrl || !recentUrls.has(item.sourceUrl)
     );
-    const skippedCount = items.length - freshItems.length;
+    const skippedCount = items.length - freshItemsRaw.length;
     if (skippedCount > 0) {
       console.log(`[daily-feed] skipped ${skippedCount} duplicate story/stories (seen in last 14 days)`);
+    }
+
+    // Story threading: link each fresh item to the most similar recent prior
+    // item (newest first, so it threads to the latest coverage) so the card
+    // can show "Continues from …". Headline-token match; null when nothing
+    // clears the threshold, which is the common case for a genuinely new story.
+    const threadCandidates = recentItems.map((r) => ({
+      value: r,
+      tokens: titleTokens(r.title),
+    }));
+    let threadedCount = 0;
+    const freshItems = freshItemsRaw.map((item) => {
+      const parent = bestMatch(titleTokens(item.title), threadCandidates);
+      if (parent) threadedCount++;
+      return {
+        ...item,
+        threadParentId: parent?.id ?? null,
+        threadParentTitle: parent?.title ?? null,
+      };
+    });
+    if (threadedCount > 0) {
+      console.log(`[daily-feed] threaded ${threadedCount} story/stories to prior coverage`);
     }
 
     let insertedIds: number[];
@@ -161,6 +193,7 @@ function registerDailyFeedRoute(app: Express): void {
           let tagOk = 0;
           let sayOk = 0;
           let whyOk = 0;
+          let cpOk = 0;
           let imgOk = 0;
           await Promise.all(
             // Zip each input item to the row it became by position — the IDs
@@ -171,7 +204,7 @@ function registerDailyFeedRoute(app: Express): void {
               if (!id) return;
 
               // All enrichments fan out in parallel per item.
-              const [tag, say, why, img] = await Promise.allSettled([
+              const [tag, say, why, cp, img] = await Promise.allSettled([
                 item.partnerTag
                   ? Promise.resolve(item.partnerTag)
                   : generatePartnerTag({
@@ -196,6 +229,15 @@ function registerDailyFeedRoute(app: Express): void {
                       category: item.category,
                       articleText: item.articleText,
                     }),
+                // Counterpoint, the calm contrarian read. Generated for every
+                // story; the prompt SKIPs the many that have no real second
+                // side, so this resolves null most of the time.
+                generateCounterpoint({
+                  title: item.title,
+                  summary: item.summary,
+                  category: item.category,
+                  articleText: item.articleText,
+                }),
                 // Feed items don't use AI thumbnails post-refactor, they
                 // rely on the og:image scraped during ingest. Wiring per-
                 // item asset storage is doable (mirror the edition_assets
@@ -206,15 +248,17 @@ function registerDailyFeedRoute(app: Express): void {
                   : Promise.resolve(null),
               ]);
 
-              // Resolve the three generated lines (null = SKIPped or failed).
+              // Resolve the generated lines (null = SKIPped or failed).
               let tagValue =
                 tag.status === "fulfilled" && tag.value ? tag.value : null;
               let sayValue =
                 say.status === "fulfilled" && say.value ? say.value : null;
               let whyValue =
                 why.status === "fulfilled" && why.value ? why.value : null;
+              let cpValue =
+                cp.status === "fulfilled" && cp.value ? cp.value : null;
 
-              // Second-pass editor: reads the three lines together against the
+              // Second-pass editor: reads the lines together against the
               // story, sharpens flat copy and culls contrived angles. Best-
               // effort, on any failure it returns the originals untouched.
               // Skipped when the values were preset by the source (we don't
@@ -222,7 +266,7 @@ function registerDailyFeedRoute(app: Express): void {
               const hadPreset = Boolean(
                 item.partnerTag || item.sayThis || item.whyItMatters
               );
-              if (!hadPreset && (tagValue || sayValue || whyValue)) {
+              if (!hadPreset && (tagValue || sayValue || whyValue || cpValue)) {
                 const qc = await runDailyItemQc({
                   title: item.title,
                   summary: item.summary,
@@ -231,10 +275,12 @@ function registerDailyFeedRoute(app: Express): void {
                   sayThis: sayValue,
                   partnerTag: tagValue,
                   whyItMatters: whyValue,
+                  counterpoint: cpValue,
                 });
                 tagValue = qc.partnerTag;
                 sayValue = qc.sayThis;
                 whyValue = qc.whyItMatters;
+                cpValue = qc.counterpoint;
                 if (!qc.approved && qc.notes.length > 0) {
                   console.log(
                     `[daily-qc] "${item.title.slice(0, 50)}…": ${qc.notes.length} edit(s)`
@@ -263,6 +309,12 @@ function registerDailyFeedRoute(app: Express): void {
                 await db.updateFeedItemWhyItMatters(id, whyValue);
                 whyOk++;
               }
+              // Counterpoint also stands alone, present only when the story
+              // had a genuine second side.
+              if (cpValue) {
+                await db.updateFeedItemCounterpoint(id, cpValue);
+                cpOk++;
+              }
               if (
                 img.status === "fulfilled" &&
                 img.value &&
@@ -275,7 +327,7 @@ function registerDailyFeedRoute(app: Express): void {
             })
           );
           console.log(
-            `[scheduled] enriched ${feedDate}: ${tagOk} partnerTags, ${sayOk} sayThis, ${whyOk} whyItMatters, ${imgOk} images`
+            `[scheduled] enriched ${feedDate}: ${tagOk} partnerTags, ${sayOk} sayThis, ${whyOk} whyItMatters, ${cpOk} counterpoints, ${imgOk} images`
           );
 
           // Send the daily brief after enrichment so subscribers get
@@ -321,7 +373,11 @@ function registerWeeklyEditionRoute(app: Express): void {
         body: sanitiseText(t.body),
         keyTakeaway: sanitiseText(t.keyTakeaway),
       })),
-      signals: body.signals.map((s) => sanitiseText(s)),
+      signals: body.signals.map((s) =>
+        typeof s === "string"
+          ? sanitiseText(s)
+          : { ...s, text: sanitiseText(s.text) }
+      ),
       fullText: sanitiseText(body.fullText ?? null),
       keyMetrics: body.keyMetrics ?? null,
     };
@@ -564,6 +620,31 @@ function registerSynthesizeEditionRoute(app: Express): void {
       } catch (err) {
         console.warn(
           `[editor-qc] Edition ${editionNumber} skipped: ${(err as Error).message}`
+        );
+      }
+
+      // Step 1b: accountability look-back. Scores last week's forward-looking
+      // calls against this week's feed. Best-effort and skipped for the first
+      // edition (no prior to grade).
+      try {
+        const prior = await db.getEditionByNumber(editionNumber - 1);
+        if (prior) {
+          const lookback = await generateLookback({
+            priorWeekRange: prior.weekRange,
+            priorTopics: prior.topics ?? [],
+            priorDatesToWatch: prior.datesToWatch ?? null,
+            thisWeekItems: items,
+          });
+          if (lookback) {
+            await db.updateEditionLookback(inserted.id, lookback);
+            console.log(
+              `[lookback] Edition ${editionNumber}: scored ${lookback.items.length} prior call(s)`
+            );
+          }
+        }
+      } catch (err) {
+        console.warn(
+          `[lookback] Edition ${editionNumber} skipped: ${(err as Error).message}`
         );
       }
 

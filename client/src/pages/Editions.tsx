@@ -54,13 +54,15 @@ export default function EditionsPage() {
 
   // Prior edition for trend arrows on the metrics strip. Looked up from
   // the list query (already cached) so we don't fire a second round-trip.
-  const priorMetrics = useMemo(() => {
+  const prior = useMemo(() => {
     if (selectedNumber == null) return null;
-    const prior = listQuery.data?.find(
-      (ed) => ed.editionNumber === selectedNumber - 1
+    return (
+      listQuery.data?.find((ed) => ed.editionNumber === selectedNumber - 1) ??
+      null
     );
-    return prior?.keyMetrics ?? null;
   }, [listQuery.data, selectedNumber]);
+  const priorMetrics = prior?.keyMetrics ?? null;
+  const priorMarketStress = prior?.marketStress ?? null;
 
   // Pump per-edition meta tags into <head> so a share to LinkedIn / Slack
   // gets the right preview card. Static index.html tags still serve as
@@ -130,7 +132,11 @@ export default function EditionsPage() {
           {listQuery.isLoading || editionQuery.isLoading ? (
             <EditionReaderSkeleton />
           ) : editionQuery.data ? (
-            <EditionReader edition={editionQuery.data} priorMetrics={priorMetrics} />
+            <EditionReader
+              edition={editionQuery.data}
+              priorMetrics={priorMetrics}
+              priorMarketStress={priorMarketStress}
+            />
           ) : (
             <EmptyEditions />
           )}

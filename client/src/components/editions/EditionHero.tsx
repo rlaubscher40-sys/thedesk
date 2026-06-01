@@ -6,7 +6,7 @@
  */
 import { ArrowDown, ArrowUp, Minus } from "lucide-react";
 import type { Edition } from "@shared/types";
-import type { KeyMetrics } from "@shared/schemas";
+import { signalText, type KeyMetrics, type Signals } from "@shared/schemas";
 import { AuthorByline } from "@/components/desk/AuthorByline";
 import { BrandLockup } from "@/components/Logomark";
 import { resolveMetricTrend } from "@/lib/metrics";
@@ -15,10 +15,14 @@ import { ShareEditionButton } from "./ShareEditionButton";
 export function EditionHero({
   edition,
   priorMetrics,
+  priorMarketStress,
 }: {
   edition: Edition;
   /** Prior edition's keyMetrics so the strip can render trend arrows. */
   priorMetrics?: KeyMetrics | null;
+  /** Prior edition's marketStress so the badge can show the direction of
+   *  travel (stress rising / easing) rather than just the level. */
+  priorMarketStress?: string | null;
 }) {
   // Folio = the printed-page corner marker. Carries the edition number,
   // weekday and city. Decorative on screen, ritual in print.
@@ -38,7 +42,12 @@ export function EditionHero({
             {folio}
           </p>
           <div className="flex items-center gap-4">
-            {edition.marketStress && <MarketStressBadge level={edition.marketStress} />}
+            {edition.marketStress && (
+              <MarketStressBadge
+                level={edition.marketStress}
+                prior={priorMarketStress ?? null}
+              />
+            )}
             <BrandLockup size={22} byline={false} />
           </div>
         </div>
@@ -288,7 +297,15 @@ function MetricTile({
   );
 }
 
-function MarketStressBadge({ level }: { level: string }) {
+const STRESS_RANK: Record<string, number> = { low: 0, moderate: 1, high: 2 };
+
+function MarketStressBadge({
+  level,
+  prior,
+}: {
+  level: string;
+  prior?: string | null;
+}) {
   const colour =
     level === "high"
       ? "oklch(0.68 0.20 15)"
@@ -301,11 +318,34 @@ function MarketStressBadge({ level }: { level: string }) {
       : level === "moderate"
         ? "MODERATE STRESS"
         : "LOW STRESS";
+
+  // Direction of travel vs the prior edition. Rising stress is the signal
+  // that matters most, so it gets the level's own (hotter) colour; easing
+  // reads calm-green, steady stays muted.
+  const cur = STRESS_RANK[level];
+  const prev = prior != null ? STRESS_RANK[prior] : undefined;
+  let trend: "rising" | "easing" | "steady" | null = null;
+  if (cur != null && prev != null) {
+    trend = cur > prev ? "rising" : cur < prev ? "easing" : "steady";
+  }
+  const TrendIcon =
+    trend === "rising" ? ArrowUp : trend === "easing" ? ArrowDown : Minus;
+  const trendColour =
+    trend === "rising"
+      ? colour
+      : trend === "easing"
+        ? "oklch(0.72 0.17 155)"
+        : "var(--color-fg-subtle)";
+
   return (
     <span
       className="inline-flex items-center gap-2 font-mono uppercase"
       style={{ fontSize: "10px", letterSpacing: "0.22em", color: colour }}
-      title={`Market stress: ${level}`}
+      title={
+        trend
+          ? `Market stress: ${level} (${trend} vs last edition)`
+          : `Market stress: ${level}`
+      }
     >
       <span
         className="inline-block h-1.5 w-1.5 rounded-full"
@@ -313,6 +353,16 @@ function MarketStressBadge({ level }: { level: string }) {
         aria-hidden="true"
       />
       {label}
+      {trend && (
+        <span
+          className="inline-flex items-center gap-0.5"
+          style={{ color: trendColour }}
+          aria-label={`${trend} versus last edition`}
+        >
+          <TrendIcon className="h-3 w-3" strokeWidth={2.5} aria-hidden="true" />
+          {trend}
+        </span>
+      )}
     </span>
   );
 }
@@ -323,8 +373,11 @@ function MarketStressBadge({ level }: { level: string }) {
  * into the topic deck. Rendered next to Ruben's Take on desktop; stacks
  * underneath on mobile.
  */
-function InBriefScan({ signals }: { signals: string[] }) {
-  const filtered = signals.filter((s) => s && s.trim().length > 0).slice(0, 6);
+function InBriefScan({ signals }: { signals: Signals }) {
+  const filtered = signals
+    .map((s) => signalText(s))
+    .filter((s) => s && s.trim().length > 0)
+    .slice(0, 6);
   if (filtered.length === 0) return null;
   return (
     <aside

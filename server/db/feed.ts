@@ -137,6 +137,26 @@ export async function getRecentSourceUrls(windowDays: number): Promise<Set<strin
 }
 
 /**
+ * Recent feed items (id + title) within the window, for story threading.
+ * Newest first so the matcher links to the most recent prior coverage.
+ */
+export async function getRecentFeedItems(
+  windowDays: number
+): Promise<Array<{ id: number; title: string }>> {
+  if (isDemoMode()) return [];
+  const db = getDb();
+  if (!db) return [];
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - windowDays);
+  const cutoffStr = cutoff.toISOString().slice(0, 10);
+  return db
+    .select({ id: dailyFeedItems.id, title: dailyFeedItems.title })
+    .from(dailyFeedItems)
+    .where(gte(dailyFeedItems.feedDate, cutoffStr))
+    .orderBy(desc(dailyFeedItems.feedDate), desc(dailyFeedItems.id));
+}
+
+/**
  * Bulk-insert feed items and return their new IDs in the same order as the
  * input array. mysql2 reports the first auto-increment id; a single
  * multi-row INSERT assigns consecutive ids, so the rest are derived by
@@ -182,6 +202,13 @@ export async function updateFeedItemWhyItMatters(id: number, whyItMatters: strin
   const db = getDb();
   if (!db) return;
   await db.update(dailyFeedItems).set({ whyItMatters }).where(eq(dailyFeedItems.id, id));
+}
+
+export async function updateFeedItemCounterpoint(id: number, counterpoint: string) {
+  if (isDemoMode()) return demoQueries.updateFeedItemCounterpoint?.(id, counterpoint);
+  const db = getDb();
+  if (!db) return;
+  await db.update(dailyFeedItems).set({ counterpoint }).where(eq(dailyFeedItems.id, id));
 }
 
 export async function updateFeedItemRubensNote(id: number, rubensNote: string | null) {

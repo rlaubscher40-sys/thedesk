@@ -28,6 +28,9 @@ import { PartnerTagBlock } from "./PartnerTagBlock";
 import { RubensNoteBlock } from "./RubensNoteBlock";
 import { SayThisLine } from "./SayThisLine";
 import { WhyItMattersLine } from "./WhyItMattersLine";
+import { CounterpointLine } from "./CounterpointLine";
+import { CorroborationBadge } from "./CorroborationBadge";
+import { ThreadLink } from "./ThreadLink";
 
 export function FeedItemCard({ item }: { item: DailyFeedItem }) {
   const { user, isAuthenticated } = useAuth();
@@ -155,6 +158,10 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
             ·
           </span>
           <span className="overline truncate">{item.source}</span>
+          <CorroborationBadge
+            count={item.corroborationCount}
+            sources={item.corroboratingSources}
+          />
         </div>
         <div className="flex items-center gap-1 shrink-0 -mr-1.5 reveal-target">
           <button
@@ -223,6 +230,16 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
         </h3>
       </Link>
 
+      {/* Storyline spine: link back to the prior coverage this continues. */}
+      {item.threadParentId && (
+        <div className="mb-3 -mt-1">
+          <ThreadLink
+            parentId={item.threadParentId}
+            parentTitle={item.threadParentTitle}
+          />
+        </div>
+      )}
+
       {/* Lede. Clamped to keep grid rows visually uniform, summaries
           arrive at wildly different lengths from the LLM enrichment,
           and an uncapped paragraph blows the row height. The full
@@ -265,6 +282,10 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
       {item.whyItMatters && (
         <WhyItMattersLine whyItMatters={item.whyItMatters} category={item.category} />
       )}
+
+      {/* Counterpoint — the contrarian read, present only when the story has
+          a genuine second side. Independent of the partner-angle pairing. */}
+      {item.counterpoint && <CounterpointLine counterpoint={item.counterpoint} />}
 
       <RubensNoteBlock itemId={item.id} note={item.rubensNote} />
       {/* Say This and Partner Angles are paired — never one without
