@@ -25,28 +25,44 @@ import {
 } from "./api";
 import { removeTempImage, storeTempImage } from "./tempStore";
 
-function buildDailyCaption(stories: DailyFeedItem[], siteUrl: string): string {
+/** Single source of truth for dash sanitization in Instagram content. */
+export function sanitizeDashes(text: string): string {
+  return text.replace(/[–—]/g, ", ");
+}
+
+function sanitizeStory(story: DailyFeedItem): DailyFeedItem {
+  return {
+    ...story,
+    title: story.title ? sanitizeDashes(story.title) : story.title,
+    whyItMatters: story.whyItMatters ? sanitizeDashes(story.whyItMatters) : story.whyItMatters,
+    summary: story.summary ? sanitizeDashes(story.summary) : story.summary,
+    source: story.source ? sanitizeDashes(story.source) : story.source,
+    category: story.category ? sanitizeDashes(story.category) : story.category,
+  };
+}
+
+function buildDailyCaption(stories: DailyFeedItem[]): string {
   const lead = stories[0];
-  const why = lead?.whyItMatters?.slice(0, 260) ?? "";
+  const why = lead?.whyItMatters ? sanitizeDashes(lead.whyItMatters).slice(0, 260) : "";
   return [
-    "Today's top stories from The Desk — Australia's financial intelligence briefing.",
+    "Today's top stories from The Desk, Australia's financial intelligence briefing.",
     "",
     ...(why ? [why, ""] : []),
     "Swipe to see today's top stories →",
     "",
-    `Full briefing at ${siteUrl} 🔗`,
+    "Full daily briefing, link in bio.",
     "",
     "#PropertyMarket #AustralianEconomy #RBA #Finance #Investing #ASX #TheDesk",
   ].join("\n");
 }
 
-function buildWeeklyCaption(edition: Edition, siteUrl: string): string {
-  const take = edition.rubensTake?.slice(0, 300) ?? "";
+function buildWeeklyCaption(edition: Edition): string {
+  const take = edition.rubensTake ? sanitizeDashes(edition.rubensTake).slice(0, 300) : "";
   return [
-    `Weekly Edition #${edition.editionNumber} — ${edition.weekRange}`,
+    `Weekly Edition #${edition.editionNumber}, ${sanitizeDashes(edition.weekRange ?? "")}`,
     "",
     ...(take ? [take, ""] : []),
-    `Read the full edition at ${siteUrl}/editions/${edition.editionNumber} 🔗`,
+    "Full weekly edition, link in bio.",
     "",
     "#WeeklyBriefing #PropertyMarket #AustralianEconomy #RBA #Finance #TheDesk #Investing",
   ].join("\n");
@@ -61,22 +77,38 @@ export async function postDailyCarousel(
     throw new Error("INSTAGRAM_ACCESS_TOKEN and INSTAGRAM_BUSINESS_ACCOUNT_ID must be set");
   }
 
-  // Top 3 by priority; all must have a title (enrichment may still be running)
-  const top = [...stories]
-    .sort((a, b) => b.priority - a.priority)
+  // Pick top-3 stories, favouring category variety over raw priority.
+  const eligible = [...stories]
     .filter((s) => s.title)
-    .slice(0, 3);
+    .sort((a, b) => b.priority - a.priority);
+
+  const top: DailyFeedItem[] = [];
+  const usedCategories = new Set<string>();
+  for (const s of eligible) {
+    if (top.length >= 3) break;
+    const cat = (s.category ?? "NEWS").toUpperCase();
+    if (!usedCategories.has(cat)) {
+      top.push(s);
+      usedCategories.add(cat);
+    }
+  }
+  // Fill any remaining slots with the next highest-priority stories not already chosen
+  for (const s of eligible) {
+    if (top.length >= 3) break;
+    if (!top.includes(s)) top.push(s);
+  }
 
   if (top.length === 0) throw new Error("No stories available for Instagram post");
 
+  const sanitized = top.map(sanitizeStory);
   const uuids: string[] = [];
   try {
-    for (let i = 0; i < top.length; i++) {
-      const buf = await renderDailyStoryCard(top[i]!, i, top.length);
+    for (let i = 0; i < sanitized.length; i++) {
+      const buf = await renderDailyStoryCard(sanitized[i]!, i, sanitized.length);
       uuids.push(storeTempImage(buf));
     }
 
-    const caption = buildDailyCaption(top, siteUrl);
+    const caption = buildDailyCaption(sanitized);
 
     // Create child containers in parallel — Instagram fetches each image URL
     const childIds = await Promise.all(
@@ -114,21 +146,35 @@ export async function postWeeklyEdition(
     throw new Error("INSTAGRAM_ACCESS_TOKEN and INSTAGRAM_BUSINESS_ACCOUNT_ID must be set");
   }
 
-  const topics = edition.topics.slice(0, 4);
-  const totalSlides = 1 + topics.length;
+  const rawTopics = edition.topics.slice(0, 4);
+  const sanitizedTopics = rawTopics.map((t) => ({
+    ...t,
+    title: sanitizeDashes(t.title),
+    summary: sanitizeDashes(t.summary),
+    category: sanitizeDashes(t.category),
+    keyTakeaway: t.keyTakeaway ? sanitizeDashes(t.keyTakeaway) : t.keyTakeaway,
+    whyItMatters: t.whyItMatters ? sanitizeDashes(t.whyItMatters) : t.whyItMatters,
+  }));
+  const sanitizedEdition: Edition = {
+    ...edition,
+    weekRange: edition.weekRange ? sanitizeDashes(edition.weekRange) : edition.weekRange,
+    rubensTake: edition.rubensTake ? sanitizeDashes(edition.rubensTake) : edition.rubensTake,
+    topics: sanitizedTopics,
+  };
+  const totalSlides = 1 + sanitizedTopics.length;
   const uuids: string[] = [];
 
   try {
     // Slide 1: cover
-    uuids.push(storeTempImage(await renderWeeklyCoverCard(edition)));
+    uuids.push(storeTempImage(await renderWeeklyCoverCard(sanitizedEdition)));
 
     // Slides 2–N: one per topic
-    for (let i = 0; i < topics.length; i++) {
-      const buf = await renderWeeklyTopicCard(topics[i]!, i + 1, totalSlides);
+    for (let i = 0; i < sanitizedTopics.length; i++) {
+      const buf = await renderWeeklyTopicCard(sanitizedTopics[i]!, i + 1, totalSlides);
       uuids.push(storeTempImage(buf));
     }
 
-    const caption = buildWeeklyCaption(edition, siteUrl);
+    const caption = buildWeeklyCaption(sanitizedEdition);
 
     const childIds = await Promise.all(
       uuids.map((uuid) =>

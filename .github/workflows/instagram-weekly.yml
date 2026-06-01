@@ -27,9 +27,10 @@ jobs:
           INGEST_BASE_URL: ${{ secrets.INGEST_BASE_URL }}
           SCHEDULED_API_KEY: ${{ secrets.SCHEDULED_API_KEY }}
         run: |
+          BASE="${INGEST_BASE_URL%/}"
           curl -fsSL \
             -X POST \
             -H "Content-Type: application/json" \
             -H "x-scheduled-key: ${SCHEDULED_API_KEY}" \
-            "${INGEST_BASE_URL}/api/ingest/instagram-weekly" \
+            "${BASE}/api/ingest/instagram-weekly" \
             -d '{}'
