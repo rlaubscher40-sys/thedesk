@@ -18,6 +18,7 @@ import {
   renderDailyStoryCard,
   renderDailyStoryVertical,
   renderWeeklyCoverCard,
+  renderWeeklyStoryVertical,
   renderWeeklyTopicCard,
 } from "../og/instagramCards";
 import {
@@ -127,13 +128,15 @@ export async function postDailyCarousel(
 
     const caption = buildDailyCaption(sanitized);
 
-    // Create child containers in parallel — Instagram fetches each image URL
+    // Create child containers in parallel — Instagram fetches each image URL.
+    // alt_text per slide is the story headline (accessibility + ranking signal).
     const childIds = await Promise.all(
-      uuids.map((uuid) =>
+      uuids.map((uuid, i) =>
         createImageContainer({
           igUserId,
           accessToken,
           imageUrl: `${siteUrl}/instagram/temp/${uuid}.jpg`,
+          altText: sanitized[i]?.title,
           isCarouselItem: true,
         })
       )
@@ -159,6 +162,7 @@ export async function postDailyCarousel(
         igUserId,
         accessToken,
         imageUrl: `${siteUrl}/instagram/temp/${storyUuid}.jpg`,
+        altText: sanitized[0]!.title,
       });
       const storyId = await publishContainer({
         igUserId,
@@ -204,7 +208,10 @@ export async function postWeeklyEdition(
     topics: sanitizedTopics,
   };
   const totalSlides = 1 + sanitizedTopics.length;
+  const editionAlt = `Weekly Edition #${edition.editionNumber}, ${sanitizedEdition.weekRange ?? ""}`;
   const uuids: string[] = [];
+  // alt_text per slide, parallel to uuids: cover first, then one per topic.
+  const altTexts: string[] = [editionAlt];
 
   try {
     // Slide 1: cover
@@ -214,16 +221,18 @@ export async function postWeeklyEdition(
     for (let i = 0; i < sanitizedTopics.length; i++) {
       const buf = await renderWeeklyTopicCard(sanitizedTopics[i]!, i + 1, totalSlides);
       uuids.push(storeTempImage(buf));
+      altTexts.push(sanitizedTopics[i]!.title);
     }
 
     const caption = buildWeeklyCaption(sanitizedEdition);
 
     const childIds = await Promise.all(
-      uuids.map((uuid) =>
+      uuids.map((uuid, i) =>
         createImageContainer({
           igUserId,
           accessToken,
           imageUrl: `${siteUrl}/instagram/temp/${uuid}.jpg`,
+          altText: altTexts[i],
           isCarouselItem: true,
         })
       )
@@ -240,6 +249,32 @@ export async function postWeeklyEdition(
     console.log(
       `[instagram] weekly edition ${edition.editionNumber} posted: ${postId}`
     );
+
+    // Share the edition to the 24h Story. Best-effort: a Story failure must
+    // never fail the feed post that has already gone live.
+    try {
+      const storyBuf = await renderWeeklyStoryVertical(sanitizedEdition);
+      const storyUuid = storeTempImage(storyBuf);
+      uuids.push(storyUuid);
+      const storyContainerId = await createStoryContainer({
+        igUserId,
+        accessToken,
+        imageUrl: `${siteUrl}/instagram/temp/${storyUuid}.jpg`,
+        altText: editionAlt,
+      });
+      const storyId = await publishContainer({
+        igUserId,
+        accessToken,
+        creationId: storyContainerId,
+      });
+      console.log(`[instagram] weekly story posted: ${storyId}`);
+    } catch (err) {
+      console.error(
+        "[instagram] weekly story failed (feed post still live):",
+        (err as Error).message
+      );
+    }
+
     return { postId };
   } finally {
     uuids.forEach(removeTempImage);

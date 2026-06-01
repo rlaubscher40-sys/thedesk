@@ -791,6 +791,227 @@ export async function renderWeeklyCoverCard(edition: Edition): Promise<Buffer> {
 }
 
 /**
+ * Weekly edition Story frame: 1080×1920 (9:16), posted to the Story right
+ * after the weekly carousel. Lines up with renderWeeklyCoverCard (same edition
+ * number lockup, title, and topics contents) but vertical, with a prompt back
+ * to the feed for the full edition.
+ */
+export async function renderWeeklyStoryVertical(
+  edition: Edition
+): Promise<Buffer> {
+  const topics = edition.topics.slice(0, 4);
+
+  const tree = {
+    type: "div",
+    props: {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        width: "1080px",
+        height: "1920px",
+        backgroundColor: NAVY,
+        backgroundImage:
+          "radial-gradient(circle at 80% 8%, rgba(212,168,83,0.14) 0%, transparent 50%)",
+        padding: "120px 80px",
+        justifyContent: "space-between",
+      },
+      children: [
+        // ── Header ──
+        {
+          type: "div",
+          props: {
+            style: { display: "flex", flexDirection: "column", gap: "10px" },
+            children: [
+              {
+                type: "div",
+                props: {
+                  style: {
+                    fontFamily: "JetBrains Mono",
+                    fontSize: "13px",
+                    letterSpacing: "0.3em",
+                    textTransform: "uppercase",
+                    color: AMBER,
+                  },
+                  children: "The Desk · Weekly Edition",
+                },
+              },
+              {
+                type: "div",
+                props: {
+                  style: {
+                    fontFamily: "JetBrains Mono",
+                    fontSize: "13px",
+                    letterSpacing: "0.18em",
+                    color: FG_MUTED,
+                  },
+                  children: `Edition No. ${edition.editionNumber} · ${edition.weekRange}`,
+                },
+              },
+            ],
+          },
+        },
+
+        // ── Large edition number + title ──
+        {
+          type: "div",
+          props: {
+            style: { display: "flex", flexDirection: "column" },
+            children: [
+              {
+                type: "div",
+                props: {
+                  style: {
+                    fontFamily: "Playfair Display",
+                    fontWeight: 700,
+                    fontSize: "200px",
+                    lineHeight: 0.85,
+                    letterSpacing: "-0.04em",
+                    color: "rgba(212,168,83,0.18)",
+                  },
+                  children: `#${edition.editionNumber}`,
+                },
+              },
+              {
+                type: "div",
+                props: {
+                  style: {
+                    fontFamily: "Playfair Display",
+                    fontWeight: 700,
+                    fontSize: "66px",
+                    lineHeight: 1.05,
+                    letterSpacing: "-0.025em",
+                    color: FG,
+                    marginTop: "24px",
+                  },
+                  children: "This Week in\nAustralian Finance",
+                },
+              },
+            ],
+          },
+        },
+
+        // ── Topics contents ──
+        {
+          type: "div",
+          props: {
+            style: { display: "flex", flexDirection: "column", gap: "22px" },
+            children: [
+              {
+                type: "div",
+                props: {
+                  style: {
+                    fontFamily: "JetBrains Mono",
+                    fontSize: "12px",
+                    letterSpacing: "0.25em",
+                    textTransform: "uppercase",
+                    color: AMBER,
+                    marginBottom: "4px",
+                  },
+                  children: "This Week’s Topics",
+                },
+              },
+              ...topics.map((topic, i) => ({
+                type: "div",
+                props: {
+                  style: {
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: "18px",
+                  },
+                  children: [
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          fontFamily: "JetBrains Mono",
+                          fontSize: "13px",
+                          color: AMBER,
+                          minWidth: "26px",
+                          marginTop: "6px",
+                        },
+                        children: `0${i + 1}`,
+                      },
+                    },
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          fontFamily: "Playfair Display",
+                          fontWeight: 700,
+                          fontSize: "30px",
+                          lineHeight: 1.2,
+                          color: FG,
+                        },
+                        children: clamp(topic.title, 64),
+                      },
+                    },
+                  ],
+                },
+              })),
+            ],
+          },
+        },
+
+        // ── Bottom: feed prompt + rule + domain ──
+        {
+          type: "div",
+          props: {
+            style: { display: "flex", flexDirection: "column", gap: "28px" },
+            children: [
+              {
+                type: "div",
+                props: {
+                  style: {
+                    fontFamily: "Playfair Display",
+                    fontWeight: 700,
+                    fontSize: "30px",
+                    lineHeight: 1.2,
+                    color: FG,
+                  },
+                  children: "The full edition is live on our feed",
+                },
+              },
+              {
+                type: "div",
+                props: {
+                  style: {
+                    display: "flex",
+                    width: "100%",
+                    height: "1px",
+                    backgroundImage: `linear-gradient(90deg, ${AMBER} 0%, rgba(212,168,83,0) 70%)`,
+                  },
+                  children: "",
+                },
+              },
+              {
+                type: "div",
+                props: {
+                  style: { display: "flex", justifyContent: "flex-end" },
+                  children: {
+                    type: "div",
+                    props: {
+                      style: {
+                        fontFamily: "JetBrains Mono",
+                        fontSize: "13px",
+                        letterSpacing: "0.22em",
+                        color: AMBER,
+                      },
+                      children: "thedesk.au",
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        },
+      ],
+    },
+  };
+
+  return renderToJpeg(tree, 1080, 1920);
+}
+
+/**
  * Weekly topic card: 1080×1350 portrait.
  * One card per topic — category, title, summary, key takeaway.
  */
