@@ -195,6 +195,30 @@ const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
       createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`,
   },
+  {
+    name: "0016 · daily_feed_items.counterpoint",
+    sql: "ALTER TABLE daily_feed_items ADD counterpoint text",
+  },
+  {
+    name: "0016 · daily_feed_items.corroborationCount",
+    sql: "ALTER TABLE daily_feed_items ADD corroborationCount int NOT NULL DEFAULT 1",
+  },
+  {
+    name: "0016 · daily_feed_items.corroboratingSources",
+    sql: "ALTER TABLE daily_feed_items ADD corroboratingSources json",
+  },
+  {
+    name: "0017 · editions.lookback",
+    sql: "ALTER TABLE editions ADD lookback json",
+  },
+  {
+    name: "0018 · daily_feed_items.threadParentId",
+    sql: "ALTER TABLE daily_feed_items ADD threadParentId int",
+  },
+  {
+    name: "0018 · daily_feed_items.threadParentTitle",
+    sql: "ALTER TABLE daily_feed_items ADD threadParentTitle text",
+  },
 ];
 
 /** MySQL/TiDB error codes / fragments we treat as "already applied". */
