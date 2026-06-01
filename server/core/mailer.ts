@@ -11,10 +11,13 @@
  * wordmark, INTELLIGENCE byline, mid-dot separators. Kept compact so
  * the message renders consistently across Gmail, Outlook, Apple Mail.
  *
- * Light-mode-first design: inline styles set the light defaults;
- * @media (prefers-color-scheme: dark) + [data-ogsc] overrides flip to
- * the dark navy palette for clients that support it (Apple Mail, newer
- * Gmail iOS, Outlook on Mac).
+ * Navy-first design: the inline styles bake in the dark navy palette as
+ * the hard default so every client renders the same brand surface —
+ * Gmail (which ignores prefers-color-scheme colour swaps and runs its
+ * own dark-mode pass), Outlook, and Apple Mail alike. The
+ * @media (prefers-color-scheme: dark) + [data-ogsc] block is kept only
+ * to pin those same navy values for clients that try to auto-invert a
+ * dark email back toward light.
  */
 
 import { createHmac } from "node:crypto";
@@ -74,20 +77,23 @@ export async function send(input: SendInput): Promise<SendResult> {
 
 // ─── Shared design tokens ────────────────────────────────────────────────────
 
-// Light mode (inline style defaults)
+// Navy palette baked in as the inline default so every client (Gmail
+// included) renders the same dark brand surface.
 const L = {
-  outerBg:  "#F5F3EF",
-  bg:       "#FFFFFF",
-  heading:  "#0C1220",
-  amber:    "#C9992E",   // slightly darker amber for WCAG contrast on white
-  amberBtn: "#D4A853",   // original amber for CTA buttons (navy text = fine)
-  text:     "#1F2937",
-  muted:    "#4B5563",
-  subtle:   "#9CA3AF",
-  border:   "rgba(180,140,60,0.25)",
+  outerBg:  "#0C1220",
+  bg:       "#0C1220",
+  heading:  "#F0C75E",   // gold wordmark + headlines on navy
+  amber:    "#D4A853",   // section labels / eyebrows
+  amberBtn: "#D4A853",   // CTA button background (navy text on top)
+  btnText:  "#0C1220",   // navy text on the gold CTA button
+  text:     "#F0EDE8",   // cream body copy
+  muted:    "#9BA3B5",   // slate secondary copy
+  subtle:   "#6B7280",   // footer / fine print
+  border:   "rgba(212,168,83,0.25)",
 };
 
-// Dark mode class names → overridden by @media / [data-ogsc]
+// Re-pins the navy palette for clients that try to auto-invert a dark
+// email back toward light. Mirrors the inline defaults above.
 // Classes: em-bg, em-ob, em-h, em-t, em-m, em-s, em-a, em-btn-t
 const DARK_CSS = `
   @media (prefers-color-scheme:dark){
@@ -193,7 +199,7 @@ function ctaRow(href: string, label: string): string {
       <table role="presentation" cellpadding="0" cellspacing="0">
         <tr>
           <td style="background:${L.amberBtn};border-radius:4px;">
-            <a href="${href}" class="em-btn-t" style="display:inline-block;padding:14px 28px;font-family:'JetBrains Mono',Consolas,monospace;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:${L.heading};text-decoration:none;font-weight:600;">${label}</a>
+            <a href="${href}" class="em-btn-t" style="display:inline-block;padding:14px 28px;font-family:'JetBrains Mono',Consolas,monospace;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:${L.btnText};text-decoration:none;font-weight:600;">${label}</a>
           </td>
         </tr>
       </table>
@@ -637,7 +643,7 @@ function weeklyRecapHtml({
       <td class="em-bg em-story-border" bgcolor="${L.bg}" style="padding:18px 0;border-top:1px solid ${L.border};background-color:${L.bg};">
         <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.2em;color:${L.amber};text-transform:uppercase;margin-bottom:8px;">${tp.category}</div>
         <p class="em-h" style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:16px;line-height:1.3;color:${L.heading};margin:0 0 10px;">${tp.title}</p>
-        <div class="em-pill" style="background:rgba(180,140,60,0.07);border:1px solid ${L.border};border-radius:4px;padding:12px 14px;">
+        <div class="em-pill" style="background:rgba(212,168,83,0.08);border:1px solid ${L.border};border-radius:4px;padding:12px 14px;">
           <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:9px;letter-spacing:0.2em;color:${L.amber};text-transform:uppercase;margin-bottom:6px;">Say this</div>
           <p class="em-t em-pill-t" style="font-family:Georgia,'Times New Roman',serif;font-size:14px;line-height:1.5;color:${L.text};margin:0;">"${tp.sayThis}"</p>
         </div>
@@ -686,7 +692,7 @@ function talkingPointNudgeHtml({
         <h1 class="em-h" style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:28px;line-height:1.1;color:${L.heading};margin:0 0 12px;letter-spacing:-0.02em;">Did the angle land?</h1>
         <p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.55;color:${L.muted};margin:0 0 16px;">A few days ago you saved this talking point to your queue:</p>
         <p class="em-h" style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.4;color:${L.heading};font-weight:700;margin:0 0 14px;">${storyTitle}</p>
-        <div class="em-pill" style="background:rgba(180,140,60,0.07);border:1px solid ${L.border};border-radius:4px;padding:14px 16px;margin:0 0 20px;">
+        <div class="em-pill" style="background:rgba(212,168,83,0.08);border:1px solid ${L.border};border-radius:4px;padding:14px 16px;margin:0 0 20px;">
           <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:9px;letter-spacing:0.2em;color:${L.amber};text-transform:uppercase;margin-bottom:8px;">Say this</div>
           <p class="em-t em-pill-t" style="font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.5;color:${L.text};margin:0;">"${sayThis}"</p>
         </div>
