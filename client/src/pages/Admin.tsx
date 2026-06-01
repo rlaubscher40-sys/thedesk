@@ -18,6 +18,7 @@ import { AnalyticsAdminPanel } from "@/components/admin/AnalyticsAdminPanel";
 import { FeedbackAdminPanel } from "@/components/admin/FeedbackAdminPanel";
 import { HealthAdminPanel } from "@/components/admin/HealthAdminPanel";
 import { HeroLibraryAdminPanel } from "@/components/admin/HeroLibraryAdminPanel";
+import { InstagramAdminPanel } from "@/components/admin/InstagramAdminPanel";
 import { LinkedInAdminPanel } from "@/components/admin/LinkedInAdminPanel";
 import { MaintenanceAdminPanel } from "@/components/admin/MaintenanceAdminPanel";
 import { MetricsAdminPanel } from "@/components/admin/MetricsAdminPanel";
@@ -189,6 +190,12 @@ export default function AdminPage() {
       <div className="mt-10">
         <SectionErrorBoundary section="LinkedIn admin">
           <LinkedInAdminPanel />
+        </SectionErrorBoundary>
+      </div>
+
+      <div className="mt-10">
+        <SectionErrorBoundary section="Instagram admin">
+          <InstagramAdminPanel />
         </SectionErrorBoundary>
       </div>
 

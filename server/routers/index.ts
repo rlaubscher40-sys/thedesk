@@ -10,6 +10,7 @@ import { feedRouter } from "./feed";
 import { feedbackRouter } from "./feedback";
 import { healthRouter } from "./health";
 import { heroLibraryRouter } from "./heroLibrary";
+import { instagramRouter } from "./instagram";
 import { readingQueueRouter } from "./readingQueue";
 import { linkedInRouter } from "./linkedIn";
 import { metricsRouter } from "./metrics";
@@ -32,6 +33,7 @@ export const appRouter = router({
   trends: trendsRouter,
   search: searchRouter,
   subscribers: subscribersRouter,
+  instagram: instagramRouter,
   linkedIn: linkedInRouter,
   metrics: metricsRouter,
   heroLibrary: heroLibraryRouter,
