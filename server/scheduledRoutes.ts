@@ -587,10 +587,15 @@ async function notifyDailyBriefSubscribers(feedDate: string): Promise<void> {
         })
       )
     );
-    const delivered = results.filter(
-      (r) => r.status === "fulfilled" && r.value.delivered
-    ).length;
-    await db.markDailyBriefSent(subs.map((s) => s.id), feedDate);
+    const deliveredIds: number[] = [];
+    let delivered = 0;
+    results.forEach((r, i) => {
+      if (r.status === "fulfilled" && r.value.delivered) {
+        deliveredIds.push(subs[i].id);
+        delivered++;
+      }
+    });
+    await db.markDailyBriefSent(deliveredIds, feedDate);
     console.log(
       `[mailer] daily brief ${feedDate}: delivered ${delivered}/${subs.length}`
     );
@@ -834,10 +839,15 @@ async function sendWeeklyRecap(weekOf: string): Promise<void> {
         })
       )
     );
-    const delivered = results.filter(
-      (r) => r.status === "fulfilled" && r.value.delivered
-    ).length;
-    await db.markWeeklyRecapSent(subs.map((s) => s.id), weekOf);
+    const deliveredIds: number[] = [];
+    let delivered = 0;
+    results.forEach((r, i) => {
+      if (r.status === "fulfilled" && r.value.delivered) {
+        deliveredIds.push(subs[i].id);
+        delivered++;
+      }
+    });
+    await db.markWeeklyRecapSent(deliveredIds, weekOf);
     console.log(
       `[mailer] weekly recap ${weekOf}: delivered ${delivered}/${subs.length}`
     );
