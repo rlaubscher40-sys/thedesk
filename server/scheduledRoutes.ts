@@ -34,6 +34,7 @@ import {
   editionHeroPrompt,
   extractMetricFromNews,
   feedItemImagePrompt,
+  generateCounterpoint,
   generatePartnerTag,
   generateRubensTake,
   generateSayThis,
@@ -116,6 +117,10 @@ function registerDailyFeedRoute(app: Express): void {
         partnerTag: sanitiseText(item.partnerTag ?? null),
         sayThis: sanitiseText(item.sayThis ?? null),
         whyItMatters: sanitiseText(item.whyItMatters ?? null),
+        // Corroboration is computed at ingest (clustering) and persisted so
+        // the card can show how many outlets ran the story.
+        corroborationCount: item.corroborationCount ?? 1,
+        corroboratingSources: item.corroboratingSources ?? null,
         promotedToEdition: false,
         // Editorial-impact baseline. The admin can override per-item via
         // feed.setPriority, manual control always wins.
@@ -161,6 +166,7 @@ function registerDailyFeedRoute(app: Express): void {
           let tagOk = 0;
           let sayOk = 0;
           let whyOk = 0;
+          let cpOk = 0;
           let imgOk = 0;
           await Promise.all(
             // Zip each input item to the row it became by position — the IDs
@@ -171,7 +177,7 @@ function registerDailyFeedRoute(app: Express): void {
               if (!id) return;
 
               // All enrichments fan out in parallel per item.
-              const [tag, say, why, img] = await Promise.allSettled([
+              const [tag, say, why, cp, img] = await Promise.allSettled([
                 item.partnerTag
                   ? Promise.resolve(item.partnerTag)
                   : generatePartnerTag({
@@ -196,6 +202,15 @@ function registerDailyFeedRoute(app: Express): void {
                       category: item.category,
                       articleText: item.articleText,
                     }),
+                // Counterpoint, the calm contrarian read. Generated for every
+                // story; the prompt SKIPs the many that have no real second
+                // side, so this resolves null most of the time.
+                generateCounterpoint({
+                  title: item.title,
+                  summary: item.summary,
+                  category: item.category,
+                  articleText: item.articleText,
+                }),
                 // Feed items don't use AI thumbnails post-refactor, they
                 // rely on the og:image scraped during ingest. Wiring per-
                 // item asset storage is doable (mirror the edition_assets
@@ -206,15 +221,17 @@ function registerDailyFeedRoute(app: Express): void {
                   : Promise.resolve(null),
               ]);
 
-              // Resolve the three generated lines (null = SKIPped or failed).
+              // Resolve the generated lines (null = SKIPped or failed).
               let tagValue =
                 tag.status === "fulfilled" && tag.value ? tag.value : null;
               let sayValue =
                 say.status === "fulfilled" && say.value ? say.value : null;
               let whyValue =
                 why.status === "fulfilled" && why.value ? why.value : null;
+              let cpValue =
+                cp.status === "fulfilled" && cp.value ? cp.value : null;
 
-              // Second-pass editor: reads the three lines together against the
+              // Second-pass editor: reads the lines together against the
               // story, sharpens flat copy and culls contrived angles. Best-
               // effort, on any failure it returns the originals untouched.
               // Skipped when the values were preset by the source (we don't
@@ -222,7 +239,7 @@ function registerDailyFeedRoute(app: Express): void {
               const hadPreset = Boolean(
                 item.partnerTag || item.sayThis || item.whyItMatters
               );
-              if (!hadPreset && (tagValue || sayValue || whyValue)) {
+              if (!hadPreset && (tagValue || sayValue || whyValue || cpValue)) {
                 const qc = await runDailyItemQc({
                   title: item.title,
                   summary: item.summary,
@@ -231,10 +248,12 @@ function registerDailyFeedRoute(app: Express): void {
                   sayThis: sayValue,
                   partnerTag: tagValue,
                   whyItMatters: whyValue,
+                  counterpoint: cpValue,
                 });
                 tagValue = qc.partnerTag;
                 sayValue = qc.sayThis;
                 whyValue = qc.whyItMatters;
+                cpValue = qc.counterpoint;
                 if (!qc.approved && qc.notes.length > 0) {
                   console.log(
                     `[daily-qc] "${item.title.slice(0, 50)}…": ${qc.notes.length} edit(s)`
@@ -263,6 +282,12 @@ function registerDailyFeedRoute(app: Express): void {
                 await db.updateFeedItemWhyItMatters(id, whyValue);
                 whyOk++;
               }
+              // Counterpoint also stands alone, present only when the story
+              // had a genuine second side.
+              if (cpValue) {
+                await db.updateFeedItemCounterpoint(id, cpValue);
+                cpOk++;
+              }
               if (
                 img.status === "fulfilled" &&
                 img.value &&
@@ -275,7 +300,7 @@ function registerDailyFeedRoute(app: Express): void {
             })
           );
           console.log(
-            `[scheduled] enriched ${feedDate}: ${tagOk} partnerTags, ${sayOk} sayThis, ${whyOk} whyItMatters, ${imgOk} images`
+            `[scheduled] enriched ${feedDate}: ${tagOk} partnerTags, ${sayOk} sayThis, ${whyOk} whyItMatters, ${cpOk} counterpoints, ${imgOk} images`
           );
 
           // Send the daily brief after enrichment so subscribers get

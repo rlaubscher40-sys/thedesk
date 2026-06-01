@@ -127,6 +127,18 @@ export const dailyFeedItems = mysqlTable("daily_feed_items", {
    *  script): this is the context a reader needs to grasp the stakes in a
    *  single scan. Generated during enrichment, shown on every card type. */
   whyItMatters: text("whyItMatters"),
+  /** One-line counterpoint, the non-obvious tension or bear case: what the
+   *  consensus read on this story might be missing. Generated during
+   *  enrichment, null when the story has no genuine second side. Renders as
+   *  a distinct "Counterpoint" line on the card. */
+  counterpoint: text("counterpoint"),
+  /** How many distinct sources reported this story in the same ingest run
+   *  (1 = single outlet). Computed by the ingest clustering pass; lets the
+   *  card show "5 outlets reporting" so a corroborated event outweighs a
+   *  single-source rumour at a glance. */
+  corroborationCount: int("corroborationCount").default(1).notNull(),
+  /** Distinct source names that corroborated this story, for the tooltip. */
+  corroboratingSources: json("corroboratingSources").$type<string[] | null>(),
   /** Editorial override, admin-authored note that appears on the story card
    *  as a highlighted Ruben quote. When set, takes visual precedence over
    *  the AI-generated sayThis. */

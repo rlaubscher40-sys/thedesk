@@ -22,6 +22,7 @@ const input = {
   sayThis: "The hold is the story everyone expected, the timing of the first cut is the one that pays.",
   partnerTag: VALID_TAG,
   whyItMatters: "A third straight hold signals the tightening cycle is done; watch refinancing demand lift.",
+  counterpoint: "A hold this long can mask the next move being a hike if services inflation stays sticky.",
 };
 
 describe("runDailyItemQc", () => {
@@ -61,7 +62,7 @@ describe("runDailyItemQc", () => {
   });
 
   it("never resurrects a line that was null on input", async () => {
-    // Editor tries to invent a sayThis the generator deliberately skipped.
+    // Editor tries to invent a sayThis + counterpoint the generator skipped.
     mockedInvoke.mockResolvedValue(
       JSON.stringify({
         approved: false,
@@ -69,11 +70,34 @@ describe("runDailyItemQc", () => {
         sayThis: "An invented opener that should be ignored.",
         partnerTag: null,
         whyItMatters: input.whyItMatters,
+        counterpoint: "An invented counterpoint that should be ignored.",
       })
     );
-    const out = await runDailyItemQc({ ...input, sayThis: null, partnerTag: null });
+    const out = await runDailyItemQc({
+      ...input,
+      sayThis: null,
+      partnerTag: null,
+      counterpoint: null,
+    });
     expect(out.sayThis).toBeNull();
     expect(out.partnerTag).toBeNull();
+    expect(out.counterpoint).toBeNull();
+  });
+
+  it("culls a contrived counterpoint while keeping the rest", async () => {
+    mockedInvoke.mockResolvedValue(
+      JSON.stringify({
+        approved: false,
+        notes: ["culled contrived counterpoint"],
+        sayThis: input.sayThis,
+        partnerTag: VALID_TAG,
+        whyItMatters: input.whyItMatters,
+        counterpoint: null,
+      })
+    );
+    const out = await runDailyItemQc(input);
+    expect(out.counterpoint).toBeNull();
+    expect(out.whyItMatters).toBe(input.whyItMatters);
   });
 
   it("keeps the original partnerTag when the revision no longer parses to 4 personas", async () => {
@@ -130,6 +154,7 @@ describe("runDailyItemQc", () => {
       sayThis: null,
       partnerTag: null,
       whyItMatters: null,
+      counterpoint: null,
     });
     expect(mockedInvoke).not.toHaveBeenCalled();
     expect(out.approved).toBe(true);

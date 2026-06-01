@@ -49,11 +49,17 @@ export function feedSeed(): DailyFeedItem[] {
       | "rubensNote"
       | "whyItMatters"
       | "priority"
+      | "counterpoint"
+      | "corroborationCount"
+      | "corroboratingSources"
     > & {
       imageUrl?: string | null;
       rubensNote?: string | null;
       whyItMatters?: string | null;
       priority?: number;
+      counterpoint?: string | null;
+      corroborationCount?: number;
+      corroboratingSources?: string[] | null;
     }
   ): DailyFeedItem => ({
     id: id++,
@@ -61,6 +67,9 @@ export function feedSeed(): DailyFeedItem[] {
     rubensNote: item.rubensNote ?? null,
     whyItMatters: item.whyItMatters ?? null,
     priority: item.priority ?? 50,
+    counterpoint: item.counterpoint ?? null,
+    corroborationCount: item.corroborationCount ?? 1,
+    corroboratingSources: item.corroboratingSources ?? null,
     createdAt: new Date(Date.now() - id * 1000 * 60 * 17),
     ...item,
     imageUrl: item.imageUrl ?? null,

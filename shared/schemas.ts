@@ -139,6 +139,11 @@ export const dailyFeedIngestItemSchema = z.object({
    *  reporting rather than the RSS snippet. NOT persisted, there is no
    *  column for it on the daily feed table. */
   articleText: z.string().max(20_000).optional().nullable(),
+  /** Number of distinct outlets that reported this story (from the ingest
+   *  clustering pass). 1 = single source. */
+  corroborationCount: z.number().int().min(1).optional(),
+  /** Distinct source names that corroborated the story, when more than one. */
+  corroboratingSources: z.array(z.string()).optional().nullable(),
 });
 export type DailyFeedIngestItem = z.infer<typeof dailyFeedIngestItemSchema>;
 

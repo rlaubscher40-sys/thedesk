@@ -22,6 +22,11 @@ export type FetchedItem = {
   summary: string;
   url: string | null;
   isoDate: string | null;
+  /** How many distinct sources reported this story (set by the clustering
+   *  pass; absent/1 means a single outlet). */
+  corroborationCount?: number;
+  /** Distinct source names that corroborated this story, when more than one. */
+  corroboratingSources?: string[] | null;
 };
 
 export async function fetchSource(src: Source): Promise<FetchedItem[]> {

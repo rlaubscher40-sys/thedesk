@@ -184,6 +184,13 @@ export async function updateFeedItemWhyItMatters(id: number, whyItMatters: strin
   await db.update(dailyFeedItems).set({ whyItMatters }).where(eq(dailyFeedItems.id, id));
 }
 
+export async function updateFeedItemCounterpoint(id: number, counterpoint: string) {
+  if (isDemoMode()) return demoQueries.updateFeedItemCounterpoint?.(id, counterpoint);
+  const db = getDb();
+  if (!db) return;
+  await db.update(dailyFeedItems).set({ counterpoint }).where(eq(dailyFeedItems.id, id));
+}
+
 export async function updateFeedItemRubensNote(id: number, rubensNote: string | null) {
   if (isDemoMode()) return demoQueries.updateFeedItemRubensNote(id, rubensNote);
   const db = getDb();

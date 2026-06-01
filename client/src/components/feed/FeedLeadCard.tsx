@@ -28,6 +28,8 @@ import { PartnerTagBlock } from "./PartnerTagBlock";
 import { RubensNoteBlock } from "./RubensNoteBlock";
 import { SayThisLine } from "./SayThisLine";
 import { WhyItMattersLine } from "./WhyItMattersLine";
+import { CounterpointLine } from "./CounterpointLine";
+import { CorroborationBadge } from "./CorroborationBadge";
 
 export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
   const { user, isAuthenticated } = useAuth();
@@ -225,12 +227,18 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
           group the sections, title+lede / source / take / angles. */}
       <div className="px-6 py-7 sm:px-10 sm:py-9 flex flex-col">
         <div className="flex items-start justify-between gap-3 mb-4">
-          <span
-            className="overline-amber"
-            style={{ color: categoryColour(item.category), letterSpacing: "0.2em" }}
-          >
-            {item.category}
-          </span>
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span
+              className="overline-amber"
+              style={{ color: categoryColour(item.category), letterSpacing: "0.2em" }}
+            >
+              {item.category}
+            </span>
+            <CorroborationBadge
+              count={item.corroborationCount}
+              sources={item.corroboratingSources}
+            />
+          </div>
           <div className="flex items-center gap-1 -mr-2 reveal-target">
             <button
               onClick={toggleQueue}
@@ -329,9 +337,19 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
 
         {/* "Why it matters" — analytical context, independent of the
             partner-angle pairing. Gives the reader the stakes at a glance. */}
-        {item.whyItMatters && (
+        {(item.whyItMatters || item.counterpoint) && (
           <div className="mt-6 pt-6 border-t border-[var(--color-border)]">
-            <WhyItMattersLine whyItMatters={item.whyItMatters} category={item.category} />
+            {item.whyItMatters && (
+              <WhyItMattersLine
+                whyItMatters={item.whyItMatters}
+                category={item.category}
+              />
+            )}
+            {/* Counterpoint — the contrarian read, when the story has a real
+                second side. Sits with "why it matters" as the analytical pair. */}
+            {item.counterpoint && (
+              <CounterpointLine counterpoint={item.counterpoint} />
+            )}
           </div>
         )}
 

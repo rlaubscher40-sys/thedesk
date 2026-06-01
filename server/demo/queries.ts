@@ -272,6 +272,9 @@ export function createFeedItems(items: InsertDailyFeedItem[]): number[] {
       partnerTag: item.partnerTag ?? null,
       sayThis: item.sayThis ?? null,
       whyItMatters: item.whyItMatters ?? null,
+      counterpoint: item.counterpoint ?? null,
+      corroborationCount: item.corroborationCount ?? 1,
+      corroboratingSources: item.corroboratingSources ?? null,
       rubensNote: item.rubensNote ?? null,
       priority: item.priority ?? 50,
       promotedToEdition: false,
@@ -284,6 +287,11 @@ export function createFeedItems(items: InsertDailyFeedItem[]): number[] {
 export function updateFeedItemPartnerTag(id: number, partnerTag: string): void {
   const item = demo.feed.find((i) => i.id === id);
   if (item) item.partnerTag = partnerTag;
+}
+
+export function updateFeedItemCounterpoint(id: number, counterpoint: string): void {
+  const item = demo.feed.find((i) => i.id === id);
+  if (item) item.counterpoint = counterpoint;
 }
 
 export function deleteFeedItem(id: number): void {
