@@ -1,0 +1,35 @@
+name: Instagram weekly post
+
+on:
+  schedule:
+    # 23:00 UTC Saturday ≈ 09:00 Sunday Sydney (AEST). Runs 2 hours after the
+    # weekly edition synthesis (21:00 UTC Saturday) so hero image + Ruben's
+    # Take enrichment have time to complete before the post goes out.
+    - cron: "0 23 * * 6"
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Why are you running this manually?"
+        required: false
+        default: "manual test"
+
+concurrency:
+  group: instagram-weekly
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Trigger Instagram weekly post
+        env:
+          INGEST_BASE_URL: ${{ secrets.INGEST_BASE_URL }}
+          SCHEDULED_API_KEY: ${{ secrets.SCHEDULED_API_KEY }}
+        run: |
+          curl -fsSL \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -H "x-scheduled-key: ${SCHEDULED_API_KEY}" \
+            "${INGEST_BASE_URL}/api/ingest/instagram-weekly" \
+            -d '{}'

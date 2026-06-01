@@ -967,6 +967,93 @@ function registerNudgeRespondRoute(app: Express): void {
   });
 }
 
+// ─── Instagram ───────────────────────────────────────────────────────────────
+
+function registerInstagramRoutes(app: Express): void {
+  // Serve temp images for the Instagram API to fetch during container creation.
+  // UUIDs are random and entries expire after 5 minutes so this is safe to expose.
+  app.get("/instagram/temp/:uuid.jpg", async (req: Request, res: Response) => {
+    const { getTempImage } = await import("./instagram/tempStore");
+    const entry = getTempImage(req.params.uuid ?? "");
+    if (!entry) {
+      res.status(404).json({ error: "Not found or expired" });
+      return;
+    }
+    res.setHeader("Content-Type", entry.contentType);
+    res.setHeader("Cache-Control", "no-store");
+    res.send(entry.buffer);
+  });
+
+  // POST /api/ingest/instagram-daily  — posts today's top-3 stories as a carousel
+  const dailyHandler = async (req: Request, res: Response) => {
+    if (!(await authenticateScheduled(req))) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const { instagramAccessToken, instagramBusinessAccountId } = (await import("./core/env")).env;
+    if (!instagramAccessToken || !instagramBusinessAccountId) {
+      res.status(503).json({ error: "Instagram credentials not configured" });
+      return;
+    }
+    // Parse optional feedDate override
+    const parsed = z
+      .object({ feedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional() })
+      .safeParse(req.body ?? {});
+    const feedDate = parsed.success ? parsed.data.feedDate : undefined;
+
+    const items = await db.listFeedItems(feedDate);
+    if (items.length === 0) {
+      res.status(422).json({ error: "No feed items for the requested date" });
+      return;
+    }
+    res.json({ success: true, message: "Instagram daily post queued" });
+
+    setImmediate(async () => {
+      try {
+        const { postDailyCarousel } = await import("./instagram/post");
+        const { postId } = await postDailyCarousel(items, siteOrigin());
+        console.log(`[instagram] daily post complete: ${postId}`);
+      } catch (err) {
+        console.error("[instagram] daily post failed:", (err as Error).message);
+      }
+    });
+  };
+  app.post("/api/scheduled/instagram-daily", dailyHandler);
+  app.post("/api/ingest/instagram-daily", dailyHandler);
+
+  // POST /api/ingest/instagram-weekly  — posts the latest weekly edition as a carousel
+  const weeklyHandler = async (req: Request, res: Response) => {
+    if (!(await authenticateScheduled(req))) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const { instagramAccessToken, instagramBusinessAccountId } = (await import("./core/env")).env;
+    if (!instagramAccessToken || !instagramBusinessAccountId) {
+      res.status(503).json({ error: "Instagram credentials not configured" });
+      return;
+    }
+    const editions = await db.listEditions();
+    const latest = editions[0];
+    if (!latest) {
+      res.status(422).json({ error: "No editions available" });
+      return;
+    }
+    res.json({ success: true, editionNumber: latest.editionNumber, message: "Instagram weekly post queued" });
+
+    setImmediate(async () => {
+      try {
+        const { postWeeklyEdition } = await import("./instagram/post");
+        const { postId } = await postWeeklyEdition(latest, siteOrigin());
+        console.log(`[instagram] weekly post complete: ${postId}`);
+      } catch (err) {
+        console.error("[instagram] weekly post failed:", (err as Error).message);
+      }
+    });
+  };
+  app.post("/api/scheduled/instagram-weekly", weeklyHandler);
+  app.post("/api/ingest/instagram-weekly", weeklyHandler);
+}
+
 export function registerScheduledRoutes(app: Express): void {
   registerDailyFeedRoute(app);
   registerWeeklyEditionRoute(app);
@@ -976,8 +1063,9 @@ export function registerScheduledRoutes(app: Express): void {
   registerWeeklyRecapRoute(app);
   registerNudgeCheckRoute(app);
   registerNudgeRespondRoute(app);
+  registerInstagramRoutes(app);
   console.log(
-    "[scheduled] registered /api/{scheduled,ingest}/{daily-feed,weekly-edition,synthesize-edition,daily-metrics,extract-metrics,weekly-recap,nudge-check} + /api/nudge/respond"
+    "[scheduled] registered /api/{scheduled,ingest}/{daily-feed,weekly-edition,synthesize-edition,daily-metrics,extract-metrics,weekly-recap,nudge-check,instagram-daily,instagram-weekly} + /api/nudge/respond + /instagram/temp/:uuid.jpg"
   );
 }
 

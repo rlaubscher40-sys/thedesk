@@ -36,6 +36,8 @@ export const env = Object.freeze({
   anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? "",
   openAiApiKey: process.env.OPENAI_API_KEY ?? "",
   adminPassword: process.env.ADMIN_PASSWORD ?? "",
+  instagramAccessToken: process.env.INSTAGRAM_ACCESS_TOKEN ?? "",
+  instagramBusinessAccountId: process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID ?? "",
 });
 
 export type Env = typeof env;
