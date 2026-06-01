@@ -1,5 +1,5 @@
 import { desc, eq, like, or, sql } from "drizzle-orm";
-import type { EditionTopic, Signals } from "../../shared/schemas";
+import type { EditionTopic, Lookback, Signals } from "../../shared/schemas";
 import * as demoQueries from "../demo/queries";
 import { isDemoMode } from "../demo/store";
 import { getDb } from "./client";
@@ -167,6 +167,13 @@ export async function updateRubensTake(id: number, rubensTake: string) {
   const db = getDb();
   if (!db) return;
   await db.update(editions).set({ rubensTake }).where(eq(editions.id, id));
+}
+
+export async function updateEditionLookback(id: number, lookback: Lookback) {
+  if (isDemoMode()) return demoQueries.updateEditionLookback?.(id, lookback);
+  const db = getDb();
+  if (!db) return;
+  await db.update(editions).set({ lookback }).where(eq(editions.id, id));
 }
 
 export async function updateSubstackDraft(

@@ -90,6 +90,26 @@ export function signalCategory(s: Signal): string | null {
   return typeof s === "string" ? null : (s.category ?? null);
 }
 
+// ─── Edition look-back (accountability on the prior edition) ────────────────
+
+/**
+ * One resolved call from last week's edition: what was flagged, what actually
+ * happened, and an honest verdict. The accountability loop that turns a feed
+ * into something readers trust, it closes the loop on prior forward-looking
+ * claims (datesToWatch / whatToWatch / takeaways) against the new week.
+ */
+export const lookbackItemSchema = z.object({
+  reference: z.string().min(1).max(280),
+  outcome: z.string().min(1).max(400),
+  verdict: z.enum(["on-track", "played-out", "too-early", "missed"]),
+});
+export const lookbackSchema = z.object({
+  summary: z.string().min(1).max(600),
+  items: z.array(lookbackItemSchema).min(1).max(6),
+});
+export type LookbackItem = z.infer<typeof lookbackItemSchema>;
+export type Lookback = z.infer<typeof lookbackSchema>;
+
 // ─── Partner tag (4-persona block on a daily feed item) ─────────────────────
 
 /**

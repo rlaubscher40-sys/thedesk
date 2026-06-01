@@ -15,6 +15,7 @@ import { EditorsLetter } from "./EditorsLetter";
 import { LeadStory } from "./LeadStory";
 import { ListenButton } from "./ListenButton";
 import { SignalsBriefs } from "./SignalsBriefs";
+import { LookbackSection } from "./LookbackSection";
 import { TopicCard } from "./TopicCard";
 
 /**
@@ -67,6 +68,14 @@ export function EditionReader({
       <div className="flex justify-end -mt-6 mb-8">
         <ListenButton text={audioScript} />
       </div>
+
+      {/* Accountability look-back: how last week's calls played out. Sits up
+          top as a recap before this week's deck. Absent on the first edition. */}
+      {edition.lookback && (
+        <SectionErrorBoundary section="Last week in review">
+          <LookbackSection lookback={edition.lookback} />
+        </SectionErrorBoundary>
+      )}
 
       {/* Table of contents. Editions run long (3000+ words), so give
           readers a jump-nav into each topic. Only worth showing once

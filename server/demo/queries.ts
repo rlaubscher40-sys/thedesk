@@ -60,6 +60,7 @@ export function createEdition(data: InsertEdition): void {
     substackDraftImageUrl: data.substackDraftImageUrl ?? null,
     marketStress: data.marketStress ?? null,
     datesToWatch: data.datesToWatch ?? null,
+    lookback: data.lookback ?? null,
     metaTitle: data.metaTitle ?? null,
     metaDescription: data.metaDescription ?? null,
     socialTitle: data.socialTitle ?? null,
@@ -73,6 +74,11 @@ export function createEdition(data: InsertEdition): void {
 export function updateRubensTake(id: number, rubensTake: string): void {
   const e = demo.editions.find((x) => x.id === id);
   if (e) e.rubensTake = rubensTake;
+}
+
+export function updateEditionLookback(id: number, lookback: Edition["lookback"]): void {
+  const e = demo.editions.find((x) => x.id === id);
+  if (e) e.lookback = lookback;
 }
 
 export function updateEditionSynthesis(

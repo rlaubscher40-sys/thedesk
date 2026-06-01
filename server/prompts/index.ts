@@ -12,6 +12,7 @@ export * from "./instagramHeadline";
 export * from "./substackDraft";
 export * from "./heroImage";
 export * from "./editionSynthesis";
+export * from "./editionLookback";
 export * from "./editorQc";
 export * from "./dailyItemQc";
 export * from "./headlineOptimiser";

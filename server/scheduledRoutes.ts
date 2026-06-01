@@ -35,6 +35,7 @@ import {
   extractMetricFromNews,
   feedItemImagePrompt,
   generateCounterpoint,
+  generateLookback,
   generatePartnerTag,
   generateRubensTake,
   generateSayThis,
@@ -593,6 +594,31 @@ function registerSynthesizeEditionRoute(app: Express): void {
       } catch (err) {
         console.warn(
           `[editor-qc] Edition ${editionNumber} skipped: ${(err as Error).message}`
+        );
+      }
+
+      // Step 1b: accountability look-back. Scores last week's forward-looking
+      // calls against this week's feed. Best-effort and skipped for the first
+      // edition (no prior to grade).
+      try {
+        const prior = await db.getEditionByNumber(editionNumber - 1);
+        if (prior) {
+          const lookback = await generateLookback({
+            priorWeekRange: prior.weekRange,
+            priorTopics: prior.topics ?? [],
+            priorDatesToWatch: prior.datesToWatch ?? null,
+            thisWeekItems: items,
+          });
+          if (lookback) {
+            await db.updateEditionLookback(inserted.id, lookback);
+            console.log(
+              `[lookback] Edition ${editionNumber}: scored ${lookback.items.length} prior call(s)`
+            );
+          }
+        }
+      } catch (err) {
+        console.warn(
+          `[lookback] Edition ${editionNumber} skipped: ${(err as Error).message}`
         );
       }
 
