@@ -313,11 +313,6 @@ function SubstackDraftEditor({ edition }: { edition: Edition }) {
               >
                 <PenSquare className="h-3.5 w-3.5" /> LinkedIn
               </Button>
-              <CopyForSubstackButton
-                title={title}
-                subtitle={subtitle}
-                body={body}
-              />
             </>
           )}
           <Button
@@ -335,31 +330,43 @@ function SubstackDraftEditor({ edition }: { edition: Edition }) {
       {hasDraft && (
         <div className="space-y-3">
           {imageUrl && (
-            <div className="aspect-[2/1] w-full overflow-hidden rounded bg-[var(--color-bg-deep)]">
+            <div className="relative aspect-[2/1] w-full overflow-hidden rounded bg-[var(--color-bg-deep)] group">
               <img src={imageUrl} alt="Draft hero" className="w-full h-full object-cover" loading="lazy" />
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
+                <CopyImageButton imageUrl={imageUrl} />
+              </div>
             </div>
           )}
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Title"
-            className="w-full bg-[var(--color-bg-deep)] border border-[var(--color-border)] rounded p-2.5 font-serif text-lg focus:outline-none focus:border-[var(--color-amber)]/50"
-          />
-          <input
-            type="text"
-            value={subtitle}
-            onChange={(e) => setSubtitle(e.target.value)}
-            placeholder="Subtitle"
-            className="w-full bg-[var(--color-bg-deep)] border border-[var(--color-border)] rounded p-2.5 text-sm text-[var(--color-fg-muted)] focus:outline-none focus:border-[var(--color-amber)]/50"
-          />
-          <textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            placeholder="Essay body"
-            rows={14}
-            className="w-full bg-[var(--color-bg-deep)] border border-[var(--color-border)] rounded p-3 text-sm font-sans resize-y leading-relaxed focus:outline-none focus:border-[var(--color-amber)]/50"
-          />
+          <div className="relative">
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Title"
+              className="w-full bg-[var(--color-bg-deep)] border border-[var(--color-border)] rounded p-2.5 pr-10 font-serif text-lg focus:outline-none focus:border-[var(--color-amber)]/50"
+            />
+            <CopyFieldButton text={title} label="title" />
+          </div>
+          <div className="relative">
+            <input
+              type="text"
+              value={subtitle}
+              onChange={(e) => setSubtitle(e.target.value)}
+              placeholder="Subtitle"
+              className="w-full bg-[var(--color-bg-deep)] border border-[var(--color-border)] rounded p-2.5 pr-10 text-sm text-[var(--color-fg-muted)] focus:outline-none focus:border-[var(--color-amber)]/50"
+            />
+            <CopyFieldButton text={subtitle} label="subtitle" />
+          </div>
+          <div className="relative">
+            <textarea
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              placeholder="Essay body"
+              rows={14}
+              className="w-full bg-[var(--color-bg-deep)] border border-[var(--color-border)] rounded p-3 pr-10 text-sm font-sans resize-y leading-relaxed focus:outline-none focus:border-[var(--color-amber)]/50"
+            />
+            <CopyFieldButton text={body} label="body" className="top-2.5" />
+          </div>
           <div className="flex items-center justify-between flex-wrap gap-2">
             <p
               className={`font-mono text-xs ${
@@ -432,41 +439,71 @@ export function BackfillRubensTakeButton() {
   );
 }
 
-/**
- * Copy the Substack draft (title + subtitle + body) to the clipboard in a
- * paste-friendly format. Substack's editor handles paragraph breaks
- * cleanly when you paste plain text with double-newlines between
- * paragraphs, so we ship that. No HTML, Substack's HTML paste is finicky.
- */
-function CopyForSubstackButton({
-  title,
-  subtitle,
-  body,
+/** Small clipboard icon button that sits in the top-right corner of a field. */
+function CopyFieldButton({
+  text,
+  label,
+  className = "",
 }: {
-  title: string;
-  subtitle: string;
-  body: string;
+  text: string;
+  label: string;
+  className?: string;
 }) {
   async function copy() {
-    const payload = [title, subtitle, "", body]
-      .filter(Boolean)
-      .map((s) => s.trim())
-      .join("\n\n");
     try {
-      await navigator.clipboard.writeText(payload);
-      toast.success("Draft copied, paste into Substack");
+      await navigator.clipboard.writeText(text.trim());
+      toast.success(`${label.charAt(0).toUpperCase() + label.slice(1)} copied`);
     } catch {
       toast.error("Clipboard write failed");
     }
   }
   return (
-    <Button
-      variant="outline"
-      size="sm"
+    <button
+      type="button"
       onClick={copy}
-      title="Copy title + subtitle + body to clipboard, ready to paste into Substack"
+      title={`Copy ${label}`}
+      className={`absolute right-2 top-2.5 p-1 rounded text-[var(--color-fg-subtle)] hover:text-[var(--color-fg)] hover:bg-white/10 transition-colors ${className}`}
     >
-      <ClipboardCopy className="h-3.5 w-3.5" /> Copy
-    </Button>
+      <ClipboardCopy className="h-3.5 w-3.5" />
+    </button>
+  );
+}
+
+/** Fetches the hero image and writes it to the clipboard as a PNG. */
+function CopyImageButton({ imageUrl }: { imageUrl: string }) {
+  const [copying, setCopying] = useState(false);
+
+  async function copy() {
+    setCopying(true);
+    try {
+      const resp = await fetch(imageUrl);
+      const srcBlob = await resp.blob();
+      const bitmap = await createImageBitmap(srcBlob);
+      const canvas = document.createElement("canvas");
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      canvas.getContext("2d")!.drawImage(bitmap, 0, 0);
+      const pngBlob = await new Promise<Blob>((res, rej) =>
+        canvas.toBlob((b) => (b ? res(b) : rej(new Error("canvas.toBlob failed"))), "image/png")
+      );
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": pngBlob })]);
+      toast.success("Image copied to clipboard");
+    } catch (err) {
+      toast.error(`Couldn't copy image: ${(err as Error).message}`);
+    } finally {
+      setCopying(false);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      disabled={copying}
+      className="inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-mono uppercase tracking-[0.14em] bg-black/60 text-white hover:bg-black/80 transition-colors disabled:opacity-50"
+    >
+      <ClipboardCopy className="h-3.5 w-3.5" />
+      {copying ? "Copying…" : "Copy image"}
+    </button>
   );
 }
