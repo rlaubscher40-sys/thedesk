@@ -30,6 +30,7 @@ import { SayThisLine } from "./SayThisLine";
 import { WhyItMattersLine } from "./WhyItMattersLine";
 import { CounterpointLine } from "./CounterpointLine";
 import { CorroborationBadge } from "./CorroborationBadge";
+import { ThreadLink } from "./ThreadLink";
 
 export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
   const { user, isAuthenticated } = useAuth();
@@ -304,6 +305,16 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
             {item.title}
           </h2>
         </Link>
+
+        {/* Storyline spine: link back to the prior coverage this continues. */}
+        {item.threadParentId && (
+          <div className="-mt-2 mb-4">
+            <ThreadLink
+              parentId={item.threadParentId}
+              parentTitle={item.threadParentTitle}
+            />
+          </div>
+        )}
 
         {/* Lede. Plain serif rather than italic, italic Playfair gets squished
             at body sizes on a dark background and was reading as cramped. The

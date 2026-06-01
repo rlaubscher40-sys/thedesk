@@ -11,38 +11,9 @@
  * merges (two different stories collapsed into one).
  */
 import type { FetchedItem } from "./rss";
+import { titlesMatch, titleTokens } from "../../../shared/textSimilarity";
 
-const STOPWORDS = new Set([
-  "the", "and", "for", "with", "from", "that", "this", "into", "over", "after",
-  "amid", "what", "how", "why", "when", "where", "who", "will", "has", "have",
-  "are", "was", "were", "but", "not", "you", "your", "its", "their", "they",
-  "new", "says", "say", "said", "could", "would", "may", "australia",
-  "australian", "australias", "more", "than", "out", "off", "set", "get",
-]);
-
-/** Significant lowercase tokens from a headline, stopwords and short words
- *  removed. Exported for testing. */
-export function titleTokens(title: string): Set<string> {
-  return new Set(
-    title
-      .toLowerCase()
-      .replace(/[^a-z0-9\s]/g, " ")
-      .split(/\s+/)
-      .filter((t) => t.length >= 3 && !STOPWORDS.has(t))
-  );
-}
-
-function sharedCount(a: Set<string>, b: Set<string>): number {
-  let n = 0;
-  for (const t of a) if (b.has(t)) n++;
-  return n;
-}
-
-function jaccard(a: Set<string>, b: Set<string>): number {
-  if (a.size === 0 || b.size === 0) return 0;
-  const inter = sharedCount(a, b);
-  return inter / (a.size + b.size - inter);
-}
+export { titleTokens };
 
 export type Cluster = {
   /** The representative item for the story (the first one encountered). */
@@ -76,7 +47,7 @@ export function clusterByTitle(
     const tokens = titleTokens(item.title);
     let placed = false;
     for (const g of groups) {
-      if (sharedCount(tokens, g.tokens) >= minShared && jaccard(tokens, g.tokens) >= minJaccard) {
+      if (titlesMatch(tokens, g.tokens, minShared, minJaccard)) {
         g.members.push(item);
         placed = true;
         break;

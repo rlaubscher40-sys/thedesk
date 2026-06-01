@@ -144,6 +144,13 @@ export const dailyFeedItems = mysqlTable("daily_feed_items", {
   corroborationCount: int("corroborationCount").default(1).notNull(),
   /** Distinct source names that corroborated this story, for the tooltip. */
   corroboratingSources: json("corroboratingSources").$type<string[] | null>(),
+  /** Story threading: the id of a recent prior feed item this story
+   *  continues, set at ingest by headline similarity. Lets a card show
+   *  "Continues from …" so a reader sees the storyline, not isolated cards. */
+  threadParentId: int("threadParentId"),
+  /** Denormalised headline of the thread parent, so the card can render the
+   *  link without a join or a second fetch. */
+  threadParentTitle: text("threadParentTitle"),
   /** Editorial override, admin-authored note that appears on the story card
    *  as a highlighted Ruben quote. When set, takes visual precedence over
    *  the AI-generated sayThis. */

@@ -11,6 +11,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { COOKIE_NAME } from "../shared/const";
 import { defaultFeedPriority } from "../shared/feedPriority";
+import { bestMatch, titleTokens } from "../shared/textSimilarity";
 import { parse as parseCookieHeader } from "cookie";
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
@@ -135,13 +136,38 @@ function registerDailyFeedRoute(app: Express): void {
     // Reject any story whose sourceUrl already appeared in the last 14 days.
     // This prevents re-ingesting the same article on back-to-back days when
     // an external trigger re-runs or when the same story is picked up twice.
-    const recentUrls = await db.getRecentSourceUrls(14);
-    const freshItems = items.filter(
+    const [recentUrls, recentItems] = await Promise.all([
+      db.getRecentSourceUrls(14),
+      db.getRecentFeedItems(10),
+    ]);
+    const freshItemsRaw = items.filter(
       (item) => !item.sourceUrl || !recentUrls.has(item.sourceUrl)
     );
-    const skippedCount = items.length - freshItems.length;
+    const skippedCount = items.length - freshItemsRaw.length;
     if (skippedCount > 0) {
       console.log(`[daily-feed] skipped ${skippedCount} duplicate story/stories (seen in last 14 days)`);
+    }
+
+    // Story threading: link each fresh item to the most similar recent prior
+    // item (newest first, so it threads to the latest coverage) so the card
+    // can show "Continues from …". Headline-token match; null when nothing
+    // clears the threshold, which is the common case for a genuinely new story.
+    const threadCandidates = recentItems.map((r) => ({
+      value: r,
+      tokens: titleTokens(r.title),
+    }));
+    let threadedCount = 0;
+    const freshItems = freshItemsRaw.map((item) => {
+      const parent = bestMatch(titleTokens(item.title), threadCandidates);
+      if (parent) threadedCount++;
+      return {
+        ...item,
+        threadParentId: parent?.id ?? null,
+        threadParentTitle: parent?.title ?? null,
+      };
+    });
+    if (threadedCount > 0) {
+      console.log(`[daily-feed] threaded ${threadedCount} story/stories to prior coverage`);
     }
 
     let insertedIds: number[];

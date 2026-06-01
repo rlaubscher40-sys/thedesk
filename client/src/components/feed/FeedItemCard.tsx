@@ -30,6 +30,7 @@ import { SayThisLine } from "./SayThisLine";
 import { WhyItMattersLine } from "./WhyItMattersLine";
 import { CounterpointLine } from "./CounterpointLine";
 import { CorroborationBadge } from "./CorroborationBadge";
+import { ThreadLink } from "./ThreadLink";
 
 export function FeedItemCard({ item }: { item: DailyFeedItem }) {
   const { user, isAuthenticated } = useAuth();
@@ -228,6 +229,16 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
           {item.title}
         </h3>
       </Link>
+
+      {/* Storyline spine: link back to the prior coverage this continues. */}
+      {item.threadParentId && (
+        <div className="mb-3 -mt-1">
+          <ThreadLink
+            parentId={item.threadParentId}
+            parentTitle={item.threadParentTitle}
+          />
+        </div>
+      )}
 
       {/* Lede. Clamped to keep grid rows visually uniform, summaries
           arrive at wildly different lengths from the LLM enrichment,

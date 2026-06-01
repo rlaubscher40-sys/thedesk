@@ -52,6 +52,8 @@ export function feedSeed(): DailyFeedItem[] {
       | "counterpoint"
       | "corroborationCount"
       | "corroboratingSources"
+      | "threadParentId"
+      | "threadParentTitle"
     > & {
       imageUrl?: string | null;
       rubensNote?: string | null;
@@ -60,6 +62,8 @@ export function feedSeed(): DailyFeedItem[] {
       counterpoint?: string | null;
       corroborationCount?: number;
       corroboratingSources?: string[] | null;
+      threadParentId?: number | null;
+      threadParentTitle?: string | null;
     }
   ): DailyFeedItem => ({
     id: id++,
@@ -70,6 +74,8 @@ export function feedSeed(): DailyFeedItem[] {
     counterpoint: item.counterpoint ?? null,
     corroborationCount: item.corroborationCount ?? 1,
     corroboratingSources: item.corroboratingSources ?? null,
+    threadParentId: item.threadParentId ?? null,
+    threadParentTitle: item.threadParentTitle ?? null,
     createdAt: new Date(Date.now() - id * 1000 * 60 * 17),
     ...item,
     imageUrl: item.imageUrl ?? null,

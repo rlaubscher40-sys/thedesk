@@ -281,6 +281,8 @@ export function createFeedItems(items: InsertDailyFeedItem[]): number[] {
       counterpoint: item.counterpoint ?? null,
       corroborationCount: item.corroborationCount ?? 1,
       corroboratingSources: item.corroboratingSources ?? null,
+      threadParentId: item.threadParentId ?? null,
+      threadParentTitle: item.threadParentTitle ?? null,
       rubensNote: item.rubensNote ?? null,
       priority: item.priority ?? 50,
       promotedToEdition: false,
