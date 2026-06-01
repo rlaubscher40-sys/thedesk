@@ -18,6 +18,42 @@ import { registerSeoRoutes } from "./core/seo";
 import { serveStatic, setupVite } from "./core/vite";
 import { appRouter } from "./routers";
 import { registerScheduledRoutes } from "./scheduledRoutes";
+import { getDb } from "./db/client";
+import { runCatchup } from "./db/catchup";
+import { isDemoMode } from "./demo/store";
+
+/**
+ * Apply idempotent schema catch-up before we start serving. This closes the
+ * gap that previously required a manual `db:push` after every schema change —
+ * a deploy that ships code expecting a new column now adds that column on
+ * boot rather than throwing on every full-row SELECT until someone notices.
+ *
+ * Never throws: a DB that's down or a genuinely failing statement is logged
+ * and the server still boots (a transient DB blip shouldn't take the whole
+ * app offline). Skipped in demo mode and when no database is configured.
+ */
+async function applyPendingMigrations(): Promise<void> {
+  if (isDemoMode()) return;
+  const db = getDb();
+  if (!db) return;
+  try {
+    const report = await runCatchup(db);
+    if (report.applied.length > 0) {
+      console.log(
+        `[migrate] applied ${report.applied.length} catch-up statement(s): ${report.applied.join(", ")}`
+      );
+    } else {
+      console.log("[migrate] schema up to date, nothing to apply");
+    }
+    if (report.failed.length > 0) {
+      for (const f of report.failed) {
+        console.error(`[migrate] FAILED ${f.name}: ${f.message}`);
+      }
+    }
+  } catch (err) {
+    console.error("[migrate] catch-up run errored, continuing boot:", err);
+  }
+}
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -122,6 +158,10 @@ async function startServer() {
       }
     }
   );
+
+  // Self-heal the schema before accepting traffic so newly-shipped code
+  // never hits a column the database is missing.
+  await applyPendingMigrations();
 
   const preferredPort = parseInt(process.env.PORT ?? "3000", 10);
   const port = await findAvailablePort(preferredPort);
