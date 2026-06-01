@@ -430,9 +430,22 @@ function registerSynthesizeEditionRoute(app: Express): void {
       return;
     }
 
+    // Pull the verified metrics store (RBA / ABS / market feeds / sourced
+    // extraction) so synthesis grounds its numbers in real data instead of
+    // reconstructing them from RSS snippets and stale model memory.
+    const verifiedMetrics = (await db.listDailyMetrics()).map((m) => ({
+      metricKey: m.metricKey,
+      label: m.label,
+      value: m.value,
+      unit: m.unit,
+      context: m.context,
+      source: m.source,
+      asOf: m.asOf,
+    }));
+
     let synth;
     try {
-      synth = await synthesizeWeeklyEdition({ weekRange, weekOf, items });
+      synth = await synthesizeWeeklyEdition({ weekRange, weekOf, items, verifiedMetrics });
     } catch (err) {
       console.error("[synthesize-edition] LLM synthesis failed:", err);
       res.status(502).json({ error: "Synthesis failed", message: (err as Error).message });
