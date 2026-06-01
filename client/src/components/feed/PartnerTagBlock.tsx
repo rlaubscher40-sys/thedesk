@@ -12,7 +12,7 @@ import { useEffect, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { parsePartnerTag, PARTNER_TAG_LABELS, type PartnerTagLabel } from "@shared/schemas";
 import { cn } from "@/lib/cn";
-import { PERSONA_COLOUR, usePersona } from "@/lib/persona";
+import { PERSONA_COLOUR, personaDisplayLabel, usePersona } from "@/lib/persona";
 
 const STORAGE_KEY = "thedesk:partner-angles-expanded";
 
@@ -121,7 +121,7 @@ function PartnerTagLine({
           fontSize: "10px",
         }}
       >
-        {label}
+        {personaDisplayLabel(label)}
       </span>
       <span
         className="text-[var(--color-fg-muted)] leading-relaxed"

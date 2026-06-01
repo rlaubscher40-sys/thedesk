@@ -183,7 +183,11 @@ export async function runEditorQc(
             )
           : undefined,
       })),
-      signals: r.signals.map((s) => stripBannedChars(s)),
+      signals: r.signals.map((s) =>
+        typeof s === "string"
+          ? stripBannedChars(s)
+          : { ...s, text: stripBannedChars(s.text) }
+      ),
       keyMetrics: r.keyMetrics,
       readingTime: r.readingTime ?? input.readingTime,
       fullText: r.fullText ? stripBannedChars(r.fullText) : null,

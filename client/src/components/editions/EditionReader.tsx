@@ -40,11 +40,14 @@ function buildAudioScript(edition: Edition): string {
 export function EditionReader({
   edition,
   priorMetrics,
+  priorMarketStress,
 }: {
   edition: Edition;
   /** Prior edition's keyMetrics, drives the trend arrows on the
       metrics strip. */
   priorMetrics?: KeyMetrics | null;
+  /** Prior edition's marketStress, drives the rising/easing badge. */
+  priorMarketStress?: string | null;
 }) {
   const topics = edition.topics ?? [];
   const [lead, ...rest] = topics;
@@ -54,7 +57,11 @@ export function EditionReader({
     <article>
       <ScrollProgress />
       <SectionErrorBoundary section="Hero">
-        <EditionHero edition={edition} priorMetrics={priorMetrics ?? null} />
+        <EditionHero
+          edition={edition}
+          priorMetrics={priorMetrics ?? null}
+          priorMarketStress={priorMarketStress ?? null}
+        />
       </SectionErrorBoundary>
 
       <div className="flex justify-end -mt-6 mb-8">

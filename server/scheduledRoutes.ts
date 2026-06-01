@@ -321,7 +321,11 @@ function registerWeeklyEditionRoute(app: Express): void {
         body: sanitiseText(t.body),
         keyTakeaway: sanitiseText(t.keyTakeaway),
       })),
-      signals: body.signals.map((s) => sanitiseText(s)),
+      signals: body.signals.map((s) =>
+        typeof s === "string"
+          ? sanitiseText(s)
+          : { ...s, text: sanitiseText(s.text) }
+      ),
       fullText: sanitiseText(body.fullText ?? null),
       keyMetrics: body.keyMetrics ?? null,
     };

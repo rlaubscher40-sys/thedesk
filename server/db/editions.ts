@@ -1,5 +1,5 @@
 import { desc, eq, like, or, sql } from "drizzle-orm";
-import type { EditionTopic } from "../../shared/schemas";
+import type { EditionTopic, Signals } from "../../shared/schemas";
 import * as demoQueries from "../demo/queries";
 import { isDemoMode } from "../demo/store";
 import { getDb } from "./client";
@@ -211,7 +211,7 @@ export async function updateEditionSynthesis(
   id: number,
   patch: {
     topics?: EditionTopic[];
-    signals?: string[];
+    signals?: Signals;
     fullText?: string | null;
     keyMetrics?: Record<string, string | number>;
     marketStress?: string | null;

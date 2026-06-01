@@ -63,8 +63,32 @@ export type EditionTopic = z.infer<typeof editionTopicSchema>;
 export const keyMetricsSchema = z.record(z.string(), z.union([z.string(), z.number()]));
 export type KeyMetrics = z.infer<typeof keyMetricsSchema>;
 
-export const signalsSchema = z.array(z.string().min(1));
+/**
+ * A signal is a one-line brief. It may be a bare string (legacy / hand-typed)
+ * or an object carrying its beat so the reader can scan signals grouped by
+ * topic (rates, property, global…). The union keeps every edition already
+ * stored as a string array valid, no migration needed.
+ */
+export const signalSchema = z.union([
+  z.string().min(1),
+  z.object({
+    text: z.string().min(1),
+    category: z.string().max(32).optional().nullable(),
+  }),
+]);
+export const signalsSchema = z.array(signalSchema);
+export type Signal = z.infer<typeof signalSchema>;
 export type Signals = z.infer<typeof signalsSchema>;
+
+/** The display text of a signal, whichever shape it takes. */
+export function signalText(s: Signal): string {
+  return typeof s === "string" ? s : s.text;
+}
+
+/** The beat/category of a signal, or null for a bare-string signal. */
+export function signalCategory(s: Signal): string | null {
+  return typeof s === "string" ? null : (s.category ?? null);
+}
 
 // ─── Partner tag (4-persona block on a daily feed item) ─────────────────────
 

@@ -52,3 +52,15 @@ export const PERSONA_COLOUR: Record<Persona, string> = {
   Adviser: "oklch(0.72 0.17 155)", // adviser green
   "Buyers Agent": "oklch(0.62 0.18 25)", // ink / rust
 };
+
+/**
+ * Display spelling for a persona label. The stored/canonical key stays
+ * "Buyers Agent" (no apostrophe) so parsing and matching never break on old
+ * data, but the reader sees the grammatically correct "Buyer's Agent". Keyed
+ * loosely so it also tidies LLM-generated talkingPoints keys.
+ */
+export function personaDisplayLabel(label: string): string {
+  const n = label.toLowerCase().replace(/[^a-z]/g, "");
+  if (n.startsWith("buyer")) return "Buyer's Agent";
+  return label;
+}

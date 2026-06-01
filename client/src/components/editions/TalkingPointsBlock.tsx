@@ -11,7 +11,7 @@ import { useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { toast } from "sonner";
 import type { TalkingPoints } from "@shared/schemas";
-import { usePersona } from "@/lib/persona";
+import { personaDisplayLabel, usePersona } from "@/lib/persona";
 
 /**
  * Loose string-match between an active persona ("Broker", "Adviser", etc.)
@@ -91,7 +91,7 @@ function TalkingPointLine({
         className="overline mt-1 w-28 shrink-0 truncate"
         style={highlighted ? { color: "var(--color-amber)" } : undefined}
       >
-        {partner}
+        {personaDisplayLabel(partner)}
       </span>
       <span
         className="flex-1 leading-relaxed"
