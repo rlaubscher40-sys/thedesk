@@ -7,6 +7,7 @@ export * from "./rubensTake";
 export * from "./partnerTag";
 export * from "./sayThis";
 export * from "./whyItMatters";
+export * from "./instagramHeadline";
 export * from "./substackDraft";
 export * from "./heroImage";
 export * from "./editionSynthesis";

@@ -13,6 +13,7 @@
  */
 import { env } from "../core/env";
 import type { DailyFeedItem, Edition } from "../db/schema";
+import { generateInstagramHeadline } from "../prompts/instagramHeadline";
 import {
   renderDailyStoryCard,
   renderWeeklyCoverCard,
@@ -100,7 +101,21 @@ export async function postDailyCarousel(
 
   if (top.length === 0) throw new Error("No stories available for Instagram post");
 
-  const sanitized = top.map(sanitizeStory);
+  // Punch up the raw feed titles for the card only (3 short LLM calls). Each
+  // call falls back to the original title on SKIP or failure, so a weak rewrite
+  // can never block the post.
+  const headlines = await Promise.all(
+    top.map((s) =>
+      generateInstagramHeadline({
+        title: s.title,
+        summary: s.summary,
+        category: s.category,
+      })
+    )
+  );
+  const punched = top.map((s, i) => ({ ...s, title: headlines[i] ?? s.title }));
+
+  const sanitized = punched.map(sanitizeStory);
   const uuids: string[] = [];
   try {
     for (let i = 0; i < sanitized.length; i++) {
