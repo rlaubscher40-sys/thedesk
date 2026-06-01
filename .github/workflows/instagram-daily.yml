@@ -4,6 +4,8 @@ on:
   schedule:
     # 21:30 UTC daily ≈ 07:30 Sydney (AEST). Runs 90 minutes after the daily
     # feed ingest so LLM enrichment (whyItMatters) has time to complete.
+    # NB: scheduled runs only fire from the workflow file on the default
+    # branch (main). GitHub's cron is best-effort and may be delayed.
     - cron: "30 21 * * *"
   workflow_dispatch:
     inputs:

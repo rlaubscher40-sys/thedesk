@@ -4,6 +4,8 @@ on:
   schedule:
     # 19:30 UTC ≈ 05:30 Sydney AEST — runs slightly before daily-feed so
     # the metrics strip is fresh when the brief lands.
+    # NB: scheduled runs only fire from the workflow file on the default
+    # branch (main). GitHub's cron is best-effort and may be delayed.
     - cron: "30 19 * * *"
   workflow_dispatch:
     inputs:
