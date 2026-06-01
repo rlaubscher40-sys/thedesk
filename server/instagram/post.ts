@@ -13,7 +13,10 @@
  */
 import { env } from "../core/env";
 import type { DailyFeedItem, Edition } from "../db/schema";
+import { updateFeedItemWhyItMatters } from "../db/feed";
+import { recordServerError } from "../db/health";
 import { generateInstagramHeadline } from "../prompts/instagramHeadline";
+import { generateWhyItMatters } from "../prompts/whyItMatters";
 import {
   renderDailyStoryCard,
   renderDailyStoryVertical,
@@ -26,6 +29,7 @@ import {
   createImageContainer,
   createStoryContainer,
   publishContainer,
+  waitForContainerReady,
 } from "./api";
 import { removeTempImage, storeTempImage } from "./tempStore";
 
@@ -45,19 +49,63 @@ function sanitizeStory(story: DailyFeedItem): DailyFeedItem {
   };
 }
 
+/**
+ * Caption mirrors the carousel: a numbered rundown where each entry is the
+ * slide's headline followed by its why-it-matters line, in swipe order. Built
+ * from the same sanitized stories that render the cards, so the caption and
+ * the slides always line up.
+ */
 function buildDailyCaption(stories: DailyFeedItem[]): string {
-  const lead = stories[0];
-  const why = lead?.whyItMatters ? sanitizeDashes(lead.whyItMatters).slice(0, 260) : "";
+  const rundown = stories.flatMap((s, i) => {
+    const headline = sanitizeDashes(s.title).slice(0, 120);
+    const lines = [`${i + 1}. ${headline}`];
+    if (s.whyItMatters) {
+      lines.push(sanitizeDashes(s.whyItMatters).slice(0, 200));
+    }
+    lines.push("");
+    return lines;
+  });
+
   return [
     "Today's top stories from The Desk, Australia's financial intelligence briefing.",
     "",
-    ...(why ? [why, ""] : []),
-    "Swipe to see today's top stories →",
+    ...rundown,
+    "Swipe through today's briefing →",
     "",
     "Full daily briefing, link in bio.",
     "",
     "#PropertyMarket #AustralianEconomy #RBA #Finance #Investing #ASX #TheDesk",
   ].join("\n");
+}
+
+/**
+ * Guarantee every selected story carries a why-it-matters before it becomes a
+ * slide. Enrichment normally fills this in, but a story can slip through
+ * (enrichment skipped or still running), so we generate any missing line at
+ * post time and persist it back to the feed item. Mutates `stories` in place.
+ */
+async function ensureWhyItMatters(stories: DailyFeedItem[]): Promise<void> {
+  await Promise.all(
+    stories.map(async (story, i) => {
+      if (story.whyItMatters && story.whyItMatters.trim()) return;
+      const why = await generateWhyItMatters({
+        title: story.title,
+        summary: story.summary,
+        category: story.category,
+      });
+      if (!why) return;
+      stories[i] = { ...story, whyItMatters: why };
+      try {
+        await updateFeedItemWhyItMatters(story.id, why);
+      } catch (err) {
+        // Persisting is best-effort; the slide already has its line in memory.
+        console.warn(
+          `[instagram] couldn't persist generated whyItMatters for ${story.id}:`,
+          (err as Error).message
+        );
+      }
+    })
+  );
 }
 
 function buildWeeklyCaption(edition: Edition): string {
@@ -103,6 +151,10 @@ export async function postDailyCarousel(
   }
 
   if (top.length === 0) throw new Error("No stories available for Instagram post");
+
+  // Every slide must carry a why-it-matters. Generate + persist any that are
+  // missing before we render the cards or build the caption.
+  await ensureWhyItMatters(top);
 
   // Punch up the raw feed titles for the card only (3 short LLM calls). Each
   // call falls back to the original title on SKIP or failure, so a weak rewrite
@@ -162,8 +214,8 @@ export async function postDailyCarousel(
         igUserId,
         accessToken,
         imageUrl: `${siteUrl}/instagram/temp/${storyUuid}.jpg`,
-        altText: sanitized[0]!.title,
       });
+      await waitForContainerReady({ containerId: storyContainerId, accessToken });
       const storyId = await publishContainer({
         igUserId,
         accessToken,
@@ -171,10 +223,15 @@ export async function postDailyCarousel(
       });
       console.log(`[instagram] daily story posted: ${storyId}`);
     } catch (err) {
-      console.error(
-        "[instagram] daily story failed (feed post still live):",
-        (err as Error).message
-      );
+      const message = (err as Error).message;
+      console.error("[instagram] daily story failed (feed post still live):", message);
+      // Record it so a Story failure is visible in the admin console instead of
+      // silently disappearing the way it did before.
+      await recordServerError({
+        level: "warn",
+        message: `Instagram daily story failed: ${message}`.slice(0, 512),
+        route: "instagram/daily-story",
+      }).catch(() => {});
     }
 
     return { postId, headline: sanitized[0]!.title };
@@ -260,8 +317,8 @@ export async function postWeeklyEdition(
         igUserId,
         accessToken,
         imageUrl: `${siteUrl}/instagram/temp/${storyUuid}.jpg`,
-        altText: editionAlt,
       });
+      await waitForContainerReady({ containerId: storyContainerId, accessToken });
       const storyId = await publishContainer({
         igUserId,
         accessToken,
@@ -269,10 +326,13 @@ export async function postWeeklyEdition(
       });
       console.log(`[instagram] weekly story posted: ${storyId}`);
     } catch (err) {
-      console.error(
-        "[instagram] weekly story failed (feed post still live):",
-        (err as Error).message
-      );
+      const message = (err as Error).message;
+      console.error("[instagram] weekly story failed (feed post still live):", message);
+      await recordServerError({
+        level: "warn",
+        message: `Instagram weekly story failed: ${message}`.slice(0, 512),
+        route: "instagram/weekly-story",
+      }).catch(() => {});
     }
 
     return { postId, headline: editionAlt };
