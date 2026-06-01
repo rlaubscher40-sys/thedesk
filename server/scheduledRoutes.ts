@@ -1167,7 +1167,18 @@ function registerInstagramRoutes(app: Express): void {
           headline,
         });
       } catch (err) {
-        console.error("[instagram] daily post failed:", (err as Error).message);
+        const e = err as Error;
+        console.error("[instagram] daily post failed:", e.message);
+        // Surface the whole-post failure so it's diagnosable from the admin
+        // console / server_errors, not just the runtime logs.
+        await db
+          .recordServerError({
+            level: "error",
+            message: `Instagram daily post failed: ${e.message}`.slice(0, 512),
+            stack: e.stack ?? null,
+            route: "instagram/daily",
+          })
+          .catch(() => {});
       }
     });
   };
@@ -1205,7 +1216,16 @@ function registerInstagramRoutes(app: Express): void {
           headline,
         });
       } catch (err) {
-        console.error("[instagram] weekly post failed:", (err as Error).message);
+        const e = err as Error;
+        console.error("[instagram] weekly post failed:", e.message);
+        await db
+          .recordServerError({
+            level: "error",
+            message: `Instagram weekly post failed: ${e.message}`.slice(0, 512),
+            stack: e.stack ?? null,
+            route: "instagram/weekly",
+          })
+          .catch(() => {});
       }
     });
   };

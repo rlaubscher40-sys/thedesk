@@ -52,11 +52,43 @@ async function loadFonts(): Promise<LoadedFonts> {
  * mark on every card builds recognition far better than a text wordmark.
  */
 let cachedLogo: string | null = null;
-async function loadLogo(): Promise<string> {
+async function loadLogo(): Promise<string | null> {
   if (cachedLogo) return cachedLogo;
-  const buf = await fs.promises.readFile(path.join(FONT_DIR, "desk-lockup.png"));
-  cachedLogo = `data:image/png;base64,${buf.toString("base64")}`;
-  return cachedLogo;
+  try {
+    const buf = await fs.promises.readFile(path.join(FONT_DIR, "desk-lockup.png"));
+    cachedLogo = `data:image/png;base64,${buf.toString("base64")}`;
+    return cachedLogo;
+  } catch (err) {
+    // If the bundled logo can't be read (e.g. not copied into the build),
+    // fall back to the text wordmark rather than failing the whole post.
+    console.warn("[instagramCards] logo unavailable, using text wordmark:", (err as Error).message);
+    return null;
+  }
+}
+
+/** Header brand element: the logo lockup when available, else the text
+ *  wordmark. Keeps a missing asset from ever blocking a post. */
+function brandHeader(logo: string | null, height: number) {
+  if (logo) {
+    const width = Math.round(height * 3.226);
+    return {
+      type: "img",
+      props: { src: logo, width, height, style: { width: `${width}px`, height: `${height}px` } },
+    };
+  }
+  return {
+    type: "div",
+    props: {
+      style: {
+        fontFamily: "JetBrains Mono",
+        fontSize: "15px",
+        letterSpacing: "0.28em",
+        textTransform: "uppercase",
+        color: AMBER,
+      },
+      children: "The Desk · Daily Intelligence",
+    },
+  };
 }
 
 const NAVY = "#0C1220";
@@ -139,15 +171,7 @@ export async function renderDailyStoryCard(
               alignItems: "center",
             },
             children: [
-              {
-                type: "img",
-                props: {
-                  src: logo,
-                  width: 181,
-                  height: 56,
-                  style: { width: "181px", height: "56px" },
-                },
-              },
+              brandHeader(logo, 56),
               {
                 type: "div",
                 props: {
@@ -363,15 +387,7 @@ export async function renderDailyStoryVertical(
           props: {
             style: { display: "flex", flexDirection: "column", gap: "20px" },
             children: [
-              {
-                type: "img",
-                props: {
-                  src: logo,
-                  width: 245,
-                  height: 76,
-                  style: { width: "245px", height: "76px" },
-                },
-              },
+              brandHeader(logo, 76),
               {
                 type: "div",
                 props: {
