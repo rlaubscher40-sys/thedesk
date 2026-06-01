@@ -1025,8 +1025,14 @@ function registerInstagramRoutes(app: Express): void {
     setImmediate(async () => {
       try {
         const { postDailyCarousel } = await import("./instagram/post");
-        const { postId } = await postDailyCarousel(items, siteOrigin());
+        const { postId, headline } = await postDailyCarousel(items, siteOrigin());
         console.log(`[instagram] daily post complete: ${postId}`);
+        await db.recordInstagramPost({
+          mediaId: postId,
+          postType: "daily",
+          feedDate: feedDate ?? null,
+          headline,
+        });
       } catch (err) {
         console.error("[instagram] daily post failed:", (err as Error).message);
       }
@@ -1057,8 +1063,14 @@ function registerInstagramRoutes(app: Express): void {
     setImmediate(async () => {
       try {
         const { postWeeklyEdition } = await import("./instagram/post");
-        const { postId } = await postWeeklyEdition(latest, siteOrigin());
+        const { postId, headline } = await postWeeklyEdition(latest, siteOrigin());
         console.log(`[instagram] weekly post complete: ${postId}`);
+        await db.recordInstagramPost({
+          mediaId: postId,
+          postType: "weekly",
+          editionNumber: latest.editionNumber,
+          headline,
+        });
       } catch (err) {
         console.error("[instagram] weekly post failed:", (err as Error).message);
       }
@@ -1066,6 +1078,43 @@ function registerInstagramRoutes(app: Express): void {
   };
   app.post("/api/scheduled/instagram-weekly", weeklyHandler);
   app.post("/api/ingest/instagram-weekly", weeklyHandler);
+
+  // POST /api/ingest/instagram-insights  — backfills engagement metrics for
+  // recently published posts. Runs daily, a day after posting, so the numbers
+  // have had time to accumulate.
+  const insightsHandler = async (req: Request, res: Response) => {
+    if (!(await authenticateScheduled(req))) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const { instagramAccessToken } = (await import("./core/env")).env;
+    if (!instagramAccessToken) {
+      res.status(503).json({ error: "Instagram credentials not configured" });
+      return;
+    }
+    res.json({ success: true, message: "Instagram insights refresh queued" });
+
+    setImmediate(async () => {
+      try {
+        const { fetchMediaMetrics } = await import("./instagram/api");
+        const posts = await db.listInstagramPostsNeedingMetrics();
+        let updated = 0;
+        for (const post of posts) {
+          const metrics = await fetchMediaMetrics({
+            mediaId: post.mediaId,
+            accessToken: instagramAccessToken,
+          });
+          await db.updateInstagramPostMetrics(post.mediaId, metrics);
+          updated++;
+        }
+        console.log(`[instagram] insights refreshed for ${updated}/${posts.length} posts`);
+      } catch (err) {
+        console.error("[instagram] insights refresh failed:", (err as Error).message);
+      }
+    });
+  };
+  app.post("/api/scheduled/instagram-insights", insightsHandler);
+  app.post("/api/ingest/instagram-insights", insightsHandler);
 }
 
 export function registerScheduledRoutes(app: Express): void {
@@ -1079,7 +1128,7 @@ export function registerScheduledRoutes(app: Express): void {
   registerNudgeRespondRoute(app);
   registerInstagramRoutes(app);
   console.log(
-    "[scheduled] registered /api/{scheduled,ingest}/{daily-feed,weekly-edition,synthesize-edition,daily-metrics,extract-metrics,weekly-recap,nudge-check,instagram-daily,instagram-weekly} + /api/nudge/respond + /instagram/temp/:uuid.jpg"
+    "[scheduled] registered /api/{scheduled,ingest}/{daily-feed,weekly-edition,synthesize-edition,daily-metrics,extract-metrics,weekly-recap,nudge-check,instagram-daily,instagram-weekly,instagram-insights} + /api/nudge/respond + /instagram/temp/:uuid.jpg"
   );
 }
 

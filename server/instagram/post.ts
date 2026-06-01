@@ -75,7 +75,7 @@ function buildWeeklyCaption(edition: Edition): string {
 export async function postDailyCarousel(
   stories: DailyFeedItem[],
   siteUrl: string
-): Promise<{ postId: string }> {
+): Promise<{ postId: string; headline: string }> {
   const { instagramAccessToken: accessToken, instagramBusinessAccountId: igUserId } = env;
   if (!accessToken || !igUserId) {
     throw new Error("INSTAGRAM_ACCESS_TOKEN and INSTAGRAM_BUSINESS_ACCOUNT_ID must be set");
@@ -177,7 +177,7 @@ export async function postDailyCarousel(
       );
     }
 
-    return { postId };
+    return { postId, headline: sanitized[0]!.title };
   } finally {
     uuids.forEach(removeTempImage);
   }
@@ -186,7 +186,7 @@ export async function postDailyCarousel(
 export async function postWeeklyEdition(
   edition: Edition,
   siteUrl: string
-): Promise<{ postId: string }> {
+): Promise<{ postId: string; headline: string }> {
   const { instagramAccessToken: accessToken, instagramBusinessAccountId: igUserId } = env;
   if (!accessToken || !igUserId) {
     throw new Error("INSTAGRAM_ACCESS_TOKEN and INSTAGRAM_BUSINESS_ACCOUNT_ID must be set");
@@ -275,7 +275,7 @@ export async function postWeeklyEdition(
       );
     }
 
-    return { postId };
+    return { postId, headline: editionAlt };
   } finally {
     uuids.forEach(removeTempImage);
   }

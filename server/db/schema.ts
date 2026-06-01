@@ -490,3 +490,35 @@ export const pageViews = mysqlTable("page_views", {
 
 export type PageView = typeof pageViews.$inferSelect;
 export type InsertPageView = typeof pageViews.$inferInsert;
+
+// ─── Instagram posts ─────────────────────────────────────────────────────────
+// One row per published Instagram feed carousel. Engagement metrics are
+// backfilled a day later by the instagram-insights scheduled job, giving a
+// feedback loop on which headlines actually land. Story posts are ephemeral
+// (24h) and not tracked here.
+
+export const instagramPosts = mysqlTable("instagram_posts", {
+  id: int("id").autoincrement().primaryKey(),
+  /** The published media id returned by the Graph API. */
+  mediaId: varchar("mediaId", { length: 64 }).notNull().unique(),
+  /** "daily" | "weekly". */
+  postType: varchar("postType", { length: 16 }).notNull(),
+  /** YYYY-MM-DD for daily posts; null for weekly. */
+  feedDate: varchar("feedDate", { length: 10 }),
+  /** Edition number for weekly posts; null for daily. */
+  editionNumber: int("editionNumber"),
+  /** Lead card headline (or edition label), for at-a-glance reading of metrics. */
+  headline: varchar("headline", { length: 512 }),
+  // Engagement metrics, null until the insights job backfills them.
+  likes: int("likes"),
+  comments: int("comments"),
+  reach: int("reach"),
+  saved: int("saved"),
+  shares: int("shares"),
+  totalInteractions: int("totalInteractions"),
+  metricsFetchedAt: timestamp("metricsFetchedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type InstagramPost = typeof instagramPosts.$inferSelect;
+export type InsertInstagramPost = typeof instagramPosts.$inferInsert;
