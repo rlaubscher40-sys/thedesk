@@ -39,6 +39,7 @@ import {
   generateSayThis,
   generateWhyItMatters,
   optimiseHeadlines,
+  runDailyItemQc,
   runEditorQc,
   synthesizeWeeklyEdition,
 } from "./prompts";
@@ -205,15 +206,47 @@ function registerDailyFeedRoute(app: Express): void {
                   : Promise.resolve(null),
               ]);
 
+              // Resolve the three generated lines (null = SKIPped or failed).
+              let tagValue =
+                tag.status === "fulfilled" && tag.value ? tag.value : null;
+              let sayValue =
+                say.status === "fulfilled" && say.value ? say.value : null;
+              let whyValue =
+                why.status === "fulfilled" && why.value ? why.value : null;
+
+              // Second-pass editor: reads the three lines together against the
+              // story, sharpens flat copy and culls contrived angles. Best-
+              // effort, on any failure it returns the originals untouched.
+              // Skipped when the values were preset by the source (we don't
+              // edit hand-supplied content) or when nothing generated.
+              const hadPreset = Boolean(
+                item.partnerTag || item.sayThis || item.whyItMatters
+              );
+              if (!hadPreset && (tagValue || sayValue || whyValue)) {
+                const qc = await runDailyItemQc({
+                  title: item.title,
+                  summary: item.summary,
+                  category: item.category,
+                  articleText: item.articleText,
+                  sayThis: sayValue,
+                  partnerTag: tagValue,
+                  whyItMatters: whyValue,
+                });
+                tagValue = qc.partnerTag;
+                sayValue = qc.sayThis;
+                whyValue = qc.whyItMatters;
+                if (!qc.approved && qc.notes.length > 0) {
+                  console.log(
+                    `[daily-qc] "${item.title.slice(0, 50)}…": ${qc.notes.length} edit(s)`
+                  );
+                }
+              }
+
               // Persist Say This and Partner Angles as a PAIR. If
               // either prompt SKIPped (or failed) the story renders
               // with no angles at all — the alternative is half-
               // equipped cards (a Say This with no Partner Angles
               // beneath it, or vice versa) which read as broken.
-              const tagValue =
-                tag.status === "fulfilled" && tag.value ? tag.value : null;
-              const sayValue =
-                say.status === "fulfilled" && say.value ? say.value : null;
               if (tagValue && sayValue) {
                 await db.updateFeedItemPartnerTag(id, tagValue);
                 await db.updateFeedItemSayThis(id, sayValue);
@@ -226,8 +259,6 @@ function registerDailyFeedRoute(app: Express): void {
               }
               // "Why it matters" stands alone — it's context, not a partner
               // angle, so it persists independent of the say/tag pairing.
-              const whyValue =
-                why.status === "fulfilled" && why.value ? why.value : null;
               if (whyValue) {
                 await db.updateFeedItemWhyItMatters(id, whyValue);
                 whyOk++;

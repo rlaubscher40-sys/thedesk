@@ -12,5 +12,6 @@ export * from "./substackDraft";
 export * from "./heroImage";
 export * from "./editionSynthesis";
 export * from "./editorQc";
+export * from "./dailyItemQc";
 export * from "./headlineOptimiser";
 export * from "./metricExtraction";
