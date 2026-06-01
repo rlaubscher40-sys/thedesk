@@ -176,6 +176,25 @@ const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
     name: "0019 · reading_queue.nudgeResponse",
     sql: "ALTER TABLE reading_queue ADD nudgeResponse varchar(16) NULL",
   },
+  {
+    name: "0020 · instagram_posts table",
+    sql: `CREATE TABLE instagram_posts (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      mediaId VARCHAR(64) NOT NULL UNIQUE,
+      postType VARCHAR(16) NOT NULL,
+      feedDate VARCHAR(10),
+      editionNumber INT,
+      headline VARCHAR(512),
+      likes INT,
+      comments INT,
+      reach INT,
+      saved INT,
+      shares INT,
+      totalInteractions INT,
+      metricsFetchedAt TIMESTAMP NULL,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`,
+  },
 ];
 
 /** MySQL/TiDB error codes / fragments we treat as "already applied". */
