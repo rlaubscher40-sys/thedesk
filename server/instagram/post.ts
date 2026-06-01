@@ -13,9 +13,10 @@
  */
 import { env } from "../core/env";
 import type { DailyFeedItem, Edition } from "../db/schema";
-import { updateFeedItemWhyItMatters } from "../db/feed";
+import { updateFeedItemSayThis, updateFeedItemWhyItMatters } from "../db/feed";
 import { recordServerError } from "../db/health";
 import { generateInstagramHeadline } from "../prompts/instagramHeadline";
+import { generateSayThis } from "../prompts/sayThis";
 import { generateWhyItMatters } from "../prompts/whyItMatters";
 import {
   renderDailyStoryCard,
@@ -50,17 +51,17 @@ function sanitizeStory(story: DailyFeedItem): DailyFeedItem {
 }
 
 /**
- * Caption mirrors the carousel: a numbered rundown where each entry is the
- * slide's headline followed by its why-it-matters line, in swipe order. Built
- * from the same sanitized stories that render the cards, so the caption and
- * the slides always line up.
+ * The caption carries the conversational "say this" hook for each slide, in
+ * swipe order, while the cards carry the analytical why-it-matters. Splitting
+ * it this way means the caption reads as a talk-track (built to spark replies)
+ * rather than repeating what's already on the cards.
  */
 function buildDailyCaption(stories: DailyFeedItem[]): string {
   const rundown = stories.flatMap((s, i) => {
     const headline = sanitizeDashes(s.title).slice(0, 120);
     const lines = [`${i + 1}. ${headline}`];
-    if (s.whyItMatters) {
-      lines.push(sanitizeDashes(s.whyItMatters).slice(0, 200));
+    if (s.sayThis) {
+      lines.push(sanitizeDashes(s.sayThis).slice(0, 220));
     }
     lines.push("");
     return lines;
@@ -79,29 +80,45 @@ function buildDailyCaption(stories: DailyFeedItem[]): string {
 }
 
 /**
- * Guarantee every selected story carries a why-it-matters before it becomes a
- * slide. Enrichment normally fills this in, but a story can slip through
- * (enrichment skipped or still running), so we generate any missing line at
- * post time and persist it back to the feed item. Mutates `stories` in place.
+ * Guarantee every selected story carries the lines its slide and caption need
+ * before posting: a why-it-matters (the card subtext) and a say-this (the
+ * caption hook). Enrichment normally fills these in, but a story can slip
+ * through (enrichment skipped or still running), so we generate any missing
+ * line at post time and persist it back to the feed item. Mutates in place.
  */
-async function ensureWhyItMatters(stories: DailyFeedItem[]): Promise<void> {
+async function ensureSlideContent(stories: DailyFeedItem[]): Promise<void> {
   await Promise.all(
     stories.map(async (story, i) => {
-      if (story.whyItMatters && story.whyItMatters.trim()) return;
-      const why = await generateWhyItMatters({
+      const needWhy = !(story.whyItMatters && story.whyItMatters.trim());
+      const needSay = !(story.sayThis && story.sayThis.trim());
+      if (!needWhy && !needSay) return;
+
+      const input = {
         title: story.title,
         summary: story.summary,
         category: story.category,
-      });
-      if (!why) return;
-      stories[i] = { ...story, whyItMatters: why };
-      try {
-        await updateFeedItemWhyItMatters(story.id, why);
-      } catch (err) {
-        // Persisting is best-effort; the slide already has its line in memory.
-        console.warn(
-          `[instagram] couldn't persist generated whyItMatters for ${story.id}:`,
-          (err as Error).message
+      };
+      const [why, say] = await Promise.all([
+        needWhy ? generateWhyItMatters(input) : Promise.resolve(null),
+        needSay ? generateSayThis(input) : Promise.resolve(null),
+      ]);
+
+      if (why) {
+        stories[i] = { ...stories[i]!, whyItMatters: why };
+        await updateFeedItemWhyItMatters(story.id, why).catch((err) =>
+          console.warn(
+            `[instagram] couldn't persist whyItMatters for ${story.id}:`,
+            (err as Error).message
+          )
+        );
+      }
+      if (say) {
+        stories[i] = { ...stories[i]!, sayThis: say };
+        await updateFeedItemSayThis(story.id, say).catch((err) =>
+          console.warn(
+            `[instagram] couldn't persist sayThis for ${story.id}:`,
+            (err as Error).message
+          )
         );
       }
     })
@@ -152,9 +169,9 @@ export async function postDailyCarousel(
 
   if (top.length === 0) throw new Error("No stories available for Instagram post");
 
-  // Every slide must carry a why-it-matters. Generate + persist any that are
-  // missing before we render the cards or build the caption.
-  await ensureWhyItMatters(top);
+  // Every slide must carry a why-it-matters (card subtext) and a say-this
+  // (caption hook). Generate + persist any that are missing before we render.
+  await ensureSlideContent(top);
 
   // Punch up the raw feed titles for the card only (3 short LLM calls). Each
   // call falls back to the original title on SKIP or failure, so a weak rewrite

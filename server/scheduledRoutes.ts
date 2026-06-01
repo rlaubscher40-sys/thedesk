@@ -288,20 +288,18 @@ function registerDailyFeedRoute(app: Express): void {
                 }
               }
 
-              // Persist Say This and Partner Angles as a PAIR. If
-              // either prompt SKIPped (or failed) the story renders
-              // with no angles at all — the alternative is half-
-              // equipped cards (a Say This with no Partner Angles
-              // beneath it, or vice versa) which read as broken.
-              if (tagValue && sayValue) {
+              // Persist each angle independently. The Today page now gives a
+              // story a full card if it has EITHER a Say This or a Partner
+              // Angle (FeedItemCard renders whichever is present), so keeping
+              // a lone angle surfaces more full-size stories instead of
+              // demoting them to the signals strip.
+              if (tagValue) {
                 await db.updateFeedItemPartnerTag(id, tagValue);
-                await db.updateFeedItemSayThis(id, sayValue);
                 tagOk++;
+              }
+              if (sayValue) {
+                await db.updateFeedItemSayThis(id, sayValue);
                 sayOk++;
-              } else if (tagValue || sayValue) {
-                console.log(
-                  `[scheduled] dropped half-equipped angles for "${item.title.slice(0, 60)}…" (tag=${tagValue ? "ok" : "skip"}, say=${sayValue ? "ok" : "skip"})`
-                );
               }
               // "Why it matters" stands alone — it's context, not a partner
               // angle, so it persists independent of the say/tag pairing.

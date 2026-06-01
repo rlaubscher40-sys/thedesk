@@ -288,12 +288,10 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
       {item.counterpoint && <CounterpointLine counterpoint={item.counterpoint} />}
 
       <RubensNoteBlock itemId={item.id} note={item.rubensNote} />
-      {/* Say This and Partner Angles are paired — never one without
-          the other. If the ingest enrichment SKIPped one (story has
-          no genuine partner-channel angle), we treat the whole story
-          as "no angles" rather than render half the block. RubensNote
-          is an editorial override and always shows when present. */}
-      {!item.rubensNote && item.sayThis && item.partnerTag && (
+      {/* Say This and Partner Angles render independently — a story can
+          carry either one. RubensNote is an editorial override that takes
+          the place of the Say This line when present. */}
+      {!item.rubensNote && item.sayThis && (
         <SayThisLine sayThis={item.sayThis} category={item.category} />
       )}
 

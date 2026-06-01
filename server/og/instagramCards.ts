@@ -45,6 +45,20 @@ async function loadFonts(): Promise<LoadedFonts> {
   return cachedFonts;
 }
 
+/**
+ * The Desk lockup (logo + wordmark), light colourway on transparent, copied
+ * into the fonts dir so the build bundles it next to dist/. Loaded once as a
+ * base64 data URI that satori can embed as an <img>. Putting the actual brand
+ * mark on every card builds recognition far better than a text wordmark.
+ */
+let cachedLogo: string | null = null;
+async function loadLogo(): Promise<string> {
+  if (cachedLogo) return cachedLogo;
+  const buf = await fs.promises.readFile(path.join(FONT_DIR, "desk-lockup.png"));
+  cachedLogo = `data:image/png;base64,${buf.toString("base64")}`;
+  return cachedLogo;
+}
+
 const NAVY = "#0C1220";
 const AMBER = "#D4A853";
 const FG = "#F0EDE8";
@@ -92,12 +106,13 @@ export async function renderDailyStoryCard(
   slideIndex: number,
   slideTotal: number
 ): Promise<Buffer> {
+  const logo = await loadLogo();
   const slideNum = String(slideIndex + 1).padStart(2, "0");
   const totalNum = String(slideTotal).padStart(2, "0");
-  const headline = clamp(story.title, 100);
-  const why = story.whyItMatters ? clamp(story.whyItMatters, 200) : null;
+  const headline = clamp(story.title, 90);
+  const why = story.whyItMatters ? clamp(story.whyItMatters, 170) : null;
   const category = (story.category || "NEWS").toUpperCase();
-  const fontSize = headline.length > 70 ? "46px" : "56px";
+  const fontSize = headline.length > 64 ? "60px" : "74px";
 
   const tree = {
     type: "div",
@@ -125,16 +140,12 @@ export async function renderDailyStoryCard(
             },
             children: [
               {
-                type: "div",
+                type: "img",
                 props: {
-                  style: {
-                    fontFamily: "JetBrains Mono",
-                    fontSize: "12px",
-                    letterSpacing: "0.28em",
-                    textTransform: "uppercase",
-                    color: AMBER,
-                  },
-                  children: "The Desk · Daily Intelligence",
+                  src: logo,
+                  width: 181,
+                  height: 56,
+                  style: { width: "181px", height: "56px" },
                 },
               },
               {
@@ -142,7 +153,7 @@ export async function renderDailyStoryCard(
                 props: {
                   style: {
                     fontFamily: "JetBrains Mono",
-                    fontSize: "12px",
+                    fontSize: "15px",
                     letterSpacing: "0.15em",
                     color: FG_MUTED,
                   },
@@ -180,7 +191,7 @@ export async function renderDailyStoryCard(
                     props: {
                       style: {
                         fontFamily: "JetBrains Mono",
-                        fontSize: "11px",
+                        fontSize: "16px",
                         letterSpacing: "0.22em",
                         color: AMBER,
                       },
@@ -223,7 +234,7 @@ export async function renderDailyStoryCard(
                             props: {
                               style: {
                                 fontFamily: "JetBrains Mono",
-                                fontSize: "10px",
+                                fontSize: "15px",
                                 letterSpacing: "0.25em",
                                 textTransform: "uppercase",
                                 color: AMBER,
@@ -236,8 +247,8 @@ export async function renderDailyStoryCard(
                             props: {
                               style: {
                                 fontFamily: "JetBrains Mono",
-                                fontSize: "17px",
-                                lineHeight: 1.6,
+                                fontSize: "30px",
+                                lineHeight: 1.45,
                                 color: FG_MUTED,
                               },
                               children: why,
@@ -284,7 +295,7 @@ export async function renderDailyStoryCard(
                       props: {
                         style: {
                           fontFamily: "JetBrains Mono",
-                          fontSize: "12px",
+                          fontSize: "15px",
                           letterSpacing: "0.15em",
                           textTransform: "uppercase",
                           color: FG_MUTED,
@@ -297,7 +308,7 @@ export async function renderDailyStoryCard(
                       props: {
                         style: {
                           fontFamily: "JetBrains Mono",
-                          fontSize: "12px",
+                          fontSize: "15px",
                           letterSpacing: "0.22em",
                           color: AMBER,
                         },
@@ -325,10 +336,11 @@ export async function renderDailyStoryCard(
 export async function renderDailyStoryVertical(
   story: DailyFeedItem
 ): Promise<Buffer> {
-  const headline = clamp(story.title, 110);
-  const why = story.whyItMatters ? clamp(story.whyItMatters, 240) : null;
+  const logo = await loadLogo();
+  const headline = clamp(story.title, 100);
+  const why = story.whyItMatters ? clamp(story.whyItMatters, 220) : null;
   const category = (story.category || "NEWS").toUpperCase();
-  const fontSize = headline.length > 80 ? "58px" : "70px";
+  const fontSize = headline.length > 72 ? "76px" : "92px";
 
   const tree = {
     type: "div",
@@ -349,19 +361,15 @@ export async function renderDailyStoryVertical(
         {
           type: "div",
           props: {
-            style: { display: "flex", flexDirection: "column", gap: "10px" },
+            style: { display: "flex", flexDirection: "column", gap: "20px" },
             children: [
               {
-                type: "div",
+                type: "img",
                 props: {
-                  style: {
-                    fontFamily: "JetBrains Mono",
-                    fontSize: "13px",
-                    letterSpacing: "0.3em",
-                    textTransform: "uppercase",
-                    color: AMBER,
-                  },
-                  children: "The Desk · Daily Intelligence",
+                  src: logo,
+                  width: 245,
+                  height: 76,
+                  style: { width: "245px", height: "76px" },
                 },
               },
               {
@@ -369,7 +377,7 @@ export async function renderDailyStoryVertical(
                 props: {
                   style: {
                     fontFamily: "JetBrains Mono",
-                    fontSize: "13px",
+                    fontSize: "17px",
                     letterSpacing: "0.18em",
                     textTransform: "uppercase",
                     color: FG_MUTED,
@@ -404,7 +412,7 @@ export async function renderDailyStoryVertical(
                     props: {
                       style: {
                         fontFamily: "JetBrains Mono",
-                        fontSize: "13px",
+                        fontSize: "18px",
                         letterSpacing: "0.22em",
                         color: AMBER,
                       },
@@ -447,7 +455,7 @@ export async function renderDailyStoryVertical(
                             props: {
                               style: {
                                 fontFamily: "JetBrains Mono",
-                                fontSize: "12px",
+                                fontSize: "17px",
                                 letterSpacing: "0.25em",
                                 textTransform: "uppercase",
                                 color: AMBER,
@@ -460,8 +468,8 @@ export async function renderDailyStoryVertical(
                             props: {
                               style: {
                                 fontFamily: "JetBrains Mono",
-                                fontSize: "21px",
-                                lineHeight: 1.6,
+                                fontSize: "34px",
+                                lineHeight: 1.45,
                                 color: FG_MUTED,
                               },
                               children: why,
@@ -770,7 +778,7 @@ export async function renderWeeklyCoverCard(edition: Edition): Promise<Buffer> {
                       props: {
                         style: {
                           fontFamily: "JetBrains Mono",
-                          fontSize: "12px",
+                          fontSize: "15px",
                           letterSpacing: "0.22em",
                           color: AMBER,
                         },

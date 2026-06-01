@@ -157,26 +157,20 @@ export default function DailyFeed() {
   // attacks, celebrity news, off-beat global signals) drop into the
   // "Further signals" strip.
   //
-  // Two extra rules on the grid:
-  //   · Cards are rounded DOWN to a multiple of 3 so the grid always
-  //     ends on a complete row. Leftover angle-bearing cards spill
-  //     into "Further signals" rather than sitting orphaned with
-  //     empty columns beside them.
-  //   · The lede on every grid card is line-clamped (see
-  //     FeedItemCard) so summaries of wildly different lengths
-  //     don't blow row heights apart.
+  // Grid note: the lede on every grid card is line-clamped (see
+  // FeedItemCard) so summaries of wildly different lengths don't blow
+  // row heights apart.
   const liveLead = feedItems[0];
   const liveRest = feedItems.slice(1);
-  // Only items with BOTH partnerTag AND sayThis earn the full grid
-  // treatment — they're rendered as a pair in FeedItemCard. A story
-  // with one but not the other reads as half-equipped, so we treat it
-  // the same as a no-angles item and demote it to the signals strip.
+  // A story earns the full grid treatment if it has EITHER a sayThis or a
+  // partnerTag — FeedItemCard renders whichever angle(s) are present. Only
+  // genuinely bare items (no angle at all) drop to the signals strip, so a
+  // normal day surfaces many full-size stories rather than one lead + a wall
+  // of signals.
   const hasAngles = (it: typeof feedItems[number]): boolean =>
     Boolean(
-      it.sayThis &&
-        it.sayThis.length > 0 &&
-        it.partnerTag &&
-        it.partnerTag.length > 0
+      (it.sayThis && it.sayThis.length > 0) ||
+        (it.partnerTag && it.partnerTag.length > 0)
     );
   const allAngled = liveRest.filter(hasAngles);
   const nonAngled = liveRest.filter((it) => !hasAngles(it));
@@ -192,14 +186,11 @@ export default function DailyFeed() {
     (it.sayThis?.length ?? 0) +
     (it.partnerTag?.length ?? 0);
   const angledSorted = [...allAngled].sort((a, b) => cardSize(a) - cardSize(b));
-  // Desktop grid is 3-col. Round down to a complete row.
-  const GRID_COLS = 3;
-  const gridSize = Math.floor(angledSorted.length / GRID_COLS) * GRID_COLS;
-  const liveGrid = angledSorted.slice(0, gridSize);
-  // Anything that didn't fit a complete row joins the signals strip —
-  // angle-bearing or not, so the page never shows a lonely card with
-  // two empty columns beside it.
-  const liveSignals = [...angledSorted.slice(gridSize), ...nonAngled];
+  // Every angle-bearing story gets a full card; the grid's last row may be
+  // partial (cards left-align), which is fine and far better than burying
+  // good stories. Only the truly bare items fall through to signals.
+  const liveGrid = angledSorted;
+  const liveSignals = nonAngled;
 
   return (
     <div className="space-y-12">
