@@ -23,6 +23,7 @@ import { adminProcedure, publicProcedure, router } from "../core/trpc";
  * mobile without that.
  */
 const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
+  { name: "0001 · daily_feed_items.imageUrl", sql: "ALTER TABLE daily_feed_items ADD imageUrl text" },
   { name: "0004 · daily_feed_items.rubensNote", sql: "ALTER TABLE daily_feed_items ADD rubensNote text" },
   { name: "0005 · editions.marketStress", sql: "ALTER TABLE editions ADD marketStress varchar(16)" },
   { name: "0005 · editions.datesToWatch", sql: "ALTER TABLE editions ADD datesToWatch json" },
