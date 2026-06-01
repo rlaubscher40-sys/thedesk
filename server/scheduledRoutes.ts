@@ -713,6 +713,7 @@ async function notifyDailyBriefSubscribers(feedDate: string): Promise<void> {
     for (let i = 0; i < subs.length; i++) {
       if (i > 0) await new Promise((r) => setTimeout(r, 600));
       const sub = subs[i];
+      if (!sub) continue;
       try {
         const result = await sendDailyBriefEmail({
           to: sub.email,
@@ -966,6 +967,7 @@ async function sendWeeklyRecap(weekOf: string): Promise<void> {
     for (let i = 0; i < subs.length; i++) {
       if (i > 0) await new Promise((r) => setTimeout(r, 600));
       const sub = subs[i];
+      if (!sub) continue;
       try {
         const result = await sendWeeklyRecapEmail({
           to: sub.email,
