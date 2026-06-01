@@ -1,13 +1,12 @@
-/**
- * Admin view of the subscriber list. Read-only for now, until email
- * delivery is wired, this is just the "who's signed up" surface.
- */
-import { Mail } from "lucide-react";
+import { Mail, Send } from "lucide-react";
+import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 
 export function SubscribersAdminPanel() {
   const listQuery = trpc.subscribers.list.useQuery();
   const countQuery = trpc.subscribers.count.useQuery();
+  const resendMutation = trpc.subscribers.resendDailyBrief.useMutation();
+  const [resendState, setResendState] = useState<Record<number, "sending" | "done" | "error">>({});
 
   const subs = listQuery.data ?? [];
   const total = countQuery.data?.count ?? 0;
@@ -45,39 +44,75 @@ export function SubscribersAdminPanel() {
         </div>
       ) : (
         <div className="panel rounded overflow-hidden">
-          <div className="grid grid-cols-[minmax(0,1fr)_120px_120px_100px] items-center gap-4 px-5 py-3 border-b border-[var(--color-border)] overline">
+          <div className="grid grid-cols-[minmax(0,1fr)_120px_120px_100px_36px] items-center gap-4 px-5 py-3 border-b border-[var(--color-border)] overline">
             <span>Email</span>
             <span>Source</span>
             <span>Status</span>
             <span className="text-right">Signed up</span>
+            <span />
           </div>
           <ul>
-            {subs.map((s) => (
-              <li
-                key={s.id}
-                className="grid grid-cols-[minmax(0,1fr)_120px_120px_100px] items-center gap-4 px-5 py-3 text-sm border-b border-[var(--color-border)] last:border-b-0 hover:bg-white/[0.02]"
-              >
-                <span className="font-mono text-[13px] truncate">{s.email}</span>
-                <span className="text-[var(--color-fg-muted)] truncate">
-                  {s.source ?? "—"}
-                </span>
-                <span>
-                  {s.unsubscribedAt ? (
-                    <Badge label="Unsub'd" colour="oklch(0.68 0.20 15)" />
-                  ) : s.confirmedAt ? (
-                    <Badge label="Confirmed" colour="oklch(0.72 0.17 155)" />
-                  ) : (
-                    <Badge label="Pending" colour="oklch(0.78 0.18 70)" />
-                  )}
-                </span>
-                <span className="font-mono text-[11px] text-[var(--color-fg-subtle)] text-right">
-                  {new Date(s.createdAt).toLocaleDateString("en-AU", {
-                    day: "numeric",
-                    month: "short",
-                  })}
-                </span>
-              </li>
-            ))}
+            {subs.map((s) => {
+              const state = resendState[s.id];
+              const canResend = !!s.confirmedAt && !s.unsubscribedAt;
+              return (
+                <li
+                  key={s.id}
+                  className="grid grid-cols-[minmax(0,1fr)_120px_120px_100px_36px] items-center gap-4 px-5 py-3 text-sm border-b border-[var(--color-border)] last:border-b-0 hover:bg-white/[0.02]"
+                >
+                  <span className="font-mono text-[13px] truncate">{s.email}</span>
+                  <span className="text-[var(--color-fg-muted)] truncate">
+                    {s.source ?? "—"}
+                  </span>
+                  <span>
+                    {s.unsubscribedAt ? (
+                      <Badge label="Unsub'd" colour="oklch(0.68 0.20 15)" />
+                    ) : s.confirmedAt ? (
+                      <Badge label="Confirmed" colour="oklch(0.72 0.17 155)" />
+                    ) : (
+                      <Badge label="Pending" colour="oklch(0.78 0.18 70)" />
+                    )}
+                  </span>
+                  <span className="font-mono text-[11px] text-[var(--color-fg-subtle)] text-right">
+                    {new Date(s.createdAt).toLocaleDateString("en-AU", {
+                      day: "numeric",
+                      month: "short",
+                    })}
+                  </span>
+                  <span className="flex justify-end">
+                    {canResend && (
+                      <button
+                        title={
+                          state === "done" ? "Sent!" :
+                          state === "error" ? "Failed — try again" :
+                          "Resend today's brief"
+                        }
+                        disabled={state === "sending" || state === "done"}
+                        onClick={async () => {
+                          setResendState((prev) => ({ ...prev, [s.id]: "sending" }));
+                          try {
+                            await resendMutation.mutateAsync({ subscriberId: s.id });
+                            setResendState((prev) => ({ ...prev, [s.id]: "done" }));
+                          } catch {
+                            setResendState((prev) => ({ ...prev, [s.id]: "error" }));
+                          }
+                        }}
+                        className="p-1 rounded transition-opacity disabled:opacity-30"
+                        style={{
+                          color: state === "done"
+                            ? "oklch(0.72 0.17 155)"
+                            : state === "error"
+                            ? "oklch(0.68 0.20 15)"
+                            : "var(--color-fg-muted)",
+                        }}
+                      >
+                        <Send className="h-3 w-3" />
+                      </button>
+                    )}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
