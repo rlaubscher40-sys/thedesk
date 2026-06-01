@@ -53,25 +53,59 @@ export async function createImageContainer(opts: {
 /**
  * Create a STORIES container from a single image. Stories are a single 9:16
  * media item (no carousels), live for 24 hours. Publish with publishContainer.
+ *
+ * Note: STORIES containers do NOT accept `alt_text` (it's only valid for
+ * IMAGE and carousel-item media). Sending it makes the API reject the whole
+ * container, which is what silently killed the daily/weekly Story posts.
  */
 export async function createStoryContainer(opts: {
   igUserId: string;
   accessToken: string;
   imageUrl: string;
-  altText?: string;
 }): Promise<string> {
-  const params: Record<string, string> = {
+  const data = await igPost<{ id: string }>(`/${opts.igUserId}/media`, {
     media_type: "STORIES",
     image_url: opts.imageUrl,
     access_token: opts.accessToken,
-  };
-  if (opts.altText) params.alt_text = opts.altText;
-
-  const data = await igPost<{ id: string }>(
-    `/${opts.igUserId}/media`,
-    params
-  );
+  });
   return data.id;
+}
+
+/**
+ * Poll a media container until it's ready to publish. Instagram processes the
+ * uploaded image asynchronously; publishing before the container reports
+ * FINISHED returns "Media ID is not available". Image containers are usually
+ * ready almost immediately, but STORIES media can lag a beat, so we poll.
+ *
+ * Resolves on FINISHED, throws on ERROR/EXPIRED or once the timeout elapses.
+ */
+export async function waitForContainerReady(opts: {
+  containerId: string;
+  accessToken: string;
+  timeoutMs?: number;
+  intervalMs?: number;
+}): Promise<void> {
+  const timeoutMs = opts.timeoutMs ?? 30000;
+  const intervalMs = opts.intervalMs ?? 2000;
+  const deadline = Date.now() + timeoutMs;
+
+  for (;;) {
+    const data = await igGet<{ status_code?: string }>(`/${opts.containerId}`, {
+      fields: "status_code",
+      access_token: opts.accessToken,
+    });
+    const status = data.status_code;
+    if (status === "FINISHED") return;
+    if (status === "ERROR" || status === "EXPIRED") {
+      throw new Error(`container ${opts.containerId} reported status ${status}`);
+    }
+    if (Date.now() > deadline) {
+      throw new Error(
+        `container ${opts.containerId} not ready after ${timeoutMs}ms (last status: ${status ?? "unknown"})`
+      );
+    }
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
 }
 
 /** Bundle child container IDs into a CAROUSEL container. */
