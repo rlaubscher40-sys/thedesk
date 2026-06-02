@@ -4,7 +4,11 @@
 // HTML kept requesting content-hashed chunks (e.g. Editions-*.js) that
 // later deploys had already removed, producing "Failed to fetch
 // dynamically imported module" on routes like /editions.
-const CACHE = "thedesk-shell-v2";
+// v3: brand fonts are now self-hosted, so the two first-paint faces
+// (Source Sans body, Playfair wordmark/headlines) join the precached
+// shell — previously fonts came from the Google CDN and were skipped
+// as cross-origin, leaving offline visitors on fallback type.
+const CACHE = "thedesk-shell-v3";
 
 // Static assets that form the app shell — cached on install for offline.
 const SHELL = [
@@ -14,6 +18,8 @@ const SHELL = [
   "/icon-192.png",
   "/icon-512.png",
   "/apple-touch-icon.png",
+  "/fonts/SourceSans3-Variable.woff2",
+  "/fonts/PlayfairDisplay-Variable.woff2",
 ];
 
 self.addEventListener("install", (event) => {

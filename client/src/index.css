@@ -1,5 +1,61 @@
 @import "tailwindcss";
 
+/* ─── Brand fonts (self-hosted) ───────────────────────────────
+   The three brand faces, served from /public/fonts as variable
+   woff2 rather than the Google Fonts CDN. Self-hosting keeps the
+   exact files shipped in the brand pack, works offline in the PWA,
+   and avoids leaking every visitor's IP to a third party on first
+   paint — consistent with the product's self-hosted analytics and
+   the "no tracking pixels" principle (brand guide §11).
+
+   Variable axes mirror the source files: Source Sans 3 wght 200–900,
+   Playfair Display wght 400–900, JetBrains Mono wght 100–800. Each
+   has a matching italic face. font-display: swap so text paints
+   immediately in the fallback and reflows once the face loads.
+*/
+@font-face {
+  font-family: "Source Sans 3";
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url("/fonts/SourceSans3-Variable.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Source Sans 3";
+  font-style: italic;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url("/fonts/SourceSans3-Italic-Variable.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Playfair Display";
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url("/fonts/PlayfairDisplay-Variable.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Playfair Display";
+  font-style: italic;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url("/fonts/PlayfairDisplay-Italic-Variable.woff2") format("woff2");
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url("/fonts/JetBrainsMono-Variable.woff2") format("woff2");
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: italic;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url("/fonts/JetBrainsMono-Italic-Variable.woff2") format("woff2");
+}
+
 /* ─── Design tokens ───────────────────────────────────────────
    Single source of truth for colour, type, motion. Editorial
    broadsheet aesthetic — deep navy with amber as the defining
@@ -143,6 +199,17 @@
     oklch(0.18 0.03 260) 60%,
     oklch(0.32 0.18 70 / 30%) 100%
   );
+  /* Avatar fallback disc — the indigo→amber blend behind initial-letter
+     avatars when an image is missing or errors. Tokenised so the four
+     byline surfaces (AuthorByline, CuratorByline, FromTheDeskIntro,
+     About) stop repeating the same inline gradient (brand guide §3.5:
+     reference the token, never inline linear-gradient()). */
+  --grad-avatar-disc: linear-gradient(
+    135deg,
+    oklch(0.32 0.06 260),
+    oklch(0.16 0.04 260) 60%,
+    oklch(0.32 0.18 70 / 50%)
+  );
 }
 
 /* ─── Light mode ─────────────────────────────────────────────────────────
@@ -258,6 +325,14 @@
     oklch(0.95 0.012 78) 60%,
     oklch(0.65 0.18 60 / 22%) 100%
   );
+  /* Avatar disc flips to a warm paper-tinted blend in light mode so the
+     initial letter still reads against the cream canvas. */
+  --grad-avatar-disc: linear-gradient(
+    135deg,
+    oklch(0.92 0.02 80),
+    oklch(0.88 0.03 76) 60%,
+    oklch(0.78 0.16 70 / 35%)
+  );
 }
 
 /* Hide the heavy gradient/animated chrome in light mode — the warm paper
@@ -295,19 +370,18 @@
   display: none;
 }
 
-/* Avatar fallback gradients (initial-letter discs that render only
-   when an image errors) are authored as dark indigo/amber blends.
-   They show readable amber on dark mode; in light mode flip to a
-   warm paper-tinted gradient with the same accent so the initial
-   letter still has contrast. */
+/* Avatar fallback discs (initial-letter discs that render only when an
+   image is missing or errors). Authored as a dark indigo→amber blend
+   with warm amber initials; the --grad-avatar-disc token carries the
+   theme-aware fill (it flips to a paper-tinted blend in light mode) so
+   the byline components reference one source instead of repeating the
+   gradient inline (brand guide §3.5). */
+.avatar-initial-disc {
+  background: var(--grad-avatar-disc);
+  color: oklch(0.92 0.16 76);
+}
 .light .avatar-initial-disc {
-  background: linear-gradient(
-    135deg,
-    oklch(0.92 0.02 80),
-    oklch(0.88 0.03 76) 60%,
-    oklch(0.78 0.16 70 / 35%)
-  ) !important;
-  color: oklch(0.45 0.18 60) !important;
+  color: oklch(0.45 0.18 60);
 }
 
 /* Tailwind's amber colour scale was tuned for dark backgrounds — at
