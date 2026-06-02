@@ -13,7 +13,7 @@
  *   - Featured → More → Further sections from the static stories array
  */
 import { useMemo, useState } from "react";
-import { Flame } from "lucide-react";
+import { CheckCheck, Copy, Flame } from "lucide-react";
 import { useLocation, useSearch } from "wouter";
 import { useStreak } from "@/lib/useStreak";
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
@@ -46,6 +46,7 @@ const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export default function DailyFeed() {
   const [filter, setFilter] = useState<CategoryFilter>("ALL");
+  const [copied, setCopied] = useState(false);
   const { current: streakDays, tier: streakTier } = useStreak();
 
   // ── Historical day paging. The Today page accepts `?date=YYYY-MM-DD` so
@@ -192,6 +193,34 @@ export default function DailyFeed() {
   const liveGrid = angledSorted;
   const liveSignals = nonAngled;
 
+  // Stories that have both a sayThis line and a partnerTag — the ones
+  // actually ready to drop into a client conversation.
+  const talkingPoints = useMemo(
+    () => feedItems.filter((it) => it.sayThis && it.partnerTag),
+    [feedItems]
+  );
+
+  async function copyTalkingPoints() {
+    if (talkingPoints.length === 0) return;
+    const dateLabel = new Date(`${date}T12:00:00Z`).toLocaleString("en-AU", {
+      weekday: "long", day: "numeric", month: "long", timeZone: "UTC",
+    });
+    const lines: string[] = [`Talking points · The Desk · ${dateLabel}`, ""];
+    talkingPoints.forEach((item, i) => {
+      lines.push(`${i + 1}. ${item.title}`);
+      if (item.whyItMatters) lines.push(`   Why it matters: ${item.whyItMatters}`);
+      lines.push(`   Say this: "${item.sayThis}"`);
+      lines.push("");
+    });
+    try {
+      await navigator.clipboard.writeText(lines.join("\n").trim());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      // clipboard unavailable (non-https or denied) — fail silently
+    }
+  }
+
   return (
     <div className="space-y-12">
       <SectionErrorBoundary section="Hero">
@@ -212,7 +241,26 @@ export default function DailyFeed() {
             onPrev={() => prevDate && gotoDate(prevDate)}
             onNext={() => nextDate && gotoDate(nextDate)}
           />
-          <PersonaSwitcher />
+          <div className="flex items-center gap-3">
+            {hasLiveData && talkingPoints.length > 0 && (
+              <button
+                onClick={copyTalkingPoints}
+                title={`Copy ${talkingPoints.length} talking point${talkingPoints.length === 1 ? "" : "s"} for today`}
+                className="inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-[10px] font-mono uppercase tracking-[0.18em] transition-colors"
+                style={{
+                  background: copied ? "oklch(0.65 0.14 145 / 15%)" : "oklch(0.78 0.18 70 / 10%)",
+                  boxShadow: copied
+                    ? "inset 0 0 0 1px oklch(0.65 0.14 145 / 50%)"
+                    : "inset 0 0 0 1px oklch(0.78 0.18 70 / 40%)",
+                  color: copied ? "oklch(0.75 0.14 145)" : "var(--color-amber)",
+                }}
+              >
+                {copied ? <CheckCheck className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                {copied ? "Copied" : `Copy ${talkingPoints.length} talking point${talkingPoints.length === 1 ? "" : "s"}`}
+              </button>
+            )}
+            <PersonaSwitcher />
+          </div>
         </div>
         <SectionErrorBoundary section="Filters">
           <FilterChips
