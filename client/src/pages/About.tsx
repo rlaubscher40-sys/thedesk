@@ -14,6 +14,7 @@
 import { useState } from "react";
 import { ExternalLink, Instagram, Linkedin } from "lucide-react";
 import { useDocumentTitle } from "@/lib/useDocumentTitle";
+import { SubscribeBanner } from "@/components/SubscribeBanner";
 
 const SUBSTACK_URL = "https://rubenlaubscher.substack.com/";
 const LINKEDIN_URL = "https://www.linkedin.com/in/ruben-laubscher/";
@@ -89,7 +90,7 @@ export default function About() {
       {/* Two-column editorial body. Prose on the left at a comfortable
           reading width; the author + meta sidebar on the right uses the
           rest of the canvas. Stacks on mobile, prose first then sidebar. */}
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] gap-10 lg:gap-14 pb-16">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] gap-10 lg:gap-14">
         {/* ── Prose column. */}
         <article className="text-[var(--color-fg)] space-y-6 leading-relaxed">
           <p
@@ -249,6 +250,8 @@ export default function About() {
           </div>
         </aside>
       </div>
+
+      <SubscribeBanner source="about-foot" />
     </div>
   );
 }
