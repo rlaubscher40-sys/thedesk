@@ -40,7 +40,6 @@ const Corrections = lazyWithReload(() => import("./pages/Corrections"), "Correct
 const ConfirmSubscription = lazyWithReload(() => import("./pages/ConfirmSubscription"), "ConfirmSubscription");
 const Settings = lazyWithReload(() => import("./pages/Settings"), "Settings");
 const InstallApp = lazyWithReload(() => import("./pages/InstallApp"), "InstallApp");
-const ThisWeek = lazyWithReload(() => import("./pages/ThisWeek"), "ThisWeek");
 const NotFound = lazyWithReload(() => import("./pages/NotFound"), "NotFound");
 
 function KeyboardShortcuts() {
@@ -116,8 +115,7 @@ function Routes() {
             <Route path="/trends" component={Trends} />
             <Route path="/topics" component={TopicThreads} />
             <Route path="/topics/:category" component={TopicThreads} />
-            <Route path="/this-week" component={ThisWeek} />
-            <Route path="/about" component={About} />
+<Route path="/about" component={About} />
             <Route path="/archive" component={Archive} />
             <Route path="/story/:id" component={StoryPage} />
             <Route path="/admin" component={AdminPage} />
