@@ -95,11 +95,26 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="shortcut icon" href="/favicon.ico" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!--
+      Brand fonts are self-hosted (see @font-face in client/src/index.css),
+      not loaded from the Google Fonts CDN — no third-party request, no IP
+      leak on first paint. Preload the two faces the first paint needs:
+      Source Sans (body) and Playfair (wordmark + headlines). JetBrains
+      Mono (overlines, byline) loads via @font-face without a preload.
+    -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap"
-      rel="stylesheet"
+      rel="preload"
+      href="/fonts/SourceSans3-Variable.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/PlayfairDisplay-Variable.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
     />
     <!--
       First-paint splash. Renders synchronously from inline HTML/CSS so

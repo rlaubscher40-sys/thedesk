@@ -98,12 +98,7 @@ function Headshot({
         ) : (
           <div
             className="avatar-initial-disc w-full h-full flex items-center justify-center font-serif font-bold"
-            style={{
-              background:
-                "linear-gradient(135deg, oklch(0.32 0.06 260), oklch(0.16 0.04 260) 60%, oklch(0.32 0.18 70 / 50%))",
-              fontSize: size * 0.42,
-              color: "oklch(0.92 0.16 76)",
-            }}
+            style={{ fontSize: size * 0.42 }}
           >
             {name[0]?.toUpperCase()}
           </div>

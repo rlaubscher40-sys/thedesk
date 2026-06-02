@@ -41,14 +41,7 @@ export function FromTheDeskIntro() {
               onError={() => setImgFailed(true)}
             />
           ) : (
-            <div
-              className="avatar-initial-disc w-full h-full flex items-center justify-center font-serif font-bold text-3xl"
-              style={{
-                background:
-                  "linear-gradient(135deg, oklch(0.32 0.06 260), oklch(0.16 0.04 260) 60%, oklch(0.32 0.18 70 / 50%))",
-                color: "oklch(0.92 0.16 76)",
-              }}
-            >
+            <div className="avatar-initial-disc w-full h-full flex items-center justify-center font-serif font-bold text-3xl">
               R
             </div>
           )}
