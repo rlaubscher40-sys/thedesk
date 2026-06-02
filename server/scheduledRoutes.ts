@@ -180,7 +180,13 @@ function registerDailyFeedRoute(app: Express): void {
       );
     } catch (err) {
       console.error("[scheduled] daily-feed insert failed:", err);
-      res.status(500).json({ error: "Database insert failed" });
+      // Surface the underlying DB error so the GitHub Actions log (the only
+      // thing the operator sees) is diagnosable, rather than an opaque
+      // "Database insert failed" with the real cause buried server-side.
+      res.status(500).json({
+        error: "Database insert failed",
+        message: (err as Error).message,
+      });
       return;
     }
 
@@ -188,7 +194,16 @@ function registerDailyFeedRoute(app: Express): void {
     // reflects the ingest immediately rather than after the TTL.
     invalidate("feed:");
 
-    res.json({ success: true, count: freshItems.length, skipped: skippedCount });
+    // `insertedIds` is index-aligned with freshItems; a 0 marks a row that
+    // was dropped during the row-by-row fallback, so the honest count is the
+    // number of non-zero ids, not the input length.
+    const insertedCount = insertedIds.filter((id) => id > 0).length;
+    res.json({
+      success: true,
+      count: insertedCount,
+      skipped: skippedCount,
+      dropped: freshItems.length - insertedCount,
+    });
 
     // ── Background: partnerTag + sayThis + per-item image enrichment ─────
     const feedDate = freshItems[0]?.feedDate;
@@ -1169,34 +1184,39 @@ function registerInstagramRoutes(app: Express): void {
       res.status(422).json({ error: "No feed items for the requested date" });
       return;
     }
-    res.json({ success: true, message: "Instagram daily post queued" });
-
-    setImmediate(async () => {
-      try {
-        const { postDailyCarousel } = await import("./instagram/post");
-        const { postId, headline } = await postDailyCarousel(items, siteOrigin());
-        console.log(`[instagram] daily post complete: ${postId}`);
-        await db.recordInstagramPost({
-          mediaId: postId,
-          postType: "daily",
-          feedDate: feedDate ?? null,
-          headline,
-        });
-      } catch (err) {
-        const e = err as Error;
-        console.error("[instagram] daily post failed:", e.message);
-        // Surface the whole-post failure so it's diagnosable from the admin
-        // console / server_errors, not just the runtime logs.
-        await db
-          .recordServerError({
-            level: "error",
-            message: `Instagram daily post failed: ${e.message}`.slice(0, 512),
-            stack: e.stack ?? null,
-            route: "instagram/daily",
-          })
-          .catch(() => {});
-      }
-    });
+    // Post synchronously and return the real outcome. This used to run in
+    // setImmediate after a 200 "queued" response, which meant a failed post
+    // (expired token, unreachable image URL, Graph API error) was invisible
+    // to the caller — the GitHub Actions job stayed green while nothing
+    // posted. Awaiting it lets `curl -f` turn the workflow red on failure so
+    // a missing post is actually noticed. The job's 10-minute timeout is
+    // ample headroom for image render + Graph API publish.
+    try {
+      const { postDailyCarousel } = await import("./instagram/post");
+      const { postId, headline } = await postDailyCarousel(items, siteOrigin());
+      console.log(`[instagram] daily post complete: ${postId}`);
+      await db.recordInstagramPost({
+        mediaId: postId,
+        postType: "daily",
+        feedDate: feedDate ?? null,
+        headline,
+      });
+      res.json({ success: true, postId, headline });
+    } catch (err) {
+      const e = err as Error;
+      console.error("[instagram] daily post failed:", e.message);
+      // Still record it for the admin console, but also report it to the
+      // caller so the scheduled run fails loudly.
+      await db
+        .recordServerError({
+          level: "error",
+          message: `Instagram daily post failed: ${e.message}`.slice(0, 512),
+          stack: e.stack ?? null,
+          route: "instagram/daily",
+        })
+        .catch(() => {});
+      res.status(502).json({ error: "Instagram daily post failed", message: e.message });
+    }
   };
   app.post("/api/scheduled/instagram-daily", dailyHandler);
   app.post("/api/ingest/instagram-daily", dailyHandler);
@@ -1218,32 +1238,33 @@ function registerInstagramRoutes(app: Express): void {
       res.status(422).json({ error: "No editions available" });
       return;
     }
-    res.json({ success: true, editionNumber: latest.editionNumber, message: "Instagram weekly post queued" });
-
-    setImmediate(async () => {
-      try {
-        const { postWeeklyEdition } = await import("./instagram/post");
-        const { postId, headline } = await postWeeklyEdition(latest, siteOrigin());
-        console.log(`[instagram] weekly post complete: ${postId}`);
-        await db.recordInstagramPost({
-          mediaId: postId,
-          postType: "weekly",
-          editionNumber: latest.editionNumber,
-          headline,
-        });
-      } catch (err) {
-        const e = err as Error;
-        console.error("[instagram] weekly post failed:", e.message);
-        await db
-          .recordServerError({
-            level: "error",
-            message: `Instagram weekly post failed: ${e.message}`.slice(0, 512),
-            stack: e.stack ?? null,
-            route: "instagram/weekly",
-          })
-          .catch(() => {});
-      }
-    });
+    // Synchronous for the same reason as the daily post: a green workflow
+    // must mean the edition actually posted, not just that the request was
+    // accepted.
+    try {
+      const { postWeeklyEdition } = await import("./instagram/post");
+      const { postId, headline } = await postWeeklyEdition(latest, siteOrigin());
+      console.log(`[instagram] weekly post complete: ${postId}`);
+      await db.recordInstagramPost({
+        mediaId: postId,
+        postType: "weekly",
+        editionNumber: latest.editionNumber,
+        headline,
+      });
+      res.json({ success: true, editionNumber: latest.editionNumber, postId, headline });
+    } catch (err) {
+      const e = err as Error;
+      console.error("[instagram] weekly post failed:", e.message);
+      await db
+        .recordServerError({
+          level: "error",
+          message: `Instagram weekly post failed: ${e.message}`.slice(0, 512),
+          stack: e.stack ?? null,
+          route: "instagram/weekly",
+        })
+        .catch(() => {});
+      res.status(502).json({ error: "Instagram weekly post failed", message: e.message });
+    }
   };
   app.post("/api/scheduled/instagram-weekly", weeklyHandler);
   app.post("/api/ingest/instagram-weekly", weeklyHandler);
