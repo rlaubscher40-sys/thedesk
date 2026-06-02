@@ -13,7 +13,7 @@
  *   - Featured → More → Further sections from the static stories array
  */
 import { useMemo, useState } from "react";
-import { CheckCheck, Copy, Flame } from "lucide-react";
+import { CheckCheck, Copy, Flame, Info, X } from "lucide-react";
 import { useLocation, useSearch } from "wouter";
 import { useStreak } from "@/lib/useStreak";
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
@@ -232,6 +232,7 @@ export default function DailyFeed() {
       </SectionErrorBoundary>
 
       <div className="space-y-5">
+        {/* Row 1: date navigation + copy action */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <DatePager
             date={date}
@@ -241,27 +242,28 @@ export default function DailyFeed() {
             onPrev={() => prevDate && gotoDate(prevDate)}
             onNext={() => nextDate && gotoDate(nextDate)}
           />
-          <div className="flex items-center gap-3">
-            {hasLiveData && talkingPoints.length > 0 && (
-              <button
-                onClick={copyTalkingPoints}
-                title={`Copy ${talkingPoints.length} talking point${talkingPoints.length === 1 ? "" : "s"} for today`}
-                className="inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-[10px] font-mono uppercase tracking-[0.18em] transition-colors"
-                style={{
-                  background: copied ? "oklch(0.65 0.14 145 / 15%)" : "oklch(0.78 0.18 70 / 10%)",
-                  boxShadow: copied
-                    ? "inset 0 0 0 1px oklch(0.65 0.14 145 / 50%)"
-                    : "inset 0 0 0 1px oklch(0.78 0.18 70 / 40%)",
-                  color: copied ? "oklch(0.75 0.14 145)" : "var(--color-amber)",
-                }}
-              >
-                {copied ? <CheckCheck className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                {copied ? "Copied" : `Copy ${talkingPoints.length} talking point${talkingPoints.length === 1 ? "" : "s"}`}
-              </button>
-            )}
-            <PersonaSwitcher />
-          </div>
+          {hasLiveData && talkingPoints.length > 0 && (
+            <button
+              onClick={copyTalkingPoints}
+              title={`Copy ${talkingPoints.length} talking point${talkingPoints.length === 1 ? "" : "s"} for today`}
+              className="inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-[10px] font-mono uppercase tracking-[0.18em] transition-colors"
+              style={{
+                background: copied ? "oklch(0.65 0.14 145 / 15%)" : "oklch(0.78 0.18 70 / 10%)",
+                boxShadow: copied
+                  ? "inset 0 0 0 1px oklch(0.65 0.14 145 / 50%)"
+                  : "inset 0 0 0 1px oklch(0.78 0.18 70 / 40%)",
+                color: copied ? "oklch(0.75 0.14 145)" : "var(--color-amber)",
+              }}
+            >
+              {copied ? <CheckCheck className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+              {copied ? "Copied" : `Copy ${talkingPoints.length} talking point${talkingPoints.length === 1 ? "" : "s"}`}
+            </button>
+          )}
         </div>
+        {/* Row 2: persona switcher, full width so it has room to breathe */}
+        <PersonaSwitcher />
+        {/* Row 3: one-time context hint explaining categories + partner angles */}
+        <FeedHint />
         <SectionErrorBoundary section="Filters">
           <FilterChips
             active={filter}
@@ -422,6 +424,51 @@ export default function DailyFeed() {
       </SectionErrorBoundary>
 
       <Footer />
+    </div>
+  );
+}
+
+/**
+ * One-time context strip for readers who aren't sure what they're looking at.
+ * Explains the two things that confuse newcomers: what the topic chips do,
+ * and what "partner angles / Say This" lines are for. Dismissed to
+ * localStorage so it disappears after the first read without being modal.
+ */
+function FeedHint() {
+  const [visible, setVisible] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("thedesk:feed-hint-seen") !== "1";
+  });
+  if (!visible) return null;
+  function dismiss() {
+    window.localStorage.setItem("thedesk:feed-hint-seen", "1");
+    setVisible(false);
+  }
+  return (
+    <div
+      className="flex items-start gap-3 rounded-sm px-4 py-3 text-[12.5px] text-[var(--color-fg-muted)] leading-relaxed"
+      style={{
+        background: "oklch(0.78 0.18 70 / 5%)",
+        boxShadow: "inset 0 0 0 1px oklch(0.78 0.18 70 / 15%)",
+      }}
+      role="note"
+    >
+      <Info className="h-3.5 w-3.5 text-amber-400/60 shrink-0 mt-0.5" aria-hidden="true" />
+      <p className="flex-1">
+        <span className="text-[var(--color-fg)] font-medium">Topic chips</span> filter
+        stories by area — Property, Macro, Markets, and so on.{" "}
+        Stories with a coloured left border have a{" "}
+        <span className="text-[var(--color-fg)] font-medium">"Say This"</span> line: a
+        ready-made conversation opener for your next client meeting. Use the persona
+        switcher above to tune the language for your audience.
+      </p>
+      <button
+        onClick={dismiss}
+        aria-label="Dismiss tip"
+        className="shrink-0 text-[var(--color-fg-subtle)] hover:text-[var(--color-fg)] transition-colors mt-0.5"
+      >
+        <X className="h-3.5 w-3.5" />
+      </button>
     </div>
   );
 }
