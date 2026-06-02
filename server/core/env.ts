@@ -21,10 +21,18 @@ const requiredInProd = [
 ] as const;
 
 if (process.env.NODE_ENV === "production") {
-  for (const key of requiredInProd) {
-    if (!process.env[key]) {
-      console.warn(`[env] ${key} is not set, features that depend on it will fail`);
-    }
+  const missing = requiredInProd.filter((key) => !process.env[key]);
+  if (missing.length > 0) {
+    // Fail loud at boot rather than limping along. A production deploy
+    // missing DATABASE_URL would otherwise fall through to demo mode (an
+    // unauthenticated, wide-open admin UI); a missing JWT_SECRET or
+    // ADMIN_PASSWORD silently breaks or disables login. Better to refuse
+    // to start so the misconfig is caught at deploy time, not by a user.
+    console.error(
+      `[env] FATAL: required production env var(s) not set: ${missing.join(", ")}. ` +
+        `Set them on the server and redeploy.`
+    );
+    process.exit(1);
   }
 }
 

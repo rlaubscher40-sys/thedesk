@@ -15,6 +15,7 @@ import { bestMatch, titleTokens } from "../shared/textSimilarity";
 import { parse as parseCookieHeader } from "cookie";
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
+import { invalidate } from "./core/cache";
 import { env } from "./core/env";
 import { resolveHeroForEdition } from "./core/heroSelection";
 import {
@@ -183,6 +184,10 @@ function registerDailyFeedRoute(app: Express): void {
       return;
     }
 
+    // New stories are live — drop the cached feed reads so today's page
+    // reflects the ingest immediately rather than after the TTL.
+    invalidate("feed:");
+
     res.json({ success: true, count: freshItems.length, skipped: skippedCount });
 
     // ── Background: partnerTag + sayThis + per-item image enrichment ─────
@@ -327,6 +332,10 @@ function registerDailyFeedRoute(app: Express): void {
           console.log(
             `[scheduled] enriched ${feedDate}: ${tagOk} partnerTags, ${sayOk} sayThis, ${whyOk} whyItMatters, ${cpOk} counterpoints, ${imgOk} images`
           );
+          // Enrichment mutated the rows in place — bust again so the
+          // AI-generated lines replace the bare summaries readers may have
+          // cached in the seconds between ingest and enrichment finishing.
+          invalidate("feed:");
 
           // Send the daily brief after enrichment so subscribers get
           // the AI-generated context lines, not raw summaries.
@@ -389,6 +398,7 @@ function registerWeeklyEditionRoute(app: Express): void {
     }
 
     console.log(`[scheduled] ingested Edition ${edition.editionNumber}: ${edition.weekOf}`);
+    invalidate("edition:");
     res.json({ success: true, editionNumber: edition.editionNumber });
 
     // ── Background: hero image + Ruben's Take ──────────────────────────────
@@ -436,6 +446,9 @@ function registerWeeklyEditionRoute(app: Express): void {
       } else {
         console.warn(`[scheduled] Ruben's Take failed:`, takeResult.reason);
       }
+
+      // Hero + take landed — bust so the reader shows the finished edition.
+      invalidate("edition:");
 
       // Notify subscribers now that enrichment is complete so the email
       // links to a fully-rendered edition (hero image + take in place).
@@ -566,6 +579,7 @@ function registerSynthesizeEditionRoute(app: Express): void {
     console.log(
       `[scheduled] synthesised Edition ${editionNumber} (${weekRange}) from ${items.length} feed items`
     );
+    invalidate("edition:");
     res.json({
       success: true,
       editionNumber,

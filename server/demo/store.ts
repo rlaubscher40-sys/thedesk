@@ -24,8 +24,16 @@ import { env } from "../core/env";
 import { editionsSeed } from "./seedEditions";
 import { feedSeed } from "./seedFeed";
 
-/** Cheap dev detector, when no DB is configured, switch the whole app to seed data. */
+/**
+ * Cheap dev detector, when no DB is configured, switch the whole app to
+ * seed data. Hard-disabled in production: demo mode injects an
+ * unauthenticated admin user into every request, so it must never engage
+ * on a live deploy that happens to boot without DATABASE_URL. (env.ts
+ * already refuses to start in that case; this is the second line of
+ * defence.)
+ */
 export function isDemoMode(): boolean {
+  if (env.isProduction) return false;
   return !env.databaseUrl;
 }
 
