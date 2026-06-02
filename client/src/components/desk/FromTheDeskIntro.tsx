@@ -67,9 +67,8 @@ export function FromTheDeskIntro() {
           Ruben Laubscher
         </h2>
         <p className="text-sm text-[var(--color-fg-muted)] mt-1.5 leading-snug max-w-[60ch]">
-          One daily read for the partner channel, built so brokers, advisers,
-          accountants and buyer's agents walk into the next conversation
-          sharper than the last.
+          One daily read for busy property professionals — curated so you
+          walk into every client conversation sharper than the last.
         </p>
         <div className="flex flex-wrap items-center gap-2 mt-3 sm:hidden">
           <a
