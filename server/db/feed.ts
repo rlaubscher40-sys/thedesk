@@ -168,12 +168,44 @@ export async function createFeedItems(items: InsertDailyFeedItem[]): Promise<num
   const db = getDb();
   if (!db) throw new Error("createFeedItems: database unavailable");
   if (items.length === 0) return [];
-  const result = await db.insert(dailyFeedItems).values(items);
-  const firstId = Number(
-    (result as unknown as Array<{ insertId?: number }>)[0]?.insertId ?? 0
-  );
-  if (!firstId) return [];
-  return items.map((_, i) => firstId + i);
+  try {
+    const result = await db.insert(dailyFeedItems).values(items);
+    const firstId = Number(
+      (result as unknown as Array<{ insertId?: number }>)[0]?.insertId ?? 0
+    );
+    if (!firstId) return [];
+    return items.map((_, i) => firstId + i);
+  } catch (err) {
+    // A single bad row fails the entire multi-row INSERT (a 4-byte emoji
+    // hitting a non-utf8mb4 column, an over-length field, a constraint
+    // violation). Rather than lose the whole day's feed, fall back to
+    // inserting row-by-row so the good stories still land and the poison
+    // item is dropped with a diagnosable log line. The returned array stays
+    // index-aligned with `items` (0 marks a dropped row) so callers can keep
+    // zipping ids to inputs for enrichment.
+    console.warn(
+      `[feed] batch insert failed (${(err as Error).message}); retrying row-by-row`
+    );
+    const ids: number[] = [];
+    for (const item of items) {
+      try {
+        const r = await db.insert(dailyFeedItems).values(item);
+        ids.push(
+          Number((r as unknown as Array<{ insertId?: number }>)[0]?.insertId ?? 0)
+        );
+      } catch (rowErr) {
+        console.error(
+          `[feed] dropping item that failed to insert ("${(item.title ?? "").slice(0, 80)}"): ${(rowErr as Error).message}`
+        );
+        ids.push(0);
+      }
+    }
+    // Nothing landed at all → this is a systemic failure (DB down, auth,
+    // schema drift), not one bad row. Surface it loudly so the ingest run
+    // goes red instead of silently reporting success on an empty insert.
+    if (ids.every((id) => id === 0)) throw err;
+    return ids;
+  }
 }
 
 export async function deleteFeedItem(id: number): Promise<void> {
