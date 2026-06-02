@@ -12,7 +12,15 @@
  *   SCHEDULED_API_KEY , auth header for the /api/ingest/* scheduler endpoints
  *   OPENAI_API_KEY    , enables AI image generation for the weekly hero;
  *                        omit to skip image generation entirely
+ *   DB_POOL_SIZE      , max pooled MySQL connections (default 10). Keep
+ *                        below the TiDB cluster's connection ceiling.
  */
+
+/** Parse a positive-integer env var, falling back when unset or invalid. */
+function intEnv(raw: string | undefined, fallback: number): number {
+  const n = Number.parseInt(raw ?? "", 10);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
 const requiredInProd = [
   "DATABASE_URL",
   "JWT_SECRET",
@@ -46,6 +54,7 @@ export const env = Object.freeze({
   adminPassword: process.env.ADMIN_PASSWORD ?? "",
   instagramAccessToken: process.env.INSTAGRAM_ACCESS_TOKEN ?? "",
   instagramBusinessAccountId: process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID ?? "",
+  dbPoolSize: intEnv(process.env.DB_POOL_SIZE, 10),
 });
 
 export type Env = typeof env;
