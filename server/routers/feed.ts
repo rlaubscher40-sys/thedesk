@@ -1,7 +1,17 @@
 import { z } from "zod";
 import * as db from "../db";
+import { cached, cacheKey, invalidate } from "../core/cache";
 import { adminProcedure, publicProcedure, router } from "../core/trpc";
 import { generateSayThis, generateWhyItMatters } from "../prompts";
+
+/**
+ * Public feed reads are cached for a short window: every anonymous
+ * visitor hits these, but the data changes only on the daily ingest or
+ * an admin edit. 30s collapses a read storm into a single DB query while
+ * keeping staleness imperceptible; the admin mutations below bust the
+ * "feed:" namespace so edits surface immediately regardless.
+ */
+const FEED_TTL_MS = 30_000;
 
 const feedDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/u, "feedDate must be YYYY-MM-DD");
 
@@ -27,7 +37,11 @@ export const feedRouter = router({
   /** Today's items by default, or items for a specific YYYY-MM-DD. */
   getByDate: publicProcedure
     .input(z.object({ date: feedDateSchema.optional() }).optional())
-    .query(async ({ input }) => db.listFeedItems(input?.date)),
+    .query(async ({ input }) =>
+      cached(cacheKey("feed:byDate", input?.date ?? null), FEED_TTL_MS, () =>
+        db.listFeedItems(input?.date)
+      )
+    ),
 
   /** A single feed item by id, used by the /story/:id page. */
   getById: publicProcedure
@@ -47,7 +61,9 @@ export const feedRouter = router({
     }),
 
   /** Dates that have at least one feed item, newest first. */
-  getRecentDates: publicProcedure.query(async () => db.getRecentFeedDates()),
+  getRecentDates: publicProcedure.query(async () =>
+    cached(cacheKey("feed:recentDates"), FEED_TTL_MS, () => db.getRecentFeedDates())
+  ),
 
   /**
    * All feed items for the current ISO week (Mon–today in Sydney time).
@@ -61,7 +77,9 @@ export const feedRouter = router({
       const date = input?.anyDate ?? today;
       const weekStart = weekMondayOf(date);
       const weekEnd = date <= today ? date : today;
-      return db.listFeedItemsBetween(weekStart, weekEnd);
+      return cached(cacheKey("feed:week", [weekStart, weekEnd]), FEED_TTL_MS, () =>
+        db.listFeedItemsBetween(weekStart, weekEnd)
+      );
     }),
 
   /** Paginated archive across all dates, optionally filtered by category. */
@@ -73,7 +91,9 @@ export const feedRouter = router({
         offset: z.number().int().min(0).default(0),
       })
     )
-    .query(async ({ input }) => db.listArchive(input)),
+    .query(async ({ input }) =>
+      cached(cacheKey("feed:archive", input), FEED_TTL_MS, () => db.listArchive(input))
+    ),
 
   /**
    * Admin: fill in missing `sayThis` lines for recent feed items. Runs the LLM
@@ -102,6 +122,7 @@ export const feedRouter = router({
         await db.updateFeedItemSayThis(item.id, line);
         updated++;
       }
+      if (updated > 0) invalidate("feed:");
       return { scanned: items.length, updated, skipped };
     }),
 
@@ -132,6 +153,7 @@ export const feedRouter = router({
         await db.updateFeedItemWhyItMatters(item.id, line);
         updated++;
       }
+      if (updated > 0) invalidate("feed:");
       return { scanned: items.length, updated, skipped };
     }),
 
@@ -144,6 +166,7 @@ export const feedRouter = router({
     .input(z.object({ id: z.number().int().positive() }))
     .mutation(async ({ input }) => {
       await db.deleteFeedItem(input.id);
+      invalidate("feed:");
       return { success: true } as const;
     }),
 
@@ -162,6 +185,7 @@ export const feedRouter = router({
     .mutation(async ({ input }) => {
       const trimmed = input.note.trim();
       await db.updateFeedItemRubensNote(input.id, trimmed.length > 0 ? trimmed : null);
+      invalidate("feed:");
       return { success: true } as const;
     }),
 
@@ -178,6 +202,7 @@ export const feedRouter = router({
     )
     .mutation(async ({ input }) => {
       await db.updateFeedItemPriority(input.id, input.priority);
+      invalidate("feed:");
       return { success: true } as const;
     }),
 });

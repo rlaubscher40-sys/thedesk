@@ -87,7 +87,7 @@ Optional:
    ```
    Or from Railway's Settings → Service → "Run command" with the same.
 
-6. **Verify it's live.** Visit `https://<your-railway-domain>.up.railway.app` — you should see the demo page (the site falls back to demo data on the first visit because the DB tables are empty until the first ingest).
+6. **Verify it's live.** Visit `https://<your-railway-domain>.up.railway.app` — the site loads with empty feed/edition lists until the first ingest populates them. (Demo seed data is dev-only: it never engages under `NODE_ENV=production`, and a production boot with `DATABASE_URL` unset now refuses to start rather than silently serving the demo UI.)
 
 ---
 
@@ -146,6 +146,58 @@ script tag in `index.html`. Add when you're ready to start watching traffic.
 **Sentry:** Install `@sentry/node` and `@sentry/react`, initialize in
 `server/index.ts` and `client/src/main.tsx`. Sentry's quickstart shows the
 exact lines. Free tier is plenty for a personal site.
+
+---
+
+## 8. Backups, disaster recovery & staging
+
+Once you have real subscribers and live content, the difference between "a bug"
+and "a bad week" is whether you can restore and whether you can rehearse a
+change before it hits production.
+
+### Backups (TiDB Serverless)
+
+TiDB Serverless backs the cluster up automatically — you don't have to wire
+anything, but you do have to know how to use it:
+
+1. **Automatic snapshots + PITR.** TiDB Cloud Console → your cluster → Backup.
+   Serverless keeps automatic daily snapshots and supports Point-in-Time
+   Recovery within the retention window. Confirm the retention period on your
+   plan and treat it as your **RPO** (how much data a worst-case restore loses).
+2. **Restore = a new cluster.** A restore provisions a *separate* cluster from
+   the snapshot; it doesn't overwrite the live one. Recovery is therefore:
+   restore → grab the new `DATABASE_URL` → point Railway at it → redeploy.
+   Walk this once now so the **RTO** (time to recover) is known, not guessed.
+3. **Off-platform copy (optional but cheap insurance).** For an independent
+   backup you control, periodically dump with Dumpling or `mysqldump`:
+   ```sh
+   mysqldump --set-gtid-purged=OFF --single-transaction \
+     -h <host> -P 4000 -u <user> -p <db> | gzip > thedesk-$(date +%F).sql.gz
+   ```
+   Store it somewhere outside TiDB Cloud (R2/S3). This is your fallback if a
+   cluster-level issue ever makes the in-platform snapshots unreachable.
+
+### Staging environment
+
+Run schema changes and risky deploys somewhere that *isn't* in front of
+readers first. The app's auto-migrate-on-boot (`runCatchup`) makes staging a
+true rehearsal: boot the new code against a copy of the schema and watch the
+migration apply before you ship it to production.
+
+1. **Separate database.** Either create a second Serverless cluster
+   (`the-desk-staging`) or use a **TiDB branch** of production (Console →
+   Branches) for a fresh copy of the schema/data. Never point staging at the
+   production `DATABASE_URL`.
+2. **Separate Railway service.** Add a second service from the same repo,
+   deploying from a `staging` branch. Give it its **own** secrets — a distinct
+   `JWT_SECRET`, `ADMIN_PASSWORD`, and the staging `DATABASE_URL`. Keep
+   `NODE_ENV=production` so it exercises the real code paths (security headers,
+   fail-loud env, no demo fallback).
+3. **A non-indexed domain.** Use the default `*.up.railway.app` URL or a
+   `staging.thedesk.au` subdomain. Don't link it publicly.
+4. **Promotion flow.** Merge to `staging` → verify on the staging service →
+   then merge `staging` into your production branch. Railway auto-deploys each
+   on push.
 
 ---
 

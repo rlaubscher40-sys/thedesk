@@ -14,6 +14,7 @@ import { registerUnsubscribeRoute } from "./core/unsubscribeRoute";
 import { createContext } from "./core/context";
 import { registerHealthRoutes, recordExpressError } from "./core/healthRoutes";
 import { registerOAuthRoutes } from "./core/oauth";
+import { registerSecurityHeaders } from "./core/securityHeaders";
 import { registerSeoRoutes } from "./core/seo";
 import { serveStatic, setupVite } from "./core/vite";
 import { appRouter } from "./routers";
@@ -79,6 +80,11 @@ async function startServer() {
   // proxy hop, without this every rate-limit bucket would key on a
   // single Railway internal IP and effectively allow nothing.
   app.set("trust proxy", 1);
+
+  // Security response headers (HSTS, CSP, X-Frame-Options, …). Registered
+  // before any route so every response carries them. No-op outside
+  // production so Vite/HMR is untouched.
+  registerSecurityHeaders(app);
 
   // Tight body limit, nothing on the API accepts payloads larger than
   // a few hundred KB (largest is the weekly-edition synthesis result,

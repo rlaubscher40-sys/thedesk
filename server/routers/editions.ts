@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import * as db from "../db";
+import { cached, cacheKey, invalidate } from "../core/cache";
 import { resolveHeroForEdition } from "../core/heroSelection";
 import { generateImage } from "../core/image";
 import { adminProcedure, publicProcedure, router } from "../core/trpc";
@@ -12,6 +13,15 @@ import {
 } from "../prompts";
 
 const editionIdInput = z.object({ editionId: z.number().int().positive() });
+
+/**
+ * Editions are read by every visitor but written only by the admin a few
+ * times a week, so a 60s read cache costs nothing in freshness while
+ * shielding the DB from a reader storm. Every mutation below busts the
+ * "edition:" namespace, so an edit is visible immediately; the TTL is the
+ * fallback if an invalidation point is ever missed.
+ */
+const EDITION_TTL_MS = 60_000;
 
 /** Subset of EditionTopic fields the admin can patch in place. */
 const topicPatchInput = z.object({
@@ -33,23 +43,29 @@ export const editionsRouter = router({
    * year of editions, and keeps the React Query cache light. Callers
    * that need the full document fetch it through getByNumber.
    */
-  list: publicProcedure.query(async () => {
-    const rows = await db.listEditionSummaries();
-    return rows.map((ed) => ({
-      ...ed,
-      title: `Edition ${ed.editionNumber}: ${ed.weekRange}`,
-    }));
-  }),
+  list: publicProcedure.query(async () =>
+    cached(cacheKey("edition:list"), EDITION_TTL_MS, async () => {
+      const rows = await db.listEditionSummaries();
+      return rows.map((ed) => ({
+        ...ed,
+        title: `Edition ${ed.editionNumber}: ${ed.weekRange}`,
+      }));
+    })
+  ),
 
-  getById: publicProcedure.input(editionIdInput).query(async ({ input }) => {
-    return db.getEditionById(input.editionId);
-  }),
+  getById: publicProcedure.input(editionIdInput).query(async ({ input }) =>
+    cached(cacheKey("edition:byId", input.editionId), EDITION_TTL_MS, () =>
+      db.getEditionById(input.editionId)
+    )
+  ),
 
   getByNumber: publicProcedure
     .input(z.object({ editionNumber: z.number().int().positive() }))
-    .query(async ({ input }) => {
-      return db.getEditionByNumber(input.editionNumber);
-    }),
+    .query(async ({ input }) =>
+      cached(cacheKey("edition:byNumber", input.editionNumber), EDITION_TTL_MS, () =>
+        db.getEditionByNumber(input.editionNumber)
+      )
+    ),
 
   search: publicProcedure.input(z.object({ query: z.string().min(1) })).query(async ({ input }) => {
     return db.searchEditionFullText(input.query);
@@ -65,6 +81,7 @@ export const editionsRouter = router({
       keyMetrics: edition.keyMetrics,
     });
     await db.updateRubensTake(edition.id, take);
+    invalidate("edition:");
     return { rubensTake: take };
   }),
 
@@ -73,6 +90,7 @@ export const editionsRouter = router({
     .input(editionIdInput.extend({ rubensTake: z.string().min(1) }))
     .mutation(async ({ input }) => {
       await db.updateRubensTake(input.editionId, input.rubensTake);
+      invalidate("edition:");
       return { success: true };
     }),
 
@@ -110,6 +128,7 @@ export const editionsRouter = router({
         error: s.reason instanceof Error ? s.reason.message : String(s.reason),
       };
     });
+    if (results.some((r) => r.success)) invalidate("edition:");
     return { processed: missing.length, results };
   }),
 
@@ -141,6 +160,7 @@ export const editionsRouter = router({
       console.warn("[editions] substack hero image failed:", err);
     }
     await db.updateSubstackDraft(edition.id, { ...draft, imageUrl });
+    invalidate("edition:");
     return { ...draft, imageUrl };
   }),
 
@@ -161,6 +181,7 @@ export const editionsRouter = router({
         body: input.body,
         imageUrl: input.imageUrl ?? null,
       });
+      invalidate("edition:");
       return { success: true };
     }),
 
@@ -189,6 +210,7 @@ export const editionsRouter = router({
     });
     const url = db.editionAssetUrl(edition.id, "substack");
     await db.updateSubstackImage(edition.id, url);
+    invalidate("edition:");
     return { imageUrl: url };
   }),
 
@@ -227,6 +249,7 @@ export const editionsRouter = router({
         : {}),
     };
     await db.updateEditionSynthesis(edition.id, { topics });
+    invalidate("edition:");
     return { success: true } as const;
   }),
 
@@ -261,6 +284,7 @@ export const editionsRouter = router({
       }
       const url = db.editionAssetUrl(edition.id, "hero");
       await db.updateHeroImage(edition.id, url);
+      invalidate("edition:");
       return { url, source: result.source };
     }),
 
@@ -270,6 +294,7 @@ export const editionsRouter = router({
    */
   deleteEdition: adminProcedure.input(editionIdInput).mutation(async ({ input }) => {
     await db.deleteEdition(input.editionId);
+    invalidate("edition:");
     return { success: true } as const;
   }),
 });

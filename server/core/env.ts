@@ -12,7 +12,15 @@
  *   SCHEDULED_API_KEY , auth header for the /api/ingest/* scheduler endpoints
  *   OPENAI_API_KEY    , enables AI image generation for the weekly hero;
  *                        omit to skip image generation entirely
+ *   DB_POOL_SIZE      , max pooled MySQL connections (default 10). Keep
+ *                        below the TiDB cluster's connection ceiling.
  */
+
+/** Parse a positive-integer env var, falling back when unset or invalid. */
+function intEnv(raw: string | undefined, fallback: number): number {
+  const n = Number.parseInt(raw ?? "", 10);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
 const requiredInProd = [
   "DATABASE_URL",
   "JWT_SECRET",
@@ -21,10 +29,18 @@ const requiredInProd = [
 ] as const;
 
 if (process.env.NODE_ENV === "production") {
-  for (const key of requiredInProd) {
-    if (!process.env[key]) {
-      console.warn(`[env] ${key} is not set, features that depend on it will fail`);
-    }
+  const missing = requiredInProd.filter((key) => !process.env[key]);
+  if (missing.length > 0) {
+    // Fail loud at boot rather than limping along. A production deploy
+    // missing DATABASE_URL would otherwise fall through to demo mode (an
+    // unauthenticated, wide-open admin UI); a missing JWT_SECRET or
+    // ADMIN_PASSWORD silently breaks or disables login. Better to refuse
+    // to start so the misconfig is caught at deploy time, not by a user.
+    console.error(
+      `[env] FATAL: required production env var(s) not set: ${missing.join(", ")}. ` +
+        `Set them on the server and redeploy.`
+    );
+    process.exit(1);
   }
 }
 
@@ -38,6 +54,7 @@ export const env = Object.freeze({
   adminPassword: process.env.ADMIN_PASSWORD ?? "",
   instagramAccessToken: process.env.INSTAGRAM_ACCESS_TOKEN ?? "",
   instagramBusinessAccountId: process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID ?? "",
+  dbPoolSize: intEnv(process.env.DB_POOL_SIZE, 10),
 });
 
 export type Env = typeof env;
