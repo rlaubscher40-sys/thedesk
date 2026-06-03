@@ -53,11 +53,37 @@ function sanitizeStory(story: DailyFeedItem): DailyFeedItem {
   };
 }
 
+/** Evergreen hashtags on every post, kept tight so the feed doesn't read as
+ *  tag-stuffed. One beat-specific tag (below) is appended per post. */
+const CORE_HASHTAGS = "#AusFinance #AusProperty #AusEconomy #RBA #ASX200 #TheDesk";
+
 /**
- * The caption carries the conversational "say this" hook for each slide, in
- * swipe order, while the cards carry the analytical why-it-matters. Splitting
- * it this way means the caption reads as a talk-track (built to spark replies)
- * rather than repeating what's already on the cards.
+ * One discovery hashtag tuned to the lead story's beat, appended to the core
+ * set so each post reaches the right niche without hand-curating tags.
+ */
+const CATEGORY_HASHTAG: Record<string, string> = {
+  ECONOMY: "#InterestRates",
+  ECONOMICS: "#InterestRates",
+  MACRO: "#InterestRates",
+  PROPERTY: "#PropertyMarket",
+  MARKETS: "#ASX",
+  POLICY: "#AusPolicy",
+  AI: "#AI",
+  TECH: "#TechNews",
+  GEOPOLITICS: "#GlobalMarkets",
+};
+
+function categoryHashtag(category: string | null | undefined): string {
+  return CATEGORY_HASHTAG[(category ?? "").toUpperCase()] ?? "#Markets";
+}
+
+/**
+ * The caption leads with a hook + benefit (the first ~125 chars are all
+ * Instagram shows before "…more"), carries the conversational "say this" hook
+ * for each slide in swipe order, then asks for a comment and a save — for
+ * evergreen brief content, saves are the strongest ranking signal. The
+ * analytical why-it-matters stays on the cards so the caption doesn't repeat
+ * them.
  */
 function buildDailyCaption(stories: DailyFeedItem[]): string {
   const rundown = stories.flatMap((s, i) => {
@@ -70,15 +96,18 @@ function buildDailyCaption(stories: DailyFeedItem[]): string {
     return lines;
   });
 
+  const tags = `${CORE_HASHTAGS} ${categoryHashtag(stories[0]?.category)}`;
+
   return [
-    "Today's top stories from The Desk, Australia's financial intelligence briefing.",
+    "The stories moving Australian markets today, and what each one means for your money. ↓",
     "",
     ...rundown,
-    "Swipe through today's briefing →",
+    "Which one are you watching this week? Tell us below.",
+    "↳ Save this so you've got the brief for the days ahead.",
     "",
-    "Full daily briefing, link in bio.",
+    "The full daily briefing is in our bio.",
     "",
-    "#PropertyMarket #AustralianEconomy #RBA #Finance #Investing #ASX #TheDesk",
+    tags,
   ].join("\n");
 }
 
@@ -150,13 +179,23 @@ export async function loadEditionHeroDataUri(editionId: number): Promise<string 
 
 function buildWeeklyCaption(edition: Edition): string {
   const take = edition.rubensTake ? sanitizeDashes(edition.rubensTake).slice(0, 300) : "";
+  const topics = edition.topics.slice(0, 4);
+  const contents = topics.map((t) => `· ${sanitizeDashes(t.title).slice(0, 90)}`);
+  const tags = `${CORE_HASHTAGS} #WeeklyBriefing ${categoryHashtag(topics[0]?.category)}`;
+
   return [
-    `Weekly Edition #${edition.editionNumber}, ${sanitizeDashes(edition.weekRange ?? "")}`,
+    "This week in Australian property & markets, the calls that mattered and what comes next. ↓",
     "",
     ...(take ? [take, ""] : []),
-    "Full weekly edition, link in bio.",
+    `Inside Edition #${edition.editionNumber}:`,
+    ...contents,
     "",
-    "#WeeklyBriefing #PropertyMarket #AustralianEconomy #RBA #Finance #TheDesk #Investing",
+    "Which call are you watching? Reply below.",
+    "↳ Save the edition for the week ahead.",
+    "",
+    "The full weekly edition is in our bio.",
+    "",
+    tags,
   ].join("\n");
 }
 
@@ -279,34 +318,38 @@ export async function postDailyCarousel(
 
     console.log(`[instagram] daily carousel posted: ${postId}`);
 
-    // Also share the lead story to the 24h Story. Best-effort: a Story failure
-    // must never fail the feed post that has already gone live.
-    try {
-      const storyBuf = await renderDailyStoryVertical(sanitized[0]!, opts.variant ?? "navy");
-      const storyUuid = storeTempImage(storyBuf);
-      uuids.push(storyUuid);
-      const storyContainerId = await createStoryContainer({
-        igUserId,
-        accessToken,
-        imageUrl: `${siteUrl}/instagram/temp/${storyUuid}.jpg`,
-      });
-      await waitForContainerReady({ containerId: storyContainerId, accessToken });
-      const storyId = await publishContainer({
-        igUserId,
-        accessToken,
-        creationId: storyContainerId,
-      });
-      console.log(`[instagram] daily story posted: ${storyId}`);
-    } catch (err) {
-      const message = (err as Error).message;
-      console.error("[instagram] daily story failed (feed post still live):", message);
-      // Record it so a Story failure is visible in the admin console instead of
-      // silently disappearing the way it did before.
-      await recordServerError({
-        level: "warn",
-        message: `Instagram daily story failed: ${message}`.slice(0, 512),
-        route: "instagram/daily-story",
-      }).catch(() => {});
+    // Also share each of the day's stories to the 24h Story as its own frame,
+    // so the Story carries the full top-3, not just the lead. Best-effort and
+    // per-frame: a failure on one frame must never fail the feed post that has
+    // already gone live, nor block the remaining frames.
+    for (let i = 0; i < sanitized.length; i++) {
+      try {
+        const storyBuf = await renderDailyStoryVertical(sanitized[i]!, opts.variant ?? "navy");
+        const storyUuid = storeTempImage(storyBuf);
+        uuids.push(storyUuid);
+        const storyContainerId = await createStoryContainer({
+          igUserId,
+          accessToken,
+          imageUrl: `${siteUrl}/instagram/temp/${storyUuid}.jpg`,
+        });
+        await waitForContainerReady({ containerId: storyContainerId, accessToken });
+        const storyId = await publishContainer({
+          igUserId,
+          accessToken,
+          creationId: storyContainerId,
+        });
+        console.log(`[instagram] daily story ${i + 1}/${sanitized.length} posted: ${storyId}`);
+      } catch (err) {
+        const message = (err as Error).message;
+        console.error(`[instagram] daily story ${i + 1} failed (feed post still live):`, message);
+        // Record it so a Story failure is visible in the admin console instead
+        // of silently disappearing the way it did before.
+        await recordServerError({
+          level: "warn",
+          message: `Instagram daily story ${i + 1} failed: ${message}`.slice(0, 512),
+          route: "instagram/daily-story",
+        }).catch(() => {});
+      }
     }
 
     return { postId, headline: sanitized[0]!.title };

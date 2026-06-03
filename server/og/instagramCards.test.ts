@@ -84,6 +84,23 @@ describe("renderDailyCoverCard", () => {
   it("tolerates an empty metric strip and a missing feedDate", async () => {
     expectJpeg(await renderDailyCoverCard(stories, null, "navy", []));
   });
+
+  it("survives adversarial inputs without throwing (overflow guards)", async () => {
+    // Render-smoke tests can't see overflow, so the defence is input guards:
+    // pathologically long titles, labels and values must still produce a card.
+    const longStories = stories.map((s, i) =>
+      fakeStory({ id: 100 + i, title: "Lorem ipsum dolor sit amet ".repeat(8) })
+    );
+    const wideMetrics = [
+      { label: "An Absurdly Long Metric Label That Should Be Clamped", value: "$1,234,567,890.00" },
+      { label: "Cash Rate", value: "3.85%" },
+      { label: "ASX 200", value: "7,900" },
+      { label: "AUD/USD", value: "0.66" },
+      { label: "Overflow", value: "9999" },
+    ];
+    expectJpeg(await renderDailyCoverCard(longStories, "2026-06-03", "navy", wideMetrics));
+    expectJpeg(await renderDailyCoverCard(longStories, "2026-06-03", "light", wideMetrics));
+  });
 });
 
 describe("renderDailyStoryVertical", () => {
@@ -195,5 +212,23 @@ describe("renderWeeklyTopicCard", () => {
       keyTakeaway: undefined,
     });
     expectJpeg(await renderWeeklyTopicCard(sparse, 2, 4));
+  });
+
+  it("survives an overlong title, summary and watch items", async () => {
+    const huge = fakeTopic({
+      title: "An extraordinarily long topic title that runs well past the usual length ".repeat(2),
+      summary: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. ".repeat(8),
+      whatToWatch: [
+        "A watch item that is itself far too long to sit on a single line and then some more ".repeat(
+          2
+        ),
+        "Another lengthy watch item to exercise the clamp",
+        "Third",
+        "Fourth that should be dropped past the cap",
+      ],
+      keyTakeaway:
+        "A key takeaway that goes on and on well past what the box should ever hold ".repeat(2),
+    });
+    expectJpeg(await renderWeeklyTopicCard(huge, 3, 5));
   });
 });

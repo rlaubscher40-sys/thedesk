@@ -1211,6 +1211,19 @@ function registerInstagramRoutes(app: Express): void {
       // posts. A counting failure falls back to navy rather than blocking.
       const variant = await nextDailyVariant();
       const metrics = dailyCoverMetrics(await db.listDailyMetrics());
+      // The metrics ingest runs before this job, so an empty strip means that
+      // job didn't land today. The post still goes out (a clean cover without
+      // the strip), but surface it so a silent gap is visible in the console.
+      if (metrics.length === 0) {
+        console.warn("[instagram] daily cover has no metric strip — daily metrics absent today");
+        await db
+          .recordServerError({
+            level: "warn",
+            message: "Instagram daily post: metric strip empty (no daily metrics ingested today)",
+            route: "instagram/daily",
+          })
+          .catch(() => {});
+      }
 
       const { postId, headline } = await postDailyCarousel(items, siteOrigin(), {
         variant,

@@ -690,7 +690,10 @@ export async function renderDailyCoverCard(
                               lineHeight: 1,
                               color: c.fg,
                             },
-                            children: m.value,
+                            // Guard the row width: values are short by nature,
+                            // but a malformed long one must not push the strip
+                            // off the card.
+                            children: clamp(m.value, 12),
                           },
                         },
                         {
@@ -703,7 +706,7 @@ export async function renderDailyCoverCard(
                               textTransform: "uppercase",
                               color: c.amber,
                             },
-                            children: m.label,
+                            children: clamp(m.label, 18),
                           },
                         },
                       ],
