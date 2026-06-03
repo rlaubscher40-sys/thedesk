@@ -314,6 +314,11 @@ export async function postDailyCarousel(
       childrenIds: childIds,
       caption,
     });
+    // The carousel parent only reports FINISHED once Instagram has fetched and
+    // processed every child image. Publishing before then returns code 9007
+    // ("media not ready"), so wait for readiness first — a multi-image carousel
+    // can take longer to process than a single image.
+    await waitForContainerReady({ containerId: carouselId, accessToken, timeoutMs: 90000 });
     const postId = await publishContainer({ igUserId, accessToken, creationId: carouselId });
 
     console.log(`[instagram] daily carousel posted: ${postId}`);
@@ -423,6 +428,9 @@ export async function postWeeklyEdition(
       childrenIds: childIds,
       caption,
     });
+    // Wait until the carousel parent is FINISHED before publishing; otherwise
+    // Instagram returns code 9007 ("media not ready"). See the daily path.
+    await waitForContainerReady({ containerId: carouselId, accessToken, timeoutMs: 90000 });
     const postId = await publishContainer({ igUserId, accessToken, creationId: carouselId });
 
     console.log(`[instagram] weekly edition ${edition.editionNumber} posted: ${postId}`);
