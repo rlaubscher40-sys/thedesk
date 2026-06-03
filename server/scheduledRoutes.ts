@@ -28,10 +28,7 @@ import {
 } from "./core/mailer";
 import { sdk } from "./core/sdk";
 import * as db from "./db";
-import {
-  dailyFeedIngestBodySchema,
-  weeklyEditionIngestSchema,
-} from "../shared/schemas";
+import { dailyFeedIngestBodySchema, weeklyEditionIngestSchema } from "../shared/schemas";
 import {
   editionHeroPrompt,
   extractMetricFromNews,
@@ -61,14 +58,33 @@ async function authenticateScheduled(req: Request): Promise<boolean> {
     const headerKey = req.headers["x-scheduled-key"];
     const queryKey = typeof req.query.key === "string" ? req.query.key : undefined;
     const provided = (typeof headerKey === "string" ? headerKey : undefined) ?? queryKey;
-    if (provided && provided.length === env.scheduledApiKey.length &&
-        timingSafeEqual(Buffer.from(provided), Buffer.from(env.scheduledApiKey))) return true;
+    if (
+      provided &&
+      provided.length === env.scheduledApiKey.length &&
+      timingSafeEqual(Buffer.from(provided), Buffer.from(env.scheduledApiKey))
+    )
+      return true;
   }
   // Fallback: an admin session cookie also unlocks the endpoint (useful for
   // local "run the cron by hand" testing).
   const cookies = parseCookieHeader(req.headers.cookie ?? "");
   const session = await sdk.verifySession(cookies[COOKIE_NAME]);
   return Boolean(session);
+}
+
+// ─── Instagram daily cover inputs (shared by the post handler + preview) ─────
+
+/** Next checkerboard variant: even daily-post count → navy, odd → light. */
+async function nextDailyVariant(): Promise<"navy" | "light"> {
+  const priorDailyCount = await db.countInstagramPosts("daily");
+  return priorDailyCount % 2 === 0 ? "navy" : "light";
+}
+
+/** The morning's metrics, value+unit formatted, capped to the 4 the cover shows. */
+function dailyCoverMetrics(metrics: db.DailyMetric[]): Array<{ label: string; value: string }> {
+  return metrics
+    .slice(0, 4)
+    .map((m) => ({ label: m.label, value: m.unit ? `${m.value}${m.unit}` : m.value }));
 }
 
 // ─── Sanitisation ────────────────────────────────────────────────────────────
@@ -146,7 +162,9 @@ function registerDailyFeedRoute(app: Express): void {
     );
     const skippedCount = items.length - freshItemsRaw.length;
     if (skippedCount > 0) {
-      console.log(`[daily-feed] skipped ${skippedCount} duplicate story/stories (seen in last 14 days)`);
+      console.log(
+        `[daily-feed] skipped ${skippedCount} duplicate story/stories (seen in last 14 days)`
+      );
     }
 
     // Story threading: link each fresh item to the most similar recent prior
@@ -263,29 +281,21 @@ function registerDailyFeedRoute(app: Express): void {
                 // item asset storage is doable (mirror the edition_assets
                 // pattern keyed on feedItemId) but isn't worth the schema
                 // churn for thumbnails that come free from the source URL.
-                item.imageUrl
-                  ? Promise.resolve({ url: item.imageUrl })
-                  : Promise.resolve(null),
+                item.imageUrl ? Promise.resolve({ url: item.imageUrl }) : Promise.resolve(null),
               ]);
 
               // Resolve the generated lines (null = SKIPped or failed).
-              let tagValue =
-                tag.status === "fulfilled" && tag.value ? tag.value : null;
-              let sayValue =
-                say.status === "fulfilled" && say.value ? say.value : null;
-              let whyValue =
-                why.status === "fulfilled" && why.value ? why.value : null;
-              let cpValue =
-                cp.status === "fulfilled" && cp.value ? cp.value : null;
+              let tagValue = tag.status === "fulfilled" && tag.value ? tag.value : null;
+              let sayValue = say.status === "fulfilled" && say.value ? say.value : null;
+              let whyValue = why.status === "fulfilled" && why.value ? why.value : null;
+              let cpValue = cp.status === "fulfilled" && cp.value ? cp.value : null;
 
               // Second-pass editor: reads the lines together against the
               // story, sharpens flat copy and culls contrived angles. Best-
               // effort, on any failure it returns the originals untouched.
               // Skipped when the values were preset by the source (we don't
               // edit hand-supplied content) or when nothing generated.
-              const hadPreset = Boolean(
-                item.partnerTag || item.sayThis || item.whyItMatters
-              );
+              const hadPreset = Boolean(item.partnerTag || item.sayThis || item.whyItMatters);
               if (!hadPreset && (tagValue || sayValue || whyValue || cpValue)) {
                 const qc = await runDailyItemQc({
                   title: item.title,
@@ -333,12 +343,7 @@ function registerDailyFeedRoute(app: Express): void {
                 await db.updateFeedItemCounterpoint(id, cpValue);
                 cpOk++;
               }
-              if (
-                img.status === "fulfilled" &&
-                img.value &&
-                "url" in img.value &&
-                img.value.url
-              ) {
+              if (img.status === "fulfilled" && img.value && "url" in img.value && img.value.url) {
                 await db.updateFeedItemImageUrl(id, img.value.url);
                 imgOk++;
               }
@@ -396,9 +401,7 @@ function registerWeeklyEditionRoute(app: Express): void {
         keyTakeaway: sanitiseText(t.keyTakeaway),
       })),
       signals: body.signals.map((s) =>
-        typeof s === "string"
-          ? sanitiseText(s)
-          : { ...s, text: sanitiseText(s.text) }
+        typeof s === "string" ? sanitiseText(s) : { ...s, text: sanitiseText(s.text) }
       ),
       fullText: sanitiseText(body.fullText ?? null),
       keyMetrics: body.keyMetrics ?? null,
@@ -478,7 +481,10 @@ function registerWeeklyEditionRoute(app: Express): void {
 
 const synthesizeEditionBodySchema = z.object({
   /** ISO date (YYYY-MM-DD) of any day in the target week. Defaults to today. */
-  anyDateInWeek: z.string().regex(/^\d{4}-\d{2}-\d{2}$/u).optional(),
+  anyDateInWeek: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/u)
+    .optional(),
 });
 
 /**
@@ -486,7 +492,12 @@ const synthesizeEditionBodySchema = z.object({
  * "YYYY-MM-DD" strings. Used to bound the feed-items query and to label
  * the new edition.
  */
-function isoWeekBounds(iso: string): { weekStart: string; weekEnd: string; weekRange: string; weekOf: string } {
+function isoWeekBounds(iso: string): {
+  weekStart: string;
+  weekEnd: string;
+  weekRange: string;
+  weekOf: string;
+} {
   const d = new Date(iso + "T12:00:00Z");
   // Monday = 1, Sunday = 0 → shift Sunday to 7 then back-compute Monday.
   const dayNum = d.getUTCDay() || 7;
@@ -628,9 +639,7 @@ function registerSynthesizeEditionRoute(app: Express): void {
       try {
         const qc = await runEditorQc(finalEdition);
         if (!qc.approved) {
-          console.log(
-            `[editor-qc] Edition ${editionNumber}: applied ${qc.notes.length} edits`
-          );
+          console.log(`[editor-qc] Edition ${editionNumber}: applied ${qc.notes.length} edits`);
           for (const n of qc.notes) console.log(`  - ${n}`);
         } else {
           console.log(`[editor-qc] Edition ${editionNumber}: clean on first pass`);
@@ -645,9 +654,7 @@ function registerSynthesizeEditionRoute(app: Express): void {
           datesToWatch: finalEdition.datesToWatch,
         });
       } catch (err) {
-        console.warn(
-          `[editor-qc] Edition ${editionNumber} skipped: ${(err as Error).message}`
-        );
+        console.warn(`[editor-qc] Edition ${editionNumber} skipped: ${(err as Error).message}`);
       }
 
       // Step 1b: accountability look-back. Scores last week's forward-looking
@@ -670,9 +677,7 @@ function registerSynthesizeEditionRoute(app: Express): void {
           }
         }
       } catch (err) {
-        console.warn(
-          `[lookback] Edition ${editionNumber} skipped: ${(err as Error).message}`
-        );
+        console.warn(`[lookback] Edition ${editionNumber} skipped: ${(err as Error).message}`);
       }
 
       // Step 2: hero image + Ruben's Take in parallel. Hero picks from
@@ -761,9 +766,7 @@ async function notifyDailyBriefSubscribers(feedDate: string): Promise<void> {
       }
     }
     await db.markDailyBriefSent(deliveredIds, feedDate);
-    console.log(
-      `[mailer] daily brief ${feedDate}: delivered ${delivered}/${subs.length}`
-    );
+    console.log(`[mailer] daily brief ${feedDate}: delivered ${delivered}/${subs.length}`);
   } catch (err) {
     console.warn("[mailer] daily brief notification failed:", err);
   }
@@ -787,9 +790,7 @@ async function notifySubscribers(editionNumber: number, weekRange: string): Prom
         })
       )
     );
-    const delivered = results.filter(
-      (r) => r.status === "fulfilled" && r.value.delivered
-    ).length;
+    const delivered = results.filter((r) => r.status === "fulfilled" && r.value.delivered).length;
     console.log(
       `[mailer] Edition ${editionNumber}: notified ${delivered}/${subs.length} subscribers`
     );
@@ -984,10 +985,14 @@ async function sendWeeklyRecap(weekOf: string): Promise<void> {
 
     const origin = siteOrigin();
     const mondayFmt = new Date(weekOf + "T12:00:00Z").toLocaleString("en-AU", {
-      day: "numeric", month: "short", timeZone: "UTC",
+      day: "numeric",
+      month: "short",
+      timeZone: "UTC",
     });
     const fridayFmt = fridayOffset.toLocaleString("en-AU", {
-      day: "numeric", month: "short", timeZone: "UTC",
+      day: "numeric",
+      month: "short",
+      timeZone: "UTC",
     });
     const weekRange = `${mondayFmt} – ${fridayFmt}`;
 
@@ -1016,9 +1021,7 @@ async function sendWeeklyRecap(weekOf: string): Promise<void> {
       }
     }
     await db.markWeeklyRecapSent(deliveredIds, weekOf);
-    console.log(
-      `[mailer] weekly recap ${weekOf}: delivered ${delivered}/${subs.length}`
-    );
+    console.log(`[mailer] weekly recap ${weekOf}: delivered ${delivered}/${subs.length}`);
   } catch (err) {
     console.warn("[mailer] weekly recap failed:", err);
   }
@@ -1027,7 +1030,10 @@ async function sendWeeklyRecap(weekOf: string): Promise<void> {
 function registerWeeklyRecapRoute(app: Express): void {
   const weeklyRecapBodySchema = z.object({
     /** ISO date of any day in the target week. Defaults to today. */
-    anyDateInWeek: z.string().regex(/^\d{4}-\d{2}-\d{2}$/u).optional(),
+    anyDateInWeek: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/u)
+      .optional(),
   });
   const handler = async (req: Request, res: Response) => {
     if (!(await authenticateScheduled(req))) {
@@ -1175,7 +1181,12 @@ function registerInstagramRoutes(app: Express): void {
     }
     // Parse optional feedDate override
     const parsed = z
-      .object({ feedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional() })
+      .object({
+        feedDate: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional(),
+      })
       .safeParse(req.body ?? {});
     const feedDate = parsed.success ? parsed.data.feedDate : undefined;
 
@@ -1194,20 +1205,12 @@ function registerInstagramRoutes(app: Express): void {
     try {
       const { postDailyCarousel } = await import("./instagram/post");
 
-      // Checkerboard the profile grid: slide 1 is the grid thumbnail, so
-      // alternate its navy/light variant by how many daily posts already
-      // went out. Even count → navy, odd → light. A counting failure falls
-      // back to navy rather than blocking the post.
-      const priorDailyCount = await db.countInstagramPosts("daily");
-      const variant = priorDailyCount % 2 === 0 ? "navy" : "light";
-
-      // Surface the morning's market metrics on the cover's lower third, in
-      // the same value+unit form the website's "Where things stand" strip
-      // uses, so the cover reads as a live briefing front page. listDailyMetrics
-      // is already ordered by displayOrder; the renderer shows the first 4.
-      const metrics = (await db.listDailyMetrics())
-        .slice(0, 4)
-        .map((m) => ({ label: m.label, value: m.unit ? `${m.value}${m.unit}` : m.value }));
+      // Checkerboard the profile grid (slide 1 is the grid thumbnail) and
+      // surface the morning's market metrics on the cover's lower third. Both
+      // come from helpers the preview route shares, so what previews is what
+      // posts. A counting failure falls back to navy rather than blocking.
+      const variant = await nextDailyVariant();
+      const metrics = dailyCoverMetrics(await db.listDailyMetrics());
 
       const { postId, headline } = await postDailyCarousel(items, siteOrigin(), {
         variant,
@@ -1288,6 +1291,98 @@ function registerInstagramRoutes(app: Express): void {
   app.post("/api/scheduled/instagram-weekly", weeklyHandler);
   app.post("/api/ingest/instagram-weekly", weeklyHandler);
 
+  // GET /api/instagram/preview/:kind — render a single card to a browser so the
+  // posts can be eyeballed (notably the real per-edition hero) before anything
+  // publishes. Auth is the same as the cron handlers: ?key=… or an admin
+  // session cookie. Renders straight from the DB; weekly is byte-identical to
+  // what posts. Daily uses the raw feed titles (it skips the LLM headline
+  // punch-up the live post applies) but is otherwise the production path.
+  //   kind: weekly-cover | weekly-story | weekly-topic | daily-cover
+  //       | daily-slide | daily-story
+  //   query: ?editionNumber=N (weekly) · ?date=YYYY-MM-DD&variant=navy|light
+  //          (daily) · ?i=N (topic/slide index)
+  app.get("/api/instagram/preview/:kind", async (req: Request, res: Response) => {
+    if (!(await authenticateScheduled(req))) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const kind = req.params.kind ?? "";
+    const idx = Number.parseInt(typeof req.query.i === "string" ? req.query.i : "0", 10) || 0;
+    try {
+      const cards = await import("./og/instagramCards");
+      const { sanitizeDashes, pickDailyTopStories, loadEditionHeroDataUri } =
+        await import("./instagram/post");
+      let buf: Buffer | null = null;
+
+      if (kind.startsWith("weekly")) {
+        const editions = await db.listEditions();
+        const wanted =
+          typeof req.query.editionNumber === "string" ? Number(req.query.editionNumber) : null;
+        const edition = wanted ? editions.find((e) => e.editionNumber === wanted) : editions[0];
+        if (!edition) {
+          res.status(422).json({ error: "No matching edition" });
+          return;
+        }
+        const hero = await loadEditionHeroDataUri(edition.id);
+        if (kind === "weekly-cover") buf = await cards.renderWeeklyCoverCard(edition, hero);
+        else if (kind === "weekly-story")
+          buf = await cards.renderWeeklyStoryVertical(edition, hero);
+        else if (kind === "weekly-topic") {
+          const topic = edition.topics[idx];
+          if (!topic) {
+            res.status(404).json({ error: "No topic at that index" });
+            return;
+          }
+          buf = await cards.renderWeeklyTopicCard(topic, idx + 1, 1 + edition.topics.length);
+        }
+      } else if (kind.startsWith("daily")) {
+        const date = typeof req.query.date === "string" ? req.query.date : undefined;
+        const variant =
+          req.query.variant === "light"
+            ? "light"
+            : req.query.variant === "navy"
+              ? "navy"
+              : await nextDailyVariant();
+        const stories = pickDailyTopStories(await db.listFeedItems(date)).map((s) => ({
+          ...s,
+          title: sanitizeDashes(s.title),
+          whyItMatters: s.whyItMatters ? sanitizeDashes(s.whyItMatters) : s.whyItMatters,
+          source: s.source ? sanitizeDashes(s.source) : s.source,
+          category: s.category ? sanitizeDashes(s.category) : s.category,
+        }));
+        if (stories.length === 0) {
+          res.status(422).json({ error: "No feed items for that date" });
+          return;
+        }
+        if (kind === "daily-cover") {
+          const metrics = dailyCoverMetrics(await db.listDailyMetrics());
+          buf = await cards.renderDailyCoverCard(stories, stories[0]!.feedDate, variant, metrics);
+        } else if (kind === "daily-slide") {
+          const story = stories[idx];
+          if (!story) {
+            res.status(404).json({ error: "No slide at that index" });
+            return;
+          }
+          buf = await cards.renderDailyStoryCard(story, idx, stories.length, variant);
+        } else if (kind === "daily-story") {
+          buf = await cards.renderDailyStoryVertical(stories[0]!, variant);
+        }
+      }
+
+      if (!buf) {
+        res.status(400).json({ error: `Unknown preview kind: ${kind}` });
+        return;
+      }
+      res.setHeader("Content-Type", "image/jpeg");
+      res.setHeader("Cache-Control", "no-store");
+      res.send(buf);
+    } catch (err) {
+      const e = err as Error;
+      console.error(`[instagram] preview ${kind} failed:`, e.message);
+      res.status(500).json({ error: "Preview failed", message: e.message });
+    }
+  });
+
   // POST /api/ingest/instagram-insights  — backfills engagement metrics for
   // recently published posts. Runs daily, a day after posting, so the numbers
   // have had time to accumulate.
@@ -1337,7 +1432,7 @@ export function registerScheduledRoutes(app: Express): void {
   registerNudgeRespondRoute(app);
   registerInstagramRoutes(app);
   console.log(
-    "[scheduled] registered /api/{scheduled,ingest}/{daily-feed,weekly-edition,synthesize-edition,daily-metrics,extract-metrics,weekly-recap,nudge-check,instagram-daily,instagram-weekly,instagram-insights} + /api/nudge/respond + /instagram/temp/:uuid.jpg"
+    "[scheduled] registered /api/{scheduled,ingest}/{daily-feed,weekly-edition,synthesize-edition,daily-metrics,extract-metrics,weekly-recap,nudge-check,instagram-daily,instagram-weekly,instagram-insights} + /api/nudge/respond + /instagram/temp/:uuid.jpg + /api/instagram/preview/:kind"
   );
 }
 

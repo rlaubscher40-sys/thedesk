@@ -1789,7 +1789,6 @@ export async function renderWeeklyTopicCard(
 ): Promise<Buffer> {
   const slideNum = String(slideIndex + 1).padStart(2, "0");
   const totalNum = String(slideTotal).padStart(2, "0");
-  const summary = clamp(topic.summary, 230);
   const why = topic.whyItMatters ? clamp(topic.whyItMatters, 180) : null;
   // Forward-looking watch items: the analytical payload that turns a bare
   // summary card into a briefing the reader keeps. Up to three, trimmed so
@@ -1799,7 +1798,25 @@ export async function renderWeeklyTopicCard(
     .slice(0, 3)
     .map((w) => clamp(w, 84));
   const takeaway = topic.keyTakeaway ? clamp(topic.keyTakeaway, 175) : null;
-  const titleFontSize = topic.title.length > 55 ? "52px" : "62px";
+
+  // How much analysis the topic actually ships. With at most one block the
+  // card would dead-space, so we switch it to a "standfirst page": the lead
+  // grows and the whole block is centred, turning empty space into deliberate
+  // editorial breathing room rather than a hole above the folio.
+  const analysisBlocks = (why ? 1 : 0) + (watch.length ? 1 : 0) + (takeaway ? 1 : 0);
+  const sparse = analysisBlocks <= 1;
+  const summary = clamp(topic.summary, sparse ? 320 : 230);
+  const summaryFontSize = sparse ? "29px" : "23px";
+  const summaryLineHeight = sparse ? 1.58 : 1.62;
+  // On a standfirst page the title is the hero, so it scales right up; on a
+  // dense card it stays measured to leave room for the analysis blocks.
+  const titleFontSize = sparse
+    ? topic.title.length > 42
+      ? "78px"
+      : "90px"
+    : topic.title.length > 55
+      ? "52px"
+      : "62px";
 
   const tree = {
     type: "div",
@@ -1887,9 +1904,10 @@ export async function renderWeeklyTopicCard(
               display: "flex",
               flexDirection: "column",
               flexGrow: 1,
-              justifyContent: "flex-start",
+              justifyContent: sparse ? "center" : "flex-start",
               gap: "46px",
-              paddingTop: "52px",
+              paddingTop: sparse ? "0px" : "52px",
+              paddingBottom: sparse ? "40px" : "0px",
             },
             children: [
               // ── Upper: the lead (category, title, standfirst) ──
@@ -1944,14 +1962,15 @@ export async function renderWeeklyTopicCard(
                         children: clamp(topic.title, 80),
                       },
                     },
-                    // Summary (the lead / standfirst)
+                    // Summary (the lead / standfirst — grows when it carries
+                    // the card alone)
                     {
                       type: "div",
                       props: {
                         style: {
                           fontFamily: "JetBrains Mono",
-                          fontSize: "23px",
-                          lineHeight: 1.62,
+                          fontSize: summaryFontSize,
+                          lineHeight: summaryLineHeight,
                           color: FG,
                         },
                         children: summary,
