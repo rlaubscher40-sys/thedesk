@@ -13,12 +13,14 @@
  */
 import { env } from "../core/env";
 import type { DailyFeedItem, Edition } from "../db/schema";
+import { getLatestEditionAsset } from "../db/editionAssets";
 import { updateFeedItemSayThis, updateFeedItemWhyItMatters } from "../db/feed";
 import { recordServerError } from "../db/health";
 import { generateInstagramHeadline } from "../prompts/instagramHeadline";
 import { generateSayThis } from "../prompts/sayThis";
 import { generateWhyItMatters } from "../prompts/whyItMatters";
 import {
+  type CardVariant,
   renderDailyCoverCard,
   renderDailyStoryCard,
   renderDailyStoryVertical,
@@ -126,6 +128,26 @@ async function ensureSlideContent(stories: DailyFeedItem[]): Promise<void> {
   );
 }
 
+/**
+ * Load the edition's AI-generated hero image straight from the DB and return
+ * it as a base64 data URI satori can embed. Best-effort: any miss (no asset
+ * yet, DB down) returns null so the renderers fall back to the bundled hero
+ * rather than failing the post.
+ */
+async function loadEditionHeroDataUri(editionId: number): Promise<string | null> {
+  try {
+    const asset = await getLatestEditionAsset(editionId, "hero");
+    if (!asset?.bytes?.length) return null;
+    return `data:${asset.contentType};base64,${asset.bytes.toString("base64")}`;
+  } catch (err) {
+    console.warn(
+      `[instagram] couldn't load edition ${editionId} hero, using fallback:`,
+      (err as Error).message
+    );
+    return null;
+  }
+}
+
 function buildWeeklyCaption(edition: Edition): string {
   const take = edition.rubensTake ? sanitizeDashes(edition.rubensTake).slice(0, 300) : "";
   return [
@@ -140,7 +162,13 @@ function buildWeeklyCaption(edition: Edition): string {
 
 export async function postDailyCarousel(
   stories: DailyFeedItem[],
-  siteUrl: string
+  siteUrl: string,
+  opts: {
+    /** Cover variant for the grid thumbnail (alternated for the checkerboard). */
+    variant?: CardVariant;
+    /** Market metrics for the cover's lower-third strip, already value+unit formatted. */
+    metrics?: Array<{ label: string; value: string }>;
+  } = {}
 ): Promise<{ postId: string; headline: string }> {
   const { instagramAccessToken: accessToken, instagramBusinessAccountId: igUserId } = env;
   if (!accessToken || !igUserId) {
@@ -148,9 +176,7 @@ export async function postDailyCarousel(
   }
 
   // Pick top-3 stories, favouring category variety over raw priority.
-  const eligible = [...stories]
-    .filter((s) => s.title)
-    .sort((a, b) => b.priority - a.priority);
+  const eligible = [...stories].filter((s) => s.title).sort((a, b) => b.priority - a.priority);
 
   const top: DailyFeedItem[] = [];
   const usedCategories = new Set<string>();
@@ -196,12 +222,24 @@ export async function postDailyCarousel(
     // Slide 1 is a branded cover (date + numbered contents). Instagram shows
     // slide 1 as the grid thumbnail, so leading with this makes the profile
     // read as a cohesive column of covers rather than dense, unrelated tiles.
-    const coverBuf = await renderDailyCoverCard(sanitized, sanitized[0]?.feedDate);
+    const coverBuf = await renderDailyCoverCard(
+      sanitized,
+      sanitized[0]?.feedDate,
+      opts.variant ?? "navy",
+      opts.metrics
+    );
     uuids.push(storeTempImage(coverBuf));
     altTexts.push("The Desk daily briefing cover");
 
     for (let i = 0; i < sanitized.length; i++) {
-      const buf = await renderDailyStoryCard(sanitized[i]!, i, sanitized.length);
+      // Whole carousel shares the cover's variant so a light post reads as
+      // one piece when swiped, not a light cover over navy slides.
+      const buf = await renderDailyStoryCard(
+        sanitized[i]!,
+        i,
+        sanitized.length,
+        opts.variant ?? "navy"
+      );
       uuids.push(storeTempImage(buf));
       altTexts.push(sanitized[i]?.title);
     }
@@ -235,7 +273,7 @@ export async function postDailyCarousel(
     // Also share the lead story to the 24h Story. Best-effort: a Story failure
     // must never fail the feed post that has already gone live.
     try {
-      const storyBuf = await renderDailyStoryVertical(sanitized[0]!);
+      const storyBuf = await renderDailyStoryVertical(sanitized[0]!, opts.variant ?? "navy");
       const storyUuid = storeTempImage(storyBuf);
       uuids.push(storyUuid);
       const storyContainerId = await createStoryContainer({
@@ -298,9 +336,13 @@ export async function postWeeklyEdition(
   // alt_text per slide, parallel to uuids: cover first, then one per topic.
   const altTexts: string[] = [editionAlt];
 
+  // The cover and the Story share the edition's own hero photo when one was
+  // generated; null falls back to the bundled image inside the renderers.
+  const heroDataUri = await loadEditionHeroDataUri(edition.id);
+
   try {
     // Slide 1: cover
-    uuids.push(storeTempImage(await renderWeeklyCoverCard(sanitizedEdition)));
+    uuids.push(storeTempImage(await renderWeeklyCoverCard(sanitizedEdition, heroDataUri)));
 
     // Slides 2–N: one per topic
     for (let i = 0; i < sanitizedTopics.length; i++) {
@@ -331,14 +373,12 @@ export async function postWeeklyEdition(
     });
     const postId = await publishContainer({ igUserId, accessToken, creationId: carouselId });
 
-    console.log(
-      `[instagram] weekly edition ${edition.editionNumber} posted: ${postId}`
-    );
+    console.log(`[instagram] weekly edition ${edition.editionNumber} posted: ${postId}`);
 
     // Share the edition to the 24h Story. Best-effort: a Story failure must
     // never fail the feed post that has already gone live.
     try {
-      const storyBuf = await renderWeeklyStoryVertical(sanitizedEdition);
+      const storyBuf = await renderWeeklyStoryVertical(sanitizedEdition, heroDataUri);
       const storyUuid = storeTempImage(storyBuf);
       uuids.push(storyUuid);
       const storyContainerId = await createStoryContainer({

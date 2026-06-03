@@ -10,7 +10,7 @@
  * has not been applied) or the DB is unavailable, these no-op rather than throw,
  * so posting is never blocked by analytics.
  */
-import { and, desc, gte, isNull, eq } from "drizzle-orm";
+import { and, count, desc, gte, isNull, eq } from "drizzle-orm";
 import { isDemoMode } from "../demo/store";
 import { getDb } from "./client";
 import {
@@ -95,6 +95,29 @@ export async function updateInstagramPostMetrics(
       `[instagramPosts] metrics update failed for ${mediaId}:`,
       (err as Error).message
     );
+  }
+}
+
+/**
+ * How many posts of a given type have been published. Drives the daily
+ * cover's navy/light alternation: slide 1 is the profile-grid thumbnail, so
+ * flipping the variant on each successive daily post makes the 3-wide grid
+ * read as a checkerboard. Returns 0 on any error (or pre-migration), which
+ * keeps the next post on the default "navy" rather than blocking it.
+ */
+export async function countInstagramPosts(postType: string): Promise<number> {
+  if (isDemoMode()) return 0;
+  const db = getDb();
+  if (!db) return 0;
+  try {
+    const rows = await db
+      .select({ value: count() })
+      .from(instagramPosts)
+      .where(eq(instagramPosts.postType, postType));
+    return rows[0]?.value ?? 0;
+  } catch (err) {
+    console.warn("[instagramPosts] count query failed:", (err as Error).message);
+    return 0;
   }
 }
 

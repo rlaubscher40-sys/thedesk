@@ -1193,7 +1193,26 @@ function registerInstagramRoutes(app: Express): void {
     // ample headroom for image render + Graph API publish.
     try {
       const { postDailyCarousel } = await import("./instagram/post");
-      const { postId, headline } = await postDailyCarousel(items, siteOrigin());
+
+      // Checkerboard the profile grid: slide 1 is the grid thumbnail, so
+      // alternate its navy/light variant by how many daily posts already
+      // went out. Even count → navy, odd → light. A counting failure falls
+      // back to navy rather than blocking the post.
+      const priorDailyCount = await db.countInstagramPosts("daily");
+      const variant = priorDailyCount % 2 === 0 ? "navy" : "light";
+
+      // Surface the morning's market metrics on the cover's lower third, in
+      // the same value+unit form the website's "Where things stand" strip
+      // uses, so the cover reads as a live briefing front page. listDailyMetrics
+      // is already ordered by displayOrder; the renderer shows the first 4.
+      const metrics = (await db.listDailyMetrics())
+        .slice(0, 4)
+        .map((m) => ({ label: m.label, value: m.unit ? `${m.value}${m.unit}` : m.value }));
+
+      const { postId, headline } = await postDailyCarousel(items, siteOrigin(), {
+        variant,
+        metrics,
+      });
       console.log(`[instagram] daily post complete: ${postId}`);
       await db.recordInstagramPost({
         mediaId: postId,
