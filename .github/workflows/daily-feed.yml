@@ -2,11 +2,14 @@ name: Daily feed ingest
 
 on:
   schedule:
-    # 20:00 UTC daily ≈ 06:00 Sydney (AEST). One hour earlier during AEDT —
-    # close enough for a morning brief.
+    # 20:43 UTC daily = 06:43 Sydney AEST — the morning brief, before 7am.
+    # Anchored to AEST, so it shifts to 07:43 during summer (AEDT).
+    # The minute is offset off the :00/:30 boundary on purpose: GitHub's shared
+    # cron is most congested — and most delayed — at the top and half of the
+    # hour, which was pushing these runs ~2h late.
     # NB: scheduled runs only fire from the workflow file on the default
-    # branch (main). GitHub's cron is best-effort and may be delayed.
-    - cron: "0 20 * * *"
+    # branch (main). GitHub's cron is best-effort and may still slip.
+    - cron: "43 20 * * *"
   workflow_dispatch:
     inputs:
       reason:
