@@ -99,11 +99,11 @@ function buildDailyCaption(stories: DailyFeedItem[]): string {
   const tags = `${CORE_HASHTAGS} ${categoryHashtag(stories[0]?.category)}`;
 
   return [
-    "The stories moving Australian markets today, and what each one means for your money. ↓",
+    "The stories moving Australian markets today, and what each one means for your money.",
     "",
     ...rundown,
     "Which one are you watching this week? Tell us below.",
-    "↳ Save this so you've got the brief for the days ahead.",
+    "Save this so you've got the brief for the days ahead.",
     "",
     "The full daily briefing is in our bio.",
     "",
@@ -180,18 +180,18 @@ export async function loadEditionHeroDataUri(editionId: number): Promise<string 
 function buildWeeklyCaption(edition: Edition): string {
   const take = edition.rubensTake ? sanitizeDashes(edition.rubensTake).slice(0, 300) : "";
   const topics = edition.topics.slice(0, 4);
-  const contents = topics.map((t) => `· ${sanitizeDashes(t.title).slice(0, 90)}`);
+  const contents = topics.map((t) => `- ${sanitizeDashes(t.title).slice(0, 90)}`);
   const tags = `${CORE_HASHTAGS} #WeeklyBriefing ${categoryHashtag(topics[0]?.category)}`;
 
   return [
-    "This week in Australian property & markets, the calls that mattered and what comes next. ↓",
+    "This week in Australian property and markets, the calls that mattered and what comes next.",
     "",
     ...(take ? [take, ""] : []),
     `Inside Edition #${edition.editionNumber}:`,
     ...contents,
     "",
     "Which call are you watching? Reply below.",
-    "↳ Save the edition for the week ahead.",
+    "Save the edition for the week ahead.",
     "",
     "The full weekly edition is in our bio.",
     "",

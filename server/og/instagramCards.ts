@@ -170,7 +170,12 @@ function colorScheme(variant: CardVariant): Scheme {
 }
 
 function clamp(text: string, max: number): string {
-  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+  if (text.length <= max) return text;
+  // Cut on the last word boundary and add nothing — a trailing "…" reads as a
+  // machine truncation. Fall back to a hard cut for unbroken strings.
+  const cut = text.slice(0, max);
+  const lastSpace = cut.lastIndexOf(" ");
+  return (lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).trimEnd();
 }
 
 /**
