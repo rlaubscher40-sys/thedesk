@@ -156,15 +156,28 @@ function fakeEdition(overrides: Partial<Edition> = {}): Edition {
   } as Edition;
 }
 
+// A 1×1 transparent PNG, enough to exercise the hero-override branch without
+// bundling a fixture image.
+const tinyHero =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAen63NgAAAAASUVORK5CYII=";
+
 describe("renderWeeklyCoverCard", () => {
   it("renders a 1080x1350 JPEG contents cover", async () => {
     expectJpeg(await renderWeeklyCoverCard(fakeEdition()));
+  });
+
+  it("renders with the edition's own hero override", async () => {
+    expectJpeg(await renderWeeklyCoverCard(fakeEdition(), tinyHero));
   });
 });
 
 describe("renderWeeklyStoryVertical", () => {
   it("renders a 1080x1920 JPEG edition Story", async () => {
     expectJpeg(await renderWeeklyStoryVertical(fakeEdition()));
+  });
+
+  it("renders with the edition's own hero override", async () => {
+    expectJpeg(await renderWeeklyStoryVertical(fakeEdition(), tinyHero));
   });
 });
 

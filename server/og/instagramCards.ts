@@ -1075,9 +1075,16 @@ export async function renderDailyStoryVertical(
  * Weekly edition cover card: 1080×1350 portrait.
  * Shows edition number, week range, and topic list as a contents page.
  */
-export async function renderWeeklyCoverCard(edition: Edition): Promise<Buffer> {
+export async function renderWeeklyCoverCard(
+  edition: Edition,
+  heroOverride?: string | null
+): Promise<Buffer> {
   const logo = await loadLogo("navy");
-  const hero = await loadAsset("hero-weekly.jpg");
+  // The edition's own AI-generated hero (a dark, no-text, category-matched
+  // image, see editionHeroPrompt) when the posting flow supplies it as a data
+  // URI, else the bundled fallback so a render never depends on a generated
+  // asset existing.
+  const hero = heroOverride ?? (await loadAsset("hero-weekly.jpg"));
   const headshot = await loadAsset("ruben.jpg");
   const topics = edition.topics.slice(0, 4);
   const metrics = edition.keyMetrics as Record<string, string | undefined> | null | undefined;
@@ -1423,9 +1430,14 @@ export async function renderWeeklyCoverCard(edition: Edition): Promise<Buffer> {
  * number lockup, title, and topics contents) but vertical, with a prompt back
  * to the feed for the full edition.
  */
-export async function renderWeeklyStoryVertical(edition: Edition): Promise<Buffer> {
+export async function renderWeeklyStoryVertical(
+  edition: Edition,
+  heroOverride?: string | null
+): Promise<Buffer> {
   const logo = await loadLogo("navy");
-  const hero = await loadAsset("hero-weekly.jpg");
+  // Same edition hero as the cover (with the bundled fallback) so the Story
+  // and the cover share one photograph.
+  const hero = heroOverride ?? (await loadAsset("hero-weekly.jpg"));
   const headshot = await loadAsset("ruben.jpg");
   const topics = edition.topics.slice(0, 4);
   const metrics = edition.keyMetrics as Record<string, string | undefined> | null | undefined;

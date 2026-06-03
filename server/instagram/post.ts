@@ -13,6 +13,7 @@
  */
 import { env } from "../core/env";
 import type { DailyFeedItem, Edition } from "../db/schema";
+import { getLatestEditionAsset } from "../db/editionAssets";
 import { updateFeedItemSayThis, updateFeedItemWhyItMatters } from "../db/feed";
 import { recordServerError } from "../db/health";
 import { generateInstagramHeadline } from "../prompts/instagramHeadline";
@@ -125,6 +126,26 @@ async function ensureSlideContent(stories: DailyFeedItem[]): Promise<void> {
       }
     })
   );
+}
+
+/**
+ * Load the edition's AI-generated hero image straight from the DB and return
+ * it as a base64 data URI satori can embed. Best-effort: any miss (no asset
+ * yet, DB down) returns null so the renderers fall back to the bundled hero
+ * rather than failing the post.
+ */
+async function loadEditionHeroDataUri(editionId: number): Promise<string | null> {
+  try {
+    const asset = await getLatestEditionAsset(editionId, "hero");
+    if (!asset?.bytes?.length) return null;
+    return `data:${asset.contentType};base64,${asset.bytes.toString("base64")}`;
+  } catch (err) {
+    console.warn(
+      `[instagram] couldn't load edition ${editionId} hero, using fallback:`,
+      (err as Error).message
+    );
+    return null;
+  }
 }
 
 function buildWeeklyCaption(edition: Edition): string {
@@ -315,9 +336,13 @@ export async function postWeeklyEdition(
   // alt_text per slide, parallel to uuids: cover first, then one per topic.
   const altTexts: string[] = [editionAlt];
 
+  // The cover and the Story share the edition's own hero photo when one was
+  // generated; null falls back to the bundled image inside the renderers.
+  const heroDataUri = await loadEditionHeroDataUri(edition.id);
+
   try {
     // Slide 1: cover
-    uuids.push(storeTempImage(await renderWeeklyCoverCard(sanitizedEdition)));
+    uuids.push(storeTempImage(await renderWeeklyCoverCard(sanitizedEdition, heroDataUri)));
 
     // Slides 2–N: one per topic
     for (let i = 0; i < sanitizedTopics.length; i++) {
@@ -353,7 +378,7 @@ export async function postWeeklyEdition(
     // Share the edition to the 24h Story. Best-effort: a Story failure must
     // never fail the feed post that has already gone live.
     try {
-      const storyBuf = await renderWeeklyStoryVertical(sanitizedEdition);
+      const storyBuf = await renderWeeklyStoryVertical(sanitizedEdition, heroDataUri);
       const storyUuid = storeTempImage(storyBuf);
       uuids.push(storyUuid);
       const storyContainerId = await createStoryContainer({
