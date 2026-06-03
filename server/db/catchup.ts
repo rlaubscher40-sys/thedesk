@@ -224,6 +224,10 @@ export const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
     name: "0018 · daily_feed_items.threadParentTitle",
     sql: "ALTER TABLE daily_feed_items ADD threadParentTitle text",
   },
+  {
+    name: "0019 · daily_feed_items.channel",
+    sql: "ALTER TABLE daily_feed_items ADD channel varchar(32) NOT NULL DEFAULT 'AU'",
+  },
 ];
 
 /** MySQL/TiDB error message fragments that mean "already applied". */

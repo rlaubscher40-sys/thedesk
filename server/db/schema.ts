@@ -119,6 +119,11 @@ export const dailyFeedItems = mysqlTable("daily_feed_items", {
   sourceUrl: text("sourceUrl"),
   summary: text("summary").notNull(),
   category: varchar("category", { length: 64 }).notNull(),
+  /** Discover-style content lane this story belongs in: AU, PROPERTY,
+   *  BUSINESS, TECH, GLOBAL (see shared/const.ts FEED_CHANNELS). Separate
+   *  axis from `category` (the topic). Defaults to AU so legacy rows and any
+   *  ingest that doesn't set it land in the Australian flagship. */
+  channel: varchar("channel", { length: 32 }).default("AU").notNull(),
   /** Per-item AI-generated hero image URL. Used by FeedLeadCard /
    *  StoryCard thumbnails, falls back to the category-tinted gradient
    *  plate if absent. */

@@ -149,6 +149,15 @@ export const dailyFeedIngestItemSchema = z.object({
   sourceUrl: z.string().url().optional().nullable(),
   summary: z.string().min(1),
   category: z.string().min(1).max(64).transform((c) => c.toUpperCase()),
+  /** Discover content lane (AU / PROPERTY / BUSINESS / TECH / GLOBAL).
+   *  Separate axis from `category`. Optional on the wire; the ingest handler
+   *  defaults a missing value to AU. Normalised to upper case so the
+   *  enrichment gate and the client partition match regardless of casing. */
+  channel: z
+    .string()
+    .max(32)
+    .optional()
+    .transform((c) => (c ? c.toUpperCase() : c)),
   partnerTag: z.string().optional().nullable(),
   sayThis: z.string().optional().nullable(),
   whyItMatters: z.string().optional().nullable(),

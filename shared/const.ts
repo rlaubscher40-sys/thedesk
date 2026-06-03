@@ -33,6 +33,46 @@ export const PARTNER_PERSONAS = [
 ] as const;
 export type PartnerPersona = (typeof PARTNER_PERSONAS)[number];
 
+/**
+ * Feed channels — the Discover-style content lanes on the Today page. A
+ * channel is a SEPARATE axis from {@link CATEGORIES}: a channel is the
+ * editorial lane a story belongs in (Australia, Property, Business, Tech,
+ * Global), whereas a category is its topic (MACRO, MARKETS, AI…). The Today
+ * page renders one tab per channel; the category sub-filter only appears on
+ * the AU flagship.
+ *
+ * Order is the tab order.
+ */
+export const FEED_CHANNELS = ["AU", "PROPERTY", "BUSINESS", "TECH", "GLOBAL"] as const;
+export type FeedChannel = (typeof FEED_CHANNELS)[number];
+
+/** Tab labels for each channel, in The Desk's editorial register. */
+export const FEED_CHANNEL_LABELS: Record<FeedChannel, string> = {
+  AU: "Australia's Top Stories",
+  PROPERTY: "Property",
+  BUSINESS: "Business",
+  TECH: "Tech & Science",
+  GLOBAL: "Global Top Stories",
+};
+
+/** The default channel shown when the Today page first loads. */
+export const DEFAULT_FEED_CHANNEL: FeedChannel = "AU";
+
+/**
+ * Channels that receive the expensive editorial enrichment (partner angles,
+ * Say This, Why it matters, Counterpoint, Ruben's note). Only the
+ * partner-relevant Australian lanes are enriched; the rest are coverage-only
+ * (headline + summary + source + image + timestamp).
+ */
+export const ENRICHED_CHANNELS = ["AU", "PROPERTY"] as const;
+
+/** Whether a channel gets the full angle-block enrichment. */
+export function isEnrichedChannel(channel: string | null | undefined): boolean {
+  return (ENRICHED_CHANNELS as readonly string[]).includes(
+    (channel ?? DEFAULT_FEED_CHANNEL).toUpperCase()
+  );
+}
+
 /** Categories used across feed items and edition topics. */
 export const CATEGORIES = [
   "PROPERTY",
