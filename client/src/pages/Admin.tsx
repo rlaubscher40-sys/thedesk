@@ -22,6 +22,7 @@ import { InstagramAdminPanel } from "@/components/admin/InstagramAdminPanel";
 import { LinkedInAdminPanel } from "@/components/admin/LinkedInAdminPanel";
 import { MaintenanceAdminPanel } from "@/components/admin/MaintenanceAdminPanel";
 import { MetricsAdminPanel } from "@/components/admin/MetricsAdminPanel";
+import { ServicesAdminPanel } from "@/components/admin/ServicesAdminPanel";
 import { SubscribersAdminPanel } from "@/components/admin/SubscribersAdminPanel";
 import { BackfillRubensTakeButton } from "@/components/editions/EditionAdminPanel";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -169,6 +170,16 @@ export default function AdminPage() {
 
       {/* Feedback inbox sits near the top of the admin so new
           submissions are the first thing the editor sees on /admin. */}
+      {/* Service dependencies: the full catalogue of what the site relies
+          on (DB, hosting, AI, email, social, automation) with per-service
+          status and links out to each provider's status page. Sits right
+          under the health summary so infra is grouped together. */}
+      <div className="mt-10">
+        <SectionErrorBoundary section="Service dependencies">
+          <ServicesAdminPanel />
+        </SectionErrorBoundary>
+      </div>
+
       <div className="mt-10">
         <SectionErrorBoundary section="Feedback inbox">
           <FeedbackAdminPanel />
