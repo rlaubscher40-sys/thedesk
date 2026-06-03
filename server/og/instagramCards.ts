@@ -100,6 +100,23 @@ function clamp(text: string, max: number): string {
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 }
 
+/**
+ * Pick a font size so a full block of copy fits the card without truncation:
+ * longer text steps down through the scale rather than being cut mid-sentence.
+ * `tiers` are [maxChars, fontSize] pairs checked in order; the first whose
+ * maxChars the text fits under wins, otherwise `fallback` (smallest) is used.
+ */
+function fitFontSize(
+  len: number,
+  tiers: Array<[number, string]>,
+  fallback: string
+): string {
+  for (const [max, size] of tiers) {
+    if (len <= max) return size;
+  }
+  return fallback;
+}
+
 async function renderToJpeg(
   tree: object,
   width: number,
@@ -142,7 +159,13 @@ export async function renderDailyStoryCard(
   const slideNum = String(slideIndex + 1).padStart(2, "0");
   const totalNum = String(slideTotal).padStart(2, "0");
   const headline = clamp(story.title, 90);
-  const why = story.whyItMatters ? clamp(story.whyItMatters, 170) : null;
+  // Show the full sentence — never cut "why it matters" mid-word. Upstream
+  // generation caps this at 320 chars; the clamp here is only a last-resort
+  // guard against pathological lengths. Font scales down so it always fits.
+  const why = story.whyItMatters ? clamp(story.whyItMatters, 320) : null;
+  const whyFontSize = why
+    ? fitFontSize(why.length, [[150, "30px"], [220, "26px"]], "23px")
+    : "30px";
   const category = (story.category || "NEWS").toUpperCase();
   const fontSize = headline.length > 64 ? "60px" : "74px";
 
@@ -271,7 +294,7 @@ export async function renderDailyStoryCard(
                             props: {
                               style: {
                                 fontFamily: "JetBrains Mono",
-                                fontSize: "30px",
+                                fontSize: whyFontSize,
                                 lineHeight: 1.45,
                                 color: FG_MUTED,
                               },
@@ -353,6 +376,234 @@ export async function renderDailyStoryCard(
 }
 
 /**
+ * Format a feed date ("YYYY-MM-DD") into a human briefing date, e.g.
+ * "Tuesday, 3 June 2026". Parsed and formatted in UTC so the calendar date
+ * is never shifted by the server timezone. Falls back to today if absent.
+ */
+function formatBriefingDate(feedDate?: string | null): string {
+  const d = feedDate ? new Date(`${feedDate}T00:00:00Z`) : new Date();
+  const date = Number.isNaN(d.getTime()) ? new Date() : d;
+  return new Intl.DateTimeFormat("en-AU", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+}
+
+/**
+ * Daily cover card: 1080×1080 square, slide 1 of the daily carousel.
+ *
+ * A branded contents page — logo, date, "Today's Briefing", and the numbered
+ * headlines of the stories that follow. Because Instagram's grid shows slide 1
+ * as the post thumbnail, leading every daily post with this cover makes the
+ * profile grid read as a cohesive column of covers instead of three dense,
+ * unrelated story tiles. Mirrors renderWeeklyCoverCard for the daily cadence.
+ */
+export async function renderDailyCoverCard(
+  stories: DailyFeedItem[],
+  feedDate?: string | null
+): Promise<Buffer> {
+  const logo = await loadLogo();
+  const dateLabel = formatBriefingDate(feedDate);
+  const items = stories.slice(0, 3);
+
+  const tree = {
+    type: "div",
+    props: {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        width: "1080px",
+        height: "1080px",
+        backgroundColor: NAVY,
+        backgroundImage:
+          "radial-gradient(circle at 85% 12%, rgba(212,168,83,0.13) 0%, transparent 52%)",
+        padding: "64px",
+        justifyContent: "space-between",
+      },
+      children: [
+        // ── Top: branding + label ──
+        {
+          type: "div",
+          props: {
+            style: {
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            },
+            children: [
+              brandHeader(logo, 56),
+              {
+                type: "div",
+                props: {
+                  style: {
+                    fontFamily: "JetBrains Mono",
+                    fontSize: "15px",
+                    letterSpacing: "0.22em",
+                    textTransform: "uppercase",
+                    color: AMBER,
+                  },
+                  children: "Daily Briefing",
+                },
+              },
+            ],
+          },
+        },
+
+        // ── Middle: date + title + contents ──
+        {
+          type: "div",
+          props: {
+            style: { display: "flex", flexDirection: "column", gap: "24px" },
+            children: [
+              {
+                type: "div",
+                props: {
+                  style: {
+                    fontFamily: "JetBrains Mono",
+                    fontSize: "17px",
+                    letterSpacing: "0.18em",
+                    textTransform: "uppercase",
+                    color: FG_MUTED,
+                  },
+                  children: dateLabel,
+                },
+              },
+              {
+                type: "div",
+                props: {
+                  style: {
+                    fontFamily: "Playfair Display",
+                    fontWeight: 700,
+                    fontSize: "82px",
+                    lineHeight: 1.0,
+                    letterSpacing: "-0.02em",
+                    color: FG,
+                  },
+                  children: "Today's Briefing",
+                },
+              },
+              {
+                type: "div",
+                props: {
+                  style: {
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "18px",
+                    marginTop: "8px",
+                  },
+                  children: items.map((s, i) => ({
+                    type: "div",
+                    props: {
+                      style: {
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: "16px",
+                      },
+                      children: [
+                        {
+                          type: "div",
+                          props: {
+                            style: {
+                              fontFamily: "JetBrains Mono",
+                              fontSize: "15px",
+                              color: AMBER,
+                              minWidth: "30px",
+                              marginTop: "10px",
+                            },
+                            children: `0${i + 1}`,
+                          },
+                        },
+                        {
+                          type: "div",
+                          props: {
+                            style: {
+                              fontFamily: "Playfair Display",
+                              fontWeight: 700,
+                              fontSize: "34px",
+                              lineHeight: 1.15,
+                              color: FG,
+                            },
+                            children: clamp(s.title, 70),
+                          },
+                        },
+                      ],
+                    },
+                  })),
+                },
+              },
+            ],
+          },
+        },
+
+        // ── Bottom: rule + swipe prompt + domain ──
+        {
+          type: "div",
+          props: {
+            style: { display: "flex", flexDirection: "column", gap: "18px" },
+            children: [
+              {
+                type: "div",
+                props: {
+                  style: {
+                    display: "flex",
+                    width: "100%",
+                    height: "1px",
+                    backgroundImage: `linear-gradient(90deg, ${AMBER} 0%, rgba(212,168,83,0) 70%)`,
+                  },
+                  children: "",
+                },
+              },
+              {
+                type: "div",
+                props: {
+                  style: {
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  },
+                  children: [
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          fontFamily: "JetBrains Mono",
+                          fontSize: "15px",
+                          letterSpacing: "0.15em",
+                          textTransform: "uppercase",
+                          color: FG_MUTED,
+                        },
+                        children: "Swipe for today's stories »",
+                      },
+                    },
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          fontFamily: "JetBrains Mono",
+                          fontSize: "15px",
+                          letterSpacing: "0.22em",
+                          color: AMBER,
+                        },
+                        children: "thedesk.au",
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      ],
+    },
+  };
+
+  return renderToJpeg(tree, 1080, 1080);
+}
+
+/**
  * Daily Story frame: 1080×1920 (9:16), for the Instagram Story posted right
  * after the feed carousel. Features the lead story headline and a prompt back
  * to the feed for the full briefing. Same brand tokens as the square cards.
@@ -362,7 +613,12 @@ export async function renderDailyStoryVertical(
 ): Promise<Buffer> {
   const logo = await loadLogo();
   const headline = clamp(story.title, 100);
-  const why = story.whyItMatters ? clamp(story.whyItMatters, 220) : null;
+  // Show the full sentence — never cut "why it matters" mid-word. The 320-char
+  // clamp is only a last-resort guard; font scales down so it always fits.
+  const why = story.whyItMatters ? clamp(story.whyItMatters, 320) : null;
+  const whyFontSize = why
+    ? fitFontSize(why.length, [[200, "34px"], [280, "30px"]], "27px")
+    : "34px";
   const category = (story.category || "NEWS").toUpperCase();
   const fontSize = headline.length > 72 ? "76px" : "92px";
 
@@ -484,7 +740,7 @@ export async function renderDailyStoryVertical(
                             props: {
                               style: {
                                 fontFamily: "JetBrains Mono",
-                                fontSize: "34px",
+                                fontSize: whyFontSize,
                                 lineHeight: 1.45,
                                 color: FG_MUTED,
                               },
@@ -597,7 +853,7 @@ export async function renderWeeklyCoverCard(edition: Edition): Promise<Buffer> {
       ? `Cash Rate ${cashRate} · ASX 200 ${asx}`
       : cashRate
         ? `Cash Rate ${cashRate}`
-        : "Swipe for this week’s analysis →";
+        : "Swipe for this week’s analysis »";
 
   const tree = {
     type: "div",

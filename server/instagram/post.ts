@@ -19,6 +19,7 @@ import { generateInstagramHeadline } from "../prompts/instagramHeadline";
 import { generateSayThis } from "../prompts/sayThis";
 import { generateWhyItMatters } from "../prompts/whyItMatters";
 import {
+  renderDailyCoverCard,
   renderDailyStoryCard,
   renderDailyStoryVertical,
   renderWeeklyCoverCard,
@@ -189,23 +190,33 @@ export async function postDailyCarousel(
 
   const sanitized = punched.map(sanitizeStory);
   const uuids: string[] = [];
+  // alt_text per slide, kept in lockstep with uuids (cover + one per story).
+  const altTexts: (string | undefined)[] = [];
   try {
+    // Slide 1 is a branded cover (date + numbered contents). Instagram shows
+    // slide 1 as the grid thumbnail, so leading with this makes the profile
+    // read as a cohesive column of covers rather than dense, unrelated tiles.
+    const coverBuf = await renderDailyCoverCard(sanitized, sanitized[0]?.feedDate);
+    uuids.push(storeTempImage(coverBuf));
+    altTexts.push("The Desk daily briefing cover");
+
     for (let i = 0; i < sanitized.length; i++) {
       const buf = await renderDailyStoryCard(sanitized[i]!, i, sanitized.length);
       uuids.push(storeTempImage(buf));
+      altTexts.push(sanitized[i]?.title);
     }
 
     const caption = buildDailyCaption(sanitized);
 
     // Create child containers in parallel — Instagram fetches each image URL.
-    // alt_text per slide is the story headline (accessibility + ranking signal).
+    // alt_text per slide is the cover/story headline (accessibility + ranking).
     const childIds = await Promise.all(
       uuids.map((uuid, i) =>
         createImageContainer({
           igUserId,
           accessToken,
           imageUrl: `${siteUrl}/instagram/temp/${uuid}.jpg`,
-          altText: sanitized[i]?.title,
+          altText: altTexts[i],
           isCarouselItem: true,
         })
       )
