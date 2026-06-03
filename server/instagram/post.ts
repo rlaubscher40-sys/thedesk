@@ -247,7 +247,7 @@ export async function postDailyCarousel(
     // Also share the lead story to the 24h Story. Best-effort: a Story failure
     // must never fail the feed post that has already gone live.
     try {
-      const storyBuf = await renderDailyStoryVertical(sanitized[0]!);
+      const storyBuf = await renderDailyStoryVertical(sanitized[0]!, opts.variant ?? "navy");
       const storyUuid = storeTempImage(storyBuf);
       uuids.push(storyUuid);
       const storyContainerId = await createStoryContainer({

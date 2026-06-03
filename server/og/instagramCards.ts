@@ -18,10 +18,7 @@ import sharp from "sharp";
 import type { DailyFeedItem, Edition } from "../db/schema";
 import type { EditionTopic } from "../../shared/schemas";
 
-const FONT_DIR = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "fonts"
-);
+const FONT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "fonts");
 
 type LoadedFonts = { playfair: ArrayBuffer; mono: ArrayBuffer };
 let cachedFonts: LoadedFonts | null = null;
@@ -37,10 +34,7 @@ async function loadFonts(): Promise<LoadedFonts> {
       playfair.byteOffset,
       playfair.byteOffset + playfair.byteLength
     ) as ArrayBuffer,
-    mono: mono.buffer.slice(
-      mono.byteOffset,
-      mono.byteOffset + mono.byteLength
-    ) as ArrayBuffer,
+    mono: mono.buffer.slice(mono.byteOffset, mono.byteOffset + mono.byteLength) as ArrayBuffer,
   };
   return cachedFonts;
 }
@@ -158,8 +152,7 @@ function colorScheme(variant: CardVariant): Scheme {
       fgMuted: "#5A6072",
       amber: "#9A6B12", // deepened so it clears contrast on the pale bg
       amberSoft: "rgba(154,107,18,0.12)",
-      bloom:
-        "radial-gradient(circle at 85% 12%, rgba(154,107,18,0.10) 0%, transparent 52%)",
+      bloom: "radial-gradient(circle at 85% 12%, rgba(154,107,18,0.10) 0%, transparent 52%)",
       rule: "linear-gradient(90deg, #9A6B12 0%, rgba(154,107,18,0) 70%)",
       ghost: "rgba(20,23,31,0.05)",
     };
@@ -170,8 +163,7 @@ function colorScheme(variant: CardVariant): Scheme {
     fgMuted: FG_MUTED,
     amber: AMBER,
     amberSoft: "rgba(212,168,83,0.14)",
-    bloom:
-      "radial-gradient(circle at 85% 12%, rgba(212,168,83,0.13) 0%, transparent 52%)",
+    bloom: "radial-gradient(circle at 85% 12%, rgba(212,168,83,0.13) 0%, transparent 52%)",
     rule: "linear-gradient(90deg, #D4A853 0%, rgba(212,168,83,0) 70%)",
     ghost: "rgba(212,168,83,0.10)",
   };
@@ -187,22 +179,14 @@ function clamp(text: string, max: number): string {
  * `tiers` are [maxChars, fontSize] pairs checked in order; the first whose
  * maxChars the text fits under wins, otherwise `fallback` (smallest) is used.
  */
-function fitFontSize(
-  len: number,
-  tiers: Array<[number, string]>,
-  fallback: string
-): string {
+function fitFontSize(len: number, tiers: Array<[number, string]>, fallback: string): string {
   for (const [max, size] of tiers) {
     if (len <= max) return size;
   }
   return fallback;
 }
 
-async function renderToJpeg(
-  tree: object,
-  width: number,
-  height: number
-): Promise<Buffer> {
+async function renderToJpeg(tree: object, width: number, height: number): Promise<Buffer> {
   const fonts = await loadFonts();
   const svg = await satori(tree as never, {
     width,
@@ -263,7 +247,14 @@ export async function renderDailyStoryCard(
   // guard against pathological lengths. Font scales down so it always fits.
   const why = story.whyItMatters ? clamp(story.whyItMatters, 320) : null;
   const whyFontSize = why
-    ? fitFontSize(why.length, [[150, "30px"], [220, "26px"]], "23px")
+    ? fitFontSize(
+        why.length,
+        [
+          [150, "30px"],
+          [220, "26px"],
+        ],
+        "23px"
+      )
     : "30px";
   const category = (story.category || "NEWS").toUpperCase();
   const fontSize = headline.length > 64 ? "60px" : "74px";
@@ -513,9 +504,7 @@ export async function renderDailyCoverCard(
   // Day-of-month for the oversized watermark numeral that anchors the top
   // of the card and fills what used to be dead space.
   const d = feedDate ? new Date(`${feedDate}T00:00:00Z`) : new Date();
-  const dayNum = String(
-    (Number.isNaN(d.getTime()) ? new Date() : d).getUTCDate()
-  ).padStart(2, "0");
+  const dayNum = String((Number.isNaN(d.getTime()) ? new Date() : d).getUTCDate()).padStart(2, "0");
 
   const tree = {
     type: "div",
@@ -791,22 +780,39 @@ export async function renderDailyCoverCard(
 
 /**
  * Daily Story frame: 1080×1920 (9:16), for the Instagram Story posted right
- * after the feed carousel. Features the lead story headline and a prompt back
- * to the feed for the full briefing. Same brand tokens as the square cards.
+ * after the feed carousel. Spotlights the lead story, but wears the same
+ * chrome as the daily cover/hero card — the oversized day-of-month watermark,
+ * the logo + "Daily Briefing" header, the date line and the amber rule footer —
+ * so the Story reads as the same system as the grid post it accompanies. Takes
+ * the post's checkerboard `variant` so the Story matches the day's cover colour.
  */
 export async function renderDailyStoryVertical(
-  story: DailyFeedItem
+  story: DailyFeedItem,
+  variant: CardVariant = "navy"
 ): Promise<Buffer> {
-  const logo = await loadLogo();
+  const logo = await loadLogo(variant);
+  const c = colorScheme(variant);
   const headline = clamp(story.title, 100);
   // Show the full sentence — never cut "why it matters" mid-word. The 320-char
   // clamp is only a last-resort guard; font scales down so it always fits.
   const why = story.whyItMatters ? clamp(story.whyItMatters, 320) : null;
   const whyFontSize = why
-    ? fitFontSize(why.length, [[200, "34px"], [280, "30px"]], "27px")
+    ? fitFontSize(
+        why.length,
+        [
+          [200, "34px"],
+          [280, "30px"],
+        ],
+        "27px"
+      )
     : "34px";
   const category = (story.category || "NEWS").toUpperCase();
   const fontSize = headline.length > 72 ? "76px" : "92px";
+  const dateLabel = formatBriefingDate(story.feedDate);
+  // Day-of-month for the oversized watermark numeral, the same anchor the
+  // cover card uses to tie the two formats together.
+  const d = story.feedDate ? new Date(`${story.feedDate}T00:00:00Z`) : new Date();
+  const dayNum = String((Number.isNaN(d.getTime()) ? new Date() : d).getUTCDate()).padStart(2, "0");
 
   const tree = {
     type: "div",
@@ -816,20 +822,64 @@ export async function renderDailyStoryVertical(
         flexDirection: "column",
         width: "1080px",
         height: "1920px",
-        backgroundColor: NAVY,
-        backgroundImage:
-          "radial-gradient(circle at 82% 10%, rgba(212,168,83,0.14) 0%, transparent 50%)",
+        backgroundColor: c.bg,
+        backgroundImage: c.bloom,
         padding: "120px 80px",
+        position: "relative",
         justifyContent: "space-between",
       },
       children: [
-        // ── Top: branding ──
+        // ── Oversized watermark numeral, bleeds off the top-right edge ──
         {
           type: "div",
           props: {
-            style: { display: "flex", flexDirection: "column", gap: "20px" },
+            style: {
+              position: "absolute",
+              top: "-30px",
+              right: "40px",
+              fontFamily: "Playfair Display",
+              fontWeight: 700,
+              fontSize: "460px",
+              lineHeight: 1,
+              letterSpacing: "-0.04em",
+              color: c.ghost,
+            },
+            children: dayNum,
+          },
+        },
+
+        // ── Top: branding + label + date ──
+        {
+          type: "div",
+          props: {
+            style: { display: "flex", flexDirection: "column", gap: "22px" },
             children: [
-              brandHeader(logo, 76),
+              {
+                type: "div",
+                props: {
+                  style: {
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  },
+                  children: [
+                    brandHeader(logo, 72, { accent: c.amber }),
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          fontFamily: "JetBrains Mono",
+                          fontSize: "16px",
+                          letterSpacing: "0.22em",
+                          textTransform: "uppercase",
+                          color: c.amber,
+                        },
+                        children: "Daily Briefing",
+                      },
+                    },
+                  ],
+                },
+              },
               {
                 type: "div",
                 props: {
@@ -838,9 +888,9 @@ export async function renderDailyStoryVertical(
                     fontSize: "17px",
                     letterSpacing: "0.18em",
                     textTransform: "uppercase",
-                    color: FG_MUTED,
+                    color: c.fgMuted,
                   },
-                  children: "Today's briefing is live",
+                  children: dateLabel,
                 },
               },
             ],
@@ -860,8 +910,8 @@ export async function renderDailyStoryVertical(
                   style: {
                     display: "flex",
                     alignSelf: "flex-start",
-                    backgroundColor: "rgba(212,168,83,0.14)",
-                    border: `1px solid ${AMBER}`,
+                    backgroundColor: c.amberSoft,
+                    border: `1px solid ${c.amber}`,
                     borderRadius: "4px",
                     padding: "6px 16px",
                   },
@@ -872,7 +922,7 @@ export async function renderDailyStoryVertical(
                         fontFamily: "JetBrains Mono",
                         fontSize: "18px",
                         letterSpacing: "0.22em",
-                        color: AMBER,
+                        color: c.amber,
                       },
                       children: category,
                     },
@@ -889,7 +939,7 @@ export async function renderDailyStoryVertical(
                     fontSize,
                     lineHeight: 1.08,
                     letterSpacing: "-0.02em",
-                    color: FG,
+                    color: c.fg,
                   },
                   children: headline,
                 },
@@ -904,7 +954,7 @@ export async function renderDailyStoryVertical(
                           display: "flex",
                           flexDirection: "column",
                           gap: "12px",
-                          borderLeft: `3px solid ${AMBER}`,
+                          borderLeft: `3px solid ${c.amber}`,
                           paddingLeft: "24px",
                         },
                         children: [
@@ -916,7 +966,7 @@ export async function renderDailyStoryVertical(
                                 fontSize: "17px",
                                 letterSpacing: "0.25em",
                                 textTransform: "uppercase",
-                                color: AMBER,
+                                color: c.amber,
                               },
                               children: "Why It Matters",
                             },
@@ -928,7 +978,7 @@ export async function renderDailyStoryVertical(
                                 fontFamily: "JetBrains Mono",
                                 fontSize: whyFontSize,
                                 lineHeight: 1.45,
-                                color: FG_MUTED,
+                                color: c.fgMuted,
                               },
                               children: why,
                             },
@@ -956,7 +1006,7 @@ export async function renderDailyStoryVertical(
                     fontWeight: 700,
                     fontSize: "30px",
                     lineHeight: 1.2,
-                    color: FG,
+                    color: c.fg,
                   },
                   children: "See today's top stories on our feed",
                 },
@@ -968,7 +1018,7 @@ export async function renderDailyStoryVertical(
                     display: "flex",
                     width: "100%",
                     height: "1px",
-                    backgroundImage: `linear-gradient(90deg, ${AMBER} 0%, rgba(212,168,83,0) 70%)`,
+                    backgroundImage: c.rule,
                   },
                   children: "",
                 },
@@ -990,7 +1040,7 @@ export async function renderDailyStoryVertical(
                           fontSize: "13px",
                           letterSpacing: "0.15em",
                           textTransform: "uppercase",
-                          color: FG_MUTED,
+                          color: c.fgMuted,
                         },
                         children: `via ${clamp(story.source, 30)}`,
                       },
@@ -1002,7 +1052,7 @@ export async function renderDailyStoryVertical(
                           fontFamily: "JetBrains Mono",
                           fontSize: "13px",
                           letterSpacing: "0.22em",
-                          color: AMBER,
+                          color: c.amber,
                         },
                         children: "thedesk.au",
                       },
@@ -1029,10 +1079,7 @@ export async function renderWeeklyCoverCard(edition: Edition): Promise<Buffer> {
   const hero = await loadAsset("hero-weekly.jpg");
   const headshot = await loadAsset("ruben.jpg");
   const topics = edition.topics.slice(0, 4);
-  const metrics = edition.keyMetrics as
-    | Record<string, string | undefined>
-    | null
-    | undefined;
+  const metrics = edition.keyMetrics as Record<string, string | undefined> | null | undefined;
   const cashRate = metrics?.cashRate ?? metrics?.cash_rate ?? null;
   const asx = metrics?.asx200 ?? metrics?.ASX200 ?? metrics?.asx ?? null;
   const metricsLine =
@@ -1174,7 +1221,7 @@ export async function renderWeeklyCoverCard(edition: Edition): Promise<Buffer> {
                     fontFamily: "Playfair Display",
                     fontWeight: 700,
                     fontSize: "90px",
-                    lineHeight: 1.0,
+                    lineHeight: 1.08,
                     letterSpacing: "-0.03em",
                     color: FG,
                   },
@@ -1184,7 +1231,7 @@ export async function renderWeeklyCoverCard(edition: Edition): Promise<Buffer> {
               {
                 type: "div",
                 props: {
-                  style: { display: "flex", flexDirection: "column", gap: "18px" },
+                  style: { display: "flex", flexDirection: "column", gap: "28px" },
                   children: [
                     {
                       type: "div",
@@ -1214,10 +1261,10 @@ export async function renderWeeklyCoverCard(edition: Edition): Promise<Buffer> {
                             props: {
                               style: {
                                 fontFamily: "JetBrains Mono",
-                                fontSize: "13px",
+                                fontSize: "15px",
                                 color: AMBER,
-                                minWidth: "26px",
-                                marginTop: "6px",
+                                minWidth: "30px",
+                                marginTop: "11px",
                               },
                               children: `0${i + 1}`,
                             },
@@ -1228,8 +1275,8 @@ export async function renderWeeklyCoverCard(edition: Edition): Promise<Buffer> {
                               style: {
                                 fontFamily: "Playfair Display",
                                 fontWeight: 700,
-                                fontSize: "38px",
-                                lineHeight: 1.22,
+                                fontSize: "40px",
+                                lineHeight: 1.26,
                                 color: FG,
                               },
                               children: clamp(topic.title, 60),
@@ -1375,9 +1422,7 @@ export async function renderWeeklyCoverCard(edition: Edition): Promise<Buffer> {
  * number lockup, title, and topics contents) but vertical, with a prompt back
  * to the feed for the full edition.
  */
-export async function renderWeeklyStoryVertical(
-  edition: Edition
-): Promise<Buffer> {
+export async function renderWeeklyStoryVertical(edition: Edition): Promise<Buffer> {
   const topics = edition.topics.slice(0, 4);
 
   const tree = {
@@ -1601,9 +1646,17 @@ export async function renderWeeklyTopicCard(
 ): Promise<Buffer> {
   const slideNum = String(slideIndex + 1).padStart(2, "0");
   const totalNum = String(slideTotal).padStart(2, "0");
-  const summary = clamp(topic.summary, 220);
-  const takeaway = topic.keyTakeaway ? clamp(topic.keyTakeaway, 170) : null;
-  const titleFontSize = topic.title.length > 55 ? "50px" : "60px";
+  const summary = clamp(topic.summary, 230);
+  const why = topic.whyItMatters ? clamp(topic.whyItMatters, 180) : null;
+  // Forward-looking watch items: the analytical payload that turns a bare
+  // summary card into a briefing the reader keeps. Up to three, trimmed so
+  // each sits on at most two lines.
+  const watch = (topic.whatToWatch ?? [])
+    .filter((w) => w && w.trim())
+    .slice(0, 3)
+    .map((w) => clamp(w, 84));
+  const takeaway = topic.keyTakeaway ? clamp(topic.keyTakeaway, 175) : null;
+  const titleFontSize = topic.title.length > 55 ? "52px" : "62px";
 
   const tree = {
     type: "div",
@@ -1617,9 +1670,31 @@ export async function renderWeeklyTopicCard(
         backgroundImage:
           "radial-gradient(circle at 15% 88%, rgba(212,168,83,0.10) 0%, transparent 50%)",
         padding: "80px 72px",
+        position: "relative",
         justifyContent: "space-between",
       },
       children: [
+        // ── Oversized folio numeral, bleeds off the bottom-right edge. The
+        //    same anchor the daily cover uses, so the weekly slides read as
+        //    the same system and the lower third never sits empty. ──
+        {
+          type: "div",
+          props: {
+            style: {
+              position: "absolute",
+              bottom: "-96px",
+              right: "32px",
+              fontFamily: "Playfair Display",
+              fontWeight: 700,
+              fontSize: "440px",
+              lineHeight: 1,
+              letterSpacing: "-0.04em",
+              color: "rgba(212,168,83,0.06)",
+            },
+            children: slideNum,
+          },
+        },
+
         // ── Top: branding + counter ──
         {
           type: "div",
@@ -1659,117 +1734,264 @@ export async function renderWeeklyTopicCard(
           },
         },
 
-        // ── Middle: topic content ──
+        // ── Content fills the gap between header and footer, centred so any
+        //    slack splits evenly top and bottom instead of dead-ending above
+        //    the footer: the lead group sits over the analysis group. ──
         {
           type: "div",
           props: {
             style: {
               display: "flex",
               flexDirection: "column",
-              gap: "32px",
+              flexGrow: 1,
+              justifyContent: "flex-start",
+              gap: "46px",
+              paddingTop: "52px",
             },
             children: [
-              // Category pill
+              // ── Upper: the lead (category, title, standfirst) ──
               {
                 type: "div",
                 props: {
                   style: {
                     display: "flex",
-                    alignSelf: "flex-start",
-                    backgroundColor: "rgba(212,168,83,0.14)",
-                    border: `1px solid ${AMBER}`,
-                    borderRadius: "4px",
-                    padding: "5px 14px",
+                    flexDirection: "column",
+                    gap: "30px",
                   },
-                  children: {
-                    type: "div",
-                    props: {
-                      style: {
-                        fontFamily: "JetBrains Mono",
-                        fontSize: "11px",
-                        letterSpacing: "0.22em",
-                        textTransform: "uppercase",
-                        color: AMBER,
-                      },
-                      children: (topic.category || "ANALYSIS").toUpperCase(),
-                    },
-                  },
-                },
-              },
-              // Title
-              {
-                type: "div",
-                props: {
-                  style: {
-                    fontFamily: "Playfair Display",
-                    fontWeight: 700,
-                    fontSize: titleFontSize,
-                    lineHeight: 1.05,
-                    letterSpacing: "-0.025em",
-                    color: FG,
-                  },
-                  children: clamp(topic.title, 80),
-                },
-              },
-              // Summary
-              {
-                type: "div",
-                props: {
-                  style: {
-                    fontFamily: "JetBrains Mono",
-                    fontSize: "19px",
-                    lineHeight: 1.65,
-                    color: FG_MUTED,
-                  },
-                  children: summary,
-                },
-              },
-              // Key takeaway box
-              ...(takeaway
-                ? [
+                  children: [
+                    // Category pill
                     {
                       type: "div",
                       props: {
                         style: {
                           display: "flex",
-                          flexDirection: "column",
-                          gap: "10px",
-                          backgroundColor: "rgba(212,168,83,0.07)",
-                          borderRadius: "8px",
-                          padding: "24px",
-                          border: "1px solid rgba(212,168,83,0.22)",
+                          alignSelf: "flex-start",
+                          backgroundColor: "rgba(212,168,83,0.14)",
+                          border: `1px solid ${AMBER}`,
+                          borderRadius: "4px",
+                          padding: "6px 16px",
                         },
-                        children: [
-                          {
-                            type: "div",
-                            props: {
-                              style: {
-                                fontFamily: "JetBrains Mono",
-                                fontSize: "10px",
-                                letterSpacing: "0.25em",
-                                textTransform: "uppercase",
-                                color: AMBER,
-                              },
-                              children: "Key Takeaway",
+                        children: {
+                          type: "div",
+                          props: {
+                            style: {
+                              fontFamily: "JetBrains Mono",
+                              fontSize: "12px",
+                              letterSpacing: "0.22em",
+                              textTransform: "uppercase",
+                              color: AMBER,
                             },
+                            children: (topic.category || "ANALYSIS").toUpperCase(),
                           },
-                          {
-                            type: "div",
-                            props: {
-                              style: {
-                                fontFamily: "JetBrains Mono",
-                                fontSize: "18px",
-                                lineHeight: 1.55,
-                                color: FG,
-                              },
-                              children: takeaway,
-                            },
-                          },
-                        ],
+                        },
                       },
                     },
-                  ]
-                : []),
+                    // Title
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          fontFamily: "Playfair Display",
+                          fontWeight: 700,
+                          fontSize: titleFontSize,
+                          lineHeight: 1.08,
+                          letterSpacing: "-0.025em",
+                          color: FG,
+                        },
+                        children: clamp(topic.title, 80),
+                      },
+                    },
+                    // Summary (the lead / standfirst)
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          fontFamily: "JetBrains Mono",
+                          fontSize: "23px",
+                          lineHeight: 1.62,
+                          color: FG,
+                        },
+                        children: summary,
+                      },
+                    },
+                    // Why it matters — the audience-focus sentence, set off with a
+                    // rule so it reads as analysis, not more of the lead.
+                    ...(why
+                      ? [
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "10px",
+                                borderLeft: `3px solid ${AMBER}`,
+                                paddingLeft: "22px",
+                              },
+                              children: [
+                                {
+                                  type: "div",
+                                  props: {
+                                    style: {
+                                      fontFamily: "JetBrains Mono",
+                                      fontSize: "11px",
+                                      letterSpacing: "0.25em",
+                                      textTransform: "uppercase",
+                                      color: AMBER,
+                                    },
+                                    children: "Why It Matters",
+                                  },
+                                },
+                                {
+                                  type: "div",
+                                  props: {
+                                    style: {
+                                      fontFamily: "JetBrains Mono",
+                                      fontSize: "21px",
+                                      lineHeight: 1.5,
+                                      color: FG_MUTED,
+                                    },
+                                    children: why,
+                                  },
+                                },
+                              ],
+                            },
+                          },
+                        ]
+                      : []),
+                  ],
+                },
+              },
+
+              // ── Lower: the analysis (what to watch + key takeaway). Held as its
+              //    own group so the page's space-between pushes it into the lower
+              //    third, filling the card instead of leaving dead space. ──
+              {
+                type: "div",
+                props: {
+                  style: {
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "26px",
+                  },
+                  children: [
+                    // What to watch — forward-looking checklist that gives the card
+                    // genuine reader value.
+                    ...(watch.length
+                      ? [
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "14px",
+                              },
+                              children: [
+                                {
+                                  type: "div",
+                                  props: {
+                                    style: {
+                                      fontFamily: "JetBrains Mono",
+                                      fontSize: "11px",
+                                      letterSpacing: "0.25em",
+                                      textTransform: "uppercase",
+                                      color: AMBER,
+                                    },
+                                    children: "What To Watch",
+                                  },
+                                },
+                                ...watch.map((item) => ({
+                                  type: "div",
+                                  props: {
+                                    style: {
+                                      display: "flex",
+                                      alignItems: "flex-start",
+                                      gap: "14px",
+                                    },
+                                    children: [
+                                      {
+                                        type: "div",
+                                        props: {
+                                          style: {
+                                            fontFamily: "JetBrains Mono",
+                                            fontSize: "21px",
+                                            lineHeight: 1.4,
+                                            color: AMBER,
+                                          },
+                                          children: "›",
+                                        },
+                                      },
+                                      {
+                                        type: "div",
+                                        props: {
+                                          style: {
+                                            fontFamily: "JetBrains Mono",
+                                            fontSize: "20px",
+                                            lineHeight: 1.4,
+                                            color: FG,
+                                          },
+                                          children: item,
+                                        },
+                                      },
+                                    ],
+                                  },
+                                })),
+                              ],
+                            },
+                          },
+                        ]
+                      : []),
+                    // Key takeaway box — the line Ruben repeats verbatim, kept as
+                    // the emphasized closer of the card.
+                    ...(takeaway
+                      ? [
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "10px",
+                                backgroundColor: "rgba(212,168,83,0.07)",
+                                borderRadius: "8px",
+                                padding: "26px",
+                                border: "1px solid rgba(212,168,83,0.22)",
+                              },
+                              children: [
+                                {
+                                  type: "div",
+                                  props: {
+                                    style: {
+                                      fontFamily: "JetBrains Mono",
+                                      fontSize: "10px",
+                                      letterSpacing: "0.25em",
+                                      textTransform: "uppercase",
+                                      color: AMBER,
+                                    },
+                                    children: "Key Takeaway",
+                                  },
+                                },
+                                {
+                                  type: "div",
+                                  props: {
+                                    style: {
+                                      fontFamily: "JetBrains Mono",
+                                      fontSize: "21px",
+                                      lineHeight: 1.5,
+                                      color: FG,
+                                    },
+                                    children: takeaway,
+                                  },
+                                },
+                              ],
+                            },
+                          },
+                        ]
+                      : []),
+                  ],
+                },
+              },
             ],
           },
         },
