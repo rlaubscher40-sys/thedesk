@@ -59,13 +59,16 @@ const NAV_ITEMS: NavItem[] = [
   { path: "/admin", label: "Admin", icon: Settings, requiresAdmin: true },
 ];
 
+// Keep the bottom bar to five primary destinations — a phone tab row
+// gets cramped past that, and the labels are already at 9px. "Get the
+// App" still lives in the slide-out drawer (visibleNav), and Admin is
+// appended at runtime for admins below.
 const MOBILE_TABS: NavItem[] = [
   { path: "/", label: "Today", icon: Newspaper },
   { path: "/editions", label: "Editions", icon: BookOpen },
   { path: "/archive", label: "Archive", icon: Search },
   { path: "/trends", label: "Trends", icon: BarChart3 },
   { path: "/queue", label: "Queue", icon: Bookmark },
-  { path: "/install", label: "Get App", icon: Smartphone },
 ];
 
 function isActive(location: string, path: string): boolean {
