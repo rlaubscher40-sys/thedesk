@@ -70,8 +70,9 @@ export function FromTheDeskIntro() {
           Ruben Laubscher
         </h2>
         <p className="text-sm text-[var(--color-fg-muted)] mt-1.5 leading-snug max-w-[60ch]">
-          One daily read for busy property professionals — curated so you
-          walk into every client conversation sharper than the last.
+          Head of Partnerships at InvestorKit. Every morning I read the
+          property market and pull out the handful of stories worth raising
+          with a client — so you don't have to.
         </p>
         <div className="flex flex-wrap items-center gap-2 mt-3 sm:hidden">
           <a
