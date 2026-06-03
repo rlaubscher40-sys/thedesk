@@ -41,17 +41,18 @@ const GROUP_LABELS: Record<string, string> = {
 };
 
 /**
- * Read the persisted expanded preference. If none is set, expand by
- * default on desktop and collapse on mobile so the stories land sooner
- * on the smaller screens where the dashboard pushes them well below
- * the fold.
+ * Read the persisted expanded preference. Default collapsed for everyone
+ * who hasn't chosen otherwise: the metrics are macro reference, not the
+ * daily scan, so a first-time reader should reach the stories first and
+ * open "Where things stand" only if they want it. The choice persists
+ * once they toggle it.
  */
 function readInitialExpanded(): boolean {
-  if (typeof window === "undefined") return true;
+  if (typeof window === "undefined") return false;
   const stored = window.localStorage.getItem(STORAGE_KEY);
   if (stored === "1") return true;
   if (stored === "0") return false;
-  return window.innerWidth >= 768;
+  return false;
 }
 
 export function MetricsStrip() {

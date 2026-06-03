@@ -299,10 +299,6 @@ export default function DailyFeed() {
         <WhatsNewPill storyDates={storyTimestamps} storageKey="today" />
       </div>
 
-      <SectionErrorBoundary section="Metrics">
-        <MetricsStrip />
-      </SectionErrorBoundary>
-
       {/* Mobile streak chip — the sidebar badge covers desktop, this
           surfaces the streak on mobile where there's no sidebar. */}
       {isToday && streakDays >= 2 && (
@@ -435,6 +431,13 @@ export default function DailyFeed() {
           No items match this filter.
         </div>
       )}
+
+      {/* Macro reference, parked below the feed and collapsed by default.
+          A first-time reader meets the day's stories before the dashboard
+          of numbers; anyone who wants the backdrop opens it from here. */}
+      <SectionErrorBoundary section="Metrics">
+        <MetricsStrip />
+      </SectionErrorBoundary>
 
       <SectionErrorBoundary section="LinkedIn">
         <LinkedInStrip />
