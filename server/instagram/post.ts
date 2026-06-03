@@ -155,9 +155,7 @@ export async function postDailyCarousel(
   }
 
   // Pick top-3 stories, favouring category variety over raw priority.
-  const eligible = [...stories]
-    .filter((s) => s.title)
-    .sort((a, b) => b.priority - a.priority);
+  const eligible = [...stories].filter((s) => s.title).sort((a, b) => b.priority - a.priority);
 
   const top: DailyFeedItem[] = [];
   const usedCategories = new Set<string>();
@@ -213,7 +211,14 @@ export async function postDailyCarousel(
     altTexts.push("The Desk daily briefing cover");
 
     for (let i = 0; i < sanitized.length; i++) {
-      const buf = await renderDailyStoryCard(sanitized[i]!, i, sanitized.length);
+      // Whole carousel shares the cover's variant so a light post reads as
+      // one piece when swiped, not a light cover over navy slides.
+      const buf = await renderDailyStoryCard(
+        sanitized[i]!,
+        i,
+        sanitized.length,
+        opts.variant ?? "navy"
+      );
       uuids.push(storeTempImage(buf));
       altTexts.push(sanitized[i]?.title);
     }
@@ -343,9 +348,7 @@ export async function postWeeklyEdition(
     });
     const postId = await publishContainer({ igUserId, accessToken, creationId: carouselId });
 
-    console.log(
-      `[instagram] weekly edition ${edition.editionNumber} posted: ${postId}`
-    );
+    console.log(`[instagram] weekly edition ${edition.editionNumber} posted: ${postId}`);
 
     // Share the edition to the 24h Story. Best-effort: a Story failure must
     // never fail the feed post that has already gone live.

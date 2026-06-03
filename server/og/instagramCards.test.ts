@@ -3,8 +3,10 @@ import type { DailyFeedItem, Edition } from "../db/schema";
 import type { EditionTopic } from "../../shared/schemas";
 import {
   renderDailyCoverCard,
+  renderDailyStoryCard,
   renderDailyStoryVertical,
   renderWeeklyCoverCard,
+  renderWeeklyStoryVertical,
   renderWeeklyTopicCard,
 } from "./instagramCards";
 
@@ -36,8 +38,16 @@ function fakeStory(overrides: Partial<DailyFeedItem> = {}): DailyFeedItem {
 
 const stories: DailyFeedItem[] = [
   fakeStory({ id: 1, category: "ECONOMY" }),
-  fakeStory({ id: 2, category: "PROPERTY", title: "Sydney auction clearance hits 74%, the strongest spring result in years" }),
-  fakeStory({ id: 3, category: "MARKETS", title: "Build-to-rent pipeline doubles as super funds chase stable long-term yield" }),
+  fakeStory({
+    id: 2,
+    category: "PROPERTY",
+    title: "Sydney auction clearance hits 74%, the strongest spring result in years",
+  }),
+  fakeStory({
+    id: 3,
+    category: "MARKETS",
+    title: "Build-to-rent pipeline doubles as super funds chase stable long-term yield",
+  }),
 ];
 
 const metrics = [
@@ -89,6 +99,13 @@ describe("renderDailyStoryVertical", () => {
   });
 });
 
+describe("renderDailyStoryCard", () => {
+  it("renders carousel slides in both variants so a light post stays cohesive", async () => {
+    expectJpeg(await renderDailyStoryCard(stories[0]!, 0, 3, "navy"));
+    expectJpeg(await renderDailyStoryCard(stories[0]!, 0, 3, "light"));
+  });
+});
+
 function fakeTopic(overrides: Partial<EditionTopic> = {}): EditionTopic {
   return {
     title: "Where the rate-cut cycle leaves borrowers",
@@ -120,7 +137,10 @@ function fakeEdition(overrides: Partial<Edition> = {}): Edition {
     heroImageUrl: null,
     readingTime: "14 min",
     pdfUrl: null,
-    topics: [fakeTopic(), fakeTopic({ title: "Brisbane overtakes Melbourne", category: "PROPERTY" })],
+    topics: [
+      fakeTopic(),
+      fakeTopic({ title: "Brisbane overtakes Melbourne", category: "PROPERTY" }),
+    ],
     signals: { gold: [], silver: [], bronze: [] },
     fullText: null,
     keyMetrics: { cashRate: "3.85%", asx200: "7,900" },
@@ -139,6 +159,12 @@ function fakeEdition(overrides: Partial<Edition> = {}): Edition {
 describe("renderWeeklyCoverCard", () => {
   it("renders a 1080x1350 JPEG contents cover", async () => {
     expectJpeg(await renderWeeklyCoverCard(fakeEdition()));
+  });
+});
+
+describe("renderWeeklyStoryVertical", () => {
+  it("renders a 1080x1920 JPEG edition Story", async () => {
+    expectJpeg(await renderWeeklyStoryVertical(fakeEdition()));
   });
 });
 

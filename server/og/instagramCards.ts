@@ -236,9 +236,11 @@ async function renderToJpeg(tree: object, width: number, height: number): Promis
 export async function renderDailyStoryCard(
   story: DailyFeedItem,
   slideIndex: number,
-  slideTotal: number
+  slideTotal: number,
+  variant: CardVariant = "navy"
 ): Promise<Buffer> {
-  const logo = await loadLogo();
+  const logo = await loadLogo(variant);
+  const c = colorScheme(variant);
   const slideNum = String(slideIndex + 1).padStart(2, "0");
   const totalNum = String(slideTotal).padStart(2, "0");
   const headline = clamp(story.title, 90);
@@ -267,9 +269,8 @@ export async function renderDailyStoryCard(
         flexDirection: "column",
         width: "1080px",
         height: "1080px",
-        backgroundColor: NAVY,
-        backgroundImage:
-          "radial-gradient(circle at 85% 12%, rgba(212,168,83,0.13) 0%, transparent 52%)",
+        backgroundColor: c.bg,
+        backgroundImage: c.bloom,
         padding: "64px",
         justifyContent: "space-between",
       },
@@ -284,7 +285,7 @@ export async function renderDailyStoryCard(
               alignItems: "center",
             },
             children: [
-              brandHeader(logo, 56),
+              brandHeader(logo, 56, { accent: c.amber }),
               {
                 type: "div",
                 props: {
@@ -292,7 +293,7 @@ export async function renderDailyStoryCard(
                     fontFamily: "JetBrains Mono",
                     fontSize: "15px",
                     letterSpacing: "0.15em",
-                    color: FG_MUTED,
+                    color: c.fgMuted,
                   },
                   children: `${slideNum} / ${totalNum}`,
                 },
@@ -318,8 +319,8 @@ export async function renderDailyStoryCard(
                   style: {
                     display: "flex",
                     alignSelf: "flex-start",
-                    backgroundColor: "rgba(212,168,83,0.14)",
-                    border: `1px solid ${AMBER}`,
+                    backgroundColor: c.amberSoft,
+                    border: `1px solid ${c.amber}`,
                     borderRadius: "4px",
                     padding: "5px 14px",
                   },
@@ -330,7 +331,7 @@ export async function renderDailyStoryCard(
                         fontFamily: "JetBrains Mono",
                         fontSize: "16px",
                         letterSpacing: "0.22em",
-                        color: AMBER,
+                        color: c.amber,
                       },
                       children: category,
                     },
@@ -347,7 +348,7 @@ export async function renderDailyStoryCard(
                     fontSize,
                     lineHeight: 1.08,
                     letterSpacing: "-0.02em",
-                    color: FG,
+                    color: c.fg,
                   },
                   children: headline,
                 },
@@ -362,7 +363,7 @@ export async function renderDailyStoryCard(
                           display: "flex",
                           flexDirection: "column",
                           gap: "10px",
-                          borderLeft: `3px solid ${AMBER}`,
+                          borderLeft: `3px solid ${c.amber}`,
                           paddingLeft: "20px",
                         },
                         children: [
@@ -374,7 +375,7 @@ export async function renderDailyStoryCard(
                                 fontSize: "15px",
                                 letterSpacing: "0.25em",
                                 textTransform: "uppercase",
-                                color: AMBER,
+                                color: c.amber,
                               },
                               children: "Why It Matters",
                             },
@@ -386,7 +387,7 @@ export async function renderDailyStoryCard(
                                 fontFamily: "JetBrains Mono",
                                 fontSize: whyFontSize,
                                 lineHeight: 1.45,
-                                color: FG_MUTED,
+                                color: c.fgMuted,
                               },
                               children: why,
                             },
@@ -413,7 +414,7 @@ export async function renderDailyStoryCard(
                     display: "flex",
                     width: "100%",
                     height: "1px",
-                    backgroundImage: `linear-gradient(90deg, ${AMBER} 0%, rgba(212,168,83,0) 70%)`,
+                    backgroundImage: c.rule,
                   },
                   children: "",
                 },
@@ -435,7 +436,7 @@ export async function renderDailyStoryCard(
                           fontSize: "15px",
                           letterSpacing: "0.15em",
                           textTransform: "uppercase",
-                          color: FG_MUTED,
+                          color: c.fgMuted,
                         },
                         children: `via ${clamp(story.source, 30)}`,
                       },
@@ -447,7 +448,7 @@ export async function renderDailyStoryCard(
                           fontFamily: "JetBrains Mono",
                           fontSize: "15px",
                           letterSpacing: "0.22em",
-                          color: AMBER,
+                          color: c.amber,
                         },
                         children: "thedesk.au",
                       },
@@ -1423,7 +1424,19 @@ export async function renderWeeklyCoverCard(edition: Edition): Promise<Buffer> {
  * to the feed for the full edition.
  */
 export async function renderWeeklyStoryVertical(edition: Edition): Promise<Buffer> {
+  const logo = await loadLogo("navy");
+  const hero = await loadAsset("hero-weekly.jpg");
+  const headshot = await loadAsset("ruben.jpg");
   const topics = edition.topics.slice(0, 4);
+  const metrics = edition.keyMetrics as Record<string, string | undefined> | null | undefined;
+  const cashRate = metrics?.cashRate ?? metrics?.cash_rate ?? null;
+  const asx = metrics?.asx200 ?? metrics?.ASX200 ?? metrics?.asx ?? null;
+  const metricsLine =
+    cashRate && asx
+      ? `Cash Rate ${cashRate} · ASX 200 ${asx}`
+      : cashRate
+        ? `Cash Rate ${cashRate}`
+        : "Full edition, link in bio";
 
   const tree = {
     type: "div",
@@ -1434,29 +1447,98 @@ export async function renderWeeklyStoryVertical(edition: Edition): Promise<Buffe
         width: "1080px",
         height: "1920px",
         backgroundColor: NAVY,
-        backgroundImage:
-          "radial-gradient(circle at 80% 8%, rgba(212,168,83,0.14) 0%, transparent 50%)",
-        padding: "120px 80px",
+        position: "relative",
+        padding: "130px 80px",
         justifyContent: "space-between",
       },
       children: [
-        // ── Header ──
+        // ── Photographic hero behind everything — the tall sibling of the
+        //    weekly cover, so the Story reads as the same premium system. ──
+        hero
+          ? {
+              type: "div",
+              props: {
+                style: {
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "1080px",
+                  height: "1920px",
+                  display: "flex",
+                  backgroundImage: `url(${hero})`,
+                  backgroundSize: "1080px 1920px",
+                  backgroundPosition: "center",
+                },
+                children: "",
+              },
+            }
+          : { type: "div", props: { style: { display: "flex" }, children: "" } },
+        // Navy veil — light at the top so the photo breathes, heavy at the
+        // bottom where the contents and byline sit.
         {
           type: "div",
           props: {
-            style: { display: "flex", flexDirection: "column", gap: "10px" },
+            style: {
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "1080px",
+              height: "1920px",
+              display: "flex",
+              backgroundImage:
+                "linear-gradient(180deg, rgba(12,18,32,0.50) 0%, rgba(12,18,32,0.72) 44%, rgba(12,18,32,0.95) 100%)",
+            },
+            children: "",
+          },
+        },
+        // Amber bloom, top-right.
+        {
+          type: "div",
+          props: {
+            style: {
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "1080px",
+              height: "1920px",
+              display: "flex",
+              backgroundImage:
+                "radial-gradient(circle at 80% 8%, rgba(212,168,83,0.16) 0%, transparent 50%)",
+            },
+            children: "",
+          },
+        },
+
+        // ── Header: lockup + weekly tag + edition line ──
+        {
+          type: "div",
+          props: {
+            style: { display: "flex", flexDirection: "column", gap: "16px" },
             children: [
               {
                 type: "div",
                 props: {
                   style: {
-                    fontFamily: "JetBrains Mono",
-                    fontSize: "13px",
-                    letterSpacing: "0.3em",
-                    textTransform: "uppercase",
-                    color: AMBER,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
                   },
-                  children: "The Desk · Weekly Edition",
+                  children: [
+                    brandHeader(logo, 58, { accent: AMBER }),
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          fontFamily: "JetBrains Mono",
+                          fontSize: "16px",
+                          letterSpacing: "0.26em",
+                          textTransform: "uppercase",
+                          color: AMBER,
+                        },
+                        children: "Weekly Edition",
+                      },
+                    },
+                  ],
                 },
               },
               {
@@ -1464,8 +1546,9 @@ export async function renderWeeklyStoryVertical(edition: Edition): Promise<Buffe
                 props: {
                   style: {
                     fontFamily: "JetBrains Mono",
-                    fontSize: "13px",
+                    fontSize: "17px",
                     letterSpacing: "0.18em",
+                    textTransform: "uppercase",
                     color: FG_MUTED,
                   },
                   children: `Edition No. ${edition.editionNumber} · ${edition.weekRange}`,
@@ -1475,11 +1558,11 @@ export async function renderWeeklyStoryVertical(edition: Edition): Promise<Buffe
           },
         },
 
-        // ── Large edition number + title ──
+        // ── Feature: title + topic contents ──
         {
           type: "div",
           props: {
-            style: { display: "flex", flexDirection: "column" },
+            style: { display: "flex", flexDirection: "column", gap: "48px" },
             children: [
               {
                 type: "div",
@@ -1487,112 +1570,142 @@ export async function renderWeeklyStoryVertical(edition: Edition): Promise<Buffe
                   style: {
                     fontFamily: "Playfair Display",
                     fontWeight: 700,
-                    fontSize: "200px",
-                    lineHeight: 0.85,
-                    letterSpacing: "-0.04em",
-                    color: "rgba(212,168,83,0.18)",
-                  },
-                  children: `#${edition.editionNumber}`,
-                },
-              },
-              {
-                type: "div",
-                props: {
-                  style: {
-                    fontFamily: "Playfair Display",
-                    fontWeight: 700,
-                    fontSize: "66px",
-                    lineHeight: 1.05,
-                    letterSpacing: "-0.025em",
+                    fontSize: "104px",
+                    lineHeight: 1.04,
+                    letterSpacing: "-0.03em",
                     color: FG,
-                    marginTop: "24px",
                   },
-                  children: "This Week in\nAustralian Finance",
+                  children: "This Week in\nAustralian Property",
                 },
               },
-            ],
-          },
-        },
-
-        // ── Topics contents ──
-        {
-          type: "div",
-          props: {
-            style: { display: "flex", flexDirection: "column", gap: "22px" },
-            children: [
               {
                 type: "div",
                 props: {
-                  style: {
-                    fontFamily: "JetBrains Mono",
-                    fontSize: "12px",
-                    letterSpacing: "0.25em",
-                    textTransform: "uppercase",
-                    color: AMBER,
-                    marginBottom: "4px",
-                  },
-                  children: "This Week’s Topics",
-                },
-              },
-              ...topics.map((topic, i) => ({
-                type: "div",
-                props: {
-                  style: {
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: "18px",
-                  },
+                  style: { display: "flex", flexDirection: "column", gap: "30px" },
                   children: [
                     {
                       type: "div",
                       props: {
                         style: {
                           fontFamily: "JetBrains Mono",
-                          fontSize: "13px",
+                          fontSize: "14px",
+                          letterSpacing: "0.25em",
+                          textTransform: "uppercase",
                           color: AMBER,
-                          minWidth: "26px",
-                          marginTop: "6px",
+                          marginBottom: "2px",
                         },
-                        children: `0${i + 1}`,
+                        children: "Inside this edition",
+                      },
+                    },
+                    ...topics.map((topic, i) => ({
+                      type: "div",
+                      props: {
+                        style: {
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: "20px",
+                        },
+                        children: [
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                fontFamily: "JetBrains Mono",
+                                fontSize: "17px",
+                                color: AMBER,
+                                minWidth: "34px",
+                                marginTop: "12px",
+                              },
+                              children: `0${i + 1}`,
+                            },
+                          },
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                fontFamily: "Playfair Display",
+                                fontWeight: 700,
+                                fontSize: "44px",
+                                lineHeight: 1.22,
+                                color: FG,
+                              },
+                              children: clamp(topic.title, 62),
+                            },
+                          },
+                        ],
+                      },
+                    })),
+                  ],
+                },
+              },
+            ],
+          },
+        },
+
+        // ── Bottom: byline (headshot) + rule + metrics/domain ──
+        {
+          type: "div",
+          props: {
+            style: { display: "flex", flexDirection: "column", gap: "26px" },
+            children: [
+              {
+                type: "div",
+                props: {
+                  style: { display: "flex", alignItems: "center", gap: "18px" },
+                  children: [
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          display: "flex",
+                          width: "74px",
+                          height: "74px",
+                          borderRadius: "37px",
+                          border: "2px solid rgba(212,168,83,0.6)",
+                          ...(headshot
+                            ? {
+                                backgroundImage: `url(${headshot})`,
+                                backgroundSize: "74px 74px",
+                              }
+                            : { backgroundColor: "rgba(212,168,83,0.18)" }),
+                        },
+                        children: "",
                       },
                     },
                     {
                       type: "div",
                       props: {
-                        style: {
-                          fontFamily: "Playfair Display",
-                          fontWeight: 700,
-                          fontSize: "30px",
-                          lineHeight: 1.2,
-                          color: FG,
-                        },
-                        children: clamp(topic.title, 64),
+                        style: { display: "flex", flexDirection: "column", gap: "4px" },
+                        children: [
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                fontFamily: "JetBrains Mono",
+                                fontSize: "12px",
+                                letterSpacing: "0.22em",
+                                textTransform: "uppercase",
+                                color: AMBER,
+                              },
+                              children: "Ruben's Take",
+                            },
+                          },
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                fontFamily: "Playfair Display",
+                                fontWeight: 700,
+                                fontSize: "30px",
+                                color: FG,
+                              },
+                              children: "Ruben Laubscher",
+                            },
+                          },
+                        ],
                       },
                     },
                   ],
-                },
-              })),
-            ],
-          },
-        },
-
-        // ── Bottom: feed prompt + rule + domain ──
-        {
-          type: "div",
-          props: {
-            style: { display: "flex", flexDirection: "column", gap: "28px" },
-            children: [
-              {
-                type: "div",
-                props: {
-                  style: {
-                    fontFamily: "Playfair Display",
-                    fontWeight: 700,
-                    fontSize: "30px",
-                    lineHeight: 1.2,
-                    color: FG,
-                  },
-                  children: "The full edition is live on our feed",
                 },
               },
               {
@@ -1610,19 +1723,37 @@ export async function renderWeeklyStoryVertical(edition: Edition): Promise<Buffe
               {
                 type: "div",
                 props: {
-                  style: { display: "flex", justifyContent: "flex-end" },
-                  children: {
-                    type: "div",
-                    props: {
-                      style: {
-                        fontFamily: "JetBrains Mono",
-                        fontSize: "13px",
-                        letterSpacing: "0.22em",
-                        color: AMBER,
-                      },
-                      children: "thedesk.au",
-                    },
+                  style: {
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
                   },
+                  children: [
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          fontFamily: "JetBrains Mono",
+                          fontSize: "15px",
+                          letterSpacing: "0.15em",
+                          color: FG_MUTED,
+                        },
+                        children: metricsLine,
+                      },
+                    },
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          fontFamily: "JetBrains Mono",
+                          fontSize: "16px",
+                          letterSpacing: "0.22em",
+                          color: AMBER,
+                        },
+                        children: "thedesk.au",
+                      },
+                    },
+                  ],
                 },
               },
             ],
