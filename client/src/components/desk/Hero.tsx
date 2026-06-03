@@ -96,29 +96,22 @@ export function Hero({ onGenerateAll }: { onGenerateAll?: () => void }) {
             stack needs. */}
         <div className="flex items-start justify-between gap-4 flex-wrap text-[var(--color-fg-subtle)]">
           <BrandLockup size={32} byline />
-          <div className="flex flex-col items-end gap-1.5 leading-none">
-            {edition && (
-              <span className="overline" style={{ letterSpacing: "0.2em" }}>
-                Edition No. {edition.number} · 07:00 AEST
-              </span>
-            )}
-            <div className="flex items-center gap-2">
-              <span className="live-dot" aria-hidden="true" />
-              <span className="overline" style={{ letterSpacing: "0.2em" }}>
-                {todayLabel}
-              </span>
-            </div>
+          {/* One quiet line — edition + today's date sharing the live dot.
+              The prior layout stacked these on two rows of wide caps,
+              which read as label-noise before the headline. */}
+          <div className="flex items-center gap-2 leading-none">
+            <span className="live-dot" aria-hidden="true" />
+            <span className="overline" style={{ letterSpacing: "0.2em" }}>
+              {edition ? `No. ${edition.number} · ${todayLabel}` : todayLabel}
+            </span>
           </div>
         </div>
 
-        {/* Bottom-anchored editorial stack. */}
+        {/* Bottom-anchored editorial stack. The positioning line that used
+            to sit here ("Property partner intelligence · 7AM AEST daily")
+            duplicated the description sentence below, so it's gone — one
+            less amber accent competing with the headline. */}
         <div className="mt-auto max-w-[58ch]">
-          <p
-            className="overline-amber mb-3"
-            style={{ letterSpacing: "0.26em", fontSize: "10px" }}
-          >
-            Property partner intelligence · 7AM AEST daily
-          </p>
           <h1
             className="font-serif font-bold tracking-tight"
             style={{
