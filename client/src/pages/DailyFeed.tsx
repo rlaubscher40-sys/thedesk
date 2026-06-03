@@ -247,7 +247,7 @@ export default function DailyFeed() {
   }
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-10">
       <SectionErrorBoundary section="Hero">
         <Hero />
       </SectionErrorBoundary>

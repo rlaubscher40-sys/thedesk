@@ -78,18 +78,20 @@ export function FeedbackButton() {
         onClick={() => setOpen(true)}
         aria-label="Send feedback"
         title="Send feedback"
-        className="fixed z-40 right-4 lg:right-6 lg:bottom-6 inline-flex items-center gap-2 rounded-full pl-3 pr-4 py-2.5 text-[10px] font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.96] shadow-lg bottom-[calc(env(safe-area-inset-bottom,_0px)_+_88px)]"
+        className="fixed z-40 right-4 lg:right-6 lg:bottom-6 inline-flex items-center gap-2 rounded-full p-3 lg:pl-3 lg:pr-4 lg:py-2.5 text-[10px] font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.96] shadow-lg bottom-[calc(env(safe-area-inset-bottom,_0px)_+_88px)]"
         style={{
-          // Mobile: 88px clearance above the bottom tab bar (z-50,
-          // ~70px tall with safe-area). lg+ uses standard 24px corner
-          // since the tab bar doesn't render at that breakpoint.
+          // Mobile: a compact icon-only disc, 88px clearance above the
+          // bottom tab bar (z-50, ~70px tall with safe-area). The full
+          // labelled pill only shows lg+, where the tab bar isn't
+          // rendered and there's room in the corner — on phones the
+          // wide pill kept overlapping feed content.
           background: "var(--grad-cta-amber)",
           color: "var(--color-on-amber)",
           boxShadow: "0 8px 24px var(--color-amber-glow)",
         }}
       >
         <MessageSquarePlus className="h-3.5 w-3.5" strokeWidth={2.5} />
-        Feedback
+        <span className="hidden lg:inline">Feedback</span>
       </button>
       {open && <FeedbackModal onClose={() => setOpen(false)} />}
     </>
