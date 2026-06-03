@@ -170,7 +170,12 @@ function colorScheme(variant: CardVariant): Scheme {
 }
 
 function clamp(text: string, max: number): string {
-  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+  if (text.length <= max) return text;
+  // Cut on the last word boundary and add nothing — a trailing "…" reads as a
+  // machine truncation. Fall back to a hard cut for unbroken strings.
+  const cut = text.slice(0, max);
+  const lastSpace = cut.lastIndexOf(" ");
+  return (lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).trimEnd();
 }
 
 /**
@@ -690,7 +695,10 @@ export async function renderDailyCoverCard(
                               lineHeight: 1,
                               color: c.fg,
                             },
-                            children: m.value,
+                            // Guard the row width: values are short by nature,
+                            // but a malformed long one must not push the strip
+                            // off the card.
+                            children: clamp(m.value, 12),
                           },
                         },
                         {
@@ -703,7 +711,7 @@ export async function renderDailyCoverCard(
                               textTransform: "uppercase",
                               color: c.amber,
                             },
-                            children: m.label,
+                            children: clamp(m.label, 18),
                           },
                         },
                       ],
