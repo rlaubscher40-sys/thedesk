@@ -879,7 +879,10 @@
 }
 
 .ticker-track {
-  animation: ticker-scroll 70s linear infinite;
+  /* 110s (was 70s) so the strip reads at a calmer ~55px/s rather than
+     racing past. Speed still scales with item count — see note in
+     LiveTicker.tsx if a constant-speed pass is wanted later. */
+  animation: ticker-scroll 110s linear infinite;
 }
 
 @keyframes reveal-up {

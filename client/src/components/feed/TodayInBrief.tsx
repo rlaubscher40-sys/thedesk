@@ -5,8 +5,9 @@
  *
  * Each row: category accent, the headline as a tap target to the
  * underlying /story/:id page, and the sayThis line (if present) as
- * a faded sub-line. Collapsible, defaults expanded on desktop and
- * collapsed on mobile, choice persists to localStorage.
+ * a faded sub-line. Collapsible, but defaults expanded everywhere: it now
+ * sits at the top of the feed as the first stories a reader meets, so a
+ * collapsed header would defeat the point. Choice persists to localStorage.
  */
 import { useEffect, useState } from "react";
 import { ChevronDown } from "lucide-react";
@@ -22,7 +23,7 @@ function readInitialExpanded(): boolean {
   const stored = window.localStorage.getItem(STORAGE_KEY);
   if (stored === "1") return true;
   if (stored === "0") return false;
-  return window.innerWidth >= 768;
+  return true;
 }
 
 export function TodayInBrief({ items }: { items: DailyFeedItem[] }) {
