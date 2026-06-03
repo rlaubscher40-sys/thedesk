@@ -112,11 +112,12 @@ function buildDailyCaption(stories: DailyFeedItem[]): string {
 }
 
 /**
- * Guarantee every selected story carries the lines its slide and caption need
- * before posting: a why-it-matters (the card subtext) and a say-this (the
- * caption hook). Enrichment normally fills these in, but a story can slip
- * through (enrichment skipped or still running), so we generate any missing
- * line at post time and persist it back to the feed item. Mutates in place.
+ * Fill in the lines each slide and caption need — a why-it-matters (card
+ * subtext) and a say-this (caption hook) — for any story missing them.
+ * Enrichment normally provides these, but a story can slip through (enrichment
+ * skipped or still running), so we generate at post time and persist back to
+ * the feed item. A story the model SKIPs keeps an empty why-it-matters; the
+ * caller drops those rather than render a blank card. Mutates in place.
  */
 async function ensureSlideContent(stories: DailyFeedItem[]): Promise<void> {
   await Promise.all(
@@ -200,17 +201,29 @@ function buildWeeklyCaption(edition: Edition): string {
 }
 
 /**
- * Pick the top-3 stories for the daily carousel, favouring category variety
- * over raw priority. Exported so the admin preview route renders the exact
- * same selection the post would, without going through the posting flow.
+ * Slides in a daily carousel (excluding the cover), and the larger candidate
+ * pool we generate why-it-matters across so off-topic stories (which the model
+ * SKIPs) can be dropped while still filling the slides.
  */
-export function pickDailyTopStories(stories: DailyFeedItem[]): DailyFeedItem[] {
+const DAILY_SLIDE_COUNT = 3;
+const DAILY_CANDIDATE_POOL = 6;
+
+/**
+ * Pick the top stories for the daily carousel, favouring category variety over
+ * raw priority. Defaults to the slide count; the posting flow calls it with a
+ * larger limit to build a candidate pool it can filter. Exported so the admin
+ * preview route renders the same selection the post would.
+ */
+export function pickDailyTopStories(
+  stories: DailyFeedItem[],
+  limit = DAILY_SLIDE_COUNT
+): DailyFeedItem[] {
   const eligible = [...stories].filter((s) => s.title).sort((a, b) => b.priority - a.priority);
 
   const top: DailyFeedItem[] = [];
   const usedCategories = new Set<string>();
   for (const s of eligible) {
-    if (top.length >= 3) break;
+    if (top.length >= limit) break;
     const cat = (s.category ?? "NEWS").toUpperCase();
     if (!usedCategories.has(cat)) {
       top.push(s);
@@ -219,7 +232,7 @@ export function pickDailyTopStories(stories: DailyFeedItem[]): DailyFeedItem[] {
   }
   // Fill any remaining slots with the next highest-priority stories not already chosen
   for (const s of eligible) {
-    if (top.length >= 3) break;
+    if (top.length >= limit) break;
     if (!top.includes(s)) top.push(s);
   }
   return top;
@@ -240,13 +253,24 @@ export async function postDailyCarousel(
     throw new Error("INSTAGRAM_ACCESS_TOKEN and INSTAGRAM_BUSINESS_ACCOUNT_ID must be set");
   }
 
-  const top = pickDailyTopStories(stories);
+  // Over-select a candidate pool, then generate slide content across it so we
+  // can exclude any story the model declines to write a why-it-matters for. A
+  // SKIP (null why-it-matters) means the story is off-topic for a finance brief
+  // — dropping it keeps mis-filed items (e.g. crime tagged MARKETS) off the
+  // carousel instead of rendering a blank card.
+  const pool = pickDailyTopStories(stories, DAILY_CANDIDATE_POOL);
 
-  if (top.length === 0) throw new Error("No stories available for Instagram post");
+  if (pool.length === 0) throw new Error("No stories available for Instagram post");
 
   // Every slide must carry a why-it-matters (card subtext) and a say-this
-  // (caption hook). Generate + persist any that are missing before we render.
-  await ensureSlideContent(top);
+  // (caption hook). Generate + persist any that are missing before we filter.
+  await ensureSlideContent(pool);
+
+  // Best slides that earned a why-it-matters. A thin day posts fewer real
+  // slides rather than padding with blanks; an entirely off-topic pool throws.
+  const withContext = pool.filter((s) => s.whyItMatters && s.whyItMatters.trim());
+  const top = pickDailyTopStories(withContext, DAILY_SLIDE_COUNT);
+  if (top.length === 0) throw new Error("No stories with usable context for Instagram post");
 
   // Punch up the raw feed titles for the card only (3 short LLM calls). Each
   // call falls back to the original title on SKIP or failure, so a weak rewrite
