@@ -256,8 +256,10 @@ export default function DailyFeed() {
         <FromTheDeskIntro />
       </SectionErrorBoundary>
 
-      <div className="space-y-5">
-        {/* Row 1: date navigation + copy action */}
+      <div className="space-y-6">
+        {/* Orientation: which day you're reading, plus a quiet copy-all
+            action for the talking points (demoted from a boxed amber CTA
+            that competed with the hero). */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <DatePager
             date={date}
@@ -271,32 +273,37 @@ export default function DailyFeed() {
             <button
               onClick={copyTalkingPoints}
               title={`Copy ${talkingPoints.length} talking point${talkingPoints.length === 1 ? "" : "s"} for today`}
-              className="inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-[10px] font-mono uppercase tracking-[0.18em] transition-colors"
-              style={{
-                background: copied ? "oklch(0.65 0.14 145 / 15%)" : "oklch(0.78 0.18 70 / 10%)",
-                boxShadow: copied
-                  ? "inset 0 0 0 1px oklch(0.65 0.14 145 / 50%)"
-                  : "inset 0 0 0 1px oklch(0.78 0.18 70 / 40%)",
-                color: copied ? "oklch(0.75 0.14 145)" : "var(--color-amber)",
-              }}
+              className="inline-flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-[0.18em] transition-colors"
+              style={{ color: copied ? "oklch(0.75 0.14 145)" : "var(--color-fg-subtle)" }}
             >
               {copied ? <CheckCheck className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
               {copied ? "Copied" : `Copy ${talkingPoints.length} talking point${talkingPoints.length === 1 ? "" : "s"}`}
             </button>
           )}
         </div>
-        {/* Row 2: persona switcher, full width so it has room to breathe */}
-        <PersonaSwitcher />
-        {/* Row 3: one-time context hint explaining categories + partner angles */}
-        <FeedHint />
-        <SectionErrorBoundary section="Filters">
-          <FilterChips
-            active={filter}
-            onChange={setFilter}
-            categories={chipCategories}
-          />
-        </SectionErrorBoundary>
-        <WhatsNewPill storyDates={storyTimestamps} storageKey="today" />
+
+        {/* Stories first: the day's scan sits directly under the date so a
+            first-time reader meets the stories before the filtering tools. */}
+        {hasLiveData && (
+          <SectionErrorBoundary section="Today in brief">
+            <TodayInBrief items={feedItems} />
+          </SectionErrorBoundary>
+        )}
+
+        {/* Tools: tune the persona and filter by topic. Below the scan now,
+            so they read as 'refine what you see' rather than a gate. */}
+        <div className="space-y-5">
+          <PersonaSwitcher />
+          <FeedHint />
+          <SectionErrorBoundary section="Filters">
+            <FilterChips
+              active={filter}
+              onChange={setFilter}
+              categories={chipCategories}
+            />
+          </SectionErrorBoundary>
+          <WhatsNewPill storyDates={storyTimestamps} storageKey="today" />
+        </div>
       </div>
 
       {/* Mobile streak chip — the sidebar badge covers desktop, this
@@ -332,12 +339,8 @@ export default function DailyFeed() {
       )}
       {hasLiveData ? (
         <>
-          {/* Scan strip, every story today as dot points so partners can
-              absorb the day in 10 seconds before drilling in. */}
-          <SectionErrorBoundary section="Today in brief">
-            <TodayInBrief items={feedItems} />
-          </SectionErrorBoundary>
-
+          {/* The 'Today in brief' scan now sits above the filter tools so
+              stories land first; the lead + grid follow here. */}
           {liveLead && (
             <SectionErrorBoundary section="Lead">
               <section>
@@ -484,11 +487,9 @@ function FeedHint() {
       <Info className="h-3.5 w-3.5 text-amber-400/60 shrink-0 mt-0.5" aria-hidden="true" />
       <p className="flex-1">
         <span className="text-[var(--color-fg)] font-medium">Topic chips</span> filter
-        stories by area — Property, Macro, Markets, and so on.{" "}
-        Stories with a coloured left border have a{" "}
-        <span className="text-[var(--color-fg)] font-medium">"Say This"</span> line: a
-        ready-made conversation opener for your next client meeting. Use the persona
-        switcher above to tune the language for your audience.
+        stories by area. Stories with a coloured left border carry a{" "}
+        <span className="text-[var(--color-fg)] font-medium">"Say This"</span> line — a
+        ready-made conversation opener for your next client meeting.
       </p>
       <button
         onClick={dismiss}
