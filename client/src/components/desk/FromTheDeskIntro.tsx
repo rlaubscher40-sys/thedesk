@@ -49,8 +49,11 @@ export function FromTheDeskIntro() {
         <span
           className="absolute inset-0 rounded-full pointer-events-none"
           style={{
+            // A quiet warm rim rather than a glowing beacon — the prior
+            // 32% ring + 18px bloom competed with the hero headline for
+            // attention right at the top of the page.
             boxShadow:
-              "0 0 0 1px oklch(0.75 0.18 70 / 32%), 0 0 18px oklch(0.75 0.18 70 / 18%)",
+              "0 0 0 1px oklch(0.75 0.18 70 / 20%), 0 0 10px oklch(0.75 0.18 70 / 9%)",
           }}
           aria-hidden="true"
         />
