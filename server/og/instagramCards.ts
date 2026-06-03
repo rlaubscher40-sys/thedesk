@@ -128,6 +128,7 @@ type Scheme = {
   amberSoft: string;
   bloom: string;
   rule: string;
+  ghost: string; // very low-opacity tone for the big watermark numeral
 };
 
 function colorScheme(variant: CardVariant): Scheme {
@@ -141,6 +142,7 @@ function colorScheme(variant: CardVariant): Scheme {
       bloom:
         "radial-gradient(circle at 85% 12%, rgba(154,107,18,0.10) 0%, transparent 52%)",
       rule: "linear-gradient(90deg, #9A6B12 0%, rgba(154,107,18,0) 70%)",
+      ghost: "rgba(20,23,31,0.05)",
     };
   }
   return {
@@ -152,6 +154,7 @@ function colorScheme(variant: CardVariant): Scheme {
     bloom:
       "radial-gradient(circle at 85% 12%, rgba(212,168,83,0.13) 0%, transparent 52%)",
     rule: "linear-gradient(90deg, #D4A853 0%, rgba(212,168,83,0) 70%)",
+    ghost: "rgba(212,168,83,0.10)",
   };
 }
 
@@ -202,7 +205,25 @@ async function renderToJpeg(
   });
   const resvg = new Resvg(svg, { fitTo: { mode: "width", value: width } });
   const png = Buffer.from(resvg.render().asPng());
-  return sharp(png).jpeg({ quality: 92 }).toBuffer();
+  // Fine film grain over the flat fills, so the cards read as printed
+  // editorial stock rather than a flat export. A mid-grey gaussian noise
+  // layer in 'overlay' leaves tones unchanged and only its deviations
+  // nudge each pixel — subtle at sigma 7.
+  const grain = await sharp({
+    create: {
+      width,
+      height,
+      channels: 3,
+      background: "#808080",
+      noise: { type: "gaussian", mean: 128, sigma: 7 },
+    },
+  })
+    .png()
+    .toBuffer();
+  return sharp(png)
+    .composite([{ input: grain, blend: "overlay" }])
+    .jpeg({ quality: 92 })
+    .toBuffer();
 }
 
 /**
@@ -469,6 +490,12 @@ export async function renderDailyCoverCard(
   const c = colorScheme(variant);
   const dateLabel = formatBriefingDate(feedDate);
   const items = stories.slice(0, 3);
+  // Day-of-month for the oversized watermark numeral that anchors the top
+  // of the card and fills what used to be dead space.
+  const d = feedDate ? new Date(`${feedDate}T00:00:00Z`) : new Date();
+  const dayNum = String(
+    (Number.isNaN(d.getTime()) ? new Date() : d).getUTCDate()
+  ).padStart(2, "0");
 
   const tree = {
     type: "div",
@@ -481,9 +508,29 @@ export async function renderDailyCoverCard(
         backgroundColor: c.bg,
         backgroundImage: c.bloom,
         padding: "64px",
-        justifyContent: "space-between",
+        position: "relative",
+        justifyContent: "flex-start",
       },
       children: [
+        // ── Oversized watermark numeral, bleeds off the top-right edge ──
+        {
+          type: "div",
+          props: {
+            style: {
+              position: "absolute",
+              top: "-78px",
+              right: "36px",
+              fontFamily: "Playfair Display",
+              fontWeight: 700,
+              fontSize: "460px",
+              lineHeight: 1,
+              letterSpacing: "-0.04em",
+              color: c.ghost,
+            },
+            children: dayNum,
+          },
+        },
+
         // ── Top: branding + label ──
         {
           type: "div",
@@ -512,11 +559,16 @@ export async function renderDailyCoverCard(
           },
         },
 
-        // ── Middle: date + title + contents ──
+        // ── Content: date + title + contents, pulled up under the header ──
         {
           type: "div",
           props: {
-            style: { display: "flex", flexDirection: "column", gap: "34px" },
+            style: {
+              display: "flex",
+              flexDirection: "column",
+              gap: "34px",
+              marginTop: "76px",
+            },
             children: [
               {
                 type: "div",
@@ -537,7 +589,7 @@ export async function renderDailyCoverCard(
                   style: {
                     fontFamily: "Playfair Display",
                     fontWeight: 700,
-                    fontSize: "82px",
+                    fontSize: "92px",
                     lineHeight: 1.0,
                     letterSpacing: "-0.02em",
                     color: c.fg,
@@ -551,7 +603,7 @@ export async function renderDailyCoverCard(
                   style: {
                     display: "flex",
                     flexDirection: "column",
-                    gap: "30px",
+                    gap: "34px",
                     marginTop: "16px",
                   },
                   children: items.map((s, i) => ({
@@ -582,8 +634,8 @@ export async function renderDailyCoverCard(
                             style: {
                               fontFamily: "Playfair Display",
                               fontWeight: 700,
-                              fontSize: "34px",
-                              lineHeight: 1.28,
+                              fontSize: "40px",
+                              lineHeight: 1.26,
                               color: c.fg,
                             },
                             children: clamp(s.title, 90),
@@ -597,6 +649,9 @@ export async function renderDailyCoverCard(
             ],
           },
         },
+
+        // Push the footer to the bottom edge; the content sits up top.
+        { type: "div", props: { style: { display: "flex", flexGrow: 1 }, children: "" } },
 
         // ── Bottom: rule + swipe prompt + domain ──
         {
