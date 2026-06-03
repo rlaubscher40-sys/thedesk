@@ -18,7 +18,7 @@ const STEPS = [
   {
     overline: "Step 1 of 4 · Today",
     title: "Today is your morning scan.",
-    body: "Five stories curated overnight, each tagged for the four partner personas. Open one to copy a one-liner straight into a client conversation.",
+    body: "The Desk is your daily sixty-second read on Australian property, built to sharpen partner conversations. Five stories land overnight, each tagged for the four personas — open one to copy a ready-made line straight into a client conversation.",
   },
   {
     overline: "Step 2 of 4 · Editions",

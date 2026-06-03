@@ -68,7 +68,7 @@ export function SubscribeCallout({
     ? "Get next Sunday's edition"
     : "Read the next one with us";
   const defaultSubhead = isEdition
-    ? "Weekly intelligence for property partnerships, in your inbox at 7am AEST Sunday. The daily brief lands every weekday."
+    ? "Weekly intelligence on Australian property, in your inbox at 7am AEST Sunday. The daily brief lands every weekday."
     : "The daily brief lands at 7am AEST. Same eye, same voice, in your inbox.";
 
   return (

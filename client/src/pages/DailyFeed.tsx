@@ -136,7 +136,7 @@ export default function DailyFeed() {
   // today; seed mode = the original handcurated set.
   const chipCategories = hasLiveData
     ? liveCategories
-    : ["MACRO", "GEOPOLITICS", "PROPERTY", "AI", "MARKETS", "CLIMATE", "SPORT", "REDDIT", "CRYPTO"];
+    : ["MACRO", "PROPERTY", "MARKETS", "GEOPOLITICS", "AI", "CLIMATE"];
   const featured = filteredSeed.find((s) => s.section === "featured");
   const more = filteredSeed.filter((s) => s.section === "more");
   const further = filteredSeed.filter((s) => s.section === "further");

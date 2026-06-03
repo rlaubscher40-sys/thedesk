@@ -107,7 +107,7 @@ export default function About() {
             The Desk runs two scans. The daily one lands at seven in the
             morning Sydney time with five stories the partner channel should
             know about, each tagged for the four personas Ruben works with:
-            Brokers, Financial Advisers, Accountants, SMSF Specialists.
+            institutional desks, brokers, advisers and buyer's agents.
           </p>
           <p>
             Sundays the weekly edition lands. Long-form pieces, market
