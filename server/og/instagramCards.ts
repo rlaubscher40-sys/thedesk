@@ -74,6 +74,25 @@ async function loadLogo(variant: CardVariant = "navy"): Promise<string | null> {
   }
 }
 
+/** Load a bundled JPEG/PNG asset (hero photo, headshot) as a data URI,
+ *  cached. Returns null if missing so a render never hard-fails. */
+const cachedAssets: Record<string, string | null> = {};
+async function loadAsset(filename: string): Promise<string | null> {
+  const cached = cachedAssets[filename];
+  if (cached !== undefined) return cached;
+  try {
+    const buf = await fs.promises.readFile(path.join(FONT_DIR, filename));
+    const mime = filename.endsWith(".png") ? "image/png" : "image/jpeg";
+    const uri = `data:${mime};base64,${buf.toString("base64")}`;
+    cachedAssets[filename] = uri;
+    return uri;
+  } catch (err) {
+    console.warn(`[instagramCards] asset ${filename} unavailable:`, (err as Error).message);
+    cachedAssets[filename] = null;
+    return null;
+  }
+}
+
 /** Header brand element: the logo lockup when available, else the text
  *  wordmark. Keeps a missing asset from ever blocking a post. */
 function brandHeader(
@@ -484,7 +503,8 @@ function formatBriefingDate(feedDate?: string | null): string {
 export async function renderDailyCoverCard(
   stories: DailyFeedItem[],
   feedDate?: string | null,
-  variant: CardVariant = "navy"
+  variant: CardVariant = "navy",
+  metrics?: Array<{ label: string; value: string }>
 ): Promise<Buffer> {
   const logo = await loadLogo(variant);
   const c = colorScheme(variant);
@@ -652,6 +672,57 @@ export async function renderDailyCoverCard(
 
         // Push the footer to the bottom edge; the content sits up top.
         { type: "div", props: { style: { display: "flex", flexGrow: 1 }, children: "" } },
+
+        // ── Metric strip: a mini briefing dashboard that earns the lower
+        //    third instead of leaving it empty. Rendered only when given. ──
+        ...(metrics && metrics.length
+          ? [
+              {
+                type: "div",
+                props: {
+                  style: { display: "flex", gap: "54px", marginBottom: "30px" },
+                  children: metrics.slice(0, 4).map((m) => ({
+                    type: "div",
+                    props: {
+                      style: {
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "7px",
+                      },
+                      children: [
+                        {
+                          type: "div",
+                          props: {
+                            style: {
+                              fontFamily: "Playfair Display",
+                              fontWeight: 700,
+                              fontSize: "40px",
+                              lineHeight: 1,
+                              color: c.fg,
+                            },
+                            children: m.value,
+                          },
+                        },
+                        {
+                          type: "div",
+                          props: {
+                            style: {
+                              fontFamily: "JetBrains Mono",
+                              fontSize: "12px",
+                              letterSpacing: "0.18em",
+                              textTransform: "uppercase",
+                              color: c.amber,
+                            },
+                            children: m.label,
+                          },
+                        },
+                      ],
+                    },
+                  })),
+                },
+              },
+            ]
+          : []),
 
         // ── Bottom: rule + swipe prompt + domain ──
         {
@@ -954,21 +1025,22 @@ export async function renderDailyStoryVertical(
  * Shows edition number, week range, and topic list as a contents page.
  */
 export async function renderWeeklyCoverCard(edition: Edition): Promise<Buffer> {
+  const logo = await loadLogo("navy");
+  const hero = await loadAsset("hero-weekly.jpg");
+  const headshot = await loadAsset("ruben.jpg");
   const topics = edition.topics.slice(0, 4);
   const metrics = edition.keyMetrics as
     | Record<string, string | undefined>
     | null
     | undefined;
-  const cashRate =
-    metrics?.cashRate ?? metrics?.cash_rate ?? null;
-  const asx =
-    metrics?.asx200 ?? metrics?.ASX200 ?? metrics?.asx ?? null;
+  const cashRate = metrics?.cashRate ?? metrics?.cash_rate ?? null;
+  const asx = metrics?.asx200 ?? metrics?.ASX200 ?? metrics?.asx ?? null;
   const metricsLine =
     cashRate && asx
       ? `Cash Rate ${cashRate} · ASX 200 ${asx}`
       : cashRate
         ? `Cash Rate ${cashRate}`
-        : "Swipe for this week’s analysis »";
+        : "The full edition is on our feed";
 
   const tree = {
     type: "div",
@@ -979,29 +1051,97 @@ export async function renderWeeklyCoverCard(edition: Edition): Promise<Buffer> {
         width: "1080px",
         height: "1350px",
         backgroundColor: NAVY,
-        backgroundImage:
-          "radial-gradient(circle at 80% 8%, rgba(212,168,83,0.14) 0%, transparent 50%)",
+        position: "relative",
         padding: "80px 72px",
         justifyContent: "space-between",
       },
       children: [
-        // ── Header ──
+        // ── Photographic hero behind everything ──
+        hero
+          ? {
+              type: "div",
+              props: {
+                style: {
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "1080px",
+                  height: "1350px",
+                  display: "flex",
+                  backgroundImage: `url(${hero})`,
+                  backgroundSize: "1080px 1350px",
+                  backgroundPosition: "center",
+                },
+                children: "",
+              },
+            }
+          : { type: "div", props: { style: { display: "flex" }, children: "" } },
+        // Navy veil for legibility — heavier toward the bottom where the
+        // type sits, lifting toward the top so the photo breathes.
         {
           type: "div",
           props: {
-            style: { display: "flex", flexDirection: "column", gap: "8px" },
+            style: {
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "1080px",
+              height: "1350px",
+              display: "flex",
+              backgroundImage:
+                "linear-gradient(180deg, rgba(12,18,32,0.46) 0%, rgba(12,18,32,0.72) 46%, rgba(12,18,32,0.94) 100%)",
+            },
+            children: "",
+          },
+        },
+        // Amber bloom, top-right.
+        {
+          type: "div",
+          props: {
+            style: {
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "1080px",
+              height: "1350px",
+              display: "flex",
+              backgroundImage:
+                "radial-gradient(circle at 80% 10%, rgba(212,168,83,0.16) 0%, transparent 50%)",
+            },
+            children: "",
+          },
+        },
+
+        // ── Header: lockup + weekly tag + edition line ──
+        {
+          type: "div",
+          props: {
+            style: { display: "flex", flexDirection: "column", gap: "14px" },
             children: [
               {
                 type: "div",
                 props: {
                   style: {
-                    fontFamily: "JetBrains Mono",
-                    fontSize: "12px",
-                    letterSpacing: "0.3em",
-                    textTransform: "uppercase",
-                    color: AMBER,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
                   },
-                  children: "The Desk · Weekly Edition",
+                  children: [
+                    brandHeader(logo, 50, { accent: AMBER }),
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          fontFamily: "JetBrains Mono",
+                          fontSize: "13px",
+                          letterSpacing: "0.26em",
+                          textTransform: "uppercase",
+                          color: AMBER,
+                        },
+                        children: "Weekly Edition",
+                      },
+                    },
+                  ],
                 },
               },
               {
@@ -1009,8 +1149,9 @@ export async function renderWeeklyCoverCard(edition: Edition): Promise<Buffer> {
                 props: {
                   style: {
                     fontFamily: "JetBrains Mono",
-                    fontSize: "12px",
+                    fontSize: "13px",
                     letterSpacing: "0.18em",
+                    textTransform: "uppercase",
                     color: FG_MUTED,
                   },
                   children: `Edition No. ${edition.editionNumber} · ${edition.weekRange}`,
@@ -1020,11 +1161,11 @@ export async function renderWeeklyCoverCard(edition: Edition): Promise<Buffer> {
           },
         },
 
-        // ── Large edition number + title ──
+        // ── Feature: title + topics ──
         {
           type: "div",
           props: {
-            style: { display: "flex", flexDirection: "column" },
+            style: { display: "flex", flexDirection: "column", gap: "40px" },
             children: [
               {
                 type: "div",
@@ -1032,61 +1173,18 @@ export async function renderWeeklyCoverCard(edition: Edition): Promise<Buffer> {
                   style: {
                     fontFamily: "Playfair Display",
                     fontWeight: 700,
-                    fontSize: "160px",
-                    lineHeight: 0.85,
-                    letterSpacing: "-0.04em",
-                    color: "rgba(212,168,83,0.18)",
-                  },
-                  children: `#${edition.editionNumber}`,
-                },
-              },
-              {
-                type: "div",
-                props: {
-                  style: {
-                    fontFamily: "Playfair Display",
-                    fontWeight: 700,
-                    fontSize: "58px",
-                    lineHeight: 1.05,
-                    letterSpacing: "-0.025em",
+                    fontSize: "76px",
+                    lineHeight: 1.0,
+                    letterSpacing: "-0.03em",
                     color: FG,
-                    marginTop: "20px",
                   },
-                  children: "This Week in\nAustralian Finance",
+                  children: "This Week in\nAustralian Property",
                 },
               },
-            ],
-          },
-        },
-
-        // ── Topics list ──
-        {
-          type: "div",
-          props: {
-            style: { display: "flex", flexDirection: "column", gap: "20px" },
-            children: [
               {
                 type: "div",
                 props: {
-                  style: {
-                    fontFamily: "JetBrains Mono",
-                    fontSize: "11px",
-                    letterSpacing: "0.25em",
-                    textTransform: "uppercase",
-                    color: AMBER,
-                    marginBottom: "4px",
-                  },
-                  children: "This Week’s Topics",
-                },
-              },
-              ...topics.map((topic, i) => ({
-                type: "div",
-                props: {
-                  style: {
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: "16px",
-                  },
+                  style: { display: "flex", flexDirection: "column", gap: "18px" },
                   children: [
                     {
                       type: "div",
@@ -1094,39 +1192,125 @@ export async function renderWeeklyCoverCard(edition: Edition): Promise<Buffer> {
                         style: {
                           fontFamily: "JetBrains Mono",
                           fontSize: "12px",
+                          letterSpacing: "0.25em",
+                          textTransform: "uppercase",
                           color: AMBER,
-                          minWidth: "24px",
-                          marginTop: "4px",
+                          marginBottom: "2px",
                         },
-                        children: `0${i + 1}`,
+                        children: "Inside this edition",
+                      },
+                    },
+                    ...topics.map((topic, i) => ({
+                      type: "div",
+                      props: {
+                        style: {
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: "16px",
+                        },
+                        children: [
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                fontFamily: "JetBrains Mono",
+                                fontSize: "13px",
+                                color: AMBER,
+                                minWidth: "26px",
+                                marginTop: "6px",
+                              },
+                              children: `0${i + 1}`,
+                            },
+                          },
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                fontFamily: "Playfair Display",
+                                fontWeight: 700,
+                                fontSize: "30px",
+                                lineHeight: 1.2,
+                                color: FG,
+                              },
+                              children: clamp(topic.title, 60),
+                            },
+                          },
+                        ],
+                      },
+                    })),
+                  ],
+                },
+              },
+            ],
+          },
+        },
+
+        // ── Bottom: byline (headshot) + rule + metrics/domain ──
+        {
+          type: "div",
+          props: {
+            style: { display: "flex", flexDirection: "column", gap: "22px" },
+            children: [
+              {
+                type: "div",
+                props: {
+                  style: { display: "flex", alignItems: "center", gap: "16px" },
+                  children: [
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          display: "flex",
+                          width: "66px",
+                          height: "66px",
+                          borderRadius: "33px",
+                          border: "2px solid rgba(212,168,83,0.6)",
+                          ...(headshot
+                            ? {
+                                backgroundImage: `url(${headshot})`,
+                                backgroundSize: "66px 66px",
+                              }
+                            : { backgroundColor: "rgba(212,168,83,0.18)" }),
+                        },
+                        children: "",
                       },
                     },
                     {
                       type: "div",
                       props: {
-                        style: {
-                          fontFamily: "Playfair Display",
-                          fontWeight: 700,
-                          fontSize: "26px",
-                          lineHeight: 1.2,
-                          color: FG,
-                        },
-                        children: clamp(topic.title, 60),
+                        style: { display: "flex", flexDirection: "column", gap: "3px" },
+                        children: [
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                fontFamily: "JetBrains Mono",
+                                fontSize: "11px",
+                                letterSpacing: "0.22em",
+                                textTransform: "uppercase",
+                                color: AMBER,
+                              },
+                              children: "Ruben's Take",
+                            },
+                          },
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                fontFamily: "Playfair Display",
+                                fontWeight: 700,
+                                fontSize: "24px",
+                                color: FG,
+                              },
+                              children: "Ruben Laubscher",
+                            },
+                          },
+                        ],
                       },
                     },
                   ],
                 },
-              })),
-            ],
-          },
-        },
-
-        // ── Bottom: metrics + domain ──
-        {
-          type: "div",
-          props: {
-            style: { display: "flex", flexDirection: "column", gap: "16px" },
-            children: [
+              },
               {
                 type: "div",
                 props: {
@@ -1153,7 +1337,7 @@ export async function renderWeeklyCoverCard(edition: Edition): Promise<Buffer> {
                       props: {
                         style: {
                           fontFamily: "JetBrains Mono",
-                          fontSize: "12px",
+                          fontSize: "13px",
                           letterSpacing: "0.15em",
                           color: FG_MUTED,
                         },
