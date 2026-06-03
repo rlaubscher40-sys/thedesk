@@ -26,6 +26,31 @@ async function igPost<T>(endpoint: string, params: Record<string, string>): Prom
   return res.json() as Promise<T>;
 }
 
+/**
+ * Retry a transient Instagram call a few times with linear backoff. Use only
+ * for idempotent operations — container creation is safe to retry because a
+ * repeated attempt just registers a fresh throwaway container. Never wrap
+ * publishContainer, which is not idempotent and would risk a double-post.
+ */
+async function withIgRetry<T>(label: string, fn: () => Promise<T>, attempts = 3): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (attempt === attempts) break;
+      const delayMs = 3000 * attempt;
+      console.warn(
+        `[instagram] ${label} attempt ${attempt}/${attempts} failed, retrying in ${delayMs}ms:`,
+        (err as Error).message
+      );
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+  throw lastErr;
+}
+
 /** Create a single-image container. For carousel children set isCarouselItem=true. */
 export async function createImageContainer(opts: {
   igUserId: string;
@@ -43,9 +68,8 @@ export async function createImageContainer(opts: {
   if (opts.caption) params.caption = opts.caption;
   if (opts.altText) params.alt_text = opts.altText;
 
-  const data = await igPost<{ id: string }>(
-    `/${opts.igUserId}/media`,
-    params
+  const data = await withIgRetry("createImageContainer", () =>
+    igPost<{ id: string }>(`/${opts.igUserId}/media`, params)
   );
   return data.id;
 }
