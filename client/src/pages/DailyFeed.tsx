@@ -175,18 +175,43 @@ export default function DailyFeed() {
     );
   const allAngled = liveRest.filter(hasAngles);
   const nonAngled = liveRest.filter((it) => !hasAngles(it));
-  // Sort the grid by approximate rendered card height (title + summary
-  // + sayThis char counts) so adjacent cards in the same row look
-  // similar — first row is the most uniform, taller cards cascade
-  // down. Without this the first row often had the biggest visual
-  // variance because feedItems arrives in priority order, which has
-  // nothing to do with content length.
-  const cardSize = (it: typeof feedItems[number]): number =>
-    it.title.length +
-    (it.summary?.length ?? 0) +
-    (it.sayThis?.length ?? 0) +
-    (it.partnerTag?.length ?? 0);
-  const angledSorted = [...allAngled].sort((a, b) => cardSize(a) - cardSize(b));
+  // Sort the grid by approximate rendered card height so adjacent cards
+  // in a row look similar — the first rows stay uniform and taller cards
+  // cascade down, instead of the ragged gaps you get when feedItems
+  // arrives in priority order (which has nothing to do with height).
+  //
+  // The estimate is in rough "line" units, NOT raw character counts: a
+  // card's height is dominated by its STRUCTURAL blocks, not the length
+  // of any one string. The Partner angles panel renders four fixed
+  // persona rows on desktop regardless of text length, and "Why it
+  // matters" / "Counterpoint" / "Say this" each add a bordered callout.
+  // Counting characters alone let a Partner-angle card (very tall) sort
+  // next to a card with just a long summary (short), which is what threw
+  // the grid out of line.
+  const TITLE_CHARS_PER_LINE = 26; // serif headline, narrow 3-col card
+  const BODY_CHARS_PER_LINE = 46; // muted body copy at card width
+  const estimatedCardHeight = (it: typeof feedItems[number]): number => {
+    const bodyLines = (text: string | null | undefined, cap = Infinity): number =>
+      Math.min(cap, Math.ceil((text?.length ?? 0) / BODY_CHARS_PER_LINE));
+    // Fixed baseline: metadata bar, action row, and the card paddings.
+    let lines = 4;
+    // Headline wraps across however many lines its length implies.
+    lines += Math.ceil(it.title.length / TITLE_CHARS_PER_LINE);
+    // Summary is clamped to 3 lines in render, so it can never exceed that.
+    lines += bodyLines(it.summary, 3);
+    // Bordered callouts each cost a label line plus their wrapped copy.
+    if (it.whyItMatters) lines += 1.5 + bodyLines(it.whyItMatters);
+    if (it.counterpoint) lines += 1.5 + bodyLines(it.counterpoint);
+    if (it.sayThis) lines += 1.5 + bodyLines(it.sayThis);
+    // Partner angles is the big one: expanded on desktop it renders the
+    // label plus all four persona rows no matter how short the text is,
+    // so it contributes a large, roughly fixed block.
+    if (it.partnerTag) lines += 6;
+    return lines;
+  };
+  const angledSorted = [...allAngled].sort(
+    (a, b) => estimatedCardHeight(a) - estimatedCardHeight(b)
+  );
   // Every angle-bearing story gets a full card; the grid's last row may be
   // partial (cards left-align), which is fine and far better than burying
   // good stories. Only the truly bare items fall through to signals.
