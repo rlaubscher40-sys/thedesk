@@ -441,11 +441,13 @@ function SidebarFooter({
         </Link>
       ) : hasOAuthConfig() ? (
         // OAuth is configured, show the sign-in CTA pointing at the portal.
+        // Styled as a bordered amber pill (was muted inline text) after
+        // partner feedback that it was too easy to miss in the footer.
         <a
           href={getLoginUrl()}
-          className="flex items-center gap-2 text-xs text-[var(--color-fg-muted)] hover:text-amber-300"
+          className="flex items-center justify-center gap-2 px-3 py-2 rounded text-xs font-mono uppercase tracking-[0.18em] text-amber-300 border border-amber-500/40 bg-amber-500/8 hover:bg-amber-500/15 transition-colors"
         >
-          <LogIn className="h-3.5 w-3.5" /> Sign in
+          <LogIn className="h-4 w-4" /> Sign in
         </a>
       ) : (
         // Demo / fresh codespace, no OAuth backend wired up. Render a
@@ -608,9 +610,11 @@ function MobileTabBar({ location, unreadCount }: { location: string; unreadCount
             always log in from mobile without opening the drawer. */}
         {!isAuthenticated && (
           <a href={getLoginUrl()}>
+            {/* Amber, not muted grey, so the one action an unauthenticated
+                visitor needs stands out from the regular tabs. */}
             <span className="relative flex flex-col items-center gap-1 px-3 py-2 rounded">
-              <LogIn className="h-5 w-5 text-[var(--color-fg-subtle)]" />
-              <span className="font-mono text-[9px] uppercase tracking-wider text-[var(--color-fg-subtle)]">
+              <LogIn className="h-5 w-5 text-amber-400" />
+              <span className="font-mono text-[9px] uppercase tracking-wider text-amber-300">
                 Sign in
               </span>
             </span>
