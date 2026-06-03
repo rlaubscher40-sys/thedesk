@@ -100,6 +100,23 @@ function clamp(text: string, max: number): string {
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 }
 
+/**
+ * Pick a font size so a full block of copy fits the card without truncation:
+ * longer text steps down through the scale rather than being cut mid-sentence.
+ * `tiers` are [maxChars, fontSize] pairs checked in order; the first whose
+ * maxChars the text fits under wins, otherwise `fallback` (smallest) is used.
+ */
+function fitFontSize(
+  len: number,
+  tiers: Array<[number, string]>,
+  fallback: string
+): string {
+  for (const [max, size] of tiers) {
+    if (len <= max) return size;
+  }
+  return fallback;
+}
+
 async function renderToJpeg(
   tree: object,
   width: number,
@@ -142,7 +159,13 @@ export async function renderDailyStoryCard(
   const slideNum = String(slideIndex + 1).padStart(2, "0");
   const totalNum = String(slideTotal).padStart(2, "0");
   const headline = clamp(story.title, 90);
-  const why = story.whyItMatters ? clamp(story.whyItMatters, 170) : null;
+  // Show the full sentence — never cut "why it matters" mid-word. Upstream
+  // generation caps this at 320 chars; the clamp here is only a last-resort
+  // guard against pathological lengths. Font scales down so it always fits.
+  const why = story.whyItMatters ? clamp(story.whyItMatters, 320) : null;
+  const whyFontSize = why
+    ? fitFontSize(why.length, [[150, "30px"], [220, "26px"]], "23px")
+    : "30px";
   const category = (story.category || "NEWS").toUpperCase();
   const fontSize = headline.length > 64 ? "60px" : "74px";
 
@@ -271,7 +294,7 @@ export async function renderDailyStoryCard(
                             props: {
                               style: {
                                 fontFamily: "JetBrains Mono",
-                                fontSize: "30px",
+                                fontSize: whyFontSize,
                                 lineHeight: 1.45,
                                 color: FG_MUTED,
                               },
@@ -362,7 +385,12 @@ export async function renderDailyStoryVertical(
 ): Promise<Buffer> {
   const logo = await loadLogo();
   const headline = clamp(story.title, 100);
-  const why = story.whyItMatters ? clamp(story.whyItMatters, 220) : null;
+  // Show the full sentence — never cut "why it matters" mid-word. The 320-char
+  // clamp is only a last-resort guard; font scales down so it always fits.
+  const why = story.whyItMatters ? clamp(story.whyItMatters, 320) : null;
+  const whyFontSize = why
+    ? fitFontSize(why.length, [[200, "34px"], [280, "30px"]], "27px")
+    : "34px";
   const category = (story.category || "NEWS").toUpperCase();
   const fontSize = headline.length > 72 ? "76px" : "92px";
 
@@ -484,7 +512,7 @@ export async function renderDailyStoryVertical(
                             props: {
                               style: {
                                 fontFamily: "JetBrains Mono",
-                                fontSize: "34px",
+                                fontSize: whyFontSize,
                                 lineHeight: 1.45,
                                 color: FG_MUTED,
                               },
