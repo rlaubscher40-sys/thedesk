@@ -19,6 +19,7 @@ import { generateInstagramHeadline } from "../prompts/instagramHeadline";
 import { generateSayThis } from "../prompts/sayThis";
 import { generateWhyItMatters } from "../prompts/whyItMatters";
 import {
+  type CardVariant,
   renderDailyCoverCard,
   renderDailyStoryCard,
   renderDailyStoryVertical,
@@ -140,7 +141,13 @@ function buildWeeklyCaption(edition: Edition): string {
 
 export async function postDailyCarousel(
   stories: DailyFeedItem[],
-  siteUrl: string
+  siteUrl: string,
+  opts: {
+    /** Cover variant for the grid thumbnail (alternated for the checkerboard). */
+    variant?: CardVariant;
+    /** Market metrics for the cover's lower-third strip, already value+unit formatted. */
+    metrics?: Array<{ label: string; value: string }>;
+  } = {}
 ): Promise<{ postId: string; headline: string }> {
   const { instagramAccessToken: accessToken, instagramBusinessAccountId: igUserId } = env;
   if (!accessToken || !igUserId) {
@@ -196,7 +203,12 @@ export async function postDailyCarousel(
     // Slide 1 is a branded cover (date + numbered contents). Instagram shows
     // slide 1 as the grid thumbnail, so leading with this makes the profile
     // read as a cohesive column of covers rather than dense, unrelated tiles.
-    const coverBuf = await renderDailyCoverCard(sanitized, sanitized[0]?.feedDate);
+    const coverBuf = await renderDailyCoverCard(
+      sanitized,
+      sanitized[0]?.feedDate,
+      opts.variant ?? "navy",
+      opts.metrics
+    );
     uuids.push(storeTempImage(coverBuf));
     altTexts.push("The Desk daily briefing cover");
 
