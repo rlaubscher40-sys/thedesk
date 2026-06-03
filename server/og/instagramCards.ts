@@ -68,8 +68,16 @@ async function loadLogo(): Promise<string | null> {
 
 /** Header brand element: the logo lockup when available, else the text
  *  wordmark. Keeps a missing asset from ever blocking a post. */
-function brandHeader(logo: string | null, height: number) {
-  if (logo) {
+function brandHeader(
+  logo: string | null,
+  height: number,
+  opts?: { accent?: string; forceText?: boolean }
+) {
+  const accent = opts?.accent ?? AMBER;
+  // On the light variant the white lockup PNG would vanish, so render the
+  // text lockup in the (darkened) accent instead. A dedicated dark logo
+  // asset would be the proper follow-up.
+  if (logo && !opts?.forceText) {
     const width = Math.round(height * 3.226);
     return {
       type: "img",
@@ -84,7 +92,7 @@ function brandHeader(logo: string | null, height: number) {
         fontSize: "15px",
         letterSpacing: "0.28em",
         textTransform: "uppercase",
-        color: AMBER,
+        color: accent,
       },
       children: "The Desk · Daily Intelligence",
     },
@@ -95,6 +103,49 @@ const NAVY = "#0C1220";
 const AMBER = "#D4A853";
 const FG = "#F0EDE8";
 const FG_MUTED = "#9BA3B5";
+
+/**
+ * Grid theme for a card. The feed alternates navy/light per post so the
+ * 3-wide Instagram profile grid reads as a checkerboard. "light" is not a
+ * naive invert: the amber accent darkens so it stays legible on a pale
+ * background, and the radial bloom / rules re-tune to the darker tone.
+ */
+export type CardVariant = "navy" | "light";
+
+type Scheme = {
+  bg: string;
+  fg: string;
+  fgMuted: string;
+  amber: string;
+  amberSoft: string;
+  bloom: string;
+  rule: string;
+};
+
+function colorScheme(variant: CardVariant): Scheme {
+  if (variant === "light") {
+    return {
+      bg: "#F4F1EA", // warm paper, not stark white
+      fg: "#14171F", // near-ink
+      fgMuted: "#5A6072",
+      amber: "#9A6B12", // deepened so it clears contrast on the pale bg
+      amberSoft: "rgba(154,107,18,0.12)",
+      bloom:
+        "radial-gradient(circle at 85% 12%, rgba(154,107,18,0.10) 0%, transparent 52%)",
+      rule: "linear-gradient(90deg, #9A6B12 0%, rgba(154,107,18,0) 70%)",
+    };
+  }
+  return {
+    bg: NAVY,
+    fg: FG,
+    fgMuted: FG_MUTED,
+    amber: AMBER,
+    amberSoft: "rgba(212,168,83,0.14)",
+    bloom:
+      "radial-gradient(circle at 85% 12%, rgba(212,168,83,0.13) 0%, transparent 52%)",
+    rule: "linear-gradient(90deg, #D4A853 0%, rgba(212,168,83,0) 70%)",
+  };
+}
 
 function clamp(text: string, max: number): string {
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
@@ -403,9 +454,11 @@ function formatBriefingDate(feedDate?: string | null): string {
  */
 export async function renderDailyCoverCard(
   stories: DailyFeedItem[],
-  feedDate?: string | null
+  feedDate?: string | null,
+  variant: CardVariant = "navy"
 ): Promise<Buffer> {
   const logo = await loadLogo();
+  const c = colorScheme(variant);
   const dateLabel = formatBriefingDate(feedDate);
   const items = stories.slice(0, 3);
 
@@ -417,9 +470,8 @@ export async function renderDailyCoverCard(
         flexDirection: "column",
         width: "1080px",
         height: "1080px",
-        backgroundColor: NAVY,
-        backgroundImage:
-          "radial-gradient(circle at 85% 12%, rgba(212,168,83,0.13) 0%, transparent 52%)",
+        backgroundColor: c.bg,
+        backgroundImage: c.bloom,
         padding: "64px",
         justifyContent: "space-between",
       },
@@ -434,7 +486,10 @@ export async function renderDailyCoverCard(
               alignItems: "center",
             },
             children: [
-              brandHeader(logo, 56),
+              brandHeader(logo, 56, {
+                accent: c.amber,
+                forceText: variant === "light",
+              }),
               {
                 type: "div",
                 props: {
@@ -443,7 +498,7 @@ export async function renderDailyCoverCard(
                     fontSize: "15px",
                     letterSpacing: "0.22em",
                     textTransform: "uppercase",
-                    color: AMBER,
+                    color: c.amber,
                   },
                   children: "Daily Briefing",
                 },
@@ -466,7 +521,7 @@ export async function renderDailyCoverCard(
                     fontSize: "17px",
                     letterSpacing: "0.18em",
                     textTransform: "uppercase",
-                    color: FG_MUTED,
+                    color: c.fgMuted,
                   },
                   children: dateLabel,
                 },
@@ -480,7 +535,7 @@ export async function renderDailyCoverCard(
                     fontSize: "82px",
                     lineHeight: 1.0,
                     letterSpacing: "-0.02em",
-                    color: FG,
+                    color: c.fg,
                   },
                   children: "Today's Briefing",
                 },
@@ -509,7 +564,7 @@ export async function renderDailyCoverCard(
                             style: {
                               fontFamily: "JetBrains Mono",
                               fontSize: "15px",
-                              color: AMBER,
+                              color: c.amber,
                               minWidth: "30px",
                               marginTop: "10px",
                             },
@@ -524,7 +579,7 @@ export async function renderDailyCoverCard(
                               fontWeight: 700,
                               fontSize: "34px",
                               lineHeight: 1.15,
-                              color: FG,
+                              color: c.fg,
                             },
                             children: clamp(s.title, 70),
                           },
@@ -551,7 +606,7 @@ export async function renderDailyCoverCard(
                     display: "flex",
                     width: "100%",
                     height: "1px",
-                    backgroundImage: `linear-gradient(90deg, ${AMBER} 0%, rgba(212,168,83,0) 70%)`,
+                    backgroundImage: c.rule,
                   },
                   children: "",
                 },
@@ -573,7 +628,7 @@ export async function renderDailyCoverCard(
                           fontSize: "15px",
                           letterSpacing: "0.15em",
                           textTransform: "uppercase",
-                          color: FG_MUTED,
+                          color: c.fgMuted,
                         },
                         children: "Swipe for today's stories »",
                       },
@@ -585,7 +640,7 @@ export async function renderDailyCoverCard(
                           fontFamily: "JetBrains Mono",
                           fontSize: "15px",
                           letterSpacing: "0.22em",
-                          color: AMBER,
+                          color: c.amber,
                         },
                         children: "thedesk.au",
                       },
