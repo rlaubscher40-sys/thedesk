@@ -134,7 +134,7 @@ async function ensureSlideContent(stories: DailyFeedItem[]): Promise<void> {
  * yet, DB down) returns null so the renderers fall back to the bundled hero
  * rather than failing the post.
  */
-async function loadEditionHeroDataUri(editionId: number): Promise<string | null> {
+export async function loadEditionHeroDataUri(editionId: number): Promise<string | null> {
   try {
     const asset = await getLatestEditionAsset(editionId, "hero");
     if (!asset?.bytes?.length) return null;
@@ -160,22 +160,12 @@ function buildWeeklyCaption(edition: Edition): string {
   ].join("\n");
 }
 
-export async function postDailyCarousel(
-  stories: DailyFeedItem[],
-  siteUrl: string,
-  opts: {
-    /** Cover variant for the grid thumbnail (alternated for the checkerboard). */
-    variant?: CardVariant;
-    /** Market metrics for the cover's lower-third strip, already value+unit formatted. */
-    metrics?: Array<{ label: string; value: string }>;
-  } = {}
-): Promise<{ postId: string; headline: string }> {
-  const { instagramAccessToken: accessToken, instagramBusinessAccountId: igUserId } = env;
-  if (!accessToken || !igUserId) {
-    throw new Error("INSTAGRAM_ACCESS_TOKEN and INSTAGRAM_BUSINESS_ACCOUNT_ID must be set");
-  }
-
-  // Pick top-3 stories, favouring category variety over raw priority.
+/**
+ * Pick the top-3 stories for the daily carousel, favouring category variety
+ * over raw priority. Exported so the admin preview route renders the exact
+ * same selection the post would, without going through the posting flow.
+ */
+export function pickDailyTopStories(stories: DailyFeedItem[]): DailyFeedItem[] {
   const eligible = [...stories].filter((s) => s.title).sort((a, b) => b.priority - a.priority);
 
   const top: DailyFeedItem[] = [];
@@ -193,6 +183,25 @@ export async function postDailyCarousel(
     if (top.length >= 3) break;
     if (!top.includes(s)) top.push(s);
   }
+  return top;
+}
+
+export async function postDailyCarousel(
+  stories: DailyFeedItem[],
+  siteUrl: string,
+  opts: {
+    /** Cover variant for the grid thumbnail (alternated for the checkerboard). */
+    variant?: CardVariant;
+    /** Market metrics for the cover's lower-third strip, already value+unit formatted. */
+    metrics?: Array<{ label: string; value: string }>;
+  } = {}
+): Promise<{ postId: string; headline: string }> {
+  const { instagramAccessToken: accessToken, instagramBusinessAccountId: igUserId } = env;
+  if (!accessToken || !igUserId) {
+    throw new Error("INSTAGRAM_ACCESS_TOKEN and INSTAGRAM_BUSINESS_ACCOUNT_ID must be set");
+  }
+
+  const top = pickDailyTopStories(stories);
 
   if (top.length === 0) throw new Error("No stories available for Instagram post");
 
