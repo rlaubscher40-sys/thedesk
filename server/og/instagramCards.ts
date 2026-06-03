@@ -1133,7 +1133,7 @@ export async function renderWeeklyCoverCard(edition: Edition): Promise<Buffer> {
                       props: {
                         style: {
                           fontFamily: "JetBrains Mono",
-                          fontSize: "13px",
+                          fontSize: "15px",
                           letterSpacing: "0.26em",
                           textTransform: "uppercase",
                           color: AMBER,
@@ -1149,7 +1149,7 @@ export async function renderWeeklyCoverCard(edition: Edition): Promise<Buffer> {
                 props: {
                   style: {
                     fontFamily: "JetBrains Mono",
-                    fontSize: "13px",
+                    fontSize: "16px",
                     letterSpacing: "0.18em",
                     textTransform: "uppercase",
                     color: FG_MUTED,
@@ -1173,7 +1173,7 @@ export async function renderWeeklyCoverCard(edition: Edition): Promise<Buffer> {
                   style: {
                     fontFamily: "Playfair Display",
                     fontWeight: 700,
-                    fontSize: "76px",
+                    fontSize: "90px",
                     lineHeight: 1.0,
                     letterSpacing: "-0.03em",
                     color: FG,
@@ -1228,8 +1228,8 @@ export async function renderWeeklyCoverCard(edition: Edition): Promise<Buffer> {
                               style: {
                                 fontFamily: "Playfair Display",
                                 fontWeight: 700,
-                                fontSize: "30px",
-                                lineHeight: 1.2,
+                                fontSize: "38px",
+                                lineHeight: 1.22,
                                 color: FG,
                               },
                               children: clamp(topic.title, 60),
@@ -1299,7 +1299,7 @@ export async function renderWeeklyCoverCard(edition: Edition): Promise<Buffer> {
                               style: {
                                 fontFamily: "Playfair Display",
                                 fontWeight: 700,
-                                fontSize: "24px",
+                                fontSize: "26px",
                                 color: FG,
                               },
                               children: "Ruben Laubscher",
