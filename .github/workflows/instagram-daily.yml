@@ -2,13 +2,15 @@ name: Instagram daily post
 
 on:
   schedule:
-    # 21:47 UTC daily = 07:47 Sydney AEST (shifts to 08:47 during summer AEDT).
-    # Runs after the daily feed ingest so LLM enrichment (whyItMatters) has
-    # time to complete. The minute is offset off :00/:30 to dodge GitHub's
-    # busiest cron slots, which were delaying these runs by ~2h.
+    # 21:13 UTC daily = 07:13 Sydney AEST (shifts to 08:13 during summer AEDT).
+    # Runs ~30 min after the daily feed ingest so the feed's background
+    # enrichment (whyItMatters/sayThis) has usually finished and the post can
+    # reuse it; if it hasn't, ensureSlideContent() generates the missing lines
+    # at post time, so this gap is a nicety, not a hard dependency.
+    # The minute is offset off :00/:30 to dodge GitHub's busiest cron slots.
     # NB: scheduled runs only fire from the workflow file on the default
     # branch (main). GitHub's cron is best-effort and may still slip.
-    - cron: "47 21 * * *"
+    - cron: "13 21 * * *"
   workflow_dispatch:
     inputs:
       reason:

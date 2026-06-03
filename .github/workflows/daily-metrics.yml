@@ -2,12 +2,14 @@ name: Daily metrics ingest
 
 on:
   schedule:
-    # 21:07 UTC = 07:07 Sydney AEST (shifts to 08:07 during summer AEDT).
+    # 20:33 UTC = 06:33 Sydney AEST (shifts to 07:33 during summer AEDT).
+    # Runs first so the metrics strip is fresh on the Instagram cover; the
+    # daily brief itself doesn't read metrics, so order isn't load-bearing.
     # The minute is offset off :00/:30 to dodge GitHub's busiest cron slots,
     # which were delaying these runs by ~2h.
     # NB: scheduled runs only fire from the workflow file on the default
     # branch (main). GitHub's cron is best-effort and may still slip.
-    - cron: "7 21 * * *"
+    - cron: "33 20 * * *"
   workflow_dispatch:
     inputs:
       reason:
