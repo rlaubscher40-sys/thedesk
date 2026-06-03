@@ -51,13 +51,21 @@ async function loadFonts(): Promise<LoadedFonts> {
  * base64 data URI that satori can embed as an <img>. Putting the actual brand
  * mark on every card builds recognition far better than a text wordmark.
  */
-let cachedLogo: string | null = null;
-async function loadLogo(): Promise<string | null> {
-  if (cachedLogo) return cachedLogo;
+// One lockup per grid variant: the standard (light-on-transparent) mark
+// for navy cards, and the gold-on-transparent mark for the light/paper
+// cards where the standard one would wash out.
+const LOGO_FILE: Record<CardVariant, string> = {
+  navy: "desk-lockup.png",
+  light: "desk-lockup-on-light.png",
+};
+const cachedLogos: Partial<Record<CardVariant, string>> = {};
+async function loadLogo(variant: CardVariant = "navy"): Promise<string | null> {
+  if (cachedLogos[variant]) return cachedLogos[variant]!;
   try {
-    const buf = await fs.promises.readFile(path.join(FONT_DIR, "desk-lockup.png"));
-    cachedLogo = `data:image/png;base64,${buf.toString("base64")}`;
-    return cachedLogo;
+    const buf = await fs.promises.readFile(path.join(FONT_DIR, LOGO_FILE[variant]));
+    const uri = `data:image/png;base64,${buf.toString("base64")}`;
+    cachedLogos[variant] = uri;
+    return uri;
   } catch (err) {
     // If the bundled logo can't be read (e.g. not copied into the build),
     // fall back to the text wordmark rather than failing the whole post.
@@ -457,7 +465,7 @@ export async function renderDailyCoverCard(
   feedDate?: string | null,
   variant: CardVariant = "navy"
 ): Promise<Buffer> {
-  const logo = await loadLogo();
+  const logo = await loadLogo(variant);
   const c = colorScheme(variant);
   const dateLabel = formatBriefingDate(feedDate);
   const items = stories.slice(0, 3);
@@ -486,10 +494,7 @@ export async function renderDailyCoverCard(
               alignItems: "center",
             },
             children: [
-              brandHeader(logo, 56, {
-                accent: c.amber,
-                forceText: variant === "light",
-              }),
+              brandHeader(logo, 56, { accent: c.amber }),
               {
                 type: "div",
                 props: {
@@ -511,7 +516,7 @@ export async function renderDailyCoverCard(
         {
           type: "div",
           props: {
-            style: { display: "flex", flexDirection: "column", gap: "24px" },
+            style: { display: "flex", flexDirection: "column", gap: "34px" },
             children: [
               {
                 type: "div",
@@ -546,8 +551,8 @@ export async function renderDailyCoverCard(
                   style: {
                     display: "flex",
                     flexDirection: "column",
-                    gap: "18px",
-                    marginTop: "8px",
+                    gap: "30px",
+                    marginTop: "16px",
                   },
                   children: items.map((s, i) => ({
                     type: "div",
@@ -566,7 +571,7 @@ export async function renderDailyCoverCard(
                               fontSize: "15px",
                               color: c.amber,
                               minWidth: "30px",
-                              marginTop: "10px",
+                              marginTop: "12px",
                             },
                             children: `0${i + 1}`,
                           },
@@ -578,10 +583,10 @@ export async function renderDailyCoverCard(
                               fontFamily: "Playfair Display",
                               fontWeight: 700,
                               fontSize: "34px",
-                              lineHeight: 1.15,
+                              lineHeight: 1.28,
                               color: c.fg,
                             },
-                            children: clamp(s.title, 70),
+                            children: clamp(s.title, 90),
                           },
                         },
                       ],
