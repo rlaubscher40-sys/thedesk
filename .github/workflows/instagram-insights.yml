@@ -2,10 +2,11 @@ name: Instagram insights refresh
 
 on:
   schedule:
-    # 21:00 UTC daily ≈ 07:00 Sydney (AEST). Runs the morning after, so the
-    # prior day's feed post has had ~24h to accumulate engagement before we
-    # snapshot its metrics.
-    - cron: "0 21 * * *"
+    # 21:17 UTC daily = 07:17 Sydney AEST (shifts to 08:17 during summer AEDT).
+    # Runs the morning after, so the prior day's feed post has had ~24h to
+    # accumulate engagement before we snapshot its metrics. The minute is
+    # offset off :00/:30 to dodge GitHub's busiest cron slots.
+    - cron: "17 21 * * *"
   workflow_dispatch:
     inputs:
       reason:

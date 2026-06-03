@@ -2,11 +2,13 @@ name: Instagram daily post
 
 on:
   schedule:
-    # 21:30 UTC daily ≈ 07:30 Sydney (AEST). Runs 90 minutes after the daily
-    # feed ingest so LLM enrichment (whyItMatters) has time to complete.
+    # 21:47 UTC daily = 07:47 Sydney AEST (shifts to 08:47 during summer AEDT).
+    # Runs after the daily feed ingest so LLM enrichment (whyItMatters) has
+    # time to complete. The minute is offset off :00/:30 to dodge GitHub's
+    # busiest cron slots, which were delaying these runs by ~2h.
     # NB: scheduled runs only fire from the workflow file on the default
-    # branch (main). GitHub's cron is best-effort and may be delayed.
-    - cron: "30 21 * * *"
+    # branch (main). GitHub's cron is best-effort and may still slip.
+    - cron: "47 21 * * *"
   workflow_dispatch:
     inputs:
       reason:

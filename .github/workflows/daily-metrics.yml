@@ -2,11 +2,12 @@ name: Daily metrics ingest
 
 on:
   schedule:
-    # 19:30 UTC ≈ 05:30 Sydney AEST — runs slightly before daily-feed so
-    # the metrics strip is fresh when the brief lands.
+    # 21:07 UTC = 07:07 Sydney AEST (shifts to 08:07 during summer AEDT).
+    # The minute is offset off :00/:30 to dodge GitHub's busiest cron slots,
+    # which were delaying these runs by ~2h.
     # NB: scheduled runs only fire from the workflow file on the default
-    # branch (main). GitHub's cron is best-effort and may be delayed.
-    - cron: "30 19 * * *"
+    # branch (main). GitHub's cron is best-effort and may still slip.
+    - cron: "7 21 * * *"
   workflow_dispatch:
     inputs:
       reason:
