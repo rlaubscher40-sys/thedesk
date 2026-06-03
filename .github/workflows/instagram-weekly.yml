@@ -2,10 +2,11 @@ name: Instagram weekly post
 
 on:
   schedule:
-    # 23:00 UTC Saturday ≈ 09:00 Sunday Sydney (AEST). Runs 2 hours after the
-    # weekly edition synthesis (21:00 UTC Saturday) so hero image + Ruben's
+    # 23:19 UTC Saturday = 09:19 Sunday Sydney AEST. Runs ~2 hours after the
+    # weekly edition synthesis (21:17 UTC Saturday) so hero image + Ruben's
     # Take enrichment have time to complete before the post goes out.
-    - cron: "0 23 * * 6"
+    # The minute is offset off :00 to dodge GitHub's busiest cron slot.
+    - cron: "19 23 * * 6"
   workflow_dispatch:
     inputs:
       reason:
