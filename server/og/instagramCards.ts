@@ -2,7 +2,9 @@
  * Instagram card image generator.
  *
  * Produces JPEG images sized for Instagram:
- *   - Daily story cards: 1080×1080 (square, optimal for feed carousels)
+ *   - Daily cards: 1080×1350 (4:5 portrait — matches the profile grid's
+ *     portrait tile so headlines aren't side-cropped, and gives more in-feed
+ *     space when the post is opened)
  *   - Weekly edition cards: 1080×1350 (4:5 portrait, more content space)
  *
  * Uses the same satori → resvg → sharp pipeline as editionCard.ts, and
@@ -235,7 +237,7 @@ async function renderToJpeg(tree: object, width: number, height: number): Promis
 }
 
 /**
- * Daily story card: 1080×1080 square.
+ * Daily story card: 1080×1350 (4:5 portrait).
  * Displays one story per slide with category, headline, and why-it-matters.
  */
 export async function renderDailyStoryCard(
@@ -273,7 +275,7 @@ export async function renderDailyStoryCard(
         display: "flex",
         flexDirection: "column",
         width: "1080px",
-        height: "1080px",
+        height: "1350px",
         backgroundColor: c.bg,
         backgroundImage: c.bloom,
         padding: "64px",
@@ -468,7 +470,7 @@ export async function renderDailyStoryCard(
     },
   };
 
-  return renderToJpeg(tree, 1080, 1080);
+  return renderToJpeg(tree, 1080, 1350);
 }
 
 /**
@@ -489,13 +491,14 @@ function formatBriefingDate(feedDate?: string | null): string {
 }
 
 /**
- * Daily cover card: 1080×1080 square, slide 1 of the daily carousel.
+ * Daily cover card: 1080×1350 (4:5 portrait), slide 1 of the daily carousel.
  *
  * A branded contents page — logo, date, "Today's Briefing", and the numbered
  * headlines of the stories that follow. Because Instagram's grid shows slide 1
  * as the post thumbnail, leading every daily post with this cover makes the
  * profile grid read as a cohesive column of covers instead of three dense,
- * unrelated story tiles. Mirrors renderWeeklyCoverCard for the daily cadence.
+ * unrelated story tiles. The 4:5 ratio fills that portrait grid tile so the
+ * cover isn't side-cropped. Mirrors renderWeeklyCoverCard for the daily cadence.
  */
 export async function renderDailyCoverCard(
   stories: DailyFeedItem[],
@@ -519,7 +522,7 @@ export async function renderDailyCoverCard(
         display: "flex",
         flexDirection: "column",
         width: "1080px",
-        height: "1080px",
+        height: "1350px",
         backgroundColor: c.bg,
         backgroundImage: c.bloom,
         padding: "64px",
@@ -574,7 +577,12 @@ export async function renderDailyCoverCard(
           },
         },
 
-        // ── Content: date + title + contents, pulled up under the header ──
+        // ── Top spacer centres the briefing block (date + title + contents +
+        //    folded metric strip) between header and footer, so the slack
+        //    splits evenly instead of stranding a gap above the footer. ──
+        { type: "div", props: { style: { display: "flex", flexGrow: 1 }, children: "" } },
+
+        // ── Centred briefing block ──
         {
           type: "div",
           props: {
@@ -582,7 +590,6 @@ export async function renderDailyCoverCard(
               display: "flex",
               flexDirection: "column",
               gap: "34px",
-              marginTop: "76px",
             },
             children: [
               {
@@ -618,8 +625,8 @@ export async function renderDailyCoverCard(
                   style: {
                     display: "flex",
                     flexDirection: "column",
-                    gap: "34px",
-                    marginTop: "16px",
+                    gap: "56px",
+                    marginTop: "40px",
                   },
                   children: items.map((s, i) => ({
                     type: "div",
@@ -649,8 +656,8 @@ export async function renderDailyCoverCard(
                             style: {
                               fontFamily: "Playfair Display",
                               fontWeight: 700,
-                              fontSize: "40px",
-                              lineHeight: 1.26,
+                              fontSize: "46px",
+                              lineHeight: 1.3,
                               color: c.fg,
                             },
                             children: clamp(s.title, 90),
@@ -661,66 +668,66 @@ export async function renderDailyCoverCard(
                   })),
                 },
               },
+              // ── Slim metric strip, folded directly under the contents so the
+              //    dashboard reads as one group with the briefing rather than a
+              //    detached lower third. Rendered only when given. ──
+              ...(metrics && metrics.length
+                ? [
+                    {
+                      type: "div",
+                      props: {
+                        style: { display: "flex", gap: "54px", marginTop: "44px" },
+                        children: metrics.slice(0, 4).map((m) => ({
+                          type: "div",
+                          props: {
+                            style: {
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "7px",
+                            },
+                            children: [
+                              {
+                                type: "div",
+                                props: {
+                                  style: {
+                                    fontFamily: "Playfair Display",
+                                    fontWeight: 700,
+                                    fontSize: "40px",
+                                    lineHeight: 1,
+                                    color: c.fg,
+                                  },
+                                  // Guard the row width: values are short by
+                                  // nature, but a malformed long one must not
+                                  // push the strip off the card.
+                                  children: clamp(m.value, 12),
+                                },
+                              },
+                              {
+                                type: "div",
+                                props: {
+                                  style: {
+                                    fontFamily: "JetBrains Mono",
+                                    fontSize: "12px",
+                                    letterSpacing: "0.18em",
+                                    textTransform: "uppercase",
+                                    color: c.amber,
+                                  },
+                                  children: clamp(m.label, 18),
+                                },
+                              },
+                            ],
+                          },
+                        })),
+                      },
+                    },
+                  ]
+                : []),
             ],
           },
         },
 
-        // Push the footer to the bottom edge; the content sits up top.
+        // ── Bottom spacer balances the top one to keep the block centred. ──
         { type: "div", props: { style: { display: "flex", flexGrow: 1 }, children: "" } },
-
-        // ── Metric strip: a mini briefing dashboard that earns the lower
-        //    third instead of leaving it empty. Rendered only when given. ──
-        ...(metrics && metrics.length
-          ? [
-              {
-                type: "div",
-                props: {
-                  style: { display: "flex", gap: "54px", marginBottom: "30px" },
-                  children: metrics.slice(0, 4).map((m) => ({
-                    type: "div",
-                    props: {
-                      style: {
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "7px",
-                      },
-                      children: [
-                        {
-                          type: "div",
-                          props: {
-                            style: {
-                              fontFamily: "Playfair Display",
-                              fontWeight: 700,
-                              fontSize: "40px",
-                              lineHeight: 1,
-                              color: c.fg,
-                            },
-                            // Guard the row width: values are short by nature,
-                            // but a malformed long one must not push the strip
-                            // off the card.
-                            children: clamp(m.value, 12),
-                          },
-                        },
-                        {
-                          type: "div",
-                          props: {
-                            style: {
-                              fontFamily: "JetBrains Mono",
-                              fontSize: "12px",
-                              letterSpacing: "0.18em",
-                              textTransform: "uppercase",
-                              color: c.amber,
-                            },
-                            children: clamp(m.label, 18),
-                          },
-                        },
-                      ],
-                    },
-                  })),
-                },
-              },
-            ]
-          : []),
 
         // ── Bottom: rule + swipe prompt + domain ──
         {
@@ -784,7 +791,7 @@ export async function renderDailyCoverCard(
     },
   };
 
-  return renderToJpeg(tree, 1080, 1080);
+  return renderToJpeg(tree, 1080, 1350);
 }
 
 /**

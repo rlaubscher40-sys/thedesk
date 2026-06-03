@@ -66,7 +66,7 @@ function expectJpeg(buf: Buffer) {
 }
 
 describe("renderDailyCoverCard", () => {
-  it("renders a 1080x1080 JPEG for the default navy variant", async () => {
+  it("renders a 1080x1350 JPEG for the default navy variant", async () => {
     expectJpeg(await renderDailyCoverCard(stories, "2026-06-03"));
   });
 
