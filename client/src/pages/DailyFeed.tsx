@@ -282,26 +282,29 @@ export default function DailyFeed() {
           )}
         </div>
 
-        {/* Stories first: the day's scan sits directly under the date so a
-            first-time reader meets the stories before the filtering tools. */}
+        {/* Topic tabs lead the feed (Discover-style) and pin to the top as
+            you scroll, so switching topic mid-scroll is one tap away. */}
+        <SectionErrorBoundary section="Filters">
+          <FilterChips
+            active={filter}
+            onChange={setFilter}
+            categories={chipCategories}
+          />
+        </SectionErrorBoundary>
+
+        {/* Stories first: the day's scan sits directly under the topic tabs so
+            a first-time reader meets the stories before the finer tools. */}
         {hasLiveData && (
           <SectionErrorBoundary section="Today in brief">
             <TodayInBrief items={feedItems} />
           </SectionErrorBoundary>
         )}
 
-        {/* Tools: tune the persona and filter by topic. Below the scan now,
-            so they read as 'refine what you see' rather than a gate. */}
+        {/* Tools: tune the persona, plus the first-run hint and 'what's new'
+            marker. Below the scan, so they read as 'refine what you see'. */}
         <div className="space-y-5">
           <PersonaSwitcher />
           <FeedHint />
-          <SectionErrorBoundary section="Filters">
-            <FilterChips
-              active={filter}
-              onChange={setFilter}
-              categories={chipCategories}
-            />
-          </SectionErrorBoundary>
           <WhatsNewPill storyDates={storyTimestamps} storageKey="today" />
         </div>
       </div>

@@ -508,6 +508,16 @@
 }
 
 @layer components {
+  /* Hide the scrollbar on horizontally-scrollable strips (topic tabs,
+     filter rows) while keeping them scrollable by touch / wheel. */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   /* ─── Editorial rule ─────────────────────────────────────────
      The defining horizontal element — a glowing amber gradient
      line with a soft shadow. Used at the top of every page and

@@ -1,12 +1,18 @@
 /**
- * Horizontally scrollable category filter row sitting beneath the date
- * pager. Selecting a chip filters the feed below.
+ * Topic tab bar sitting at the top of the daily feed. Selecting a tab filters
+ * the feed below. Styled as underline tabs (an editorial take on the
+ * Discover-style topic row) rather than pills — flat mono labels with an
+ * accent underline on the active tab, kept in The Desk's dark / amber system.
  *
- * Categories are computed from whatever's actually on the page, in
- * live mode that's the distinct set of categories across the day's
- * feed items; in seed mode it's the legacy seed categories. Either way,
- * we never show a chip the user can't actually filter to.
+ * Categories are computed from whatever's actually on the page: in live mode
+ * that's the distinct set across the day's feed items; in seed mode it's the
+ * legacy seed categories. Either way we never show a tab the user can't
+ * actually filter to.
+ *
+ * The component keeps its original name + props (`active`, `onChange`,
+ * `categories`) so the only call site — DailyFeed — needs no rewiring.
  */
+import { useEffect, useRef } from "react";
 import { cn } from "@/lib/cn";
 import { categoryColour } from "@/lib/category";
 
@@ -41,55 +47,85 @@ export function FilterChips({
 }: {
   active: CategoryFilter;
   onChange: (next: CategoryFilter) => void;
-  /** Categories to render as chips (excludes ALL, that's always first). */
+  /** Categories to render as tabs (excludes ALL, that's always first). */
   categories: string[];
 }) {
-  const chips = [
+  const tabs = [
     { id: "ALL", label: LABELS.ALL! },
     ...categories.map((id) => ({ id, label: LABELS[id] ?? toTitle(id) })),
   ];
 
+  // Keep the active tab in view when the row is horizontally scrolled (mobile),
+  // so selecting a tab off-screen — or arrow-keying along — doesn't hide it.
+  const activeRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    activeRef.current?.scrollIntoView({
+      behavior: "smooth",
+      inline: "center",
+      block: "nearest",
+    });
+  }, [active]);
+
   return (
+    // Sticky topic bar. Negative margins bleed it to the content gutters so the
+    // backdrop fully masks stories scrolling beneath it; the matching padding
+    // re-insets the tabs to the reading column. The bottom border is the track
+    // the active underline sits on.
     <div
-      role="tablist"
-      aria-label="Filter by category"
-      className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1"
-      style={{ scrollbarWidth: "thin" }}
+      className={cn(
+        "sticky top-0 z-20",
+        "-mx-5 sm:-mx-8 lg:-mx-12 xl:-mx-16 2xl:-mx-20",
+        "px-5 sm:px-8 lg:px-12 xl:px-16 2xl:px-20",
+        "bg-[var(--color-bg)]/85 backdrop-blur-md",
+        "border-b border-[var(--color-border)]"
+      )}
     >
-      {chips.map((f) => {
-        const isActive = f.id === active;
-        const colour =
-          f.id === "ALL" ? "oklch(0.78 0.18 70)" : categoryColour(f.id as never);
-        return (
-          <button
-            key={f.id}
-            role="tab"
-            aria-pressed={isActive}
-            onClick={() => onChange(f.id)}
-            className={cn(
-              "shrink-0 px-3 py-1.5 rounded-full transition-all duration-200 text-[11px] font-mono uppercase tracking-[0.16em] flex items-center gap-2 border",
-              isActive
-                ? "text-[var(--color-fg)]"
-                : "text-[var(--color-fg-subtle)] hover:text-[var(--color-fg-muted)]"
-            )}
-            style={
-              isActive
-                ? {
-                    background: `${colour}10`,
-                    borderColor: `${colour}55`,
-                  }
-                : { borderColor: "var(--color-border)" }
-            }
-          >
-            <span
-              className="h-1 w-1 rounded-full transition-opacity"
-              style={{ background: colour, opacity: isActive ? 1 : 0.35 }}
-              aria-hidden="true"
-            />
-            {f.label}
-          </button>
-        );
-      })}
+      <div
+        role="tablist"
+        aria-label="Filter by topic"
+        className="flex gap-6 overflow-x-auto no-scrollbar"
+        style={{ scrollbarWidth: "none" }}
+        onKeyDown={(e) => {
+          if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+          e.preventDefault();
+          const i = tabs.findIndex((t) => t.id === active);
+          const next =
+            e.key === "ArrowRight"
+              ? tabs[Math.min(i + 1, tabs.length - 1)]
+              : tabs[Math.max(i - 1, 0)];
+          if (next) onChange(next.id);
+        }}
+      >
+        {tabs.map((t) => {
+          const isActive = t.id === active;
+          const colour =
+            t.id === "ALL" ? "oklch(0.78 0.18 70)" : categoryColour(t.id as never);
+          return (
+            <button
+              key={t.id}
+              ref={isActive ? activeRef : undefined}
+              role="tab"
+              aria-selected={isActive}
+              tabIndex={isActive ? 0 : -1}
+              onClick={() => onChange(t.id)}
+              className={cn(
+                "relative shrink-0 whitespace-nowrap pt-1 pb-3 text-[11px] font-mono uppercase tracking-[0.18em] transition-colors duration-200",
+                isActive
+                  ? "text-[var(--color-fg)]"
+                  : "text-[var(--color-fg-subtle)] hover:text-[var(--color-fg-muted)]"
+              )}
+            >
+              {t.label}
+              {/* Active underline, overlapping the track border below. */}
+              <span
+                className="absolute -bottom-px left-0 right-0 h-[2px] rounded-full transition-opacity duration-200"
+                style={{ background: colour, opacity: isActive ? 1 : 0 }}
+                aria-hidden="true"
+              />
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
