@@ -16,3 +16,4 @@ export * from "./feedback";
 export * from "./health";
 export * from "./analytics";
 export * from "./instagramPosts";
+export * from "./jobRuns";

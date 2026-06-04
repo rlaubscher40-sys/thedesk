@@ -55,6 +55,12 @@ export const env = Object.freeze({
   instagramAccessToken: process.env.INSTAGRAM_ACCESS_TOKEN ?? "",
   instagramBusinessAccountId: process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID ?? "",
   dbPoolSize: intEnv(process.env.DB_POOL_SIZE, 10),
+  /**
+   * Opt-in flag for the in-process scheduler (server/scheduler). Default OFF so
+   * merging the feature changes nothing until it's deliberately switched on
+   * (and the GitHub Actions crons retired) — see docs/reliable-scheduling.md.
+   */
+  enableScheduler: (process.env.ENABLE_SCHEDULER ?? "").toLowerCase() === "true",
 });
 
 export type Env = typeof env;

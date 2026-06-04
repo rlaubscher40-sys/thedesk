@@ -14,6 +14,7 @@ import {
   mysqlTable,
   text,
   timestamp,
+  unique,
   varchar,
 } from "drizzle-orm/mysql-core";
 
@@ -551,3 +552,35 @@ export const instagramPosts = mysqlTable("instagram_posts", {
 
 export type InstagramPost = typeof instagramPosts.$inferSelect;
 export type InsertInstagramPost = typeof instagramPosts.$inferInsert;
+
+// ─── Scheduled job runs (in-process scheduler watermark) ────────────────────
+
+/**
+ * One row per (job, Sydney calendar date). The in-process scheduler claims a
+ * row before running a job and marks it success/failed after, so a job runs at
+ * most once a day, survives retries, and is safe even if two server instances
+ * tick at once (the unique key lets exactly one claimer win). The "catch-up"
+ * design — "is today's run done? if not, run it" — reads this table, which is
+ * why it's the source of truth rather than a fire-at-time-T timer.
+ */
+export const jobRuns = mysqlTable(
+  "job_runs",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    jobKey: varchar("jobKey", { length: 64 }).notNull(),
+    /** Sydney calendar date, YYYY-MM-DD — the run's logical day. */
+    runDate: varchar("runDate", { length: 10 }).notNull(),
+    /** running | success | failed */
+    status: varchar("status", { length: 16 }).notNull(),
+    attempts: int("attempts").notNull().default(1),
+    detail: text("detail"),
+    startedAt: timestamp("startedAt").defaultNow().notNull(),
+    finishedAt: timestamp("finishedAt"),
+  },
+  (t) => ({
+    jobDate: unique("uq_job_runs_key_date").on(t.jobKey, t.runDate),
+  })
+);
+
+export type JobRun = typeof jobRuns.$inferSelect;
+export type InsertJobRun = typeof jobRuns.$inferInsert;

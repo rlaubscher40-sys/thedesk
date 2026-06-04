@@ -228,6 +228,20 @@ export const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
     name: "0019 · daily_feed_items.channel",
     sql: "ALTER TABLE daily_feed_items ADD channel varchar(32) NOT NULL DEFAULT 'AU'",
   },
+  {
+    name: "0020 · job_runs table",
+    sql: `CREATE TABLE job_runs (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      jobKey VARCHAR(64) NOT NULL,
+      runDate VARCHAR(10) NOT NULL,
+      status VARCHAR(16) NOT NULL,
+      attempts INT NOT NULL DEFAULT 1,
+      detail TEXT,
+      startedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      finishedAt TIMESTAMP NULL,
+      UNIQUE KEY uq_job_runs_key_date (jobKey, runDate)
+    )`,
+  },
 ];
 
 /** MySQL/TiDB error message fragments that mean "already applied". */
