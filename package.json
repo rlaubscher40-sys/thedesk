@@ -15,9 +15,9 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "ingest:daily": "tsx scripts/ingest/dailyFeed.ts",
-    "ingest:weekly": "tsx scripts/ingest/weeklyEdition.ts",
-    "ingest:metrics": "tsx scripts/ingest/dailyMetrics.ts"
+    "ingest:daily": "INGEST_CLI=1 tsx scripts/ingest/dailyFeed.ts",
+    "ingest:weekly": "INGEST_CLI=1 tsx scripts/ingest/weeklyEdition.ts",
+    "ingest:metrics": "INGEST_CLI=1 tsx scripts/ingest/dailyMetrics.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.96.0",
@@ -48,6 +48,7 @@
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "recharts": "^2.15.2",
+    "rss-parser": "^3.13.0",
     "satori": "^0.26.0",
     "sharp": "^0.34.5",
     "sonner": "^2.0.7",
@@ -66,7 +67,6 @@
     "drizzle-kit": "^0.31.4",
     "esbuild": "^0.25.0",
     "prettier": "^3.6.2",
-    "rss-parser": "^3.13.0",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.19.1",
     "typescript": "5.9.3",

@@ -139,11 +139,13 @@ function fmtNumber(n: number, decimals = 2): string {
   });
 }
 
-async function main(): Promise<void> {
-  const baseUrl = process.env.INGEST_BASE_URL?.replace(/\/+$/, "");
-  const apiKey = process.env.SCHEDULED_API_KEY;
-  if (!baseUrl) throw new Error("INGEST_BASE_URL is required");
-  if (!apiKey) throw new Error("SCHEDULED_API_KEY is required");
+/**
+ * Run the daily-metrics ingest against `rawBaseUrl` (deployed site for the
+ * GitHub Action, or http://127.0.0.1:<port> for the in-process scheduler).
+ * Pure: no env reads, no process.exit, so the server can import it.
+ */
+export async function runDailyMetricsIngest(rawBaseUrl: string, apiKey: string): Promise<void> {
+  const baseUrl = rawBaseUrl.replace(/\/+$/u, "");
 
   console.log("[metrics] fetching from Yahoo Finance + RBA...");
 
@@ -341,13 +343,21 @@ async function main(): Promise<void> {
   console.log("[metrics] done.");
 }
 
-main()
-  .then(() => {
-    // Force exit so dangling keepalive sockets don't hold Node past
-    // `done`. Same reasoning as dailyFeed.ts.
-    process.exit(0);
-  })
-  .catch((err) => {
-    console.error(err);
-    process.exit(1);
-  });
+async function main(): Promise<void> {
+  const baseUrl = process.env.INGEST_BASE_URL;
+  const apiKey = process.env.SCHEDULED_API_KEY;
+  if (!baseUrl) throw new Error("INGEST_BASE_URL is required");
+  if (!apiKey) throw new Error("SCHEDULED_API_KEY is required");
+  await runDailyMetricsIngest(baseUrl, apiKey);
+}
+
+// CLI entrypoint only (pnpm ingest:metrics sets INGEST_CLI=1); never runs when
+// the server imports this module for the in-process scheduler.
+if (process.env.INGEST_CLI === "1") {
+  main()
+    .then(() => process.exit(0))
+    .catch((err) => {
+      console.error(err);
+      process.exit(1);
+    });
+}

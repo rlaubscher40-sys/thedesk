@@ -22,6 +22,7 @@ import { registerScheduledRoutes } from "./scheduledRoutes";
 import { getDb } from "./db/client";
 import { runCatchup } from "./db/catchup";
 import { isDemoMode } from "./demo/store";
+import { startScheduler } from "./scheduler";
 
 /**
  * Apply idempotent schema catch-up before we start serving. This closes the
@@ -176,6 +177,9 @@ async function startServer() {
   }
   server.listen(port, () => {
     console.log(`The Desk running at http://localhost:${port}/`);
+    // Self-healing in-process scheduler (replaces GitHub cron when enabled).
+    // Bound to the actual listening port so its loopback self-calls hit us.
+    startScheduler({ port });
   });
 }
 

@@ -203,11 +203,13 @@ function rankAndCap(items: FetchedItem[], target: number): FetchedItem[] {
   return picked;
 }
 
-async function main(): Promise<void> {
-  const baseUrl = process.env.INGEST_BASE_URL?.replace(/\/+$/, "");
-  const apiKey = process.env.SCHEDULED_API_KEY;
-  if (!baseUrl) throw new Error("INGEST_BASE_URL is required");
-  if (!apiKey) throw new Error("SCHEDULED_API_KEY is required");
+/**
+ * Run the daily-feed ingest against `rawBaseUrl` (the deployed site for the
+ * GitHub Action, or http://127.0.0.1:<port> when the in-process scheduler
+ * calls it). Pure: no env reads, no process.exit, so the server can import it.
+ */
+export async function runDailyFeedIngest(rawBaseUrl: string, apiKey: string): Promise<void> {
+  const baseUrl = rawBaseUrl.replace(/\/+$/u, "");
 
   console.log(`[ingest] pulling ${SOURCES.length} sources...`);
   const fetched = (await Promise.all(SOURCES.map(fetchSource))).flat();
@@ -322,16 +324,26 @@ async function main(): Promise<void> {
   console.log(`[ingest] done.`);
 }
 
-main()
-  .then(() => {
-    // Force exit so dangling keepalive sockets from RSS fetches +
-    // og:image scrapes don't hold the Node process open past `done`.
-    // Without this the GitHub Actions runner sits idle until the
-    // step's timeout-minutes ceiling, then "Cancels" a script that
-    // had already finished cleanly.
-    process.exit(0);
-  })
-  .catch((err) => {
-    console.error(err);
-    process.exit(1);
-  });
+async function main(): Promise<void> {
+  const baseUrl = process.env.INGEST_BASE_URL;
+  const apiKey = process.env.SCHEDULED_API_KEY;
+  if (!baseUrl) throw new Error("INGEST_BASE_URL is required");
+  if (!apiKey) throw new Error("SCHEDULED_API_KEY is required");
+  await runDailyFeedIngest(baseUrl, apiKey);
+}
+
+// CLI entrypoint only — `pnpm ingest:daily` sets INGEST_CLI=1. When the server
+// imports this module for the in-process scheduler, INGEST_CLI is unset, so
+// main() never runs (and never process.exit()s the server) on import.
+if (process.env.INGEST_CLI === "1") {
+  main()
+    .then(() => {
+      // Force exit so dangling keepalive sockets from RSS fetches +
+      // og:image scrapes don't hold the Node process open past `done`.
+      process.exit(0);
+    })
+    .catch((err) => {
+      console.error(err);
+      process.exit(1);
+    });
+}

@@ -51,7 +51,7 @@ export function extractArticleText(html: string, maxChars: number): string | nul
   const re = /<p\b[^>]*>([\s\S]*?)<\/p>/gi;
   let m: RegExpExecArray | null;
   while ((m = re.exec(container)) !== null) {
-    const txt = decodeEntities(stripHtml(m[1])).trim();
+    const txt = decodeEntities(stripHtml(m[1] ?? "")).trim();
     // Drop scraps: share prompts, captions, bylines, single words.
     if (txt.length >= 40) paras.push(txt);
   }
