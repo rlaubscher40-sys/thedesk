@@ -305,6 +305,16 @@ export async function postDailyCarousel(
     throw new Error("INSTAGRAM_ACCESS_TOKEN and INSTAGRAM_BUSINESS_ACCOUNT_ID must be set");
   }
 
+  // Coverage carousel gets its own cover title + card labels so it reads as a
+  // distinct series on the grid, not another "Today's Briefing".
+  const coverOpts = isCoverage
+    ? { title: "The Wider Lens", kicker: "Wider Lens" }
+    : {};
+  const cardOpts = isCoverage ? { subtextLabel: "In Brief" } : {};
+  const verticalOpts = isCoverage
+    ? { subtextLabel: "In Brief", header: "Wider Lens" }
+    : {};
+
   // Over-select a candidate pool, then generate slide content across it so we
   // can exclude any story the model declines to write a why-it-matters for. A
   // SKIP (null why-it-matters) means the story is off-topic for a finance brief
@@ -314,17 +324,23 @@ export async function postDailyCarousel(
 
   if (pool.length === 0) throw new Error("No stories available for Instagram post");
 
-  // Every slide must carry a why-it-matters (card subtext). The daily post also
-  // wants a say-this (caption hook) and persists both back to the feed item;
-  // the coverage post generates a why-it-matters only, in memory, so the IG
-  // card has subtext without stamping partner context onto coverage stories.
-  await ensureSlideContent(
-    pool,
-    isCoverage ? { sayThis: false, persist: false } : {}
-  );
+  // Every slide needs subtext. The daily post generates a why-it-matters (and a
+  // say-this caption hook) per story and persists both back to the feed item.
+  // The coverage post instead shows each story's own publisher summary as the
+  // card subtext — in memory, nothing persisted: coverage carries no partner
+  // angle, and the finance "why it matters" generator SKIPs general news, which
+  // was thinning the carousel below three slides. The label is overridden to
+  // "In Brief" on the card so the summary isn't mislabelled.
+  if (isCoverage) {
+    for (const s of pool) {
+      if (!s.whyItMatters || !s.whyItMatters.trim()) s.whyItMatters = s.summary;
+    }
+  } else {
+    await ensureSlideContent(pool);
+  }
 
-  // Best slides that earned a why-it-matters. A thin day posts fewer real
-  // slides rather than padding with blanks; an entirely off-topic pool throws.
+  // Best slides that earned subtext. A thin day posts fewer real slides rather
+  // than padding with blanks; an entirely off-topic pool throws.
   const withContext = pool.filter((s) => s.whyItMatters && s.whyItMatters.trim());
   const top = pickDailyTopStories(withContext, DAILY_SLIDE_COUNT);
   if (top.length === 0) throw new Error("No stories with usable context for Instagram post");
@@ -355,10 +371,11 @@ export async function postDailyCarousel(
       sanitized,
       sanitized[0]?.feedDate,
       opts.variant ?? "navy",
-      opts.metrics
+      opts.metrics,
+      coverOpts
     );
     uuids.push(storeTempImage(coverBuf));
-    altTexts.push("The Desk daily briefing cover");
+    altTexts.push(isCoverage ? "The Desk wider lens cover" : "The Desk daily briefing cover");
 
     for (let i = 0; i < sanitized.length; i++) {
       // Whole carousel shares the cover's variant so a light post reads as
@@ -367,7 +384,8 @@ export async function postDailyCarousel(
         sanitized[i]!,
         i,
         sanitized.length,
-        opts.variant ?? "navy"
+        opts.variant ?? "navy",
+        cardOpts
       );
       uuids.push(storeTempImage(buf));
       altTexts.push(sanitized[i]?.title);
@@ -412,7 +430,7 @@ export async function postDailyCarousel(
     // already gone live, nor block the remaining frames.
     for (let i = 0; i < sanitized.length; i++) {
       try {
-        const storyBuf = await renderDailyStoryVertical(sanitized[i]!, opts.variant ?? "navy");
+        const storyBuf = await renderDailyStoryVertical(sanitized[i]!, opts.variant ?? "navy", verticalOpts);
         const storyUuid = storeTempImage(storyBuf);
         uuids.push(storyUuid);
         const storyContainerId = await createStoryContainer({

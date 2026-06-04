@@ -244,7 +244,8 @@ export async function renderDailyStoryCard(
   story: DailyFeedItem,
   slideIndex: number,
   slideTotal: number,
-  variant: CardVariant = "navy"
+  variant: CardVariant = "navy",
+  opts: { subtextLabel?: string } = {}
 ): Promise<Buffer> {
   const logo = await loadLogo(variant);
   const c = colorScheme(variant);
@@ -384,7 +385,7 @@ export async function renderDailyStoryCard(
                                 textTransform: "uppercase",
                                 color: c.amber,
                               },
-                              children: "Why It Matters",
+                              children: opts.subtextLabel ?? "Why It Matters",
                             },
                           },
                           {
@@ -504,7 +505,8 @@ export async function renderDailyCoverCard(
   stories: DailyFeedItem[],
   feedDate?: string | null,
   variant: CardVariant = "navy",
-  metrics?: Array<{ label: string; value: string }>
+  metrics?: Array<{ label: string; value: string }>,
+  opts: { title?: string; kicker?: string } = {}
 ): Promise<Buffer> {
   const logo = await loadLogo(variant);
   const c = colorScheme(variant);
@@ -570,7 +572,7 @@ export async function renderDailyCoverCard(
                     textTransform: "uppercase",
                     color: c.amber,
                   },
-                  children: "Daily Briefing",
+                  children: opts.kicker ?? "Daily Briefing",
                 },
               },
             ],
@@ -616,7 +618,7 @@ export async function renderDailyCoverCard(
                     letterSpacing: "-0.02em",
                     color: c.fg,
                   },
-                  children: "Today's Briefing",
+                  children: opts.title ?? "Today's Briefing",
                 },
               },
               {
@@ -804,7 +806,8 @@ export async function renderDailyCoverCard(
  */
 export async function renderDailyStoryVertical(
   story: DailyFeedItem,
-  variant: CardVariant = "navy"
+  variant: CardVariant = "navy",
+  opts: { subtextLabel?: string; header?: string } = {}
 ): Promise<Buffer> {
   const logo = await loadLogo(variant);
   const c = colorScheme(variant);
@@ -890,7 +893,7 @@ export async function renderDailyStoryVertical(
                           textTransform: "uppercase",
                           color: c.amber,
                         },
-                        children: "Daily Briefing",
+                        children: opts.header ?? "Daily Briefing",
                       },
                     },
                   ],
@@ -984,7 +987,7 @@ export async function renderDailyStoryVertical(
                                 textTransform: "uppercase",
                                 color: c.amber,
                               },
-                              children: "Why It Matters",
+                              children: opts.subtextLabel ?? "Why It Matters",
                             },
                           },
                           {
