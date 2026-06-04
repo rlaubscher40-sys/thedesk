@@ -12,6 +12,7 @@
  * Instagram's API needs to fetch them, then immediately clean up.
  */
 import { env } from "../core/env";
+import { shouldShowSummary } from "../../shared/headline";
 import type { DailyFeedItem, Edition } from "../db/schema";
 import { getLatestEditionAsset } from "../db/editionAssets";
 import { updateFeedItemSayThis, updateFeedItemWhyItMatters } from "../db/feed";
@@ -85,7 +86,7 @@ function categoryHashtag(category: string | null | undefined): string {
  * analytical why-it-matters stays on the cards so the caption doesn't repeat
  * them.
  */
-function buildDailyCaption(stories: DailyFeedItem[]): string {
+export function buildDailyCaption(stories: DailyFeedItem[]): string {
   const rundown = stories.flatMap((s, i) => {
     const headline = sanitizeDashes(s.title).slice(0, 120);
     const lines = [`${i + 1}. ${headline}`];
@@ -116,7 +117,7 @@ function buildDailyCaption(stories: DailyFeedItem[]): string {
  * Business, Global). Same shape as the daily caption, but no per-story say-this
  * hook (coverage carries no partner angle) and a broader, non-AU-markets intro.
  */
-function buildCoverageCaption(stories: DailyFeedItem[]): string {
+export function buildCoverageCaption(stories: DailyFeedItem[]): string {
   const rundown = stories.flatMap((s, i) => [
     `${i + 1}. ${sanitizeDashes(s.title).slice(0, 120)}`,
     "",
@@ -333,7 +334,12 @@ export async function postDailyCarousel(
   // "In Brief" on the card so the summary isn't mislabelled.
   if (isCoverage) {
     for (const s of pool) {
-      if (!s.whyItMatters || !s.whyItMatters.trim()) s.whyItMatters = s.summary;
+      if (!s.whyItMatters || !s.whyItMatters.trim()) {
+        // Use the publisher summary as subtext only when it's real prose — not
+        // a title echo or extraction garbage (same guard the website cards use).
+        // A story that fails drops out of the carousel via the filter below.
+        if (shouldShowSummary(s.title, s.summary)) s.whyItMatters = s.summary;
+      }
     }
   } else {
     await ensureSlideContent(pool);
