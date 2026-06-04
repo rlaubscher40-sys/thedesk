@@ -1,19 +1,34 @@
 /**
  * RSS source list for the daily ingest.
  *
- * Three tiers of sources, ordered by signal-to-noise:
+ * Every source is tagged with two axes:
+ *   - `category` — the story's topic (MACRO, PROPERTY, …), used for card accents.
+ *   - `channel`  — the Discover content lane it feeds (the Today-page tabs).
  *
+ * Channels (see shared/const.ts FEED_CHANNELS):
+ *   - AU       — Australia's Top Stories (flagship). Australian sources PLUS
+ *                the partner-relevant global macro/markets lens. Enriched.
+ *   - PROPERTY — Australian property specifically. Enriched.
+ *   - BUSINESS — global business/markets coverage. Coverage-only.
+ *   - TECH     — global tech & science coverage. Coverage-only.
+ *   - GLOBAL   — world top stories. Coverage-only.
+ *
+ * Only AU + PROPERTY receive the LLM editorial enrichment (partner angles,
+ * Say This, Why it matters, Counterpoint) — the rest are coverage lanes that
+ * give readers breadth without the commercial overlay. The gate lives in
+ * shared/const.ts (ENRICHED_CHANNELS) and is applied server-side.
+ *
+ * Three tiers of sources, ordered by signal-to-noise:
  *   1. Official / regulators — RBA, Treasury. First-class signal.
  *   2. Australian newsrooms with reliable RSS — ABC, Guardian, etc.
- *   3. Google News topic queries — laser-targeted to the partner-channel
- *      beat. Each query pulls relevant items from across publishers
- *      without us having to maintain a long source list. The redirect
- *      url is uglier than a direct masthead URL but the relevance is
- *      consistently better than scraping a generic "business" feed.
+ *   3. Google News topic queries — laser-targeted to the beat. Each query
+ *      pulls relevant items from across publishers without us maintaining a
+ *      long source list.
  *
- * Categories must match the union in shared/schemas.ts. The category set
- * here is the default; the LLM enrichment downstream can refine.
+ * Categories must match the union in shared/schemas.ts. The category set here
+ * is the default; the LLM enrichment downstream can refine.
  */
+import type { FeedChannel } from "../../shared/const";
 
 export type SourceCategory =
   | "MACRO"
@@ -31,6 +46,8 @@ export type Source = {
   name: string;
   url: string;
   category: SourceCategory;
+  /** The Discover content lane this source feeds. */
+  channel: FeedChannel;
   maxItems?: number;
 };
 
@@ -68,23 +85,27 @@ function googleNewsGlobal(query: string): string {
 }
 
 export const SOURCES: Source[] = [
+  // ══ AU FLAGSHIP ═══════════════════════════════════════════════════════════
   // ── Tier 1: Official / regulators ────────────────────────────────────────
   {
     name: "RBA",
     url: "https://www.rba.gov.au/rss/rss-cb-media-releases.xml",
     category: "MACRO",
+    channel: "AU",
     maxItems: 4,
   },
   {
     name: "RBA Speeches",
     url: "https://www.rba.gov.au/rss/rss-cb-speeches.xml",
     category: "MACRO",
+    channel: "AU",
     maxItems: 3,
   },
   {
     name: "Treasury",
     url: "https://treasury.gov.au/rss.xml",
     category: "POLICY",
+    channel: "AU",
     maxItems: 3,
   },
 
@@ -93,61 +114,52 @@ export const SOURCES: Source[] = [
     name: "ABC News Business",
     url: "https://www.abc.net.au/news/feed/51120/rss.xml",
     category: "MARKETS",
+    channel: "AU",
     maxItems: 4,
   },
   {
     name: "Guardian AU Business",
     url: "https://www.theguardian.com/au/business/rss",
     category: "MARKETS",
+    channel: "AU",
     maxItems: 3,
   },
   {
     name: "Guardian AU Politics",
     url: "https://www.theguardian.com/australia-news/australian-politics/rss",
     category: "POLICY",
+    channel: "AU",
     maxItems: 2,
   },
   {
     name: "The Conversation · Business",
     url: "https://theconversation.com/au/business/articles.atom",
     category: "MARKETS",
+    channel: "AU",
     maxItems: 2,
   },
   {
     name: "The Conversation · Economy",
     url: "https://theconversation.com/au/topics/australian-economy-9/articles.atom",
     category: "ECONOMICS",
+    channel: "AU",
     maxItems: 2,
   },
 
-  // ── Tier 3: Google News topic queries (laser-targeted) ──────────────────
+  // ── Tier 3: Google News topic queries (laser-targeted, AU beat) ──────────
   {
     name: "RBA & Cash Rate",
     url: googleNews('"Reserve Bank of Australia" OR "RBA" rates'),
     category: "MACRO",
+    channel: "AU",
     maxItems: 3,
   },
   {
     name: "APRA & Lending",
     url: googleNews('APRA Australia lending OR serviceability OR banks'),
     category: "POLICY",
+    channel: "AU",
     maxItems: 3,
-  },
-  {
-    name: "Australian Property Market",
-    url: googleNews(
-      'Australia property prices OR "housing market" OR "house prices" -realestate.com.au/buy'
-    ),
-    category: "PROPERTY",
-    maxItems: 4,
-  },
-  {
-    name: "Sydney & Melbourne Auctions",
-    url: googleNews(
-      '("auction clearance" OR "auction results") Sydney OR Melbourne'
-    ),
-    category: "PROPERTY",
-    maxItems: 2,
   },
   {
     name: "Mortgage Brokers & Lending",
@@ -155,12 +167,14 @@ export const SOURCES: Source[] = [
       'Australia "mortgage broker" OR "broker channel" OR "fixed rate" mortgage'
     ),
     category: "MARKETS",
+    channel: "AU",
     maxItems: 3,
   },
   {
     name: "ASX & Markets",
     url: googleNews('ASX 200 OR "Australian shares" OR "AUD USD"'),
     category: "MARKETS",
+    channel: "AU",
     maxItems: 2,
   },
   {
@@ -169,7 +183,54 @@ export const SOURCES: Source[] = [
       'Australia inflation OR CPI OR "Reserve Bank" GDP OR unemployment'
     ),
     category: "ECONOMICS",
+    channel: "AU",
     maxItems: 2,
+  },
+
+  // ── Partner-relevant global lens (stays in the AU flagship per brief) ────
+  // Globally-set rates, US property and world markets move regardless of
+  // border but are core to partner conversations, so they're enriched here
+  // rather than dropped into the coverage lanes.
+  {
+    name: "Global · Central banks",
+    url: googleNewsGlobal('Federal Reserve OR ECB OR "Bank of England" OR "Bank of Japan" rates'),
+    category: "MACRO",
+    channel: "AU",
+    maxItems: 2,
+  },
+  {
+    name: "Global · Markets & rates",
+    url: googleNewsGlobal('"10-year yield" OR "S&P 500" OR "dollar index"'),
+    category: "MARKETS",
+    channel: "AU",
+    maxItems: 2,
+  },
+  {
+    name: "Global · US property & mortgage",
+    url: googleNewsGlobal('US "housing market" OR "mortgage rates" OR "home prices"'),
+    category: "PROPERTY",
+    channel: "AU",
+    maxItems: 2,
+  },
+
+  // ══ PROPERTY (Australian property — enriched) ═════════════════════════════
+  {
+    name: "Australian Property Market",
+    url: googleNews(
+      'Australia property prices OR "housing market" OR "house prices" -realestate.com.au/buy'
+    ),
+    category: "PROPERTY",
+    channel: "PROPERTY",
+    maxItems: 4,
+  },
+  {
+    name: "Sydney & Melbourne Auctions",
+    url: googleNews(
+      '("auction clearance" OR "auction results") Sydney OR Melbourne'
+    ),
+    category: "PROPERTY",
+    channel: "PROPERTY",
+    maxItems: 3,
   },
   {
     name: "Buyer's Agents & Investors",
@@ -177,66 +238,145 @@ export const SOURCES: Source[] = [
       '"buyer\'s agent" Australia OR "property investor" Australia'
     ),
     category: "PROPERTY",
-    maxItems: 2,
+    channel: "PROPERTY",
+    maxItems: 3,
+  },
+  {
+    name: "AU Rental & Construction",
+    url: googleNews(
+      'Australia "rental market" OR "housing supply" OR "dwelling approvals" OR construction'
+    ),
+    category: "PROPERTY",
+    channel: "PROPERTY",
+    maxItems: 3,
   },
 
-  // ── Tier 4: International sources ───────────────────────────────────────
-  // Per the editorial brief, coverage should be worldwide-first, Aus-
-  // second. The tiers above are all AU-bound; this tier pulls global
-  // signal so partner conversations have an international lens for the
-  // macro, markets, and policy beats that move regardless of border.
+  // ══ BUSINESS (global business/markets — coverage only) ════════════════════
   {
     name: "BBC Business",
     url: "https://feeds.bbci.co.uk/news/business/rss.xml",
     category: "MARKETS",
-    maxItems: 3,
+    channel: "BUSINESS",
+    maxItems: 4,
   },
   {
     name: "Reuters · Business",
     url: googleNewsGlobal('site:reuters.com (business OR markets OR economy)'),
     category: "MARKETS",
+    channel: "BUSINESS",
     maxItems: 3,
   },
   {
-    name: "Global · Central banks",
-    url: googleNewsGlobal('Federal Reserve OR ECB OR "Bank of England" OR "Bank of Japan" rates'),
-    category: "MACRO",
-    maxItems: 3,
-  },
-  {
-    name: "Global · US property & mortgage",
-    url: googleNewsGlobal('US "housing market" OR "mortgage rates" OR "home prices"'),
-    category: "PROPERTY",
-    maxItems: 2,
-  },
-  {
-    name: "Global · China & geopolitics",
-    url: googleNewsGlobal('China economy OR property OR "Xi Jinping"'),
-    category: "GEOPOLITICS",
-    maxItems: 2,
-  },
-  {
-    name: "Global · Markets & rates",
-    url: googleNewsGlobal('"10-year yield" OR "S&P 500" OR "dollar index"'),
+    name: "Global · Earnings & deals",
+    url: googleNewsGlobal('earnings OR merger OR acquisition OR IPO company results'),
     category: "MARKETS",
+    channel: "BUSINESS",
+    maxItems: 3,
+  },
+  {
+    name: "Global · Big Tech business",
+    url: googleNewsGlobal(
+      'Apple OR Microsoft OR Nvidia OR Amazon OR Alphabet revenue OR earnings OR shares'
+    ),
+    category: "MARKETS",
+    channel: "BUSINESS",
     maxItems: 2,
   },
 
-  // ── Tier 5: Trending signals ─────────────────────────────────────────────
-  // Reddit RSS endpoints used to be free for unauthenticated bots — now
-  // their cloudflare layer returns 403 on Actions IPs without an OAuth
-  // token. Each failed fetch was blowing the full 8s rss-parser timeout
-  // and contributing to job timeouts, so they've been removed. Wire
-  // back in via a Reddit OAuth app + reddit-api package when retail
-  // sentiment becomes a real editorial input.
+  // ══ TECH & SCIENCE (global — coverage only) ═══════════════════════════════
+  {
+    name: "BBC Technology",
+    url: "https://feeds.bbci.co.uk/news/technology/rss.xml",
+    category: "TECH",
+    channel: "TECH",
+    maxItems: 4,
+  },
+  {
+    name: "BBC Science & Environment",
+    url: "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml",
+    category: "SCIENCE",
+    channel: "TECH",
+    maxItems: 3,
+  },
+  {
+    name: "Ars Technica",
+    url: "https://feeds.arstechnica.com/arstechnica/index",
+    category: "TECH",
+    channel: "TECH",
+    maxItems: 3,
+  },
+  {
+    name: "ScienceDaily · Top",
+    url: "https://www.sciencedaily.com/rss/top/science.xml",
+    category: "SCIENCE",
+    channel: "TECH",
+    maxItems: 3,
+  },
+  {
+    name: "Global · AI",
+    url: googleNewsGlobal('"artificial intelligence" OR "AI model" OR OpenAI OR Anthropic OR "machine learning"'),
+    category: "AI",
+    channel: "TECH",
+    maxItems: 3,
+  },
+
+  // ══ GLOBAL TOP STORIES (world news — coverage only) ═══════════════════════
+  {
+    name: "BBC World",
+    url: "https://feeds.bbci.co.uk/news/world/rss.xml",
+    category: "OTHER",
+    channel: "GLOBAL",
+    maxItems: 4,
+  },
+  {
+    name: "Guardian · World",
+    url: "https://www.theguardian.com/world/rss",
+    category: "OTHER",
+    channel: "GLOBAL",
+    maxItems: 3,
+  },
+  {
+    name: "Global · China & geopolitics",
+    url: googleNewsGlobal('China economy OR property OR "Xi Jinping" OR Taiwan'),
+    category: "GEOPOLITICS",
+    channel: "GLOBAL",
+    maxItems: 3,
+  },
+  {
+    name: "Global · Top headlines",
+    url: "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en",
+    category: "OTHER",
+    channel: "GLOBAL",
+    maxItems: 3,
+  },
+
+  // ── AU trending signal ───────────────────────────────────────────────────
   {
     name: "Google · Top headlines AU",
     url: "https://news.google.com/rss?hl=en-AU&gl=AU&ceid=AU:en",
     category: "OTHER",
+    channel: "AU",
     maxItems: 2,
   },
 ];
 
-/** How many items to ship per daily run after dedup. */
-export const DAILY_ITEM_TARGET = 20;
+/**
+ * Per-channel item targets after dedup + clustering. The flagship gets the
+ * lion's share; the coverage lanes are capped lower so a quiet AU day can't be
+ * buried under world headlines, and a busy world day can't starve the
+ * flagship. Tuned so a normal run ships ~45 stories across five tabs.
+ */
+export const CHANNEL_TARGETS: Record<FeedChannel, number> = {
+  AU: 16,
+  PROPERTY: 6,
+  BUSINESS: 8,
+  TECH: 8,
+  GLOBAL: 8,
+};
+
+/**
+ * Minimum AU-flagship stories for a run to ship. The flagship is the product;
+ * if it comes up thin the run aborts rather than publishing a hollow Today
+ * page padded out with coverage-lane filler.
+ */
 export const DAILY_ITEM_MIN = 8;
