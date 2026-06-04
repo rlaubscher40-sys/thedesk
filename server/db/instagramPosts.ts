@@ -10,7 +10,7 @@
  * has not been applied) or the DB is unavailable, these no-op rather than throw,
  * so posting is never blocked by analytics.
  */
-import { and, count, desc, gte, isNull, eq } from "drizzle-orm";
+import { and, count, desc, gte, inArray, isNull, eq } from "drizzle-orm";
 import { isDemoMode } from "../demo/store";
 import { getDb } from "./client";
 import {
@@ -117,6 +117,29 @@ export async function countInstagramPosts(postType: string): Promise<number> {
     return rows[0]?.value ?? 0;
   } catch (err) {
     console.warn("[instagramPosts] count query failed:", (err as Error).message);
+    return 0;
+  }
+}
+
+/**
+ * How many posts share the alternating navy/light grid cover. The daily
+ * ("Today's Briefing") and coverage ("The Wider Lens") posts both use that
+ * cover and now publish twice a day, so the checkerboard only stays clean if
+ * we alternate across BOTH streams combined — counting "daily" alone left the
+ * coverage post on the same colour as that morning's daily post.
+ */
+export async function countCheckerboardPosts(): Promise<number> {
+  if (isDemoMode()) return 0;
+  const db = getDb();
+  if (!db) return 0;
+  try {
+    const rows = await db
+      .select({ value: count() })
+      .from(instagramPosts)
+      .where(inArray(instagramPosts.postType, ["daily", "coverage"]));
+    return rows[0]?.value ?? 0;
+  } catch (err) {
+    console.warn("[instagramPosts] checkerboard count failed:", (err as Error).message);
     return 0;
   }
 }

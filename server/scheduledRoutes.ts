@@ -76,8 +76,12 @@ async function authenticateScheduled(req: Request): Promise<boolean> {
 
 /** Next checkerboard variant: even daily-post count → navy, odd → light. */
 async function nextDailyVariant(): Promise<"navy" | "light"> {
-  const priorDailyCount = await db.countInstagramPosts("daily");
-  return priorDailyCount % 2 === 0 ? "navy" : "light";
+  // Alternate across the combined daily + coverage stream so the two-a-day
+  // cadence (morning "Today's Briefing" + midday "Wider Lens") still reads as a
+  // clean navy/light checkerboard on the 3-wide profile grid. Counting "daily"
+  // alone left the coverage post on the same colour as that morning's post.
+  const priorCount = await db.countCheckerboardPosts();
+  return priorCount % 2 === 0 ? "navy" : "light";
 }
 
 /** The morning's metrics, value+unit formatted, capped to the 4 the cover shows. */
