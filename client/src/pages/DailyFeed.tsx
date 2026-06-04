@@ -41,10 +41,18 @@ import { getSydneyIsoDate } from "@/lib/date";
 import { useAuth } from "@/lib/useAuth";
 import { useFilteredFeed } from "@/lib/useFilteredFeed";
 import { trpc } from "@/lib/trpc";
+import {
+  DEFAULT_FEED_CHANNEL,
+  isEnrichedChannel,
+  type FeedChannel,
+} from "@shared/const";
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export default function DailyFeed() {
+  // Two axes: `channel` is the Discover content lane (tabs); `filter` is the
+  // category sub-filter that only applies within the AU flagship.
+  const [channel, setChannel] = useState<FeedChannel>(DEFAULT_FEED_CHANNEL);
   const [filter, setFilter] = useState<CategoryFilter>("ALL");
   const [copied, setCopied] = useState(false);
   const { current: streakDays, tier: streakTier } = useStreak();
@@ -111,32 +119,51 @@ export default function DailyFeed() {
   // Live feed items, pre-filtered through the user's topic allowlist
   // from Settings. When no allowlist is set this is a pass-through.
   const allFeedItems = useFilteredFeed(feedQuery.data ?? []);
-  const liveCategories = useMemo(() => {
+
+  // Whether the active lane gets the full editorial treatment (angle blocks,
+  // persona switcher, talking points, category sub-filter) or the lighter
+  // coverage layout (clean lead + grid, no angles).
+  const enriched = isEnrichedChannel(channel);
+
+  const channelOf = (it: { channel?: string | null }): string =>
+    (it.channel ?? "AU").toUpperCase();
+
+  // Items in the active channel. Partitioned client-side so switching tabs is
+  // instant — the query already returned every channel for the day.
+  const channelItems = useMemo(
+    () => allFeedItems.filter((it) => channelOf(it) === channel),
+    [allFeedItems, channel]
+  );
+
+  // Categories present in the AU lane, for the sub-filter pills. Computed off
+  // the AU items specifically so the chips never offer a topic the flagship
+  // can't actually show.
+  const auCategories = useMemo(() => {
     const set = new Set<string>();
-    for (const it of allFeedItems) set.add(it.category.toUpperCase());
+    for (const it of allFeedItems) {
+      if (channelOf(it) === "AU") set.add(it.category.toUpperCase());
+    }
     return Array.from(set).sort();
   }, [allFeedItems]);
 
+  // Apply the category sub-filter — AU flagship only. Every other lane is
+  // already topically narrow, so the filter is ignored there.
   const feedItems = useMemo(() => {
-    if (filter === "ALL") return allFeedItems;
-    return allFeedItems.filter((it) => it.category.toUpperCase() === filter);
-  }, [allFeedItems, filter]);
+    if (channel !== "AU" || filter === "ALL") return channelItems;
+    return channelItems.filter((it) => it.category.toUpperCase() === filter);
+  }, [channelItems, channel, filter]);
 
   // Render the live DB feed if there is one. Otherwise fall back to the
   // curated seed (for dev mode + first-launch before any ingest has run).
   const hasLiveData = allFeedItems.length > 0;
 
-  // Seed-mode derived buckets (legacy three-tier layout).
+  // Seed-mode derived buckets (legacy three-tier layout). The static seed has
+  // no channel axis, so it filters by category only and is only reachable
+  // when there are zero live items.
   const filteredSeed = useMemo(
     () => (filter === "ALL" ? stories : stories.filter((s) => s.category === filter)),
     [filter]
   );
-
-  // Categories the chips should show. Live mode = whatever's in the DB
-  // today; seed mode = the original handcurated set.
-  const chipCategories = hasLiveData
-    ? liveCategories
-    : ["MACRO", "PROPERTY", "MARKETS", "GEOPOLITICS", "AI", "CLIMATE"];
   const featured = filteredSeed.find((s) => s.section === "featured");
   const more = filteredSeed.filter((s) => s.section === "more");
   const further = filteredSeed.filter((s) => s.section === "further");
@@ -212,11 +239,13 @@ export default function DailyFeed() {
   const angledSorted = [...allAngled].sort(
     (a, b) => estimatedCardHeight(a) - estimatedCardHeight(b)
   );
-  // Every angle-bearing story gets a full card; the grid's last row may be
-  // partial (cards left-align), which is fine and far better than burying
-  // good stories. Only the truly bare items fall through to signals.
-  const liveGrid = angledSorted;
-  const liveSignals = nonAngled;
+  // Enriched lanes (AU / Property): every angle-bearing story gets a full
+  // card, height-sorted; the truly bare items fall through to the signals
+  // strip. Coverage lanes (Business / Tech / Global) have no angles at all,
+  // so everything after the lead is a clean grid card and there's no signals
+  // strip — FeedItemCard hides the empty angle blocks automatically.
+  const liveGrid = enriched ? angledSorted : liveRest;
+  const liveSignals = enriched ? nonAngled : [];
 
   // Stories that have both a sayThis line and a partnerTag — the ones
   // actually ready to drop into a client conversation.
@@ -269,7 +298,7 @@ export default function DailyFeed() {
             onPrev={() => prevDate && gotoDate(prevDate)}
             onNext={() => nextDate && gotoDate(nextDate)}
           />
-          {hasLiveData && talkingPoints.length > 0 && (
+          {hasLiveData && enriched && talkingPoints.length > 0 && (
             <button
               onClick={copyTalkingPoints}
               title={`Copy ${talkingPoints.length} talking point${talkingPoints.length === 1 ? "" : "s"} for today`}
@@ -282,26 +311,35 @@ export default function DailyFeed() {
           )}
         </div>
 
-        {/* Stories first: the day's scan sits directly under the date so a
-            first-time reader meets the stories before the filtering tools. */}
-        {hasLiveData && (
+        {/* Channel tabs lead the feed (Discover-style) and pin to the top as
+            you scroll, so switching lane mid-scroll is one tap away. The
+            category sub-filter row appears within the bar on the AU tab only. */}
+        <SectionErrorBoundary section="Filters">
+          <FilterChips
+            channel={channel}
+            onChannelChange={setChannel}
+            category={filter}
+            onCategoryChange={setFilter}
+            categories={auCategories}
+          />
+        </SectionErrorBoundary>
+
+        {/* Stories first: on the enriched lanes the day's scan sits directly
+            under the tabs so a first-time reader meets the stories before the
+            finer tools. Coverage lanes go straight to the lead + grid. */}
+        {hasLiveData && enriched && (
           <SectionErrorBoundary section="Today in brief">
             <TodayInBrief items={feedItems} />
           </SectionErrorBoundary>
         )}
 
-        {/* Tools: tune the persona and filter by topic. Below the scan now,
-            so they read as 'refine what you see' rather than a gate. */}
+        {/* Tools: tune the persona, plus the first-run hint and 'what's new'
+            marker. The persona switcher + hint are enriched-lane concepts
+            (they explain Say This / partner angles), so they're hidden on the
+            coverage lanes; the 'what's new' marker applies everywhere. */}
         <div className="space-y-5">
-          <PersonaSwitcher />
-          <FeedHint />
-          <SectionErrorBoundary section="Filters">
-            <FilterChips
-              active={filter}
-              onChange={setFilter}
-              categories={chipCategories}
-            />
-          </SectionErrorBoundary>
+          {enriched && <PersonaSwitcher />}
+          {enriched && <FeedHint />}
           <WhatsNewPill storyDates={storyTimestamps} storageKey="today" />
         </div>
       </div>
@@ -356,7 +394,7 @@ export default function DailyFeed() {
                 <SectionDivider label="More from today" />
                 <StaggerList
                   className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
-                  cacheKey={`grid-${filter}`}
+                  cacheKey={`grid-${channel}-${filter}`}
                 >
                   {liveGrid.map((item) => (
                     <FeedItemCard key={item.id} item={item} />
@@ -370,7 +408,7 @@ export default function DailyFeed() {
             <SectionErrorBoundary section="Signals">
               <section>
                 <SectionDivider label="Further signals" />
-                <StaggerList className="space-y-2.5" cacheKey={`signals-${filter}`}>
+                <StaggerList className="space-y-2.5" cacheKey={`signals-${channel}-${filter}`}>
                   {liveSignals.map((item) => (
                     <FeedSignalStrip key={item.id} item={item} />
                   ))}
@@ -431,7 +469,9 @@ export default function DailyFeed() {
 
       {hasLiveData && feedItems.length === 0 && (
         <div className="panel p-8 rounded-sm text-center text-sm text-[var(--color-fg-muted)]">
-          No items match this filter.
+          {channel === "AU" && filter !== "ALL"
+            ? "No stories match this filter."
+            : "No stories in this channel today."}
         </div>
       )}
 
@@ -486,8 +526,10 @@ function FeedHint() {
     >
       <Info className="h-3.5 w-3.5 text-amber-400/60 shrink-0 mt-0.5" aria-hidden="true" />
       <p className="flex-1">
-        <span className="text-[var(--color-fg)] font-medium">Topic chips</span> filter
-        stories by area. Stories with a coloured left border carry a{" "}
+        <span className="text-[var(--color-fg)] font-medium">Channel tabs</span> switch
+        between lanes — Australia, Property and the global coverage feeds. On
+        Australia, the topic pills narrow the lane further. Stories with a
+        coloured left border carry a{" "}
         <span className="text-[var(--color-fg)] font-medium">"Say This"</span> line — a
         ready-made conversation opener for your next client meeting.
       </p>

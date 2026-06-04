@@ -54,6 +54,7 @@ export function feedSeed(): DailyFeedItem[] {
       | "corroboratingSources"
       | "threadParentId"
       | "threadParentTitle"
+      | "channel"
     > & {
       imageUrl?: string | null;
       rubensNote?: string | null;
@@ -64,6 +65,9 @@ export function feedSeed(): DailyFeedItem[] {
       corroboratingSources?: string[] | null;
       threadParentId?: number | null;
       threadParentTitle?: string | null;
+      /** Content lane. Defaults to AU so only the PROPERTY / coverage items
+       *  need to opt in. */
+      channel?: string;
     }
   ): DailyFeedItem => ({
     id: id++,
@@ -79,6 +83,7 @@ export function feedSeed(): DailyFeedItem[] {
     createdAt: new Date(Date.now() - id * 1000 * 60 * 17),
     ...item,
     imageUrl: item.imageUrl ?? null,
+    channel: item.channel ?? "AU",
   });
 
   return [
@@ -127,6 +132,7 @@ export function feedSeed(): DailyFeedItem[] {
       summary:
         "Sixth consecutive week above 65%. Volume is catching up with the price story; the under-$1.5m segment is doing most of the work.",
       category: "PROPERTY",
+      channel: "PROPERTY",
       sayThis:
         "Capacity at mid-tier BAs is the constraint, not demand. Three Melbourne agencies paused intake this week.",
       partnerTag: partnerTag({
@@ -152,6 +158,123 @@ export function feedSeed(): DailyFeedItem[] {
         adviser: "Use the composition, not the headline, when framing rates outlook for clients.",
         ba: "Tenant negotiation leverage tilts slightly back to landlords in markets where rents have plateaued.",
       }),
+    }),
+
+    // ── Today · coverage lanes (BUSINESS / TECH / GLOBAL) ───────────────
+    // Coverage-only: headline + summary + source, no partner angles / Say
+    // This / Why it matters. These populate the non-AU tabs in demo mode and
+    // mirror what the live ingest will produce for the unenriched channels.
+    make({
+      feedDate: today,
+      channel: "BUSINESS",
+      title: "Wall Street closes higher as megacap tech leads a broad rebound",
+      source: "Reuters",
+      sourceUrl: "https://example.com/wall-street-rebound",
+      summary:
+        "The S&P 500 and Nasdaq both finished up more than 1%, with semiconductors and cloud names leading. Traders pointed to softer Treasury yields and an easing in last week's volatility.",
+      category: "MARKETS",
+      partnerTag: null,
+      sayThis: null,
+    }),
+    make({
+      feedDate: today,
+      channel: "BUSINESS",
+      title: "Fed officials signal patience on the timing of the first rate cut",
+      source: "Bloomberg",
+      sourceUrl: "https://example.com/fed-patience",
+      summary:
+        "Two regional Fed presidents said they want several more months of cooling inflation data before easing, pushing market-implied odds of a September move lower.",
+      category: "MACRO",
+      partnerTag: null,
+      sayThis: null,
+    }),
+    make({
+      feedDate: today,
+      channel: "BUSINESS",
+      title: "Oil slips below US$80 as OPEC+ weighs a gradual output increase",
+      source: "Financial Times",
+      sourceUrl: "https://example.com/oil-opec",
+      summary:
+        "Brent crude eased as delegates signalled the group could begin unwinding voluntary cuts later this year, against a backdrop of soft Chinese demand.",
+      category: "MARKETS",
+      partnerTag: null,
+      sayThis: null,
+    }),
+
+    // ── Today · Tech & Science ──────────────────────────────────────────
+    make({
+      feedDate: today,
+      channel: "TECH",
+      title: "Rival labs race to ship cheaper reasoning models",
+      source: "The Verge",
+      sourceUrl: "https://example.com/reasoning-models",
+      summary:
+        "A wave of releases this week undercut the price of frontier-grade reasoning by an order of magnitude, intensifying a margin war among the largest AI providers.",
+      category: "AI",
+      partnerTag: null,
+      sayThis: null,
+    }),
+    make({
+      feedDate: today,
+      channel: "TECH",
+      title: "Apple previews on-device AI features at its developer conference",
+      source: "TechCrunch",
+      sourceUrl: "https://example.com/apple-on-device-ai",
+      summary:
+        "The company leaned on privacy and local processing, positioning its assistant as running on the phone rather than in the cloud for most everyday tasks.",
+      category: "TECH",
+      partnerTag: null,
+      sayThis: null,
+    }),
+    make({
+      feedDate: today,
+      channel: "TECH",
+      title: "Astronomers confirm water ice in permanently shadowed lunar craters",
+      source: "Nature",
+      sourceUrl: "https://example.com/lunar-ice",
+      summary:
+        "New spectrometer data resolves a decade-long debate and bolsters the case for siting a long-term research base near the Moon's south pole.",
+      category: "SCIENCE",
+      partnerTag: null,
+      sayThis: null,
+    }),
+
+    // ── Today · Global top stories ──────────────────────────────────────
+    make({
+      feedDate: today,
+      channel: "GLOBAL",
+      title: "Negotiators reach a tentative ceasefire framework after marathon talks",
+      source: "Associated Press",
+      sourceUrl: "https://example.com/ceasefire-framework",
+      summary:
+        "Mediators announced an outline agreement following overnight sessions, though officials cautioned that several contentious points remain unresolved.",
+      category: "GEOPOLITICS",
+      partnerTag: null,
+      sayThis: null,
+    }),
+    make({
+      feedDate: today,
+      channel: "GLOBAL",
+      title: "Record heatwave grips southern Europe as power grids strain",
+      source: "BBC",
+      sourceUrl: "https://example.com/europe-heatwave",
+      summary:
+        "Temperatures topped 44°C across parts of the Mediterranean, prompting health warnings and a surge in cooling demand that tested ageing transmission networks.",
+      category: "OTHER",
+      partnerTag: null,
+      sayThis: null,
+    }),
+    make({
+      feedDate: today,
+      channel: "GLOBAL",
+      title: "Japan and South Korea deepen a security-cooperation pact",
+      source: "Nikkei",
+      sourceUrl: "https://example.com/japan-korea-pact",
+      summary:
+        "The two governments agreed to expand intelligence sharing and joint exercises, a further thaw in relations watched closely across the region.",
+      category: "GEOPOLITICS",
+      partnerTag: null,
+      sayThis: null,
     }),
 
     // ── Yesterday ─────────────────────────────────────────────────────
@@ -197,6 +320,7 @@ export function feedSeed(): DailyFeedItem[] {
       summary:
         "None of them announced; one website now reads 'currently servicing existing clients only'. Capacity, not demand.",
       category: "PROPERTY",
+      channel: "PROPERTY",
       sayThis:
         "Demand is fine. Capacity at the mid-tier is the constraint.",
       partnerTag: partnerTag({

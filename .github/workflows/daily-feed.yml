@@ -26,9 +26,10 @@ jobs:
     runs-on: ubuntu-latest
     # 8 minutes was tripping right as the script finished — Node was
     # holding open sockets from og:image fetches that prevented a clean
-    # exit. The script now calls process.exit() explicitly, and we
-    # raise the ceiling to 15m for headroom on slow news days.
-    timeout-minutes: 15
+    # exit. The script now calls process.exit() explicitly. Raised again to
+    # 20m once the per-channel feed (~46 picked items vs the old ~20) roughly
+    # doubled the og:image/article fetch stage's work on a busy day.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 

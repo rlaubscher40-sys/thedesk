@@ -3,7 +3,7 @@ import { clusterByTitle, titleTokens, type Cluster } from "./cluster";
 import type { FetchedItem } from "./rss";
 
 function item(source: string, title: string): FetchedItem {
-  return { source, category: "MARKETS", title, summary: title, url: `https://x/${source}/${title}`, isoDate: null };
+  return { source, category: "MARKETS", channel: "AU", title, summary: title, url: `https://x/${source}/${title}`, isoDate: null };
 }
 
 function byTitle(clusters: Cluster[], title: string): Cluster | undefined {

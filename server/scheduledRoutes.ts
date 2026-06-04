@@ -9,7 +9,7 @@
  * setImmediate so the HTTP response returns quickly.
  */
 import { timingSafeEqual } from "node:crypto";
-import { COOKIE_NAME } from "../shared/const";
+import { COOKIE_NAME, isEnrichedChannel } from "../shared/const";
 import { defaultFeedPriority } from "../shared/feedPriority";
 import { bestMatch, titleTokens } from "../shared/textSimilarity";
 import { parse as parseCookieHeader } from "cookie";
@@ -132,6 +132,9 @@ function registerDailyFeedRoute(app: Express): void {
         sourceUrl: item.sourceUrl ?? null,
         summary: sanitiseText(item.summary),
         category,
+        // Content lane. Defaults to the Australian flagship when the ingest
+        // doesn't tag one, so legacy/untagged payloads keep their old home.
+        channel: item.channel ?? "AU",
         imageUrl: item.imageUrl ?? null,
         partnerTag: sanitiseText(item.partnerTag ?? null),
         sayThis: sanitiseText(item.sayThis ?? null),
@@ -241,41 +244,57 @@ function registerDailyFeedRoute(app: Express): void {
               const id = insertedIds[index];
               if (!id) return;
 
+              // Only the partner-relevant Australian lanes (AU, PROPERTY) get
+              // the expensive editorial enrichment. BUSINESS / TECH / GLOBAL
+              // are coverage-only — they skip the four angle generators + QC
+              // and run image/dedup/threading alone (the latter two already
+              // ran pre-insert above). Any preset angle the source supplied
+              // was persisted at insert and is left untouched.
+              const enrich = isEnrichedChannel(item.channel);
+
               // All enrichments fan out in parallel per item.
               const [tag, say, why, cp, img] = await Promise.allSettled([
-                item.partnerTag
-                  ? Promise.resolve(item.partnerTag)
-                  : generatePartnerTag({
-                      title: item.title,
-                      summary: item.summary,
-                      existingTag: item.partnerTag,
-                      articleText: item.articleText,
-                    }),
-                item.sayThis
-                  ? Promise.resolve(item.sayThis)
-                  : generateSayThis({
+                !enrich
+                  ? Promise.resolve(null)
+                  : item.partnerTag
+                    ? Promise.resolve(item.partnerTag)
+                    : generatePartnerTag({
+                        title: item.title,
+                        summary: item.summary,
+                        existingTag: item.partnerTag,
+                        articleText: item.articleText,
+                      }),
+                !enrich
+                  ? Promise.resolve(null)
+                  : item.sayThis
+                    ? Promise.resolve(item.sayThis)
+                    : generateSayThis({
+                        title: item.title,
+                        summary: item.summary,
+                        category: item.category,
+                        articleText: item.articleText,
+                      }),
+                !enrich
+                  ? Promise.resolve(null)
+                  : item.whyItMatters
+                    ? Promise.resolve(item.whyItMatters)
+                    : generateWhyItMatters({
+                        title: item.title,
+                        summary: item.summary,
+                        category: item.category,
+                        articleText: item.articleText,
+                      }),
+                // Counterpoint, the calm contrarian read. Enriched lanes only;
+                // the prompt SKIPs the many that have no real second side, so
+                // this resolves null most of the time even there.
+                !enrich
+                  ? Promise.resolve(null)
+                  : generateCounterpoint({
                       title: item.title,
                       summary: item.summary,
                       category: item.category,
                       articleText: item.articleText,
                     }),
-                item.whyItMatters
-                  ? Promise.resolve(item.whyItMatters)
-                  : generateWhyItMatters({
-                      title: item.title,
-                      summary: item.summary,
-                      category: item.category,
-                      articleText: item.articleText,
-                    }),
-                // Counterpoint, the calm contrarian read. Generated for every
-                // story; the prompt SKIPs the many that have no real second
-                // side, so this resolves null most of the time.
-                generateCounterpoint({
-                  title: item.title,
-                  summary: item.summary,
-                  category: item.category,
-                  articleText: item.articleText,
-                }),
                 // Feed items don't use AI thumbnails post-refactor, they
                 // rely on the og:image scraped during ingest. Wiring per-
                 // item asset storage is doable (mirror the edition_assets
@@ -296,7 +315,7 @@ function registerDailyFeedRoute(app: Express): void {
               // Skipped when the values were preset by the source (we don't
               // edit hand-supplied content) or when nothing generated.
               const hadPreset = Boolean(item.partnerTag || item.sayThis || item.whyItMatters);
-              if (!hadPreset && (tagValue || sayValue || whyValue || cpValue)) {
+              if (enrich && !hadPreset && (tagValue || sayValue || whyValue || cpValue)) {
                 const qc = await runDailyItemQc({
                   title: item.title,
                   summary: item.summary,
@@ -531,7 +550,12 @@ function registerSynthesizeEditionRoute(app: Express): void {
     const target = parsed.data.anyDateInWeek ?? new Date().toISOString().slice(0, 10);
     const { weekStart, weekEnd, weekRange, weekOf } = isoWeekBounds(target);
 
-    const items = await db.listFeedItemsBetween(weekStart, weekEnd);
+    // The weekly edition is the partner deep-dive: synthesise from the
+    // enriched lanes (AU + Property) only. Coverage-lane headlines (Business /
+    // Tech / Global) live on the Today tabs, not in the edition.
+    const items = (await db.listFeedItemsBetween(weekStart, weekEnd)).filter((it) =>
+      isEnrichedChannel(it.channel)
+    );
     if (items.length === 0) {
       res.status(422).json({
         error: "No feed items in target week",
@@ -736,7 +760,12 @@ function registerSynthesizeEditionRoute(app: Express): void {
 
 async function notifyDailyBriefSubscribers(feedDate: string): Promise<void> {
   try {
-    const items = await db.listFeedItems(feedDate);
+    // Partner-facing output: the brief covers the enriched lanes (AU +
+    // Property) only. Coverage lanes (Business / Tech / Global) surface on the
+    // Today-page tabs but don't belong in a partner's inbox.
+    const items = (await db.listFeedItems(feedDate)).filter((it) =>
+      isEnrichedChannel(it.channel)
+    );
     if (items.length === 0) return;
     const subs = await db.listSubscribersForDailyBrief(feedDate);
     if (subs.length === 0) return;
@@ -1190,7 +1219,11 @@ function registerInstagramRoutes(app: Express): void {
       .safeParse(req.body ?? {});
     const feedDate = parsed.success ? parsed.data.feedDate : undefined;
 
-    const items = await db.listFeedItems(feedDate);
+    // Instagram is partner-facing: post from the enriched lanes (AU +
+    // Property) only, never the coverage tabs.
+    const items = (await db.listFeedItems(feedDate)).filter((it) =>
+      isEnrichedChannel(it.channel)
+    );
     if (items.length === 0) {
       res.status(422).json({ error: "No feed items for the requested date" });
       return;
@@ -1356,7 +1389,9 @@ function registerInstagramRoutes(app: Express): void {
             : req.query.variant === "navy"
               ? "navy"
               : await nextDailyVariant();
-        const stories = pickDailyTopStories(await db.listFeedItems(date)).map((s) => ({
+        const stories = pickDailyTopStories(
+          (await db.listFeedItems(date)).filter((it) => isEnrichedChannel(it.channel))
+        ).map((s) => ({
           ...s,
           title: sanitizeDashes(s.title),
           whyItMatters: s.whyItMatters ? sanitizeDashes(s.whyItMatters) : s.whyItMatters,

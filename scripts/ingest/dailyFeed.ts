@@ -1,9 +1,10 @@
 /**
  * Daily feed ingest. Runs once a day on GitHub Actions.
  *
- * Flow: pull every configured RSS source in parallel → dedupe by URL → cap
- * at DAILY_ITEM_TARGET → fetch og:image per item (in parallel, with
- * timeouts) → POST one batch to /api/ingest/daily-feed.
+ * Flow: pull every configured RSS source in parallel → dedupe by URL →
+ * cluster same-story coverage → cap per channel (CHANNEL_TARGETS) → fetch
+ * og:image + body text per item (in parallel, with timeouts) → POST one batch
+ * to /api/ingest/daily-feed, each item carrying its Discover channel.
  *
  * The server runs partnerTag + sayThis + image enrichment in the background
  * after this POST returns. No LLM calls happen here.
@@ -12,7 +13,8 @@
  *   INGEST_BASE_URL    — the deployed site URL, e.g. https://thedesk.au
  *   SCHEDULED_API_KEY  — matches the server's SCHEDULED_API_KEY env var
  */
-import { DAILY_ITEM_MIN, DAILY_ITEM_TARGET, SOURCES } from "./sources";
+import { FEED_CHANNELS } from "../../shared/const";
+import { CHANNEL_TARGETS, DAILY_ITEM_MIN, SOURCES } from "./sources";
 import { fetchArticle } from "./lib/article";
 import { clusterByTitle } from "./lib/cluster";
 import { fetchSource, type FetchedItem } from "./lib/rss";
@@ -205,12 +207,32 @@ async function main(): Promise<void> {
     `[ingest] ${representatives.length} stories after clustering (${corroborated} corroborated by 2+ outlets)`
   );
 
-  const picked = rankAndCap(representatives, DAILY_ITEM_TARGET);
-  console.log(`[ingest] selected ${picked.length} items for ingest`);
+  // Cap per channel, not globally: each Discover lane (Australia, Property,
+  // Business, Tech, Global) gets its own quota so a busy world-news day can't
+  // crowd the flagship out, and a quiet flagship day can't be padded with
+  // coverage filler. rankAndCap interleaves by source within each lane.
+  const byChannel = new Map<string, FetchedItem[]>();
+  for (const r of representatives) {
+    const ch = r.channel || "AU";
+    const list = byChannel.get(ch) ?? [];
+    list.push(r);
+    byChannel.set(ch, list);
+  }
+  const picked: FetchedItem[] = [];
+  for (const ch of FEED_CHANNELS) {
+    const laneItems = byChannel.get(ch) ?? [];
+    const capped = rankAndCap(laneItems, CHANNEL_TARGETS[ch]);
+    picked.push(...capped);
+    console.log(`[ingest]   ${ch}: ${capped.length}/${laneItems.length}`);
+  }
+  console.log(`[ingest] selected ${picked.length} items across ${FEED_CHANNELS.length} channels`);
 
-  if (picked.length < DAILY_ITEM_MIN) {
+  // The flagship is the product — abort if it comes up thin rather than ship a
+  // hollow Today page. Coverage lanes are allowed to be light on a quiet day.
+  const auCount = picked.filter((p) => (p.channel || "AU") === "AU").length;
+  if (auCount < DAILY_ITEM_MIN) {
     throw new Error(
-      `[ingest] only ${picked.length} items — below DAILY_ITEM_MIN (${DAILY_ITEM_MIN}). Refusing to ship a thin day.`
+      `[ingest] only ${auCount} AU-flagship items — below DAILY_ITEM_MIN (${DAILY_ITEM_MIN}). Refusing to ship a thin day.`
     );
   }
 
@@ -242,6 +264,7 @@ async function main(): Promise<void> {
       sourceUrl: item.url,
       summary: item.summary,
       category: item.category,
+      channel: item.channel || "AU",
       imageUrl: imageUrl ?? null,
       articleText: articleText ?? null,
       corroborationCount: item.corroborationCount ?? 1,

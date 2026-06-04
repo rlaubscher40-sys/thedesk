@@ -18,6 +18,9 @@ const parser = new Parser({
 export type FetchedItem = {
   source: string;
   category: string;
+  /** The Discover content lane this item belongs to, carried from its
+   *  source. Rides through clustering/ranking into the ingest payload. */
+  channel: string;
   title: string;
   summary: string;
   url: string | null;
@@ -41,6 +44,7 @@ export async function fetchSource(src: Source): Promise<FetchedItem[]> {
         return {
           source: src.name,
           category: src.category,
+          channel: src.channel,
           title,
           summary,
           url: it.link ?? null,

@@ -274,6 +274,7 @@ export function createFeedItems(items: InsertDailyFeedItem[]): number[] {
       sourceUrl: item.sourceUrl ?? null,
       summary: item.summary,
       category: item.category,
+      channel: item.channel ?? "AU",
       imageUrl: item.imageUrl ?? null,
       partnerTag: item.partnerTag ?? null,
       sayThis: item.sayThis ?? null,
