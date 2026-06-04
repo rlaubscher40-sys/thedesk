@@ -18,6 +18,7 @@ import { Link } from "wouter";
 import { toast } from "sonner";
 import type { DailyFeedItem } from "@shared/types";
 import { categoryAccentClass } from "@/lib/category";
+import { cleanHeadline, isRedundantSummary } from "@/lib/headline";
 import { SITE_DISPLAY } from "@/lib/siteUrl";
 import { useAuth } from "@/lib/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -132,6 +133,8 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
     else add.mutate({ feedItemId: item.id });
   }
 
+  const title = cleanHeadline(item.title);
+  const showSummary = !isRedundantSummary(item.title, item.summary);
   const linkedInDraft = buildLinkedInDraft(item);
 
   return (
@@ -226,7 +229,7 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
       {/* Headline, display-3 serif, hover shifts to amber. */}
       <Link href={`/story/${item.id}`} className="block group">
         <h3 className="display-3 mb-3 group-hover:text-amber-200 transition-colors">
-          {item.title}
+          {title}
         </h3>
       </Link>
 
@@ -244,9 +247,11 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
           arrive at wildly different lengths from the LLM enrichment,
           and an uncapped paragraph blows the row height. The full
           summary still surfaces on the story page. */}
-      <p className="text-base text-[var(--color-fg-muted)] leading-relaxed line-clamp-3">
-        {item.summary}
-      </p>
+      {showSummary && (
+        <p className="text-base text-[var(--color-fg-muted)] leading-relaxed line-clamp-3">
+          {item.summary}
+        </p>
+      )}
 
       {/* Action row. Grouped so "Read more", "Read original" and the admin
           "Add note" affordance wrap cleanly instead of crowding into each
@@ -309,9 +314,9 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
 
 function buildLinkedInDraft(item: DailyFeedItem): string {
   const lines = [
-    item.title,
+    cleanHeadline(item.title),
     "",
-    item.summary,
+    isRedundantSummary(item.title, item.summary) ? "" : item.summary,
     item.sayThis ? `\nMy take: ${item.sayThis}` : "",
     "",
     `Via The Desk · ${SITE_DISPLAY}`,

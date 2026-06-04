@@ -14,6 +14,7 @@
  *   SCHEDULED_API_KEY  — matches the server's SCHEDULED_API_KEY env var
  */
 import { FEED_CHANNELS } from "../../shared/const";
+import { isRedundantSummary } from "../../shared/headline";
 import { CHANNEL_TARGETS, DAILY_ITEM_MIN, SOURCES } from "./sources";
 import { fetchArticle } from "./lib/article";
 import { clusterByTitle } from "./lib/cluster";
@@ -104,6 +105,42 @@ const IRRELEVANT_PATTERNS: RegExp[] = [
 function isIrrelevant(item: FetchedItem): boolean {
   const haystack = `${item.title}\n${item.summary}`;
   return IRRELEVANT_PATTERNS.some((re) => re.test(haystack));
+}
+
+/**
+ * First sentence(s) of an article body, capped — used as a real dek for
+ * coverage-lane items whose RSS "summary" is just the headline repeated
+ * (Google News descriptions are). Returns null when there's no usable body.
+ */
+function deriveDek(articleText: string | null | undefined, max = 260): string | null {
+  if (!articleText) return null;
+  const clean = articleText.replace(/\s+/gu, " ").trim();
+  if (clean.length < 40) return null;
+  let out = "";
+  for (const part of clean.split(/(?<=[.!?])\s+/u)) {
+    if (!out) out = part;
+    else if ((out + " " + part).length <= max) out += " " + part;
+    else break;
+  }
+  if (out.length > max) out = out.slice(0, max - 1).trimEnd() + "…";
+  return out.length >= 40 ? out : null;
+}
+
+/**
+ * Pick the best subline for a story. Keeps the RSS summary when it adds
+ * something over the headline; otherwise falls back to a dek pulled from the
+ * article body, and finally to the original summary (the cards suppress a
+ * still-redundant subline rather than render a double-up).
+ */
+function bestSummary(
+  title: string,
+  rssSummary: string,
+  articleText: string | null | undefined
+): string {
+  if (!isRedundantSummary(title, rssSummary)) return rssSummary;
+  const dek = deriveDek(articleText);
+  if (dek && !isRedundantSummary(title, dek)) return dek;
+  return rssSummary;
 }
 
 function todayInSydney(): string {
@@ -262,7 +299,7 @@ async function main(): Promise<void> {
       title: item.title,
       source: item.source,
       sourceUrl: item.url,
-      summary: item.summary,
+      summary: bestSummary(item.title, item.summary, articleText),
       category: item.category,
       channel: item.channel || "AU",
       imageUrl: imageUrl ?? null,
