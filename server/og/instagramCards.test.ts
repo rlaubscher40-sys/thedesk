@@ -103,6 +103,46 @@ describe("renderDailyCoverCard", () => {
   });
 });
 
+// Guardrails so the coverage ("Wider Lens") post stays consistent with the
+// daily one: the label overrides plumb through, and the cover renders the same
+// shape whether or not a metric strip is present (the no-metrics path reserves
+// the strip's space so the title lines up across both posts).
+describe("coverage carousel — branding + alignment guardrails", () => {
+  it("renders the 'Wider Lens' cover with no metric strip", async () => {
+    expectJpeg(
+      await renderDailyCoverCard(stories, "2026-06-03", "navy", undefined, {
+        title: "The Wider Lens",
+        kicker: "Wider Lens",
+      })
+    );
+  });
+
+  it("renders a valid cover both with and without a metric strip", async () => {
+    expectJpeg(await renderDailyCoverCard(stories, "2026-06-03", "navy", metrics));
+    expectJpeg(
+      await renderDailyCoverCard(stories, "2026-06-03", "navy", undefined, {
+        title: "The Wider Lens",
+        kicker: "Wider Lens",
+      })
+    );
+  });
+
+  it("renders a story card with the 'In Brief' subtext label", async () => {
+    expectJpeg(
+      await renderDailyStoryCard(stories[0]!, 0, 3, "navy", { subtextLabel: "In Brief" })
+    );
+  });
+
+  it("renders a story vertical with the coverage header + subtext label", async () => {
+    expectJpeg(
+      await renderDailyStoryVertical(stories[0]!, "navy", {
+        subtextLabel: "In Brief",
+        header: "Wider Lens",
+      })
+    );
+  });
+});
+
 describe("renderDailyStoryVertical", () => {
   it("renders a 1080x1920 JPEG for both checkerboard variants", async () => {
     // The Story matches the day's cover variant so the two formats read as
