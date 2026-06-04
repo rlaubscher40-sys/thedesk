@@ -15,6 +15,7 @@ import { PartnerTagBlock } from "@/components/feed/PartnerTagBlock";
 import { SayThisLine } from "@/components/feed/SayThisLine";
 import { WhyItMattersLine } from "@/components/feed/WhyItMattersLine";
 import { categoryAccentClass } from "@/lib/category";
+import { cleanHeadline, shouldShowSummary } from "@/lib/headline";
 import { cn } from "@/lib/cn";
 import { SITE_DISPLAY } from "@/lib/siteUrl";
 import { trpc } from "@/lib/trpc";
@@ -56,12 +57,14 @@ export default function StoryPage() {
                 <span className="overline">{itemQuery.data.source}</span>
                 <span className="overline">{itemQuery.data.feedDate}</span>
               </div>
-              <h1 className="font-serif text-3xl sm:text-4xl leading-tight">{itemQuery.data.title}</h1>
+              <h1 className="font-serif text-3xl sm:text-4xl leading-tight">{cleanHeadline(itemQuery.data.title)}</h1>
             </header>
 
-            <p className="text-base leading-relaxed mt-6 text-[var(--color-fg)]">
-              {itemQuery.data.summary}
-            </p>
+            {shouldShowSummary(itemQuery.data.title, itemQuery.data.summary) && (
+              <p className="text-base leading-relaxed mt-6 text-[var(--color-fg)]">
+                {itemQuery.data.summary}
+              </p>
+            )}
 
             <div className="flex items-center gap-2 mt-5">
               {itemQuery.data.sourceUrl && (
@@ -94,9 +97,11 @@ export default function StoryPage() {
               open={linkedInOpen}
               onOpenChange={setLinkedInOpen}
               initialText={[
-                itemQuery.data.title,
+                cleanHeadline(itemQuery.data.title),
                 "",
-                itemQuery.data.summary,
+                shouldShowSummary(itemQuery.data.title, itemQuery.data.summary)
+                  ? itemQuery.data.summary
+                  : "",
                 itemQuery.data.sayThis ? `\nMy take: ${itemQuery.data.sayThis}` : "",
                 "",
                 `Via The Desk · ${SITE_DISPLAY}`,

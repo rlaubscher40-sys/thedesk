@@ -14,7 +14,7 @@
  *   SCHEDULED_API_KEY  — matches the server's SCHEDULED_API_KEY env var
  */
 import { FEED_CHANNELS } from "../../shared/const";
-import { isRedundantSummary } from "../../shared/headline";
+import { isRedundantSummary, looksLikeGarbage } from "../../shared/headline";
 import { CHANNEL_TARGETS, DAILY_ITEM_MIN, SOURCES } from "./sources";
 import { fetchArticle } from "./lib/article";
 import { clusterByTitle } from "./lib/cluster";
@@ -123,6 +123,9 @@ function deriveDek(articleText: string | null | undefined, max = 260): string | 
     else break;
   }
   if (out.length > max) out = out.slice(0, max - 1).trimEnd() + "…";
+  // Google News article links resolve to a JS interstitial, not the real
+  // page, so the "body" can be script soup — never let that become a dek.
+  if (looksLikeGarbage(out)) return null;
   return out.length >= 40 ? out : null;
 }
 

@@ -19,7 +19,7 @@ import { Link } from "wouter";
 import { toast } from "sonner";
 import type { DailyFeedItem } from "@shared/types";
 import { categoryAccentClass, categoryColour } from "@/lib/category";
-import { cleanHeadline, isRedundantSummary } from "@/lib/headline";
+import { cleanHeadline, shouldShowSummary } from "@/lib/headline";
 import { SITE_DISPLAY } from "@/lib/siteUrl";
 import { useAuth } from "@/lib/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -109,7 +109,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
   }
 
   const title = cleanHeadline(item.title);
-  const showSummary = !isRedundantSummary(item.title, item.summary);
+  const showSummary = shouldShowSummary(item.title, item.summary);
   const linkedInDraft = [
     title,
     "",
