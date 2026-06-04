@@ -55,7 +55,13 @@ function getClient(): Anthropic {
     if (!env.anthropicApiKey) {
       throw new Error("ANTHROPIC_API_KEY is not configured");
     }
-    cachedClient = new Anthropic({ apiKey: env.anthropicApiKey });
+    cachedClient = new Anthropic({
+      apiKey: env.anthropicApiKey,
+      // The daily enrichment fires many calls in a short window; lean on the
+      // SDK's built-in exponential backoff for transient 429/5xx rather than
+      // letting a rate-limit blip null out a story's lines. (Default is 2.)
+      maxRetries: 5,
+    });
   }
   return cachedClient;
 }
