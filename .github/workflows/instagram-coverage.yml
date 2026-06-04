@@ -1,0 +1,40 @@
+name: Instagram coverage post
+
+on:
+  schedule:
+    # 02:13 UTC daily = 12:13 Sydney AEST (shifts to 13:13 during summer AEDT).
+    # The midday "Wider lens" carousel across the coverage lanes (Tech &
+    # Science, Business, Global), a few hours after the morning AU/Property
+    # post (21:13 UTC) so the two don't stack on the feed.
+    # The minute is offset off :00/:30 to dodge GitHub's busiest cron slots.
+    # NB: scheduled runs only fire from the workflow file on the default
+    # branch (main). GitHub's cron is best-effort and may still slip.
+    - cron: "13 02 * * *"
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Why are you running this manually?"
+        required: false
+        default: "manual test"
+
+concurrency:
+  group: instagram-coverage
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Trigger Instagram coverage post
+        env:
+          INGEST_BASE_URL: ${{ secrets.INGEST_BASE_URL }}
+          SCHEDULED_API_KEY: ${{ secrets.SCHEDULED_API_KEY }}
+        run: |
+          BASE="${INGEST_BASE_URL%/}"
+          curl -fsSL \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -H "x-scheduled-key: ${SCHEDULED_API_KEY}" \
+            "${BASE}/api/ingest/instagram-coverage" \
+            -d '{}'

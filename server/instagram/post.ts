@@ -112,18 +112,58 @@ function buildDailyCaption(stories: DailyFeedItem[]): string {
 }
 
 /**
+ * Caption for the midday "Wider lens" coverage carousel (Tech & Science,
+ * Business, Global). Same shape as the daily caption, but no per-story say-this
+ * hook (coverage carries no partner angle) and a broader, non-AU-markets intro.
+ */
+function buildCoverageCaption(stories: DailyFeedItem[]): string {
+  const rundown = stories.flatMap((s, i) => [
+    `${i + 1}. ${sanitizeDashes(s.title).slice(0, 120)}`,
+    "",
+  ]);
+
+  const tags = `${CORE_HASHTAGS} #TechNews #BusinessNews #WorldNews ${categoryHashtag(stories[0]?.category)}`;
+
+  return [
+    "The wider lens, today in tech, science, business and the world beyond the property desk.",
+    "",
+    ...rundown,
+    "Which story should we dig into? Tell us below.",
+    "Save this for the headlines that matter.",
+    "",
+    "The full briefing, across every beat, is in our bio.",
+    "",
+    tags,
+  ].join("\n");
+}
+
+/**
  * Fill in the lines each slide and caption need — a why-it-matters (card
  * subtext) and a say-this (caption hook) — for any story missing them.
  * Enrichment normally provides these, but a story can slip through (enrichment
  * skipped or still running), so we generate at post time and persist back to
  * the feed item. A story the model SKIPs keeps an empty why-it-matters; the
  * caller drops those rather than render a blank card. Mutates in place.
+ *
+ * Options:
+ *   - `sayThis` (default true): also fill the say-this caption hook. The
+ *     coverage post turns this OFF — say-this is a partner-channel line and
+ *     coverage stories (Tech/Business/Global) carry no partner angle.
+ *   - `persist` (default true): write generated lines back to the feed item.
+ *     The coverage post turns this OFF so generating a why-it-matters purely to
+ *     render the IG card doesn't stamp partner-style context onto a coverage
+ *     story on the website, which is meant to stay headline + summary only.
  */
-async function ensureSlideContent(stories: DailyFeedItem[]): Promise<void> {
+async function ensureSlideContent(
+  stories: DailyFeedItem[],
+  opts: { sayThis?: boolean; persist?: boolean } = {}
+): Promise<void> {
+  const wantSay = opts.sayThis ?? true;
+  const persist = opts.persist ?? true;
   await Promise.all(
     stories.map(async (story, i) => {
       const needWhy = !(story.whyItMatters && story.whyItMatters.trim());
-      const needSay = !(story.sayThis && story.sayThis.trim());
+      const needSay = wantSay && !(story.sayThis && story.sayThis.trim());
       if (!needWhy && !needSay) return;
 
       const input = {
@@ -138,21 +178,25 @@ async function ensureSlideContent(stories: DailyFeedItem[]): Promise<void> {
 
       if (why) {
         stories[i] = { ...stories[i]!, whyItMatters: why };
-        await updateFeedItemWhyItMatters(story.id, why).catch((err) =>
-          console.warn(
-            `[instagram] couldn't persist whyItMatters for ${story.id}:`,
-            (err as Error).message
-          )
-        );
+        if (persist) {
+          await updateFeedItemWhyItMatters(story.id, why).catch((err) =>
+            console.warn(
+              `[instagram] couldn't persist whyItMatters for ${story.id}:`,
+              (err as Error).message
+            )
+          );
+        }
       }
       if (say) {
         stories[i] = { ...stories[i]!, sayThis: say };
-        await updateFeedItemSayThis(story.id, say).catch((err) =>
-          console.warn(
-            `[instagram] couldn't persist sayThis for ${story.id}:`,
-            (err as Error).message
-          )
-        );
+        if (persist) {
+          await updateFeedItemSayThis(story.id, say).catch((err) =>
+            console.warn(
+              `[instagram] couldn't persist sayThis for ${story.id}:`,
+              (err as Error).message
+            )
+          );
+        }
       }
     })
   );
@@ -246,8 +290,16 @@ export async function postDailyCarousel(
     variant?: CardVariant;
     /** Market metrics for the cover's lower-third strip, already value+unit formatted. */
     metrics?: Array<{ label: string; value: string }>;
+    /**
+     * "daily" = the AU/Property partner briefing (default): say-this hooks,
+     * lines persisted to the feed item. "coverage" = the midday Tech/Business/
+     * Global carousel: same card format, but no say-this and nothing persisted
+     * (coverage stories stay headline + summary on the website).
+     */
+    mode?: "daily" | "coverage";
   } = {}
 ): Promise<{ postId: string; headline: string }> {
+  const isCoverage = opts.mode === "coverage";
   const { instagramAccessToken: accessToken, instagramBusinessAccountId: igUserId } = env;
   if (!accessToken || !igUserId) {
     throw new Error("INSTAGRAM_ACCESS_TOKEN and INSTAGRAM_BUSINESS_ACCOUNT_ID must be set");
@@ -262,9 +314,14 @@ export async function postDailyCarousel(
 
   if (pool.length === 0) throw new Error("No stories available for Instagram post");
 
-  // Every slide must carry a why-it-matters (card subtext) and a say-this
-  // (caption hook). Generate + persist any that are missing before we filter.
-  await ensureSlideContent(pool);
+  // Every slide must carry a why-it-matters (card subtext). The daily post also
+  // wants a say-this (caption hook) and persists both back to the feed item;
+  // the coverage post generates a why-it-matters only, in memory, so the IG
+  // card has subtext without stamping partner context onto coverage stories.
+  await ensureSlideContent(
+    pool,
+    isCoverage ? { sayThis: false, persist: false } : {}
+  );
 
   // Best slides that earned a why-it-matters. A thin day posts fewer real
   // slides rather than padding with blanks; an entirely off-topic pool throws.
@@ -316,7 +373,9 @@ export async function postDailyCarousel(
       altTexts.push(sanitized[i]?.title);
     }
 
-    const caption = buildDailyCaption(sanitized);
+    const caption = isCoverage
+      ? buildCoverageCaption(sanitized)
+      : buildDailyCaption(sanitized);
 
     // Create child containers in parallel — Instagram fetches each image URL.
     // alt_text per slide is the cover/story headline (accessibility + ranking).

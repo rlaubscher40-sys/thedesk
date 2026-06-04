@@ -1316,6 +1316,72 @@ function registerInstagramRoutes(app: Express): void {
   app.post("/api/scheduled/instagram-daily", dailyHandler);
   app.post("/api/ingest/instagram-daily", dailyHandler);
 
+  // POST /api/ingest/instagram-coverage — the midday "Wider lens" carousel
+  // across the coverage lanes (Tech & Science, Business, Global). Same card
+  // format as the daily post, but the mirror-image channel filter, no market
+  // metrics strip, and no partner say-this lines (coverage carries no angle).
+  const coverageHandler = async (req: Request, res: Response) => {
+    if (!(await authenticateScheduled(req))) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const { instagramAccessToken, instagramBusinessAccountId } = (await import("./core/env")).env;
+    if (!instagramAccessToken || !instagramBusinessAccountId) {
+      res.status(503).json({ error: "Instagram credentials not configured" });
+      return;
+    }
+    const parsed = z
+      .object({
+        feedDate: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional(),
+      })
+      .safeParse(req.body ?? {});
+    const feedDate = parsed.success ? parsed.data.feedDate : undefined;
+
+    // The opposite filter to the daily post: coverage lanes only.
+    const items = (await db.listFeedItems(feedDate)).filter(
+      (it) => !isEnrichedChannel(it.channel)
+    );
+    if (items.length === 0) {
+      res.status(422).json({ error: "No coverage stories for the requested date" });
+      return;
+    }
+    try {
+      const { postDailyCarousel } = await import("./instagram/post");
+      // Share the daily checkerboard rotation so the profile grid stays
+      // alternating across both posts.
+      const variant = await nextDailyVariant();
+      const { postId, headline } = await postDailyCarousel(items, siteOrigin(), {
+        variant,
+        mode: "coverage",
+      });
+      console.log(`[instagram] coverage post complete: ${postId}`);
+      await db.recordInstagramPost({
+        mediaId: postId,
+        postType: "coverage",
+        feedDate: feedDate ?? null,
+        headline,
+      });
+      res.json({ success: true, postId, headline });
+    } catch (err) {
+      const e = err as Error;
+      console.error("[instagram] coverage post failed:", e.message);
+      await db
+        .recordServerError({
+          level: "error",
+          message: `Instagram coverage post failed: ${e.message}`.slice(0, 512),
+          stack: e.stack ?? null,
+          route: "instagram/coverage",
+        })
+        .catch(() => {});
+      res.status(502).json({ error: "Instagram coverage post failed", message: e.message });
+    }
+  };
+  app.post("/api/scheduled/instagram-coverage", coverageHandler);
+  app.post("/api/ingest/instagram-coverage", coverageHandler);
+
   // POST /api/ingest/instagram-weekly  — posts the latest weekly edition as a carousel
   const weeklyHandler = async (req: Request, res: Response) => {
     if (!(await authenticateScheduled(req))) {
