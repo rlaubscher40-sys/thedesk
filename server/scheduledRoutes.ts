@@ -550,7 +550,12 @@ function registerSynthesizeEditionRoute(app: Express): void {
     const target = parsed.data.anyDateInWeek ?? new Date().toISOString().slice(0, 10);
     const { weekStart, weekEnd, weekRange, weekOf } = isoWeekBounds(target);
 
-    const items = await db.listFeedItemsBetween(weekStart, weekEnd);
+    // The weekly edition is the partner deep-dive: synthesise from the
+    // enriched lanes (AU + Property) only. Coverage-lane headlines (Business /
+    // Tech / Global) live on the Today tabs, not in the edition.
+    const items = (await db.listFeedItemsBetween(weekStart, weekEnd)).filter((it) =>
+      isEnrichedChannel(it.channel)
+    );
     if (items.length === 0) {
       res.status(422).json({
         error: "No feed items in target week",
@@ -755,7 +760,12 @@ function registerSynthesizeEditionRoute(app: Express): void {
 
 async function notifyDailyBriefSubscribers(feedDate: string): Promise<void> {
   try {
-    const items = await db.listFeedItems(feedDate);
+    // Partner-facing output: the brief covers the enriched lanes (AU +
+    // Property) only. Coverage lanes (Business / Tech / Global) surface on the
+    // Today-page tabs but don't belong in a partner's inbox.
+    const items = (await db.listFeedItems(feedDate)).filter((it) =>
+      isEnrichedChannel(it.channel)
+    );
     if (items.length === 0) return;
     const subs = await db.listSubscribersForDailyBrief(feedDate);
     if (subs.length === 0) return;
@@ -1209,7 +1219,11 @@ function registerInstagramRoutes(app: Express): void {
       .safeParse(req.body ?? {});
     const feedDate = parsed.success ? parsed.data.feedDate : undefined;
 
-    const items = await db.listFeedItems(feedDate);
+    // Instagram is partner-facing: post from the enriched lanes (AU +
+    // Property) only, never the coverage tabs.
+    const items = (await db.listFeedItems(feedDate)).filter((it) =>
+      isEnrichedChannel(it.channel)
+    );
     if (items.length === 0) {
       res.status(422).json({ error: "No feed items for the requested date" });
       return;
@@ -1375,7 +1389,9 @@ function registerInstagramRoutes(app: Express): void {
             : req.query.variant === "navy"
               ? "navy"
               : await nextDailyVariant();
-        const stories = pickDailyTopStories(await db.listFeedItems(date)).map((s) => ({
+        const stories = pickDailyTopStories(
+          (await db.listFeedItems(date)).filter((it) => isEnrichedChannel(it.channel))
+        ).map((s) => ({
           ...s,
           title: sanitizeDashes(s.title),
           whyItMatters: s.whyItMatters ? sanitizeDashes(s.whyItMatters) : s.whyItMatters,

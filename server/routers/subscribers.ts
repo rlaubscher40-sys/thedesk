@@ -22,7 +22,7 @@ import { z } from "zod";
 import * as db from "../db";
 import { sendConfirmEmail, sendAlreadyConfirmedEmail, sendDailyBriefEmail, editionUnsubscribeUrl } from "../core/mailer";
 import { adminProcedure, publicProcedure, router } from "../core/trpc";
-import { DEFAULT_SITE_URL } from "../../shared/const";
+import { DEFAULT_SITE_URL, isEnrichedChannel } from "../../shared/const";
 
 function todayAEST(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
@@ -145,7 +145,11 @@ export const subscribersRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Subscriber not found or not active." });
       }
       const today = todayAEST();
-      const items = await db.listFeedItems(today);
+      // Partner-facing email: enriched lanes (AU + Property) only, matching the
+      // scheduled daily brief. Coverage tabs don't go to a partner's inbox.
+      const items = (await db.listFeedItems(today)).filter((it) =>
+        isEnrichedChannel(it.channel)
+      );
       if (items.length === 0) {
         throw new TRPCError({ code: "PRECONDITION_FAILED", message: "No feed items for today yet." });
       }
