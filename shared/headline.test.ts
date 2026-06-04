@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { cleanHeadline, isRedundantSummary } from "./headline";
+import {
+  cleanHeadline,
+  isRedundantSummary,
+  looksLikeGarbage,
+  shouldShowSummary,
+} from "./headline";
 
 describe("cleanHeadline", () => {
   it("strips the Google News ' - Publisher' suffix", () => {
@@ -51,5 +56,37 @@ describe("isRedundantSummary", () => {
         "The Reserve Bank kept the cash rate steady, dropping its tightening bias as services inflation cools."
       )
     ).toBe(false);
+  });
+});
+
+describe("looksLikeGarbage", () => {
+  it("flags the Google News JS interstitial soup", () => {
+    const junk =
+      '"use strict";this.default_DotsSplashUi_desktop_ms={};(function(_){var window=this;try{ /* Copyright The Closure Library Authors.';
+    expect(looksLikeGarbage(junk)).toBe(true);
+  });
+
+  it("does not flag normal prose", () => {
+    expect(
+      looksLikeGarbage(
+        "Australian construction risk is being reshaped by defence spending, data centres and the housing push."
+      )
+    ).toBe(false);
+  });
+});
+
+describe("shouldShowSummary", () => {
+  it("hides redundant, empty, and garbage sublines; shows real ones", () => {
+    expect(shouldShowSummary("OpenAI diverges", "OpenAI diverges")).toBe(false);
+    expect(shouldShowSummary("Anything", null)).toBe(false);
+    expect(
+      shouldShowSummary("Defence push reshapes construction", '"use strict";function(_){var window=this;}')
+    ).toBe(false);
+    expect(
+      shouldShowSummary(
+        "RBA holds at 4.35%",
+        "The Reserve Bank kept the cash rate steady as services inflation cools."
+      )
+    ).toBe(true);
   });
 });

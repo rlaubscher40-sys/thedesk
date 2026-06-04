@@ -3,4 +3,9 @@
  * `@/lib/...` path. Canonical implementation lives in shared/headline.ts and
  * is reused by the ingest pipeline.
  */
-export { cleanHeadline, isRedundantSummary } from "@shared/headline";
+export {
+  cleanHeadline,
+  isRedundantSummary,
+  looksLikeGarbage,
+  shouldShowSummary,
+} from "@shared/headline";

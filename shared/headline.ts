@@ -16,6 +16,49 @@ function norm(s: string): string {
 }
 
 /**
+ * True when a string is code / boilerplate rather than prose. Google News
+ * article links resolve to a JavaScript interstitial ("DotsSplash" / Closure
+ * Library) instead of the real page, so body-text extraction can scoop up
+ * script soup. Catches the telltale code markers and symbol-soup so it never
+ * reaches a card or gets stored as a summary.
+ */
+export function looksLikeGarbage(text: string | null | undefined): boolean {
+  if (!text) return false;
+  const t = text.trim();
+  if (!t) return false;
+  if (
+    /\buse strict\b|function\s*\(|\bvar\s+[\w$]+\s*=|=>|;\}|\{\}|\bwindow\b\s*=|Closure Library|Copyright\s+The\s+[\w.]+\s+Authors|document\.|\.prototype\b|\b[\w$]+\.[\w$]+\s*=\s*function/iu.test(
+      t
+    )
+  ) {
+    return true;
+  }
+  // Symbol-soup: too much code punctuation relative to letters.
+  const symbols = (t.match(/[{}();=<>\\|_]/gu) || []).length;
+  const letters = (t.match(/[a-z]/giu) || []).length;
+  if (letters > 0 && symbols / letters > 0.15) return true;
+  // Real prose breathes — very few spaces means it's a minified blob.
+  const spaces = (t.match(/\s/gu) || []).length;
+  if (t.length > 40 && spaces / t.length < 0.05) return true;
+  return false;
+}
+
+/**
+ * Whether a card should render the summary at all: present, not a redundant
+ * echo of the title, and not extraction garbage. The single predicate the
+ * feed cards use so the three of them stay consistent.
+ */
+export function shouldShowSummary(
+  title: string,
+  summary: string | null | undefined
+): boolean {
+  if (!summary) return false;
+  if (isRedundantSummary(title, summary)) return false;
+  if (looksLikeGarbage(summary)) return false;
+  return true;
+}
+
+/**
  * Strip a trailing " - Publisher" / " – Publisher" suffix that Google News
  * appends to headlines. Conservative: only strips when the tail looks like a
  * source name (short, no terminal sentence punctuation), so real title clauses

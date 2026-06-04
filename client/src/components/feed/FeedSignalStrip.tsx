@@ -16,7 +16,7 @@ import { Link } from "wouter";
 import { toast } from "sonner";
 import type { DailyFeedItem } from "@shared/types";
 import { categoryAccentClass, categoryColour } from "@/lib/category";
-import { cleanHeadline, isRedundantSummary } from "@/lib/headline";
+import { cleanHeadline, shouldShowSummary } from "@/lib/headline";
 import { useAuth } from "@/lib/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Card } from "../ui/Card";
@@ -122,7 +122,7 @@ export function FeedSignalStrip({ item }: { item: DailyFeedItem }) {
           </h3>
         </Link>
 
-        {!isRedundantSummary(item.title, item.summary) && (
+        {shouldShowSummary(item.title, item.summary) && (
           <p className="hidden sm:block text-[13px] text-[var(--color-fg-muted)] leading-snug mt-1.5 line-clamp-2 max-w-[76ch]">
             {item.summary}
           </p>
