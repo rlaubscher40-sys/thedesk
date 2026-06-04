@@ -106,6 +106,31 @@ function sanitiseText<T extends string | null | undefined>(text: T): T {
 
 // ─── Daily feed ─────────────────────────────────────────────────────────────
 
+/**
+ * Run an async worker over items with at most `limit` in flight at once.
+ * Used to throttle the per-item LLM enrichment so the whole feed doesn't burst
+ * its calls at Anthropic in one go and trip the rate limit. Order-independent;
+ * the worker keys off its own index.
+ */
+async function mapWithConcurrency<T>(
+  items: T[],
+  limit: number,
+  worker: (item: T, index: number) => Promise<void>
+): Promise<void> {
+  let next = 0;
+  const runners = Array.from(
+    { length: Math.max(1, Math.min(limit, items.length)) },
+    async () => {
+      for (;;) {
+        const i = next++;
+        if (i >= items.length) return;
+        await worker(items[i]!, i);
+      }
+    }
+  );
+  await Promise.all(runners);
+}
+
 function registerDailyFeedRoute(app: Express): void {
   const handler = async (req: Request, res: Response) => {
     if (!(await authenticateScheduled(req))) {
@@ -236,11 +261,14 @@ function registerDailyFeedRoute(app: Express): void {
           let whyOk = 0;
           let cpOk = 0;
           let imgOk = 0;
-          await Promise.all(
-            // Zip each input item to the row it became by position — the IDs
-            // come back from createFeedItems in input order. Matching by title
-            // previously collided when two sources ran the same headline.
-            freshItems.map(async (item, index) => {
+          // Bounded concurrency: each enriched item fires up to four LLM
+          // calls, so a flat Promise.all over the whole feed bursts ~90
+          // requests at Anthropic at once and trips its rate limit — most 429
+          // and resolve to null, leaving roughly one stray field per story.
+          // A small pool keeps us under the per-minute ceiling. Items zip to
+          // their row by position: createFeedItems returns IDs in input order
+          // (matching by title collided when two sources ran the same headline).
+          await mapWithConcurrency(freshItems, 3, async (item, index) => {
               const id = insertedIds[index];
               if (!id) return;
 
@@ -366,8 +394,7 @@ function registerDailyFeedRoute(app: Express): void {
                 await db.updateFeedItemImageUrl(id, img.value.url);
                 imgOk++;
               }
-            })
-          );
+            });
           console.log(
             `[scheduled] enriched ${feedDate}: ${tagOk} partnerTags, ${sayOk} sayThis, ${whyOk} whyItMatters, ${cpOk} counterpoints, ${imgOk} images`
           );
