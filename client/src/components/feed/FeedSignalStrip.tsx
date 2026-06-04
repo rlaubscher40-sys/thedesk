@@ -16,6 +16,7 @@ import { Link } from "wouter";
 import { toast } from "sonner";
 import type { DailyFeedItem } from "@shared/types";
 import { categoryAccentClass, categoryColour } from "@/lib/category";
+import { cleanHeadline, isRedundantSummary } from "@/lib/headline";
 import { useAuth } from "@/lib/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Card } from "../ui/Card";
@@ -117,11 +118,11 @@ export function FeedSignalStrip({ item }: { item: DailyFeedItem }) {
 
         <Link href={`/story/${item.id}`} className="block group">
           <h3 className="font-serif font-bold text-base sm:text-lg leading-snug tracking-tight group-hover:text-amber-200 transition-colors line-clamp-2">
-            {item.title}
+            {cleanHeadline(item.title)}
           </h3>
         </Link>
 
-        {item.summary && (
+        {!isRedundantSummary(item.title, item.summary) && (
           <p className="hidden sm:block text-[13px] text-[var(--color-fg-muted)] leading-snug mt-1.5 line-clamp-2 max-w-[76ch]">
             {item.summary}
           </p>

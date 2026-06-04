@@ -19,6 +19,7 @@ import { Link } from "wouter";
 import { toast } from "sonner";
 import type { DailyFeedItem } from "@shared/types";
 import { categoryAccentClass, categoryColour } from "@/lib/category";
+import { cleanHeadline, isRedundantSummary } from "@/lib/headline";
 import { SITE_DISPLAY } from "@/lib/siteUrl";
 import { useAuth } from "@/lib/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -107,10 +108,12 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
     else add.mutate({ feedItemId: item.id });
   }
 
+  const title = cleanHeadline(item.title);
+  const showSummary = !isRedundantSummary(item.title, item.summary);
   const linkedInDraft = [
-    item.title,
+    title,
     "",
-    item.summary,
+    showSummary ? item.summary : "",
     item.sayThis ? `\nMy take: ${item.sayThis}` : "",
     "",
     `Via The Desk · ${SITE_DISPLAY}`,
@@ -302,7 +305,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
 
         <Link href={`/story/${item.id}`} className="block group mb-4">
           <h2 className="display-2 group-hover:text-amber-200 transition-colors">
-            {item.title}
+            {title}
           </h2>
         </Link>
 
@@ -320,9 +323,11 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
             at body sizes on a dark background and was reading as cramped. The
             magazine register stays via the serif face and the surrounding
             chrome; the italic was carrying too much load. */}
-        <p className="font-serif text-lg text-[var(--color-fg-muted)] leading-relaxed mb-5">
-          {item.summary}
-        </p>
+        {showSummary && (
+          <p className="font-serif text-lg text-[var(--color-fg-muted)] leading-relaxed mb-5">
+            {item.summary}
+          </p>
+        )}
 
         {/* Source + meta row. Sits between the lede and the editorial
             take, separated by hairline rules on each side. */}
