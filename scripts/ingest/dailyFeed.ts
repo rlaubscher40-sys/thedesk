@@ -306,7 +306,11 @@ async function main(): Promise<void> {
       category: item.category,
       channel: item.channel || "AU",
       imageUrl: imageUrl ?? null,
-      articleText: articleText ?? null,
+      // Don't ground the LLM enrichment on extraction garbage (Google News'
+      // JS interstitial). When the body is junk, send null so the prompts work
+      // from the (clean) title + summary instead of a page full of script soup.
+      articleText:
+        articleText && !looksLikeGarbage(articleText) ? articleText : null,
       corroborationCount: item.corroborationCount ?? 1,
       corroboratingSources: item.corroboratingSources ?? null,
     })),

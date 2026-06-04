@@ -252,6 +252,9 @@ export const SOURCES: Source[] = [
   },
 
   // ══ BUSINESS (global business/markets — coverage only) ════════════════════
+  // Direct publisher feeds, not Google News queries: GNews descriptions are
+  // just the headline echoed, which leaves coverage cards with no subline.
+  // These mastheads ship a real article summary in each item.
   {
     name: "BBC Business",
     url: "https://feeds.bbci.co.uk/news/business/rss.xml",
@@ -260,24 +263,22 @@ export const SOURCES: Source[] = [
     maxItems: 4,
   },
   {
-    name: "Reuters · Business",
-    url: googleNewsGlobal('site:reuters.com (business OR markets OR economy)'),
+    name: "CNBC · Top News",
+    url: "https://www.cnbc.com/id/100003114/device/rss/rss.html",
     category: "MARKETS",
     channel: "BUSINESS",
     maxItems: 3,
   },
   {
-    name: "Global · Earnings & deals",
-    url: googleNewsGlobal('earnings OR merger OR acquisition OR IPO company results'),
+    name: "Guardian · Business",
+    url: "https://www.theguardian.com/business/rss",
     category: "MARKETS",
     channel: "BUSINESS",
     maxItems: 3,
   },
   {
-    name: "Global · Big Tech business",
-    url: googleNewsGlobal(
-      'Apple OR Microsoft OR Nvidia OR Amazon OR Alphabet revenue OR earnings OR shares'
-    ),
+    name: "MarketWatch · Top Stories",
+    url: "https://feeds.content.dowjones.io/public/rss/mw_topstories",
     category: "MARKETS",
     channel: "BUSINESS",
     maxItems: 2,
@@ -289,7 +290,7 @@ export const SOURCES: Source[] = [
     url: "https://feeds.bbci.co.uk/news/technology/rss.xml",
     category: "TECH",
     channel: "TECH",
-    maxItems: 4,
+    maxItems: 3,
   },
   {
     name: "BBC Science & Environment",
@@ -306,18 +307,18 @@ export const SOURCES: Source[] = [
     maxItems: 3,
   },
   {
-    name: "ScienceDaily · Top",
-    url: "https://www.sciencedaily.com/rss/top/science.xml",
-    category: "SCIENCE",
+    name: "TechCrunch",
+    url: "https://techcrunch.com/feed/",
+    category: "TECH",
     channel: "TECH",
     maxItems: 3,
   },
   {
-    name: "Global · AI",
-    url: googleNewsGlobal('"artificial intelligence" OR "AI model" OR OpenAI OR Anthropic OR "machine learning"'),
-    category: "AI",
+    name: "ScienceDaily · Top",
+    url: "https://www.sciencedaily.com/rss/top/science.xml",
+    category: "SCIENCE",
     channel: "TECH",
-    maxItems: 3,
+    maxItems: 2,
   },
 
   // ══ GLOBAL TOP STORIES (world news — coverage only) ═══════════════════════
@@ -336,15 +337,15 @@ export const SOURCES: Source[] = [
     maxItems: 3,
   },
   {
-    name: "Global · China & geopolitics",
-    url: googleNewsGlobal('China economy OR property OR "Xi Jinping" OR Taiwan'),
+    name: "Al Jazeera",
+    url: "https://www.aljazeera.com/xml/rss/all.xml",
     category: "GEOPOLITICS",
     channel: "GLOBAL",
     maxItems: 3,
   },
   {
-    name: "Global · Top headlines",
-    url: "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en",
+    name: "NPR · World",
+    url: "https://feeds.npr.org/1004/rss.xml",
     category: "OTHER",
     channel: "GLOBAL",
     maxItems: 3,
