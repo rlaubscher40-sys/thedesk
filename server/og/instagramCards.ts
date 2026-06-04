@@ -723,7 +723,20 @@ export async function renderDailyCoverCard(
                       },
                     },
                   ]
-                : []),
+                : [
+                    // No metric strip (e.g. the midday coverage carousel):
+                    // reserve the strip's vertical footprint so the briefing
+                    // block keeps the same height and the title/contents line up
+                    // with the cover that does carry a strip. marginTop (44) +
+                    // value (40) + gap (7) + label (~14) ≈ the rendered strip.
+                    {
+                      type: "div",
+                      props: {
+                        style: { display: "flex", marginTop: "44px", height: "61px" },
+                        children: "",
+                      },
+                    },
+                  ]),
             ],
           },
         },
