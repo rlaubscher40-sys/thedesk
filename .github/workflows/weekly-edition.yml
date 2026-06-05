@@ -1,12 +1,9 @@
 name: Weekly edition synthesis
 
 on:
-  schedule:
-    # 21:17 UTC Saturday = 07:17 Sunday Sydney AEST / 08:17 (AEDT).
-    # Posts before the week starts so Sunday morning has the new edition.
-    # The minute is offset off :00 to dodge GitHub's busiest cron slot, which
-    # was delaying these runs.
-    - cron: "17 21 * * 6"
+  # Timing is driven by the in-process scheduler (server/scheduler), reliable
+  # where GitHub cron ran late / dropped runs — see docs/reliable-scheduling.md.
+  # workflow_dispatch stays so the job can still be triggered by hand.
   workflow_dispatch:
     inputs:
       reason:

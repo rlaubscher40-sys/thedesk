@@ -1,12 +1,9 @@
 name: Instagram weekly post
 
 on:
-  schedule:
-    # 23:19 UTC Saturday = 09:19 Sunday Sydney AEST. Runs ~2 hours after the
-    # weekly edition synthesis (21:17 UTC Saturday) so hero image + Ruben's
-    # Take enrichment have time to complete before the post goes out.
-    # The minute is offset off :00 to dodge GitHub's busiest cron slot.
-    - cron: "19 23 * * 6"
+  # Timing is driven by the in-process scheduler (server/scheduler), reliable
+  # where GitHub cron ran late / dropped runs — see docs/reliable-scheduling.md.
+  # workflow_dispatch stays so the job can still be triggered by hand.
   workflow_dispatch:
     inputs:
       reason:

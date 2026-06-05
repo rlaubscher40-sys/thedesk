@@ -1,16 +1,9 @@
 name: Instagram daily post
 
 on:
-  schedule:
-    # 21:13 UTC daily = 07:13 Sydney AEST (shifts to 08:13 during summer AEDT).
-    # Runs ~30 min after the daily feed ingest so the feed's background
-    # enrichment (whyItMatters/sayThis) has usually finished and the post can
-    # reuse it; if it hasn't, ensureSlideContent() generates the missing lines
-    # at post time, so this gap is a nicety, not a hard dependency.
-    # The minute is offset off :00/:30 to dodge GitHub's busiest cron slots.
-    # NB: scheduled runs only fire from the workflow file on the default
-    # branch (main). GitHub's cron is best-effort and may still slip.
-    - cron: "13 21 * * *"
+  # Timing is driven by the in-process scheduler (server/scheduler), reliable
+  # where GitHub cron ran late / dropped runs — see docs/reliable-scheduling.md.
+  # workflow_dispatch stays so the job can still be triggered by hand.
   workflow_dispatch:
     inputs:
       reason:
