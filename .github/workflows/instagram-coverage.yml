@@ -1,15 +1,9 @@
 name: Instagram coverage post
 
 on:
-  schedule:
-    # 02:13 UTC daily = 12:13 Sydney AEST (shifts to 13:13 during summer AEDT).
-    # The midday "Wider lens" carousel across the coverage lanes (Tech &
-    # Science, Business, Global), a few hours after the morning AU/Property
-    # post (21:13 UTC) so the two don't stack on the feed.
-    # The minute is offset off :00/:30 to dodge GitHub's busiest cron slots.
-    # NB: scheduled runs only fire from the workflow file on the default
-    # branch (main). GitHub's cron is best-effort and may still slip.
-    - cron: "13 02 * * *"
+  # Timing is driven by the in-process scheduler (server/scheduler), reliable
+  # where GitHub cron ran late / dropped runs — see docs/reliable-scheduling.md.
+  # workflow_dispatch stays so the job can still be triggered by hand.
   workflow_dispatch:
     inputs:
       reason:
