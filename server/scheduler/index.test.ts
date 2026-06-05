@@ -42,9 +42,15 @@ describe("isJobDue", () => {
     expect(isJobDue(daily, baseClock({ minutes: 6 * 60 + 42 }))).toBe(false);
   });
 
-  it("is due at and after its time", () => {
-    expect(isJobDue(daily, baseClock({ minutes: 6 * 60 + 43 }))).toBe(true);
-    expect(isJobDue(daily, baseClock({ minutes: 23 * 60 }))).toBe(true);
+  it("is due at its time and within the grace window", () => {
+    expect(isJobDue(daily, baseClock({ minutes: 6 * 60 + 43 }))).toBe(true); // exactly on time
+    expect(isJobDue(daily, baseClock({ minutes: 10 * 60 }))).toBe(true); // ~3h late, still in window
+  });
+
+  it("is NOT due once it's long overdue (no retroactive 2pm 'morning' post)", () => {
+    // 06:43 + 5h grace = 11:43; an afternoon enable must not fire it.
+    expect(isJobDue(daily, baseClock({ minutes: 14 * 60 }))).toBe(false);
+    expect(isJobDue(daily, baseClock({ minutes: 23 * 60 }))).toBe(false);
   });
 
   it("a weekly job only fires on its day", () => {
