@@ -300,7 +300,13 @@ async function postStoryFrames(opts: {
   accessToken: string;
 }): Promise<void> {
   const { stories, variant, verticalOpts, siteUrl, igUserId, accessToken } = opts;
+  // Let the account breathe after the carousel publish before the Story burst,
+  // and space the frames out — posting a carousel + 3 stories back-to-back is
+  // the kind of burst that trips Instagram's "Action is blocked" rate limit.
+  const settle = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  await settle(8000);
   for (let i = 0; i < stories.length; i++) {
+    if (i > 0) await settle(5000);
     const uuids: string[] = [];
     try {
       const storyBuf = await renderDailyStoryVertical(stories[i]!, variant, verticalOpts);
