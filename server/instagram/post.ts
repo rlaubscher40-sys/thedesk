@@ -283,6 +283,51 @@ export function pickDailyTopStories(
   return top;
 }
 
+/**
+ * Post each story to the 24h Story as its own 9:16 frame. Runs in the
+ * BACKGROUND after the carousel is live: the Stories API can stall, and doing
+ * it inline blocked the response long enough that the whole post looked
+ * "failed" even though the carousel had published. Decoupled, a Story problem
+ * is logged (and surfaced in the admin health panel) but never affects the
+ * feed post or the caller. Each frame owns and cleans up its own temp image.
+ */
+async function postStoryFrames(opts: {
+  stories: DailyFeedItem[];
+  variant: CardVariant;
+  verticalOpts: { subtextLabel?: string; header?: string };
+  siteUrl: string;
+  igUserId: string;
+  accessToken: string;
+}): Promise<void> {
+  const { stories, variant, verticalOpts, siteUrl, igUserId, accessToken } = opts;
+  for (let i = 0; i < stories.length; i++) {
+    const uuids: string[] = [];
+    try {
+      const storyBuf = await renderDailyStoryVertical(stories[i]!, variant, verticalOpts);
+      const storyUuid = storeTempImage(storyBuf);
+      uuids.push(storyUuid);
+      const containerId = await createStoryContainer({
+        igUserId,
+        accessToken,
+        imageUrl: `${siteUrl}/instagram/temp/${storyUuid}.jpg`,
+      });
+      await waitForContainerReady({ containerId, accessToken, timeoutMs: 20000 });
+      const storyId = await publishContainer({ igUserId, accessToken, creationId: containerId });
+      console.log(`[instagram] story ${i + 1}/${stories.length} posted: ${storyId}`);
+    } catch (err) {
+      const message = (err as Error).message;
+      console.error(`[instagram] story ${i + 1} failed (feed post still live):`, message);
+      await recordServerError({
+        level: "warn",
+        message: `Instagram story ${i + 1} failed: ${message}`.slice(0, 512),
+        route: "instagram/story",
+      }).catch(() => {});
+    } finally {
+      uuids.forEach(removeTempImage);
+    }
+  }
+}
+
 export async function postDailyCarousel(
   stories: DailyFeedItem[],
   siteUrl: string,
@@ -366,8 +411,8 @@ export async function postDailyCarousel(
   const punched = top.map((s, i) => ({ ...s, title: headlines[i] ?? s.title }));
 
   const sanitized = punched.map(sanitizeStory);
-  const uuids: string[] = [];
-  // alt_text per slide, kept in lockstep with uuids (cover + one per story).
+  const carouselUuids: string[] = [];
+  // alt_text per slide, kept in lockstep with the carousel images (cover + one per story).
   const altTexts: (string | undefined)[] = [];
   try {
     // Slide 1 is a branded cover (date + numbered contents). Instagram shows
@@ -380,7 +425,7 @@ export async function postDailyCarousel(
       opts.metrics,
       coverOpts
     );
-    uuids.push(storeTempImage(coverBuf));
+    carouselUuids.push(storeTempImage(coverBuf));
     altTexts.push(isCoverage ? "The Desk wider lens cover" : "The Desk daily briefing cover");
 
     for (let i = 0; i < sanitized.length; i++) {
@@ -393,7 +438,7 @@ export async function postDailyCarousel(
         opts.variant ?? "navy",
         cardOpts
       );
-      uuids.push(storeTempImage(buf));
+      carouselUuids.push(storeTempImage(buf));
       altTexts.push(sanitized[i]?.title);
     }
 
@@ -404,7 +449,7 @@ export async function postDailyCarousel(
     // Create child containers in parallel — Instagram fetches each image URL.
     // alt_text per slide is the cover/story headline (accessibility + ranking).
     const childIds = await Promise.all(
-      uuids.map((uuid, i) =>
+      carouselUuids.map((uuid, i) =>
         createImageContainer({
           igUserId,
           accessToken,
@@ -430,43 +475,21 @@ export async function postDailyCarousel(
 
     console.log(`[instagram] daily carousel posted: ${postId}`);
 
-    // Also share each of the day's stories to the 24h Story as its own frame,
-    // so the Story carries the full top-3, not just the lead. Best-effort and
-    // per-frame: a failure on one frame must never fail the feed post that has
-    // already gone live, nor block the remaining frames.
-    for (let i = 0; i < sanitized.length; i++) {
-      try {
-        const storyBuf = await renderDailyStoryVertical(sanitized[i]!, opts.variant ?? "navy", verticalOpts);
-        const storyUuid = storeTempImage(storyBuf);
-        uuids.push(storyUuid);
-        const storyContainerId = await createStoryContainer({
-          igUserId,
-          accessToken,
-          imageUrl: `${siteUrl}/instagram/temp/${storyUuid}.jpg`,
-        });
-        await waitForContainerReady({ containerId: storyContainerId, accessToken });
-        const storyId = await publishContainer({
-          igUserId,
-          accessToken,
-          creationId: storyContainerId,
-        });
-        console.log(`[instagram] daily story ${i + 1}/${sanitized.length} posted: ${storyId}`);
-      } catch (err) {
-        const message = (err as Error).message;
-        console.error(`[instagram] daily story ${i + 1} failed (feed post still live):`, message);
-        // Record it so a Story failure is visible in the admin console instead
-        // of silently disappearing the way it did before.
-        await recordServerError({
-          level: "warn",
-          message: `Instagram daily story ${i + 1} failed: ${message}`.slice(0, 512),
-          route: "instagram/daily-story",
-        }).catch(() => {});
-      }
-    }
+    // Share each story to the 24h Story IN THE BACKGROUND. The carousel is
+    // already live and recorded by the caller; a slow/failing Stories API must
+    // never hang this request or make the post look failed.
+    void postStoryFrames({
+      stories: sanitized,
+      variant: opts.variant ?? "navy",
+      verticalOpts,
+      siteUrl,
+      igUserId,
+      accessToken,
+    });
 
     return { postId, headline: sanitized[0]!.title };
   } finally {
-    uuids.forEach(removeTempImage);
+    carouselUuids.forEach(removeTempImage);
   }
 }
 
