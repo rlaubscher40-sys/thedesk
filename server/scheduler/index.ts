@@ -26,6 +26,14 @@ import { runDailyMetricsIngest } from "../../scripts/ingest/dailyMetrics";
 
 const TICK_MINUTES = 5;
 const BOOT_DELAY_MS = 15_000;
+/**
+ * How late a job may still run. Catch-up after a short outage is the whole
+ * point — but a job that's hours overdue should be skipped, not fired
+ * retroactively, or enabling the scheduler at (say) 2pm would blast out a
+ * stale "morning briefing". 5h covers a realistic restart window while never
+ * posting yesterday's-feeling content in the afternoon.
+ */
+const GRACE_MINUTES = 5 * 60;
 
 export type SchedulerClock = {
   /** Sydney calendar date, YYYY-MM-DD. */
@@ -73,13 +81,24 @@ type Job = {
   at: string;
   /** Restrict to these days (0=Sun…6=Sat). Omitted = every day. */
   dow?: number[];
+  /**
+   * Max attempts per day. Posting jobs (Instagram) set 1: a "failed" post may
+   * actually have published (a timeout after the Graph API accepted it), so
+   * retrying risks a duplicate. Ingest jobs are safe to retry (default 3).
+   */
+  maxAttempts?: number;
   run: (baseUrl: string, apiKey: string) => Promise<void>;
 };
 
-/** Pure predicate (exported for tests): is the job due as of `clock`? */
+/**
+ * Pure predicate (exported for tests): is the job due as of `clock`? True only
+ * within the grace window after its time, so a long-overdue job is skipped
+ * rather than fired retroactively.
+ */
 export function isJobDue(job: Job, clock: SchedulerClock): boolean {
   if (job.dow && !job.dow.includes(clock.dow)) return false;
-  return clock.minutes >= hhmmToMinutes(job.at);
+  const at = hhmmToMinutes(job.at);
+  return clock.minutes >= at && clock.minutes <= at + GRACE_MINUTES;
 }
 
 async function postLocal(baseUrl: string, apiKey: string, path: string): Promise<void> {
@@ -102,11 +121,11 @@ async function postLocal(baseUrl: string, apiKey: string, path: string): Promise
 const JOBS: Job[] = [
   { key: "daily-metrics", at: "06:33", run: (b, k) => runDailyMetricsIngest(b, k) },
   { key: "daily-feed", at: "06:43", run: (b, k) => runDailyFeedIngest(b, k) },
-  { key: "instagram-daily", at: "07:13", run: (b, k) => postLocal(b, k, "/api/ingest/instagram-daily") },
+  { key: "instagram-daily", at: "07:13", maxAttempts: 1, run: (b, k) => postLocal(b, k, "/api/ingest/instagram-daily") },
   { key: "instagram-insights", at: "07:17", run: (b, k) => postLocal(b, k, "/api/ingest/instagram-insights") },
-  { key: "instagram-coverage", at: "12:13", run: (b, k) => postLocal(b, k, "/api/ingest/instagram-coverage") },
+  { key: "instagram-coverage", at: "12:13", maxAttempts: 1, run: (b, k) => postLocal(b, k, "/api/ingest/instagram-coverage") },
   { key: "weekly-edition", at: "07:17", dow: [0], run: (b, k) => postLocal(b, k, "/api/ingest/synthesize-edition") },
-  { key: "instagram-weekly", at: "09:19", dow: [0], run: (b, k) => postLocal(b, k, "/api/ingest/instagram-weekly") },
+  { key: "instagram-weekly", at: "09:19", dow: [0], maxAttempts: 1, run: (b, k) => postLocal(b, k, "/api/ingest/instagram-weekly") },
 ];
 
 let ticking = false;
@@ -118,7 +137,7 @@ async function tick(baseUrl: string, apiKey: string): Promise<void> {
     const clock = sydneyClock();
     for (const job of JOBS) {
       if (!isJobDue(job, clock)) continue;
-      const claimed = await claimJobRun(job.key, clock.dateISO);
+      const claimed = await claimJobRun(job.key, clock.dateISO, job.maxAttempts ?? 3);
       if (!claimed) continue;
       console.log(`[scheduler] running ${job.key} (${clock.dateISO})`);
       try {
