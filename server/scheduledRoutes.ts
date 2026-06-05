@@ -74,14 +74,17 @@ async function authenticateScheduled(req: Request): Promise<boolean> {
 
 // ─── Instagram daily cover inputs (shared by the post handler + preview) ─────
 
-/** Next checkerboard variant: even daily-post count → navy, odd → light. */
-async function nextDailyVariant(): Promise<"navy" | "light"> {
-  // Alternate across the combined daily + coverage stream so the two-a-day
-  // cadence (morning "Today's Briefing" + midday "Wider Lens") still reads as a
-  // clean navy/light checkerboard on the 3-wide profile grid. Counting "daily"
-  // alone left the coverage post on the same colour as that morning's post.
-  const priorCount = await db.countCheckerboardPosts();
-  return priorCount % 2 === 0 ? "navy" : "light";
+/**
+ * Deterministic cover colour for the grid checkerboard: the daily "Today's
+ * Briefing" is always light, the midday "Wider Lens" always navy. Because the
+ * two posts alternate through the day, the 3-wide profile grid tiles as a clean
+ * navy/light checkerboard — and unlike counting prior posts, this can't be
+ * thrown off by a post-count race or by deleting posts from Instagram (which
+ * leaves our row behind and skews the parity). Matches the existing grid where
+ * Wider Lens is navy and Today's Briefing is light.
+ */
+function coverVariant(kind: "daily" | "coverage"): "navy" | "light" {
+  return kind === "coverage" ? "navy" : "light";
 }
 
 /** The morning's metrics, value+unit formatted, capped to the 4 the cover shows. */
@@ -1270,10 +1273,9 @@ function registerInstagramRoutes(app: Express): void {
       const { postDailyCarousel } = await import("./instagram/post");
 
       // Checkerboard the profile grid (slide 1 is the grid thumbnail) and
-      // surface the morning's market metrics on the cover's lower third. Both
-      // come from helpers the preview route shares, so what previews is what
-      // posts. A counting failure falls back to navy rather than blocking.
-      const variant = await nextDailyVariant();
+      // surface the morning's market metrics on the cover's lower third. The
+      // daily post is always the light half of the checkerboard.
+      const variant = coverVariant("daily");
       const metrics = dailyCoverMetrics(await db.listDailyMetrics());
       // The metrics ingest runs before this job, so an empty strip means that
       // job didn't land today. The post still goes out (a clean cover without
@@ -1354,9 +1356,9 @@ function registerInstagramRoutes(app: Express): void {
     }
     try {
       const { postDailyCarousel } = await import("./instagram/post");
-      // Share the daily checkerboard rotation so the profile grid stays
-      // alternating across both posts.
-      const variant = await nextDailyVariant();
+      // The coverage post is always the navy half of the checkerboard, so it
+      // alternates against the morning's light "Today's Briefing".
+      const variant = coverVariant("coverage");
       const { postId, headline } = await postDailyCarousel(items, siteOrigin(), {
         variant,
         mode: "coverage",
@@ -1485,7 +1487,7 @@ function registerInstagramRoutes(app: Express): void {
             ? "light"
             : req.query.variant === "navy"
               ? "navy"
-              : await nextDailyVariant();
+              : coverVariant("daily");
         const stories = pickDailyTopStories(
           (await db.listFeedItems(date)).filter((it) => isEnrichedChannel(it.channel))
         ).map((s) => ({
