@@ -110,7 +110,7 @@ export async function waitForContainerReady(opts: {
   intervalMs?: number;
 }): Promise<void> {
   const timeoutMs = opts.timeoutMs ?? 30000;
-  const intervalMs = opts.intervalMs ?? 2000;
+  const intervalMs = opts.intervalMs ?? 3000;
   const deadline = Date.now() + timeoutMs;
 
   for (;;) {
