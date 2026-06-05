@@ -132,6 +132,13 @@ export const SOURCES: Source[] = [
     maxItems: 2,
   },
   {
+    name: "Guardian AU Economy",
+    url: "https://www.theguardian.com/australia-news/australian-economy/rss",
+    category: "ECONOMICS",
+    channel: "AU",
+    maxItems: 3,
+  },
+  {
     name: "The Conversation · Business",
     url: "https://theconversation.com/au/business/articles.atom",
     category: "MARKETS",
@@ -214,6 +221,16 @@ export const SOURCES: Source[] = [
   },
 
   // ══ PROPERTY (Australian property — enriched) ═════════════════════════════
+  // Lead with a direct publisher feed (real article summaries → a proper dek on
+  // the card), then targeted Google News queries for the on-the-beat investor
+  // angles GNews surfaces well but only ever returns a headline-echo summary for.
+  {
+    name: "Guardian AU Housing",
+    url: "https://www.theguardian.com/australia-news/housing/rss",
+    category: "PROPERTY",
+    channel: "PROPERTY",
+    maxItems: 4,
+  },
   {
     name: "Australian Property Market",
     url: googleNews(
