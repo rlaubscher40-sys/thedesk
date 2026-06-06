@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The Desk — Header UX proposal v2</title>
+<style>
+  :root {
+    --bg: oklch(0.11 0.018 260);
+    --fg: oklch(0.94 0.005 80);
+    --fg-muted: oklch(0.68 0.012 260);
+    --fg-subtle: oklch(0.62 0.012 260);
+    --amber: oklch(0.78 0.18 70);
+    --amber-bright: oklch(0.88 0.19 82);
+    --border: oklch(1 0 0 / 9%);
+    --border-strong: oklch(1 0 0 / 18%);
+    --panel-tile: oklch(0.13 0.018 260);
+    /* New three-persona palette — kept on-brand. */
+    --adviser: oklch(0.72 0.17 155);   /* green */
+    --broker: oklch(0.78 0.18 70);     /* amber */
+    --buyers: oklch(0.62 0.18 25);     /* rust */
+    --mono: ui-monospace, "JetBrains Mono", SFMono-Regular, Menlo, monospace;
+    --sans: ui-sans-serif, system-ui, "Source Sans 3", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(circle at 80% -10%, oklch(0.16 0.03 70 / 18%), transparent 45%),
+      var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+    padding: 40px 24px 80px;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+  h1 { font-weight: 600; font-size: 22px; letter-spacing: -0.01em; margin: 0 0 4px; }
+  .sub { color: var(--fg-muted); font-size: 13.5px; margin: 0 0 28px; max-width: 78ch; line-height: 1.55; }
+  .changelog {
+    border: 1px solid var(--border); border-left: 2px solid var(--amber);
+    background: oklch(0.78 0.18 70 / 5%);
+    padding: 12px 16px; border-radius: 4px; margin: 0 0 32px;
+    font-size: 12.5px; color: var(--fg-muted); line-height: 1.55;
+  }
+  .changelog b { color: var(--fg); font-weight: 600; }
+  .changelog ul { margin: 6px 0 0; padding-left: 18px; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+  @media (max-width: 880px) { .grid { grid-template-columns: 1fr; } }
+
+  .col-head {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em;
+    text-transform: uppercase; margin: 0 0 12px; display: flex; align-items: center; gap: 8px;
+  }
+  .col-head.before { color: var(--fg-subtle); }
+  .col-head.after { color: var(--amber-bright); }
+  .tag { font-size: 9px; padding: 2px 7px; border-radius: 999px; letter-spacing: 0.12em; }
+  .tag.before { background: oklch(1 0 0 / 5%); color: var(--fg-subtle); box-shadow: inset 0 0 0 1px var(--border); }
+  .tag.after { background: oklch(0.78 0.18 70 / 14%); color: var(--amber-bright); box-shadow: inset 0 0 0 1px oklch(0.78 0.18 70 / 40%); }
+
+  .panel {
+    background: linear-gradient(135deg, oklch(0.13 0.02 260), oklch(0.10 0.02 260));
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 22px 22px 24px;
+  }
+  .section-label {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.22em;
+    text-transform: uppercase; color: var(--fg-subtle); margin: 0 0 12px;
+  }
+  .section-label .hint { color: var(--fg-muted); letter-spacing: 0.18em; }
+  .block + .block { margin-top: 30px; }
+  .note { font-size: 12px; color: var(--fg-muted); margin: 10px 0 0; line-height: 1.55; }
+  .note b { color: var(--fg); font-weight: 600; }
+
+  /* ── Channel tabs ───────────────────────────── */
+  .tabs { display: flex; gap: 22px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .tab {
+    position: relative; background: none; border: 0; cursor: pointer;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    padding: 4px 0 12px; white-space: nowrap;
+  }
+  .before .tab { color: var(--fg-subtle); }
+  .before .tab.active { color: var(--fg); }
+  .before .tab.active::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
+    background: var(--amber); border-radius: 2px;
+  }
+  .after .tab { color: var(--fg-muted); transition: color .2s; }
+  .after .tab:hover { color: var(--fg); }
+  .after .tab.active { color: var(--fg); font-weight: 600; }
+  .after .tab.active::after {
+    content: ""; position: absolute; left: -2px; right: -2px; bottom: -1px; height: 3px;
+    background: linear-gradient(90deg, var(--amber), var(--amber-bright));
+    border-radius: 3px; box-shadow: 0 0 10px oklch(0.78 0.18 70 / 55%);
+  }
+
+  /* ── Topic pills ────────────────────────────── */
+  .pills { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .after .pills { padding-left: 14px; border-left: 2px solid oklch(0.78 0.18 70 / 30%); }
+  .pill {
+    cursor: pointer; border: 1px solid var(--border); background: none;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--fg-subtle); padding: 6px 12px; border-radius: 999px;
+    display: inline-flex; align-items: center; gap: 7px; transition: all .2s;
+  }
+  .dot { width: 5px; height: 5px; border-radius: 50%; opacity: .4; }
+  .before .pill.active { color: var(--fg); background: oklch(0.78 0.18 70 / 6%); border-color: oklch(0.78 0.18 70 / 33%); }
+  .before .pill.active .dot { opacity: 1; }
+  .after .pill { color: var(--fg-muted); }
+  .after .pill.active { color: var(--fg); background: oklch(0.78 0.18 70 / 16%); border-color: oklch(0.78 0.18 70 / 60%); font-weight: 600; }
+  .after .pill.active .dot { opacity: 1; box-shadow: 0 0 6px currentColor; }
+  .filter-tag {
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--fg-subtle); margin-right: 4px;
+  }
+
+  /* ── Persona switcher (now: Angle for) ──────── */
+  .angle-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .angle-label {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--fg-subtle); display: inline-flex; align-items: center; gap: 6px;
+  }
+  .seg { display: inline-flex; gap: 4px; padding: 4px; border-radius: 6px; border: 1px solid var(--border); background: var(--panel-tile); }
+  .persona {
+    cursor: pointer; border: 0; background: none;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--fg-subtle); padding: 7px 14px; border-radius: 4px;
+    display: inline-flex; align-items: center; gap: 8px; transition: all .2s;
+  }
+  .pdot { width: 6px; height: 6px; border-radius: 50%; opacity: .45; }
+  .before .persona.active { color: var(--fg); background: oklch(0.72 0.16 250 / 7.5%); box-shadow: inset 0 0 0 1px oklch(0.72 0.16 250 / 33%); }
+  .before .persona.active .pdot { opacity: 1; }
+  .after .seg { border-color: var(--border-strong); }
+  .after .persona { color: var(--fg-muted); }
+  .after .persona.active {
+    color: var(--fg); font-weight: 600;
+    background: oklch(0.72 0.17 155 / 20%);
+    box-shadow: inset 0 0 0 1px oklch(0.72 0.17 155 / 70%), 0 0 12px oklch(0.72 0.17 155 / 30%);
+  }
+  .after .persona.active .pdot { opacity: 1; box-shadow: 0 0 6px currentColor; }
+  .arrow { color: var(--fg-subtle); font-family: var(--mono); font-size: 11px; }
+
+  .legend {
+    margin-top: 14px; font-size: 11.5px; color: var(--fg-muted); line-height: 1.5;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .legend svg { flex: none; }
+
+  /* Example sentence showing how the vocabulary now ladders. */
+  .example {
+    margin-top: 16px; padding: 12px 14px;
+    background: oklch(0.16 0.02 260);
+    border: 1px dashed var(--border-strong);
+    border-radius: 4px;
+    font-size: 12.5px; color: var(--fg-muted); line-height: 1.55;
+  }
+  .example b { color: var(--fg); }
+  .example .say { color: oklch(0.72 0.17 155); font-weight: 600; }
+  .example .pick { color: oklch(0.78 0.18 70); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>The Desk — header controls: v2 (naming + roster)</h1>
+  <p class="sub">
+    Same dark editorial aesthetic. This iteration goes deeper than visuals — it fixes the
+    <b>mental-model mismatch</b> ("View as" implied role-play; the control actually picks <i>who you're talking to</i>) and
+    settles the <b>persona roster</b> on Ruben's real partner channel.
+  </p>
+
+  <div class="changelog">
+    <b>Changes from v1</b>
+    <ul>
+      <li>Label: <b>"VIEW AS"</b> → <b>"ANGLE FOR"</b>. Matches what the control actually does — picks the audience the Say This line is angled for.</li>
+      <li>Roster: dropped <b>Institutional</b> (contested — your About copy already wavers on it, and the core <code>sayThis</code> prompt doesn't list it). Now three personas: <b>Adviser / Accountant</b>, <b>Broker</b>, <b>Buyer's Agent</b>.</li>
+      <li>Vocabulary ladders: <b>Angle for</b> (control) → <b>Partner angle</b> (card section) → <b>Say this</b> (the line). One coherent story.</li>
+    </ul>
+  </div>
+
+  <div class="grid">
+    <!-- BEFORE -->
+    <div class="before">
+      <p class="col-head before"><span class="tag before">CURRENT</span> Before</p>
+      <div class="panel">
+        <div class="block">
+          <p class="section-label">Channel tabs</p>
+          <div class="tabs">
+            <button class="tab active">Australia's Top Stories</button>
+            <button class="tab">Property</button>
+            <button class="tab">Business</button>
+            <button class="tab">Tech &amp; Science</button>
+            <button class="tab">Global</button>
+          </div>
+        </div>
+
+        <div class="block">
+          <p class="section-label">Topic filter</p>
+          <div class="pills">
+            <button class="pill active"><span class="dot" style="background:var(--amber)"></span>All</button>
+            <button class="pill"><span class="dot" style="background:oklch(0.74 0.155 110)"></span>Economics</button>
+            <button class="pill"><span class="dot" style="background:var(--amber)"></span>Macro</button>
+            <button class="pill"><span class="dot" style="background:oklch(0.72 0.18 45)"></span>Markets</button>
+            <button class="pill"><span class="dot" style="background:oklch(0.65 0.18 295)"></span>Policy</button>
+            <button class="pill"><span class="dot" style="background:oklch(0.72 0.17 155)"></span>Property</button>
+          </div>
+        </div>
+
+        <div class="block">
+          <p class="section-label">Persona switcher</p>
+          <div class="angle-row">
+            <span class="angle-label" style="letter-spacing:0.22em">View as</span>
+            <div class="seg">
+              <button class="persona active"><span class="pdot" style="background:oklch(0.72 0.16 250)"></span>Institutional</button>
+              <button class="persona"><span class="pdot" style="background:var(--broker)"></span>Broker</button>
+              <button class="persona"><span class="pdot" style="background:var(--adviser)"></span>Adviser</button>
+              <button class="persona"><span class="pdot" style="background:var(--buyers)"></span>Buyers Agent</button>
+            </div>
+          </div>
+          <p class="note">
+            "VIEW AS" implies role-play. The control actually answers "who am I talking to?" — and the <b>Institutional</b> slot is contested
+            in the codebase (About line 158 lists Accountant instead; the <code>sayThis</code> prompt names brokers, advisers and buyer's agents).
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- AFTER -->
+    <div class="after">
+      <p class="col-head after"><span class="tag after">PROPOSED v2</span> After</p>
+      <div class="panel">
+        <div class="block">
+          <p class="section-label">Channel tabs <span class="hint">· primary lane</span></p>
+          <div class="tabs">
+            <button class="tab active">Australia's Top Stories</button>
+            <button class="tab">Property</button>
+            <button class="tab">Business</button>
+            <button class="tab">Tech &amp; Science</button>
+            <button class="tab">Global</button>
+          </div>
+          <p class="note">Inactive labels lift to readable muted; active tab gains a semibold label + a brighter, slightly glowing underline.</p>
+        </div>
+
+        <div class="block">
+          <p class="section-label">Topic filter <span class="hint">· refine within Australia</span></p>
+          <div class="pills">
+            <span class="filter-tag">Filter:</span>
+            <button class="pill active"><span class="dot" style="background:var(--amber)"></span>All</button>
+            <button class="pill"><span class="dot" style="background:oklch(0.74 0.155 110)"></span>Economics</button>
+            <button class="pill"><span class="dot" style="background:var(--amber)"></span>Macro</button>
+            <button class="pill"><span class="dot" style="background:oklch(0.72 0.18 45)"></span>Markets</button>
+            <button class="pill"><span class="dot" style="background:oklch(0.65 0.18 295)"></span>Policy</button>
+            <button class="pill"><span class="dot" style="background:oklch(0.72 0.17 155)"></span>Property</button>
+          </div>
+          <p class="note">Indent + accent rule + "Filter:" label visually subordinates this to the tabs — refining the lane, not switching it.</p>
+        </div>
+
+        <div class="block">
+          <p class="section-label">Angle for <span class="hint">· who you're talking to</span></p>
+          <div class="angle-row">
+            <span class="angle-label">Angle&nbsp;for <span class="arrow">→</span></span>
+            <div class="seg">
+              <button class="persona active"><span class="pdot" style="background:var(--adviser)"></span>Adviser&nbsp;/&nbsp;Accountant</button>
+              <button class="persona"><span class="pdot" style="background:var(--broker)"></span>Broker</button>
+              <button class="persona"><span class="pdot" style="background:var(--buyers)"></span>Buyer's Agent</button>
+            </div>
+          </div>
+          <p class="legend">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="oklch(0.78 0.18 70 / 70%)" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.5"/></svg>
+            Rewrites every story's <b>Say This</b> line for this audience.
+          </p>
+
+          <div class="example">
+            Now reads as one coherent sentence:
+            <br />→ <b>Angle for</b> <span class="pick">Adviser / Accountant</span>:
+            <span class="say">"Where rents have plateaued, the bargaining power swings back to the landlord. Negotiate accordingly."</span>
+          </div>
+          <p class="note">
+            Active state ~2.5× stronger (real ring + glow). Persistent one-line hint replaces the one-time caption — most days the user otherwise had no signal this feature existed.
+            Three chips fit more comfortably than four, leaving room for the always-on hint without crowding.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
