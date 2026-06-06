@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import type { DailyFeedItem } from "@shared/types";
 import { categoryAccentClass } from "@/lib/category";
 import { cleanHeadline, shouldShowSummary } from "@/lib/headline";
+import { cardDek } from "@/lib/cardDek";
 import { SITE_DISPLAY } from "@/lib/siteUrl";
 import { useAuth } from "@/lib/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -134,12 +135,10 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
   }
 
   const title = cleanHeadline(item.title);
-  const showSummary = shouldShowSummary(item.title, item.summary);
-  // When there's no real summary (Google-News items echo the headline), the
-  // LLM "why it matters" stands in as the dek under the headline so the card is
-  // never blank. In that case the labelled "Why it matters" block below is
-  // skipped — otherwise it'd show twice.
-  const whyAsDek = !showSummary && Boolean(item.whyItMatters?.trim());
+  // The dek under the headline: a real summary, or — for Google-News items that
+  // have none — the best available enrichment line, so the card is never blank.
+  // Whichever block it's taken from is hidden below so it isn't shown twice.
+  const dek = cardDek(item);
   const linkedInDraft = buildLinkedInDraft(item);
 
   return (
@@ -252,9 +251,9 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
           arrive at wildly different lengths from the LLM enrichment,
           and an uncapped paragraph blows the row height. The full
           summary still surfaces on the story page. */}
-      {(showSummary || whyAsDek) && (
+      {dek && (
         <p className="text-base text-[var(--color-fg-muted)] leading-relaxed line-clamp-3">
-          {showSummary ? item.summary : item.whyItMatters}
+          {dek.text}
         </p>
       )}
 
@@ -289,19 +288,21 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
       {/* "Why it matters" — analytical context, shown whenever present and
           independent of the partner-angle pairing. It's the so-what that
           lets a reader grasp the stakes in one scan. */}
-      {item.whyItMatters && !whyAsDek && (
+      {item.whyItMatters && dek?.from !== "whyItMatters" && (
         <WhyItMattersLine whyItMatters={item.whyItMatters} category={item.category} />
       )}
 
       {/* Counterpoint — the contrarian read, present only when the story has
           a genuine second side. Independent of the partner-angle pairing. */}
-      {item.counterpoint && <CounterpointLine counterpoint={item.counterpoint} />}
+      {item.counterpoint && dek?.from !== "counterpoint" && (
+        <CounterpointLine counterpoint={item.counterpoint} />
+      )}
 
       <RubensNoteBlock itemId={item.id} note={item.rubensNote} />
       {/* Say This and Partner Angles render independently — a story can
           carry either one. RubensNote is an editorial override that takes
           the place of the Say This line when present. */}
-      {!item.rubensNote && item.sayThis && (
+      {!item.rubensNote && item.sayThis && dek?.from !== "sayThis" && (
         <SayThisLine sayThis={item.sayThis} category={item.category} />
       )}
 

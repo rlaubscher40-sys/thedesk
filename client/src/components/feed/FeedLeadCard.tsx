@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import type { DailyFeedItem } from "@shared/types";
 import { categoryAccentClass, categoryColour } from "@/lib/category";
 import { cleanHeadline, shouldShowSummary } from "@/lib/headline";
+import { cardDek } from "@/lib/cardDek";
 import { SITE_DISPLAY } from "@/lib/siteUrl";
 import { useAuth } from "@/lib/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -110,10 +111,10 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
 
   const title = cleanHeadline(item.title);
   const showSummary = shouldShowSummary(item.title, item.summary);
-  // No real summary (Google-News headline-echo) → use "why it matters" as the
-  // lede so the lead card is never blank; skip the labelled block below so it
-  // isn't shown twice.
-  const whyAsDek = !showSummary && Boolean(item.whyItMatters?.trim());
+  // The lede under the headline: a real summary, or the best available
+  // enrichment line so the lead is never blank. The block it's taken from is
+  // hidden below so it isn't shown twice.
+  const dek = cardDek(item);
   const linkedInDraft = [
     title,
     "",
@@ -327,9 +328,9 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
             at body sizes on a dark background and was reading as cramped. The
             magazine register stays via the serif face and the surrounding
             chrome; the italic was carrying too much load. */}
-        {(showSummary || whyAsDek) && (
+        {dek && (
           <p className="font-serif text-lg text-[var(--color-fg-muted)] leading-relaxed mb-5">
-            {showSummary ? item.summary : item.whyItMatters}
+            {dek.text}
           </p>
         )}
 
@@ -357,9 +358,10 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
 
         {/* "Why it matters" — analytical context, independent of the
             partner-angle pairing. Gives the reader the stakes at a glance. */}
-        {((item.whyItMatters && !whyAsDek) || item.counterpoint) && (
+        {((item.whyItMatters && dek?.from !== "whyItMatters") ||
+          (item.counterpoint && dek?.from !== "counterpoint")) && (
           <div className="mt-6 pt-6 border-t border-[var(--color-border)]">
-            {item.whyItMatters && !whyAsDek && (
+            {item.whyItMatters && dek?.from !== "whyItMatters" && (
               <WhyItMattersLine
                 whyItMatters={item.whyItMatters}
                 category={item.category}
@@ -367,7 +369,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
             )}
             {/* Counterpoint — the contrarian read, when the story has a real
                 second side. Sits with "why it matters" as the analytical pair. */}
-            {item.counterpoint && (
+            {item.counterpoint && dek?.from !== "counterpoint" && (
               <CounterpointLine counterpoint={item.counterpoint} />
             )}
           </div>
@@ -377,10 +379,11 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
             sayThis line when set. Say This + Partner Angles are
             paired, neither renders without the other unless an admin
             has hand-written a Ruben's note. */}
-        {(item.rubensNote || (item.sayThis && item.partnerTag)) && (
+        {(item.rubensNote ||
+          (item.sayThis && item.partnerTag && dek?.from !== "sayThis")) && (
           <div className="mt-6 pt-6 border-t border-[var(--color-border)]">
             <RubensNoteBlock itemId={item.id} note={item.rubensNote} />
-            {!item.rubensNote && item.sayThis && item.partnerTag && (
+            {!item.rubensNote && item.sayThis && item.partnerTag && dek?.from !== "sayThis" && (
               <SayThisLine sayThis={item.sayThis} category={item.category} />
             )}
           </div>
