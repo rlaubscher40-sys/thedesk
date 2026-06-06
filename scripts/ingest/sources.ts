@@ -168,12 +168,62 @@ export const SOURCES: Source[] = [
     channel: "AU",
     maxItems: 3,
   },
+  // ASIC has its own beat — adviser-side conduct, licensing, enforcement —
+  // distinct from APRA's lending/prudential brief. Listed as a PRIMARY
+  // source bonus in feedPriority, so items here ride a +15 priority lift.
+  {
+    name: "ASIC & Conduct",
+    url: googleNews(
+      'ASIC OR "Australian Securities and Investments Commission" enforcement OR licensing OR "best interests"'
+    ),
+    category: "POLICY",
+    channel: "AU",
+    maxItems: 2,
+  },
   {
     name: "Mortgage Brokers & Lending",
     url: googleNews(
       'Australia "mortgage broker" OR "broker channel" OR "fixed rate" mortgage'
     ),
     category: "MARKETS",
+    channel: "AU",
+    maxItems: 3,
+  },
+  // Trade-press angle on the broker channel — aggregators, commissions,
+  // trail, the named houses. Complements the generic "mortgage broker"
+  // query above by surfacing the channel-business stories that lead in
+  // The Adviser / MPA / Australian Broker but rarely make the masthead.
+  {
+    name: "Broker Channel Trade",
+    url: googleNews(
+      'Australia "mortgage aggregator" OR "trail commission" OR AFG OR "Loan Market" OR "Connective" OR "Mortgage Choice"'
+    ),
+    category: "MARKETS",
+    channel: "AU",
+    maxItems: 2,
+  },
+  // Super / SMSF beat — the adviser-and-accountant centre of gravity. Was
+  // completely missing from the AU flagship, which is why advice-side
+  // stories rarely topped the priority sort even on weeks with major
+  // contribution-cap or preservation changes.
+  {
+    name: "Super & SMSF",
+    url: googleNews(
+      'Australia superannuation OR SMSF OR "preservation age" OR "concessional contribution" OR "transfer balance cap"'
+    ),
+    category: "POLICY",
+    channel: "AU",
+    maxItems: 3,
+  },
+  // ATO & tax — accountant-channel centre of gravity. Pairs with super
+  // above as the wealth-strategy beat. ATO is added to the primary-source
+  // bonus list in feedPriority for the same reason ASIC is.
+  {
+    name: "ATO & Tax",
+    url: googleNews(
+      'Australia ATO OR "Australian Taxation Office" OR "tax return" OR "Division 7A" OR "Part IVA"'
+    ),
+    category: "POLICY",
     channel: "AU",
     maxItems: 3,
   },
@@ -266,6 +316,20 @@ export const SOURCES: Source[] = [
     category: "PROPERTY",
     channel: "PROPERTY",
     maxItems: 3,
+  },
+  // Direct property-data narrative — CoreLogic's monthly hedonic, Domain's
+  // research, the named metrics ("home values", "vendor discount", "days on
+  // market") that drive buyer's-agent and adviser conversations. The
+  // existing PROPERTY sources surface market headlines; this surfaces the
+  // data-release stories that lead with a number.
+  {
+    name: "CoreLogic & Property Data",
+    url: googleNews(
+      'CoreLogic OR Domain OR PropTrack "home values" OR "vendor discount" OR "days on market" OR "auction clearance" Australia'
+    ),
+    category: "PROPERTY",
+    channel: "PROPERTY",
+    maxItems: 2,
   },
 
   // ══ BUSINESS (global business/markets — coverage only) ════════════════════
