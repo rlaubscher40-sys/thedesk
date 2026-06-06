@@ -33,6 +33,7 @@ import {
   createCarouselContainer,
   createImageContainer,
   createStoryContainer,
+  isRateLimitError,
   publishContainer,
   waitForContainerReady,
 } from "./api";
@@ -284,12 +285,21 @@ export function pickDailyTopStories(
 }
 
 /**
- * Post each story to the 24h Story as its own 9:16 frame. Runs in the
- * BACKGROUND after the carousel is live: the Stories API can stall, and doing
- * it inline blocked the response long enough that the whole post looked
- * "failed" even though the carousel had published. Decoupled, a Story problem
- * is logged (and surfaced in the admin health panel) but never affects the
- * feed post or the caller. Each frame owns and cleans up its own temp image.
+ * How many of the carousel's stories also get a 24h Story frame. Kept at ONE
+ * (the lead) on purpose: a Story is a single 9:16 publish, and posting three
+ * back-to-back right after the carousel is exactly the burst that trips
+ * Instagram's "Action is blocked" integrity limit. One lead Story keeps a
+ * presence in the Stories tray at a fraction of the publish volume.
+ */
+const STORY_FRAME_COUNT = 1;
+
+/**
+ * Post the lead story (see STORY_FRAME_COUNT) to the 24h Story as a 9:16 frame.
+ * Runs in the BACKGROUND after the carousel is live: the Stories API can stall,
+ * and doing it inline blocked the response long enough that the whole post
+ * looked "failed" even though the carousel had published. Decoupled, a Story
+ * problem is logged (and surfaced in the admin health panel) but never affects
+ * the feed post or the caller. Each frame owns and cleans up its own temp image.
  */
 async function postStoryFrames(opts: {
   stories: DailyFeedItem[];
@@ -300,16 +310,18 @@ async function postStoryFrames(opts: {
   accessToken: string;
 }): Promise<void> {
   const { stories, variant, verticalOpts, siteUrl, igUserId, accessToken } = opts;
-  // Let the account breathe after the carousel publish before the Story burst,
-  // and space the frames out — posting a carousel + 3 stories back-to-back is
-  // the kind of burst that trips Instagram's "Action is blocked" rate limit.
+  const frames = stories.slice(0, STORY_FRAME_COUNT);
+  // Let the account breathe well clear of the carousel publish before touching
+  // the API again — a generous gap is the single biggest lever against the
+  // "Action is blocked" integrity flag, and this is background work so the wait
+  // costs nothing. Frames (if ever >1) are spaced out for the same reason.
   const settle = (ms: number) => new Promise((r) => setTimeout(r, ms));
-  await settle(8000);
-  for (let i = 0; i < stories.length; i++) {
-    if (i > 0) await settle(5000);
+  await settle(45000);
+  for (let i = 0; i < frames.length; i++) {
+    if (i > 0) await settle(20000);
     const uuids: string[] = [];
     try {
-      const storyBuf = await renderDailyStoryVertical(stories[i]!, variant, verticalOpts);
+      const storyBuf = await renderDailyStoryVertical(frames[i]!, variant, verticalOpts);
       const storyUuid = storeTempImage(storyBuf);
       uuids.push(storyUuid);
       const containerId = await createStoryContainer({
@@ -319,15 +331,22 @@ async function postStoryFrames(opts: {
       });
       await waitForContainerReady({ containerId, accessToken, timeoutMs: 20000 });
       const storyId = await publishContainer({ igUserId, accessToken, creationId: containerId });
-      console.log(`[instagram] story ${i + 1}/${stories.length} posted: ${storyId}`);
+      console.log(`[instagram] story ${i + 1}/${frames.length} posted: ${storyId}`);
     } catch (err) {
       const message = (err as Error).message;
-      console.error(`[instagram] story ${i + 1} failed (feed post still live):`, message);
+      const blocked = isRateLimitError(err);
+      console.error(
+        `[instagram] story ${i + 1} ${blocked ? "blocked by rate limit" : "failed"} (feed post still live):`,
+        message
+      );
       await recordServerError({
         level: "warn",
-        message: `Instagram story ${i + 1} failed: ${message}`.slice(0, 512),
+        message: `Instagram story ${i + 1} ${blocked ? "rate-limited" : "failed"}: ${message}`.slice(0, 512),
         route: "instagram/story",
       }).catch(() => {});
+      // A rate-limit/integrity block won't clear within this run — stop here
+      // rather than pushing more frames into the same block.
+      if (blocked) break;
     } finally {
       uuids.forEach(removeTempImage);
     }

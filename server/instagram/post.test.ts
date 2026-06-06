@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { DailyFeedItem } from "../db/schema";
 import { buildCoverageCaption, buildDailyCaption, pickDailyTopStories } from "./post";
+import { isRateLimitError } from "./api";
 
 function fakeStory(o: Partial<DailyFeedItem> = {}): DailyFeedItem {
   return {
@@ -87,5 +88,29 @@ describe("buildCoverageCaption — wider lens", () => {
   it("lists every story headline", () => {
     const caption = buildCoverageCaption(trio);
     for (const s of trio) expect(caption).toContain(s.title);
+  });
+});
+
+// Guardrail: a rate-limit / integrity ("Action is blocked") error is
+// recognised so callers stop instead of hammering the block, while ordinary
+// failures still fall through to the normal retry path.
+describe("isRateLimitError — block detection", () => {
+  it("flags the known rate-limit and integrity signatures", () => {
+    const cases = [
+      'Instagram API 403 at /media: {"error":{"message":"Application request limit reached"}}',
+      'Instagram API 400 at /media_publish: {"error":{"message":"Action is blocked"}}',
+      'Instagram API 400: {"error":{"code":4,"error_subcode":2207051}}',
+      "Instagram API 429 at /media: too many requests",
+    ];
+    for (const m of cases) expect(isRateLimitError(new Error(m))).toBe(true);
+  });
+
+  it("does not flag ordinary transient failures", () => {
+    const cases = [
+      "Instagram API 500 at /media: internal error",
+      "container 123 not ready after 20000ms (last status: IN_PROGRESS)",
+      "fetch failed",
+    ];
+    for (const m of cases) expect(isRateLimitError(new Error(m))).toBe(false);
   });
 });

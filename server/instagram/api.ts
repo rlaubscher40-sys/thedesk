@@ -13,6 +13,26 @@
 
 const BASE = "https://graph.facebook.com/v21.0";
 
+/**
+ * True when an Instagram error is a rate-limit or integrity ("Action is
+ * blocked") response rather than a transient network/processing hiccup. These
+ * are NOT worth retrying — hammering a block just deepens it — so callers
+ * surface them immediately and let the account cool down. Covers the app/user
+ * request-limit codes (4, 17, 32, 613) and the spam-integrity subcode
+ * (2207051), matched by code and by message so a wording change can't slip past.
+ */
+export function isRateLimitError(err: unknown): boolean {
+  const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+  return (
+    msg.includes("application request limit reached") ||
+    msg.includes("action is blocked") ||
+    msg.includes("rate limit") ||
+    msg.includes("2207051") ||
+    /"(error_subcode|code)":\s*(4|17|32|613|2207051)\b/.test(msg) ||
+    msg.includes(" 429 ")
+  );
+}
+
 async function igPost<T>(endpoint: string, params: Record<string, string>): Promise<T> {
   const body = new URLSearchParams(params);
   const res = await fetch(`${BASE}${endpoint}`, {
@@ -31,6 +51,10 @@ async function igPost<T>(endpoint: string, params: Record<string, string>): Prom
  * for idempotent operations — container creation is safe to retry because a
  * repeated attempt just registers a fresh throwaway container. Never wrap
  * publishContainer, which is not idempotent and would risk a double-post.
+ *
+ * A rate-limit / integrity block is never retried: those don't clear in
+ * seconds, and repeating the call only reinforces the block, so we throw on the
+ * first one and let the account breathe.
  */
 async function withIgRetry<T>(label: string, fn: () => Promise<T>, attempts = 3): Promise<T> {
   let lastErr: unknown;
@@ -39,6 +63,10 @@ async function withIgRetry<T>(label: string, fn: () => Promise<T>, attempts = 3)
       return await fn();
     } catch (err) {
       lastErr = err;
+      if (isRateLimitError(err)) {
+        console.warn(`[instagram] ${label} hit a rate-limit/integrity block, not retrying.`);
+        throw err;
+      }
       if (attempt === attempts) break;
       const delayMs = 3000 * attempt;
       console.warn(
