@@ -110,6 +110,10 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
 
   const title = cleanHeadline(item.title);
   const showSummary = shouldShowSummary(item.title, item.summary);
+  // No real summary (Google-News headline-echo) → use "why it matters" as the
+  // lede so the lead card is never blank; skip the labelled block below so it
+  // isn't shown twice.
+  const whyAsDek = !showSummary && Boolean(item.whyItMatters?.trim());
   const linkedInDraft = [
     title,
     "",
@@ -323,9 +327,9 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
             at body sizes on a dark background and was reading as cramped. The
             magazine register stays via the serif face and the surrounding
             chrome; the italic was carrying too much load. */}
-        {showSummary && (
+        {(showSummary || whyAsDek) && (
           <p className="font-serif text-lg text-[var(--color-fg-muted)] leading-relaxed mb-5">
-            {item.summary}
+            {showSummary ? item.summary : item.whyItMatters}
           </p>
         )}
 
@@ -353,9 +357,9 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
 
         {/* "Why it matters" — analytical context, independent of the
             partner-angle pairing. Gives the reader the stakes at a glance. */}
-        {(item.whyItMatters || item.counterpoint) && (
+        {((item.whyItMatters && !whyAsDek) || item.counterpoint) && (
           <div className="mt-6 pt-6 border-t border-[var(--color-border)]">
-            {item.whyItMatters && (
+            {item.whyItMatters && !whyAsDek && (
               <WhyItMattersLine
                 whyItMatters={item.whyItMatters}
                 category={item.category}

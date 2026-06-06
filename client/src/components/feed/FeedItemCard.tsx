@@ -135,6 +135,11 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
 
   const title = cleanHeadline(item.title);
   const showSummary = shouldShowSummary(item.title, item.summary);
+  // When there's no real summary (Google-News items echo the headline), the
+  // LLM "why it matters" stands in as the dek under the headline so the card is
+  // never blank. In that case the labelled "Why it matters" block below is
+  // skipped — otherwise it'd show twice.
+  const whyAsDek = !showSummary && Boolean(item.whyItMatters?.trim());
   const linkedInDraft = buildLinkedInDraft(item);
 
   return (
@@ -247,9 +252,9 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
           arrive at wildly different lengths from the LLM enrichment,
           and an uncapped paragraph blows the row height. The full
           summary still surfaces on the story page. */}
-      {showSummary && (
+      {(showSummary || whyAsDek) && (
         <p className="text-base text-[var(--color-fg-muted)] leading-relaxed line-clamp-3">
-          {item.summary}
+          {showSummary ? item.summary : item.whyItMatters}
         </p>
       )}
 
@@ -284,7 +289,7 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
       {/* "Why it matters" — analytical context, shown whenever present and
           independent of the partner-angle pairing. It's the so-what that
           lets a reader grasp the stakes in one scan. */}
-      {item.whyItMatters && (
+      {item.whyItMatters && !whyAsDek && (
         <WhyItMattersLine whyItMatters={item.whyItMatters} category={item.category} />
       )}
 
