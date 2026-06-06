@@ -60,11 +60,18 @@ export default function StoryPage() {
               <h1 className="font-serif text-3xl sm:text-4xl leading-tight">{cleanHeadline(itemQuery.data.title)}</h1>
             </header>
 
-            {shouldShowSummary(itemQuery.data.title, itemQuery.data.summary) && (
+            {/* Real summary as the lede; if there's none (Google-News
+                headline-echo), the "why it matters" stands in so the page is
+                never blank, and the labelled block below is skipped. */}
+            {shouldShowSummary(itemQuery.data.title, itemQuery.data.summary) ? (
               <p className="text-base leading-relaxed mt-6 text-[var(--color-fg)]">
                 {itemQuery.data.summary}
               </p>
-            )}
+            ) : itemQuery.data.whyItMatters ? (
+              <p className="text-base leading-relaxed mt-6 text-[var(--color-fg)]">
+                {itemQuery.data.whyItMatters}
+              </p>
+            ) : null}
 
             <div className="flex items-center gap-2 mt-5">
               {itemQuery.data.sourceUrl && (
@@ -82,12 +89,13 @@ export default function StoryPage() {
               </Button>
             </div>
 
-            {itemQuery.data.whyItMatters && (
-              <WhyItMattersLine
-                whyItMatters={itemQuery.data.whyItMatters}
-                category={itemQuery.data.category}
-              />
-            )}
+            {itemQuery.data.whyItMatters &&
+              shouldShowSummary(itemQuery.data.title, itemQuery.data.summary) && (
+                <WhyItMattersLine
+                  whyItMatters={itemQuery.data.whyItMatters}
+                  category={itemQuery.data.category}
+                />
+              )}
             {itemQuery.data.sayThis && (
               <SayThisLine sayThis={itemQuery.data.sayThis} category={itemQuery.data.category} />
             )}
