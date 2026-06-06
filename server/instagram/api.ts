@@ -252,6 +252,47 @@ export async function fetchMediaMetrics(opts: {
   return metrics;
 }
 
+export type PublishingLimit = {
+  /** Posts published via the API in the current rolling window. */
+  usage: number | null;
+  /** The account's cap for that window (Instagram's documented default is 50). */
+  quota: number | null;
+  /** Length of the rolling window in hours (the default is 24). */
+  windowHours: number | null;
+};
+
+/**
+ * Read the account's content-publishing quota usage straight from the Graph
+ * API. This is the *documented* 50-posts-per-24h limit — NOT the opaque
+ * "Action is blocked" integrity throttle that actually stalls our Stories — but
+ * it's the one number Instagram will give us, so the admin can see at a glance
+ * how much of the daily allowance a run consumed. Best-effort: any miss returns
+ * nulls rather than throwing, so a quota check never breaks the admin panel.
+ */
+export async function fetchPublishingLimit(opts: {
+  igUserId: string;
+  accessToken: string;
+}): Promise<PublishingLimit> {
+  const data = await igGet<{
+    content_publishing_limit?: {
+      data?: Array<{
+        quota_usage?: number;
+        config?: { quota_total?: number; quota_duration?: number };
+      }>;
+    };
+  }>(`/${opts.igUserId}`, {
+    fields: "content_publishing_limit{quota_usage,config}",
+    access_token: opts.accessToken,
+  });
+  const row = data.content_publishing_limit?.data?.[0];
+  const duration = row?.config?.quota_duration;
+  return {
+    usage: row?.quota_usage ?? null,
+    quota: row?.config?.quota_total ?? null,
+    windowHours: typeof duration === "number" ? Math.round(duration / 3600) : null,
+  };
+}
+
 /** Publish a ready container (single image or carousel). */
 export async function publishContainer(opts: {
   igUserId: string;
