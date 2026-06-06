@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The Desk — Header UX proposal</title>
+<style>
+  :root {
+    --bg: oklch(0.11 0.018 260);
+    --bg-elevated: oklch(0.16 0.018 260);
+    --fg: oklch(0.94 0.005 80);
+    --fg-muted: oklch(0.68 0.012 260);
+    --fg-subtle: oklch(0.62 0.012 260);
+    --amber: oklch(0.78 0.18 70);
+    --amber-bright: oklch(0.88 0.19 82);
+    --border: oklch(1 0 0 / 9%);
+    --border-strong: oklch(1 0 0 / 18%);
+    --panel-tile: oklch(0.13 0.018 260);
+    --inst: oklch(0.72 0.16 250);
+    --broker: oklch(0.78 0.18 70);
+    --adviser: oklch(0.72 0.17 155);
+    --buyers: oklch(0.62 0.18 25);
+    --mono: ui-monospace, "JetBrains Mono", SFMono-Regular, Menlo, monospace;
+    --sans: ui-sans-serif, system-ui, "Source Sans 3", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(circle at 80% -10%, oklch(0.16 0.03 70 / 18%), transparent 45%),
+      var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+    padding: 40px 24px 80px;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+  h1 {
+    font-family: var(--sans); font-weight: 600; font-size: 22px;
+    letter-spacing: -0.01em; margin: 0 0 4px;
+  }
+  .sub { color: var(--fg-muted); font-size: 13.5px; margin: 0 0 36px; max-width: 70ch; line-height: 1.5; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+  @media (max-width: 880px) { .grid { grid-template-columns: 1fr; } }
+
+  .col-head {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em;
+    text-transform: uppercase; margin: 0 0 12px; display: flex; align-items: center; gap: 8px;
+  }
+  .col-head.before { color: var(--fg-subtle); }
+  .col-head.after { color: var(--amber-bright); }
+  .tag { font-size: 9px; padding: 2px 7px; border-radius: 999px; letter-spacing: 0.12em; }
+  .tag.before { background: oklch(1 0 0 / 5%); color: var(--fg-subtle); box-shadow: inset 0 0 0 1px var(--border); }
+  .tag.after { background: oklch(0.78 0.18 70 / 14%); color: var(--amber-bright); box-shadow: inset 0 0 0 1px oklch(0.78 0.18 70 / 40%); }
+
+  .panel {
+    background: linear-gradient(135deg, oklch(0.13 0.02 260), oklch(0.10 0.02 260));
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 22px 22px 24px;
+  }
+  .section-label {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.22em;
+    text-transform: uppercase; color: var(--fg-subtle); margin: 0 0 12px;
+  }
+  .block + .block { margin-top: 30px; }
+  .note { font-size: 12px; color: var(--fg-muted); margin: 10px 0 0; line-height: 1.5; }
+  .note b { color: var(--fg); font-weight: 600; }
+
+  /* ── Channel tabs ───────────────────────────── */
+  .tabs { display: flex; gap: 22px; border-bottom: 1px solid var(--border); }
+  .tab {
+    position: relative; background: none; border: 0; cursor: pointer;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    padding: 4px 0 12px; white-space: nowrap;
+  }
+  /* BEFORE: inactive nearly invisible, active = thin underline only */
+  .before .tab { color: var(--fg-subtle); }
+  .before .tab.active { color: var(--fg); }
+  .before .tab.active::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
+    background: var(--amber); border-radius: 2px;
+  }
+  /* AFTER: inactive readable, active = brighter label + bolder glowing underline */
+  .after .tab { color: var(--fg-muted); transition: color .2s; }
+  .after .tab:hover { color: var(--fg); }
+  .after .tab.active { color: var(--fg); font-weight: 600; }
+  .after .tab.active::after {
+    content: ""; position: absolute; left: -2px; right: -2px; bottom: -1px; height: 3px;
+    background: linear-gradient(90deg, var(--amber), var(--amber-bright));
+    border-radius: 3px; box-shadow: 0 0 10px oklch(0.78 0.18 70 / 55%);
+  }
+
+  /* ── Topic pills ────────────────────────────── */
+  .pills { display: flex; gap: 8px; flex-wrap: wrap; }
+  .after .pills { padding-left: 14px; border-left: 2px solid oklch(0.78 0.18 70 / 30%); }
+  .pill {
+    cursor: pointer; border: 1px solid var(--border); background: none;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--fg-subtle); padding: 6px 12px; border-radius: 999px;
+    display: inline-flex; align-items: center; gap: 7px; transition: all .2s;
+  }
+  .dot { width: 5px; height: 5px; border-radius: 50%; opacity: .4; }
+  /* BEFORE: faint tint */
+  .before .pill.active { color: var(--fg); background: oklch(0.78 0.18 70 / 6%); border-color: oklch(0.78 0.18 70 / 33%); }
+  .before .pill.active .dot { opacity: 1; }
+  /* AFTER: solid-ish chip, clearer */
+  .after .pill { color: var(--fg-muted); }
+  .after .pill.active { color: var(--fg); background: oklch(0.78 0.18 70 / 16%); border-color: oklch(0.78 0.18 70 / 60%); font-weight: 600; }
+  .after .pill.active .dot { opacity: 1; box-shadow: 0 0 6px currentColor; }
+  .after .filter-tag {
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--fg-subtle); margin-right: 4px; align-self: center;
+  }
+
+  /* ── Persona switcher ───────────────────────── */
+  .persona-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .view-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--fg-subtle); }
+  .seg { display: inline-flex; gap: 4px; padding: 4px; border-radius: 6px; border: 1px solid var(--border); background: var(--panel-tile); }
+  .persona {
+    cursor: pointer; border: 0; background: none;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--fg-subtle); padding: 6px 12px; border-radius: 4px;
+    display: inline-flex; align-items: center; gap: 8px; transition: all .2s;
+  }
+  .pdot { width: 5px; height: 5px; border-radius: 50%; opacity: .4; }
+  /* BEFORE: faint 7.5% tint */
+  .before .persona.active { color: var(--fg); background: oklch(0.72 0.16 250 / 7.5%); box-shadow: inset 0 0 0 1px oklch(0.72 0.16 250 / 33%); }
+  .before .persona.active .pdot { opacity: 1; }
+  /* AFTER: stronger tint + ring + glow, persistent tailored label */
+  .after .seg { border-color: var(--border-strong); }
+  .after .persona { color: var(--fg-muted); }
+  .after .persona.active {
+    color: var(--fg); font-weight: 600;
+    background: oklch(0.72 0.16 250 / 20%);
+    box-shadow: inset 0 0 0 1px oklch(0.72 0.16 250 / 70%), 0 0 12px oklch(0.72 0.16 250 / 30%);
+  }
+  .after .persona.active .pdot { opacity: 1; box-shadow: 0 0 6px currentColor; }
+  .tailored {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--fg-muted); display: inline-flex; align-items: center; gap: 6px;
+  }
+  .tailored b { color: oklch(0.78 0.18 70); font-weight: 600; }
+  .legend {
+    margin-top: 12px; font-size: 11.5px; color: var(--fg-muted); line-height: 1.5;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .legend svg { flex: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>The Desk — header controls: before / after</h1>
+  <p class="sub">
+    Same dark editorial aesthetic, same tokens (deep navy, amber accent, JetBrains Mono labels). The only
+    changes are <b>contrast and hierarchy</b> — inactive controls become legible, active states become
+    unmistakable, and the lanes-vs-filters relationship is made visual instead of explained in prose.
+  </p>
+
+  <div class="grid">
+    <!-- BEFORE -->
+    <div class="before">
+      <p class="col-head before"><span class="tag before">CURRENT</span> Before</p>
+      <div class="panel">
+        <div class="block">
+          <p class="section-label">Channel tabs</p>
+          <div class="tabs">
+            <button class="tab active">Australia's Top Stories</button>
+            <button class="tab">Property</button>
+            <button class="tab">Business</button>
+            <button class="tab">Tech &amp; Science</button>
+            <button class="tab">Global</button>
+          </div>
+          <p class="note">Inactive tabs sit at 62% grey with no border/background — they read as a headline list, not a tab bar. The only "you are here" signal is one thin underline.</p>
+        </div>
+
+        <div class="block">
+          <p class="section-label">Topic filter</p>
+          <div class="pills">
+            <button class="pill active"><span class="dot" style="background:var(--amber)"></span>All</button>
+            <button class="pill"><span class="dot" style="background:var(--economics,oklch(0.74 0.155 110))"></span>Economics</button>
+            <button class="pill"><span class="dot" style="background:var(--amber)"></span>Macro</button>
+            <button class="pill"><span class="dot" style="background:oklch(0.72 0.18 45)"></span>Markets</button>
+            <button class="pill"><span class="dot" style="background:oklch(0.65 0.18 295)"></span>Policy</button>
+            <button class="pill"><span class="dot" style="background:oklch(0.72 0.17 155)"></span>Property</button>
+          </div>
+          <p class="note">Looks almost identical to the tabs above — nothing signals that this only filters within Australia rather than switching lanes.</p>
+        </div>
+
+        <div class="block">
+          <p class="section-label">Persona switcher</p>
+          <div class="persona-row">
+            <span class="view-label">View as</span>
+            <div class="seg">
+              <button class="persona active"><span class="pdot" style="background:var(--inst)"></span>Institutional</button>
+              <button class="persona"><span class="pdot" style="background:var(--broker)"></span>Broker</button>
+              <button class="persona"><span class="pdot" style="background:var(--adviser)"></span>Adviser</button>
+              <button class="persona"><span class="pdot" style="background:var(--buyers)"></span>Buyers Agent</button>
+            </div>
+          </div>
+          <p class="note">The active tint is ~7.5% opacity — barely visible. The "what does this do?" caption shows once then is hidden forever, so most days there's no hint this re-angles every story.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- AFTER -->
+    <div class="after">
+      <p class="col-head after"><span class="tag after">PROPOSED</span> After</p>
+      <div class="panel">
+        <div class="block">
+          <p class="section-label">Channel tabs <span style="color:var(--fg-muted)">· primary lane</span></p>
+          <div class="tabs">
+            <button class="tab active">Australia's Top Stories</button>
+            <button class="tab">Property</button>
+            <button class="tab">Business</button>
+            <button class="tab">Tech &amp; Science</button>
+            <button class="tab">Global</button>
+          </div>
+          <p class="note">Inactive tabs lift to <b>readable muted</b>; the active tab gains a <b>semibold label</b> and a <b>brighter, slightly glowing underline</b>. The bar now reads as navigation at a glance.</p>
+        </div>
+
+        <div class="block">
+          <p class="section-label">Topic filter <span style="color:var(--fg-muted)">· refine within Australia</span></p>
+          <div class="pills">
+            <span class="filter-tag">Filter:</span>
+            <button class="pill active"><span class="dot" style="background:var(--amber)"></span>All</button>
+            <button class="pill"><span class="dot" style="background:oklch(0.74 0.155 110)"></span>Economics</button>
+            <button class="pill"><span class="dot" style="background:var(--amber)"></span>Macro</button>
+            <button class="pill"><span class="dot" style="background:oklch(0.72 0.18 45)"></span>Markets</button>
+            <button class="pill"><span class="dot" style="background:oklch(0.65 0.18 295)"></span>Policy</button>
+            <button class="pill"><span class="dot" style="background:oklch(0.72 0.17 155)"></span>Property</button>
+          </div>
+          <p class="note">An <b>indent + accent rule + "Filter:" label</b> visually subordinates this to the tabs — clearly "narrow the lane", not "switch lane". Active pill tint roughly doubled for legibility.</p>
+        </div>
+
+        <div class="block">
+          <p class="section-label">Persona switcher <span style="color:var(--fg-muted)">· promote &amp; explain</span></p>
+          <div class="persona-row">
+            <span class="view-label">View as</span>
+            <div class="seg">
+              <button class="persona active"><span class="pdot" style="background:var(--inst)"></span>Institutional</button>
+              <button class="persona"><span class="pdot" style="background:var(--broker)"></span>Broker</button>
+              <button class="persona"><span class="pdot" style="background:var(--adviser)"></span>Adviser</button>
+              <button class="persona"><span class="pdot" style="background:var(--buyers)"></span>Buyers Agent</button>
+            </div>
+            <span class="tailored">→ Tailored for <b>Institutional</b></span>
+          </div>
+          <p class="legend">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="oklch(0.78 0.18 70 / 70%)" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.5"/></svg>
+            Re-angles every story's "Say This" line for this audience.
+          </p>
+          <p class="note">Active state ~2.5× stronger (tint + ring + soft glow) so the selected persona is obvious, plus a <b>persistent "Tailored for…" badge</b> and a <b>permanent one-line hint</b> instead of a one-time caption.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
