@@ -33,6 +33,7 @@ import { MetricsStrip } from "@/components/desk/rightRail/MetricsStrip";
 import { SupportStrip } from "@/components/desk/rightRail/SupportStrip";
 import { FeedLeadCard } from "@/components/feed/FeedLeadCard";
 import { FeedItemCard } from "@/components/feed/FeedItemCard";
+import { CoverageFeedCard } from "@/components/feed/CoverageFeedCard";
 import { FeedSignalStrip } from "@/components/feed/FeedSignalStrip";
 import { TodayInBrief } from "@/components/feed/TodayInBrief";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -396,9 +397,13 @@ export default function DailyFeed() {
                   className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
                   cacheKey={`grid-${channel}-${filter}`}
                 >
-                  {liveGrid.map((item) => (
-                    <FeedItemCard key={item.id} item={item} />
-                  ))}
+                  {liveGrid.map((item) =>
+                    enriched ? (
+                      <FeedItemCard key={item.id} item={item} />
+                    ) : (
+                      <CoverageFeedCard key={item.id} item={item} />
+                    )
+                  )}
                 </StaggerList>
               </section>
             </SectionErrorBoundary>
