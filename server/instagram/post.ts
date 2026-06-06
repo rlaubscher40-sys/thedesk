@@ -294,6 +294,23 @@ export function pickDailyTopStories(
 const STORY_FRAME_COUNT = 1;
 
 /**
+ * Temporary kill-switch for 24h Story posting. While the account is cooling off
+ * from the "Action is blocked" integrity flag, we skip Stories entirely (the
+ * carousel still posts) and let the block age out. Self-resuming: Stories
+ * automatically come back on this date — no env change or redeploy needed. Set
+ * to a past date (or null) to re-enable immediately.
+ */
+const STORY_RESUME_DATE: string | null = "2026-06-08";
+
+/** True while Story posting is paused for the cooldown (before the resume date). */
+function storiesPaused(): boolean {
+  if (!STORY_RESUME_DATE) return false;
+  // Compare calendar dates (UTC YYYY-MM-DD) — a 2-day pause doesn't need
+  // timezone precision, just "are we past the resume day yet".
+  return new Date().toISOString().slice(0, 10) < STORY_RESUME_DATE;
+}
+
+/**
  * Post the lead story (see STORY_FRAME_COUNT) to the 24h Story as a 9:16 frame.
  * Runs in the BACKGROUND after the carousel is live: the Stories API can stall,
  * and doing it inline blocked the response long enough that the whole post
@@ -309,6 +326,10 @@ async function postStoryFrames(opts: {
   igUserId: string;
   accessToken: string;
 }): Promise<void> {
+  if (storiesPaused()) {
+    console.log(`[instagram] Story posting paused until ${STORY_RESUME_DATE} (cooldown); skipping.`);
+    return;
+  }
   const { stories, variant, verticalOpts, siteUrl, igUserId, accessToken } = opts;
   const frames = stories.slice(0, STORY_FRAME_COUNT);
   // Let the account breathe well clear of the carousel publish before touching
@@ -591,8 +612,9 @@ export async function postWeeklyEdition(
     console.log(`[instagram] weekly edition ${edition.editionNumber} posted: ${postId}`);
 
     // Share the edition to the 24h Story. Best-effort: a Story failure must
-    // never fail the feed post that has already gone live.
-    try {
+    // never fail the feed post that has already gone live. Skipped entirely
+    // while Stories are paused for the integrity cooldown.
+    if (!storiesPaused()) try {
       const storyBuf = await renderWeeklyStoryVertical(sanitizedEdition, heroDataUri);
       const storyUuid = storeTempImage(storyBuf);
       uuids.push(storyUuid);
