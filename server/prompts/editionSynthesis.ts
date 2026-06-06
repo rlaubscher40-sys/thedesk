@@ -243,9 +243,8 @@ Output a SINGLE JSON object matching this exact shape, and NOTHING ELSE, no prea
         "Optional third"
       ],
       "talkingPoints": {
-        "Institutional": "One sentence, what a corporate / employer-side partner (HR, benefits, salary packaging) takes from this. Macro frame, not retail advice. OMIT this key entirely if no clear institutional angle exists.",
         "Broker": "One sentence, what a mortgage broker says to a client tomorrow about this. Specific. Action-oriented. Not 'rates are uncertain', but 'lock in if the fixed-rate roll-off lands in June'.",
-        "Adviser": "One sentence, what a financial adviser or accountant says about the wealth-strategy or structural implication. The second-order read.",
+        "Adviser": "One sentence, what a financial adviser or accountant says about the wealth-strategy, tax structure, or SMSF implication. The second-order read.",
         "Buyers Agent": "One sentence, what a buyer's agent says about deal flow, suburb-level shifts, listings velocity, or market timing."
       }
     }

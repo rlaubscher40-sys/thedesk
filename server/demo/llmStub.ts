@@ -29,7 +29,6 @@ const SUBSTACK_DRAFT_JSON = JSON.stringify({
 });
 
 const PARTNER_TAG_BLOCK = [
-  "Institutional: Use the language softening as a trigger for a year-end wellbeing-program rate review.",
   "Broker: Conversation pivots to fixed-rate roll-offs landing in mid-June.",
   "Adviser: Refresh the 'rates higher for longer' framing, patience gives clients permission to plan.",
   "Buyers Agent: Sentiment shifts before listings do. Expect more pre-auction offers in the next four weeks.",
@@ -51,8 +50,8 @@ export async function demoLlm(params: InvokeLlmParams): Promise<string> {
   // before any text-content matching.
   if (isJson) return SUBSTACK_DRAFT_JSON;
 
-  // 4-persona partner-tag block, easy to fingerprint by its labels.
-  if (text.includes("write exactly 4 lines") || text.includes("institutional:")) {
+  // 3-role partner-tag block, easy to fingerprint by its labels.
+  if (text.includes("write exactly 3 lines") || text.includes("buyers agent:")) {
     return PARTNER_TAG_BLOCK;
   }
 

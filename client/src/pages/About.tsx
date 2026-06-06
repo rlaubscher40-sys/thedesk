@@ -106,8 +106,8 @@ export default function About() {
           <p>
             The Desk runs two scans. The daily one lands at seven in the
             morning Sydney time with five stories the partner channel should
-            know about, each tagged for the four personas Ruben works with:
-            institutional desks, brokers, advisers and buyer's agents.
+            know about, each angled for the three partner roles Ruben works
+            with: brokers, advisers / accountants and buyer's agents.
           </p>
           <p>
             Sundays the weekly edition lands. Long-form pieces, market
@@ -152,10 +152,10 @@ export default function About() {
           </h2>
           <p>
             The Desk uses large language models for one specific job:
-            drafting per-persona angles after a story has been selected and
+            drafting per-role angles after a story has been selected and
             summarised. The human editor picks the story, frames it, and
-            writes the take. The AI helps phrase the four "Say This" lines so
-            each persona, broker, adviser, accountant, buyer's agent, gets
+            writes the take. The AI helps phrase the three "Say This" lines
+            so each role, broker, adviser / accountant, buyer's agent, gets
             language tuned to their conversation. Full disclosure is on the{" "}
             <a
               href="/editorial-standards"

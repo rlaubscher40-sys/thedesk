@@ -1,7 +1,10 @@
 /**
- * Generates the 4-line partner relevance block stamped on every daily feed
- * item during background enrichment. Each line is one persona's "why this
- * matters" angle.
+ * Generates the 3-line partner relevance block stamped on every daily feed
+ * item during background enrichment. Each line is one partner role's "why
+ * this matters" angle: Broker, Adviser (combined with Accountant), Buyer's
+ * Agent. These are the three roles Ruben actually speaks with — the prior
+ * Institutional slot was dropped because the partner-channel conversation
+ * never lands there.
  */
 import { PARTNER_TAG_LABELS, parsePartnerTag } from "../../shared/schemas";
 import { invokeLLM } from "../core/llm";
@@ -22,26 +25,25 @@ function articleBlock(articleText: string | null | undefined): string {
 }
 
 function buildPrompt(input: PartnerTagInput): string {
-  return `You are writing partner conversation angles for a property investment intelligence tool curated by Ruben Laubscher. The audience is brokers, advisers, accountants and buyer's agents in Australian property and finance.
+  return `You are writing partner conversation angles for a property investment intelligence tool curated by Ruben Laubscher. The audience is mortgage brokers, financial advisers / accountants, and buyer's agents in Australian property and finance.
 
 Story title: ${input.title}
 Summary: ${input.summary || "(no summary)"}
 Existing single-persona angle: ${input.existingTag || "(none)"}${articleBlock(input.articleText)}
 
-FIRST, check whether this story has genuine partner-channel relevance, property, lending, regulation, macro / markets, super, ATO, RBA, APRA, broker / adviser workflows. If the story is sport, entertainment, lifestyle, celebrity, true crime, weather, or any other beat with NO real partner-channel hook: respond with exactly the literal token SKIP and nothing else. Do not invent a contrived angle just to fill four lines.
+FIRST, check whether this story has genuine partner-channel relevance, property, lending, regulation, macro / markets, super, ATO, RBA, APRA, broker / adviser workflows. If the story is sport, entertainment, lifestyle, celebrity, true crime, weather, or any other beat with NO real partner-channel hook: respond with exactly the literal token SKIP and nothing else. Do not invent a contrived angle just to fill three lines.
 
-Otherwise, write EXACTLY 4 lines, one per persona, in this format:
-${PARTNER_TAG_LABELS[0]}: [one sentence, max 20 words, for corporate employers / HR / salary packaging / financial wellness programs]
-${PARTNER_TAG_LABELS[1]}: [one sentence, max 20 words, for mortgage brokers focused on borrowing capacity and lending]
-${PARTNER_TAG_LABELS[2]}: [one sentence, max 20 words, for financial advisers and accountants focused on wealth strategy]
-${PARTNER_TAG_LABELS[3]}: [one sentence, max 20 words, for buyer's agents and property professionals]
+Otherwise, write EXACTLY 3 lines, one per partner role, in this format:
+${PARTNER_TAG_LABELS[0]}: [one sentence, max 20 words, for mortgage brokers focused on borrowing capacity and lending]
+${PARTNER_TAG_LABELS[1]}: [one sentence, max 20 words, for financial advisers and accountants focused on wealth strategy, tax structure and SMSF]
+${PARTNER_TAG_LABELS[2]}: [one sentence, max 20 words, for buyer's agents and property professionals]
 
 Rules:
-- Each line must start with exactly the persona label followed by a colon
+- Each line must start with exactly the role label followed by a colon
 - Focus on how this news creates a conversation opportunity or client action
 - Be specific and commercially sharp, not generic
 - Australian English, no em dashes
-- Output ONLY the 4 lines, OR the literal token SKIP. Nothing else.`;
+- Output ONLY the 3 lines, OR the literal token SKIP. Nothing else.`;
 }
 
 /**
@@ -62,7 +64,7 @@ export async function generatePartnerTag(input: PartnerTagInput): Promise<string
         {
           role: "system",
           content:
-            "You are a commercially sharp property investment intelligence writer. Output the 4-line partner angle block OR the literal token SKIP when there is no genuine partner-channel angle.",
+            "You are a commercially sharp property investment intelligence writer. Output the 3-line partner angle block OR the literal token SKIP when there is no genuine partner-channel angle.",
         },
         { role: "user", content: buildPrompt(input) },
       ],

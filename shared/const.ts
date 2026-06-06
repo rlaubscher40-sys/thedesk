@@ -19,18 +19,15 @@ export const DEFAULT_SITE_URL = "https://thedesk.au";
 /**
  * Partner personas. The canonical four, matches `PARTNER_TAG_LABELS`
  * (`shared/schemas.ts`), the `PERSONA_COLOUR` map
- * (`client/src/lib/persona.tsx`), and the four-line Partner angles block
+ * (`client/src/lib/persona.tsx`), and the three-line Partner angles block
  * that runs under every tagged story. See `docs/brand-guidelines.md`
- * Section 2 for what each persona reads The Desk for.
+ * Section 2 for what each role reads The Desk for.
  *
- * Order is the order shown in any UI that lists them.
+ * Order is the order shown in any UI that lists them. Canonical key
+ * "Adviser" covers the combined Financial Adviser / Accountant slot —
+ * `personaDisplayLabel` expands it on the surface.
  */
-export const PARTNER_PERSONAS = [
-  "Institutional",
-  "Broker",
-  "Adviser",
-  "Buyers Agent",
-] as const;
+export const PARTNER_PERSONAS = ["Broker", "Adviser", "Buyers Agent"] as const;
 export type PartnerPersona = (typeof PARTNER_PERSONAS)[number];
 
 /**

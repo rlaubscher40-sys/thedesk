@@ -8,13 +8,17 @@
 
 // ─── Shared types ───────────────────────────────────────────────────────────
 
-export type Persona =
-  | "Institutional"
-  | "Broker"
-  | "Adviser"
-  | "Buyers Agent";
+/**
+ * Partner roles Ruben actually speaks with. "Adviser" is the canonical key
+ * for the financial-adviser / accountant slot — `personaDisplayLabel`
+ * expands it to "Adviser / Accountant" on the surface. The earlier
+ * "Institutional" slot was dropped: the partner-channel conversation never
+ * landed there, and the codebase's own About / prompt copy already wavered
+ * on whether it should be Accountant in its place.
+ */
+export type Persona = "Broker" | "Adviser" | "Buyers Agent";
 
-export const PERSONAS: Persona[] = ["Institutional", "Broker", "Adviser", "Buyers Agent"];
+export const PERSONAS: Persona[] = ["Broker", "Adviser", "Buyers Agent"];
 
 export type Category =
   | "MACRO"
@@ -63,7 +67,7 @@ export type Story = {
   headline: string;
   /** 2-4 sentence editorial dek. */
   dek: string;
-  /** Persona-keyed angles + Say This lines. Always exactly four entries. */
+  /** Role-keyed angles + Say This lines. Always exactly three entries. */
   partnerAngles: PartnerAngle[];
   /** Optional analyst note, rendered behind the "Show context" expander. */
   context?: string;
@@ -124,13 +128,6 @@ export const stories: Story[] = [
       "Two readings of the statement matter: (1) the dropped sentence on further tightening is the dovish read the bond market has run with; (2) the 'patient transmission' line is the new conditional for a November cut. Watch the next monthly CPI on May 28, if services inflation prints below 4.5% YoY, swaps will price in a cut at the next meeting, not November. The conversation to lead with brokers this week is not about the hold itself; it's about what happens to fixed-rate roll-off volumes in mid-June.",
     partnerAngles: [
       {
-        persona: "Institutional",
-        angle:
-          "Use the language softening as the trigger for a year-end wellbeing-program rate review with corporate clients.",
-        sayThis:
-          "The RBA dropped 'further tightening' for the first time in 14 months, a quiet but meaningful pivot for any employer running a salary-packaging or financial-wellness program.",
-      },
-      {
         persona: "Broker",
         angle:
           "Pivot client conversations to fixed-rate roll-offs landing in mid-June, not the cash rate itself.",
@@ -168,12 +165,6 @@ export const stories: Story[] = [
       "Don't sell timing you can't deliver. The earliest a revised regime could land is late Q3. The signal in the paper is direction, not timing, APRA wants the option to ease without committing to it.",
     partnerAngles: [
       {
-        persona: "Institutional",
-        angle: "Soft policy signal. Employer-side conversations are unaffected this cycle.",
-        sayThis:
-          "The buffer review is a Q4 story at the earliest. Don't let HR-team newsletters get ahead of the regulator.",
-      },
-      {
         persona: "Broker",
         angle: "Anyone selling 'serviceability is loosening' today is selling timing they can't deliver.",
         sayThis: "Read the paper, not the headlines about the paper. November is the earliest.",
@@ -202,11 +193,6 @@ export const stories: Story[] = [
     context:
       "The headline number matters less than the spread. Inner-ring clearance is at 71%, outer-ring is at 58%. The gap is the widest it's been since early 2024. Buyers are paying for geography again.",
     partnerAngles: [
-      {
-        persona: "Institutional",
-        angle: "Property-confidence story for employer wellness conversations on home-deposit support.",
-        sayThis: "Deposit-support programs land harder when clearances are above 65%. We're there now.",
-      },
       {
         persona: "Broker",
         angle: "Pre-approval lead time is the new constraint. Tighten your pipeline.",
@@ -237,11 +223,6 @@ export const stories: Story[] = [
       "The energy reset rolls off the year-on-year base in October. Watch the Q3 monthly CPI, if the underlying trend has held, headline drops sharply and the RBA's path looks clearer.",
     partnerAngles: [
       {
-        persona: "Institutional",
-        angle: "Salary-packaging clients with energy components should review settings before October.",
-        sayThis: "October is when the energy line rolls off the YoY base. Review packaging before then.",
-      },
-      {
         persona: "Broker",
         angle: "Rent inflation cooling helps the serviceability narrative without the regulator moving.",
         sayThis: "Rents are softer than the headline suggests. That helps borrowing capacity quietly.",
@@ -270,11 +251,6 @@ export const stories: Story[] = [
     context:
       "The IMF rarely commits a probability to a geopolitical scenario. When they do, central banks read it carefully. A 100bp move in the oil curve translates roughly to 30bp on Australian headline CPI within two quarters.",
     partnerAngles: [
-      {
-        persona: "Institutional",
-        angle: "Energy-cost pass-through to corporate margins changes the wage-bargaining backdrop.",
-        sayThis: "Oil shocks are wage-bargaining stories, not just inflation stories.",
-      },
       {
         persona: "Broker",
         angle: "Fuel costs feed into living-expense schedules. Sensitivity matters for marginal applicants.",
@@ -305,11 +281,6 @@ export const stories: Story[] = [
       "Reopening the working group is procedure, not breakthrough. The signal is in what the joint statement chooses to omit, not what it includes. Look for whether 'national security' caveats remain or are softened.",
     partnerAngles: [
       {
-        persona: "Institutional",
-        angle: "Tech-procurement risk on long-dated capex. Boards will ask about exposure.",
-        sayThis: "Boards are asking about chip exposure again. Be ready to brief.",
-      },
-      {
         persona: "Broker",
         angle: "Tech-sector clients reading this as a sentiment positive. Refi conversations may pick up.",
         sayThis: "Tech clients watch this closely. Refi appetite tends to follow sentiment by two weeks.",
@@ -339,11 +310,6 @@ export const stories: Story[] = [
     dek: "Two paragraphs on page 147 adjust the discount rate for properties held over 8 years. The IRR maths shifts at year eight. Morning coverage missed it entirely.",
     partnerAngles: [
       {
-        persona: "Institutional",
-        angle: "Employee equity-vs-property comparison frameworks need a refresh.",
-        sayThis: "Equity-vs-property frameworks for senior staff need updating this fortnight.",
-      },
-      {
         persona: "Broker",
         angle: "Investor borrowers holding 8+ years need to know. Lead the conversation.",
         sayThis: "If a client is in year seven of an investment property, this conversation lands today.",
@@ -370,11 +336,6 @@ export const stories: Story[] = [
     headline: "TSMC pulls forward Arizona fab phase three by nine months",
     dek: "Onshoring acceleration: $4B incremental capex, first wafers Q4 2027 instead of Q3 2028. Reaction in TWD muted; reaction in AUD-AUD swap spreads telling.",
     partnerAngles: [
-      {
-        persona: "Institutional",
-        angle: "Supply-chain resilience story for boards. Procurement gets a longer leash.",
-        sayThis: "Onshoring is no longer a slide in a board deck. It's a quarter on a roadmap.",
-      },
       {
         persona: "Broker",
         angle: "Semiconductor exposure is positive for long-dated industrial clients.",

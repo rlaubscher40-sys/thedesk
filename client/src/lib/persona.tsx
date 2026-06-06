@@ -47,20 +47,21 @@ export function usePersona(): Ctx {
 
 /** Persona → distinguishing accent. Matches the brand palette. */
 export const PERSONA_COLOUR: Record<Persona, string> = {
-  Institutional: "oklch(0.72 0.16 250)", // institutional blue
   Broker: "oklch(0.78 0.18 70)", // amber
-  Adviser: "oklch(0.72 0.17 155)", // adviser green
+  Adviser: "oklch(0.72 0.17 155)", // adviser / accountant green
   "Buyers Agent": "oklch(0.62 0.18 25)", // ink / rust
 };
 
 /**
- * Display spelling for a persona label. The stored/canonical key stays
- * "Buyers Agent" (no apostrophe) so parsing and matching never break on old
- * data, but the reader sees the grammatically correct "Buyer's Agent". Keyed
+ * Display spelling for a persona label. The stored/canonical keys stay as
+ * "Adviser" and "Buyers Agent" (no apostrophe, no slash) so parsing and
+ * matching never break on legacy data, but the reader sees the fuller
+ * "Adviser / Accountant" and grammatically correct "Buyer's Agent". Keyed
  * loosely so it also tidies LLM-generated talkingPoints keys.
  */
 export function personaDisplayLabel(label: string): string {
   const n = label.toLowerCase().replace(/[^a-z]/g, "");
   if (n.startsWith("buyer")) return "Buyer's Agent";
+  if (n === "adviser" || n === "advisor") return "Adviser / Accountant";
   return label;
 }

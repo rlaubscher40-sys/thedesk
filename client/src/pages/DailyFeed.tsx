@@ -32,6 +32,7 @@ import { WhatsNewPill } from "@/components/desk/WhatsNewPill";
 import { MetricsStrip } from "@/components/desk/rightRail/MetricsStrip";
 import { SupportStrip } from "@/components/desk/rightRail/SupportStrip";
 import { FeedLeadCard } from "@/components/feed/FeedLeadCard";
+import { CoverageLeadCard } from "@/components/feed/CoverageLeadCard";
 import { FeedItemCard } from "@/components/feed/FeedItemCard";
 import { CoverageFeedCard } from "@/components/feed/CoverageFeedCard";
 import { FeedSignalStrip } from "@/components/feed/FeedSignalStrip";
@@ -384,7 +385,11 @@ export default function DailyFeed() {
             <SectionErrorBoundary section="Lead">
               <section>
                 <SectionDivider label="Today's lead" />
-                <FeedLeadCard item={liveLead} />
+                {enriched ? (
+                  <FeedLeadCard item={liveLead} />
+                ) : (
+                  <CoverageLeadCard item={liveLead} />
+                )}
               </section>
             </SectionErrorBoundary>
           )}
