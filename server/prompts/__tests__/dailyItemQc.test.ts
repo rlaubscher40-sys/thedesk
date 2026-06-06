@@ -9,9 +9,8 @@ import { runDailyItemQc } from "../dailyItemQc";
 
 const mockedInvoke = vi.mocked(invokeLLM);
 
-// A valid 4-line partner block (labels must match PARTNER_TAG_LABELS).
-const VALID_TAG = `Institutional: Frame the rate hold as a planning window for salary-packaging reviews.
-Broker: Tell clients the hold steadies serviceability, lock applications before the next CPI print.
+// A valid 3-line partner block (labels must match PARTNER_TAG_LABELS).
+const VALID_TAG = `Broker: Tell clients the hold steadies serviceability, lock applications before the next CPI print.
 Adviser: Position the pause as a moment to revisit gearing structures, not chase yield.
 Buyers Agent: Use the stable rate to push buyers off the fence before listings tighten.`;
 

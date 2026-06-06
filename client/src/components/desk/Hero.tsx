@@ -141,13 +141,13 @@ export function Hero({ onGenerateAll }: { onGenerateAll?: () => void }) {
           <div className="flex items-end justify-between gap-6 mt-4 flex-wrap">
             <p className="font-serif text-base sm:text-lg text-[var(--color-fg-muted)] max-w-[44ch] leading-snug">
               A sixty-second scan of what's moving Australian property —
-              written for institutional desks, brokers, advisers and
-              buyer's agents.
+              written for brokers, advisers / accountants and buyer's
+              agents.
             </p>
             {isAdmin && (
               <button
                 onClick={handleGen}
-                title="Regenerate the four persona angles ('Say This') for every story in today's feed"
+                title="Regenerate the three role angles ('Say This') for every story in today's feed"
                 className="group inline-flex items-center gap-2.5 rounded px-5 py-2.5 text-xs font-mono uppercase tracking-[0.2em] transition-all active:scale-[0.98] shrink-0 text-[var(--color-on-amber)]"
                 style={{
                   background: "var(--grad-cta-amber)",

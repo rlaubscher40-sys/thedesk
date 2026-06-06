@@ -110,15 +110,17 @@ export const lookbackSchema = z.object({
 export type LookbackItem = z.infer<typeof lookbackItemSchema>;
 export type Lookback = z.infer<typeof lookbackSchema>;
 
-// ─── Partner tag (4-persona block on a daily feed item) ─────────────────────
+// ─── Partner tag (3-persona block on a daily feed item) ─────────────────────
 
 /**
- * The partnerTag column stores a 4-line string with one line per persona,
- * formatted as "PersonaLabel: one-sentence angle". The labels stored are not
- * identical to the runtime persona names (the LLM uses Institutional / Broker
- * / Adviser / Buyers Agent), so parsing is lenient.
+ * The partnerTag column stores a 3-line string with one line per partner role,
+ * formatted as "RoleLabel: one-sentence angle". Parser is line-anchored so
+ * legacy 4-line rows (which carried an Institutional line) still parse — the
+ * extra line is silently ignored. The control surface is labelled "Angle for"
+ * (PersonaSwitcher) and the canonical roles are the three Ruben actually
+ * speaks to: brokers, advisers / accountants, and buyer's agents.
  */
-export const PARTNER_TAG_LABELS = ["Institutional", "Broker", "Adviser", "Buyers Agent"] as const;
+export const PARTNER_TAG_LABELS = ["Broker", "Adviser", "Buyers Agent"] as const;
 export type PartnerTagLabel = (typeof PARTNER_TAG_LABELS)[number];
 
 export type PartnerTag = Record<PartnerTagLabel, string>;

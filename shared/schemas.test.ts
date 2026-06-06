@@ -48,9 +48,8 @@ describe("weeklyEditionIngestSchema", () => {
 });
 
 describe("parsePartnerTag", () => {
-  it("parses a well-formed 4-persona block", () => {
+  it("parses a well-formed 3-role block", () => {
     const raw = [
-      "Institutional: corporate ang...",
       "Broker: broker angle...",
       "Adviser: adviser angle...",
       "Buyers Agent: BA angle...",
@@ -60,8 +59,20 @@ describe("parsePartnerTag", () => {
     expect(parsed?.Broker).toMatch(/broker/);
   });
 
-  it("returns null when any persona is missing", () => {
-    const raw = "Institutional: only one persona";
+  it("returns null when any role is missing", () => {
+    const raw = "Broker: only one role";
     expect(parsePartnerTag(raw)).toBeNull();
+  });
+
+  it("tolerates legacy 4-line rows with an Institutional line", () => {
+    const raw = [
+      "Institutional: legacy line, should be ignored on parse",
+      "Broker: broker angle...",
+      "Adviser: adviser angle...",
+      "Buyers Agent: BA angle...",
+    ].join("\n");
+    const parsed = parsePartnerTag(raw);
+    expect(parsed).not.toBeNull();
+    expect(parsed?.Broker).toMatch(/broker/);
   });
 });

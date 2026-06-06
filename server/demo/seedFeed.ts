@@ -1,6 +1,6 @@
 /**
  * Daily feed seed data. Three days of items so the date picker has chips,
- * each tagged with the 4-persona partnerTag block.
+ * each tagged with the 3-role partnerTag block.
  */
 import type { DailyFeedItem } from "../db/schema";
 
@@ -20,13 +20,11 @@ function isoDate(offset: number): string {
 }
 
 function partnerTag(parts: {
-  inst: string;
   broker: string;
   adviser: string;
   ba: string;
 }): string {
   return [
-    `Institutional: ${parts.inst}`,
     `Broker: ${parts.broker}`,
     `Adviser: ${parts.adviser}`,
     `Buyers Agent: ${parts.ba}`,
@@ -101,7 +99,6 @@ export function feedSeed(): DailyFeedItem[] {
       sayThis:
         "The decision was the easy part. Watch broker channel share through June, that's where the real action is.",
       partnerTag: partnerTag({
-        inst: "Use the language softening as the trigger for an end-of-year wellbeing-program rate review.",
         broker: "Conversation pivots to fixed-rate roll-offs landing in mid-June, not the cash rate itself.",
         adviser: "Refresh the 'rates higher for longer' framing, the patient line gives clients permission to plan.",
         ba: "Sentiment shifts before listings do. Expect more pre-auction offers in the next four weeks.",
@@ -118,7 +115,6 @@ export function feedSeed(): DailyFeedItem[] {
       sayThis:
         "Read the paper, not the headlines about it. The buffer review is a Q4 story at the earliest.",
       partnerTag: partnerTag({
-        inst: "Soft policy signal. Employer-side conversations are unaffected this cycle.",
         broker: "Anyone selling 'serviceability is loosening' to clients today is selling timing they can't deliver.",
         adviser: "Direction softer, but client borrowing capacity won't change until late Q3 at earliest.",
         ba: "The paper does not change today's deal. It changes the framing of conversations in November.",
@@ -136,7 +132,6 @@ export function feedSeed(): DailyFeedItem[] {
       sayThis:
         "Capacity at mid-tier BAs is the constraint, not demand. Three Melbourne agencies paused intake this week.",
       partnerTag: partnerTag({
-        inst: "Property-confidence story for employer wellness conversations on home-deposit support.",
         broker: "Pre-approval lead time is the new constraint. Tighten your pipeline.",
         adviser: "Investor activity ticking up, re-engage clients sitting on deposit cash.",
         ba: "Capacity is the bigger conversation than price. If a mid-tier paused intake, that's where their referrals sit.",
@@ -153,7 +148,6 @@ export function feedSeed(): DailyFeedItem[] {
       sayThis:
         "The composition matters more than the headline. Energy resets, not rents, are the story.",
       partnerTag: partnerTag({
-        inst: "Salary-packaging clients with energy components should review settings before October.",
         broker: "Rent inflation cooling helps serviceability narrative without the regulator moving.",
         adviser: "Use the composition, not the headline, when framing rates outlook for clients.",
         ba: "Tenant negotiation leverage tilts slightly back to landlords in markets where rents have plateaued.",
@@ -289,7 +283,6 @@ export function feedSeed(): DailyFeedItem[] {
       sayThis:
         "If a client is in the SMSF property pipeline, lock the indicative this fortnight.",
       partnerTag: partnerTag({
-        inst: "Wellbeing program conversations on SMSF strategy gain a fresh hook.",
         broker: "SMSF-specialist accreditation just got more valuable. Check your aggregator's training.",
         adviser: "Material change for clients running property SMSFs. Worth a proactive call.",
         ba: "Reach out to your SMSF-specialist referrers, pipelines reopen on rate moves.",
@@ -306,7 +299,6 @@ export function feedSeed(): DailyFeedItem[] {
       sayThis:
         "Composition matters. The beat came from where the RBA wants cooling.",
       partnerTag: partnerTag({
-        inst: "Wage pressure persists in services. HR-side conversations should price for it.",
         broker: "Borrowing capacity narrative holds; nominal incomes still trending up.",
         adviser: "The 'patience' line gets tested. Don't promise client outlooks the RBA hasn't committed to.",
         ba: "Buyer income growth in services-heavy postcodes still firm, keep them in the pipeline.",
@@ -324,7 +316,6 @@ export function feedSeed(): DailyFeedItem[] {
       sayThis:
         "Demand is fine. Capacity at the mid-tier is the constraint.",
       partnerTag: partnerTag({
-        inst: "Employer-program partners may face wait-list friction with smaller BAs.",
         broker: "Refer clients to BAs with structured intake, pause patterns are spreading.",
         adviser: "If your preferred BA paused intake, line up a backup before client requests stack.",
         ba: "If a competitor just paused, that's where referrals are sitting. Pick up the phone.",
@@ -343,7 +334,6 @@ export function feedSeed(): DailyFeedItem[] {
       sayThis:
         "The change is small but shows up in 8-year IRRs. Model it for clients who hold long.",
       partnerTag: partnerTag({
-        inst: "Employee equity-vs-property comparison frameworks need a refresh.",
         broker: "Investor borrowers holding 8+ years need to know. Lead the conversation.",
         adviser: "Refresh held-property IRR models. The change matters at year eight, not year one.",
         ba: "Long-hold investors are the most affected. Open with this before they ask.",
@@ -360,7 +350,6 @@ export function feedSeed(): DailyFeedItem[] {
       sayThis:
         "Speed gains are real. Edge cases now get AI-first review, human second.",
       partnerTag: partnerTag({
-        inst: "Faster credit decisions could compress employer payroll-to-settlement timelines.",
         broker: "Edge-case files get a faster yes (or no). Adjust your pipeline assumptions.",
         adviser: "Bank decisioning is changing. The 'always a queue' framing is out of date.",
         ba: "Pre-approval velocity is the new battleground. Brokers with this lender are quicker.",
