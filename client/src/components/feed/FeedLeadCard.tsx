@@ -375,15 +375,14 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
           </div>
         )}
 
-        {/* Editor's take, Ruben's note overrides the auto-generated
-            sayThis line when set. Say This + Partner Angles are
-            paired, neither renders without the other unless an admin
-            has hand-written a Ruben's note. */}
-        {(item.rubensNote ||
-          (item.sayThis && item.partnerTag && dek?.from !== "sayThis")) && (
+        {/* Editor's take. Ruben's note overrides the auto-generated
+            sayThis line when set. Say This and Partner Angles render
+            independently — every story with a Say This earns the labelled
+            block, even when partner angles haven't been generated yet. */}
+        {(item.rubensNote || item.sayThis) && (
           <div className="mt-6 pt-6 border-t border-[var(--color-border)]">
             <RubensNoteBlock itemId={item.id} note={item.rubensNote} />
-            {!item.rubensNote && item.sayThis && item.partnerTag && dek?.from !== "sayThis" && (
+            {!item.rubensNote && item.sayThis && (
               <SayThisLine sayThis={item.sayThis} category={item.category} />
             )}
           </div>

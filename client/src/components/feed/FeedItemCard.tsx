@@ -302,7 +302,7 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
       {/* Say This and Partner Angles render independently — a story can
           carry either one. RubensNote is an editorial override that takes
           the place of the Say This line when present. */}
-      {!item.rubensNote && item.sayThis && dek?.from !== "sayThis" && (
+      {!item.rubensNote && item.sayThis && (
         <SayThisLine sayThis={item.sayThis} category={item.category} />
       )}
 
