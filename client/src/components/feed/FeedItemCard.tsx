@@ -250,12 +250,25 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
       {/* Lede. Clamped to keep grid rows visually uniform, summaries
           arrive at wildly different lengths from the LLM enrichment,
           and an uncapped paragraph blows the row height. The full
-          summary still surfaces on the story page. */}
-      {dek && (
+          summary still surfaces on the story page.
+
+          When the story has no proper dek content, the editorial take
+          is promoted up to fill the slot — labelled Say This / Ruben's
+          note instead of a hole between the headline and the action
+          row. The "below" Say This render is then skipped to avoid
+          duplication. */}
+      {dek ? (
         <p className="text-base text-[var(--color-fg-muted)] leading-relaxed line-clamp-3">
           {dek.text}
         </p>
-      )}
+      ) : item.rubensNote || item.sayThis ? (
+        <>
+          <RubensNoteBlock itemId={item.id} note={item.rubensNote} />
+          {!item.rubensNote && item.sayThis && (
+            <SayThisLine sayThis={item.sayThis} category={item.category} />
+          )}
+        </>
+      ) : null}
 
       {/* Action row. Grouped so "Read more", "Read original" and the admin
           "Add note" affordance wrap cleanly instead of crowding into each
@@ -298,12 +311,18 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
         <CounterpointLine counterpoint={item.counterpoint} />
       )}
 
-      <RubensNoteBlock itemId={item.id} note={item.rubensNote} />
       {/* Say This and Partner Angles render independently — a story can
           carry either one. RubensNote is an editorial override that takes
-          the place of the Say This line when present. */}
-      {!item.rubensNote && item.sayThis && (
-        <SayThisLine sayThis={item.sayThis} category={item.category} />
+          the place of the Say This line when present. Skipped when there
+          was no dek and the take was already promoted up to fill the dek
+          slot above, otherwise the same line would render twice. */}
+      {dek && (
+        <>
+          <RubensNoteBlock itemId={item.id} note={item.rubensNote} />
+          {!item.rubensNote && item.sayThis && (
+            <SayThisLine sayThis={item.sayThis} category={item.category} />
+          )}
+        </>
       )}
 
       {item.partnerTag && <PartnerTagBlock raw={item.partnerTag} />}

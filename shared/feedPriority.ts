@@ -40,6 +40,8 @@ const PRIMARY_SOURCE_FRAGMENTS = [
   "treasury",
   "apra",
   "asic",
+  "ato",
+  "australian taxation",
   "abs ",
   "australian bureau",
   "afr",
