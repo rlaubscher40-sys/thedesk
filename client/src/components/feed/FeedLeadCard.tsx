@@ -327,12 +327,26 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
         {/* Lede. Plain serif rather than italic, italic Playfair gets squished
             at body sizes on a dark background and was reading as cramped. The
             magazine register stays via the serif face and the surrounding
-            chrome; the italic was carrying too much load. */}
-        {dek && (
+            chrome; the italic was carrying too much load.
+
+            When the story has no proper dek content (no summary / why /
+            counterpoint), the editorial take is promoted UP into this slot
+            instead of leaving a hole between the headline and the source
+            row — the labelled Say This / Ruben's note then acts as the
+            de-facto subline and the "below source row" rendering is
+            skipped (see further down). */}
+        {dek ? (
           <p className="font-serif text-lg text-[var(--color-fg-muted)] leading-relaxed mb-5">
             {dek.text}
           </p>
-        )}
+        ) : (item.rubensNote || item.sayThis) ? (
+          <div className="mb-5">
+            <RubensNoteBlock itemId={item.id} note={item.rubensNote} />
+            {!item.rubensNote && item.sayThis && (
+              <SayThisLine sayThis={item.sayThis} category={item.category} />
+            )}
+          </div>
+        ) : null}
 
         {/* Source + meta row. Sits between the lede and the editorial
             take, separated by hairline rules on each side. */}
@@ -376,10 +390,10 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
         )}
 
         {/* Editor's take. Ruben's note overrides the auto-generated
-            sayThis line when set. Say This and Partner Angles render
-            independently — every story with a Say This earns the labelled
-            block, even when partner angles haven't been generated yet. */}
-        {(item.rubensNote || item.sayThis) && (
+            sayThis line when set. Skipped when there's no dek and the
+            take was already promoted up to fill the dek slot above —
+            otherwise the same line would render twice. */}
+        {dek && (item.rubensNote || item.sayThis) && (
           <div className="mt-6 pt-6 border-t border-[var(--color-border)]">
             <RubensNoteBlock itemId={item.id} note={item.rubensNote} />
             {!item.rubensNote && item.sayThis && (

@@ -190,8 +190,30 @@ export default function DailyFeed() {
   // Grid note: the lede on every grid card is line-clamped (see
   // FeedItemCard) so summaries of wildly different lengths don't blow
   // row heights apart.
-  const liveLead = feedItems[0];
-  const liveRest = feedItems.slice(1);
+  // ── Lead worthiness gate (enriched lanes only) ────────────────────────
+  // The lead earns its slot. It's the day's hero card and it carries the
+  // full broadsheet treatment — if it can't fill the slots that treatment
+  // exists to hold (analytical context + the Say This + the partner
+  // angles), it isn't the lead, it's just a grid card with a high priority
+  // number. Quietly pick the highest-priority story that ACTUALLY has the
+  // editorial moments, and let the unenriched top item drop into the grid
+  // where its half-finished state isn't promoted to "today's hero".
+  //
+  // An admin pin (priority >= 100) is treated as an explicit override:
+  // pinning expresses editorial intent that outranks the worthiness check.
+  // On coverage lanes there's no enrichment by design, so the gate doesn't
+  // apply — we keep the priority-top item as lead.
+  const isLeadWorthy = (it: typeof feedItems[number]): boolean => {
+    const hasContext = !!(it.summary?.trim() || it.whyItMatters?.trim());
+    const hasTake = !!(it.sayThis?.trim() || it.rubensNote?.trim());
+    const hasAnglesBlock = !!it.partnerTag?.trim();
+    return hasContext && hasTake && hasAnglesBlock;
+  };
+  const pinned = feedItems.find((it) => (it.priority ?? 50) >= 100);
+  const liveLead = enriched
+    ? pinned ?? feedItems.find(isLeadWorthy) ?? feedItems[0]
+    : feedItems[0];
+  const liveRest = feedItems.filter((it) => it.id !== liveLead?.id);
   // A story earns the full grid treatment if it has EITHER a sayThis or a
   // partnerTag — FeedItemCard renders whichever angle(s) are present. Only
   // genuinely bare items (no angle at all) drop to the signals strip, so a
