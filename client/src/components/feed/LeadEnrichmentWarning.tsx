@@ -40,6 +40,28 @@ export function LeadEnrichmentWarning({ item }: { item: DailyFeedItem }) {
     onError: (err) => toast.error(err.message ?? "Enrichment failed"),
   });
 
+  // Bulk: re-enrich the top 5 priority candidates on this lane. Used when
+  // the LLM has already returned SKIP for this story (no genuine angle),
+  // so the worthiness gate needs a wider bench to pick a real lead from.
+  const enrichTop = trpc.feed.enrichTopCandidates.useMutation({
+    onSuccess: (res) => {
+      if (res.updates === 0) {
+        toast.message(
+          `No new angles produced across the top ${res.scanned}`,
+          {
+            description:
+              "Today's top candidates have no fillable gaps — likely an ingest-side thin day. Look deeper into sources.",
+          }
+        );
+      } else {
+        toast.success(`Enriched ${res.updates} field(s) across the top ${res.scanned}`);
+      }
+      utils.feed.getByDate.invalidate();
+    },
+    onError: (err) => toast.error(err.message ?? "Bulk enrichment failed"),
+  });
+  const pending = enrich.isPending || enrichTop.isPending;
+
   if (!isAdmin) return null;
 
   // Compute the specific gaps so the warning names what's missing rather
@@ -72,13 +94,21 @@ export function LeadEnrichmentWarning({ item }: { item: DailyFeedItem }) {
           The priority-top story is missing{" "}
           <span className="font-medium text-[var(--color-fg)]">{gaps.join(", ")}</span>
           {" "}— the hero treatment is built to hold those. Fill the gaps below, or
-          dig deeper into today&apos;s sources for a stronger candidate.
+          enrich the wider bench if this story has no genuine angle.
         </p>
+        <button
+          type="button"
+          onClick={() => enrichTop.mutate({ channel: "AU", limit: 5 })}
+          disabled={pending}
+          className="mt-1 inline-flex items-center gap-1 text-[11px] text-[var(--color-fg-subtle)] hover:text-amber-200 transition-colors disabled:opacity-50"
+        >
+          {enrichTop.isPending ? "Enriching the top 5…" : "Or enrich the top 5 candidates instead →"}
+        </button>
       </div>
       <button
         type="button"
         onClick={() => enrich.mutate({ id: item.id })}
-        disabled={enrich.isPending}
+        disabled={pending}
         className="inline-flex items-center gap-1.5 shrink-0 rounded px-3 py-1.5 text-[10.5px] font-mono uppercase tracking-[0.16em] transition-colors disabled:opacity-50"
         style={{
           background: "oklch(0.78 0.18 70 / 14%)",

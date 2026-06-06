@@ -37,6 +37,57 @@ function weekMondayOf(isoDate: string): string {
   return monday.toISOString().slice(0, 10);
 }
 
+/**
+ * Re-run the three LLM enrichment generators (whyItMatters, sayThis,
+ * partnerTag) for any field that is currently missing on the given item,
+ * persist what comes back, and return the list of fields that were filled.
+ *
+ * Only gaps are touched — existing enrichment is left alone, since the
+ * callers (enrichItem, enrichTopCandidates) are meant to close gaps
+ * rather than freshen content. SKIP responses are dropped silently:
+ * that's the right signal that the story has no genuine partner-channel
+ * angle and should be deprioritised or deleted, not rewritten.
+ *
+ * The three generators fan out in parallel — they're independent prompts.
+ * Cache invalidation is the caller's responsibility (so a bulk run can
+ * invalidate once at the end rather than per item).
+ */
+async function fillEnrichmentGaps(
+  item: Awaited<ReturnType<typeof db.getFeedItemById>>
+): Promise<string[]> {
+  if (!item) return [];
+  const baseInput = {
+    title: item.title,
+    summary: item.summary,
+    category: item.category,
+  };
+  const [whyItMatters, sayThis, partnerTag] = await Promise.all([
+    item.whyItMatters?.trim() ? Promise.resolve(null) : generateWhyItMatters(baseInput),
+    item.sayThis?.trim() ? Promise.resolve(null) : generateSayThis(baseInput),
+    item.partnerTag?.trim()
+      ? Promise.resolve(null)
+      : generatePartnerTag({
+          title: item.title,
+          summary: item.summary,
+          existingTag: item.partnerTag,
+        }),
+  ]);
+  const updated: string[] = [];
+  if (whyItMatters) {
+    await db.updateFeedItemWhyItMatters(item.id, whyItMatters);
+    updated.push("whyItMatters");
+  }
+  if (sayThis) {
+    await db.updateFeedItemSayThis(item.id, sayThis);
+    updated.push("sayThis");
+  }
+  if (partnerTag) {
+    await db.updateFeedItemPartnerTag(item.id, partnerTag);
+    updated.push("partnerTag");
+  }
+  return updated;
+}
+
 export const feedRouter = router({
   /** Today's items by default, or items for a specific YYYY-MM-DD. */
   getByDate: publicProcedure
@@ -177,42 +228,49 @@ export const feedRouter = router({
     .mutation(async ({ input }) => {
       const item = await db.getFeedItemById(input.id);
       if (!item) throw new Error(`Feed item ${input.id} not found`);
-
-      const baseInput = {
-        title: item.title,
-        summary: item.summary,
-        category: item.category,
-      };
-      // Generators run in parallel — they're independent prompts and the
-      // serial backfill jobs are a measurable share of the daily LLM bill.
-      const [whyItMatters, sayThis, partnerTag] = await Promise.all([
-        item.whyItMatters?.trim() ? Promise.resolve(null) : generateWhyItMatters(baseInput),
-        item.sayThis?.trim() ? Promise.resolve(null) : generateSayThis(baseInput),
-        item.partnerTag?.trim()
-          ? Promise.resolve(null)
-          : generatePartnerTag({
-              title: item.title,
-              summary: item.summary,
-              existingTag: item.partnerTag,
-            }),
-      ]);
-
-      const updated: string[] = [];
-      if (whyItMatters) {
-        await db.updateFeedItemWhyItMatters(item.id, whyItMatters);
-        updated.push("whyItMatters");
-      }
-      if (sayThis) {
-        await db.updateFeedItemSayThis(item.id, sayThis);
-        updated.push("sayThis");
-      }
-      if (partnerTag) {
-        await db.updateFeedItemPartnerTag(item.id, partnerTag);
-        updated.push("partnerTag");
-      }
-
+      const updated = await fillEnrichmentGaps(item);
       if (updated.length > 0) invalidate("feed:");
       return { itemId: item.id, updated };
+    }),
+
+  /**
+   * Admin: same gap-fill as enrichItem, but applied to the top-priority
+   * candidates on an enriched lane in one go. Driven by the "Enrich top N"
+   * action on the lead-unworthy warning — when a single re-enrichment of
+   * the priority-top story isn't enough (LLM returned SKIP because that
+   * particular story has no genuine partner angle), this opens the bench
+   * so the worthiness gate has multiple candidates to choose a lead from.
+   *
+   * Items are processed sequentially to stay polite to the LLM provider
+   * (a serial 5×3 fan-out is already 15 calls); within each item the
+   * three generators still run in parallel.
+   */
+  enrichTopCandidates: adminProcedure
+    .input(
+      z.object({
+        date: feedDateSchema.optional(),
+        channel: z.enum(["AU", "PROPERTY"]).default("AU"),
+        limit: z.number().int().min(1).max(10).default(5),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const date = input.date ?? sydneyTodayIso();
+      const all = await db.listFeedItems(date);
+      const candidates = all
+        .filter((it) => (it.channel ?? "AU").toUpperCase() === input.channel)
+        .sort((a, b) => (b.priority ?? 50) - (a.priority ?? 50))
+        .slice(0, input.limit);
+
+      let totalUpdates = 0;
+      const perItem: Array<{ itemId: number; updated: string[] }> = [];
+      for (const item of candidates) {
+        const updated = await fillEnrichmentGaps(item);
+        totalUpdates += updated.length;
+        perItem.push({ itemId: item.id, updated });
+      }
+
+      if (totalUpdates > 0) invalidate("feed:");
+      return { scanned: candidates.length, updates: totalUpdates, perItem };
     }),
 
   /**
