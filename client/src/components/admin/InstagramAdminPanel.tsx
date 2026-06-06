@@ -6,6 +6,64 @@ function fmt(n: number | null | undefined) {
   return n.toLocaleString();
 }
 
+/**
+ * Live content-publishing quota read straight from the Graph API: how many of
+ * the documented ~50-posts-per-24h allowance the account has spent. NB this is
+ * the quota limit, NOT the opaque "Action is blocked" integrity throttle that
+ * stalls Stories — but it's the one number Instagram exposes, so it's a useful
+ * sanity check that a run isn't anywhere near a real cap.
+ */
+function PublishingQuota() {
+  const { data, isLoading } = trpc.instagram.publishingStatus.useQuery(undefined, {
+    refetchInterval: 60_000,
+  });
+  if (isLoading) return <Skeleton className="h-14 w-full rounded" />;
+  if (!data) return null;
+
+  const window = data.windowHours ?? 24;
+  let detail: string;
+  if (!data.configured) {
+    detail = "Instagram not configured";
+  } else if (data.error) {
+    detail = `Couldn't read quota — ${data.error}`;
+  } else if (data.usage == null || data.quota == null) {
+    detail = "Quota unavailable from the API right now";
+  } else {
+    const remaining = Math.max(data.quota - data.usage, 0);
+    detail = `${data.usage} of ${data.quota} used · ${remaining} left in the last ${window}h`;
+  }
+
+  const pct =
+    data.usage != null && data.quota
+      ? Math.min(Math.round((data.usage / data.quota) * 100), 100)
+      : null;
+
+  return (
+    <div className="rounded border border-[var(--color-border)] p-4 space-y-2">
+      <div className="flex items-baseline justify-between gap-3">
+        <p
+          className="overline-amber"
+          style={{ letterSpacing: "0.18em", fontSize: "10px" }}
+        >
+          Publishing quota
+        </p>
+        <p className="text-xs font-mono tabular-nums text-[var(--color-fg-muted)]">
+          {data.usage != null && data.quota != null ? `${data.usage} / ${data.quota}` : "—"}
+        </p>
+      </div>
+      {pct != null && (
+        <div className="h-1.5 w-full rounded-full bg-white/[0.06] overflow-hidden">
+          <div
+            className="h-full rounded-full bg-amber-400/70"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      )}
+      <p className="text-xs text-[var(--color-fg-muted)]">{detail}</p>
+    </div>
+  );
+}
+
 export function InstagramAdminPanel() {
   const { data, isLoading } = trpc.instagram.listAll.useQuery();
   const posts = data ?? [];
@@ -21,6 +79,8 @@ export function InstagramAdminPanel() {
           Read-only log of every feed post with engagement metrics fetched from the Instagram Insights API.
         </p>
       </div>
+
+      <PublishingQuota />
 
       {isLoading ? (
         <Skeleton className="h-40 w-full rounded" />
