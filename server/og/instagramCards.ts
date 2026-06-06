@@ -181,6 +181,36 @@ function clamp(text: string, max: number): string {
 }
 
 /**
+ * Clamp a block of prose so it never reads as chopped mid-sentence — the way a
+ * card subtext "cuts off". Partner why-it-matters lines are short and pass
+ * through untouched; the longer publisher summaries used as coverage subtext
+ * are the ones that hit the cap. When we must trim, prefer ending on the last
+ * complete sentence that fits, so the card reads as a finished thought. Only if
+ * no sentence boundary lands in a sensible window do we fall back to a word-cut
+ * with a trailing "…" to signal there's more, rather than a silent hard chop.
+ */
+function clampSentence(text: string, max: number): string {
+  const trimmed = text.trim();
+  if (trimmed.length <= max) return trimmed;
+  const window = trimmed.slice(0, max);
+  // Last sentence terminator (. ! ?) followed by a space or end-of-window.
+  const sentenceEnd = Math.max(
+    window.lastIndexOf(". "),
+    window.lastIndexOf("! "),
+    window.lastIndexOf("? ")
+  );
+  if (sentenceEnd > max * 0.5) {
+    return window.slice(0, sentenceEnd + 1).trimEnd();
+  }
+  // No clean sentence break — cut on a word boundary and mark the elision so it
+  // reads as deliberate continuation, not an accidental crop.
+  const lastSpace = window.lastIndexOf(" ");
+  const base = (lastSpace > max * 0.6 ? window.slice(0, lastSpace) : window).trimEnd();
+  // Don't double up punctuation if we happened to land right after one.
+  return /[.!?,;:]$/.test(base) ? base : `${base}…`;
+}
+
+/**
  * Pick a font size so a full block of copy fits the card without truncation:
  * longer text steps down through the scale rather than being cut mid-sentence.
  * `tiers` are [maxChars, fontSize] pairs checked in order; the first whose
@@ -252,18 +282,20 @@ export async function renderDailyStoryCard(
   const slideNum = String(slideIndex + 1).padStart(2, "0");
   const totalNum = String(slideTotal).padStart(2, "0");
   const headline = clamp(story.title, 90);
-  // Show the full sentence — never cut "why it matters" mid-word. Upstream
-  // generation caps this at 320 chars; the clamp here is only a last-resort
-  // guard against pathological lengths. Font scales down so it always fits.
-  const why = story.whyItMatters ? clamp(story.whyItMatters, 320) : null;
+  // The subtext: a short partner "why it matters" passes through whole, while a
+  // longer publisher summary (coverage "In Brief") is trimmed to its last
+  // complete sentence so the card never reads as chopped mid-thought. Font
+  // steps down with length so even a full block fits the card.
+  const why = story.whyItMatters ? clampSentence(story.whyItMatters, 300) : null;
   const whyFontSize = why
     ? fitFontSize(
         why.length,
         [
           [150, "30px"],
           [220, "26px"],
+          [280, "23px"],
         ],
-        "23px"
+        "21px"
       )
     : "30px";
   const category = (story.category || "NEWS").toUpperCase();
@@ -825,9 +857,11 @@ export async function renderDailyStoryVertical(
   const logo = await loadLogo(variant);
   const c = colorScheme(variant);
   const headline = clamp(story.title, 100);
-  // Show the full sentence — never cut "why it matters" mid-word. The 320-char
-  // clamp is only a last-resort guard; font scales down so it always fits.
-  const why = story.whyItMatters ? clamp(story.whyItMatters, 320) : null;
+  // Same subtext treatment as the carousel card: short partner lines pass
+  // through, longer coverage summaries trim to their last complete sentence so
+  // the Story frame never shows a chopped-off subline. The taller 9:16 canvas
+  // gives more room, so the steps are a touch larger.
+  const why = story.whyItMatters ? clampSentence(story.whyItMatters, 320) : null;
   const whyFontSize = why
     ? fitFontSize(
         why.length,

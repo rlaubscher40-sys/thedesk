@@ -133,6 +133,27 @@ describe("coverage carousel — branding + alignment guardrails", () => {
     );
   });
 
+  it("renders a long publisher summary as 'In Brief' subtext without chopping off", async () => {
+    // Coverage cards put the publisher summary in the subtext slot — denser and
+    // longer than a partner why-it-matters. It must trim to a finished sentence
+    // and still render a valid card rather than cutting off mid-thought.
+    const longSummary = fakeStory({
+      title: "Global chipmakers race to secure rare-earth supply as export curbs bite",
+      whyItMatters:
+        "Beijing's new licensing regime on gallium and germanium has rattled the " +
+        "semiconductor supply chain, forcing manufacturers to stockpile and hunt " +
+        "for alternative sources across Africa and Australia. Analysts warn the " +
+        "scramble could push component prices higher into next year, with knock-on " +
+        "effects for everything from electric vehicles to defence electronics.",
+    });
+    expectJpeg(
+      await renderDailyStoryCard(longSummary, 1, 3, "navy", { subtextLabel: "In Brief" })
+    );
+    expectJpeg(
+      await renderDailyStoryCard(longSummary, 1, 3, "light", { subtextLabel: "In Brief" })
+    );
+  });
+
   it("renders a story vertical with the coverage header + subtext label", async () => {
     expectJpeg(
       await renderDailyStoryVertical(stories[0]!, "navy", {
