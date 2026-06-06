@@ -2,7 +2,11 @@ import { z } from "zod";
 import * as db from "../db";
 import { cached, cacheKey, invalidate } from "../core/cache";
 import { adminProcedure, publicProcedure, router } from "../core/trpc";
-import { generateSayThis, generateWhyItMatters } from "../prompts";
+import {
+  generatePartnerTag,
+  generateSayThis,
+  generateWhyItMatters,
+} from "../prompts";
 
 /**
  * Public feed reads are cached for a short window: every anonymous
@@ -155,6 +159,60 @@ export const feedRouter = router({
       }
       if (updated > 0) invalidate("feed:");
       return { scanned: items.length, updated, skipped };
+    }),
+
+  /**
+   * Admin: re-run the full enrichment pass (whyItMatters, sayThis,
+   * partnerTag) on a single feed item and persist whatever the LLM
+   * produced. Driven by the "lead unworthy" admin warning on the Today
+   * page — when the priority-top story didn't earn its lead slot because
+   * one of those fields is missing, this fills the gaps in one click so
+   * the lead either qualifies or surfaces as genuinely angle-less (in
+   * which case Ruben de-prioritises or deletes it). Only fills MISSING
+   * fields — existing enrichment is left alone, since this is meant to
+   * close gaps, not freshen content.
+   */
+  enrichItem: adminProcedure
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ input }) => {
+      const item = await db.getFeedItemById(input.id);
+      if (!item) throw new Error(`Feed item ${input.id} not found`);
+
+      const baseInput = {
+        title: item.title,
+        summary: item.summary,
+        category: item.category,
+      };
+      // Generators run in parallel — they're independent prompts and the
+      // serial backfill jobs are a measurable share of the daily LLM bill.
+      const [whyItMatters, sayThis, partnerTag] = await Promise.all([
+        item.whyItMatters?.trim() ? Promise.resolve(null) : generateWhyItMatters(baseInput),
+        item.sayThis?.trim() ? Promise.resolve(null) : generateSayThis(baseInput),
+        item.partnerTag?.trim()
+          ? Promise.resolve(null)
+          : generatePartnerTag({
+              title: item.title,
+              summary: item.summary,
+              existingTag: item.partnerTag,
+            }),
+      ]);
+
+      const updated: string[] = [];
+      if (whyItMatters) {
+        await db.updateFeedItemWhyItMatters(item.id, whyItMatters);
+        updated.push("whyItMatters");
+      }
+      if (sayThis) {
+        await db.updateFeedItemSayThis(item.id, sayThis);
+        updated.push("sayThis");
+      }
+      if (partnerTag) {
+        await db.updateFeedItemPartnerTag(item.id, partnerTag);
+        updated.push("partnerTag");
+      }
+
+      if (updated.length > 0) invalidate("feed:");
+      return { itemId: item.id, updated };
     }),
 
   /**

@@ -35,6 +35,7 @@ import { FeedLeadCard } from "@/components/feed/FeedLeadCard";
 import { CoverageLeadCard } from "@/components/feed/CoverageLeadCard";
 import { FeedItemCard } from "@/components/feed/FeedItemCard";
 import { CoverageFeedCard } from "@/components/feed/CoverageFeedCard";
+import { LeadEnrichmentWarning } from "@/components/feed/LeadEnrichmentWarning";
 import { FeedSignalStrip } from "@/components/feed/FeedSignalStrip";
 import { TodayInBrief } from "@/components/feed/TodayInBrief";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -214,6 +215,12 @@ export default function DailyFeed() {
     ? pinned ?? feedItems.find(isLeadWorthy) ?? feedItems[0]
     : feedItems[0];
   const liveRest = feedItems.filter((it) => it.id !== liveLead?.id);
+  // True when the lead is the priority-top fallback because no story on this
+  // lane cleared the worthiness gate AND no admin pin is in effect — i.e.
+  // the lead exists (the floor is "always a lead") but it didn't earn the
+  // hero treatment. Drives the admin enrichment-warning strip.
+  const leadIsFallback =
+    enriched && !pinned && !!liveLead && !isLeadWorthy(liveLead);
   // A story earns the full grid treatment if it has EITHER a sayThis or a
   // partnerTag — FeedItemCard renders whichever angle(s) are present. Only
   // genuinely bare items (no angle at all) drop to the signals strip, so a
@@ -407,6 +414,7 @@ export default function DailyFeed() {
             <SectionErrorBoundary section="Lead">
               <section>
                 <SectionDivider label="Today's lead" />
+                {leadIsFallback && <LeadEnrichmentWarning item={liveLead} />}
                 {enriched ? (
                   <FeedLeadCard item={liveLead} />
                 ) : (
