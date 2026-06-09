@@ -209,12 +209,27 @@ async function ensureSlideContent(
  * it as a base64 data URI satori can embed. Best-effort: any miss (no asset
  * yet, DB down) returns null so the renderers fall back to the bundled hero
  * rather than failing the post.
+ *
+ * satori's image decoder only understands PNG and JPEG. Our hero generator
+ * (server/core/image.ts) prefers WebP for size, so a WebP hero handed to
+ * satori as a backgroundImage throws "u is not iterable" deep in the layout
+ * pass — which is exactly what was silently killing the weekly Instagram
+ * post every Sunday (the daily cards don't use this hero, so they were
+ * unaffected). Transcode anything that isn't already PNG/JPEG to JPEG here so
+ * the renderers always receive a format satori can decode.
  */
 export async function loadEditionHeroDataUri(editionId: number): Promise<string | null> {
   try {
     const asset = await getLatestEditionAsset(editionId, "hero");
     if (!asset?.bytes?.length) return null;
-    return `data:${asset.contentType};base64,${asset.bytes.toString("base64")}`;
+    const satoriSafe = asset.contentType === "image/png" || asset.contentType === "image/jpeg";
+    if (satoriSafe) {
+      return `data:${asset.contentType};base64,${asset.bytes.toString("base64")}`;
+    }
+    // WebP / AVIF / SVG / anything else → JPEG, the format satori can embed.
+    const sharp = (await import("sharp")).default;
+    const jpeg = await sharp(asset.bytes).jpeg({ quality: 86 }).toBuffer();
+    return `data:image/jpeg;base64,${jpeg.toString("base64")}`;
   } catch (err) {
     console.warn(
       `[instagram] couldn't load edition ${editionId} hero, using fallback:`,
