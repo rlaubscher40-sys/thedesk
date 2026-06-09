@@ -33,6 +33,7 @@ import {
   createCarouselContainer,
   createImageContainer,
   createStoryContainer,
+  findRecentMedia,
   isRateLimitError,
   publishContainer,
   waitForContainerReady,
@@ -42,6 +43,64 @@ import { removeTempImage, storeTempImage } from "./tempStore";
 /** Single source of truth for dash sanitization in Instagram content. */
 export function sanitizeDashes(text: string): string {
   return text.replace(/[–—]/g, ", ");
+}
+
+/**
+ * Instagram integrity cooldown — applies to 24h Stories only.
+ *
+ * Both carousels (morning briefing + midday "Wider Lens") publish fine and stay
+ * on. Stories are the part that (a) doesn't reliably land and (b) adds extra
+ * publish actions on top of the carousels, which is what pushes the account's
+ * "Application request limit reached" response on the carousel publish. So while
+ * the account is flagged we skip Stories to lighten the daily load, and let the
+ * flag age out. Carousels are unaffected (and guarded separately by
+ * publish-verification, so a rate-limit response that still published is
+ * recorded as the success it is). Self-resuming on the date — set to a past date
+ * (or null) to bring Stories back immediately.
+ */
+export const INSTAGRAM_RESUME_DATE: string | null = "2026-06-16";
+
+/** True while 24h Stories are paused for the integrity cooldown. */
+export function instagramCooldownActive(): boolean {
+  if (!INSTAGRAM_RESUME_DATE) return false;
+  // Calendar-date compare (UTC YYYY-MM-DD) — a multi-day pause doesn't need
+  // timezone precision, just "are we past the resume day yet".
+  return new Date().toISOString().slice(0, 10) < INSTAGRAM_RESUME_DATE;
+}
+
+/**
+ * Publish a ready carousel, tolerant of Instagram's "publishes the post but
+ * still returns a rate-limit 403" behaviour. On a rate-limit/integrity error we
+ * don't immediately fail: the post has often gone live anyway (confirmed on the
+ * grid), so we wait a beat and check the account's newest media. If a post
+ * landed in the last couple of minutes it's ours — return its id as the success
+ * it actually is, instead of logging a false failure and 502-ing the run. If
+ * nothing landed, it was a genuine block and we rethrow. publishContainer itself
+ * is never retried (not idempotent); we only *read* to confirm the outcome.
+ */
+async function publishCarouselConfirmed(opts: {
+  igUserId: string;
+  accessToken: string;
+  creationId: string;
+}): Promise<string> {
+  try {
+    return await publishContainer(opts);
+  } catch (err) {
+    if (!isRateLimitError(err)) throw err;
+    await new Promise((r) => setTimeout(r, 6000));
+    const landed = await findRecentMedia({
+      igUserId: opts.igUserId,
+      accessToken: opts.accessToken,
+      withinMs: 180000,
+    }).catch(() => null);
+    if (landed) {
+      console.warn(
+        `[instagram] publish returned a rate-limit response but the post landed (${landed}); recording as success.`
+      );
+      return landed;
+    }
+    throw err;
+  }
 }
 
 function sanitizeStory(story: DailyFeedItem): DailyFeedItem {
@@ -294,23 +353,6 @@ export function pickDailyTopStories(
 const STORY_FRAME_COUNT = 1;
 
 /**
- * Temporary kill-switch for 24h Story posting. While the account is cooling off
- * from the "Action is blocked" integrity flag, we skip Stories entirely (the
- * carousel still posts) and let the block age out. Self-resuming: Stories
- * automatically come back on this date — no env change or redeploy needed. Set
- * to a past date (or null) to re-enable immediately.
- */
-const STORY_RESUME_DATE: string | null = "2026-06-08";
-
-/** True while Story posting is paused for the cooldown (before the resume date). */
-function storiesPaused(): boolean {
-  if (!STORY_RESUME_DATE) return false;
-  // Compare calendar dates (UTC YYYY-MM-DD) — a 2-day pause doesn't need
-  // timezone precision, just "are we past the resume day yet".
-  return new Date().toISOString().slice(0, 10) < STORY_RESUME_DATE;
-}
-
-/**
  * Post the lead story (see STORY_FRAME_COUNT) to the 24h Story as a 9:16 frame.
  * Runs in the BACKGROUND after the carousel is live: the Stories API can stall,
  * and doing it inline blocked the response long enough that the whole post
@@ -326,8 +368,8 @@ async function postStoryFrames(opts: {
   igUserId: string;
   accessToken: string;
 }): Promise<void> {
-  if (storiesPaused()) {
-    console.log(`[instagram] Story posting paused until ${STORY_RESUME_DATE} (cooldown); skipping.`);
+  if (instagramCooldownActive()) {
+    console.log(`[instagram] Stories skipped — integrity cooldown until ${INSTAGRAM_RESUME_DATE}.`);
     return;
   }
   const { stories, variant, verticalOpts, siteUrl, igUserId, accessToken } = opts;
@@ -517,7 +559,7 @@ export async function postDailyCarousel(
     // ("media not ready"), so wait for readiness first — a multi-image carousel
     // can take longer to process than a single image.
     await waitForContainerReady({ containerId: carouselId, accessToken, timeoutMs: 90000 });
-    const postId = await publishContainer({ igUserId, accessToken, creationId: carouselId });
+    const postId = await publishCarouselConfirmed({ igUserId, accessToken, creationId: carouselId });
 
     console.log(`[instagram] daily carousel posted: ${postId}`);
 
@@ -607,14 +649,14 @@ export async function postWeeklyEdition(
     // Wait until the carousel parent is FINISHED before publishing; otherwise
     // Instagram returns code 9007 ("media not ready"). See the daily path.
     await waitForContainerReady({ containerId: carouselId, accessToken, timeoutMs: 90000 });
-    const postId = await publishContainer({ igUserId, accessToken, creationId: carouselId });
+    const postId = await publishCarouselConfirmed({ igUserId, accessToken, creationId: carouselId });
 
     console.log(`[instagram] weekly edition ${edition.editionNumber} posted: ${postId}`);
 
     // Share the edition to the 24h Story. Best-effort: a Story failure must
     // never fail the feed post that has already gone live. Skipped entirely
     // while Stories are paused for the integrity cooldown.
-    if (!storiesPaused()) try {
+    if (!instagramCooldownActive()) try {
       const storyBuf = await renderWeeklyStoryVertical(sanitizedEdition, heroDataUri);
       const storyUuid = storeTempImage(storyBuf);
       uuids.push(storyUuid);
