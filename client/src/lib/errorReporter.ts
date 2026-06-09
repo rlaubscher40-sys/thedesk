@@ -19,6 +19,28 @@
 const DEDUPE_WINDOW_MS = 5_000;
 const recentlySent = new Map<string, number>();
 
+/**
+ * Errors thrown by code that isn't ours — in-app browser / WebView native
+ * bridges (iOS `window.webkit.messageHandlers`, injected `sendDataToNative` /
+ * `sendPageHideMessage`), browser extensions, and well-known benign browser
+ * quirks. They fire in the visitor's wrapper/extension, not in The Desk, so we
+ * can't fix them and they only add noise to the admin error log. Matched by
+ * substring against the message and stack; kept deliberately narrow so genuine
+ * app errors are never swallowed.
+ */
+const IGNORED_ERROR_PATTERNS = [
+  "webkit.messageHandlers",
+  "sendDataToNative",
+  "sendPageHideMessage",
+  "Extension context invalidated",
+  "ResizeObserver loop", // benign layout-timing warning, not a real failure
+] as const;
+
+export function isIgnorableError(message: string, stack: string | null): boolean {
+  const haystack = `${message}\n${stack ?? ""}`;
+  return IGNORED_ERROR_PATTERNS.some((p) => haystack.includes(p));
+}
+
 function dedupeKey(message: string, stack: string | null): string {
   const firstStackLine = stack?.split("\n").slice(0, 2).join(" ") ?? "";
   return `${message}::${firstStackLine}`;
@@ -65,6 +87,7 @@ export function initErrorReporter(): void {
       event.message ||
       (event.error instanceof Error ? event.error.message : "Unknown error");
     const stack = event.error instanceof Error ? event.error.stack ?? null : null;
+    if (isIgnorableError(message, stack)) return;
     const key = dedupeKey(message, stack);
     if (shouldSkip(key)) return;
     void report({ message, stack, url: window.location.href });
@@ -79,6 +102,7 @@ export function initErrorReporter(): void {
           ? reason
           : "Unhandled promise rejection";
     const stack = reason instanceof Error ? reason.stack ?? null : null;
+    if (isIgnorableError(message, stack)) return;
     const key = dedupeKey(message, stack);
     if (shouldSkip(key)) return;
     void report({ message, stack, url: window.location.href });
@@ -91,6 +115,7 @@ export function reportError(err: unknown, context?: { url?: string }): void {
   const e = err instanceof Error ? err : new Error(String(err));
   const message = e.message;
   const stack = e.stack ?? null;
+  if (isIgnorableError(message, stack)) return;
   const key = dedupeKey(message, stack);
   if (shouldSkip(key)) return;
   void report({
