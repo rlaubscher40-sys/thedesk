@@ -14,6 +14,9 @@
  *                        omit to skip image generation entirely
  *   DB_POOL_SIZE      , max pooled MySQL connections (default 10). Keep
  *                        below the TiDB cluster's connection ceiling.
+ *   ADMIN_EMAIL       , recipient for scheduler/posting failure alerts
+ *                        (defaults to the owner). Needs RESEND_API_KEY set
+ *                        for the alert to actually send.
  */
 
 /** Parse a positive-integer env var, falling back when unset or invalid. */
@@ -55,6 +58,13 @@ export const env = Object.freeze({
   instagramAccessToken: process.env.INSTAGRAM_ACCESS_TOKEN ?? "",
   instagramBusinessAccountId: process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID ?? "",
   dbPoolSize: intEnv(process.env.DB_POOL_SIZE, 10),
+  /**
+   * Where scheduler / posting failure alerts are emailed. Defaults to the
+   * owner so alerting works the moment RESEND_API_KEY is set; override with
+   * ADMIN_EMAIL to redirect (e.g. a shared ops inbox). Empty disables the
+   * alert email (failures still log + record to server_errors).
+   */
+  adminAlertEmail: process.env.ADMIN_EMAIL ?? "rlaubscher40@gmail.com",
   /**
    * Opt-in flag for the in-process scheduler (server/scheduler). Default OFF so
    * merging the feature changes nothing until it's deliberately switched on

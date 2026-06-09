@@ -526,6 +526,58 @@ export async function sendTalkingPointNudgeEmail({
   });
 }
 
+/**
+ * Operational alert to the admin/owner — e.g. a scheduled job (the weekly
+ * Instagram post) failed terminally. Plain, high-signal, no marketing chrome:
+ * the job key, when, and the error detail, so a failure is something you're
+ * told about rather than something you discover by eyeballing the grid weeks
+ * later. Best-effort like every other send: no RESEND_API_KEY → dry-run log.
+ */
+export async function sendAdminAlertEmail({
+  to,
+  subject,
+  jobKey,
+  detail,
+  when,
+}: {
+  to: string;
+  subject: string;
+  jobKey: string;
+  detail: string;
+  when: string;
+}): Promise<SendResult> {
+  const safeDetail = detail.replace(/[<>]/g, "").slice(0, 1000);
+  const inner = `
+    ${mastheadRow()}
+    ${ruleFullRow()}
+    <tr>
+      <td class="em-bg" bgcolor="${L.bg}" style="padding:0 0 20px;background-color:${L.bg};">
+        <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${L.amber};text-transform:uppercase;margin-bottom:12px;">Scheduler alert</div>
+        <h1 class="em-h" style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:26px;line-height:1.1;color:${L.heading};margin:0 0 14px;letter-spacing:-0.02em;">Job <span style="color:${L.amber};">${jobKey}</span> failed.</h1>
+        <p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.6;color:${L.muted};margin:0 0 16px;">It exhausted its retries on ${when} (Sydney) and did not complete. Nothing was posted/produced for this run — check the admin error log and re-run by hand once fixed.</p>
+        <div style="background:rgba(212,168,83,0.07);border:1px solid ${L.border};border-radius:4px;padding:14px 16px;">
+          <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:9px;letter-spacing:0.2em;color:${L.amber};text-transform:uppercase;margin-bottom:8px;">Error</div>
+          <p class="em-t" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:13px;line-height:1.5;color:${L.text};margin:0;word-break:break-word;">${safeDetail}</p>
+        </div>
+      </td>
+    </tr>
+    ${footerRow()}
+  `;
+  const html = wrapLayout(subject, inner);
+  const text = [
+    "The Desk · Scheduler alert",
+    "",
+    `Job "${jobKey}" failed terminally on ${when} (Sydney).`,
+    "Nothing was posted/produced for this run.",
+    "",
+    "Error:",
+    safeDetail,
+    "",
+    "Check the admin error log and re-run by hand once fixed.",
+  ].join("\n");
+  return send({ to, subject, html, text });
+}
+
 // ─── HTML templates ──────────────────────────────────────────────────────────
 
 function confirmEmailHtml({ confirmUrl }: { confirmUrl: string }): string {

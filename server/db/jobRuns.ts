@@ -19,23 +19,28 @@ function affectedRows(result: unknown): number {
 }
 
 /**
- * Try to claim today's run of `jobKey`. Returns true if THIS caller should
- * execute the job. A fresh day inserts a 'running' row; a prior 'failed' row
- * is re-claimed up to `maxAttempts` so transient failures self-heal; a
- * 'running' or 'success' row means someone else owns/finished it → false.
+ * Try to claim today's run of `jobKey`. Returns the attempt number this caller
+ * is executing (1 for the first run of the day, 2.. for a retry) — or 0 when
+ * the job is NOT claimable (already running/succeeded, retries exhausted, or
+ * DB unavailable). The attempt number lets the scheduler tell a transient
+ * failure (will retry) from a terminal one (won't), so it can alert only once.
+ *
+ * A fresh day inserts a 'running' row; a prior 'failed' row is re-claimed up
+ * to `maxAttempts` so transient failures self-heal; a 'running' or 'success'
+ * row means someone else owns/finished it → 0.
  */
 export async function claimJobRun(
   jobKey: string,
   runDate: string,
   maxAttempts = 3
-): Promise<boolean> {
-  if (isDemoMode()) return false;
+): Promise<number> {
+  if (isDemoMode()) return 0;
   const db = getDb();
-  if (!db) return false;
+  if (!db) return 0;
 
   try {
     await db.insert(jobRuns).values({ jobKey, runDate, status: "running", attempts: 1 });
-    return true; // first claim of the day
+    return 1; // first claim of the day
   } catch {
     // Row exists. Re-claim only if the last attempt failed and we're under the
     // retry cap. The WHERE status='failed' makes this atomic: if two ticks race,
@@ -57,9 +62,16 @@ export async function claimJobRun(
             lt(jobRuns.attempts, maxAttempts)
           )
         );
-      return affectedRows(result) > 0;
+      if (affectedRows(result) === 0) return 0; // lost the race / out of retries
+      // We won the re-claim; read back the now-incremented attempt number.
+      const rows = await db
+        .select({ attempts: jobRuns.attempts })
+        .from(jobRuns)
+        .where(and(eq(jobRuns.jobKey, jobKey), eq(jobRuns.runDate, runDate)))
+        .limit(1);
+      return rows[0]?.attempts ?? 2;
     } catch {
-      return false;
+      return 0;
     }
   }
 }
