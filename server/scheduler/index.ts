@@ -19,6 +19,7 @@
  */
 import { env } from "../core/env";
 import { isDemoMode } from "../demo/store";
+import { sendAdminAlertEmail } from "../core/mailer";
 import { recordServerError } from "../db/health";
 import { claimJobRun, markJobRun } from "../db/jobRuns";
 import { runDailyFeedIngest } from "../../scripts/ingest/dailyFeed";
@@ -128,6 +129,34 @@ const JOBS: Job[] = [
   { key: "instagram-weekly", at: "09:19", dow: [0], maxAttempts: 1, run: (b, k) => postLocal(b, k, "/api/ingest/instagram-weekly") },
 ];
 
+/**
+ * Email the admin when a job has used up its retries for the day. Best-effort
+ * and self-contained: a mailer hiccup must never crash the tick or mask the
+ * original failure (which is already logged + recorded above). Fires at most
+ * once per job per day because a terminal failure leaves attempts == maxAttempts,
+ * so claimJobRun won't re-claim it.
+ */
+async function alertTerminalFailure(
+  jobKey: string,
+  clock: SchedulerClock,
+  detail: string
+): Promise<void> {
+  const to = env.adminAlertEmail;
+  if (!to) return;
+  try {
+    const when = `${clock.dateISO} ${String(Math.floor(clock.minutes / 60)).padStart(2, "0")}:${String(clock.minutes % 60).padStart(2, "0")}`;
+    await sendAdminAlertEmail({
+      to,
+      subject: `⚠ The Desk scheduler: "${jobKey}" failed`,
+      jobKey,
+      detail,
+      when,
+    });
+  } catch (err) {
+    console.warn(`[scheduler] alert email for ${jobKey} failed:`, (err as Error).message);
+  }
+}
+
 let ticking = false;
 
 async function tick(baseUrl: string, apiKey: string): Promise<void> {
@@ -137,9 +166,10 @@ async function tick(baseUrl: string, apiKey: string): Promise<void> {
     const clock = sydneyClock();
     for (const job of JOBS) {
       if (!isJobDue(job, clock)) continue;
-      const claimed = await claimJobRun(job.key, clock.dateISO, job.maxAttempts ?? 3);
-      if (!claimed) continue;
-      console.log(`[scheduler] running ${job.key} (${clock.dateISO})`);
+      const maxAttempts = job.maxAttempts ?? 3;
+      const attempt = await claimJobRun(job.key, clock.dateISO, maxAttempts);
+      if (!attempt) continue;
+      console.log(`[scheduler] running ${job.key} (${clock.dateISO}, attempt ${attempt}/${maxAttempts})`);
       try {
         await job.run(baseUrl, apiKey);
         await markJobRun(job.key, clock.dateISO, "success");
@@ -153,6 +183,13 @@ async function tick(baseUrl: string, apiKey: string): Promise<void> {
           message: `[scheduler] ${job.key} failed: ${msg}`.slice(0, 512),
           route: "scheduler",
         }).catch(() => {});
+        // Terminal failure: this was the last attempt the job gets today, so it
+        // won't self-heal on a later tick. Alert loudly (once) rather than
+        // letting it sink into the error log — the silent weekly-post failure
+        // is exactly what this guards against.
+        if (attempt >= maxAttempts) {
+          await alertTerminalFailure(job.key, clock, msg);
+        }
       }
     }
   } finally {
