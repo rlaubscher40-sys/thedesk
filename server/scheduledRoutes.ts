@@ -14,6 +14,7 @@ import { defaultFeedPriority } from "../shared/feedPriority";
 import { bestMatch, titleTokens } from "../shared/textSimilarity";
 import { parse as parseCookieHeader } from "cookie";
 import type { Express, Request, Response } from "express";
+import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import { invalidate } from "./core/cache";
 import { env } from "./core/env";
@@ -1162,7 +1163,18 @@ function registerNudgeRespondRoute(app: Express): void {
   const FG = "#F0EDE8";
   const FG_MUTED = "#9BA3B5";
 
-  app.get("/api/nudge/respond", async (req: Request, res: Response) => {
+  // Public (clicked from email, no session) and it writes to the queue
+  // table — keep a per-IP lid on it so the unauthenticated surface can't
+  // be used to spam HMAC guesses or DB writes.
+  const nudgeLimiter = rateLimit({
+    windowMs: 60_000,
+    limit: 20,
+    standardHeaders: false,
+    legacyHeaders: false,
+    message: "Too many requests.",
+  });
+
+  app.get("/api/nudge/respond", nudgeLimiter, async (req: Request, res: Response) => {
     const id = parseInt(typeof req.query.id === "string" ? req.query.id : "", 10);
     const sig = typeof req.query.sig === "string" ? req.query.sig : "";
     const result = typeof req.query.result === "string" ? req.query.result : "";
@@ -1177,7 +1189,12 @@ function registerNudgeRespondRoute(app: Express): void {
       .update(`nudge:${id}`)
       .digest("base64url");
 
-    if (sig !== expected) {
+    // Constant-time compare so response latency can't be used to
+    // recover the signature byte-by-byte (same treatment as the
+    // unsubscribe link and the scheduled-key check).
+    const sigOk =
+      sig.length === expected.length && timingSafeEqual(Buffer.from(sig), Buffer.from(expected));
+    if (!sigOk) {
       res.status(403).send("Invalid or expired link.");
       return;
     }

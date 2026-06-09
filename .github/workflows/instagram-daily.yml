@@ -1,5 +1,8 @@
 name: Instagram daily post
 
+# Least privilege: pure curl job, no GITHUB_TOKEN access needed.
+permissions: {}
+
 on:
   # Timing is driven by the in-process scheduler (server/scheduler), reliable
   # where GitHub cron ran late / dropped runs — see docs/reliable-scheduling.md.
