@@ -87,8 +87,24 @@ function Routes() {
   // Fire a privacy-preserving page-view beacon on every route change.
   // Replaces the Plausible script; persists to the page_views table
   // and surfaces in the admin /analytics panel.
+  //
+  // Also keep a self-referencing <link rel="canonical"> in sync with the
+  // active route. The static index.html shell ships without one, so every
+  // URL variant (tracking params like ?fbclid / ?utm_*, trailing slashes)
+  // otherwise looks like a separate duplicate page to Google. We strip the
+  // query string and hash so the canonical is the bare path. Per-edition
+  // pages already get a canonical injected server-side (server/core/seo.ts)
+  // before the bundle loads; this keeps that element pointing at the live
+  // path during client-side navigation rather than adding a second one.
   useEffect(() => {
     trackPageView();
+    let link = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    if (!link) {
+      link = document.createElement("link");
+      link.rel = "canonical";
+      document.head.appendChild(link);
+    }
+    link.href = window.location.origin + window.location.pathname;
   }, [location]);
 
   const prefersReducedMotion =

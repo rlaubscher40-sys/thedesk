@@ -72,4 +72,4 @@ Disallow: /
 User-agent: YouBot
 Disallow: /
 
-Sitemap: /sitemap.xml
+Sitemap: https://thedesk.au/sitemap.xml
