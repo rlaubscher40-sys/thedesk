@@ -308,3 +308,28 @@ export async function publishContainer(opts: {
   );
   return data.id;
 }
+
+/**
+ * Return the account's newest published media id if it landed within `withinMs`,
+ * else null. Used to recover from Instagram's habit of returning a rate-limit
+ * 403 on `media_publish` even though it actually published the post: if a fresh
+ * post is sitting at the top of the feed, the publish really did succeed and we
+ * can record it instead of logging a false failure. Best-effort — any read miss
+ * returns null. The account only ever posts via this app, and our publishes are
+ * hours apart, so a post this recent is unambiguously the one we just made.
+ */
+export async function findRecentMedia(opts: {
+  igUserId: string;
+  accessToken: string;
+  withinMs: number;
+}): Promise<string | null> {
+  const data = await igGet<{ data?: Array<{ id: string; timestamp?: string }> }>(
+    `/${opts.igUserId}/media`,
+    { fields: "id,timestamp", limit: "1", access_token: opts.accessToken }
+  );
+  const newest = data.data?.[0];
+  if (!newest?.timestamp) return null;
+  const ts = Date.parse(newest.timestamp);
+  if (Number.isFinite(ts) && Date.now() - ts <= opts.withinMs) return newest.id;
+  return null;
+}
