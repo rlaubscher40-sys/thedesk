@@ -43,8 +43,24 @@ const IRRELEVANT_PATTERNS: RegExp[] = [
   /\bbbl\b/i,
   /\bipl\b/i,
   /\bnbl\b/i,
-  /\bwnba\b/i,
   /\bw[ -]?league\b/i,
+  // Major international leagues — the world/global feeds (BBC, Al Jazeera,
+  // Guardian World) bundle sport into their world sections, which leaks into
+  // the GLOBAL coverage lane. Match league/event NAMES only; generic words
+  // like "scores" aren't safe (finance uses them too).
+  /\bnba\b/i,
+  /\bnfl\b/i,
+  /\bnhl\b/i,
+  /\bmlb\b/i,
+  /\bpremier league\b/i,
+  /\bchampions league\b/i,
+  /\bla liga\b/i,
+  /\bserie a\b/i,
+  /\bbundesliga\b/i,
+  /\bgrand slam\b/i,
+  /\bwimbledon\b/i,
+  /\bgrand prix\b/i,
+  /\bformula\s?1\b/i,
 
   // Sport-only phrases
   /\bgrand final\b/i,
