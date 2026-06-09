@@ -1,5 +1,8 @@
 name: Uptime check
 
+# Least privilege: pure curl job, no GITHUB_TOKEN access needed.
+permissions: {}
+
 # Pings /api/healthz from GitHub's infrastructure every 5 minutes,
 # then posts the result back to /api/uptime/record so the admin
 # /health panel can render uptime history. Runs outside Railway so

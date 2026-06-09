@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { Express } from "express";
+import rateLimit from "express-rate-limit";
 import { env } from "./env";
 import * as db from "../db";
 
@@ -35,7 +36,17 @@ const PAGE = (msg: string, sub: boolean) => `<!doctype html>
 </html>`;
 
 export function registerUnsubscribeRoute(app: Express): void {
-  app.get("/api/unsubscribe", async (req, res) => {
+  // Public (clicked from email, no session). The HMAC check is already
+  // constant-time; the limiter keeps the endpoint from being used to
+  // enumerate signatures or hammer the subscribers table.
+  const limiter = rateLimit({
+    windowMs: 60_000,
+    limit: 20,
+    standardHeaders: false,
+    legacyHeaders: false,
+    message: "Too many requests.",
+  });
+  app.get("/api/unsubscribe", limiter, async (req, res) => {
     const { email, sig } = req.query;
     if (typeof email !== "string" || typeof sig !== "string") {
       res.status(400).send(PAGE("This unsubscribe link is missing required parameters.", false));

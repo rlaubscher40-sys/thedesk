@@ -17,6 +17,7 @@
  */
 import { timingSafeEqual } from "node:crypto";
 import type { Express, NextFunction, Request, Response } from "express";
+import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import * as db from "../db";
 
@@ -45,12 +46,13 @@ async function handleHealthz(_req: Request, res: Response): Promise<void> {
     dbOk = false;
   }
   res.set("Cache-Control", "no-store");
+  // Body stays deliberately anonymous: no Node version / PID — a public
+  // endpoint shouldn't hand out runtime fingerprints. The uptime cron
+  // only reads the HTTP status code anyway.
   res.status(dbOk ? 200 : 503).json({
     status: dbOk ? "ok" : "degraded",
     db: dbOk,
     uptime: Math.round(process.uptime()),
-    nodeVersion: process.version,
-    pid: process.pid,
     checkedInMs: Date.now() - startedAt,
   });
 }
@@ -126,10 +128,11 @@ export function recordExpressError(
 }
 
 async function handleClientError(req: Request, res: Response): Promise<void> {
-  // No auth gate — browsers POST whenever they throw. Rate-limited
-  // upstream by the same /api limiter that fronts tRPC. Schema is
-  // strict and the row is bounded, so abuse just fills the ring
-  // buffer (admin can clear from /admin).
+  // No auth gate — browsers POST whenever they throw. Rate-limited by
+  // its own per-IP bucket below (the tRPC limiter only fronts
+  // /api/trpc, not this route). Schema is strict and the row is
+  // bounded, so abuse just fills the ring buffer (admin can clear
+  // from /admin).
   const parsed = clientErrorSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Bad client-error payload" });
@@ -152,7 +155,17 @@ async function handleClientError(req: Request, res: Response): Promise<void> {
 }
 
 export function registerHealthRoutes(app: Express): void {
+  // /api/errors/client is a public unauthenticated write — without its
+  // own limiter anyone could flood server_errors (a real browser only
+  // posts when it actually throws, so 30/min/IP is generous).
+  const clientErrorLimiter = rateLimit({
+    windowMs: 60_000,
+    limit: 30,
+    standardHeaders: false,
+    legacyHeaders: false,
+    message: { error: "Too many events" },
+  });
   app.get("/api/healthz", handleHealthz);
   app.post("/api/uptime/record", handleRecordPing);
-  app.post("/api/errors/client", handleClientError);
+  app.post("/api/errors/client", clientErrorLimiter, handleClientError);
 }
