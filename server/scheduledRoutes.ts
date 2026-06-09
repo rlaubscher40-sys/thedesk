@@ -1269,6 +1269,53 @@ function registerInstagramRoutes(app: Express): void {
   app.post("/api/scheduled/instagram-weekly", weeklyHandler);
   app.post("/api/ingest/instagram-weekly", weeklyHandler);
 
+  // POST /api/ingest/instagram-preview — render the exact cards that WOULD
+  // post (from real DB data) and return them as base64, WITHOUT publishing to
+  // Instagram or recording anything. A morning sign-off / dry-run tool. Needs
+  // no Instagram credentials. Body: { type?: "daily"|"weekly", feedDate? }.
+  const previewHandler = async (req: Request, res: Response) => {
+    if (!(await authenticateScheduled(req))) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const parsed = z
+      .object({
+        type: z.enum(["daily", "weekly"]).default("daily"),
+        feedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+      })
+      .safeParse(req.body ?? {});
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid request" });
+      return;
+    }
+    const { type, feedDate } = parsed.data;
+    try {
+      const { previewDailyCarousel, previewWeeklyEdition } = await import("./instagram/post");
+      if (type === "weekly") {
+        const editions = await db.listEditions();
+        const latest = editions[0];
+        if (!latest) {
+          res.status(422).json({ error: "No editions available" });
+          return;
+        }
+        res.json(await previewWeeklyEdition(latest));
+        return;
+      }
+      const items = await db.listFeedItems(feedDate);
+      if (items.length === 0) {
+        res.status(422).json({ error: "No feed items for the requested date" });
+        return;
+      }
+      res.json(await previewDailyCarousel(items));
+    } catch (err) {
+      const e = err as Error;
+      console.error("[instagram] preview failed:", e.message);
+      res.status(500).json({ error: "Instagram preview failed", message: e.message });
+    }
+  };
+  app.post("/api/scheduled/instagram-preview", previewHandler);
+  app.post("/api/ingest/instagram-preview", previewHandler);
+
   // POST /api/ingest/instagram-insights  — backfills engagement metrics for
   // recently published posts. Runs daily, a day after posting, so the numbers
   // have had time to accumulate.

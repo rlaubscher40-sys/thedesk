@@ -54,12 +54,27 @@ function sanitizeStory(story: DailyFeedItem): DailyFeedItem {
   };
 }
 
+/** Short, grid-friendly labels for the metrics we recognise; longer DB
+ *  labels (e.g. "RBA cash rate") get crowded in the three-up strip. */
+const COVER_METRIC_LABELS: Record<string, string> = {
+  cash_rate: "Cash rate",
+  asx200: "ASX 200",
+  audusd: "AUD / USD",
+  audgbp: "AUD / GBP",
+  audeur: "AUD / EUR",
+  us10y: "US 10Y",
+};
+
 /**
  * Up to three headline metrics for the daily cover's briefing strip. Prefers
  * the cash rate, ASX 200 and AUD/USD (the three a property partner cares about
  * at a glance), then fills any gap by display order. Best-effort: returns
  * undefined if metrics are unavailable, in which case the cover simply omits
  * the strip rather than failing the post.
+ *
+ * NOTE the unit is stored separately from the value in daily_metrics (cash
+ * rate is value "3.85" + unit "%"), so we re-join them here — otherwise the
+ * cover would render a bare "3.85" with no percent sign.
  */
 async function selectCoverMetrics(): Promise<
   Array<{ label: string; value: string }> | undefined
@@ -71,7 +86,7 @@ async function selectCoverMetrics(): Promise<
     return undefined;
   }
   if (!rows.length) return undefined;
-  const preferred = ["cash_rate", "cashRate", "asx200", "audusd", "aud_usd"];
+  const preferred = ["cash_rate", "asx200", "audusd"];
   const chosen: typeof rows = [];
   for (const key of preferred) {
     const m = rows.find((r) => r.metricKey === key);
@@ -81,10 +96,14 @@ async function selectCoverMetrics(): Promise<
     if (chosen.length >= 3) break;
     if (!chosen.includes(m)) chosen.push(m);
   }
-  const picked = chosen.slice(0, 3).map((m) => ({
-    label: sanitizeDashes(m.label),
-    value: sanitizeDashes(m.value),
-  }));
+  const picked = chosen.slice(0, 3).map((m) => {
+    const unit = m.unit ?? "";
+    const value = unit && !m.value.includes(unit) ? `${m.value}${unit}` : m.value;
+    return {
+      label: sanitizeDashes(COVER_METRIC_LABELS[m.metricKey] ?? m.label),
+      value: sanitizeDashes(value),
+    };
+  });
   return picked.length ? picked : undefined;
 }
 
@@ -175,16 +194,12 @@ function buildWeeklyCaption(edition: Edition): string {
   ].join("\n");
 }
 
-export async function postDailyCarousel(
-  stories: DailyFeedItem[],
-  siteUrl: string
-): Promise<{ postId: string; headline: string }> {
-  const { instagramAccessToken: accessToken, instagramBusinessAccountId: igUserId } = env;
-  if (!accessToken || !igUserId) {
-    throw new Error("INSTAGRAM_ACCESS_TOKEN and INSTAGRAM_BUSINESS_ACCOUNT_ID must be set");
-  }
-
-  // Pick top-3 stories, favouring category variety over raw priority.
+/**
+ * Pick the top-3 stories for the daily carousel, favouring category variety
+ * over raw priority. Shared by the live post and the preview so both show the
+ * same selection.
+ */
+export function pickTopStories(stories: DailyFeedItem[]): DailyFeedItem[] {
   const eligible = [...stories]
     .filter((s) => s.title)
     .sort((a, b) => b.priority - a.priority);
@@ -199,12 +214,31 @@ export async function postDailyCarousel(
       usedCategories.add(cat);
     }
   }
-  // Fill any remaining slots with the next highest-priority stories not already chosen
+  // Fill any remaining slots with the next highest-priority stories not chosen.
   for (const s of eligible) {
     if (top.length >= 3) break;
     if (!top.includes(s)) top.push(s);
   }
+  return top;
+}
 
+/** Even count of prior daily posts -> navy cover, odd -> light. Counting by
+ *  post order keeps the profile-grid checkerboard intact across skipped days. */
+async function nextDailyVariant(): Promise<CardVariant> {
+  const prior = await countInstagramPosts("daily");
+  return prior % 2 === 0 ? "navy" : "light";
+}
+
+export async function postDailyCarousel(
+  stories: DailyFeedItem[],
+  siteUrl: string
+): Promise<{ postId: string; headline: string }> {
+  const { instagramAccessToken: accessToken, instagramBusinessAccountId: igUserId } = env;
+  if (!accessToken || !igUserId) {
+    throw new Error("INSTAGRAM_ACCESS_TOKEN and INSTAGRAM_BUSINESS_ACCOUNT_ID must be set");
+  }
+
+  const top = pickTopStories(stories);
   if (top.length === 0) throw new Error("No stories available for Instagram post");
 
   // Every slide must carry a why-it-matters (card subtext) and a say-this
@@ -227,11 +261,8 @@ export async function postDailyCarousel(
 
   const sanitized = punched.map(sanitizeStory);
 
-  // Cover theme alternates navy/light by post order, so the profile grid
-  // reads as a checkerboard. Counting prior posts (not the date) keeps the
-  // pattern intact across skipped days. Even count -> navy, odd -> light.
-  const priorDaily = await countInstagramPosts("daily");
-  const coverVariant: CardVariant = priorDaily % 2 === 0 ? "navy" : "light";
+  // Cover theme alternates navy/light by post order so the grid checkerboards.
+  const coverVariant = await nextDailyVariant();
   // Headline metrics for the cover's briefing strip (best-effort).
   const coverMetrics = await selectCoverMetrics();
 
@@ -418,4 +449,91 @@ export async function postWeeklyEdition(
   } finally {
     uuids.forEach(removeTempImage);
   }
+}
+
+// ── Preview / dry-run ──────────────────────────────────────────────────
+// Render exactly what would post, as self-contained base64 images, WITHOUT
+// publishing to Instagram or writing anything to the DB — so the editor can
+// sign off on a morning's post before it goes live. The preview intentionally
+// skips the LLM headline punch-up and the why/say-this backfill (both have
+// side effects), so story-card subtext shows the stored copy. The cover —
+// which drives the grid theme and the metrics strip — is fully faithful.
+
+export type PreviewSlide = { label: string; dataUri: string };
+export type PreviewResult = {
+  kind: "daily" | "weekly";
+  variant?: CardVariant;
+  caption: string;
+  slides: PreviewSlide[];
+};
+
+function toDataUri(buf: Buffer): string {
+  return `data:image/jpeg;base64,${buf.toString("base64")}`;
+}
+
+export async function previewDailyCarousel(
+  stories: DailyFeedItem[]
+): Promise<PreviewResult> {
+  const top = pickTopStories(stories);
+  if (top.length === 0) throw new Error("No stories available to preview");
+  const sanitized = top.map(sanitizeStory);
+  const variant = await nextDailyVariant();
+  const metrics = await selectCoverMetrics();
+
+  const slides: PreviewSlide[] = [];
+  slides.push({
+    label: `Cover (${variant})`,
+    dataUri: toDataUri(
+      await renderDailyCoverCard(sanitized, sanitized[0]?.feedDate, variant, metrics)
+    ),
+  });
+  for (let i = 0; i < sanitized.length; i++) {
+    slides.push({
+      label: `Story ${i + 1}`,
+      dataUri: toDataUri(await renderDailyStoryCard(sanitized[i]!, i, sanitized.length)),
+    });
+  }
+  slides.push({
+    label: "Story (vertical)",
+    dataUri: toDataUri(await renderDailyStoryVertical(sanitized[0]!)),
+  });
+
+  return { kind: "daily", variant, caption: buildDailyCaption(sanitized), slides };
+}
+
+export async function previewWeeklyEdition(edition: Edition): Promise<PreviewResult> {
+  const rawTopics = edition.topics.slice(0, 4);
+  const sanitizedTopics = rawTopics.map((t) => ({
+    ...t,
+    title: sanitizeDashes(t.title),
+    summary: sanitizeDashes(t.summary),
+    category: sanitizeDashes(t.category),
+    keyTakeaway: t.keyTakeaway ? sanitizeDashes(t.keyTakeaway) : t.keyTakeaway,
+    whyItMatters: t.whyItMatters ? sanitizeDashes(t.whyItMatters) : t.whyItMatters,
+  }));
+  const sanitizedEdition: Edition = {
+    ...edition,
+    weekRange: edition.weekRange ? sanitizeDashes(edition.weekRange) : edition.weekRange,
+    rubensTake: edition.rubensTake ? sanitizeDashes(edition.rubensTake) : edition.rubensTake,
+    topics: sanitizedTopics,
+  };
+  const total = 1 + sanitizedTopics.length;
+
+  const slides: PreviewSlide[] = [];
+  slides.push({
+    label: "Cover (hero)",
+    dataUri: toDataUri(await renderWeeklyCoverCard(sanitizedEdition)),
+  });
+  for (let i = 0; i < sanitizedTopics.length; i++) {
+    slides.push({
+      label: `Topic ${i + 1}`,
+      dataUri: toDataUri(await renderWeeklyTopicCard(sanitizedTopics[i]!, i + 1, total)),
+    });
+  }
+  slides.push({
+    label: "Story (vertical)",
+    dataUri: toDataUri(await renderWeeklyStoryVertical(sanitizedEdition)),
+  });
+
+  return { kind: "weekly", caption: buildWeeklyCaption(sanitizedEdition), slides };
 }
