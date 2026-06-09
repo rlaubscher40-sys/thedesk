@@ -61,6 +61,18 @@ const IRRELEVANT_PATTERNS: RegExp[] = [
   /\bwimbledon\b/i,
   /\bgrand prix\b/i,
   /\bformula\s?1\b/i,
+  // Women's sport — excluded from the desk per editorial direction. League /
+  // team names plus an explicit "women's <sport>" catch. Name-based so we
+  // don't false-match unrelated copy. (`w-league` above is also women's.)
+  /\bwnba\b/i,
+  /\bwnbl\b/i,
+  /\baflw\b/i,
+  /\bnrlw\b/i,
+  /\bwbbl\b/i,
+  /\bsuper netball\b/i,
+  /\bnetball\b/i,
+  /\bmatildas\b/i,
+  /\bwomen'?s (world cup|cricket|rugby|football|soccer|basketball|netball|tennis|golf|ashes|open|league|championship|final)\b/i,
 
   // Sport-only phrases
   /\bgrand final\b/i,
