@@ -1378,6 +1378,7 @@ export async function renderWeeklyCoverCard(edition: Edition): Promise<Buffer> {
 export async function renderWeeklyStoryVertical(
   edition: Edition
 ): Promise<Buffer> {
+  const logo = await loadLogo("navy");
   const topics = edition.topics.slice(0, 4);
 
   const tree = {
@@ -1402,17 +1403,7 @@ export async function renderWeeklyStoryVertical(
             style: { display: "flex", flexDirection: "column", gap: "10px" },
             children: [
               {
-                type: "div",
-                props: {
-                  style: {
-                    fontFamily: "JetBrains Mono",
-                    fontSize: "13px",
-                    letterSpacing: "0.3em",
-                    textTransform: "uppercase",
-                    color: AMBER,
-                  },
-                  children: "The Desk · Weekly Edition",
-                },
+                ...brandHeader(logo, 44),
               },
               {
                 type: "div",
@@ -1462,7 +1453,7 @@ export async function renderWeeklyStoryVertical(
                     color: FG,
                     marginTop: "24px",
                   },
-                  children: "This Week in\nAustralian Finance",
+                  children: "This Week in\nAustralian Property",
                 },
               },
             ],
@@ -1599,6 +1590,7 @@ export async function renderWeeklyTopicCard(
   slideIndex: number,
   slideTotal: number
 ): Promise<Buffer> {
+  const logo = await loadLogo("navy");
   const slideNum = String(slideIndex + 1).padStart(2, "0");
   const totalNum = String(slideTotal).padStart(2, "0");
   const summary = clamp(topic.summary, 220);
@@ -1631,17 +1623,7 @@ export async function renderWeeklyTopicCard(
             },
             children: [
               {
-                type: "div",
-                props: {
-                  style: {
-                    fontFamily: "JetBrains Mono",
-                    fontSize: "12px",
-                    letterSpacing: "0.28em",
-                    textTransform: "uppercase",
-                    color: AMBER,
-                  },
-                  children: "The Desk · Weekly",
-                },
+                ...brandHeader(logo, 40),
               },
               {
                 type: "div",

@@ -10,7 +10,7 @@
  * has not been applied) or the DB is unavailable, these no-op rather than throw,
  * so posting is never blocked by analytics.
  */
-import { and, desc, gte, isNull, eq } from "drizzle-orm";
+import { and, desc, gte, isNull, eq, count } from "drizzle-orm";
 import { isDemoMode } from "../demo/store";
 import { getDb } from "./client";
 import {
@@ -111,5 +111,26 @@ export async function listInstagramPosts(limit = 30): Promise<InstagramPost[]> {
       .limit(limit);
   } catch {
     return [];
+  }
+}
+
+/**
+ * How many posts of a given type have been published. Drives the navy/light
+ * cover alternation: counting by post order (rather than by date) keeps the
+ * profile-grid checkerboard intact even when a day is skipped. Returns 0 on
+ * any failure so a count hiccup never blocks a post.
+ */
+export async function countInstagramPosts(postType?: string): Promise<number> {
+  if (isDemoMode()) return 0;
+  const db = getDb();
+  if (!db) return 0;
+  try {
+    const rows = await db
+      .select({ n: count() })
+      .from(instagramPosts)
+      .where(postType ? eq(instagramPosts.postType, postType) : undefined);
+    return rows[0]?.n ?? 0;
+  } catch {
+    return 0;
   }
 }

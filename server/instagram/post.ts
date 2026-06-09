@@ -18,6 +18,8 @@ import { recordServerError } from "../db/health";
 import { generateInstagramHeadline } from "../prompts/instagramHeadline";
 import { generateSayThis } from "../prompts/sayThis";
 import { generateWhyItMatters } from "../prompts/whyItMatters";
+import { listDailyMetrics } from "../db/dailyMetrics";
+import { countInstagramPosts } from "../db/instagramPosts";
 import {
   renderDailyCoverCard,
   renderDailyStoryCard,
@@ -25,6 +27,7 @@ import {
   renderWeeklyCoverCard,
   renderWeeklyStoryVertical,
   renderWeeklyTopicCard,
+  type CardVariant,
 } from "../og/instagramCards";
 import {
   createCarouselContainer,
@@ -49,6 +52,40 @@ function sanitizeStory(story: DailyFeedItem): DailyFeedItem {
     source: story.source ? sanitizeDashes(story.source) : story.source,
     category: story.category ? sanitizeDashes(story.category) : story.category,
   };
+}
+
+/**
+ * Up to three headline metrics for the daily cover's briefing strip. Prefers
+ * the cash rate, ASX 200 and AUD/USD (the three a property partner cares about
+ * at a glance), then fills any gap by display order. Best-effort: returns
+ * undefined if metrics are unavailable, in which case the cover simply omits
+ * the strip rather than failing the post.
+ */
+async function selectCoverMetrics(): Promise<
+  Array<{ label: string; value: string }> | undefined
+> {
+  let rows;
+  try {
+    rows = await listDailyMetrics();
+  } catch {
+    return undefined;
+  }
+  if (!rows.length) return undefined;
+  const preferred = ["cash_rate", "cashRate", "asx200", "audusd", "aud_usd"];
+  const chosen: typeof rows = [];
+  for (const key of preferred) {
+    const m = rows.find((r) => r.metricKey === key);
+    if (m && !chosen.includes(m)) chosen.push(m);
+  }
+  for (const m of rows) {
+    if (chosen.length >= 3) break;
+    if (!chosen.includes(m)) chosen.push(m);
+  }
+  const picked = chosen.slice(0, 3).map((m) => ({
+    label: sanitizeDashes(m.label),
+    value: sanitizeDashes(m.value),
+  }));
+  return picked.length ? picked : undefined;
 }
 
 /**
@@ -189,6 +226,15 @@ export async function postDailyCarousel(
   const punched = top.map((s, i) => ({ ...s, title: headlines[i] ?? s.title }));
 
   const sanitized = punched.map(sanitizeStory);
+
+  // Cover theme alternates navy/light by post order, so the profile grid
+  // reads as a checkerboard. Counting prior posts (not the date) keeps the
+  // pattern intact across skipped days. Even count -> navy, odd -> light.
+  const priorDaily = await countInstagramPosts("daily");
+  const coverVariant: CardVariant = priorDaily % 2 === 0 ? "navy" : "light";
+  // Headline metrics for the cover's briefing strip (best-effort).
+  const coverMetrics = await selectCoverMetrics();
+
   const uuids: string[] = [];
   // alt_text per slide, kept in lockstep with uuids (cover + one per story).
   const altTexts: (string | undefined)[] = [];
@@ -196,7 +242,12 @@ export async function postDailyCarousel(
     // Slide 1 is a branded cover (date + numbered contents). Instagram shows
     // slide 1 as the grid thumbnail, so leading with this makes the profile
     // read as a cohesive column of covers rather than dense, unrelated tiles.
-    const coverBuf = await renderDailyCoverCard(sanitized, sanitized[0]?.feedDate);
+    const coverBuf = await renderDailyCoverCard(
+      sanitized,
+      sanitized[0]?.feedDate,
+      coverVariant,
+      coverMetrics
+    );
     uuids.push(storeTempImage(coverBuf));
     altTexts.push("The Desk daily briefing cover");
 
