@@ -1,0 +1,26 @@
+version: 2
+updates:
+  # npm deps: weekly PRs, minor/patch bumps grouped into one PR so the
+  # inbox isn't flooded; majors arrive individually for a closer look.
+  # Security advisories always open immediately regardless of schedule.
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Australia/Sydney
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  # Keep the SHA-pinned GitHub Actions current (Dependabot updates the
+  # pin and the version comment together).
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Australia/Sydney

@@ -8,7 +8,7 @@
  * against the `ADMIN_PASSWORD` env var.
  */
 import type { Express, Request, Response } from "express";
-import { COOKIE_NAME, ONE_YEAR_MS } from "../../shared/const";
+import { COOKIE_NAME, SESSION_TTL_MS } from "../../shared/const";
 import { getSessionCookieOptions } from "./cookies";
 import { env } from "./env";
 import { sdk } from "./sdk";
@@ -62,10 +62,10 @@ export function registerOAuthRoutes(app: Express): void {
       res.status(401).json({ error: "Invalid password" });
       return;
     }
-    const token = await sdk.createSessionToken({ expiresInMs: ONE_YEAR_MS });
+    const token = await sdk.createSessionToken({ expiresInMs: SESSION_TTL_MS });
     res.cookie(COOKIE_NAME, token, {
       ...getSessionCookieOptions(req),
-      maxAge: ONE_YEAR_MS,
+      maxAge: SESSION_TTL_MS,
     });
     res.json({ success: true });
   });

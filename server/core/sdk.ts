@@ -15,7 +15,7 @@
  * foreign keys on reading queue / notes / conversations but is only ever
  * populated with one row.
  */
-import { COOKIE_NAME, ONE_YEAR_MS } from "../../shared/const";
+import { COOKIE_NAME, SESSION_TTL_MS } from "../../shared/const";
 import { ForbiddenError } from "../../shared/errors";
 import { parse as parseCookieHeader } from "cookie";
 import type { Request } from "express";
@@ -45,7 +45,7 @@ class AuthSdk {
   }
 
   async createSessionToken(opts: { expiresInMs?: number } = {}): Promise<string> {
-    const expiresInMs = opts.expiresInMs ?? ONE_YEAR_MS;
+    const expiresInMs = opts.expiresInMs ?? SESSION_TTL_MS;
     const expSeconds = Math.floor((Date.now() + expiresInMs) / 1000);
     return new SignJWT({ openId: ADMIN_OPEN_ID, role: "admin" })
       .setProtectedHeader({ alg: "HS256", typ: "JWT" })
