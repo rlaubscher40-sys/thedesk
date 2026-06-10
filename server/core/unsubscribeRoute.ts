@@ -47,18 +47,34 @@ export function registerUnsubscribeRoute(app: Express): void {
     message: "Too many requests.",
   });
   app.get("/api/unsubscribe", limiter, async (req, res) => {
-    const { email, sig } = req.query;
+    const { email, sig, exp } = req.query;
     if (typeof email !== "string" || typeof sig !== "string") {
       res.status(400).send(PAGE("This unsubscribe link is missing required parameters.", false));
       return;
     }
+    // Current links sign `email:exp` so they age out after 90 days. Links
+    // sent before the expiry shipped sign the bare email — keep honouring
+    // those so an unsubscribe from an older email still works. Safe to drop
+    // the legacy branch once every email in flight predates it by a quarter
+    // (any time after 2026-09).
+    let payload: string;
+    if (typeof exp === "string") {
+      const expMs = Number(exp);
+      if (!Number.isFinite(expMs) || Date.now() > expMs) {
+        res.status(403).send(PAGE("This unsubscribe link has expired. Use the link in a more recent email, or reply to any edition and we'll remove you by hand.", false));
+        return;
+      }
+      payload = `${email}:${exp}`;
+    } else {
+      payload = email;
+    }
     const expected = createHmac("sha256", env.cookieSecret || "dev")
-      .update(email)
+      .update(payload)
       .digest("base64url");
     const sigOk = sig.length === expected.length &&
       timingSafeEqual(Buffer.from(sig), Buffer.from(expected));
     if (!sigOk) {
-      res.status(403).send(PAGE("This unsubscribe link is invalid or has already been used.", false));
+      res.status(403).send(PAGE("This unsubscribe link is invalid.", false));
       return;
     }
     await db.unsubscribeByEmail(email);

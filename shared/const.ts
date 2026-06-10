@@ -1,7 +1,12 @@
 /** Single source of truth for cross-tier constants. */
 
 export const COOKIE_NAME = "app_session_id";
-export const ONE_YEAR_MS = 1000 * 60 * 60 * 24 * 365;
+/**
+ * Admin session lifetime. 30 days balances single-user convenience against
+ * the blast radius of a stolen cookie — a leaked session now ages out in a
+ * month instead of the year it used to be valid for.
+ */
+export const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30;
 export const AXIOS_TIMEOUT_MS = 30_000;
 
 export const UNAUTHED_ERR_MSG = "Please login (10001)";

@@ -280,10 +280,15 @@ export async function sendConfirmEmail({
 }
 
 export function editionUnsubscribeUrl(email: string, siteOrigin: string): string {
+  // Links expire after 90 days: long enough that any email still sitting in
+  // an inbox has a working link (a fresh one ships with every send), short
+  // enough that a leaked old email can't be used to unsubscribe someone
+  // forever after. The expiry is signed into the HMAC so it can't be edited.
+  const exp = Date.now() + 90 * 24 * 60 * 60 * 1000;
   const sig = createHmac("sha256", process.env.JWT_SECRET ?? "dev")
-    .update(email)
+    .update(`${email}:${exp}`)
     .digest("base64url");
-  return `${siteOrigin}/api/unsubscribe?email=${encodeURIComponent(email)}&sig=${sig}`;
+  return `${siteOrigin}/api/unsubscribe?email=${encodeURIComponent(email)}&exp=${exp}&sig=${sig}`;
 }
 
 /** Sent when someone re-subscribes with an already-confirmed address. */

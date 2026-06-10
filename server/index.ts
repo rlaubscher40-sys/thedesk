@@ -87,11 +87,10 @@ async function startServer() {
   // production so Vite/HMR is untouched.
   registerSecurityHeaders(app);
 
-  // Tight body limit, nothing on the API accepts payloads larger than
-  // a few hundred KB (largest is the weekly-edition synthesis result,
-  // which lands well under 1MB). 50MB was inherited from an earlier
-  // image-bytes-over-the-wire flow that no longer exists. Keeping the
-  // ceiling low protects every endpoint from memory-bomb spam.
+  // 4MB body ceiling: the largest real payload is the weekly-edition
+  // synthesis result (under 1MB), so this is ~4x headroom while still
+  // protecting every endpoint from memory-bomb spam. 50MB was inherited
+  // from an earlier image-bytes-over-the-wire flow that no longer exists.
   app.use(express.json({ limit: "4mb" }));
   app.use(express.urlencoded({ limit: "4mb", extended: true }));
 
@@ -170,8 +169,16 @@ async function startServer() {
   // never hits a column the database is missing.
   await applyPendingMigrations();
 
+  // The port scan is a dev convenience (tsx watch can briefly hold the old
+  // port across a restart). In production Railway's proxy routes to exactly
+  // PORT — silently hopping to a neighbour would leave a healthy-looking
+  // process that receives no traffic, so there listen() on the configured
+  // port and let EADDRINUSE crash the deploy loudly instead.
   const preferredPort = parseInt(process.env.PORT ?? "3000", 10);
-  const port = await findAvailablePort(preferredPort);
+  const port =
+    process.env.NODE_ENV === "development"
+      ? await findAvailablePort(preferredPort)
+      : preferredPort;
   if (port !== preferredPort) {
     console.log(`Port ${preferredPort} busy, using ${port}`);
   }
