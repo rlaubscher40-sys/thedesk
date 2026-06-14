@@ -62,6 +62,15 @@ export function CommandPalette() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
+  // Open on demand from a tap (mobile has no ⌘K) — the mobile header's
+  // search button dispatches this event so the same palette is the single
+  // search surface on every device.
+  useEffect(() => {
+    const open = () => setOpen(true);
+    window.addEventListener("thedesk:open-search", open);
+    return () => window.removeEventListener("thedesk:open-search", open);
+  }, []);
+
   // Focus input on open, reset on close.
   useEffect(() => {
     if (open) {
