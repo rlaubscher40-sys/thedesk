@@ -10,10 +10,12 @@
  * collapsed header would defeat the point. Choice persists to localStorage.
  */
 import { useEffect, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { Bookmark, BookmarkCheck, ChevronDown } from "lucide-react";
 import { Link } from "wouter";
 import type { DailyFeedItem } from "@shared/types";
 import { categoryColour } from "@/lib/category";
+import { useBookmarks } from "@/lib/useBookmarks";
+import { useReadStories } from "@/lib/useReadStories";
 
 const STORAGE_KEY = "thedesk:today-brief-expanded";
 const ITEMS_SHOWN = 6;
@@ -28,6 +30,8 @@ function readInitialExpanded(): boolean {
 
 export function TodayInBrief({ items }: { items: DailyFeedItem[] }) {
   const [expanded, setExpanded] = useState<boolean>(readInitialExpanded);
+  const { isBookmarked, toggle } = useBookmarks();
+  const { isRead } = useReadStories();
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, expanded ? "1" : "0");
@@ -71,48 +75,78 @@ export function TodayInBrief({ items }: { items: DailyFeedItem[] }) {
 
       {expanded && (
         <ol id="today-in-brief-body" className="divide-y divide-[var(--color-border)]">
-          {shown.map((item, idx) => (
-            <li key={item.id}>
-              <Link
-                href={`/story/${item.id}`}
-                className="grid grid-cols-[36px_minmax(0,1fr)] sm:grid-cols-[44px_120px_minmax(0,1fr)] gap-3 sm:gap-4 px-5 sm:px-6 py-3.5 hover:bg-white/[0.025] transition-colors"
-              >
-                <span
-                  className="font-mono tabular-nums text-amber-400/80"
-                  style={{ fontSize: "11px", letterSpacing: "0.12em" }}
+          {shown.map((item, idx) => {
+            // Read state dims an opened story so a returning reader's eye goes
+            // to what's still unread; the leading index glows amber while
+            // unread, mutes once seen.
+            const unread = !isRead(item.id);
+            const saved = isBookmarked(String(item.id));
+            return (
+              <li key={item.id} className="flex items-stretch">
+                <Link
+                  href={`/story/${item.id}`}
+                  className="flex-1 min-w-0 grid grid-cols-[36px_minmax(0,1fr)] sm:grid-cols-[44px_120px_minmax(0,1fr)] gap-3 sm:gap-4 pl-5 sm:pl-6 py-3.5 hover:bg-white/[0.025] transition-colors"
                 >
-                  {String(idx + 1).padStart(2, "0")}
-                </span>
-                <span
-                  className="hidden sm:inline font-mono uppercase truncate"
-                  style={{
-                    color: categoryColour(item.category),
-                    fontSize: "10px",
-                    letterSpacing: "0.18em",
-                  }}
-                  title={item.category}
-                >
-                  {item.category}
-                </span>
-                <div className="min-w-0">
-                  <p
-                    className="font-serif leading-snug text-[var(--color-fg)]"
-                    style={{ fontSize: "15px" }}
+                  <span
+                    className="font-mono tabular-nums"
+                    style={{
+                      fontSize: "11px",
+                      letterSpacing: "0.12em",
+                      color: unread ? "var(--color-amber)" : "var(--color-fg-subtle)",
+                    }}
                   >
-                    {item.title}
-                  </p>
-                  {(item.whyItMatters || item.sayThis) && (
+                    {String(idx + 1).padStart(2, "0")}
+                  </span>
+                  <span
+                    className="hidden sm:inline font-mono uppercase truncate"
+                    style={{
+                      color: categoryColour(item.category),
+                      fontSize: "10px",
+                      letterSpacing: "0.18em",
+                    }}
+                    title={item.category}
+                  >
+                    {item.category}
+                  </span>
+                  <div className="min-w-0">
                     <p
-                      className="text-[var(--color-fg-subtle)] mt-1 leading-snug line-clamp-1"
-                      style={{ fontSize: "12.5px" }}
+                      className="font-serif leading-snug"
+                      style={{
+                        fontSize: "15px",
+                        color: unread ? "var(--color-fg)" : "var(--color-fg-muted)",
+                      }}
                     >
-                      {item.whyItMatters ?? item.sayThis}
+                      {item.title}
                     </p>
+                    {(item.whyItMatters || item.sayThis) && (
+                      <p
+                        className="text-[var(--color-fg-subtle)] mt-1 leading-snug line-clamp-1"
+                        style={{ fontSize: "12.5px" }}
+                      >
+                        {item.whyItMatters ?? item.sayThis}
+                      </p>
+                    )}
+                  </div>
+                </Link>
+                {/* Save straight from the scan — same localStorage bookmark set
+                    as the cards and the sidebar count, so a tap here keeps the
+                    reader moving without opening the story first. */}
+                <button
+                  type="button"
+                  onClick={() => toggle(String(item.id))}
+                  aria-label={saved ? "Remove bookmark" : "Save story"}
+                  aria-pressed={saved}
+                  className="px-4 flex items-center text-[var(--color-fg-subtle)] hover:text-amber-300 transition-colors"
+                >
+                  {saved ? (
+                    <BookmarkCheck className="h-4 w-4 text-amber-400" />
+                  ) : (
+                    <Bookmark className="h-4 w-4" />
                   )}
-                </div>
-              </Link>
-            </li>
-          ))}
+                </button>
+              </li>
+            );
+          })}
         </ol>
       )}
     </section>

@@ -245,7 +245,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           // Shifted up so it stacks above the FeedbackButton without
           // overlapping. lg: 64px above the feedback pill; mobile:
           // above the feedback pill but below the bottom tab bar.
-          className="fixed z-50 lg:bottom-20 lg:right-6 bottom-[120px] right-4 h-10 w-10 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-300 backdrop-blur flex items-center justify-center hover:bg-amber-500/25 transition-colors"
+          className="fixed z-50 lg:bottom-20 lg:right-6 bottom-[120px] right-4 h-10 w-10 rounded-full bg-[var(--color-bg-elevated)]/80 border border-[var(--color-border)] text-[var(--color-fg-muted)] backdrop-blur flex items-center justify-center hover:text-[var(--color-fg)] hover:border-[var(--color-border-strong)] transition-colors"
           onClick={() => document.querySelector("main")?.scrollTo({ top: 0, behavior: "smooth" })}
         >
           <ChevronUp className="h-4 w-4" />

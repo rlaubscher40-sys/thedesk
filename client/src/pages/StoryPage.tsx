@@ -3,6 +3,7 @@
  * out to read.
  */
 import { useState } from "react";
+import { useEffect } from "react";
 import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, ExternalLink, Linkedin } from "lucide-react";
 import { Link, useParams } from "wouter";
 import type { DailyFeedItem } from "@shared/types";
@@ -16,6 +17,7 @@ import { PartnerTagBlock } from "@/components/feed/PartnerTagBlock";
 import { SayThisLine } from "@/components/feed/SayThisLine";
 import { WhyItMattersLine } from "@/components/feed/WhyItMattersLine";
 import { categoryAccentClass, categoryColour } from "@/lib/category";
+import { markStoryRead } from "@/lib/useReadStories";
 import { cleanHeadline, shouldShowSummary } from "@/lib/headline";
 import { cn } from "@/lib/cn";
 import { SITE_DISPLAY } from "@/lib/siteUrl";
@@ -30,6 +32,11 @@ export default function StoryPage() {
     { id },
     { enabled: Number.isFinite(id) && id > 0 }
   );
+
+  // Mark this story read so the Today brief can show what's still unopened.
+  useEffect(() => {
+    if (Number.isFinite(id) && id > 0) markStoryRead(id);
+  }, [id]);
 
   // Pull the rest of the story's day so the page is never a dead-end: it
   // powers prev/next paging through the day and a "More from today" rail,

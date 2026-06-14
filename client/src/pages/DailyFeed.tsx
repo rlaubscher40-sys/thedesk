@@ -12,7 +12,7 @@
  * Seed layout (untouched, same demo as before):
  *   - Featured → More → Further sections from the static stories array
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CheckCheck, Copy, Flame, Info, X } from "lucide-react";
 import { useLocation, useSearch } from "wouter";
 import { useStreak } from "@/lib/useStreak";
@@ -46,17 +46,38 @@ import { useFilteredFeed } from "@/lib/useFilteredFeed";
 import { trpc } from "@/lib/trpc";
 import {
   DEFAULT_FEED_CHANNEL,
+  FEED_CHANNELS,
   isEnrichedChannel,
   type FeedChannel,
 } from "@shared/const";
+
+const LANE_CHANNEL_KEY = "thedesk:lane-channel";
+const LANE_FILTER_KEY = "thedesk:lane-filter";
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export default function DailyFeed() {
   // Two axes: `channel` is the Discover content lane (tabs); `filter` is the
-  // category sub-filter that only applies within the AU flagship.
-  const [channel, setChannel] = useState<FeedChannel>(DEFAULT_FEED_CHANNEL);
-  const [filter, setFilter] = useState<CategoryFilter>("ALL");
+  // category sub-filter that only applies within the AU flagship. Both persist
+  // to localStorage so a returning reader lands back in their preferred lane
+  // instead of being reset to the AU/ALL default every visit.
+  const [channel, setChannel] = useState<FeedChannel>(() => {
+    if (typeof window === "undefined") return DEFAULT_FEED_CHANNEL;
+    const saved = window.localStorage.getItem(LANE_CHANNEL_KEY);
+    return saved && (FEED_CHANNELS as readonly string[]).includes(saved)
+      ? (saved as FeedChannel)
+      : DEFAULT_FEED_CHANNEL;
+  });
+  const [filter, setFilter] = useState<CategoryFilter>(() => {
+    if (typeof window === "undefined") return "ALL";
+    return window.localStorage.getItem(LANE_FILTER_KEY) ?? "ALL";
+  });
+  useEffect(() => {
+    window.localStorage.setItem(LANE_CHANNEL_KEY, channel);
+  }, [channel]);
+  useEffect(() => {
+    window.localStorage.setItem(LANE_FILTER_KEY, filter);
+  }, [filter]);
   const [copied, setCopied] = useState(false);
   const { current: streakDays, tier: streakTier } = useStreak();
 
@@ -148,6 +169,19 @@ export default function DailyFeed() {
     }
     return Array.from(set).sort();
   }, [allFeedItems]);
+
+  // Self-heal a persisted category that today's feed doesn't contain (e.g. the
+  // reader pinned POLICY yesterday but there's no policy story today): fall
+  // back to ALL rather than stranding them on an empty filtered view.
+  useEffect(() => {
+    if (
+      filter !== "ALL" &&
+      auCategories.length > 0 &&
+      !auCategories.includes(filter)
+    ) {
+      setFilter("ALL");
+    }
+  }, [filter, auCategories]);
 
   // Apply the category sub-filter — AU flagship only. Every other lane is
   // already topically narrow, so the filter is ignored there.
@@ -565,14 +599,10 @@ function FeedHint() {
   }
   return (
     <div
-      className="flex items-start gap-3 rounded-sm px-4 py-3 text-[12.5px] text-[var(--color-fg-muted)] leading-relaxed"
-      style={{
-        background: "oklch(0.78 0.18 70 / 5%)",
-        boxShadow: "inset 0 0 0 1px oklch(0.78 0.18 70 / 15%)",
-      }}
+      className="panel flex items-start gap-3 rounded-sm px-4 py-3 text-[12.5px] text-[var(--color-fg-muted)] leading-relaxed"
       role="note"
     >
-      <Info className="h-3.5 w-3.5 text-amber-400/60 shrink-0 mt-0.5" aria-hidden="true" />
+      <Info className="h-3.5 w-3.5 text-[var(--color-fg-subtle)] shrink-0 mt-0.5" aria-hidden="true" />
       <p className="flex-1">
         <span className="text-[var(--color-fg)] font-medium">Channel tabs</span> switch
         between lanes — Australia, Property and the global coverage feeds. On
