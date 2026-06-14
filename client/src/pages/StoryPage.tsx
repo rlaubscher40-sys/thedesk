@@ -2,8 +2,7 @@
  * Expanded view of a single feed item. Same content as the card, just laid
  * out to read.
  */
-import { useState } from "react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, ExternalLink, Linkedin } from "lucide-react";
 import { Link, useParams } from "wouter";
 import type { DailyFeedItem } from "@shared/types";
