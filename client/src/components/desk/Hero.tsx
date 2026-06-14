@@ -43,12 +43,12 @@ export function Hero({ onGenerateAll }: { onGenerateAll?: () => void }) {
     <section
       className="relative overflow-hidden rounded-sm"
       style={{
-        // 30vh on mobile, 42vh on desktop. Bumped the ceiling from 440
-        // to 500 after the canonical BrandLockup landed at the top of
-        // the slug area, the prior height was clipping the admin
-        // button at the bottom on tall content. The first story still
-        // sits above the fold on 1280x800.
-        height: "clamp(320px, 42vh, 500px)",
+        // Deliberately a slim brand BAND, not a full screen. The hero is
+        // masthead/identity (it says "Today's Desk." every day) — it is
+        // not content, so it shouldn't cost the whole first viewport. Cut
+        // from clamp(320px,42vh,500px) so the day's actual stories (the
+        // brief + lead) clear the fold instead of sitting two scrolls down.
+        height: "clamp(232px, 30vh, 360px)",
       }}
     >
       {/* Photographic backdrop. Drifts slowly via .hero-cover-img. This is

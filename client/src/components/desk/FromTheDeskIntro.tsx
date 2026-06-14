@@ -7,20 +7,81 @@
  * Hidden on narrow screens by collapsing into a single line; on desktop
  * the headshot is 80px with a real intro sentence.
  */
-import { ExternalLink, Instagram, Linkedin } from "lucide-react";
+import { ExternalLink, Instagram, Linkedin, X } from "lucide-react";
 import { useState } from "react";
 
 const SUBSTACK_URL = "https://rubenlaubscher.substack.com/";
 const LINKEDIN_URL = "https://www.linkedin.com/in/ruben-laubscher/";
 const INSTAGRAM_URL = "https://www.instagram.com/thedesk.au/";
 
+const COLLAPSED_KEY = "thedesk:desk-intro-collapsed";
+
 export function FromTheDeskIntro() {
   const [imgFailed, setImgFailed] = useState(false);
+  // The full "here's who's curating" card earns its space on a first read,
+  // but on repeat visits it's a tall block between the masthead and the day's
+  // stories. Once collapsed it drops to a one-line byline (attribution kept,
+  // the wall gone). Choice persists to localStorage.
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(COLLAPSED_KEY) === "1";
+  });
+
+  function collapse() {
+    window.localStorage.setItem(COLLAPSED_KEY, "1");
+    setCollapsed(true);
+  }
+  function expand() {
+    window.localStorage.setItem(COLLAPSED_KEY, "0");
+    setCollapsed(false);
+  }
+
+  if (collapsed) {
+    return (
+      <button
+        type="button"
+        onClick={expand}
+        className="group flex items-center gap-3 text-left w-full"
+        aria-label="Show Ruben's intro"
+      >
+        <span className="w-7 h-7 rounded-full overflow-hidden border border-[var(--color-border)] shrink-0">
+          {!imgFailed ? (
+            <img
+              src="/ruben.jpg"
+              alt=""
+              aria-hidden="true"
+              className="w-full h-full object-cover"
+              loading="lazy"
+              decoding="async"
+              onError={() => setImgFailed(true)}
+            />
+          ) : (
+            <span className="avatar-initial-disc w-full h-full flex items-center justify-center text-xs font-bold">
+              R
+            </span>
+          )}
+        </span>
+        <span className="overline text-[var(--color-fg-subtle)] group-hover:text-[var(--color-fg-muted)] transition-colors">
+          Curated by Ruben Laubscher
+        </span>
+      </button>
+    );
+  }
+
   return (
     <section
-      className="panel rounded-sm p-5 sm:p-7 flex items-center gap-5 sm:gap-7"
+      className="panel rounded-sm p-5 sm:p-7 flex items-center gap-5 sm:gap-7 relative"
       style={{ background: "var(--grad-panel-soft)" }}
     >
+      <button
+        type="button"
+        onClick={collapse}
+        aria-label="Collapse intro"
+        title="Collapse — keeps a one-line byline"
+        className="absolute top-3 right-3 p-1.5 rounded text-[var(--color-fg-subtle)] hover:text-[var(--color-fg)] transition-colors"
+      >
+        <X className="h-3.5 w-3.5" />
+      </button>
       <div className="relative shrink-0">
         <div
           className="rounded-full overflow-hidden"
