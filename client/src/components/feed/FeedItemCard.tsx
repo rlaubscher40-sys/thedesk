@@ -206,8 +206,8 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
       <div className="flex items-start justify-between gap-3 mb-4">
         <div className="flex items-center gap-2.5 min-w-0">
           <span
-            className="overline-amber shrink-0"
-            style={{ color: "var(--color-amber-bright)", letterSpacing: "0.2em" }}
+            className="overline shrink-0"
+            style={{ color: categoryColour(item.category), letterSpacing: "0.2em" }}
           >
             {item.category}
           </span>
