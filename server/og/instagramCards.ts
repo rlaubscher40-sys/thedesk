@@ -291,13 +291,13 @@ export async function renderDailyStoryCard(
     ? fitFontSize(
         why.length,
         [
-          [150, "30px"],
-          [220, "26px"],
-          [280, "23px"],
+          [150, "35px"],
+          [220, "31px"],
+          [280, "28px"],
         ],
-        "21px"
+        "26px"
       )
-    : "30px";
+    : "35px";
   const category = (story.category || "NEWS").toUpperCase();
   const fontSize = headline.length > 64 ? "60px" : "74px";
 
@@ -412,7 +412,7 @@ export async function renderDailyStoryCard(
                             props: {
                               style: {
                                 fontFamily: "JetBrains Mono",
-                                fontSize: "15px",
+                                fontSize: "17px",
                                 letterSpacing: "0.25em",
                                 textTransform: "uppercase",
                                 color: c.amber,
@@ -426,7 +426,7 @@ export async function renderDailyStoryCard(
                               style: {
                                 fontFamily: "JetBrains Mono",
                                 fontSize: whyFontSize,
-                                lineHeight: 1.45,
+                                lineHeight: 1.5,
                                 color: c.fgMuted,
                               },
                               children: why,
