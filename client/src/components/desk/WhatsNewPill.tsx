@@ -6,7 +6,6 @@
  * Hidden on the very first visit (no prior timestamp) and when there's
  * nothing new, there's no point shouting "0 new".
  */
-import { Sparkles } from "lucide-react";
 import { useLastVisit } from "@/lib/useLastVisit";
 
 export function WhatsNewPill({
@@ -33,18 +32,19 @@ export function WhatsNewPill({
   if (newCount === 0) return null;
 
   return (
-    <div
-      className="inline-flex items-center gap-2.5 px-3.5 py-2 rounded-full text-xs"
-      style={{
-        background: "oklch(0.78 0.18 70 / 8%)",
-        boxShadow: "inset 0 0 0 1px oklch(0.78 0.18 70 / 28%)",
-      }}
-    >
-      <Sparkles className="h-3.5 w-3.5 text-amber-300" />
-      <span className="font-mono uppercase tracking-[0.18em] text-amber-300/90" style={{ fontSize: "10px" }}>
+    // Restrained neutral chip — a passive marker, not an action, so it no
+    // longer wears the amber wash that's reserved for the brand and primary
+    // CTAs. A single small amber dot is the only accent: enough to read as
+    // "new" without competing with the masthead and stories around it.
+    <div className="panel inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs">
+      <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0" aria-hidden="true" />
+      <span
+        className="font-mono uppercase tracking-[0.18em] text-[var(--color-fg-muted)]"
+        style={{ fontSize: "10px" }}
+      >
         {newCount} new
       </span>
-      <span className="text-[var(--color-fg-muted)]">
+      <span className="text-[var(--color-fg-subtle)] hidden sm:inline">
         since you were last here {formatAgo(ago)}
       </span>
     </div>

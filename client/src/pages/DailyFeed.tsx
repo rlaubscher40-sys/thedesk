@@ -321,14 +321,20 @@ export default function DailyFeed() {
             action for the talking points (demoted from a boxed amber CTA
             that competed with the hero). */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
-          <DatePager
-            date={date}
-            isToday={isToday}
-            canGoPrev={prevDate !== null}
-            canGoNext={nextDate !== null}
-            onPrev={() => prevDate && gotoDate(prevDate)}
-            onNext={() => nextDate && gotoDate(nextDate)}
-          />
+          <div className="flex items-center gap-3 flex-wrap">
+            <DatePager
+              date={date}
+              isToday={isToday}
+              canGoPrev={prevDate !== null}
+              canGoNext={nextDate !== null}
+              onPrev={() => prevDate && gotoDate(prevDate)}
+              onNext={() => nextDate && gotoDate(nextDate)}
+            />
+            {/* 'What's new since last visit' sits inline with the date rather
+                than on its own full-width row above the stories — same signal,
+                no extra block in the way of the feed. */}
+            <WhatsNewPill storyDates={storyTimestamps} storageKey="today" />
+          </div>
           {hasLiveData && enriched && talkingPoints.length > 0 && (
             <button
               onClick={copyTalkingPoints}
@@ -364,15 +370,17 @@ export default function DailyFeed() {
           </SectionErrorBoundary>
         )}
 
-        {/* Tools: tune the persona, plus the first-run hint and 'what's new'
-            marker. The persona switcher + hint are enriched-lane concepts
-            (they explain Say This / partner angles), so they're hidden on the
-            coverage lanes; the 'what's new' marker applies everywhere. */}
-        <div className="space-y-5">
-          {enriched && <PersonaSwitcher />}
-          {enriched && <FeedHint />}
-          <WhatsNewPill storyDates={storyTimestamps} storageKey="today" />
-        </div>
+        {/* Tools: tune the persona, plus the first-run hint. Both are
+            enriched-lane concepts (they explain Say This / partner angles), so
+            the whole block is hidden on the coverage lanes. The 'what's new'
+            marker moved up next to the date pager so it no longer wedges a row
+            between the brief and the day's lead. */}
+        {enriched && (
+          <div className="space-y-4">
+            <PersonaSwitcher />
+            <FeedHint />
+          </div>
+        )}
       </div>
 
       {/* Mobile streak chip — the sidebar badge covers desktop, this

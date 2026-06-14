@@ -17,7 +17,7 @@ import {
 import { Link } from "wouter";
 import { toast } from "sonner";
 import type { DailyFeedItem } from "@shared/types";
-import { categoryAccentClass } from "@/lib/category";
+import { categoryAccentClass, categoryColour } from "@/lib/category";
 import { cleanHeadline, shouldShowSummary } from "@/lib/headline";
 import { cardDek } from "@/lib/cardDek";
 import { SITE_DISPLAY } from "@/lib/siteUrl";
@@ -146,15 +146,68 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
       panelHover
       lift
       revealOnHover
-      padding="lg"
+      padding="none"
+      clip
       accentClass={categoryAccentClass(item.category)}
     >
+      {/* Thumbnail plate. Image-forward grid (Discover / Apple News): the
+          og:image fills a 16:9 plate when scraped; otherwise a category-tinted
+          gradient keeps every card the same shape so the grid reads as
+          intentional rather than ragged. Decorative — the headline below is
+          the real tap target — so it's aria-hidden when there's no photo. */}
+      <Link
+        href={`/story/${item.id}`}
+        className="group/thumb relative block w-full overflow-hidden"
+        style={{
+          aspectRatio: "16 / 9",
+          background: `
+            radial-gradient(circle at 78% 22%, ${categoryColour(item.category)}45 0%, transparent 55%),
+            radial-gradient(circle at 14% 86%, ${categoryColour(item.category)}18 0%, transparent 55%),
+            var(--grad-panel-soft)
+          `,
+        }}
+      >
+        {item.imageUrl ? (
+          <img
+            src={item.imageUrl}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-500 group-hover/thumb:scale-[1.03]"
+            loading="lazy"
+            decoding="async"
+          />
+        ) : (
+          <span
+            className="absolute font-serif font-bold pointer-events-none select-none"
+            style={{
+              top: "10%",
+              left: "6%",
+              right: "6%",
+              color: categoryColour(item.category),
+              opacity: 0.16,
+              fontSize: "clamp(40px, 7vw, 72px)",
+              letterSpacing: "-0.04em",
+              lineHeight: 0.95,
+              mixBlendMode: "screen",
+            }}
+          >
+            {item.category}
+          </span>
+        )}
+        <span
+          className="absolute inset-0 noise-overlay pointer-events-none"
+          style={{ opacity: 0.4 }}
+          aria-hidden="true"
+        />
+      </Link>
+
+      <div className="p-6 sm:p-7">
       {/* Metadata bar, category in colour, source + actions on the right. */}
       <div className="flex items-start justify-between gap-3 mb-4">
         <div className="flex items-center gap-2.5 min-w-0">
           <span
-            className="overline-amber shrink-0"
-            style={{ color: "var(--color-amber-bright)", letterSpacing: "0.2em" }}
+            className="overline shrink-0"
+            style={{ color: categoryColour(item.category), letterSpacing: "0.2em" }}
           >
             {item.category}
           </span>
@@ -333,6 +386,7 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
         initialText={linkedInDraft}
         heading="Share this story on LinkedIn"
       />
+      </div>
     </Card>
   );
 }
