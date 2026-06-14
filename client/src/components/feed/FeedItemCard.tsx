@@ -20,6 +20,7 @@ import type { DailyFeedItem } from "@shared/types";
 import { categoryAccentClass, categoryColour } from "@/lib/category";
 import { cleanHeadline, shouldShowSummary } from "@/lib/headline";
 import { cardDek } from "@/lib/cardDek";
+import { readingMinutes } from "@/lib/readingTime";
 import { SITE_DISPLAY } from "@/lib/siteUrl";
 import { useAuth } from "@/lib/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -222,6 +223,12 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
             count={item.corroborationCount}
             sources={item.corroboratingSources}
           />
+          <span className="overline shrink-0 text-[var(--color-fg-subtle)]" aria-hidden="true">
+            ·
+          </span>
+          <span className="overline shrink-0 text-[var(--color-fg-subtle)] tabular-nums">
+            {readingMinutes(item)} min
+          </span>
         </div>
         <div className="flex items-center gap-1 shrink-0 -mr-1.5 reveal-target">
           <button
