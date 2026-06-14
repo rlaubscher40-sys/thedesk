@@ -58,7 +58,7 @@ export function sanitizeDashes(text: string): string {
  * recorded as the success it is). Self-resuming on the date — set to a past date
  * (or null) to bring Stories back immediately.
  */
-export const INSTAGRAM_RESUME_DATE: string | null = "2026-06-16";
+export const INSTAGRAM_RESUME_DATE: string | null = null;
 
 /** True while 24h Stories are paused for the integrity cooldown. */
 export function instagramCooldownActive(): boolean {
