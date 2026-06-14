@@ -3,7 +3,7 @@
  * tab bar on mobile. Pages render inside <main>. Keeps presentation concerns
  * in one place so pages can stay small.
  */
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import {
   BarChart3,
@@ -102,6 +102,55 @@ export function AppLayout({ children }: { children: ReactNode }) {
     main.addEventListener("scroll", onScroll, { passive: true });
     return () => main.removeEventListener("scroll", onScroll);
   }, []);
+
+  // ── Per-route scroll restoration ──────────────────────────────────────
+  // <main> is a single persistent scroller (it doesn't remount on
+  // navigation), so without this, opening a story then going Back leaves you
+  // wherever the short story page clamped the scroll — usually the top of the
+  // feed. Remember each route's offset and restore it on return; brand-new
+  // routes (no saved offset) open at the top, as expected.
+  const scrollPositions = useRef<Map<string, number>>(new Map());
+  const prevLocation = useRef(location);
+  useEffect(() => {
+    const main = document.querySelector("main");
+    if (!main) return;
+    // Save the offset of the route we're leaving, then advance the marker.
+    scrollPositions.current.set(prevLocation.current, main.scrollTop);
+    prevLocation.current = location;
+
+    const target = scrollPositions.current.get(location) ?? 0;
+    if (target === 0) {
+      main.scrollTop = 0;
+      return;
+    }
+    // Returning to a route we'd scrolled: nudge scrollTop to the saved offset
+    // until the lazy page + async data have mounted tall enough to reach it
+    // (fixed-aspect media keeps the target stable once laid out). Bounded by
+    // time and surrendered the moment the user scrolls, so it can never
+    // hijack the view.
+    let raf = 0;
+    let cancelled = false;
+    const surrender = () => {
+      cancelled = true;
+    };
+    main.addEventListener("wheel", surrender, { passive: true, once: true });
+    main.addEventListener("touchstart", surrender, { passive: true, once: true });
+    const start = performance.now();
+    const tick = () => {
+      if (cancelled) return;
+      main.scrollTop = target;
+      const reached = Math.abs(main.scrollTop - target) <= 2;
+      if (reached || performance.now() - start > 800) return;
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+      main.removeEventListener("wheel", surrender);
+      main.removeEventListener("touchstart", surrender);
+    };
+  }, [location]);
 
   // [ toggles the sidebar. Common enough to deserve a one-line hotkey.
   useEffect(() => {
@@ -230,6 +279,16 @@ function MobileHeader({ onOpen }: { onOpen: () => void }) {
       </button>
       <BrandLockup size={24} byline={false} animated={false} />
       <span className="live-dot ml-1" aria-hidden="true" />
+      {/* Search is the primary entry point for a discovery product. Desktop has
+          ⌘K; mobile had nothing, so surface a tap target that opens the same
+          command palette. Pushed to the right so it reads as the lead action. */}
+      <button
+        aria-label="Search"
+        className="ml-auto p-2 rounded border border-[var(--color-border)] text-[var(--color-fg-muted)]"
+        onClick={() => window.dispatchEvent(new Event("thedesk:open-search"))}
+      >
+        <Search className="h-4 w-4" />
+      </button>
     </div>
   );
 }

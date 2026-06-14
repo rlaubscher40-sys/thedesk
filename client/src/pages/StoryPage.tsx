@@ -3,8 +3,9 @@
  * out to read.
  */
 import { useState } from "react";
-import { ArrowLeft, ExternalLink, Linkedin } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, ExternalLink, Linkedin } from "lucide-react";
 import { Link, useParams } from "wouter";
+import type { DailyFeedItem } from "@shared/types";
 import { PageHeader } from "@/components/PageHeader";
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
 import { LinkedInPostModal } from "@/components/LinkedInPostModal";
@@ -14,7 +15,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { PartnerTagBlock } from "@/components/feed/PartnerTagBlock";
 import { SayThisLine } from "@/components/feed/SayThisLine";
 import { WhyItMattersLine } from "@/components/feed/WhyItMattersLine";
-import { categoryAccentClass } from "@/lib/category";
+import { categoryAccentClass, categoryColour } from "@/lib/category";
 import { cleanHeadline, shouldShowSummary } from "@/lib/headline";
 import { cn } from "@/lib/cn";
 import { SITE_DISPLAY } from "@/lib/siteUrl";
@@ -29,6 +30,28 @@ export default function StoryPage() {
     { id },
     { enabled: Number.isFinite(id) && id > 0 }
   );
+
+  // Pull the rest of the story's day so the page is never a dead-end: it
+  // powers prev/next paging through the day and a "More from today" rail,
+  // keeping a reader inside The Desk instead of bouncing out via "Read
+  // original". Cheap — the day is already cached from the Today page.
+  const story = itemQuery.data;
+  const dayQuery = trpc.feed.getByDate.useQuery(
+    { date: story?.feedDate ?? "" },
+    { enabled: !!story?.feedDate, staleTime: 60_000 }
+  );
+  const day = dayQuery.data ?? [];
+  const dayIdx = day.findIndex((s) => s.id === id);
+  const prevStory = dayIdx > 0 ? day[dayIdx - 1] ?? null : null;
+  const nextStory =
+    dayIdx >= 0 && dayIdx < day.length - 1 ? day[dayIdx + 1] ?? null : null;
+  // Related: same category first (most relevant), then fill from the rest of
+  // the day, capped so the rail stays a glance, not a second feed.
+  const others = day.filter((s) => s.id !== id);
+  const moreToday = [
+    ...others.filter((s) => s.category === story?.category),
+    ...others.filter((s) => s.category !== story?.category),
+  ].slice(0, 4);
 
   if (!Number.isFinite(id) || id <= 0) {
     return (
@@ -118,6 +141,61 @@ export default function StoryPage() {
                 .trim()}
             />
 
+            {/* Onward navigation — no dead-ends. Step through the day, then a
+                short "More from today" rail, both before the outbound
+                Subscribe panel so the reader's next move stays in The Desk. */}
+            {(prevStory || nextStory) && (
+              <nav
+                className="mt-12 grid grid-cols-1 sm:grid-cols-2 gap-3"
+                aria-label="Step through today's stories"
+              >
+                <StoryStep item={prevStory} direction="prev" />
+                <StoryStep item={nextStory} direction="next" />
+              </nav>
+            )}
+
+            {moreToday.length > 0 && (
+              <section className="mt-10">
+                <div className="flex items-baseline gap-4 mb-4">
+                  <span
+                    className="font-mono uppercase tracking-[0.24em] shrink-0 text-[var(--color-fg-subtle)]"
+                    style={{ fontSize: "10px" }}
+                  >
+                    More from today
+                  </span>
+                  <span className="block flex-1 h-px bg-[var(--color-border)]" aria-hidden="true" />
+                </div>
+                <ul className="divide-y divide-[var(--color-border)]">
+                  {moreToday.map((s) => (
+                    <li key={s.id}>
+                      <Link
+                        href={`/story/${s.id}`}
+                        className="group flex items-start gap-3 py-3 hover:bg-white/[0.02] transition-colors -mx-2 px-2 rounded-sm"
+                      >
+                        <span
+                          className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0"
+                          style={{ background: categoryColour(s.category) }}
+                          aria-hidden="true"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <span
+                            className="font-mono uppercase tracking-[0.16em] block"
+                            style={{ fontSize: "10px", color: categoryColour(s.category) }}
+                          >
+                            {s.category}
+                          </span>
+                          <span className="font-serif leading-snug text-[var(--color-fg)] group-hover:text-amber-200 transition-colors">
+                            {cleanHeadline(s.title)}
+                          </span>
+                        </div>
+                        <ArrowRight className="h-3.5 w-3.5 mt-1 shrink-0 text-[var(--color-fg-subtle)] group-hover:text-amber-300 transition-colors" />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
             {/* End-of-read Subscribe panel. Compact variant, story pages
                 are shorter reads than editions. */}
             <div className="mt-12">
@@ -127,6 +205,46 @@ export default function StoryPage() {
         )}
       </SectionErrorBoundary>
     </article>
+  );
+}
+
+/**
+ * Prev/next pager tile. Renders an empty placeholder when there's no
+ * neighbour in that direction so the two-up grid stays balanced (the
+ * "next" tile always sits on the right). The "next" tile right-aligns its
+ * content so the pair reads as ← previous / next →.
+ */
+function StoryStep({
+  item,
+  direction,
+}: {
+  item: DailyFeedItem | null;
+  direction: "prev" | "next";
+}) {
+  if (!item) return <span className="hidden sm:block" aria-hidden="true" />;
+  const isNext = direction === "next";
+  return (
+    <Link
+      href={`/story/${item.id}`}
+      className={cn(
+        "panel panel-hover rounded-sm p-4 flex items-center gap-3 group",
+        isNext && "sm:text-right sm:flex-row-reverse"
+      )}
+    >
+      {isNext ? (
+        <ChevronRight className="h-4 w-4 shrink-0 text-[var(--color-fg-subtle)] group-hover:text-amber-300 transition-colors" />
+      ) : (
+        <ChevronLeft className="h-4 w-4 shrink-0 text-[var(--color-fg-subtle)] group-hover:text-amber-300 transition-colors" />
+      )}
+      <span className="min-w-0">
+        <span className="overline block text-[var(--color-fg-subtle)]">
+          {isNext ? "Next" : "Previous"}
+        </span>
+        <span className="text-sm leading-snug line-clamp-2 text-[var(--color-fg-muted)] group-hover:text-[var(--color-fg)] transition-colors">
+          {cleanHeadline(item.title)}
+        </span>
+      </span>
+    </Link>
   );
 }
 
