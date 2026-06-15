@@ -168,28 +168,16 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
       clip
       accentClass={categoryAccentClass(item.category)}
     >
-      {/* Thumbnail plate. Image-forward grid (Discover / Apple News): the
-          og:image fills a 16:9 plate when scraped; otherwise a category-tinted
-          gradient keeps every card the same shape so the grid reads as
-          intentional rather than ragged. Decorative — the headline below is
-          the real tap target — so it's aria-hidden when there's no photo. */}
-      <Link
-        href={`/story/${item.id}`}
-        className="group/thumb relative block w-full overflow-hidden"
-        style={{
-          aspectRatio: "16 / 9",
-          // Size the watermark below against the CARD width, not the viewport,
-          // so it can't overflow when the grid column narrows (e.g. beside the
-          // wide-screen rail).
-          containerType: "inline-size",
-          background: `
-            radial-gradient(circle at 78% 22%, ${categoryColour(item.category)}45 0%, transparent 55%),
-            radial-gradient(circle at 14% 86%, ${categoryColour(item.category)}18 0%, transparent 55%),
-            var(--grad-panel-soft)
-          `,
-        }}
-      >
-        {item.imageUrl ? (
+      {/* Photo plate — only when there's a real og:image. A story with no
+          image renders as a clean text card (metadata → headline → dek)
+          rather than a tall empty 16:9 box with a stranded category word,
+          which read as a broken/missing image. */}
+      {item.imageUrl && (
+        <Link
+          href={`/story/${item.id}`}
+          className="group/thumb relative block w-full overflow-hidden"
+          style={{ aspectRatio: "16 / 9" }}
+        >
           <img
             src={item.imageUrl}
             alt=""
@@ -198,33 +186,13 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
             loading="lazy"
             decoding="async"
           />
-        ) : (
           <span
-            className="absolute font-serif font-bold pointer-events-none select-none whitespace-nowrap"
-            style={{
-              top: "10%",
-              left: "6%",
-              right: "6%",
-              color: categoryColour(item.category),
-              opacity: 0.16,
-              // Container-relative: 14cqw keeps even the longest enriched-lane
-              // category (ECONOMICS / PROPERTY) inside the plate at any column
-              // width, while still reading as a bold broadsheet watermark.
-              fontSize: "clamp(22px, 14cqw, 60px)",
-              letterSpacing: "-0.04em",
-              lineHeight: 0.95,
-              mixBlendMode: "screen",
-            }}
-          >
-            {item.category}
-          </span>
-        )}
-        <span
-          className="absolute inset-0 noise-overlay pointer-events-none"
-          style={{ opacity: 0.4 }}
-          aria-hidden="true"
-        />
-      </Link>
+            className="absolute inset-0 noise-overlay pointer-events-none"
+            style={{ opacity: 0.4 }}
+            aria-hidden="true"
+          />
+        </Link>
+      )}
 
       <div className="p-6 sm:p-7">
       {/* Metadata bar, category in colour, source + actions on the right. */}
