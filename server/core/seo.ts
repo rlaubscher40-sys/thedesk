@@ -79,7 +79,7 @@ async function handleEditionMeta(
     const description =
       edition.metaDescription ??
       edition.rubensTake ??
-      `Weekly intelligence for property partnerships, Edition ${edition.editionNumber}.`;
+      `Weekly intelligence for the property industry, Edition ${edition.editionNumber}.`;
     const ogTitle = edition.socialTitle ?? title;
     const ogDescription = edition.socialDescription ?? description;
     // Branded per-edition OG card, same surface as the masthead, so
@@ -352,7 +352,7 @@ ${urls.join("\n")}
   <channel>
     <title>The Desk</title>
     <link>${base}</link>
-    <description>Daily intelligence for property partnerships, curated by Ruben Laubscher.</description>
+    <description>Daily intelligence for the property industry, curated by Ruben Laubscher.</description>
     <language>en-AU</language>
 ${items}
   </channel>
