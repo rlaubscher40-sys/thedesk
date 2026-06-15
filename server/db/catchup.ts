@@ -229,6 +229,10 @@ export const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
     sql: "ALTER TABLE daily_feed_items ADD channel varchar(32) NOT NULL DEFAULT 'AU'",
   },
   {
+    name: "0021 · instagram_posts.coverVariant",
+    sql: "ALTER TABLE instagram_posts ADD coverVariant varchar(8)",
+  },
+  {
     name: "0020 · job_runs table",
     sql: `CREATE TABLE job_runs (
       id INT AUTO_INCREMENT PRIMARY KEY,

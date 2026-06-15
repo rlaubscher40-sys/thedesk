@@ -76,16 +76,21 @@ async function authenticateScheduled(req: Request): Promise<boolean> {
 // ─── Instagram daily cover inputs (shared by the post handler + preview) ─────
 
 /**
- * Deterministic cover colour for the grid checkerboard: the daily "Today's
- * Briefing" is always light, the midday "Wider Lens" always navy. Because the
- * two posts alternate through the day, the 3-wide profile grid tiles as a clean
- * navy/light checkerboard — and unlike counting prior posts, this can't be
- * thrown off by a post-count race or by deleting posts from Instagram (which
- * leaves our row behind and skews the parity). Matches the existing grid where
- * Wider Lens is navy and Today's Briefing is light.
+ * Next cover colour for the grid checkerboard: the OPPOSITE of the most recent
+ * daily/coverage/weekly cover. A plain per-type rule (daily=light,
+ * coverage=navy) tiled cleanly while there were only two posts a day, but the
+ * weekly edition is a third cover with no alternation partner, so it landed on
+ * whatever tone it pleased and broke the rhythm every week. Flipping from the
+ * last recorded tone instead folds all three streams into one alternating
+ * sequence, which is a clean checkerboard on the 3-wide grid regardless of
+ * cadence. Falls back to "navy" to seed the pattern when nothing's recorded yet
+ * (or the coverVariant column predates this change).
  */
-function coverVariant(kind: "daily" | "coverage"): "navy" | "light" {
-  return kind === "coverage" ? "navy" : "light";
+async function nextCoverVariant(): Promise<"navy" | "light"> {
+  const last = await db.latestGridCoverVariant();
+  if (last === "navy") return "light";
+  if (last === "light") return "navy";
+  return "navy";
 }
 
 /** The morning's metrics, value+unit formatted, capped to the 4 the cover shows. */
@@ -1291,8 +1296,8 @@ function registerInstagramRoutes(app: Express): void {
 
       // Checkerboard the profile grid (slide 1 is the grid thumbnail) and
       // surface the morning's market metrics on the cover's lower third. The
-      // daily post is always the light half of the checkerboard.
-      const variant = coverVariant("daily");
+      // tone flips from whatever the last grid post used.
+      const variant = await nextCoverVariant();
       const metrics = dailyCoverMetrics(await db.listDailyMetrics());
       // The metrics ingest runs before this job, so an empty strip means that
       // job didn't land today. The post still goes out (a clean cover without
@@ -1318,6 +1323,7 @@ function registerInstagramRoutes(app: Express): void {
         postType: "daily",
         feedDate: feedDate ?? null,
         headline,
+        coverVariant: variant,
       });
       res.json({ success: true, postId, headline });
     } catch (err) {
@@ -1373,9 +1379,8 @@ function registerInstagramRoutes(app: Express): void {
     }
     try {
       const { postDailyCarousel } = await import("./instagram/post");
-      // The coverage post is always the navy half of the checkerboard, so it
-      // alternates against the morning's light "Today's Briefing".
-      const variant = coverVariant("coverage");
+      // Flip from the morning's daily cover so the two alternate.
+      const variant = await nextCoverVariant();
       const { postId, headline } = await postDailyCarousel(items, siteOrigin(), {
         variant,
         mode: "coverage",
@@ -1386,6 +1391,7 @@ function registerInstagramRoutes(app: Express): void {
         postType: "coverage",
         feedDate: feedDate ?? null,
         headline,
+        coverVariant: variant,
       });
       res.json({ success: true, postId, headline });
     } catch (err) {
@@ -1427,13 +1433,17 @@ function registerInstagramRoutes(app: Express): void {
     // accepted.
     try {
       const { postWeeklyEdition } = await import("./instagram/post");
-      const { postId, headline } = await postWeeklyEdition(latest, siteOrigin());
+      // The weekly now flips from the last grid post too, so it slots into the
+      // checkerboard instead of always being navy and clashing.
+      const variant = await nextCoverVariant();
+      const { postId, headline } = await postWeeklyEdition(latest, siteOrigin(), variant);
       console.log(`[instagram] weekly post complete: ${postId}`);
       await db.recordInstagramPost({
         mediaId: postId,
         postType: "weekly",
         editionNumber: latest.editionNumber,
         headline,
+        coverVariant: variant,
       });
       res.json({ success: true, editionNumber: latest.editionNumber, postId, headline });
     } catch (err) {
@@ -1504,7 +1514,7 @@ function registerInstagramRoutes(app: Express): void {
             ? "light"
             : req.query.variant === "navy"
               ? "navy"
-              : coverVariant("daily");
+              : "light";
         const stories = pickDailyTopStories(
           (await db.listFeedItems(date)).filter((it) => isEnrichedChannel(it.channel))
         ).map((s) => ({

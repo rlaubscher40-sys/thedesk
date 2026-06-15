@@ -539,6 +539,10 @@ export const instagramPosts = mysqlTable("instagram_posts", {
   editionNumber: int("editionNumber"),
   /** Lead card headline (or edition label), for at-a-glance reading of metrics. */
   headline: varchar("headline", { length: 512 }),
+  /** "navy" | "light" — the grid cover tone used, so the next post can flip
+   *  from it and keep the profile checkerboard clean across daily, coverage
+   *  AND weekly posts. Null on rows written before this column existed. */
+  coverVariant: varchar("coverVariant", { length: 8 }),
   // Engagement metrics, null until the insights job backfills them.
   likes: int("likes"),
   comments: int("comments"),

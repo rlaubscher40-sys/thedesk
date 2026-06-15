@@ -1142,9 +1142,24 @@ export async function renderDailyStoryVertical(
  */
 export async function renderWeeklyCoverCard(
   edition: Edition,
-  heroOverride?: string | null
+  heroOverride?: string | null,
+  variant: CardVariant = "navy"
 ): Promise<Buffer> {
-  const logo = await loadLogo("navy");
+  const logo = await loadLogo(variant);
+  // Two-tone so the weekly slots into the grid checkerboard like the dailies.
+  // Shadowing the module palette with the scheme's colours keeps the large
+  // render tree below unchanged; only the surfaces that must differ by tone
+  // (background, the veil over the hero photo, the bloom) are branched. On the
+  // light tone the veil is a heavy cream so the dark hero photo drops to a
+  // faint texture and the near-ink text stays legible.
+  const c = colorScheme(variant);
+  const FG = c.fg;
+  const FG_MUTED = c.fgMuted;
+  const AMBER = c.amber;
+  const heroVeil =
+    variant === "light"
+      ? "linear-gradient(180deg, rgba(244,241,234,0.93) 0%, rgba(244,241,234,0.95) 44%, rgba(244,241,234,0.98) 100%)"
+      : "linear-gradient(180deg, rgba(12,18,32,0.46) 0%, rgba(12,18,32,0.72) 46%, rgba(12,18,32,0.94) 100%)";
   // The edition's own AI-generated hero (a dark, no-text, category-matched
   // image, see editionHeroPrompt) when the posting flow supplies it as a data
   // URI, else the bundled fallback so a render never depends on a generated
@@ -1170,7 +1185,7 @@ export async function renderWeeklyCoverCard(
         flexDirection: "column",
         width: "1080px",
         height: "1350px",
-        backgroundColor: NAVY,
+        backgroundColor: c.bg,
         position: "relative",
         padding: "80px 72px",
         justifyContent: "space-between",
@@ -1208,8 +1223,7 @@ export async function renderWeeklyCoverCard(
               width: "1080px",
               height: "1350px",
               display: "flex",
-              backgroundImage:
-                "linear-gradient(180deg, rgba(12,18,32,0.46) 0%, rgba(12,18,32,0.72) 46%, rgba(12,18,32,0.94) 100%)",
+              backgroundImage: heroVeil,
             },
             children: "",
           },
@@ -1225,8 +1239,7 @@ export async function renderWeeklyCoverCard(
               width: "1080px",
               height: "1350px",
               display: "flex",
-              backgroundImage:
-                "radial-gradient(circle at 80% 10%, rgba(212,168,83,0.16) 0%, transparent 50%)",
+              backgroundImage: c.bloom,
             },
             children: "",
           },
@@ -1384,13 +1397,13 @@ export async function renderWeeklyCoverCard(
                           width: "66px",
                           height: "66px",
                           borderRadius: "33px",
-                          border: "2px solid rgba(212,168,83,0.6)",
+                          border: `2px solid ${AMBER}`,
                           ...(headshot
                             ? {
                                 backgroundImage: `url(${headshot})`,
                                 backgroundSize: "66px 66px",
                               }
-                            : { backgroundColor: "rgba(212,168,83,0.18)" }),
+                            : { backgroundColor: c.amberSoft }),
                         },
                         children: "",
                       },
@@ -1497,9 +1510,20 @@ export async function renderWeeklyCoverCard(
  */
 export async function renderWeeklyStoryVertical(
   edition: Edition,
-  heroOverride?: string | null
+  heroOverride?: string | null,
+  variant: CardVariant = "navy"
 ): Promise<Buffer> {
-  const logo = await loadLogo("navy");
+  const logo = await loadLogo(variant);
+  // Match the cover's tone (see renderWeeklyCoverCard) so a light-cover week
+  // gets a light Story too. Same shadow-the-palette approach.
+  const c = colorScheme(variant);
+  const FG = c.fg;
+  const FG_MUTED = c.fgMuted;
+  const AMBER = c.amber;
+  const heroVeil =
+    variant === "light"
+      ? "linear-gradient(180deg, rgba(244,241,234,0.93) 0%, rgba(244,241,234,0.95) 44%, rgba(244,241,234,0.98) 100%)"
+      : "linear-gradient(180deg, rgba(12,18,32,0.50) 0%, rgba(12,18,32,0.72) 44%, rgba(12,18,32,0.95) 100%)";
   // Same edition hero as the cover (with the bundled fallback) so the Story
   // and the cover share one photograph.
   const hero = heroOverride ?? (await loadAsset("hero-weekly.jpg"));
@@ -1523,7 +1547,7 @@ export async function renderWeeklyStoryVertical(
         flexDirection: "column",
         width: "1080px",
         height: "1920px",
-        backgroundColor: NAVY,
+        backgroundColor: c.bg,
         position: "relative",
         padding: "130px 80px",
         justifyContent: "space-between",
@@ -1562,8 +1586,7 @@ export async function renderWeeklyStoryVertical(
               width: "1080px",
               height: "1920px",
               display: "flex",
-              backgroundImage:
-                "linear-gradient(180deg, rgba(12,18,32,0.50) 0%, rgba(12,18,32,0.72) 44%, rgba(12,18,32,0.95) 100%)",
+              backgroundImage: heroVeil,
             },
             children: "",
           },
@@ -1579,8 +1602,7 @@ export async function renderWeeklyStoryVertical(
               width: "1080px",
               height: "1920px",
               display: "flex",
-              backgroundImage:
-                "radial-gradient(circle at 80% 8%, rgba(212,168,83,0.16) 0%, transparent 50%)",
+              backgroundImage: c.bloom,
             },
             children: "",
           },
@@ -1850,8 +1872,14 @@ export async function renderWeeklyStoryVertical(
 export async function renderWeeklyTopicCard(
   topic: EditionTopic,
   slideIndex: number,
-  slideTotal: number
+  slideTotal: number,
+  variant: CardVariant = "navy"
 ): Promise<Buffer> {
+  // Match the cover/Story tone so the whole weekly carousel is one colourway.
+  const c = colorScheme(variant);
+  const FG = c.fg;
+  const FG_MUTED = c.fgMuted;
+  const AMBER = c.amber;
   const slideNum = String(slideIndex + 1).padStart(2, "0");
   const totalNum = String(slideTotal).padStart(2, "0");
   const why = topic.whyItMatters ? clamp(topic.whyItMatters, 180) : null;
@@ -1891,9 +1919,8 @@ export async function renderWeeklyTopicCard(
         flexDirection: "column",
         width: "1080px",
         height: "1350px",
-        backgroundColor: NAVY,
-        backgroundImage:
-          "radial-gradient(circle at 15% 88%, rgba(212,168,83,0.10) 0%, transparent 50%)",
+        backgroundColor: c.bg,
+        backgroundImage: c.bloom,
         padding: "80px 72px",
         position: "relative",
         justifyContent: "space-between",
@@ -1914,7 +1941,7 @@ export async function renderWeeklyTopicCard(
               fontSize: "440px",
               lineHeight: 1,
               letterSpacing: "-0.04em",
-              color: "rgba(212,168,83,0.06)",
+              color: c.ghost,
             },
             children: slideNum,
           },
@@ -1992,7 +2019,7 @@ export async function renderWeeklyTopicCard(
                         style: {
                           display: "flex",
                           alignSelf: "flex-start",
-                          backgroundColor: "rgba(212,168,83,0.14)",
+                          backgroundColor: c.amberSoft,
                           border: `1px solid ${AMBER}`,
                           borderRadius: "4px",
                           padding: "6px 16px",
