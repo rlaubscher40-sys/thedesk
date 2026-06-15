@@ -359,13 +359,18 @@ export function pickDailyTopStories(
 }
 
 /**
- * How many of the carousel's stories also get a 24h Story frame. Kept at ONE
- * (the lead) on purpose: a Story is a single 9:16 publish, and posting three
- * back-to-back right after the carousel is exactly the burst that trips
- * Instagram's "Action is blocked" integrity limit. One lead Story keeps a
- * presence in the Stories tray at a fraction of the publish volume.
+ * How many of the carousel's stories also get a 24h Story frame. Set to THREE
+ * (the carousel's top stories) so the Story tray mirrors the post.
+ *
+ * The thing that trips Instagram's "Action is blocked" integrity limit is the
+ * BURST, not the count — so these are never published together. The loop below
+ * posts one frame, waits a generous beat, posts the next, waits again, and
+ * bails out entirely the moment a publish comes back rate-limited (so a block
+ * can never snowball into a retry storm). All of it runs in the background, so
+ * the waiting is free. If the account ever gets flagged again, drop this back
+ * to 1 rather than removing the spacing.
  */
-const STORY_FRAME_COUNT = 1;
+const STORY_FRAME_COUNT = 3;
 
 /**
  * Post the lead story (see STORY_FRAME_COUNT) to the 24h Story as a 9:16 frame.
@@ -392,11 +397,13 @@ async function postStoryFrames(opts: {
   // Let the account breathe well clear of the carousel publish before touching
   // the API again — a generous gap is the single biggest lever against the
   // "Action is blocked" integrity flag, and this is background work so the wait
-  // costs nothing. Frames (if ever >1) are spaced out for the same reason.
+  // costs nothing. Each subsequent frame is spaced out by the same logic; the
+  // gap was widened (20s -> 45s) when the count went from 1 to 3 so three
+  // publishes never read as a burst.
   const settle = (ms: number) => new Promise((r) => setTimeout(r, ms));
   await settle(45000);
   for (let i = 0; i < frames.length; i++) {
-    if (i > 0) await settle(20000);
+    if (i > 0) await settle(45000);
     const uuids: string[] = [];
     try {
       const storyBuf = await renderDailyStoryVertical(frames[i]!, variant, verticalOpts);
