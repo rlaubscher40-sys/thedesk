@@ -8,6 +8,7 @@ import {
   ArrowRight,
   Bookmark,
   BookmarkCheck,
+  ChevronDown,
   ExternalLink,
   Linkedin,
   Pin,
@@ -41,6 +42,12 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
   const isAdmin = user?.role === "admin";
   const utils = trpc.useUtils();
   const [linkedInOpen, setLinkedInOpen] = useState(false);
+  // Grid cards are a scan, not the full read: the lead and the story page
+  // carry the broadsheet treatment, so here the deeper editorial blocks
+  // (why it matters / counterpoint / Say This / partner angles) collapse
+  // behind a toggle. Without this every grid card inherited the lead's full
+  // height and a 3-up column became a skyscraper of scroll.
+  const [showAnalysis, setShowAnalysis] = useState(false);
 
   const deleteItem = trpc.feed.deleteItem.useMutation({
     onSuccess: () => {
@@ -142,6 +149,24 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
   // Whichever block it's taken from is hidden below so it isn't shown twice.
   const dek = cardDek(item);
   const linkedInDraft = buildLinkedInDraft(item);
+
+  // The analytical blocks that hang below the action row. When the dek was
+  // empty the take is promoted up to fill the dek slot, so it's NOT part of
+  // the collapsible (it's the card's only body copy and stays visible).
+  const sayThisInPanel = Boolean(dek && !item.rubensNote && item.sayThis);
+  const hasAnalysis = Boolean(
+    (item.whyItMatters && dek?.from !== "whyItMatters") ||
+      (item.counterpoint && dek?.from !== "counterpoint") ||
+      (dek && (item.rubensNote || item.sayThis)) ||
+      item.partnerTag
+  );
+  // A short hint at what's inside the collapsed read, so the toggle still
+  // advertises the signature Say This / partner-angle value.
+  const analysisHint = sayThisInPanel
+    ? " · Say This + angles"
+    : item.partnerTag
+      ? " · Partner angles"
+      : "";
 
   return (
     <Card
@@ -367,34 +392,57 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
         )}
       </div>
 
-      {/* "Why it matters" — analytical context, shown whenever present and
-          independent of the partner-angle pairing. It's the so-what that
-          lets a reader grasp the stakes in one scan. */}
-      {item.whyItMatters && dek?.from !== "whyItMatters" && (
-        <WhyItMattersLine whyItMatters={item.whyItMatters} category={item.category} />
-      )}
+      {/* Ruben's read — the analytical blocks (why it matters, counterpoint,
+          Say This, partner angles) collapse behind a toggle so the grid stays
+          a scan. Default closed; one tap reveals the full editorial read, and
+          the story page carries it in full regardless. */}
+      {hasAnalysis &&
+        (showAnalysis ? (
+          <div className="mt-4 pt-4 border-t border-[var(--color-border)]">
+            <button
+              onClick={() => setShowAnalysis(false)}
+              aria-expanded="true"
+              className="inline-flex items-center gap-1.5 overline text-[var(--color-fg-subtle)] hover:text-amber-200 transition-colors mb-1"
+              style={{ letterSpacing: "0.18em" }}
+            >
+              Ruben&apos;s read
+              <ChevronDown className="h-3 w-3 rotate-180 transition-transform" />
+            </button>
 
-      {/* Counterpoint — the contrarian read, present only when the story has
-          a genuine second side. Independent of the partner-angle pairing. */}
-      {item.counterpoint && dek?.from !== "counterpoint" && (
-        <CounterpointLine counterpoint={item.counterpoint} />
-      )}
+            {item.whyItMatters && dek?.from !== "whyItMatters" && (
+              <WhyItMattersLine
+                whyItMatters={item.whyItMatters}
+                category={item.category}
+              />
+            )}
 
-      {/* Say This and Partner Angles render independently — a story can
-          carry either one. RubensNote is an editorial override that takes
-          the place of the Say This line when present. Skipped when there
-          was no dek and the take was already promoted up to fill the dek
-          slot above, otherwise the same line would render twice. */}
-      {dek && (
-        <>
-          <RubensNoteBlock itemId={item.id} note={item.rubensNote} />
-          {!item.rubensNote && item.sayThis && (
-            <SayThisLine sayThis={item.sayThis} category={item.category} />
-          )}
-        </>
-      )}
+            {item.counterpoint && dek?.from !== "counterpoint" && (
+              <CounterpointLine counterpoint={item.counterpoint} />
+            )}
 
-      {item.partnerTag && <PartnerTagBlock raw={item.partnerTag} />}
+            {/* RubensNote overrides the Say This line when present. */}
+            {dek && (
+              <>
+                <RubensNoteBlock itemId={item.id} note={item.rubensNote} />
+                {!item.rubensNote && item.sayThis && (
+                  <SayThisLine sayThis={item.sayThis} category={item.category} />
+                )}
+              </>
+            )}
+
+            {item.partnerTag && <PartnerTagBlock raw={item.partnerTag} />}
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowAnalysis(true)}
+            aria-expanded="false"
+            className="mt-4 pt-4 border-t border-[var(--color-border)] w-full inline-flex items-center justify-between gap-2 overline text-[var(--color-fg-subtle)] hover:text-amber-200 transition-colors"
+            style={{ letterSpacing: "0.18em" }}
+          >
+            <span>Ruben&apos;s read{analysisHint}</span>
+            <ChevronDown className="h-3.5 w-3.5" />
+          </button>
+        ))}
 
       <LinkedInPostModal
         open={linkedInOpen}
