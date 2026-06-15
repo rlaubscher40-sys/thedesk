@@ -35,25 +35,33 @@ export function SourceFavicon({
 }) {
   const [failed, setFailed] = useState(false);
   const domain = faviconDomain(url);
-  const initial = name?.trim()?.[0]?.toUpperCase() ?? "·";
 
-  const disc = (
-    <span
-      className="inline-flex items-center justify-center rounded-[3px] shrink-0 font-mono font-semibold text-[var(--color-fg-subtle)]"
-      style={{
-        width: size,
-        height: size,
-        fontSize: size * 0.6,
-        background: "var(--color-panel-tile-bg)",
-        boxShadow: "inset 0 0 0 1px var(--color-border)",
-      }}
-      aria-hidden="true"
-    >
-      {initial}
-    </span>
-  );
+  // No real publisher domain (e.g. an unresolved Google News redirect, the
+  // default until the ingest's URL resolver has run) → render nothing rather
+  // than a generic letter box. The source name sits right beside this, so an
+  // empty slot reads cleaner than a placeholder glyph.
+  if (!domain) return null;
 
-  if (!domain || failed) return disc;
+  // Domain resolved but the icon 404'd: a small letter disc keeps the row
+  // aligned instead of leaving a gap mid-fetch.
+  if (failed) {
+    const initial = name?.trim()?.[0]?.toUpperCase() ?? "·";
+    return (
+      <span
+        className="inline-flex items-center justify-center rounded-[3px] shrink-0 font-mono font-semibold text-[var(--color-fg-subtle)]"
+        style={{
+          width: size,
+          height: size,
+          fontSize: size * 0.6,
+          background: "var(--color-panel-tile-bg)",
+          boxShadow: "inset 0 0 0 1px var(--color-border)",
+        }}
+        aria-hidden="true"
+      >
+        {initial}
+      </span>
+    );
+  }
 
   return (
     <img

@@ -162,6 +162,10 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
         className="group/thumb relative block w-full overflow-hidden"
         style={{
           aspectRatio: "16 / 9",
+          // Size the watermark below against the CARD width, not the viewport,
+          // so it can't overflow when the grid column narrows (e.g. beside the
+          // wide-screen rail).
+          containerType: "inline-size",
           background: `
             radial-gradient(circle at 78% 22%, ${categoryColour(item.category)}45 0%, transparent 55%),
             radial-gradient(circle at 14% 86%, ${categoryColour(item.category)}18 0%, transparent 55%),
@@ -180,14 +184,17 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
           />
         ) : (
           <span
-            className="absolute font-serif font-bold pointer-events-none select-none"
+            className="absolute font-serif font-bold pointer-events-none select-none whitespace-nowrap"
             style={{
               top: "10%",
               left: "6%",
               right: "6%",
               color: categoryColour(item.category),
               opacity: 0.16,
-              fontSize: "clamp(40px, 7vw, 72px)",
+              // Container-relative: 14cqw keeps even the longest enriched-lane
+              // category (ECONOMICS / PROPERTY) inside the plate at any column
+              // width, while still reading as a bold broadsheet watermark.
+              fontSize: "clamp(22px, 14cqw, 60px)",
               letterSpacing: "-0.04em",
               lineHeight: 0.95,
               mixBlendMode: "screen",
