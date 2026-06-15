@@ -312,6 +312,14 @@ export default function DailyFeed() {
   const liveGrid = enriched ? angledSorted : liveRest;
   const liveSignals = enriched ? nonAngled : [];
 
+  // If the enriched 3-up grid would leave a single card alone in the last
+  // row, pull it out and render it full-width below as a horizontal card, so
+  // a lone trailing story fills the row instead of stranding two empty
+  // columns. Coverage lanes keep the plain grid (no wide variant).
+  const gridHasLoneTail = enriched && liveGrid.length % 3 === 1;
+  const gridItems = gridHasLoneTail ? liveGrid.slice(0, -1) : liveGrid;
+  const gridTail = gridHasLoneTail ? liveGrid[liveGrid.length - 1] : null;
+
   // Stories that have both a sayThis line and a partnerTag — the ones
   // actually ready to drop into a client conversation.
   const talkingPoints = useMemo(
@@ -479,18 +487,26 @@ export default function DailyFeed() {
             <SectionErrorBoundary section="Grid">
               <section>
                 <SectionDivider label="More from today" />
-                <StaggerList
-                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
-                  cacheKey={`grid-${channel}-${filter}`}
-                >
-                  {liveGrid.map((item) =>
-                    enriched ? (
-                      <FeedItemCard key={item.id} item={item} />
-                    ) : (
-                      <CoverageFeedCard key={item.id} item={item} />
-                    )
-                  )}
-                </StaggerList>
+                {gridItems.length > 0 && (
+                  <StaggerList
+                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
+                    cacheKey={`grid-${channel}-${filter}`}
+                  >
+                    {gridItems.map((item) =>
+                      enriched ? (
+                        <FeedItemCard key={item.id} item={item} />
+                      ) : (
+                        <CoverageFeedCard key={item.id} item={item} />
+                      )
+                    )}
+                  </StaggerList>
+                )}
+                {/* Lone trailing card → full-width horizontal card. */}
+                {gridTail && (
+                  <div className={gridItems.length > 0 ? "mt-5" : undefined}>
+                    <FeedItemCard item={gridTail} wide />
+                  </div>
+                )}
               </section>
             </SectionErrorBoundary>
           )}

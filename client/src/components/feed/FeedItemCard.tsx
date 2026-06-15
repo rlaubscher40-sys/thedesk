@@ -28,7 +28,16 @@ import { CorroborationBadge } from "./CorroborationBadge";
 import { SourceFavicon } from "./SourceFavicon";
 import { ThreadLink } from "./ThreadLink";
 
-export function FeedItemCard({ item }: { item: DailyFeedItem }) {
+export function FeedItemCard({
+  item,
+  wide = false,
+}: {
+  item: DailyFeedItem;
+  /** Lone-in-its-row card: span the full width and lay the editorial column
+   *  and the "Ruben's read" side by side, with the read expanded, so a single
+   *  trailing story fills the row instead of stranding empty columns. */
+  wide?: boolean;
+}) {
   const { user, isAuthenticated } = useAuth();
   const isAdmin = user?.role === "admin";
   const utils = trpc.useUtils();
@@ -159,6 +168,32 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
       ? " · Partner angles"
       : "";
 
+  // The analytical blocks, shared between the collapsible (normal grid card)
+  // and the always-expanded right column (wide card).
+  const analysisBlocks = (
+    <>
+      {item.whyItMatters && dek?.from !== "whyItMatters" && (
+        <WhyItMattersLine
+          whyItMatters={item.whyItMatters}
+          category={item.category}
+        />
+      )}
+      {item.counterpoint && dek?.from !== "counterpoint" && (
+        <CounterpointLine counterpoint={item.counterpoint} />
+      )}
+      {/* RubensNote overrides the Say This line when present. */}
+      {dek && (
+        <>
+          <RubensNoteBlock itemId={item.id} note={item.rubensNote} />
+          {!item.rubensNote && item.sayThis && (
+            <SayThisLine sayThis={item.sayThis} category={item.category} />
+          )}
+        </>
+      )}
+      {item.partnerTag && <PartnerTagBlock raw={item.partnerTag} />}
+    </>
+  );
+
   return (
     <Card
       panelHover
@@ -283,125 +318,107 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
         </div>
       </div>
 
-      {/* Headline, display-3 serif, hover shifts to amber. */}
-      <Link href={`/story/${item.id}`} className="block group">
-        <h3 className="display-3 mb-3 group-hover:text-amber-200 transition-colors">
-          {title}
-        </h3>
-      </Link>
+      {/* Body. On a lone full-width card (`wide`) the editorial column and the
+          analytical "Ruben's read" sit side by side at lg to fill the row, with
+          the read expanded; in the normal grid they stack and the read
+          collapses behind a toggle. */}
+      <div className={wide ? "lg:grid lg:grid-cols-2 lg:gap-x-10 lg:items-start" : undefined}>
+        <div>
+          {/* Headline, display-3 serif, hover shifts to amber. */}
+          <Link href={`/story/${item.id}`} className="block group">
+            <h3 className="display-3 mb-3 group-hover:text-amber-200 transition-colors">
+              {title}
+            </h3>
+          </Link>
 
-      {/* Storyline spine: link back to the prior coverage this continues. */}
-      {item.threadParentId && (
-        <div className="mb-3 -mt-1">
-          <ThreadLink
-            parentId={item.threadParentId}
-            parentTitle={item.threadParentTitle}
-          />
-        </div>
-      )}
-
-      {/* Lede. Clamped to keep grid rows visually uniform, summaries
-          arrive at wildly different lengths from the LLM enrichment,
-          and an uncapped paragraph blows the row height. The full
-          summary still surfaces on the story page.
-
-          When the story has no proper dek content, the editorial take
-          is promoted up to fill the slot — labelled Say This / Ruben's
-          note instead of a hole between the headline and the action
-          row. The "below" Say This render is then skipped to avoid
-          duplication. */}
-      {dek ? (
-        <p className="text-base text-[var(--color-fg-muted)] leading-relaxed line-clamp-3">
-          {dek.text}
-        </p>
-      ) : item.rubensNote || item.sayThis ? (
-        <>
-          <RubensNoteBlock itemId={item.id} note={item.rubensNote} />
-          {!item.rubensNote && item.sayThis && (
-            <SayThisLine sayThis={item.sayThis} category={item.category} />
+          {/* Storyline spine: link back to the prior coverage this continues. */}
+          {item.threadParentId && (
+            <div className="mb-3 -mt-1">
+              <ThreadLink
+                parentId={item.threadParentId}
+                parentTitle={item.threadParentTitle}
+              />
+            </div>
           )}
-        </>
-      ) : null}
 
-      {/* Action row. Grouped so "Read more", "Read original" and the admin
-          "Add note" affordance wrap cleanly instead of crowding into each
-          other on a single line. */}
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-4">
-        {/* The summary clamps to 3 lines, so signal that the full read
-            lives on the story page rather than leaving the truncation
-            ambiguous. Distinct from "Read original" below, which leaves
-            the site for the source. */}
-        <Link
-          href={`/story/${item.id}`}
-          className="inline-flex items-center gap-1 text-xs text-[var(--color-fg-subtle)] hover:text-amber-200 transition-colors"
-        >
-          Read more
-          <ArrowRight className="h-3 w-3" />
-        </Link>
+          {/* Lede. Clamped to keep grid rows visually uniform. When the story
+              has no proper dek the editorial take is promoted up to fill the
+              slot; the "below" Say This render is then skipped to avoid
+              duplication. */}
+          {dek ? (
+            <p className="text-base text-[var(--color-fg-muted)] leading-relaxed line-clamp-3">
+              {dek.text}
+            </p>
+          ) : item.rubensNote || item.sayThis ? (
+            <>
+              <RubensNoteBlock itemId={item.id} note={item.rubensNote} />
+              {!item.rubensNote && item.sayThis && (
+                <SayThisLine sayThis={item.sayThis} category={item.category} />
+              )}
+            </>
+          ) : null}
 
-        {item.sourceUrl && (
-          <a
-            href={item.sourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 overline-amber hover:text-amber-200 transition-colors"
-          >
-            <ExternalLink className="h-3 w-3" /> Read original
-          </a>
-        )}
-      </div>
+          {/* Action row. */}
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-4">
+            <Link
+              href={`/story/${item.id}`}
+              className="inline-flex items-center gap-1 text-xs text-[var(--color-fg-subtle)] hover:text-amber-200 transition-colors"
+            >
+              Read more
+              <ArrowRight className="h-3 w-3" />
+            </Link>
 
-      {/* Ruben's read — the analytical blocks (why it matters, counterpoint,
-          Say This, partner angles) collapse behind a toggle so the grid stays
-          a scan. Default closed; one tap reveals the full editorial read, and
-          the story page carries it in full regardless. */}
-      {hasAnalysis &&
-        (showAnalysis ? (
-          <div className="mt-4 pt-4 border-t border-[var(--color-border)]">
+            {item.sourceUrl && (
+              <a
+                href={item.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 overline-amber hover:text-amber-200 transition-colors"
+              >
+                <ExternalLink className="h-3 w-3" /> Read original
+              </a>
+            )}
+          </div>
+        </div>
+
+        {/* Ruben's read. Wide card: always expanded in a side column. Normal
+            grid card: collapses behind a toggle so the grid stays a scan. */}
+        {hasAnalysis &&
+          (wide ? (
+            <div className="mt-5 pt-5 border-t border-[var(--color-border)] lg:mt-0 lg:pt-0 lg:border-t-0 lg:border-l lg:pl-10">
+              <p
+                className="overline text-[var(--color-fg-subtle)] mb-3"
+                style={{ letterSpacing: "0.18em" }}
+              >
+                Ruben&apos;s read{analysisHint}
+              </p>
+              {analysisBlocks}
+            </div>
+          ) : showAnalysis ? (
+            <div className="mt-4 pt-4 border-t border-[var(--color-border)]">
+              <button
+                onClick={() => setShowAnalysis(false)}
+                aria-expanded="true"
+                className="inline-flex items-center gap-1.5 overline text-[var(--color-fg-subtle)] hover:text-amber-200 transition-colors mb-1"
+                style={{ letterSpacing: "0.18em" }}
+              >
+                Ruben&apos;s read
+                <ChevronDown className="h-3 w-3 rotate-180 transition-transform" />
+              </button>
+              {analysisBlocks}
+            </div>
+          ) : (
             <button
-              onClick={() => setShowAnalysis(false)}
-              aria-expanded="true"
-              className="inline-flex items-center gap-1.5 overline text-[var(--color-fg-subtle)] hover:text-amber-200 transition-colors mb-1"
+              onClick={() => setShowAnalysis(true)}
+              aria-expanded="false"
+              className="mt-4 pt-4 border-t border-[var(--color-border)] w-full inline-flex items-center justify-between gap-2 overline text-[var(--color-fg-subtle)] hover:text-amber-200 transition-colors"
               style={{ letterSpacing: "0.18em" }}
             >
-              Ruben&apos;s read
-              <ChevronDown className="h-3 w-3 rotate-180 transition-transform" />
+              <span>Ruben&apos;s read{analysisHint}</span>
+              <ChevronDown className="h-3.5 w-3.5" />
             </button>
-
-            {item.whyItMatters && dek?.from !== "whyItMatters" && (
-              <WhyItMattersLine
-                whyItMatters={item.whyItMatters}
-                category={item.category}
-              />
-            )}
-
-            {item.counterpoint && dek?.from !== "counterpoint" && (
-              <CounterpointLine counterpoint={item.counterpoint} />
-            )}
-
-            {/* RubensNote overrides the Say This line when present. */}
-            {dek && (
-              <>
-                <RubensNoteBlock itemId={item.id} note={item.rubensNote} />
-                {!item.rubensNote && item.sayThis && (
-                  <SayThisLine sayThis={item.sayThis} category={item.category} />
-                )}
-              </>
-            )}
-
-            {item.partnerTag && <PartnerTagBlock raw={item.partnerTag} />}
-          </div>
-        ) : (
-          <button
-            onClick={() => setShowAnalysis(true)}
-            aria-expanded="false"
-            className="mt-4 pt-4 border-t border-[var(--color-border)] w-full inline-flex items-center justify-between gap-2 overline text-[var(--color-fg-subtle)] hover:text-amber-200 transition-colors"
-            style={{ letterSpacing: "0.18em" }}
-          >
-            <span>Ruben&apos;s read{analysisHint}</span>
-            <ChevronDown className="h-3.5 w-3.5" />
-          </button>
-        ))}
+          ))}
+      </div>
 
       <LinkedInPostModal
         open={linkedInOpen}
