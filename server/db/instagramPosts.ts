@@ -10,7 +10,7 @@
  * has not been applied) or the DB is unavailable, these no-op rather than throw,
  * so posting is never blocked by analytics.
  */
-import { and, count, desc, gte, inArray, isNull, eq } from "drizzle-orm";
+import { and, count, desc, gte, inArray, isNotNull, isNull, eq } from "drizzle-orm";
 import { isDemoMode } from "../demo/store";
 import { getDb } from "./client";
 import {
@@ -32,7 +32,7 @@ export type InstagramPostMetrics = {
 export async function recordInstagramPost(
   input: Pick<
     InsertInstagramPost,
-    "mediaId" | "postType" | "feedDate" | "editionNumber" | "headline"
+    "mediaId" | "postType" | "feedDate" | "editionNumber" | "headline" | "coverVariant"
   >
 ): Promise<void> {
   if (isDemoMode()) return;
@@ -141,6 +141,37 @@ export async function countCheckerboardPosts(): Promise<number> {
   } catch (err) {
     console.warn("[instagramPosts] checkerboard count failed:", (err as Error).message);
     return 0;
+  }
+}
+
+/**
+ * The grid cover tone of the most recent daily/coverage/weekly post that has
+ * one recorded. The next post flips from this so the profile checkerboard stays
+ * clean across all three streams (the weekly no longer breaks the rhythm).
+ * Returns null pre-migration or when no prior post carries a tone — the caller
+ * picks a default to start the pattern.
+ */
+export async function latestGridCoverVariant(): Promise<"navy" | "light" | null> {
+  if (isDemoMode()) return null;
+  const db = getDb();
+  if (!db) return null;
+  try {
+    const rows = await db
+      .select({ coverVariant: instagramPosts.coverVariant })
+      .from(instagramPosts)
+      .where(
+        and(
+          inArray(instagramPosts.postType, ["daily", "coverage", "weekly"]),
+          isNotNull(instagramPosts.coverVariant)
+        )
+      )
+      .orderBy(desc(instagramPosts.createdAt))
+      .limit(1);
+    const v = rows[0]?.coverVariant;
+    return v === "navy" || v === "light" ? v : null;
+  } catch (err) {
+    console.warn("[instagramPosts] latest cover variant query failed:", (err as Error).message);
+    return null;
   }
 }
 

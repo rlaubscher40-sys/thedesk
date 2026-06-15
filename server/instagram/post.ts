@@ -605,7 +605,8 @@ export async function postDailyCarousel(
 
 export async function postWeeklyEdition(
   edition: Edition,
-  siteUrl: string
+  siteUrl: string,
+  variant: CardVariant = "navy"
 ): Promise<{ postId: string; headline: string }> {
   const { instagramAccessToken: accessToken, instagramBusinessAccountId: igUserId } = env;
   if (!accessToken || !igUserId) {
@@ -638,12 +639,12 @@ export async function postWeeklyEdition(
   const heroDataUri = await loadEditionHeroDataUri(edition.id);
 
   try {
-    // Slide 1: cover
-    uuids.push(storeTempImage(await renderWeeklyCoverCard(sanitizedEdition, heroDataUri)));
+    // Slide 1: cover, tone set by the running checkerboard parity.
+    uuids.push(storeTempImage(await renderWeeklyCoverCard(sanitizedEdition, heroDataUri, variant)));
 
     // Slides 2–N: one per topic
     for (let i = 0; i < sanitizedTopics.length; i++) {
-      const buf = await renderWeeklyTopicCard(sanitizedTopics[i]!, i + 1, totalSlides);
+      const buf = await renderWeeklyTopicCard(sanitizedTopics[i]!, i + 1, totalSlides, variant);
       uuids.push(storeTempImage(buf));
       altTexts.push(sanitizedTopics[i]!.title);
     }
@@ -679,7 +680,7 @@ export async function postWeeklyEdition(
     // never fail the feed post that has already gone live. Skipped entirely
     // while Stories are paused for the integrity cooldown.
     if (!instagramCooldownActive()) try {
-      const storyBuf = await renderWeeklyStoryVertical(sanitizedEdition, heroDataUri);
+      const storyBuf = await renderWeeklyStoryVertical(sanitizedEdition, heroDataUri, variant);
       const storyUuid = storeTempImage(storyBuf);
       uuids.push(storyUuid);
       const storyContainerId = await createStoryContainer({
