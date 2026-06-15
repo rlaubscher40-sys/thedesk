@@ -13,7 +13,8 @@
  * shared link routes back into the funnel.
  */
 import { useState } from "react";
-import { Check, Copy, Linkedin, Share2, Twitter } from "lucide-react";
+import { Check, Copy, Share2 } from "lucide-react";
+import { Linkedin, Twitter } from "@/components/icons/BrandIcons";
 import { toast } from "sonner";
 import { cn } from "@/lib/cn";
 import type { Edition } from "@shared/types";

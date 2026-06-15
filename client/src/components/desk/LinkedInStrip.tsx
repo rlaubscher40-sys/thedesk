@@ -8,7 +8,8 @@
  * editorially better, only the posts Ruben thinks are worth surfacing
  * make the strip, which is the whole pitch.
  */
-import { ExternalLink, Linkedin } from "lucide-react";
+import { ExternalLink } from "lucide-react";
+import { Linkedin } from "@/components/icons/BrandIcons";
 import { trpc } from "@/lib/trpc";
 
 export function LinkedInStrip() {

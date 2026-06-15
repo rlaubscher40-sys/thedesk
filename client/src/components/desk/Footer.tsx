@@ -10,7 +10,7 @@
  * expects a visible disclaimer that the content isn't personal advice.
  */
 import { Link } from "wouter";
-import { Instagram } from "lucide-react";
+import { Instagram } from "@/components/icons/BrandIcons";
 import { BrandLockup } from "@/components/Logomark";
 import { useLiveEditionMeta } from "@/lib/useLiveEditionMeta";
 

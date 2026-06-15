@@ -7,7 +7,8 @@
  * Hidden on narrow screens by collapsing into a single line; on desktop
  * the headshot is 80px with a real intro sentence.
  */
-import { ExternalLink, Instagram, Linkedin, X } from "lucide-react";
+import { ExternalLink, X } from "lucide-react";
+import { Instagram, Linkedin } from "@/components/icons/BrandIcons";
 import { useState } from "react";
 
 const SUBSTACK_URL = "https://rubenlaubscher.substack.com/";

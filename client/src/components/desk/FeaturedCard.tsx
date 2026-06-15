@@ -7,7 +7,7 @@
  * Active persona is read from context; the corresponding angle is the
  * highlighted partner-angle row and its sayThis is the one rendered.
  */
-import { Linkedin } from "lucide-react";
+import { Linkedin } from "@/components/icons/BrandIcons";
 import { useState } from "react";
 import type { Story } from "@/data/editions/2026-05-15";
 import { categoryColour } from "@/lib/category";

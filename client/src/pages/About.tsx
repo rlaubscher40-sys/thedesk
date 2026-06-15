@@ -12,7 +12,8 @@
  * uses the canvas. Mobile stacks them linearly.
  */
 import { useState } from "react";
-import { ExternalLink, Instagram, Linkedin } from "lucide-react";
+import { ExternalLink } from "lucide-react";
+import { Instagram, Linkedin } from "@/components/icons/BrandIcons";
 import { useDocumentTitle } from "@/lib/useDocumentTitle";
 import { SubscribeBanner } from "@/components/SubscribeBanner";
 
