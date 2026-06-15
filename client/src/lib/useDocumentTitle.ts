@@ -12,7 +12,7 @@ export function useDocumentTitle(title: string | null | undefined): void {
   useEffect(() => {
     if (typeof document === "undefined") return;
     const previous = document.title;
-    document.title = title ? `${title}${SUFFIX}` : `The Desk, Daily intelligence for property partnerships`;
+    document.title = title ? `${title}${SUFFIX}` : `The Desk, Daily intelligence for the property industry`;
     return () => {
       document.title = previous;
     };

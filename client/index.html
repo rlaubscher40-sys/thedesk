@@ -35,6 +35,9 @@
     />
 
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="The Desk" />
+    <meta property="og:url" content="https://thedesk.au/" />
+    <meta property="og:locale" content="en_AU" />
     <meta property="og:title" content="The Desk: Daily intelligence for the property industry" />
     <meta
       property="og:description"
@@ -45,8 +48,17 @@
     <meta property="og:image:height" content="630" />
 
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="The Desk: Daily intelligence for the property industry" />
+    <meta name="twitter:description" content="A 60-second morning scan, weekly deep-dive editions, and ready-to-use talking points." />
     <meta name="twitter:image" content="/og-card.png" />
 
+    <!--
+      Homepage canonical. The SPA serves the same shell on a few URL
+      variants (trailing slash, www); a self-referential canonical keeps
+      Google consolidating ranking signals onto one address. Per-edition
+      pages set their own canonical in server/core/seo.ts.
+    -->
+    <link rel="canonical" href="https://thedesk.au/" />
     <link rel="alternate" type="application/rss+xml" title="The Desk RSS" href="/feed.xml" />
 
     <!--
@@ -61,10 +73,22 @@
         "@context": "https://schema.org",
         "@type": "WebSite",
         "name": "The Desk",
+        "url": "https://thedesk.au",
+        "inLanguage": "en-AU",
         "description": "Daily intelligence for the property industry, curated by Ruben Laubscher.",
         "publisher": {
           "@type": "Organization",
           "name": "The Desk",
+          "url": "https://thedesk.au",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://thedesk.au/icon-512.png",
+            "width": 512,
+            "height": 512
+          },
+          "sameAs": [
+            "https://www.instagram.com/thedesk.au/"
+          ],
           "founder": {
             "@type": "Person",
             "name": "Ruben Laubscher",
