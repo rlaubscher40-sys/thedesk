@@ -314,7 +314,7 @@ function NotificationsCard() {
     {
       key: "daily",
       label: "Daily brief",
-      description: "Today's five stories at 7am AEST, Mon–Fri.",
+      description: "Today's five stories at 7am AEST, Mon to Fri.",
     },
     {
       key: "weekly",

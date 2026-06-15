@@ -17,6 +17,7 @@
  * dek empty than to swallow the Say This.
  */
 import { shouldShowSummary } from "@shared/headline";
+import { dedash } from "./dedash";
 
 export type DekFrom = "summary" | "whyItMatters" | "counterpoint";
 
@@ -29,9 +30,9 @@ type DekFields = {
 
 export function cardDek(item: DekFields): { text: string; from: DekFrom } | null {
   if (item.summary && shouldShowSummary(item.title, item.summary)) {
-    return { text: item.summary, from: "summary" };
+    return { text: dedash(item.summary), from: "summary" };
   }
-  if (item.whyItMatters?.trim()) return { text: item.whyItMatters, from: "whyItMatters" };
-  if (item.counterpoint?.trim()) return { text: item.counterpoint, from: "counterpoint" };
+  if (item.whyItMatters?.trim()) return { text: dedash(item.whyItMatters), from: "whyItMatters" };
+  if (item.counterpoint?.trim()) return { text: dedash(item.counterpoint), from: "counterpoint" };
   return null;
 }

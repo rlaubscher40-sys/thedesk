@@ -5,6 +5,8 @@
  * reader registers it as the other side of the story rather than more of
  * the same. Present only on stories with a genuine second side.
  */
+import { dedash } from "@/lib/dedash";
+
 const COUNTERPOINT_ACCENT = "oklch(0.70 0.06 250)"; // cool slate-blue
 
 export function CounterpointLine({
@@ -32,7 +34,7 @@ export function CounterpointLine({
             : "font-serif italic text-[15px] leading-relaxed text-[var(--color-fg-muted)] flex-1 min-w-0"
         }
       >
-        {counterpoint}
+        {dedash(counterpoint)}
       </p>
     </div>
   );

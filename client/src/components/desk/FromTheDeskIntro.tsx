@@ -77,7 +77,7 @@ export function FromTheDeskIntro() {
         type="button"
         onClick={collapse}
         aria-label="Collapse intro"
-        title="Collapse — keeps a one-line byline"
+        title="Collapse, keeps a one-line byline"
         className="absolute top-3 right-3 p-1.5 rounded text-[var(--color-fg-subtle)] hover:text-[var(--color-fg)] transition-colors"
       >
         <X className="h-3.5 w-3.5" />
@@ -133,7 +133,7 @@ export function FromTheDeskIntro() {
         <p className="text-sm text-[var(--color-fg-muted)] mt-1.5 leading-snug max-w-[60ch]">
           Head of Partnerships at InvestorKit. Every morning I read the
           property market and pull out the handful of stories worth raising
-          with a client — so you don't have to.
+          with a client, so you don't have to.
         </p>
         <div className="flex flex-wrap items-center gap-2 mt-3 sm:hidden">
           <a

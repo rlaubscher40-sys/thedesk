@@ -140,7 +140,7 @@ export function Hero({ onGenerateAll }: { onGenerateAll?: () => void }) {
 
           <div className="flex items-end justify-between gap-6 mt-4 flex-wrap">
             <p className="font-serif text-base sm:text-lg text-[var(--color-fg-muted)] max-w-[44ch] leading-snug">
-              A sixty-second scan of what's moving Australian property —
+              A sixty-second scan of what's moving Australian property,
               written for brokers, advisers / accountants and buyer's
               agents.
             </p>
