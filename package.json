@@ -43,7 +43,7 @@
     "express-rate-limit": "^8.5.2",
     "framer-motion": "^12.40.0",
     "jose": "6.2.3",
-    "lucide-react": "^0.453.0",
+    "lucide-react": "^1.18.0",
     "mysql2": "^3.22.5",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",

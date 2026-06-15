@@ -6,15 +6,8 @@
  * label set large.
  */
 import { useState } from "react";
-import {
-  Bookmark,
-  BookmarkCheck,
-  ExternalLink,
-  Linkedin,
-  Pin,
-  PinOff,
-  Trash2,
-} from "lucide-react";
+import { Bookmark, BookmarkCheck, ExternalLink, Pin, PinOff, Trash2 } from "lucide-react";
+import { Linkedin } from "@/components/icons/BrandIcons";
 import { Link } from "wouter";
 import { toast } from "sonner";
 import type { DailyFeedItem } from "@shared/types";

@@ -9,7 +9,8 @@
  * announced via role="status" by sonner so screen readers pick it up.
  */
 import { useState } from "react";
-import { Check, Copy, Link2, Linkedin, MessageSquare } from "lucide-react";
+import { Check, Copy, Link2, MessageSquare } from "lucide-react";
+import { Linkedin } from "@/components/icons/BrandIcons";
 import { toast } from "sonner";
 import { cn } from "@/lib/cn";
 import { PERSONA_COLOUR } from "@/lib/persona";

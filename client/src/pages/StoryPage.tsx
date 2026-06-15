@@ -3,7 +3,8 @@
  * out to read.
  */
 import { useEffect, useState } from "react";
-import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, ExternalLink, Linkedin } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
+import { Linkedin } from "@/components/icons/BrandIcons";
 import { Link, useParams } from "wouter";
 import type { DailyFeedItem } from "@shared/types";
 import { PageHeader } from "@/components/PageHeader";

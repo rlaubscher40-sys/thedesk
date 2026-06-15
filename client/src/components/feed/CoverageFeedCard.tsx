@@ -10,7 +10,8 @@
  * card for the enriched lanes where it has something to carry.
  */
 import { useState } from "react";
-import { Bookmark, BookmarkCheck, ExternalLink, Linkedin, Trash2 } from "lucide-react";
+import { Bookmark, BookmarkCheck, ExternalLink, Trash2 } from "lucide-react";
+import { Linkedin } from "@/components/icons/BrandIcons";
 import { Link } from "wouter";
 import { toast } from "sonner";
 import type { DailyFeedItem } from "@shared/types";

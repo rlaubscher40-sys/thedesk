@@ -22,7 +22,8 @@
  * permanently.
  */
 import { useEffect, useRef, useState } from "react";
-import { CheckCircle2, ExternalLink, Instagram, Rss, X } from "lucide-react";
+import { CheckCircle2, ExternalLink, Rss, X } from "lucide-react";
+import { Instagram } from "@/components/icons/BrandIcons";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 import { Honeypot } from "@/components/Honeypot";

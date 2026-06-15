@@ -12,7 +12,8 @@
  * gradient initial if the image doesn't load.
  */
 import { useState } from "react";
-import { Instagram, Linkedin, Rss } from "lucide-react";
+import { Rss } from "lucide-react";
+import { Instagram, Linkedin } from "@/components/icons/BrandIcons";
 import { cn } from "@/lib/cn";
 
 type Props = {

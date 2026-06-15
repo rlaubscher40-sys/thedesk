@@ -10,7 +10,8 @@
  * It also addresses issue #6, a colour-coded character counter that maps to
  * LinkedIn's real truncation thresholds.
  */
-import { Check, Copy, ExternalLink, Linkedin } from "lucide-react";
+import { Check, Copy, ExternalLink } from "lucide-react";
+import { Linkedin } from "@/components/icons/BrandIcons";
 import { useEffect, useMemo, useState } from "react";
 import { LINKEDIN_LIMITS } from "@shared/const";
 import { cn } from "@/lib/cn";
