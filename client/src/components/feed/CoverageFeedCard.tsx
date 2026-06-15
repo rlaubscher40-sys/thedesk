@@ -23,6 +23,7 @@ import { trpc } from "@/lib/trpc";
 import { Card } from "../ui/Card";
 import { LinkedInPostModal } from "../LinkedInPostModal";
 import { CorroborationBadge } from "./CorroborationBadge";
+import { SourceFavicon } from "./SourceFavicon";
 
 export function CoverageFeedCard({ item }: { item: DailyFeedItem }) {
   const { user, isAuthenticated } = useAuth();
@@ -145,6 +146,7 @@ export function CoverageFeedCard({ item }: { item: DailyFeedItem }) {
           <span className="shrink-0 text-[var(--color-fg-subtle)]" aria-hidden="true">
             ·
           </span>
+          <SourceFavicon url={item.sourceUrl} name={item.source} size={12} />
           <span className="truncate text-[var(--color-fg-subtle)]">{item.source}</span>
           <CorroborationBadge
             count={item.corroborationCount}

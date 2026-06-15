@@ -33,6 +33,7 @@ import { SayThisLine } from "./SayThisLine";
 import { WhyItMattersLine } from "./WhyItMattersLine";
 import { CounterpointLine } from "./CounterpointLine";
 import { CorroborationBadge } from "./CorroborationBadge";
+import { SourceFavicon } from "./SourceFavicon";
 import { ThreadLink } from "./ThreadLink";
 
 export function FeedItemCard({ item }: { item: DailyFeedItem }) {
@@ -218,6 +219,7 @@ export function FeedItemCard({ item }: { item: DailyFeedItem }) {
           >
             ·
           </span>
+          <SourceFavicon url={item.sourceUrl} name={item.source} />
           <span className="overline truncate">{item.source}</span>
           <CorroborationBadge
             count={item.corroborationCount}

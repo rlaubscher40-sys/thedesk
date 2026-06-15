@@ -30,6 +30,7 @@ import { SignalCard } from "@/components/desk/SignalCard";
 import { StoryCard } from "@/components/desk/StoryCard";
 import { WhatsNewPill } from "@/components/desk/WhatsNewPill";
 import { MetricsStrip } from "@/components/desk/rightRail/MetricsStrip";
+import { TodayRail } from "@/components/desk/rightRail/TodayRail";
 import { SupportStrip } from "@/components/desk/rightRail/SupportStrip";
 import { FeedLeadCard } from "@/components/feed/FeedLeadCard";
 import { CoverageLeadCard } from "@/components/feed/CoverageLeadCard";
@@ -350,6 +351,13 @@ export default function DailyFeed() {
         <FromTheDeskIntro />
       </SectionErrorBoundary>
 
+      {/* Two-column shell on wide screens: the broadsheet feed keeps its
+          single column on laptops and below, but on xl+ a sticky rail fills
+          what was empty right-hand width. The macro band + support strip
+          below stay full-bleed under both columns. */}
+      <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_340px] xl:gap-x-12 xl:items-start">
+        <div className="space-y-10 min-w-0">
+
       <div className="space-y-6">
         {/* Orientation: which day you're reading, plus a quiet copy-all
             action for the talking points (demoted from a boxed amber CTA
@@ -369,14 +377,24 @@ export default function DailyFeed() {
                 no extra block in the way of the feed. */}
             <WhatsNewPill storyDates={storyTimestamps} storageKey="today" />
           </div>
+          {/* Promoted from a near-invisible 10px text link to a real bordered
+              button — the talking-points copy is one of the desk's signature
+              broker actions, so it shouldn't read as fine print. Hidden at xl,
+              where the right rail carries a richer talking-points panel. */}
           {hasLiveData && enriched && talkingPoints.length > 0 && (
             <button
               onClick={copyTalkingPoints}
               title={`Copy ${talkingPoints.length} talking point${talkingPoints.length === 1 ? "" : "s"} for today`}
-              className="inline-flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-[0.18em] transition-colors"
-              style={{ color: copied ? "oklch(0.75 0.14 145)" : "var(--color-fg-subtle)" }}
+              className="xl:hidden inline-flex items-center gap-2 rounded-sm px-3.5 py-2 text-[10px] font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.98]"
+              style={{
+                background: copied ? "oklch(0.75 0.14 145 / 14%)" : "var(--color-panel-tile-bg)",
+                color: copied ? "oklch(0.85 0.16 145)" : "var(--color-fg)",
+                boxShadow: copied
+                  ? "inset 0 0 0 1px oklch(0.75 0.14 145 / 35%)"
+                  : "inset 0 0 0 1px var(--color-border-strong)",
+              }}
             >
-              {copied ? <CheckCheck className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+              {copied ? <CheckCheck className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
               {copied ? "Copied" : `Copy ${talkingPoints.length} talking point${talkingPoints.length === 1 ? "" : "s"}`}
             </button>
           )}
@@ -411,7 +429,11 @@ export default function DailyFeed() {
             between the brief and the day's lead. */}
         {enriched && (
           <div className="space-y-4">
-            <PersonaSwitcher />
+            {/* On xl+ the persona switcher moves into the sticky right rail so
+                it stays reachable mid-scroll; below xl it lives here inline. */}
+            <div className="xl:hidden">
+              <PersonaSwitcher />
+            </div>
             <FeedHint />
           </div>
         )}
@@ -556,6 +578,22 @@ export default function DailyFeed() {
             : "No stories in this channel today."}
         </div>
       )}
+
+        </div>{/* /main column */}
+
+        <aside className="hidden xl:block" aria-label="Today at a glance">
+          <div className="sticky top-6">
+            <SectionErrorBoundary section="Today rail">
+              <TodayRail
+                enriched={enriched}
+                talkingPoints={talkingPoints}
+                copied={copied}
+                onCopy={copyTalkingPoints}
+              />
+            </SectionErrorBoundary>
+          </div>
+        </aside>
+      </div>{/* /two-column shell */}
 
       {/* Macro reference, parked below the feed and collapsed by default.
           A first-time reader meets the day's stories before the dashboard

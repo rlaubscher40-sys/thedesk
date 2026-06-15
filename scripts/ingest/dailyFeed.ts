@@ -17,6 +17,7 @@ import { FEED_CHANNELS } from "../../shared/const";
 import { isRedundantSummary, looksLikeGarbage } from "../../shared/headline";
 import { CHANNEL_TARGETS, DAILY_ITEM_MIN, SOURCES } from "./sources";
 import { fetchArticle } from "./lib/article";
+import { resolveArticleUrl } from "./lib/gnews";
 import { clusterByTitle } from "./lib/cluster";
 import { fetchSource, type FetchedItem } from "./lib/rss";
 import { postJSON } from "./lib/post";
@@ -285,25 +286,39 @@ export async function runDailyFeedIngest(rawBaseUrl: string, apiKey: string): Pr
   console.log(`[ingest] fetching articles (image + body text)...`);
   const enriched = await Promise.all(
     picked.map(async (item) => {
-      const article = item.url
-        ? await fetchArticle(item.url)
+      // Google News topic queries hand back a news.google.com redirect, whose
+      // interstitial has no og:image and no body. Resolve it to the publisher
+      // URL first so the scrape lands on the real article — and carry the
+      // resolved URL through so "Read original" + the source favicon point at
+      // the masthead, not Google. Non-Google links pass straight through.
+      const resolvedUrl = await resolveArticleUrl(item.url);
+      const article = resolvedUrl
+        ? await fetchArticle(resolvedUrl)
         : { imageUrl: null, text: null };
-      return { item, imageUrl: article.imageUrl, articleText: article.text };
+      return {
+        item,
+        resolvedUrl,
+        imageUrl: article.imageUrl,
+        articleText: article.text,
+      };
     })
   );
   const imagesFound = enriched.filter((x) => x.imageUrl).length;
   const textFound = enriched.filter((x) => x.articleText).length;
+  const resolvedCount = enriched.filter(
+    (x) => x.resolvedUrl && x.resolvedUrl !== x.item.url
+  ).length;
   console.log(
-    `[ingest] ${imagesFound}/${picked.length} items have og:image, ${textFound}/${picked.length} have body text`
+    `[ingest] ${imagesFound}/${picked.length} items have og:image, ${textFound}/${picked.length} have body text, ${resolvedCount} Google News links resolved to publisher`
   );
 
   const feedDate = todayInSydney();
   const payload = {
-    items: enriched.map(({ item, imageUrl, articleText }) => ({
+    items: enriched.map(({ item, resolvedUrl, imageUrl, articleText }) => ({
       feedDate,
       title: item.title,
       source: item.source,
-      sourceUrl: item.url,
+      sourceUrl: resolvedUrl ?? item.url,
       summary: bestSummary(item.title, item.summary, articleText),
       category: item.category,
       channel: item.channel || "AU",
