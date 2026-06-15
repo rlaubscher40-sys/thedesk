@@ -17,10 +17,15 @@ updates:
           - patch
 
   # Keep the SHA-pinned GitHub Actions current (Dependabot updates the
-  # pin and the version comment together).
+  # pin and the version comment together). Grouped into a single weekly PR
+  # so action bumps arrive together rather than one PR per action.
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
       interval: weekly
       day: monday
       timezone: Australia/Sydney
+    groups:
+      github-actions:
+        patterns:
+          - "*"
