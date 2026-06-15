@@ -15,7 +15,11 @@ export async function setupVite(app: Express, server: Server): Promise<void> {
   });
 
   app.use(vite.middlewares);
-  app.use("*", async (req, res, next) => {
+  // Path-less catch-all (was app.use("*", ...)): Express 5's path-to-regexp v8
+  // rejects the bare "*" string at boot. A use() with no path matches every
+  // request just the same, and this stays last in the chain so it only fires
+  // for requests nothing else handled.
+  app.use(async (req, res, next) => {
     try {
       const clientHtml = path.resolve(import.meta.dirname, "../..", "client", "index.html");
       const template = await fs.promises.readFile(clientHtml, "utf-8");
@@ -48,7 +52,8 @@ export function serveStatic(app: Express): void {
       },
     })
   );
-  app.use("*", (_req, res) => {
+  // Path-less catch-all (was app.use("*", ...)) — see setupVite for why.
+  app.use((_req, res) => {
     res.setHeader("Cache-Control", "no-store");
     res.sendFile(path.resolve(distPath, "index.html"));
   });

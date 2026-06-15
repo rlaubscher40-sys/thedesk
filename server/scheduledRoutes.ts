@@ -18,6 +18,7 @@ import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import { invalidate } from "./core/cache";
 import { env } from "./core/env";
+import { routeParam } from "./core/requestParams";
 import { resolveHeroForEdition } from "./core/heroSelection";
 import {
   editionUnsubscribeUrl,
@@ -1243,7 +1244,7 @@ function registerInstagramRoutes(app: Express): void {
   // UUIDs are random and entries expire after 5 minutes so this is safe to expose.
   app.get("/instagram/temp/:uuid.jpg", async (req: Request, res: Response) => {
     const { getTempImage } = await import("./instagram/tempStore");
-    const entry = getTempImage(req.params.uuid ?? "");
+    const entry = getTempImage(routeParam(req.params.uuid));
     if (!entry) {
       res.status(404).json({ error: "Not found or expired" });
       return;
@@ -1478,7 +1479,7 @@ function registerInstagramRoutes(app: Express): void {
       res.status(401).json({ error: "Unauthorized" });
       return;
     }
-    const kind = req.params.kind ?? "";
+    const kind = routeParam(req.params.kind);
     const idx = Number.parseInt(typeof req.query.i === "string" ? req.query.i : "0", 10) || 0;
     try {
       const cards = await import("./og/instagramCards");

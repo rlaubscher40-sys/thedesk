@@ -12,6 +12,7 @@
  */
 import type { Express, Request, Response, NextFunction } from "express";
 import fs from "node:fs";
+import { routeParam } from "./requestParams";
 import path from "node:path";
 import { DEFAULT_SITE_URL } from "../../shared/const";
 import * as db from "../db";
@@ -58,7 +59,7 @@ async function handleEditionMeta(
   next: NextFunction
 ): Promise<void> {
   try {
-    const editionNumber = parseInt(req.params.n ?? "", 10);
+    const editionNumber = parseInt(routeParam(req.params.n), 10);
     if (!Number.isFinite(editionNumber)) return next();
 
     const accept = req.headers.accept ?? "";
@@ -195,7 +196,7 @@ async function handleEditionImage(
   req: Request,
   res: Response
 ): Promise<void> {
-  const id = parseInt(req.params.id ?? "", 10);
+  const id = parseInt(routeParam(req.params.id), 10);
   const kind = req.params.kind === "substack" ? "substack" : "hero";
   if (!Number.isFinite(id) || id <= 0) {
     res.status(400).send("Bad id");
@@ -229,7 +230,7 @@ async function handleHeroLibraryImage(
   req: Request,
   res: Response
 ): Promise<void> {
-  const id = parseInt(req.params.id ?? "", 10);
+  const id = parseInt(routeParam(req.params.id), 10);
   if (!Number.isFinite(id) || id <= 0) {
     res.status(400).send("Bad id");
     return;
@@ -263,7 +264,7 @@ async function handleEditionOgCard(
   req: Request,
   res: Response
 ): Promise<void> {
-  const editionNumber = parseInt(req.params.n ?? "", 10);
+  const editionNumber = parseInt(routeParam(req.params.n), 10);
   if (!Number.isFinite(editionNumber) || editionNumber <= 0) {
     res.status(400).send("Bad edition number");
     return;
