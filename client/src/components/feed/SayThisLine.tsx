@@ -6,6 +6,7 @@
 import { useState } from "react";
 import { Check, Copy, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
+import { dedash } from "@/lib/dedash";
 
 export function SayThisLine({
   sayThis,
@@ -17,10 +18,13 @@ export function SayThisLine({
   category?: string;
 }) {
   const [copied, setCopied] = useState(false);
+  // De-dash for both the on-card quote and what lands on the clipboard, so the
+  // line a partner pastes into a client chat carries no em-dashes either.
+  const clean = dedash(sayThis);
 
   async function handleCopy() {
     try {
-      await navigator.clipboard.writeText(sayThis);
+      await navigator.clipboard.writeText(clean);
       setCopied(true);
       toast.success("Copied");
       setTimeout(() => setCopied(false), 1800);
@@ -62,7 +66,7 @@ export function SayThisLine({
           >
             ❝
           </span>
-          {sayThis}
+          {clean}
           <span
             aria-hidden="true"
             className="text-amber-300/70 ml-0.5 font-serif"

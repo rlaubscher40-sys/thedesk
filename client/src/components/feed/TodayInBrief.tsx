@@ -14,6 +14,7 @@ import { Bookmark, BookmarkCheck, ChevronDown } from "lucide-react";
 import { Link } from "wouter";
 import type { DailyFeedItem } from "@shared/types";
 import { categoryColour } from "@/lib/category";
+import { dedash } from "@/lib/dedash";
 import { useBookmarks } from "@/lib/useBookmarks";
 import { useReadStories } from "@/lib/useReadStories";
 
@@ -116,14 +117,14 @@ export function TodayInBrief({ items }: { items: DailyFeedItem[] }) {
                         color: unread ? "var(--color-fg)" : "var(--color-fg-muted)",
                       }}
                     >
-                      {item.title}
+                      {dedash(item.title)}
                     </p>
                     {(item.whyItMatters || item.sayThis) && (
                       <p
                         className="text-[var(--color-fg-subtle)] mt-1 leading-snug line-clamp-1"
                         style={{ fontSize: "12.5px" }}
                       >
-                        {item.whyItMatters ?? item.sayThis}
+                        {dedash((item.whyItMatters ?? item.sayThis)!)}
                       </p>
                     )}
                   </div>

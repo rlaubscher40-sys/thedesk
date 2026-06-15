@@ -608,7 +608,7 @@ function FeedHint() {
         between lanes — Australia, Property and the global coverage feeds. On
         Australia, the topic pills narrow the lane further. Stories with a
         coloured left border carry a{" "}
-        <span className="text-[var(--color-fg)] font-medium">"Say This"</span> line — a
+        <span className="text-[var(--color-fg)] font-medium">"Say This"</span> line, a
         ready-made conversation opener for your next client meeting.
       </p>
       <button

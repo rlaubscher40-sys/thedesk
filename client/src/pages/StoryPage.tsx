@@ -16,6 +16,7 @@ import { PartnerTagBlock } from "@/components/feed/PartnerTagBlock";
 import { SayThisLine } from "@/components/feed/SayThisLine";
 import { WhyItMattersLine } from "@/components/feed/WhyItMattersLine";
 import { categoryAccentClass, categoryColour } from "@/lib/category";
+import { dedash } from "@/lib/dedash";
 import { markStoryRead } from "@/lib/useReadStories";
 import { cleanHeadline, shouldShowSummary } from "@/lib/headline";
 import { cn } from "@/lib/cn";
@@ -94,11 +95,11 @@ export default function StoryPage() {
                 never blank, and the labelled block below is skipped. */}
             {shouldShowSummary(itemQuery.data.title, itemQuery.data.summary) ? (
               <p className="text-base leading-relaxed mt-6 text-[var(--color-fg)]">
-                {itemQuery.data.summary}
+                {dedash(itemQuery.data.summary)}
               </p>
             ) : itemQuery.data.whyItMatters ? (
               <p className="text-base leading-relaxed mt-6 text-[var(--color-fg)]">
-                {itemQuery.data.whyItMatters}
+                {dedash(itemQuery.data.whyItMatters)}
               </p>
             ) : null}
 

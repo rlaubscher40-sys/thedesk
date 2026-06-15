@@ -6,6 +6,7 @@
  * left rule and muted serif text.
  */
 import { categoryColour } from "@/lib/category";
+import { dedash } from "@/lib/dedash";
 
 export function WhyItMattersLine({
   whyItMatters,
@@ -34,7 +35,7 @@ export function WhyItMattersLine({
             : "font-serif text-[15px] leading-relaxed text-[var(--color-fg-muted)] flex-1 min-w-0"
         }
       >
-        {whyItMatters}
+        {dedash(whyItMatters)}
       </p>
     </div>
   );

@@ -69,7 +69,7 @@ function InstallButton({ platform }: { platform: Platform }) {
   if (done) {
     return (
       <div className="flex items-center gap-2 text-[13px] text-amber-300 font-mono">
-        <CheckCircle className="h-4 w-4" /> Done — check your home screen
+        <CheckCircle className="h-4 w-4" /> Done, check your home screen
       </div>
     );
   }
