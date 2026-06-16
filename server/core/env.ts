@@ -10,9 +10,13 @@
  *
  * Optional:
  *   SCHEDULED_API_KEY , auth header for the /api/ingest/* scheduler endpoints
- *   ANTHROPIC_MODEL   , overrides the model used for all LLM enrichment
- *                        (default claude-sonnet-4-6). Set to claude-opus-4-8
- *                        for higher quality at ~1.7x the per-token cost.
+ *   ANTHROPIC_MODEL   , overrides the model used for routine "standard" LLM
+ *                        enrichment — daily-item tags, sayThis, QC, headlines,
+ *                        metric extraction (default claude-sonnet-4-6).
+ *   ANTHROPIC_MODEL_PREMIUM , model for the voice-sensitive weekly pieces
+ *                        (Ruben's Take, edition synthesis, Substack draft,
+ *                        look-back) where quality matters more than cost
+ *                        (default claude-opus-4-8).
  *   OPENAI_API_KEY    , enables AI image generation for the weekly hero;
  *                        omit to skip image generation entirely
  *   DB_POOL_SIZE      , max pooled MySQL connections (default 10). Keep
@@ -57,6 +61,8 @@ export const env = Object.freeze({
   scheduledApiKey: process.env.SCHEDULED_API_KEY ?? "",
   anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? "",
   anthropicModel: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6",
+  anthropicModelPremium:
+    process.env.ANTHROPIC_MODEL_PREMIUM ?? "claude-opus-4-8",
   openAiApiKey: process.env.OPENAI_API_KEY ?? "",
   adminPassword: process.env.ADMIN_PASSWORD ?? "",
   instagramAccessToken: process.env.INSTAGRAM_ACCESS_TOKEN ?? "",

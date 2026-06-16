@@ -67,6 +67,7 @@ export async function generateRubensTake(input: RubensTakeInput): Promise<string
       { role: "system", content: rubenSystemPrompt },
       { role: "user", content: buildRubensTakePrompt(input) },
     ],
+    tier: "premium",
   });
   const cleaned = stripBannedChars(content);
   if (cleaned.length < 20) {

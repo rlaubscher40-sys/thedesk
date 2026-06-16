@@ -97,6 +97,7 @@ export async function generateLookback(input: LookbackInput): Promise<Lookback |
         { role: "user", content: buildPrompt(input) },
       ],
       maxTokens: 2_000,
+      tier: "premium",
     });
   } catch (err) {
     console.warn("[lookback] LLM failed:", (err as Error).message);

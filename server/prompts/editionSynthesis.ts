@@ -308,6 +308,7 @@ export async function synthesizeWeeklyEdition(input: SynthesisInput): Promise<Sy
       { role: "system", content: rubenSystemPrompt },
       { role: "user", content: buildPrompt(input) },
     ],
+    tier: "premium",
   });
 
   // Strip any markdown fences the model might have wrapped around the JSON.
