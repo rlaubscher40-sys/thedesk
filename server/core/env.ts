@@ -10,6 +10,9 @@
  *
  * Optional:
  *   SCHEDULED_API_KEY , auth header for the /api/ingest/* scheduler endpoints
+ *   ANTHROPIC_MODEL   , overrides the model used for all LLM enrichment
+ *                        (default claude-sonnet-4-6). Set to claude-opus-4-8
+ *                        for higher quality at ~1.7x the per-token cost.
  *   OPENAI_API_KEY    , enables AI image generation for the weekly hero;
  *                        omit to skip image generation entirely
  *   DB_POOL_SIZE      , max pooled MySQL connections (default 10). Keep
@@ -53,6 +56,7 @@ export const env = Object.freeze({
   databaseUrl: process.env.DATABASE_URL ?? "",
   scheduledApiKey: process.env.SCHEDULED_API_KEY ?? "",
   anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? "",
+  anthropicModel: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6",
   openAiApiKey: process.env.OPENAI_API_KEY ?? "",
   adminPassword: process.env.ADMIN_PASSWORD ?? "",
   instagramAccessToken: process.env.INSTAGRAM_ACCESS_TOKEN ?? "",

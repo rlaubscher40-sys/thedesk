@@ -7,7 +7,10 @@
  * (separate `system` field, no nested `system` role in messages).
  *
  * Defaults:
- *   - Model: claude-opus-4-7
+ *   - Model: claude-sonnet-4-6 (override via ANTHROPIC_MODEL). Sonnet handles
+ *     the enrichment workload (tags, sayThis, takes, synthesis, drafts) at
+ *     ~40% lower per-token cost than Opus; set ANTHROPIC_MODEL=claude-opus-4-8
+ *     to trade cost for quality.
  *   - Adaptive thinking enabled (Claude decides depth)
  *   - Streaming for any request that may produce > 16K tokens (avoids SDK
  *     HTTP timeouts)
@@ -47,7 +50,7 @@ export type InvokeLlmParams = {
 
 const DEFAULT_MAX_TOKENS = 16000;
 const STREAM_THRESHOLD = 16000;
-const MODEL = "claude-opus-4-7";
+const MODEL = env.anthropicModel;
 
 let cachedClient: Anthropic | null = null;
 function getClient(): Anthropic {
