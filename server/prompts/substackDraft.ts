@@ -88,6 +88,7 @@ export async function generateSubstackDraft(input: SubstackDraftInput): Promise<
       { role: "system", content: rubenSystemPrompt },
       { role: "user", content: buildSubstackDraftPrompt(input) },
     ],
+    tier: "premium",
     responseFormat: {
       type: "json_schema",
       json_schema: {

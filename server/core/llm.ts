@@ -7,10 +7,13 @@
  * (separate `system` field, no nested `system` role in messages).
  *
  * Defaults:
- *   - Model: claude-sonnet-4-6 (override via ANTHROPIC_MODEL). Sonnet handles
- *     the enrichment workload (tags, sayThis, takes, synthesis, drafts) at
- *     ~40% lower per-token cost than Opus; set ANTHROPIC_MODEL=claude-opus-4-8
- *     to trade cost for quality.
+ *   - Model: per-task tier. "standard" (claude-sonnet-4-6, override via
+ *     ANTHROPIC_MODEL) handles the high-volume daily enrichment — tags,
+ *     sayThis, QC, headlines, metric extraction — at ~40% lower per-token
+ *     cost than Opus. "premium" (claude-opus-4-8, override via
+ *     ANTHROPIC_MODEL_PREMIUM) is reserved for the voice-sensitive weekly
+ *     pieces (Ruben's Take, edition synthesis, Substack draft, look-back).
+ *     Callers pick a tier via `tier`; it defaults to "standard".
  *   - Adaptive thinking enabled (Claude decides depth)
  *   - Streaming for any request that may produce > 16K tokens (avoids SDK
  *     HTTP timeouts)
@@ -42,15 +45,26 @@ export type LlmResponseFormat =
       };
     };
 
+/**
+ * "standard" → the cheaper, high-volume model (Sonnet by default).
+ * "premium"  → the higher-quality model for voice-sensitive work (Opus).
+ */
+export type ModelTier = "standard" | "premium";
+
 export type InvokeLlmParams = {
   messages: LlmMessage[];
   responseFormat?: LlmResponseFormat;
   maxTokens?: number;
+  /** Which model tier to use. Defaults to "standard". */
+  tier?: ModelTier;
 };
 
 const DEFAULT_MAX_TOKENS = 16000;
 const STREAM_THRESHOLD = 16000;
-const MODEL = env.anthropicModel;
+
+function modelForTier(tier: ModelTier | undefined): string {
+  return tier === "premium" ? env.anthropicModelPremium : env.anthropicModel;
+}
 
 let cachedClient: Anthropic | null = null;
 function getClient(): Anthropic {
@@ -118,6 +132,7 @@ export async function invokeLLM(params: InvokeLlmParams): Promise<string> {
 
   const client = getClient();
   const maxTokens = params.maxTokens ?? DEFAULT_MAX_TOKENS;
+  const model = modelForTier(params.tier);
   const { system: rawSystem, conversation } = splitSystem(params.messages);
   const system = augmentSystemForJson(rawSystem, params.responseFormat);
 
@@ -128,7 +143,7 @@ export async function invokeLLM(params: InvokeLlmParams): Promise<string> {
   // Stream when output budget is large to avoid SDK HTTP read timeouts.
   if (maxTokens > STREAM_THRESHOLD) {
     const stream = client.messages.stream({
-      model: MODEL,
+      model,
       max_tokens: maxTokens,
       thinking: { type: "adaptive" },
       ...(system ? { system } : {}),
@@ -139,7 +154,7 @@ export async function invokeLLM(params: InvokeLlmParams): Promise<string> {
   }
 
   const response = await client.messages.create({
-    model: MODEL,
+    model,
     max_tokens: maxTokens,
     thinking: { type: "adaptive" },
     ...(system ? { system } : {}),
