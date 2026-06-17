@@ -16,6 +16,7 @@ import { cleanHeadline, shouldShowSummary } from "@/lib/headline";
 import { cardDek } from "@/lib/cardDek";
 import { readingMinutes } from "@/lib/readingTime";
 import { SITE_DISPLAY } from "@/lib/siteUrl";
+import { useHeroFallback } from "@/lib/useHeroFallback";
 import { useAuth } from "@/lib/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Card } from "../ui/Card";
@@ -33,16 +34,20 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
   const isAdmin = user?.role === "admin";
   const utils = trpc.useUtils();
 
-  // Fallback hero plate: when the story has no og:image, pull a
+  // The og:image can be missing OR present-but-broken: news og:images are
+  // routinely hotlink-protected and 403 on a cross-origin <img>, which is what
+  // painted the broken-image "?" boxes on the feed. Track a load failure and
+  // treat it the same as a missing image so we fail over to the library cover.
+  const [ogFailed, setOgFailed] = useState(false);
+  const [fallbackFailed, setFallbackFailed] = useState(false);
+  const needsFallback = !item.imageUrl || ogFailed;
+
+  // Fallback hero plate: when the story has no usable og:image, pull a
   // deterministic image from the hero library so the lead card doesn't
   // sit as a bare category-text gradient. Keyed by item.id so the same
-  // lead always gets the same fallback. The query is suspended when
-  // imageUrl is already present.
-  const libraryFallback = trpc.heroLibrary.pickForSeed.useQuery(
-    { seed: item.id },
-    { enabled: !item.imageUrl, staleTime: 60 * 60 * 1000 }
-  );
-  const fallbackUrl = !item.imageUrl ? libraryFallback.data?.url ?? null : null;
+  // lead always gets the same fallback. Suspended while a usable og:image
+  // is showing.
+  const fallbackUrl = useHeroFallback(item.id, needsFallback && !fallbackFailed);
 
   const deleteItem = trpc.feed.deleteItem.useMutation({
     onSuccess: () => {
@@ -153,7 +158,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
           `,
         }}
       >
-        {item.imageUrl ? (
+        {item.imageUrl && !ogFailed ? (
           <img
             src={item.imageUrl}
             alt={item.title}
@@ -164,10 +169,13 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
             loading="lazy"
             decoding="async"
             onLoad={onImageLoad}
+            // A broken/blocked og:image falls through to the library cover
+            // instead of leaving the browser's broken-image glyph.
+            onError={() => setOgFailed(true)}
           />
-        ) : fallbackUrl ? (
-          // Hero-library fallback, used when the story didn't come with
-          // an og:image. Deterministic per item ID so the cover doesn't
+        ) : fallbackUrl && !fallbackFailed ? (
+          // Hero-library fallback, used when the story didn't come with a
+          // usable og:image. Deterministic per item ID so the cover doesn't
           // flicker between renders.
           <img
             src={fallbackUrl}
@@ -175,6 +183,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
             className="editorial-art-img absolute inset-0 w-full h-full object-cover object-center"
             loading="lazy"
             decoding="async"
+            onError={() => setFallbackFailed(true)}
           />
         ) : (
           // Final fallback, library empty too. Render the category

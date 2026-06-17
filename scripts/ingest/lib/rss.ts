@@ -11,10 +11,54 @@ import { plainText } from "./text";
 
 const SITE_URL = process.env.SITE_URL ?? DEFAULT_SITE_URL;
 
-const parser = new Parser({
+// Pull the common image-carrying RSS extensions through rss-parser. Many feeds
+// (ABC, Guardian, publisher Atom/RSS) ship the lead art as <media:content>,
+// <media:thumbnail> or an <enclosure> rather than an og:image on the page —
+// capturing it here gives the daily feed a second image source when the
+// on-page og:image scrape comes up empty.
+const parser = new Parser<unknown, RssItemExtras>({
   timeout: 8_000,
   headers: { "User-Agent": `TheDesk/1.0 (+${SITE_URL})` },
+  customFields: {
+    item: [
+      ["media:content", "mediaContent", { keepArray: true }],
+      ["media:thumbnail", "mediaThumbnail", { keepArray: true }],
+    ],
+  },
 });
+
+type MediaNode = { $?: { url?: string; medium?: string; type?: string } };
+type RssItemExtras = {
+  mediaContent?: MediaNode | MediaNode[];
+  mediaThumbnail?: MediaNode | MediaNode[];
+  enclosure?: { url?: string; type?: string };
+};
+
+/** Best image URL carried in the RSS item's media extensions, or null. */
+export function pickRssImage(it: RssItemExtras): string | null {
+  const fromNodes = (node: MediaNode | MediaNode[] | undefined): string | null => {
+    for (const n of Array.isArray(node) ? node : node ? [node] : []) {
+      const url = n.$?.url;
+      const medium = n.$?.medium;
+      const type = n.$?.type;
+      // Skip nodes explicitly flagged as non-image (audio/video enclosures).
+      if (!url) continue;
+      if (medium && medium !== "image") continue;
+      if (type && !type.startsWith("image/")) continue;
+      if (/^https?:\/\//i.test(url)) return url;
+    }
+    return null;
+  };
+  const enclosure =
+    it.enclosure?.url && (!it.enclosure.type || it.enclosure.type.startsWith("image/"))
+      ? it.enclosure.url
+      : null;
+  return (
+    fromNodes(it.mediaContent) ??
+    fromNodes(it.mediaThumbnail) ??
+    (enclosure && /^https?:\/\//i.test(enclosure) ? enclosure : null)
+  );
+}
 
 export type FetchedItem = {
   source: string;
@@ -25,6 +69,9 @@ export type FetchedItem = {
   title: string;
   summary: string;
   url: string | null;
+  /** Lead image carried in the feed's media extensions, when present. Used as
+   *  a fallback when the on-page og:image scrape returns nothing. */
+  imageUrl: string | null;
   isoDate: string | null;
   /** How many distinct sources reported this story (set by the clustering
    *  pass; absent/1 means a single outlet). */
@@ -52,6 +99,7 @@ export async function fetchSource(src: Source): Promise<FetchedItem[]> {
           title,
           summary,
           url: it.link ?? null,
+          imageUrl: pickRssImage(it as RssItemExtras),
           isoDate: it.isoDate ?? it.pubDate ?? null,
         };
       })

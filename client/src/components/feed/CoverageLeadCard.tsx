@@ -36,6 +36,10 @@ export function CoverageLeadCard({ item }: { item: DailyFeedItem }) {
   const isAdmin = user?.role === "admin";
   const utils = trpc.useUtils();
   const [linkedInOpen, setLinkedInOpen] = useState(false);
+  // Drop the hero plate if the og:image fails to load (hotlink-blocked / 403)
+  // rather than leave the browser's broken-image glyph. No library fallback —
+  // coverage lanes deliberately don't manufacture art for an RSS headline.
+  const [ogFailed, setOgFailed] = useState(false);
 
   const deleteItem = trpc.feed.deleteItem.useMutation({
     onSuccess: () => {
@@ -95,7 +99,7 @@ export function CoverageLeadCard({ item }: { item: DailyFeedItem }) {
           library fallback on coverage lanes — manufacturing art for what
           is structurally an RSS headline would re-create the form/content
           mismatch we just fixed. */}
-      {item.imageUrl && (
+      {item.imageUrl && !ogFailed && (
         <Link
           href={`/story/${item.id}`}
           className="relative block overflow-hidden w-full"
@@ -107,6 +111,7 @@ export function CoverageLeadCard({ item }: { item: DailyFeedItem }) {
             className="absolute inset-0 w-full h-full object-cover object-top"
             loading="lazy"
             decoding="async"
+            onError={() => setOgFailed(true)}
           />
           <span
             className="absolute inset-0 pointer-events-none"
