@@ -4,8 +4,8 @@
  * generating fresh every Sunday.
  *
  * Most procedures here are admin-only. The one public exception is
- * `pickForSeed`, which the daily-feed lead card uses as a fallback
- * when a story has no og:image, same library, different surface.
+ * `activePool`, which the daily-feed cards use as a fallback when a story
+ * has no usable og:image, same library, different surface.
  */
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -27,44 +27,34 @@ export const heroLibraryRouter = router({
   }),
 
   /**
-   * Public: deterministic library pick keyed by a numeric seed
-   * (typically the feed item ID). Same seed always returns the same
-   * image so a lead card doesn't flicker between different fallbacks
-   * across re-renders or sessions.
+   * Public: the active fallback pool, as `{ id, url }` rows. Fetched once per
+   * feed page and shared across every card so a grid of stories without an
+   * og:image can each pick a deterministic library cover client-side
+   * (`seed % pool.length`, seed = feed item id) without firing one query per
+   * card — and so the same story always lands on the same cover.
    *
-   * Excludes the most-recently-used library image from the pool —
-   * that's almost certainly the one currently on the latest weekly
-   * edition (the cron picks LRU and bumps `lastUsedAt`). Without this
-   * exclusion the Today lead and the live edition can land on the
-   * same cover at the same time, which reads as a duplicate.
-   *
-   * Returns `{ url: null }` when the library is empty or every row
-   * is retired, the caller then renders its own fallback chrome.
+   * Excludes the most-recently-used library image: that's almost certainly the
+   * current weekly edition's cover (the cron picks LRU and bumps `lastUsedAt`),
+   * and reusing it on the Today feed at the same time reads as a duplicate.
+   * Returns `[]` when the library is empty or fully retired.
    */
-  pickForSeed: publicProcedure
-    .input(z.object({ seed: z.number().int() }))
-    .query(async ({ input }) => {
-      const items = await db.listHeroLibrary();
-      const active = items.filter((it) => !it.retired);
-      if (active.length === 0) return { url: null as string | null };
-      // Single-image library: no choice but to reuse it.
-      let pool = active;
-      if (active.length > 1) {
-        // Sort by lastUsedAt DESC, drop the top one — that's the
-        // current edition's cover. Nulls (never used) sort last under
-        // DESC so they stay in the pool.
-        const sorted = [...active].sort((a, b) => {
-          const ta = a.lastUsedAt ? new Date(a.lastUsedAt).getTime() : 0;
-          const tb = b.lastUsedAt ? new Date(b.lastUsedAt).getTime() : 0;
-          return tb - ta;
-        });
-        pool = sorted.slice(1);
-      }
-      const idx = Math.abs(input.seed) % pool.length;
-      const picked = pool[idx];
-      if (!picked) return { url: null as string | null };
-      return { url: db.heroLibraryUrl(picked.id) };
-    }),
+  activePool: publicProcedure.query(async () => {
+    const items = await db.listHeroLibrary();
+    const active = items.filter((it) => !it.retired);
+    if (active.length === 0) return [] as { id: number; url: string }[];
+    let pool = active;
+    if (active.length > 1) {
+      // Sort by lastUsedAt DESC, drop the top one — that's the current
+      // edition's cover. Nulls (never used) sort last under DESC so they stay.
+      const sorted = [...active].sort((a, b) => {
+        const ta = a.lastUsedAt ? new Date(a.lastUsedAt).getTime() : 0;
+        const tb = b.lastUsedAt ? new Date(b.lastUsedAt).getTime() : 0;
+        return tb - ta;
+      });
+      pool = sorted.slice(1);
+    }
+    return pool.map((it) => ({ id: it.id, url: db.heroLibraryUrl(it.id) }));
+  }),
 
   /**
    * Generate a new library image and store it. The prompt is generic

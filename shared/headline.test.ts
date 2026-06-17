@@ -49,6 +49,30 @@ describe("isRedundantSummary", () => {
     expect(isRedundantSummary("Anything", null)).toBe(true);
   });
 
+  it("flags a title echo with only a trailing source domain appended", () => {
+    // Real example: a Google News description that's the headline plus the
+    // masthead's bare domain. The domain padding used to push it past the
+    // redundancy ratio so the card showed the headline twice.
+    expect(
+      isRedundantSummary(
+        "Breaking: RBA holds interest rates",
+        "Breaking: RBA holds interest rates realestate.com.au"
+      )
+    ).toBe(true);
+    expect(isRedundantSummary("ASX 200 slips at the open", "ASX 200 slips at the open ig.com")).toBe(
+      true
+    );
+  });
+
+  it("keeps a summary that adds real prose even when it ends with a domain", () => {
+    expect(
+      isRedundantSummary(
+        "RBA holds at 4.35%",
+        "The Reserve Bank kept the cash rate steady as services inflation cools. Full statement at rba.gov.au"
+      )
+    ).toBe(false);
+  });
+
   it("keeps a genuine summary that adds information", () => {
     expect(
       isRedundantSummary(

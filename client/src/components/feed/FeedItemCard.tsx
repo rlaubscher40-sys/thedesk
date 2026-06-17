@@ -14,6 +14,7 @@ import { cleanHeadline, shouldShowSummary } from "@/lib/headline";
 import { cardDek } from "@/lib/cardDek";
 import { readingMinutes } from "@/lib/readingTime";
 import { SITE_DISPLAY } from "@/lib/siteUrl";
+import { useHeroFallback } from "@/lib/useHeroFallback";
 import { useAuth } from "@/lib/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Button } from "../ui/Button";
@@ -48,6 +49,17 @@ export function FeedItemCard({
   // behind a toggle. Without this every grid card inherited the lead's full
   // height and a 3-up column became a skyscraper of scroll.
   const [showAnalysis, setShowAnalysis] = useState(false);
+
+  // Photo plate. The og:image may be missing or present-but-broken (news
+  // og:images are routinely hotlink-protected and 403 on a cross-origin
+  // <img>). On either, fail over to a deterministic hero-library cover so an
+  // enriched-lane story still carries a photo rather than a broken-image glyph
+  // or a bare text card. Final fallback (empty library) is no plate at all.
+  const [ogFailed, setOgFailed] = useState(false);
+  const [fallbackFailed, setFallbackFailed] = useState(false);
+  const showOg = Boolean(item.imageUrl) && !ogFailed;
+  const fallbackUrl = useHeroFallback(item.id, !showOg && !fallbackFailed);
+  const heroSrc = showOg ? item.imageUrl : !fallbackFailed ? fallbackUrl : null;
 
   const deleteItem = trpc.feed.deleteItem.useMutation({
     onSuccess: () => {
@@ -203,23 +215,25 @@ export function FeedItemCard({
       clip
       accentClass={categoryAccentClass(item.category)}
     >
-      {/* Photo plate — only when there's a real og:image. A story with no
-          image renders as a clean text card (metadata → headline → dek)
-          rather than a tall empty 16:9 box with a stranded category word,
-          which read as a broken/missing image. */}
-      {item.imageUrl && (
+      {/* Photo plate — a real og:image when we have one, otherwise a
+          deterministic hero-library cover. Only when neither resolves (empty
+          library) does the card fall back to a clean text layout (metadata →
+          headline → dek) rather than a tall empty box. */}
+      {heroSrc && (
         <Link
           href={`/story/${item.id}`}
           className="group/thumb relative block w-full overflow-hidden"
           style={{ aspectRatio: "16 / 9" }}
         >
           <img
-            src={item.imageUrl}
+            src={heroSrc}
             alt=""
             aria-hidden="true"
             className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-500 group-hover/thumb:scale-[1.03]"
             loading="lazy"
             decoding="async"
+            // Broken og:image → library cover; broken library image → no plate.
+            onError={() => (showOg ? setOgFailed(true) : setFallbackFailed(true))}
           />
           <span
             className="absolute inset-0 noise-overlay pointer-events-none"

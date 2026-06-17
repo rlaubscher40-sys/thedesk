@@ -298,7 +298,11 @@ export async function runDailyFeedIngest(rawBaseUrl: string, apiKey: string): Pr
       return {
         item,
         resolvedUrl,
-        imageUrl: article.imageUrl,
+        // Prefer the on-page og:image, but fall back to any lead image the RSS
+        // feed itself carried (media:content / enclosure). Roughly half of
+        // sources omit an og:image but ship a media image, so this lifts the
+        // share of stories that arrive with a real photo.
+        imageUrl: article.imageUrl ?? item.imageUrl ?? null,
         articleText: article.text,
       };
     })

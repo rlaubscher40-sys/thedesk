@@ -16,6 +16,19 @@ function norm(s: string): string {
 }
 
 /**
+ * Drop a trailing bare source/domain token ("realestate.com.au", "ig.com",
+ * "abc.net.au", "www.example.com") that publisher RSS — Google News especially
+ * — tacks onto the end of a description. Left in place it pads the length of an
+ * otherwise headline-echoing summary just enough to slip past the redundancy
+ * ratio below, so the card shows a near-duplicate subline. Conservative: only a
+ * single trailing domain-shaped token is removed, so prose that merely mentions
+ * a URL mid-sentence is untouched.
+ */
+function stripTrailingDomain(s: string): string {
+  return s.replace(/\s+(?:https?:\/\/)?(?:www\.)?[a-z0-9-]+(?:\.[a-z0-9-]+)+\/?\s*$/iu, "").trim();
+}
+
+/**
  * True when a string is code / boilerplate rather than prose. Google News
  * article links resolve to a JavaScript interstitial ("DotsSplash" / Closure
  * Library) instead of the real page, so body-text extraction can scoop up
@@ -86,7 +99,9 @@ export function isRedundantSummary(
 ): boolean {
   if (!summary) return true;
   const nt = norm(cleanHeadline(title));
-  const ns = norm(summary);
+  // Strip a trailing source domain first so "Headline. publisher.com" is judged
+  // on its prose, not padded past the redundancy threshold by the domain.
+  const ns = norm(stripTrailingDomain(summary));
   if (!ns) return true;
   if (ns === nt) return true;
   // Summary is the title plus a few trailing words (the source), or vice versa.
