@@ -60,8 +60,13 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          const clone = response.clone();
-          caches.open(CACHE).then((cache) => cache.put("/", clone));
+          // Only refresh the offline fallback from a healthy shell. Caching a
+          // 5xx/maintenance page as "/" would otherwise pin offline visitors
+          // to a broken shell until the cache version bumps.
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE).then((cache) => cache.put("/", clone));
+          }
           return response;
         })
         .catch(() =>

@@ -9,6 +9,7 @@
  */
 import { z } from "zod";
 import { CATEGORIES, PARTNER_PERSONAS } from "./const";
+import { MAX_HELPER_INPUT } from "./headline";
 
 // ─── Edition topics ─────────────────────────────────────────────────────────
 
@@ -132,6 +133,10 @@ export type PartnerTag = Record<PartnerTagLabel, string>;
  */
 export function parsePartnerTag(raw: string | null | undefined): PartnerTag | null {
   if (!raw) return null;
+  // A real partnerTag is four short labelled lines. Anything wildly longer is
+  // malformed/garbage data — bail before the per-label regexes so a
+  // pathological value can't burn CPU (or hang a mobile render) here.
+  if (raw.length > MAX_HELPER_INPUT) return null;
   const result: Partial<PartnerTag> = {};
   for (const label of PARTNER_TAG_LABELS) {
     const re = new RegExp(`^\\s*${label}\\s*:\\s*(.+)$`, "im");

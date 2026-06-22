@@ -3,6 +3,7 @@ import {
   cleanHeadline,
   isRedundantSummary,
   looksLikeGarbage,
+  MAX_HELPER_INPUT,
   shouldShowSummary,
 } from "./headline";
 
@@ -96,6 +97,30 @@ describe("looksLikeGarbage", () => {
         "Australian construction risk is being reshaped by defence spending, data centres and the housing push."
       )
     ).toBe(false);
+  });
+});
+
+describe("pathological-input guards", () => {
+  // A single malformed story row with a multi-kilobyte value must not be able
+  // to hang the render (the cause behind Safari's "A problem repeatedly
+  // occurred" tab crash). Past MAX_HELPER_INPUT the helpers short-circuit
+  // rather than run their regexes over the whole blob.
+  const huge = "a-".repeat(MAX_HELPER_INPUT); // ~2x the ceiling, alternating to stress backtracking
+
+  it("returns oversized titles untouched and fast", () => {
+    const start = performance.now();
+    expect(cleanHeadline(huge)).toBe(huge);
+    expect(performance.now() - start).toBeLessThan(50);
+  });
+
+  it("treats an oversized summary as garbage and not redundant", () => {
+    expect(looksLikeGarbage(huge)).toBe(true);
+    expect(isRedundantSummary("Short headline", huge)).toBe(false);
+    expect(shouldShowSummary("Short headline", huge)).toBe(false);
+  });
+
+  it("leaves content at the ceiling working normally", () => {
+    expect(cleanHeadline("RBA holds the cash rate at 4.35%")).toBe("RBA holds the cash rate at 4.35%");
   });
 });
 

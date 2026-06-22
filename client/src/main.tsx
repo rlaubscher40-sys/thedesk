@@ -6,6 +6,7 @@ import { UNAUTHED_ERR_MSG } from "@shared/const";
 import App from "./App";
 import { getLoginUrl } from "./lib/auth";
 import { initErrorReporter } from "./lib/errorReporter";
+import { initCrashLoopGuard } from "./lib/crashLoopDetector";
 import { trpc } from "./lib/trpc";
 import { initInstallPrompt } from "./lib/installPrompt";
 import "./index.css";
@@ -17,6 +18,12 @@ initInstallPrompt();
 // table the admin /health panel reads. No third-party SDK; the
 // internal tracker replaced Sentry.
 initErrorReporter();
+
+// Crash-loop guard. Runs before React renders so it records this boot — and,
+// if the page is repeatedly crashing the WebKit tab (the silent OOM/hang that
+// throws no error and shows Safari's "A problem repeatedly occurred"), reports
+// it to /health and tears down a wedged service worker. See crashLoopDetector.
+initCrashLoopGuard();
 
 const queryClient = new QueryClient({
   defaultOptions: {
