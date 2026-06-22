@@ -10,6 +10,17 @@
  * summary so it can be dropped at ingest or skipped at render.
  */
 
+/**
+ * Upper bound on the input length these helpers run their regexes over. A real
+ * headline or summary is a few hundred characters; anything past this is
+ * malformed/extraction garbage (e.g. a Google-News JS interstitial blob). The
+ * helpers short-circuit beyond it so a single pathological row can never make a
+ * regex backtrack long enough to hang a mobile WebKit render — the symptom
+ * behind Safari's "A problem repeatedly occurred" tab crash. Set far above any
+ * legitimate value, so genuine content is never affected.
+ */
+export const MAX_HELPER_INPUT = 20_000;
+
 /** Normalise to lowercase alphanumeric words for comparison. */
 function norm(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/gu, " ").trim();
@@ -37,6 +48,10 @@ function stripTrailingDomain(s: string): string {
  */
 export function looksLikeGarbage(text: string | null | undefined): boolean {
   if (!text) return false;
+  // Past the helper ceiling it's a garbage blob by definition — no legitimate
+  // summary runs this long. Treat it as garbage without running the regexes
+  // over the whole string (which is the part that can hang).
+  if (text.length > MAX_HELPER_INPUT) return true;
   const t = text.trim();
   if (!t) return false;
   if (
@@ -78,6 +93,7 @@ export function shouldShowSummary(
  * survive. The publisher is shown separately via the source byline.
  */
 export function cleanHeadline(title: string): string {
+  if (title.length > MAX_HELPER_INPUT) return title;
   const m = title.match(/^(.*\S)\s+[-–—]\s+([^-–—]{1,40})$/u);
   if (!m || !m[1] || !m[2]) return title;
   const head = m[1].trim();
@@ -98,6 +114,10 @@ export function isRedundantSummary(
   summary: string | null | undefined
 ): boolean {
   if (!summary) return true;
+  // A summary longer than the helper ceiling can't be a redundant echo of a
+  // (short) headline, and normalising it would mean a full regex pass over the
+  // blob. Short-circuit: not redundant, leave the garbage check to do its job.
+  if (summary.length > MAX_HELPER_INPUT) return false;
   const nt = norm(cleanHeadline(title));
   // Strip a trailing source domain first so "Headline. publisher.com" is judged
   // on its prose, not padded past the redundancy threshold by the domain.

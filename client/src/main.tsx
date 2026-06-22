@@ -6,6 +6,8 @@ import { UNAUTHED_ERR_MSG } from "@shared/const";
 import App from "./App";
 import { getLoginUrl } from "./lib/auth";
 import { initErrorReporter } from "./lib/errorReporter";
+import { initCrashLoopGuard, renderCrashLoopSafeMode } from "./lib/crashLoopDetector";
+import { applyLiteClass } from "./lib/liteMode";
 import { trpc } from "./lib/trpc";
 import { initInstallPrompt } from "./lib/installPrompt";
 import "./index.css";
@@ -17,6 +19,16 @@ initInstallPrompt();
 // table the admin /health panel reads. No third-party SDK; the
 // internal tracker replaced Sentry.
 initErrorReporter();
+
+// Crash-loop guard. Runs before React renders so it records this boot — and,
+// if the page is repeatedly crashing the WebKit tab (the silent OOM/hang that
+// throws no error and shows Safari's "A problem repeatedly occurred"), reports
+// it to /health and tears down a wedged service worker. See crashLoopDetector.
+const inCrashLoop = initCrashLoopGuard();
+
+// Put <html class="lite"> in place before first paint so the cheap-paint CSS
+// applies for reduced-motion users and any device flagged after a crash loop.
+applyLiteClass();
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -59,32 +71,40 @@ const trpcClient = trpc.createClient({
   ],
 });
 
-createRoot(document.getElementById("root")!).render(
-  <trpc.Provider client={trpcClient} queryClient={queryClient}>
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
-  </trpc.Provider>
-);
+if (inCrashLoop) {
+  // The page has crashed and reloaded several times in seconds — on iOS that's
+  // almost always the WebKit tab being killed for memory. Don't re-mount the
+  // full app (the thing that keeps OOM-ing); show the lightweight static
+  // safe-mode screen instead, which breaks the loop and guides the visitor.
+  renderCrashLoopSafeMode();
+} else {
+  createRoot(document.getElementById("root")!).render(
+    <trpc.Provider client={trpcClient} queryClient={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        <App />
+      </QueryClientProvider>
+    </trpc.Provider>
+  );
 
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    });
+  }
+
+  // Dismiss the first-paint splash once the React tree has committed
+  // (see index.html). Two rAFs ensures we tick past the first commit
+  // frame so the user actually sees the app underneath before the
+  // splash fades, otherwise it can race the first skeleton paint and
+  // look like a flash.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const splash = document.getElementById("boot-splash");
+      if (!splash) return;
+      splash.classList.add("done");
+      splash.addEventListener("transitionend", () => splash.remove(), { once: true });
+      // Safety net for browsers that swallow the transitionend event.
+      setTimeout(() => splash.remove(), 1200);
+    });
   });
 }
-
-// Dismiss the first-paint splash once the React tree has committed
-// (see index.html). Two rAFs ensures we tick past the first commit
-// frame so the user actually sees the app underneath before the
-// splash fades, otherwise it can race the first skeleton paint and
-// look like a flash.
-requestAnimationFrame(() => {
-  requestAnimationFrame(() => {
-    const splash = document.getElementById("boot-splash");
-    if (!splash) return;
-    splash.classList.add("done");
-    splash.addEventListener("transitionend", () => splash.remove(), { once: true });
-    // Safety net for browsers that swallow the transitionend event.
-    setTimeout(() => splash.remove(), 1200);
-  });
-});

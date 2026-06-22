@@ -3,8 +3,9 @@
  * Light Framer Motion sugar, drop it around any grid or vertical list and
  * its direct children animate on mount and on key change.
  */
-import { motion, useReducedMotion, type Variants } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import type { ReactNode } from "react";
+import { isLiteMode } from "@/lib/liteMode";
 
 // The brand-canonical easing curve (see index.css). Repeated literally
 // here because Framer Motion's variants type requires the tuple.
@@ -28,23 +29,27 @@ export function StaggerList({
   cacheKey,
   children,
 }: Props) {
-  const reduced = useReducedMotion();
+  // Lite mode (reduced-motion, or a device that has crash-looped) renders the
+  // children directly — no motion.div wrapper per item, which on a long feed is
+  // real memory/CPU the constrained device can't spare.
+  if (isLiteMode()) {
+    return <div className={className}>{children}</div>;
+  }
+
   const container: Variants = {
     hidden: {},
     show: {
-      transition: { staggerChildren: reduced ? 0 : stagger, delayChildren: 0.02 },
+      transition: { staggerChildren: stagger, delayChildren: 0.02 },
     },
   };
-  const item: Variants = reduced
-    ? { hidden: {}, show: {} }
-    : {
-        hidden: { opacity: 0, y: yOffset },
-        show: {
-          opacity: 1,
-          y: 0,
-          transition: { duration: 0.35, ease: BRAND_EASE },
-        },
-      };
+  const item: Variants = {
+    hidden: { opacity: 0, y: yOffset },
+    show: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.35, ease: BRAND_EASE },
+    },
+  };
 
   return (
     <motion.div

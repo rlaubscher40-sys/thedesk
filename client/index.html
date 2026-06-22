@@ -244,6 +244,54 @@
     </div>
 
     <div id="root"></div>
+
+    <!--
+      Out-of-date browser notice. The whole design system is built on oklch()
+      colours, which need Safari/iOS 15.4+ (March 2022); the same era of WebKit
+      also lacks features the app leans on and can crash on low-memory devices.
+      Feature-detect oklch as the proxy and, when it's missing, show a plain
+      dismissible banner (raw hex, no app dependencies) so an old browser gets a
+      clear "please update" instead of a broken or crash-looping page. Runs
+      before the module bundle and degrades silently if anything throws.
+    -->
+    <script>
+      (function () {
+        try {
+          var ok = window.CSS && CSS.supports && CSS.supports("color", "oklch(0 0 0)");
+          if (ok) return;
+          if (localStorage.getItem("thedesk:old-browser-dismissed") === "1") return;
+          var bar = document.createElement("div");
+          bar.setAttribute("role", "alert");
+          bar.style.cssText =
+            "position:fixed;top:0;left:0;right:0;z-index:10000;background:#1a1205;color:#f3e7c8;" +
+            "font:14px/1.45 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" +
+            "padding:12px 44px 12px 16px;box-shadow:0 1px 0 rgba(0,0,0,.35)";
+          bar.appendChild(
+            document.createTextNode(
+              "Your browser is out of date. The Desk needs a newer version " +
+                "(iOS 15.4+, or a current Chrome/Safari/Edge) to display correctly " +
+                "and run reliably. Please update your device or browser."
+            )
+          );
+          var x = document.createElement("button");
+          x.type = "button";
+          x.textContent = "×";
+          x.setAttribute("aria-label", "Dismiss");
+          x.style.cssText =
+            "position:absolute;top:6px;right:10px;background:none;border:none;color:#f3e7c8;" +
+            "font-size:22px;line-height:1;cursor:pointer";
+          x.onclick = function () {
+            bar.parentNode && bar.parentNode.removeChild(bar);
+            try {
+              localStorage.setItem("thedesk:old-browser-dismissed", "1");
+            } catch (e) {}
+          };
+          bar.appendChild(x);
+          document.body.appendChild(bar);
+        } catch (e) {}
+      })();
+    </script>
+
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

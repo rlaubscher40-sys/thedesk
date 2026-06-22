@@ -12,6 +12,11 @@
  */
 export function dedash(text: string): string {
   if (!text) return text;
+  // Skip the substitution chain on absurdly long input (malformed/garbage rows
+  // far past any real headline or paragraph). Running six global regexes over a
+  // multi-kilobyte blob on every render is what can hang a mobile WebKit tab;
+  // the content is returned untouched rather than truncated.
+  if (text.length > 20_000) return text;
   return (
     text
       // Numeric ranges first: keep 45–54 / 40–15 as a hyphen, not a comma.
