@@ -12,11 +12,11 @@
  * Instagram's API needs to fetch them, then immediately clean up.
  */
 import { env } from "../core/env";
-import { shouldShowSummary } from "../../shared/headline";
 import type { DailyFeedItem, Edition } from "../db/schema";
 import { getLatestEditionAsset } from "../db/editionAssets";
 import { updateFeedItemSayThis, updateFeedItemWhyItMatters } from "../db/feed";
 import { recordServerError } from "../db/health";
+import { generateCoverageBrief } from "../prompts/coverageBrief";
 import { generateInstagramHeadline } from "../prompts/instagramHeadline";
 import { generateSayThis } from "../prompts/sayThis";
 import { generateWhyItMatters } from "../prompts/whyItMatters";
@@ -482,20 +482,24 @@ export async function postDailyCarousel(
 
   // Every slide needs subtext. The daily post generates a why-it-matters (and a
   // say-this caption hook) per story and persists both back to the feed item.
-  // The coverage post instead shows each story's own publisher summary as the
-  // card subtext — in memory, nothing persisted: coverage carries no partner
-  // angle, and the finance "why it matters" generator SKIPs general news, which
-  // was thinning the carousel below three slides. The label is overridden to
-  // "In Brief" on the card so the summary isn't mislabelled.
+  // The coverage post generates an original one-line "In Brief" instead — in
+  // memory, nothing persisted: coverage carries no partner angle, and the
+  // finance "why it matters" generator SKIPs general news, which was thinning
+  // the carousel below three slides. We generate our own paraphrase rather than
+  // reprint the publisher's summary verbatim (that would republish uncleared
+  // source copy). A story whose brief fails drops out via the filter below.
   if (isCoverage) {
-    for (const s of pool) {
-      if (!s.whyItMatters || !s.whyItMatters.trim()) {
-        // Use the publisher summary as subtext only when it's real prose — not
-        // a title echo or extraction garbage (same guard the website cards use).
-        // A story that fails drops out of the carousel via the filter below.
-        if (shouldShowSummary(s.title, s.summary)) s.whyItMatters = s.summary;
-      }
-    }
+    await Promise.all(
+      pool.map(async (s, i) => {
+        if (s.whyItMatters && s.whyItMatters.trim()) return;
+        const brief = await generateCoverageBrief({
+          title: s.title,
+          summary: s.summary,
+          category: s.category,
+        });
+        if (brief) pool[i] = { ...pool[i]!, whyItMatters: brief };
+      })
+    );
   } else {
     await ensureSlideContent(pool);
   }

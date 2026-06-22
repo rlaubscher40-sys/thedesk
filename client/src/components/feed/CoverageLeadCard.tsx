@@ -22,9 +22,9 @@ import { Link } from "wouter";
 import { toast } from "sonner";
 import type { DailyFeedItem } from "@shared/types";
 import { categoryAccentClass, categoryColour } from "@/lib/category";
-import { cleanHeadline, shouldShowSummary } from "@/lib/headline";
+import { cleanHeadline } from "@/lib/headline";
 import { cardDek } from "@/lib/cardDek";
-import { SITE_DISPLAY } from "@/lib/siteUrl";
+import { buildStoryShareDraft } from "@/lib/shareDraft";
 import { useAuth } from "@/lib/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Card } from "../ui/Card";
@@ -36,10 +36,6 @@ export function CoverageLeadCard({ item }: { item: DailyFeedItem }) {
   const isAdmin = user?.role === "admin";
   const utils = trpc.useUtils();
   const [linkedInOpen, setLinkedInOpen] = useState(false);
-  // Drop the hero plate if the og:image fails to load (hotlink-blocked / 403)
-  // rather than leave the browser's broken-image glyph. No library fallback —
-  // coverage lanes deliberately don't manufacture art for an RSS headline.
-  const [ogFailed, setOgFailed] = useState(false);
 
   const deleteItem = trpc.feed.deleteItem.useMutation({
     onSuccess: () => {
@@ -74,17 +70,8 @@ export function CoverageLeadCard({ item }: { item: DailyFeedItem }) {
 
   const title = cleanHeadline(item.title);
   const dek = cardDek(item);
-  const showSummary = shouldShowSummary(item.title, item.summary);
   const catColour = categoryColour(item.category);
-  const linkedInDraft = [
-    title,
-    "",
-    showSummary ? item.summary : "",
-    "",
-    `Via The Desk · ${SITE_DISPLAY}`,
-  ]
-    .join("\n")
-    .trim();
+  const linkedInDraft = buildStoryShareDraft(item);
 
   return (
     <Card
@@ -95,34 +82,10 @@ export function CoverageLeadCard({ item }: { item: DailyFeedItem }) {
       className="mx-auto w-full max-w-[860px]"
       accentClass={categoryAccentClass(item.category)}
     >
-      {/* Hero plate only when the story actually carries an og:image. No
-          library fallback on coverage lanes — manufacturing art for what
-          is structurally an RSS headline would re-create the form/content
-          mismatch we just fixed. */}
-      {item.imageUrl && !ogFailed && (
-        <Link
-          href={`/story/${item.id}`}
-          className="relative block overflow-hidden w-full"
-          style={{ aspectRatio: 16 / 9 }}
-        >
-          <img
-            src={item.imageUrl}
-            alt={item.title}
-            className="absolute inset-0 w-full h-full object-cover object-top"
-            loading="lazy"
-            decoding="async"
-            onError={() => setOgFailed(true)}
-          />
-          <span
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background:
-                "linear-gradient(180deg, transparent 55%, oklch(0.08 0.018 260 / 70%) 100%)",
-            }}
-            aria-hidden="true"
-          />
-        </Link>
-      )}
+      {/* No hero plate on coverage lanes: we don't render source publisher
+          photos (uncleared press images), and manufacturing library art for
+          what is structurally an RSS headline would re-create the form/content
+          mismatch CoverageFeedCard fixed. */}
 
       {/* Editorial column. Tighter padding than FeedLeadCard so the dense
           register matches the grid cards below, but a notch larger than

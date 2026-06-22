@@ -21,7 +21,7 @@ import { dedash } from "@/lib/dedash";
 import { markStoryRead } from "@/lib/useReadStories";
 import { cleanHeadline, shouldShowSummary } from "@/lib/headline";
 import { cn } from "@/lib/cn";
-import { SITE_DISPLAY } from "@/lib/siteUrl";
+import { buildStoryShareDraft } from "@/lib/shareDraft";
 import { trpc } from "@/lib/trpc";
 
 export default function StoryPage() {
@@ -135,18 +135,7 @@ export default function StoryPage() {
             <LinkedInPostModal
               open={linkedInOpen}
               onOpenChange={setLinkedInOpen}
-              initialText={[
-                cleanHeadline(itemQuery.data.title),
-                "",
-                shouldShowSummary(itemQuery.data.title, itemQuery.data.summary)
-                  ? itemQuery.data.summary
-                  : "",
-                itemQuery.data.sayThis ? `\nMy take: ${itemQuery.data.sayThis}` : "",
-                "",
-                `Via The Desk · ${SITE_DISPLAY}`,
-              ]
-                .join("\n")
-                .trim()}
+              initialText={buildStoryShareDraft(itemQuery.data)}
             />
 
             {/* Onward navigation — no dead-ends. Step through the day, then a

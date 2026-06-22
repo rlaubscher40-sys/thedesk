@@ -292,33 +292,31 @@ export async function runDailyFeedIngest(rawBaseUrl: string, apiKey: string): Pr
       // resolved URL through so "Read original" + the source favicon point at
       // the masthead, not Google. Non-Google links pass straight through.
       const resolvedUrl = await resolveArticleUrl(item.url);
+      // We still fetch the article for its body text (used transiently to
+      // ground the LLM enrichment), but we deliberately discard the scraped
+      // og:image — displaying a publisher's licensed press photo is uncleared
+      // reproduction, so The Desk uses its own AI-generated covers instead.
       const article = resolvedUrl
         ? await fetchArticle(resolvedUrl)
         : { imageUrl: null, text: null };
       return {
         item,
         resolvedUrl,
-        // Prefer the on-page og:image, but fall back to any lead image the RSS
-        // feed itself carried (media:content / enclosure). Roughly half of
-        // sources omit an og:image but ship a media image, so this lifts the
-        // share of stories that arrive with a real photo.
-        imageUrl: article.imageUrl ?? item.imageUrl ?? null,
         articleText: article.text,
       };
     })
   );
-  const imagesFound = enriched.filter((x) => x.imageUrl).length;
   const textFound = enriched.filter((x) => x.articleText).length;
   const resolvedCount = enriched.filter(
     (x) => x.resolvedUrl && x.resolvedUrl !== x.item.url
   ).length;
   console.log(
-    `[ingest] ${imagesFound}/${picked.length} items have og:image, ${textFound}/${picked.length} have body text, ${resolvedCount} Google News links resolved to publisher`
+    `[ingest] ${textFound}/${picked.length} items have body text, ${resolvedCount} Google News links resolved to publisher`
   );
 
   const feedDate = todayInSydney();
   const payload = {
-    items: enriched.map(({ item, resolvedUrl, imageUrl, articleText }) => ({
+    items: enriched.map(({ item, resolvedUrl, articleText }) => ({
       feedDate,
       title: item.title,
       source: item.source,
@@ -326,7 +324,8 @@ export async function runDailyFeedIngest(rawBaseUrl: string, apiKey: string): Pr
       summary: bestSummary(item.title, item.summary, articleText),
       category: item.category,
       channel: item.channel || "AU",
-      imageUrl: imageUrl ?? null,
+      // No publisher image: The Desk renders its own AI-generated covers.
+      imageUrl: null,
       // Don't ground the LLM enrichment on extraction garbage (Google News'
       // JS interstitial). When the body is junk, send null so the prompts work
       // from the (clean) title + summary instead of a page full of script soup.

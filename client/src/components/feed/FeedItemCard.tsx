@@ -10,10 +10,10 @@ import { Link } from "wouter";
 import { toast } from "sonner";
 import type { DailyFeedItem } from "@shared/types";
 import { categoryAccentClass, categoryColour } from "@/lib/category";
-import { cleanHeadline, shouldShowSummary } from "@/lib/headline";
+import { cleanHeadline } from "@/lib/headline";
+import { buildStoryShareDraft } from "@/lib/shareDraft";
 import { cardDek } from "@/lib/cardDek";
 import { readingMinutes } from "@/lib/readingTime";
-import { SITE_DISPLAY } from "@/lib/siteUrl";
 import { useHeroFallback } from "@/lib/useHeroFallback";
 import { useAuth } from "@/lib/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -50,16 +50,14 @@ export function FeedItemCard({
   // height and a 3-up column became a skyscraper of scroll.
   const [showAnalysis, setShowAnalysis] = useState(false);
 
-  // Photo plate. The og:image may be missing or present-but-broken (news
-  // og:images are routinely hotlink-protected and 403 on a cross-origin
-  // <img>). On either, fail over to a deterministic hero-library cover so an
-  // enriched-lane story still carries a photo rather than a broken-image glyph
-  // or a bare text card. Final fallback (empty library) is no plate at all.
-  const [ogFailed, setOgFailed] = useState(false);
+  // Photo plate. We deliberately do NOT render the source publisher's
+  // og:image (`item.imageUrl`) — that's a licensed press photo we haven't
+  // cleared, and displaying it is the kind of reproduction we avoid. Instead
+  // every card uses a deterministic cover from our own AI-generated hero
+  // library. Final fallback (empty library) is no plate at all.
   const [fallbackFailed, setFallbackFailed] = useState(false);
-  const showOg = Boolean(item.imageUrl) && !ogFailed;
-  const fallbackUrl = useHeroFallback(item.id, !showOg && !fallbackFailed);
-  const heroSrc = showOg ? item.imageUrl : !fallbackFailed ? fallbackUrl : null;
+  const fallbackUrl = useHeroFallback(item.id, !fallbackFailed);
+  const heroSrc = !fallbackFailed ? fallbackUrl : null;
 
   const deleteItem = trpc.feed.deleteItem.useMutation({
     onSuccess: () => {
@@ -160,7 +158,7 @@ export function FeedItemCard({
   // have none — the best available enrichment line, so the card is never blank.
   // Whichever block it's taken from is hidden below so it isn't shown twice.
   const dek = cardDek(item);
-  const linkedInDraft = buildLinkedInDraft(item);
+  const linkedInDraft = buildStoryShareDraft(item);
 
   // The analytical blocks that hang below the action row. When the dek was
   // empty the take is promoted up to fill the dek slot, so it's NOT part of
@@ -232,8 +230,8 @@ export function FeedItemCard({
             className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-500 group-hover/thumb:scale-[1.03]"
             loading="lazy"
             decoding="async"
-            // Broken og:image → library cover; broken library image → no plate.
-            onError={() => (showOg ? setOgFailed(true) : setFallbackFailed(true))}
+            // Broken library image → no plate.
+            onError={() => setFallbackFailed(true)}
           />
           <span
             className="absolute inset-0 noise-overlay pointer-events-none"
@@ -445,14 +443,3 @@ export function FeedItemCard({
   );
 }
 
-function buildLinkedInDraft(item: DailyFeedItem): string {
-  const lines = [
-    cleanHeadline(item.title),
-    "",
-    shouldShowSummary(item.title, item.summary) ? item.summary : "",
-    item.sayThis ? `\nMy take: ${item.sayThis}` : "",
-    "",
-    `Via The Desk · ${SITE_DISPLAY}`,
-  ];
-  return lines.filter((l) => l !== "" || true).join("\n").trim();
-}

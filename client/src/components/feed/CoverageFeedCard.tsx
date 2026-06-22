@@ -18,7 +18,7 @@ import type { DailyFeedItem } from "@shared/types";
 import { categoryAccentClass, categoryColour } from "@/lib/category";
 import { cleanHeadline } from "@/lib/headline";
 import { cardDek } from "@/lib/cardDek";
-import { SITE_DISPLAY } from "@/lib/siteUrl";
+import { buildStoryShareDraft } from "@/lib/shareDraft";
 import { useAuth } from "@/lib/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Card } from "../ui/Card";
@@ -223,16 +223,9 @@ export function CoverageFeedCard({ item }: { item: DailyFeedItem }) {
       <LinkedInPostModal
         open={linkedInOpen}
         onOpenChange={setLinkedInOpen}
-        initialText={buildLinkedInDraft(item)}
+        initialText={buildStoryShareDraft(item)}
         heading="Share this story on LinkedIn"
       />
     </Card>
   );
-}
-
-function buildLinkedInDraft(item: DailyFeedItem): string {
-  const title = cleanHeadline(item.title);
-  return [title, "", item.summary ?? "", "", `Via The Desk · ${SITE_DISPLAY}`]
-    .join("\n")
-    .trim();
 }
