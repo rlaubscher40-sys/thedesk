@@ -7,6 +7,7 @@ import App from "./App";
 import { getLoginUrl } from "./lib/auth";
 import { initErrorReporter } from "./lib/errorReporter";
 import { initCrashLoopGuard, renderCrashLoopSafeMode } from "./lib/crashLoopDetector";
+import { applyLiteClass } from "./lib/liteMode";
 import { trpc } from "./lib/trpc";
 import { initInstallPrompt } from "./lib/installPrompt";
 import "./index.css";
@@ -24,6 +25,10 @@ initErrorReporter();
 // throws no error and shows Safari's "A problem repeatedly occurred"), reports
 // it to /health and tears down a wedged service worker. See crashLoopDetector.
 const inCrashLoop = initCrashLoopGuard();
+
+// Put <html class="lite"> in place before first paint so the cheap-paint CSS
+// applies for reduced-motion users and any device flagged after a crash loop.
+applyLiteClass();
 
 const queryClient = new QueryClient({
   defaultOptions: {

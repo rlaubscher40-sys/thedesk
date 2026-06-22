@@ -15,6 +15,7 @@ import { Skeleton } from "./components/ui/Skeleton";
 import { Toaster } from "./components/ui/Toaster";
 import { trackPageView } from "./lib/analytics";
 import { lazyWithReload } from "./lib/chunkReload";
+import { isLiteMode } from "./lib/liteMode";
 import { PersonaProvider } from "./lib/persona";
 import { ThemeProvider } from "./lib/theme";
 import { UserPrefsProvider } from "./lib/userPrefs";
@@ -107,48 +108,56 @@ function Routes() {
     link.href = window.location.origin + window.location.pathname;
   }, [location]);
 
-  const prefersReducedMotion =
-    typeof window !== "undefined" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const routes = (
+    <Suspense fallback={<PageFallback />}>
+      <Switch>
+        <Route path="/" component={DailyFeed} />
+        <Route path="/editions" component={Editions} />
+        <Route path="/editions/:editionNumber" component={Editions} />
+        <Route path="/queue" component={ReadingQueue} />
+        {/* Legacy /search route → forward to the unified /archive, keeping
+            whatever query string was on the URL so deep links survive. */}
+        <Route path="/search" component={SearchRedirect} />
+        <Route path="/trends" component={Trends} />
+        <Route path="/topics" component={TopicThreads} />
+        <Route path="/topics/:category" component={TopicThreads} />
+        <Route path="/about" component={About} />
+        <Route path="/archive" component={Archive} />
+        <Route path="/story/:id" component={StoryPage} />
+        <Route path="/admin" component={AdminPage} />
+        <Route path="/login" component={Login} />
+        <Route path="/privacy" component={Privacy} />
+        <Route path="/terms" component={Terms} />
+        <Route path="/editorial-standards" component={EditorialStandards} />
+        <Route path="/corrections" component={Corrections} />
+        <Route path="/confirm-subscription" component={ConfirmSubscription} />
+        {/* /confirm alias kept so older confirm-emails (which built
+            their CTA against the shorter path) still resolve. */}
+        <Route path="/confirm" component={ConfirmSubscription} />
+        <Route path="/settings" component={Settings} />
+        <Route path="/install" component={InstallApp} />
+        <Route component={NotFound} />
+      </Switch>
+    </Suspense>
+  );
+
+  // Lite mode (reduced-motion, or a device that has crash-looped) skips the
+  // Framer Motion route transition entirely — no AnimatePresence, no motion
+  // runtime per navigation — so the cheapest possible path renders.
+  if (isLiteMode()) {
+    return <div key={location}>{routes}</div>;
+  }
+
   return (
     <AnimatePresence mode="wait" initial={false}>
       <motion.div
         key={location}
-        initial={prefersReducedMotion ? false : { opacity: 0, y: 6 }}
-        animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
-        exit={prefersReducedMotion ? {} : { opacity: 0, y: -4 }}
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -4 }}
         transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
       >
-        <Suspense fallback={<PageFallback />}>
-          <Switch>
-            <Route path="/" component={DailyFeed} />
-            <Route path="/editions" component={Editions} />
-            <Route path="/editions/:editionNumber" component={Editions} />
-            <Route path="/queue" component={ReadingQueue} />
-            {/* Legacy /search route → forward to the unified /archive, keeping
-                whatever query string was on the URL so deep links survive. */}
-            <Route path="/search" component={SearchRedirect} />
-            <Route path="/trends" component={Trends} />
-            <Route path="/topics" component={TopicThreads} />
-            <Route path="/topics/:category" component={TopicThreads} />
-<Route path="/about" component={About} />
-            <Route path="/archive" component={Archive} />
-            <Route path="/story/:id" component={StoryPage} />
-            <Route path="/admin" component={AdminPage} />
-            <Route path="/login" component={Login} />
-            <Route path="/privacy" component={Privacy} />
-            <Route path="/terms" component={Terms} />
-            <Route path="/editorial-standards" component={EditorialStandards} />
-            <Route path="/corrections" component={Corrections} />
-            <Route path="/confirm-subscription" component={ConfirmSubscription} />
-            {/* /confirm alias kept so older confirm-emails (which built
-                their CTA against the shorter path) still resolve. */}
-            <Route path="/confirm" component={ConfirmSubscription} />
-            <Route path="/settings" component={Settings} />
-            <Route path="/install" component={InstallApp} />
-            <Route component={NotFound} />
-          </Switch>
-        </Suspense>
+        {routes}
       </motion.div>
     </AnimatePresence>
   );

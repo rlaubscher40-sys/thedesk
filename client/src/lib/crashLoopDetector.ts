@@ -26,6 +26,7 @@
  * loop"; recovery runs at most once per cooldown).
  */
 import { reportError } from "./errorReporter";
+import { enableLiteMode } from "./liteMode";
 
 const BOOTS_KEY = "thedesk:boots";
 const RECOVERY_KEY = "thedesk:crash-recovery-at";
@@ -157,6 +158,11 @@ export function initCrashLoopGuard(now: number = Date.now()): boolean {
   const err = new Error("Crash loop detected (silent WebKit/OOM crash?)");
   err.stack = diagnostics(LOOP_THRESHOLD);
   reportError(err);
+
+  // Persist lite mode so the next full-app load (via the safe-mode retry, or a
+  // browser auto-reload) comes back stripped of the heavy animations and blur
+  // that likely tipped this device over.
+  enableLiteMode();
 
   // Best-effort shell teardown for the wedged-service-worker case.
   void attemptRecovery(now);
