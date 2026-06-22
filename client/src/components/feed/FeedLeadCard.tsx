@@ -12,10 +12,10 @@ import { Link } from "wouter";
 import { toast } from "sonner";
 import type { DailyFeedItem } from "@shared/types";
 import { categoryAccentClass, categoryColour } from "@/lib/category";
-import { cleanHeadline, shouldShowSummary } from "@/lib/headline";
+import { cleanHeadline } from "@/lib/headline";
+import { buildStoryShareDraft } from "@/lib/shareDraft";
 import { cardDek } from "@/lib/cardDek";
 import { readingMinutes } from "@/lib/readingTime";
-import { SITE_DISPLAY } from "@/lib/siteUrl";
 import { useHeroFallback } from "@/lib/useHeroFallback";
 import { useAuth } from "@/lib/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -34,20 +34,13 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
   const isAdmin = user?.role === "admin";
   const utils = trpc.useUtils();
 
-  // The og:image can be missing OR present-but-broken: news og:images are
-  // routinely hotlink-protected and 403 on a cross-origin <img>, which is what
-  // painted the broken-image "?" boxes on the feed. Track a load failure and
-  // treat it the same as a missing image so we fail over to the library cover.
-  const [ogFailed, setOgFailed] = useState(false);
+  // We deliberately do NOT render the source publisher's og:image — that's a
+  // licensed press photo we haven't cleared. Every lead uses a deterministic
+  // cover from our own AI-generated hero library instead, keyed by item.id so
+  // the same lead always gets the same cover. Final fallback (empty library) is
+  // the category-text gradient.
   const [fallbackFailed, setFallbackFailed] = useState(false);
-  const needsFallback = !item.imageUrl || ogFailed;
-
-  // Fallback hero plate: when the story has no usable og:image, pull a
-  // deterministic image from the hero library so the lead card doesn't
-  // sit as a bare category-text gradient. Keyed by item.id so the same
-  // lead always gets the same fallback. Suspended while a usable og:image
-  // is showing.
-  const fallbackUrl = useHeroFallback(item.id, needsFallback && !fallbackFailed);
+  const fallbackUrl = useHeroFallback(item.id, !fallbackFailed);
 
   const deleteItem = trpc.feed.deleteItem.useMutation({
     onSuccess: () => {
@@ -109,19 +102,11 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
   }
 
   const title = cleanHeadline(item.title);
-  const showSummary = shouldShowSummary(item.title, item.summary);
   // The lede under the headline: a real summary, or the best available
   // enrichment line so the lead is never blank. The block it's taken from is
   // hidden below so it isn't shown twice.
   const dek = cardDek(item);
-  const linkedInDraft = [
-    title,
-    "",
-    showSummary ? item.summary : "",
-    item.sayThis ? `\nMy take: ${item.sayThis}` : "",
-    "",
-    `Via The Desk · ${SITE_DISPLAY}`,
-  ].join("\n").trim();
+  const linkedInDraft = buildStoryShareDraft(item);
 
   return (
     // Single-column stack with a sane max-width so the lead doesn't span a
@@ -136,21 +121,16 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
       className="mx-auto w-full max-w-[960px]"
       accentClass={categoryAccentClass(item.category)}
     >
-      {/* Hero plate, og:image when scraped, otherwise an editorial
-          gradient keyed to the category. The category gradient ALWAYS
-          renders as the background, even when an image is present —
-          object-contain on the image means odd aspect ratios (very
-          common for news og:images) sit centred with gradient filler
-          peeking through the edges rather than getting savagely cropped. */}
+      {/* Hero plate: a cover from our own AI-generated hero library over an
+          editorial gradient keyed to the category. The category gradient
+          ALWAYS renders as the background so an odd aspect ratio sits centred
+          with gradient filler at the edges rather than getting savagely
+          cropped. */}
       <Link
         href={`/story/${item.id}`}
-        // The card has its own max-width now (960px), so the image
-        // can take its full natural aspect without dominating the
-        // viewport. No more max-height clamp, that was the source
-        // of the zoom-in crop.
         className="relative block overflow-hidden w-full"
         style={{
-          aspectRatio: imageAspect ?? (item.imageUrl ? 5 / 3 : 5 / 3),
+          aspectRatio: imageAspect ?? 5 / 3,
           background: `
             radial-gradient(circle at 78% 22%, ${categoryColour(item.category)}50 0%, transparent 55%),
             radial-gradient(circle at 14% 86%, ${categoryColour(item.category)}1a 0%, transparent 55%),
@@ -158,24 +138,8 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
           `,
         }}
       >
-        {item.imageUrl && !ogFailed ? (
-          <img
-            src={item.imageUrl}
-            alt={item.title}
-            // object-top so any rare max-height clamp on a tall portrait
-            // preserves the top of the image (faces) rather than centring
-            // the crop through somebody's chin.
-            className="editorial-art-img absolute inset-0 w-full h-full object-cover object-top"
-            loading="lazy"
-            decoding="async"
-            onLoad={onImageLoad}
-            // A broken/blocked og:image falls through to the library cover
-            // instead of leaving the browser's broken-image glyph.
-            onError={() => setOgFailed(true)}
-          />
-        ) : fallbackUrl && !fallbackFailed ? (
-          // Hero-library fallback, used when the story didn't come with a
-          // usable og:image. Deterministic per item ID so the cover doesn't
+        {fallbackUrl && !fallbackFailed ? (
+          // Hero-library cover, deterministic per item ID so it doesn't
           // flicker between renders.
           <img
             src={fallbackUrl}
@@ -183,6 +147,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
             className="editorial-art-img absolute inset-0 w-full h-full object-cover object-center"
             loading="lazy"
             decoding="async"
+            onLoad={onImageLoad}
             onError={() => setFallbackFailed(true)}
           />
         ) : (
