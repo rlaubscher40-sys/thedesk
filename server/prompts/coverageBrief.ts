@@ -61,6 +61,7 @@ export async function generateCoverageBrief(
         },
         { role: "user", content: buildPrompt(input) },
       ],
+      maxTokens: 300,
     });
     const trimmed = content.trim().replace(/^["']|["']$/g, "");
     if (!trimmed || trimmed.length > 320) return null;

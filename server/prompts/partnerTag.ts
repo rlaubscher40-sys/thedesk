@@ -68,6 +68,7 @@ export async function generatePartnerTag(input: PartnerTagInput): Promise<string
         },
         { role: "user", content: buildPrompt(input) },
       ],
+      maxTokens: 600,
     });
     const trimmed = content.trim();
     if (/^SKIP\.?$/i.test(trimmed)) {
