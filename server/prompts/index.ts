@@ -9,6 +9,7 @@ export * from "./sayThis";
 export * from "./whyItMatters";
 export * from "./coverageBrief";
 export * from "./counterpoint";
+export * from "./dailyAngles";
 export * from "./instagramHeadline";
 export * from "./substackDraft";
 export * from "./heroImage";

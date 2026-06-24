@@ -35,14 +35,10 @@ import {
   editionHeroPrompt,
   extractMetricFromNews,
   feedItemImagePrompt,
-  generateCounterpoint,
+  generateDailyAngles,
   generateLookback,
-  generatePartnerTag,
   generateRubensTake,
-  generateSayThis,
-  generateWhyItMatters,
   optimiseHeadlines,
-  runDailyItemQc,
   runEditorQc,
   synthesizeWeeklyEdition,
 } from "./prompts";
@@ -275,109 +271,52 @@ function registerDailyFeedRoute(app: Express): void {
           let whyOk = 0;
           let cpOk = 0;
           let imgOk = 0;
-          // Bounded concurrency: each enriched item fires up to four LLM
-          // calls, so a flat Promise.all over the whole feed bursts ~90
-          // requests at Anthropic at once and trips its rate limit — most 429
-          // and resolve to null, leaving roughly one stray field per story.
-          // A small pool keeps us under the per-minute ceiling. Items zip to
-          // their row by position: createFeedItems returns IDs in input order
-          // (matching by title collided when two sources ran the same headline).
-          await mapWithConcurrency(freshItems, 3, async (item, index) => {
+          // Bounded concurrency: each enriched item now fires a single
+          // combined LLM call, but a flat Promise.all over the whole feed
+          // would still burst the per-minute ceiling on a big day. A small
+          // pool keeps us under it. Items zip to their row by position:
+          // createFeedItems returns IDs in input order (matching by title
+          // collided when two sources ran the same headline).
+          await mapWithConcurrency(freshItems, 4, async (item, index) => {
               const id = insertedIds[index];
               if (!id) return;
 
               // Only the partner-relevant Australian lanes (AU, PROPERTY) get
               // the expensive editorial enrichment. BUSINESS / TECH / GLOBAL
-              // are coverage-only — they skip the four angle generators + QC
-              // and run image/dedup/threading alone (the latter two already
-              // ran pre-insert above). Any preset angle the source supplied
-              // was persisted at insert and is left untouched.
+              // are coverage-only — they skip angle generation and run
+              // image/dedup/threading alone (the latter two already ran
+              // pre-insert above). Any preset angle the source supplied was
+              // persisted at insert and is left untouched.
               const enrich = isEnrichedChannel(item.channel);
 
-              // All enrichments fan out in parallel per item.
-              const [tag, say, why, cp, img] = await Promise.allSettled([
-                !enrich
-                  ? Promise.resolve(null)
-                  : item.partnerTag
-                    ? Promise.resolve(item.partnerTag)
-                    : generatePartnerTag({
-                        title: item.title,
-                        summary: item.summary,
-                        existingTag: item.partnerTag,
-                        articleText: item.articleText,
-                      }),
-                !enrich
-                  ? Promise.resolve(null)
-                  : item.sayThis
-                    ? Promise.resolve(item.sayThis)
-                    : generateSayThis({
-                        title: item.title,
-                        summary: item.summary,
-                        category: item.category,
-                        articleText: item.articleText,
-                      }),
-                !enrich
-                  ? Promise.resolve(null)
-                  : item.whyItMatters
-                    ? Promise.resolve(item.whyItMatters)
-                    : generateWhyItMatters({
-                        title: item.title,
-                        summary: item.summary,
-                        category: item.category,
-                        articleText: item.articleText,
-                      }),
-                // Counterpoint, the calm contrarian read. Enriched lanes only;
-                // the prompt SKIPs the many that have no real second side, so
-                // this resolves null most of the time even there.
-                !enrich
-                  ? Promise.resolve(null)
-                  : generateCounterpoint({
-                      title: item.title,
-                      summary: item.summary,
-                      category: item.category,
-                      articleText: item.articleText,
-                    }),
-                // Feed items don't use AI thumbnails post-refactor, they
-                // rely on the og:image scraped during ingest. Wiring per-
-                // item asset storage is doable (mirror the edition_assets
-                // pattern keyed on feedItemId) but isn't worth the schema
-                // churn for thumbnails that come free from the source URL.
-                item.imageUrl ? Promise.resolve({ url: item.imageUrl }) : Promise.resolve(null),
-              ]);
-
-              // Resolve the generated lines (null = SKIPped or failed).
-              let tagValue = tag.status === "fulfilled" && tag.value ? tag.value : null;
-              let sayValue = say.status === "fulfilled" && say.value ? say.value : null;
-              let whyValue = why.status === "fulfilled" && why.value ? why.value : null;
-              let cpValue = cp.status === "fulfilled" && cp.value ? cp.value : null;
-
-              // Second-pass editor: reads the lines together against the
-              // story, sharpens flat copy and culls contrived angles. Best-
-              // effort, on any failure it returns the originals untouched.
-              // Skipped when the values were preset by the source (we don't
-              // edit hand-supplied content) or when nothing generated.
-              const hadPreset = Boolean(item.partnerTag || item.sayThis || item.whyItMatters);
-              if (enrich && !hadPreset && (tagValue || sayValue || whyValue || cpValue)) {
-                const qc = await runDailyItemQc({
+              // One combined call writes all four angles together (and edits
+              // them against each other), instead of four generators plus a
+              // fifth QC pass each re-sending the full article text. Same
+              // editorial result, ~5x fewer calls and ~5x less input. Source-
+              // supplied presets always win; the call only fills the gaps.
+              let tagValue: string | null = null;
+              let sayValue: string | null = null;
+              let whyValue: string | null = null;
+              let cpValue: string | null = null;
+              if (enrich) {
+                const angles = await generateDailyAngles({
                   title: item.title,
                   summary: item.summary,
                   category: item.category,
                   articleText: item.articleText,
-                  sayThis: sayValue,
-                  partnerTag: tagValue,
-                  whyItMatters: whyValue,
-                  counterpoint: cpValue,
                 });
-                tagValue = qc.partnerTag;
-                sayValue = qc.sayThis;
-                whyValue = qc.whyItMatters;
-                cpValue = qc.counterpoint;
-                if (!qc.approved && qc.notes.length > 0) {
-                  console.log(
-                    `[daily-qc] "${item.title.slice(0, 50)}…": ${qc.notes.length} edit(s)`
-                  );
-                }
+                tagValue = item.partnerTag ?? angles.partnerTag;
+                sayValue = item.sayThis ?? angles.sayThis;
+                whyValue = item.whyItMatters ?? angles.whyItMatters;
+                cpValue = angles.counterpoint;
               }
+
+              // Feed items don't use AI thumbnails post-refactor, they rely on
+              // the og:image scraped during ingest. Wiring per-item asset
+              // storage is doable (mirror the edition_assets pattern keyed on
+              // feedItemId) but isn't worth the schema churn for thumbnails
+              // that come free from the source URL.
+              const imageUrl = item.imageUrl ?? null;
 
               // Persist each angle independently. The Today page now gives a
               // story a full card if it has EITHER a Say This or a Partner
@@ -404,8 +343,8 @@ function registerDailyFeedRoute(app: Express): void {
                 await db.updateFeedItemCounterpoint(id, cpValue);
                 cpOk++;
               }
-              if (img.status === "fulfilled" && img.value && "url" in img.value && img.value.url) {
-                await db.updateFeedItemImageUrl(id, img.value.url);
+              if (imageUrl) {
+                await db.updateFeedItemImageUrl(id, imageUrl);
                 imgOk++;
               }
             });
