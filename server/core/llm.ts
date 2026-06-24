@@ -14,7 +14,10 @@
  *     ANTHROPIC_MODEL_PREMIUM) is reserved for the voice-sensitive weekly
  *     pieces (Ruben's Take, edition synthesis, Substack draft, look-back).
  *     Callers pick a tier via `tier`; it defaults to "standard".
- *   - Adaptive thinking enabled (Claude decides depth)
+ *   - Adaptive thinking is opt-in: ON by default for the premium tier (voice-
+ *     sensitive long-form), OFF for the standard tier (one-line enrichment),
+ *     since thinking tokens are billed as output and swamp a one-sentence
+ *     answer. Override per call with `thinking`.
  *   - Streaming for any request that may produce > 16K tokens (avoids SDK
  *     HTTP timeouts)
  *
@@ -57,6 +60,15 @@ export type InvokeLlmParams = {
   maxTokens?: number;
   /** Which model tier to use. Defaults to "standard". */
   tier?: ModelTier;
+  /**
+   * Whether to enable extended ("adaptive") thinking. Thinking tokens are
+   * billed as output and, on a one-sentence rewrite/extraction, dwarf the
+   * actual answer — so this defaults OFF for the high-volume "standard" tier
+   * (tags, sayThis, why-it-matters, headlines, QC, metric extraction) and ON
+   * only for the voice-sensitive "premium" tier (Ruben's Take, edition
+   * synthesis, Substack, look-back). Pass explicitly to override per call.
+   */
+  thinking?: boolean;
 };
 
 const DEFAULT_MAX_TOKENS = 16000;
@@ -140,12 +152,18 @@ export async function invokeLLM(params: InvokeLlmParams): Promise<string> {
     throw new Error("invokeLLM: at least one non-system message is required");
   }
 
+  // Thinking is billed as output. Default it on only for the premium voice
+  // tier; the high-volume standard calls produce a single line where thinking
+  // would cost far more than the answer. Callers can force either way.
+  const useThinking = params.thinking ?? params.tier === "premium";
+  const thinking = useThinking ? { thinking: { type: "adaptive" as const } } : {};
+
   // Stream when output budget is large to avoid SDK HTTP read timeouts.
   if (maxTokens > STREAM_THRESHOLD) {
     const stream = client.messages.stream({
       model,
       max_tokens: maxTokens,
-      thinking: { type: "adaptive" },
+      ...thinking,
       ...(system ? { system } : {}),
       messages: conversation,
     });
@@ -156,7 +174,7 @@ export async function invokeLLM(params: InvokeLlmParams): Promise<string> {
   const response = await client.messages.create({
     model,
     max_tokens: maxTokens,
-    thinking: { type: "adaptive" },
+    ...thinking,
     ...(system ? { system } : {}),
     messages: conversation,
   });

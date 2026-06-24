@@ -60,6 +60,7 @@ export async function generateSayThis(input: SayThisInput): Promise<string | nul
         },
         { role: "user", content: buildPrompt(input) },
       ],
+      maxTokens: 300,
     });
     const trimmed = content.trim().replace(/^["']|["']$/g, "");
     if (!trimmed || trimmed.length > 280) return null;
