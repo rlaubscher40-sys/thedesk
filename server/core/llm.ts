@@ -190,6 +190,15 @@ function extractText(response: Anthropic.Message): string {
   if (joined.length === 0) {
     throw new Error("LLM returned empty content");
   }
+  // The model hit the output ceiling and the response is truncated. Surface
+  // this plainly: a caller parsing JSON would otherwise see a misleading
+  // "Unterminated string" / "Unexpected end of input" and chase the wrong bug.
+  // The fix is almost always to raise `maxTokens` for that call.
+  if (response.stop_reason === "max_tokens") {
+    throw new Error(
+      `LLM output truncated at max_tokens (${response.usage?.output_tokens ?? "?"} output tokens); raise maxTokens for this call`
+    );
+  }
   return joined;
 }
 

@@ -309,6 +309,14 @@ export async function synthesizeWeeklyEdition(input: SynthesisInput): Promise<Sy
       { role: "user", content: buildPrompt(input) },
     ],
     tier: "premium",
+    // The edition is the largest single generation we run: 5-7 topics with
+    // 600-800 word bodies, an 800-1200 word editor's letter, plus signals and
+    // dates. That alone is ~11-12K output tokens, and the premium tier runs
+    // adaptive thinking whose tokens are billed against this same budget. The
+    // 16K default left no headroom, so a busy week truncated the JSON mid-string
+    // ("Unterminated string in JSON") and the whole job failed. Give it real
+    // room. >16K also routes through the streaming path, avoiding HTTP timeouts.
+    maxTokens: 32000,
   });
 
   // Strip any markdown fences the model might have wrapped around the JSON.
