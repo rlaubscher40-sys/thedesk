@@ -247,6 +247,28 @@ describe("renderWeeklyCoverCard", () => {
   it("renders with the edition's own hero override", async () => {
     expectJpeg(await renderWeeklyCoverCard(fakeEdition(), tinyHero));
   });
+
+  it("renders full-length 14-word topic headlines without overflowing", async () => {
+    // Contents titles are argument-headlines up to ~14 words. They must show in
+    // full (font steps down by the longest) rather than being clamped
+    // mid-sentence like they used to at a fixed 60 chars.
+    const longTitles = fakeEdition({
+      topics: [
+        fakeTopic({
+          title: "The downturn nobody is allowed to call a crash is doing the damage anyway",
+        }),
+        fakeTopic({
+          title: "The negative gearing redirect is colliding with the supply crunch it was meant to fix",
+        }),
+        fakeTopic({ title: "The RBA is waiting while the Fed argues with itself in public" }),
+        fakeTopic({
+          title: "The Big Four reckoning is really a fight over who verifies the borrower",
+        }),
+      ],
+    });
+    expectJpeg(await renderWeeklyCoverCard(longTitles));
+    expectJpeg(await renderWeeklyCoverCard(longTitles, tinyHero, "light"));
+  });
 });
 
 describe("renderWeeklyStoryVertical", () => {
@@ -256,6 +278,25 @@ describe("renderWeeklyStoryVertical", () => {
 
   it("renders with the edition's own hero override", async () => {
     expectJpeg(await renderWeeklyStoryVertical(fakeEdition(), tinyHero));
+  });
+
+  it("renders full-length 14-word topic headlines without overflowing", async () => {
+    const longTitles = fakeEdition({
+      topics: [
+        fakeTopic({
+          title: "The downturn nobody is allowed to call a crash is doing the damage anyway",
+        }),
+        fakeTopic({
+          title: "The negative gearing redirect is colliding with the supply crunch it was meant to fix",
+        }),
+        fakeTopic({ title: "The RBA is waiting while the Fed argues with itself in public" }),
+        fakeTopic({
+          title: "The Big Four reckoning is really a fight over who verifies the borrower",
+        }),
+      ],
+    });
+    expectJpeg(await renderWeeklyStoryVertical(longTitles));
+    expectJpeg(await renderWeeklyStoryVertical(longTitles, tinyHero, "light"));
   });
 });
 

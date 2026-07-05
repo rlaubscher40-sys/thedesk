@@ -1167,6 +1167,19 @@ export async function renderWeeklyCoverCard(
   const hero = heroOverride ?? (await loadAsset("hero-weekly.jpg"));
   const headshot = await loadAsset("ruben.jpg");
   const topics = edition.topics.slice(0, 4);
+  // Topic titles are argument-headlines up to ~14 words, so a fixed 40px would
+  // force the fixed-height contents block to overflow. Step the whole list down
+  // by its longest entry so every headline shows in full instead of being cut
+  // mid-sentence.
+  const topicTitleFontSize = fitFontSize(
+    Math.max(0, ...topics.map((t) => t.title.trim().length)),
+    [
+      [46, "40px"],
+      [66, "35px"],
+      [88, "30px"],
+    ],
+    "27px"
+  );
   const metrics = edition.keyMetrics as Record<string, string | undefined> | null | undefined;
   const cashRate = metrics?.cashRate ?? metrics?.cash_rate ?? null;
   const asx = metrics?.asx200 ?? metrics?.ASX200 ?? metrics?.asx ?? null;
@@ -1361,11 +1374,14 @@ export async function renderWeeklyCoverCard(
                               style: {
                                 fontFamily: "Playfair Display",
                                 fontWeight: 700,
-                                fontSize: "40px",
+                                fontSize: topicTitleFontSize,
                                 lineHeight: 1.26,
                                 color: FG,
                               },
-                              children: clamp(topic.title, 60),
+                              // High cap with a sentence-aware trim: real
+                              // headlines pass through whole; only a runaway
+                              // title gets an ellipsis instead of a silent chop.
+                              children: clampSentence(topic.title, 120),
                             },
                           },
                         ],
@@ -1529,6 +1545,17 @@ export async function renderWeeklyStoryVertical(
   const hero = heroOverride ?? (await loadAsset("hero-weekly.jpg"));
   const headshot = await loadAsset("ruben.jpg");
   const topics = edition.topics.slice(0, 4);
+  // Same step-down as the cover so full headlines fit the taller Story canvas
+  // rather than being cut mid-sentence.
+  const topicTitleFontSize = fitFontSize(
+    Math.max(0, ...topics.map((t) => t.title.trim().length)),
+    [
+      [46, "44px"],
+      [66, "38px"],
+      [88, "33px"],
+    ],
+    "30px"
+  );
   const metrics = edition.keyMetrics as Record<string, string | undefined> | null | undefined;
   const cashRate = metrics?.cashRate ?? metrics?.cash_rate ?? null;
   const asx = metrics?.asx200 ?? metrics?.ASX200 ?? metrics?.asx ?? null;
@@ -1724,11 +1751,14 @@ export async function renderWeeklyStoryVertical(
                               style: {
                                 fontFamily: "Playfair Display",
                                 fontWeight: 700,
-                                fontSize: "44px",
+                                fontSize: topicTitleFontSize,
                                 lineHeight: 1.22,
                                 color: FG,
                               },
-                              children: clamp(topic.title, 62),
+                              // High cap with a sentence-aware trim: real
+                              // headlines pass through whole; only a runaway
+                              // title gets an ellipsis instead of a silent chop.
+                              children: clampSentence(topic.title, 120),
                             },
                           },
                         ],
