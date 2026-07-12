@@ -316,6 +316,36 @@ describe("renderWeeklyTopicCard", () => {
     expectJpeg(await renderWeeklyTopicCard(sparse, 2, 4));
   });
 
+  it("trims dense prose to clean sentences, not mid-sentence chops", async () => {
+    // The summary, why-it-matters and what-to-watch items are full sentences.
+    // A dense card (all analysis blocks present) must trim each to a complete
+    // sentence or a clean elision, never a bare word-cut or a dangling comma
+    // like the old "not the" / "pulling back," / "rules," artefacts.
+    const dense = fakeTopic({
+      summary:
+        "For a generation the working assumption was that Australian dwellings only " +
+        "moved in one direction. The negative gearing changes are now law, prices are " +
+        "drifting down, and the surprise is who is caught. Investors are pulling back, " +
+        "and first-home buyers are hesitating on every listing.",
+      whyItMatters:
+        "Every investor and first-home-buyer conversation this month runs into the same " +
+        "wall of budget-driven fear, and the channel that can separate policy noise from " +
+        "a real crash wins the client relationship for the cycle.",
+      whatToWatch: [
+        "July CoreLogic capital city index, due early August, confirms whether the 2 to 3 " +
+          "per cent monthly declines are broadening across the mainland capitals",
+        "Sydney and Melbourne auction clearance rates through late July for signs the buyer strike is easing",
+        "Listings volume for a wave of investor exits under the new negative gearing rules, " +
+          "which would accelerate the slide into spring",
+      ],
+      keyTakeaway:
+        "The correction is small in price and large in mood, and the danger is clients " +
+        "treating a 3 per cent dip like a crash and freezing when they should be moving.",
+    });
+    expectJpeg(await renderWeeklyTopicCard(dense, 1, 5, "navy"));
+    expectJpeg(await renderWeeklyTopicCard(dense, 1, 5, "light"));
+  });
+
   it("survives an overlong title, summary and watch items", async () => {
     const huge = fakeTopic({
       title: "An extraordinarily long topic title that runs well past the usual length ".repeat(2),

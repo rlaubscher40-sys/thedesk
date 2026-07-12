@@ -206,8 +206,11 @@ function clampSentence(text: string, max: number): string {
   // reads as deliberate continuation, not an accidental crop.
   const lastSpace = window.lastIndexOf(" ");
   const base = (lastSpace > max * 0.6 ? window.slice(0, lastSpace) : window).trimEnd();
-  // Don't double up punctuation if we happened to land right after one.
-  return /[.!?,;:]$/.test(base) ? base : `${base}…`;
+  // A trim that lands on a clause-level mark (comma, semicolon, colon) reads as
+  // a mid-sentence chop — strip it and elide. Only a real sentence terminator
+  // (. ! ?) is a clean finish that needs no ellipsis.
+  if (/[.!?]$/.test(base)) return base;
+  return `${base.replace(/[,;:]+$/, "").trimEnd()}…`;
 }
 
 /**
@@ -1912,15 +1915,19 @@ export async function renderWeeklyTopicCard(
   const AMBER = c.amber;
   const slideNum = String(slideIndex + 1).padStart(2, "0");
   const totalNum = String(slideTotal).padStart(2, "0");
-  const why = topic.whyItMatters ? clamp(topic.whyItMatters, 180) : null;
+  // Every prose field is trimmed sentence-aware, never with a bare word-cut:
+  // these are full sentences, so a hard clamp reads as chopped mid-thought
+  // (the "not the", "pulling back," artefacts). clampSentence ends on a
+  // complete sentence where one fits, else a clean word boundary + ellipsis.
+  const why = topic.whyItMatters ? clampSentence(topic.whyItMatters, 190) : null;
   // Forward-looking watch items: the analytical payload that turns a bare
-  // summary card into a briefing the reader keeps. Up to three, trimmed so
-  // each sits on at most two lines.
+  // summary card into a briefing the reader keeps. Up to three, each trimmed
+  // so it completes its thought or elides cleanly, on at most two lines.
   const watch = (topic.whatToWatch ?? [])
     .filter((w) => w && w.trim())
     .slice(0, 3)
-    .map((w) => clamp(w, 84));
-  const takeaway = topic.keyTakeaway ? clamp(topic.keyTakeaway, 175) : null;
+    .map((w) => clampSentence(w, 120));
+  const takeaway = topic.keyTakeaway ? clampSentence(topic.keyTakeaway, 185) : null;
 
   // How much analysis the topic actually ships. With at most one block the
   // card would dead-space, so we switch it to a "standfirst page": the lead
@@ -1928,7 +1935,7 @@ export async function renderWeeklyTopicCard(
   // editorial breathing room rather than a hole above the folio.
   const analysisBlocks = (why ? 1 : 0) + (watch.length ? 1 : 0) + (takeaway ? 1 : 0);
   const sparse = analysisBlocks <= 1;
-  const summary = clamp(topic.summary, sparse ? 320 : 230);
+  const summary = clampSentence(topic.summary, sparse ? 320 : 240);
   const summaryFontSize = sparse ? "29px" : "23px";
   const summaryLineHeight = sparse ? 1.58 : 1.62;
   // On a standfirst page the title is the hero, so it scales right up; on a
