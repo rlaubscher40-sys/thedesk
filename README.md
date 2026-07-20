@@ -20,16 +20,16 @@ Private intelligence briefing tool for Ruben Laubscher (Head of Partnerships, In
 ## Stack
 
 - React 19, Tailwind 4, Wouter, tRPC 11, Superjson, Framer Motion, Sonner, Lucide
-- Node 22, Express 4, Drizzle ORM, MySQL/TiDB
+- Node 22, Express 5, Drizzle ORM, MySQL/TiDB
 - Vite 7 dev server piggybacked on Express (same port)
 
 ## How to run
 
 ### Click-through preview in Codespaces (no install)
 
-The repo ships with a `.devcontainer/` config. On the [repo page](https://github.com/rubenlaubscher-beep/thedesk/tree/claude/rebuild-the-desk-Wy1Gp):
+The repo ships with a `.devcontainer/` config. On the [repo page](https://github.com/rlaubscher40-sys/thedesk):
 
-1. **Code → Codespaces → Create codespace on `claude/rebuild-the-desk-Wy1Gp`**
+1. **Code → Codespaces → Create codespace on `main`**
 2. Wait ~90 seconds (container builds, `pnpm install` runs automatically)
 3. In the terminal: `pnpm dev` — or **Tasks: Run Task → dev**
 4. Click the toast that says "Your application running on port 3000 is available"
@@ -62,18 +62,18 @@ pnpm check            # tsc --noEmit
 
 ## Environment variables
 
-Copy `.env.example` to `.env` and fill in:
+Copy `.env.example` to `.env` and fill in (the authoritative list, with
+per-var docs, lives in `server/core/env.ts`):
 
 ```
-DATABASE_URL          MySQL connection string
-JWT_SECRET            Session cookie signing key
-VITE_APP_ID           Manus OAuth app ID
-OAUTH_SERVER_URL      Manus OAuth backend
-VITE_OAUTH_PORTAL_URL Manus login portal
-BUILT_IN_FORGE_API_URL
-BUILT_IN_FORGE_API_KEY
-SCHEDULED_API_KEY     auth for /api/scheduled/* POSTs
-OWNER_OPEN_ID         your openId — auto-promoted to admin on first sign-in
+DATABASE_URL          MySQL/TiDB connection string
+JWT_SECRET            Signs the admin session cookie + HMAC'd email links
+ADMIN_PASSWORD        Gates the single-admin login
+ANTHROPIC_API_KEY     LLM enrichment (tags, sayThis, synthesis, …)
+SCHEDULED_API_KEY     x-scheduled-key header for /api/scheduled/* POSTs
+OPENAI_API_KEY        Optional — hero image generation
+RESEND_API_KEY        Optional — subscriber + alert email delivery
+SITE_URL              Canonical origin used in emails / sitemap / OG tags
 ```
 
 ## Project layout

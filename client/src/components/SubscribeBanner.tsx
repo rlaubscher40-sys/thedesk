@@ -11,14 +11,13 @@ export function SubscribeBanner({ source = "banner" }: { source?: string }) {
   const [subscribed, setSubscribed] = useState(false);
 
   const subscribe = trpc.subscribers.subscribe.useMutation({
-    onSuccess: (res) => {
+    onSuccess: () => {
       setEmail("");
       setSubscribed(true);
-      if (res.status === "already-confirmed") {
-        toast.success("You're already on the list");
-      } else {
-        toast.success("Check your inbox to confirm");
-      }
+      // One message for every outcome — see the subscribe mutation; the
+      // server response no longer reveals whether the address was already
+      // on the list.
+      toast.success("Check your inbox to confirm");
     },
     onError: () => {
       toast.error("Couldn't subscribe right now. Try again in a minute.");
@@ -44,16 +43,14 @@ export function SubscribeBanner({ source = "banner" }: { source?: string }) {
       aria-label="Subscribe to The Desk"
       style={{
         background: "var(--grad-cta-deep)",
-        boxShadow:
-          "inset 0 0 0 1px oklch(0.75 0.18 70 / 14%), 0 14px 40px oklch(0 0 0 / 30%)",
+        boxShadow: "inset 0 0 0 1px oklch(0.75 0.18 70 / 14%), 0 14px 40px oklch(0 0 0 / 30%)",
       }}
     >
       {/* Warm amber glow from the right, mirrors the screenshot */}
       <div
         className="absolute -bottom-16 -right-16 h-80 w-80 pointer-events-none rounded-full"
         style={{
-          background:
-            "radial-gradient(circle, oklch(0.72 0.20 55 / 40%) 0%, transparent 70%)",
+          background: "radial-gradient(circle, oklch(0.72 0.20 55 / 40%) 0%, transparent 70%)",
           filter: "blur(48px)",
         }}
         aria-hidden="true"
@@ -61,18 +58,14 @@ export function SubscribeBanner({ source = "banner" }: { source?: string }) {
       <div
         className="absolute top-0 right-1/4 h-48 w-48 pointer-events-none rounded-full"
         style={{
-          background:
-            "radial-gradient(circle, oklch(0.75 0.18 70 / 20%) 0%, transparent 70%)",
+          background: "radial-gradient(circle, oklch(0.75 0.18 70 / 20%) 0%, transparent 70%)",
           filter: "blur(36px)",
         }}
         aria-hidden="true"
       />
 
       <div className="relative flex flex-col items-center text-center px-8 py-14 sm:px-16 sm:py-18 lg:py-20 gap-6">
-        <p
-          className="overline-amber"
-          style={{ letterSpacing: "0.26em", fontSize: "10px" }}
-        >
+        <p className="overline-amber" style={{ letterSpacing: "0.26em", fontSize: "10px" }}>
           Keep getting The Desk
         </p>
 
@@ -87,8 +80,8 @@ export function SubscribeBanner({ source = "banner" }: { source?: string }) {
           className="text-[var(--color-fg-muted)] leading-relaxed"
           style={{ fontSize: "15px", maxWidth: "46ch" }}
         >
-          Property partner intelligence, written for the conversation you are
-          about to have with a client.
+          Property partner intelligence, written for the conversation you are about to have with a
+          client.
         </p>
 
         {subscribed ? (
@@ -135,8 +128,7 @@ export function SubscribeBanner({ source = "banner" }: { source?: string }) {
               style={{
                 background: "var(--grad-cta-amber)",
                 color: "var(--color-on-amber)",
-                boxShadow:
-                  "0 1px 0 oklch(1 0 0 / 18%) inset, 0 6px 20px oklch(0.75 0.18 70 / 30%)",
+                boxShadow: "0 1px 0 oklch(1 0 0 / 18%) inset, 0 6px 20px oklch(0.75 0.18 70 / 30%)",
               }}
             >
               {busy ? "Subscribing…" : "Subscribe"}
@@ -149,8 +141,7 @@ export function SubscribeBanner({ source = "banner" }: { source?: string }) {
             style={{
               background: "var(--grad-cta-amber)",
               color: "var(--color-on-amber)",
-              boxShadow:
-                "0 1px 0 oklch(1 0 0 / 18%) inset, 0 8px 24px oklch(0.75 0.18 70 / 36%)",
+              boxShadow: "0 1px 0 oklch(1 0 0 / 18%) inset, 0 8px 24px oklch(0.75 0.18 70 / 36%)",
             }}
           >
             <Plus className="h-3 w-3" strokeWidth={2.5} />

@@ -24,20 +24,21 @@ setInterval(() => {
   }
 }, 60_000).unref();
 
-export function storeTempImage(
-  buffer: Buffer,
-  contentType = "image/jpeg"
-): string {
+export function storeTempImage(buffer: Buffer, contentType = "image/jpeg"): string {
   const uuid = randomUUID();
   store.set(uuid, { buffer, contentType, expiresAt: Date.now() + TTL_MS });
   return uuid;
 }
 
-export function getTempImage(
-  uuid: string
-): { buffer: Buffer; contentType: string } | null {
+export function getTempImage(uuid: string): { buffer: Buffer; contentType: string } | null {
   const entry = store.get(uuid);
   if (!entry) return null;
+  // Enforce the TTL on read too — the sweeper only runs once a minute,
+  // so without this an expired entry stays servable until the next sweep.
+  if (entry.expiresAt < Date.now()) {
+    store.delete(uuid);
+    return null;
+  }
   return { buffer: entry.buffer, contentType: entry.contentType };
 }
 

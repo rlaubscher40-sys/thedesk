@@ -3,6 +3,7 @@ import type { EditionTopic, Lookback, Signals } from "../../shared/schemas";
 import * as demoQueries from "../demo/queries";
 import { isDemoMode } from "../demo/store";
 import { getDb } from "./client";
+import { escapeLike } from "./like";
 import { editions, type Edition, type InsertEdition } from "./schema";
 
 export async function listEditions(): Promise<Edition[]> {
@@ -265,7 +266,7 @@ export async function searchEditionFullText(query: string): Promise<Edition[]> {
   if (isDemoMode()) return demoQueries.searchEditionFullText(query);
   const db = getDb();
   if (!db) return [];
-  const pattern = `%${query}%`;
+  const pattern = `%${escapeLike(query)}%`;
   return db
     .select()
     .from(editions)

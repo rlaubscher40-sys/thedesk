@@ -20,7 +20,13 @@ import { TRPCError } from "@trpc/server";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import * as db from "../db";
-import { sendConfirmEmail, sendAlreadyConfirmedEmail, sendDailyBriefEmail, editionUnsubscribeUrl } from "../core/mailer";
+import { isDemoMode } from "../demo/store";
+import {
+  sendConfirmEmail,
+  sendAlreadyConfirmedEmail,
+  sendDailyBriefEmail,
+  editionUnsubscribeUrl,
+} from "../core/mailer";
 import { adminProcedure, publicProcedure, router } from "../core/trpc";
 import { DEFAULT_SITE_URL, isEnrichedChannel } from "../../shared/const";
 
@@ -61,15 +67,17 @@ export const subscribersRouter = router({
         // Already confirmed. Send a quiet nudge so the subscriber knows
         // they're on the list (covers the case where an email security
         // scanner auto-clicked their confirm link without them realising).
+        // The API response is deliberately indistinguishable from the
+        // fresh-subscribe case: a distinct "already-confirmed" status would
+        // let anyone probe whether an address is on the list. The real
+        // answer goes to the inbox owner, not the caller.
         const origin = siteOrigin();
         void sendAlreadyConfirmedEmail({
           to: input.email,
           editionsUrl: `${origin}/editions`,
-        }).catch((err) =>
-          console.warn(`[subscribers] already-confirmed nudge failed:`, err)
-        );
+        }).catch((err) => console.warn(`[subscribers] already-confirmed nudge failed:`, err));
         return {
-          status: "already-confirmed" as const,
+          status: "pending-confirm" as const,
           confirmToken: null,
         };
       }
@@ -97,9 +105,12 @@ export const subscribersRouter = router({
 
       return {
         status: "pending-confirm" as const,
-        // Token returned so dev / demo can construct the confirm URL
-        // by hand when RESEND_API_KEY isn't wired up.
-        confirmToken: token,
+        // Token returned ONLY outside production so dev / demo can construct
+        // the confirm URL by hand when RESEND_API_KEY isn't wired up. In
+        // production it must never leave the server: handing it to the
+        // caller would let anyone subscribe AND confirm someone else's
+        // address without ever seeing their inbox, defeating double opt-in.
+        confirmToken: isDemoMode() || process.env.NODE_ENV !== "production" ? token : null,
       };
     }),
 
@@ -116,12 +127,11 @@ export const subscribersRouter = router({
       return { email: row.email, confirmedAt: row.confirmedAt };
     }),
 
-  unsubscribe: publicProcedure
-    .input(z.object({ email: emailSchema }))
-    .mutation(async ({ input }) => {
-      await db.unsubscribeByEmail(input.email);
-      return { success: true } as const;
-    }),
+  // NOTE: there is deliberately no public unsubscribe-by-email mutation here.
+  // Unsubscribing requires the HMAC-signed link from an email footer
+  // (/api/unsubscribe, see server/core/unsubscribeRoute.ts) so that only
+  // someone with access to the inbox can remove the address. A bare-email
+  // mutation let anyone silently unsubscribe any subscriber.
 
   /** Public confirmed-subscriber count. Cached at the query layer; safe
    *  to expose since it's just a total. */
@@ -147,11 +157,12 @@ export const subscribersRouter = router({
       const today = todayAEST();
       // Partner-facing email: enriched lanes (AU + Property) only, matching the
       // scheduled daily brief. Coverage tabs don't go to a partner's inbox.
-      const items = (await db.listFeedItems(today)).filter((it) =>
-        isEnrichedChannel(it.channel)
-      );
+      const items = (await db.listFeedItems(today)).filter((it) => isEnrichedChannel(it.channel));
       if (items.length === 0) {
-        throw new TRPCError({ code: "PRECONDITION_FAILED", message: "No feed items for today yet." });
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "No feed items for today yet.",
+        });
       }
       const origin = siteOrigin();
       const result = await sendDailyBriefEmail({

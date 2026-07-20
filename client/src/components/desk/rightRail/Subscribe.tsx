@@ -14,15 +14,15 @@ export function Subscribe({ source = "right-rail" }: { source?: string }) {
   const [email, setEmail] = useState("");
   const [hp, setHp] = useState("");
   const subscribe = trpc.subscribers.subscribe.useMutation({
-    onSuccess: (res) => {
+    onSuccess: () => {
       setEmail("");
-      if (res.status === "already-confirmed") {
-        toast.success("You're already on the list");
-      } else {
-        toast.success("Check your inbox", {
-          description: "Confirm the email to lock in your subscription.",
-        });
-      }
+      // One message for every outcome — the server no longer distinguishes
+      // "already subscribed" in its response (that would let anyone probe
+      // whether an address is on the list). Already-confirmed addresses get
+      // told by email instead.
+      toast.success("Check your inbox", {
+        description: "Confirm the email to lock in your subscription.",
+      });
     },
     onError: () => {
       toast.error("Couldn't subscribe. Try again in a minute.");

@@ -14,9 +14,9 @@ equally.
 
 ## Auth
 
-Send `x-scheduled-key: $SCHEDULED_API_KEY` on every POST, or include `?key=…` if
-the scheduler can't set headers. An admin browser session also unlocks the
-endpoint for manual testing.
+Send `x-scheduled-key: $SCHEDULED_API_KEY` on every POST. The header is the
+only accepted transport (a query-string key would leak into access logs).
+An admin browser session also unlocks the endpoint for manual testing.
 
 ---
 

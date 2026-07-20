@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { Express } from "express";
 import rateLimit from "express-rate-limit";
-import { env } from "./env";
+import { signingSecret } from "./env";
 import * as db from "../db";
 
 const PAGE = (msg: string, sub: boolean) => `<!doctype html>
@@ -61,23 +61,33 @@ export function registerUnsubscribeRoute(app: Express): void {
     if (typeof exp === "string") {
       const expMs = Number(exp);
       if (!Number.isFinite(expMs) || Date.now() > expMs) {
-        res.status(403).send(PAGE("This unsubscribe link has expired. Use the link in a more recent email, or reply to any edition and we'll remove you by hand.", false));
+        res
+          .status(403)
+          .send(
+            PAGE(
+              "This unsubscribe link has expired. Use the link in a more recent email, or reply to any edition and we'll remove you by hand.",
+              false
+            )
+          );
         return;
       }
       payload = `${email}:${exp}`;
     } else {
       payload = email;
     }
-    const expected = createHmac("sha256", env.cookieSecret || "dev")
-      .update(payload)
-      .digest("base64url");
-    const sigOk = sig.length === expected.length &&
-      timingSafeEqual(Buffer.from(sig), Buffer.from(expected));
+    const expected = createHmac("sha256", signingSecret()).update(payload).digest("base64url");
+    const sigOk =
+      sig.length === expected.length && timingSafeEqual(Buffer.from(sig), Buffer.from(expected));
     if (!sigOk) {
       res.status(403).send(PAGE("This unsubscribe link is invalid.", false));
       return;
     }
     await db.unsubscribeByEmail(email);
-    res.send(PAGE("You won't receive any more emails from The Desk. If this was a mistake, just re-subscribe on the site.", true));
+    res.send(
+      PAGE(
+        "You won't receive any more emails from The Desk. If this was a mistake, just re-subscribe on the site.",
+        true
+      )
+    );
   });
 }

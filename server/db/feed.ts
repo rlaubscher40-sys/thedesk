@@ -2,6 +2,7 @@ import { and, desc, eq, gte, isNotNull, like, or, sql } from "drizzle-orm";
 import * as demoQueries from "../demo/queries";
 import { isDemoMode } from "../demo/store";
 import { getDb } from "./client";
+import { escapeLike } from "./like";
 import { dailyFeedItems, editions, type DailyFeedItem, type InsertDailyFeedItem } from "./schema";
 
 /** Most recent 30 items if no date specified, otherwise everything for that day. */
@@ -99,10 +100,7 @@ export async function listArchive(opts: {
   const filtered = opts.category
     ? base.where(eq(dailyFeedItems.category, opts.category.toUpperCase()))
     : base;
-  return filtered
-    .orderBy(desc(dailyFeedItems.createdAt))
-    .limit(opts.limit)
-    .offset(opts.offset);
+  return filtered.orderBy(desc(dailyFeedItems.createdAt)).limit(opts.limit).offset(opts.offset);
 }
 
 export async function getRecentFeedDates(limit = 14): Promise<string[]> {
@@ -157,55 +155,45 @@ export async function getRecentFeedItems(
 }
 
 /**
- * Bulk-insert feed items and return their new IDs in the same order as the
- * input array. mysql2 reports the first auto-increment id; a single
- * multi-row INSERT assigns consecutive ids, so the rest are derived by
- * offset. Callers zip these against the input rows to enrich each item
- * without re-matching by title (titles can collide across sources).
+ * Insert feed items and return their new IDs in the same order as the
+ * input array (0 marks a row that failed to insert). Callers zip these
+ * against the input rows to enrich each item without re-matching by title
+ * (titles can collide across sources).
  */
 export async function createFeedItems(items: InsertDailyFeedItem[]): Promise<number[]> {
   if (isDemoMode()) return demoQueries.createFeedItems(items);
   const db = getDb();
   if (!db) throw new Error("createFeedItems: database unavailable");
   if (items.length === 0) return [];
-  try {
-    const result = await db.insert(dailyFeedItems).values(items);
-    const firstId = Number(
-      (result as unknown as Array<{ insertId?: number }>)[0]?.insertId ?? 0
-    );
-    if (!firstId) return [];
-    return items.map((_, i) => firstId + i);
-  } catch (err) {
-    // A single bad row fails the entire multi-row INSERT (a 4-byte emoji
-    // hitting a non-utf8mb4 column, an over-length field, a constraint
-    // violation). Rather than lose the whole day's feed, fall back to
-    // inserting row-by-row so the good stories still land and the poison
-    // item is dropped with a diagnosable log line. The returned array stays
-    // index-aligned with `items` (0 marks a dropped row) so callers can keep
-    // zipping ids to inputs for enrichment.
-    console.warn(
-      `[feed] batch insert failed (${(err as Error).message}); retrying row-by-row`
-    );
-    const ids: number[] = [];
-    for (const item of items) {
-      try {
-        const r = await db.insert(dailyFeedItems).values(item);
-        ids.push(
-          Number((r as unknown as Array<{ insertId?: number }>)[0]?.insertId ?? 0)
-        );
-      } catch (rowErr) {
-        console.error(
-          `[feed] dropping item that failed to insert ("${(item.title ?? "").slice(0, 80)}"): ${(rowErr as Error).message}`
-        );
-        ids.push(0);
-      }
+  // Row-by-row on purpose, not a multi-row INSERT. The old batch path
+  // derived every row's id as `firstId + i` from the first insertId — but on
+  // TiDB auto-increment values inside one multi-row INSERT come from cached
+  // ranges and can jump mid-statement, silently mis-aligning the ids the
+  // enrichment pass zips against (partner tags written onto the wrong
+  // stories). Per-row inserts return each row's real id, and a poison item
+  // (over-length field, constraint violation) drops alone instead of
+  // failing the whole day's feed. The returned array stays index-aligned
+  // with `items` (0 marks a dropped row). The feed is ~15-30 rows/day, so
+  // the extra round-trips are noise.
+  const ids: number[] = [];
+  let firstErr: unknown = null;
+  for (const item of items) {
+    try {
+      const r = await db.insert(dailyFeedItems).values(item);
+      ids.push(Number((r as unknown as Array<{ insertId?: number }>)[0]?.insertId ?? 0));
+    } catch (rowErr) {
+      firstErr = firstErr ?? rowErr;
+      console.error(
+        `[feed] dropping item that failed to insert ("${(item.title ?? "").slice(0, 80)}"): ${(rowErr as Error).message}`
+      );
+      ids.push(0);
     }
-    // Nothing landed at all → this is a systemic failure (DB down, auth,
-    // schema drift), not one bad row. Surface it loudly so the ingest run
-    // goes red instead of silently reporting success on an empty insert.
-    if (ids.every((id) => id === 0)) throw err;
-    return ids;
   }
+  // Nothing landed at all → this is a systemic failure (DB down, auth,
+  // schema drift), not one bad row. Surface it loudly so the ingest run
+  // goes red instead of silently reporting success on an empty insert.
+  if (ids.every((id) => id === 0) && firstErr) throw firstErr;
+  return ids;
 }
 
 export async function deleteFeedItem(id: number): Promise<void> {
@@ -307,12 +295,13 @@ export async function listFeedItemsMissingWhyItMatters(limit = 50): Promise<Dail
     .from(dailyFeedItems)
     .orderBy(desc(dailyFeedItems.createdAt))
     .limit(500);
-  return rows
-    .filter((r) => !r.whyItMatters || r.whyItMatters.trim().length === 0)
-    .slice(0, limit);
+  return rows.filter((r) => !r.whyItMatters || r.whyItMatters.trim().length === 0).slice(0, limit);
 }
 
-export async function getFeedItemsByCategory(category: string, limit = 100): Promise<DailyFeedItem[]> {
+export async function getFeedItemsByCategory(
+  category: string,
+  limit = 100
+): Promise<DailyFeedItem[]> {
   if (isDemoMode()) return demoQueries.getFeedItemsByCategory(category, limit);
   const db = getDb();
   if (!db) return [];
@@ -329,7 +318,9 @@ export async function listAllCategories(): Promise<string[]> {
   if (isDemoMode()) return demoQueries.listAllCategories();
   const db = getDb();
   if (!db) return [];
-  const feedRows = await db.selectDistinct({ category: dailyFeedItems.category }).from(dailyFeedItems);
+  const feedRows = await db
+    .selectDistinct({ category: dailyFeedItems.category })
+    .from(dailyFeedItems);
   const set = new Set<string>();
   for (const row of feedRows) {
     if (row.category) set.add(row.category.toUpperCase());
@@ -386,7 +377,7 @@ export async function searchAllContent(query: string) {
   if (isDemoMode()) return demoQueries.searchAllContent(query);
   const db = getDb();
   if (!db) return { editions: [], feedItems: [] };
-  const pattern = `%${query}%`;
+  const pattern = `%${escapeLike(query)}%`;
   const editionResults = await db
     .select()
     .from(editions)
