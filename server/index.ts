@@ -73,6 +73,26 @@ async function findAvailablePort(start: number): Promise<number> {
 }
 
 async function startServer() {
+  // Node's default policy crashes the process on any unhandled promise
+  // rejection. Express 5 routes rejected handlers into the error middleware,
+  // but detached async work (setImmediate enrichment jobs, fire-and-forget
+  // notifications) sits outside that net — a transient DB blip there must
+  // not take the whole site down. Log it, best-effort record it, keep serving.
+  process.on("unhandledRejection", (reason) => {
+    console.error("[process] unhandled rejection:", reason);
+    const e = reason instanceof Error ? reason : new Error(String(reason));
+    void import("./db/health")
+      .then(({ recordServerError }) =>
+        recordServerError({
+          level: "error",
+          message: `unhandled rejection: ${e.message}`.slice(0, 512),
+          stack: e.stack ?? null,
+          route: "process",
+        })
+      )
+      .catch(() => {});
+  });
+
   const app = express();
   const server = createServer(app);
 
@@ -176,9 +196,7 @@ async function startServer() {
   // port and let EADDRINUSE crash the deploy loudly instead.
   const preferredPort = parseInt(process.env.PORT ?? "3000", 10);
   const port =
-    process.env.NODE_ENV === "development"
-      ? await findAvailablePort(preferredPort)
-      : preferredPort;
+    process.env.NODE_ENV === "development" ? await findAvailablePort(preferredPort) : preferredPort;
   if (port !== preferredPort) {
     console.log(`Port ${preferredPort} busy, using ${port}`);
   }

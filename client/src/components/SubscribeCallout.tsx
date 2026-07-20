@@ -34,14 +34,13 @@ export function SubscribeCallout({
   const [subscribed, setSubscribed] = useState(false);
 
   const subscribe = trpc.subscribers.subscribe.useMutation({
-    onSuccess: (res) => {
+    onSuccess: () => {
       setEmail("");
       setSubscribed(true);
-      if (res.status === "already-confirmed") {
-        toast.success("You're already on the list");
-      } else {
-        toast.success("Check your inbox to confirm");
-      }
+      // One message for every outcome — see the subscribe mutation; the
+      // server response no longer reveals whether the address was already
+      // on the list.
+      toast.success("Check your inbox to confirm");
     },
     onError: () => {
       toast.error("Couldn't subscribe right now. Try again in a minute.");
@@ -64,9 +63,7 @@ export function SubscribeCallout({
   // Story: tighter, single-row, sized for the end of a 4-min read.
   const isEdition = variant === "edition";
 
-  const defaultHeadline = isEdition
-    ? "Get next Sunday's edition"
-    : "Read the next one with us";
+  const defaultHeadline = isEdition ? "Get next Sunday's edition" : "Read the next one with us";
   const defaultSubhead = isEdition
     ? "Weekly intelligence on Australian property, in your inbox at 7am AEST Sunday. The daily brief lands every weekday."
     : "The daily brief lands at 7am AEST. Same eye, same voice, in your inbox.";
@@ -78,16 +75,14 @@ export function SubscribeCallout({
       aria-label="Subscribe to The Desk"
       style={{
         background: "var(--grad-cta-deep)",
-        boxShadow:
-          "inset 0 0 0 1px oklch(0.75 0.18 70 / 14%), 0 14px 40px oklch(0 0 0 / 30%)",
+        boxShadow: "inset 0 0 0 1px oklch(0.75 0.18 70 / 14%), 0 14px 40px oklch(0 0 0 / 30%)",
       }}
     >
       {/* Amber wash in the corner, anchors the eye. */}
       <div
         className="absolute -top-12 -right-12 h-48 w-48 pointer-events-none rounded-full"
         style={{
-          background:
-            "radial-gradient(circle, oklch(0.75 0.18 70 / 35%) 0%, transparent 70%)",
+          background: "radial-gradient(circle, oklch(0.75 0.18 70 / 35%) 0%, transparent 70%)",
           filter: "blur(28px)",
         }}
         aria-hidden="true"
@@ -100,19 +95,14 @@ export function SubscribeCallout({
         }`}
       >
         <div>
-          <p
-            className="overline-amber mb-3"
-            style={{ letterSpacing: "0.26em", fontSize: "10px" }}
-          >
+          <p className="overline-amber mb-3" style={{ letterSpacing: "0.26em", fontSize: "10px" }}>
             <Mail className="inline h-3 w-3 mr-1 -mt-px" />
             The Desk · Subscribe
           </p>
           <h2
             className="font-serif font-bold tracking-tight leading-[1.02] mb-3"
             style={{
-              fontSize: isEdition
-                ? "clamp(1.75rem, 3.6vw, 2.75rem)"
-                : "clamp(1.4rem, 2.6vw, 2rem)",
+              fontSize: isEdition ? "clamp(1.75rem, 3.6vw, 2.75rem)" : "clamp(1.4rem, 2.6vw, 2rem)",
             }}
           >
             {headline ?? defaultHeadline}
@@ -142,8 +132,7 @@ export function SubscribeCallout({
           >
             <p className="font-serif text-lg mb-1">You're nearly on the list.</p>
             <p className="text-[13px] leading-relaxed">
-              Check your inbox and click the confirm link. The next edition
-              lands Sunday 7am.
+              Check your inbox and click the confirm link. The next edition lands Sunday 7am.
             </p>
           </div>
         ) : (
@@ -169,11 +158,9 @@ export function SubscribeCallout({
               disabled={busy}
               className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded text-[11px] font-mono uppercase tracking-[0.2em] transition-all active:scale-[0.98] disabled:opacity-60"
               style={{
-                background:
-                  "var(--grad-cta-amber)",
+                background: "var(--grad-cta-amber)",
                 color: "var(--color-on-amber)",
-                boxShadow:
-                  "0 1px 0 oklch(1 0 0 / 18%) inset, 0 6px 20px oklch(0.75 0.18 70 / 30%)",
+                boxShadow: "0 1px 0 oklch(1 0 0 / 18%) inset, 0 6px 20px oklch(0.75 0.18 70 / 30%)",
               }}
             >
               {busy ? (

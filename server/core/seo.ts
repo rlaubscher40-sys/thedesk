@@ -18,11 +18,12 @@ import { DEFAULT_SITE_URL } from "../../shared/const";
 import * as db from "../db";
 import { renderEditionCard } from "../og/editionCard";
 
-function siteUrl(req: Request): string {
+function siteUrl(): string {
+  // Never derive this from Host / x-forwarded-host: sitemap, RSS and
+  // canonical URLs are served with `Cache-Control: public`, so a poisoned
+  // Host header could be cached by an intermediary and served to real
+  // crawlers. Config or the hard default, nothing request-controlled.
   if (process.env.SITE_URL) return process.env.SITE_URL.replace(/\/+$/, "");
-  const proto = req.headers["x-forwarded-proto"] || req.protocol;
-  const host = req.headers["x-forwarded-host"] || req.get("host");
-  if (host) return `${proto}://${host}`;
   return DEFAULT_SITE_URL;
 }
 
@@ -53,11 +54,7 @@ function htmlEscape(s: string): string {
  * or any DB error. The client-side useEditionMeta hook still runs after
  * load, so the live page is correct either way.
  */
-async function handleEditionMeta(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
+async function handleEditionMeta(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const editionNumber = parseInt(routeParam(req.params.n), 10);
     if (!Number.isFinite(editionNumber)) return next();
@@ -74,9 +71,7 @@ async function handleEditionMeta(
 
     let html = await fs.promises.readFile(indexPath, "utf-8");
 
-    const title =
-      edition.metaTitle ??
-      `Edition ${edition.editionNumber} · ${edition.weekRange}`;
+    const title = edition.metaTitle ?? `Edition ${edition.editionNumber} · ${edition.weekRange}`;
     const description =
       edition.metaDescription ??
       edition.rubensTake ??
@@ -87,15 +82,12 @@ async function handleEditionMeta(
     // a LinkedIn / X / Slack share preview reads as continuous with
     // the site rather than as whatever hero illustration we happened
     // to stock the article with.
-    const ogImage = `${siteUrl(req)}/og/editions/${edition.editionNumber}.png`;
-    const canonical = `${siteUrl(req)}/editions/${edition.editionNumber}`;
+    const ogImage = `${siteUrl()}/og/editions/${edition.editionNumber}.png`;
+    const canonical = `${siteUrl()}/editions/${edition.editionNumber}`;
 
     // Replace the static defaults in place.
     html = html
-      .replace(
-        /<title>[\s\S]*?<\/title>/,
-        `<title>${htmlEscape(title)}, The Desk</title>`
-      )
+      .replace(/<title>[\s\S]*?<\/title>/, `<title>${htmlEscape(title)}, The Desk</title>`)
       .replace(
         /<meta\s+name="description"\s+content="[^"]*"\s*\/?>/,
         `<meta name="description" content="${htmlEscape(description)}" />`
@@ -121,33 +113,33 @@ async function handleEditionMeta(
     const articleSchema = {
       "@context": "https://schema.org",
       "@type": "NewsArticle",
-      "headline": title,
-      "description": description,
-      "image": ogImage,
-      "url": canonical,
-      "datePublished": publishedIso,
-      "dateModified": publishedIso,
-      "author": {
+      headline: title,
+      description: description,
+      image: ogImage,
+      url: canonical,
+      datePublished: publishedIso,
+      dateModified: publishedIso,
+      author: {
         "@type": "Person",
-        "name": "Ruben Laubscher",
-        "jobTitle": "Head of Partnerships",
-        "url": "https://thedesk.au/about",
+        name: "Ruben Laubscher",
+        jobTitle: "Head of Partnerships",
+        url: "https://thedesk.au/about",
       },
-      "publisher": {
+      publisher: {
         "@type": "Organization",
-        "name": "The Desk",
-        "url": "https://thedesk.au",
-        "logo": {
+        name: "The Desk",
+        url: "https://thedesk.au",
+        logo: {
           "@type": "ImageObject",
-          "url": "https://thedesk.au/og-card.png",
-          "width": 1200,
-          "height": 630,
+          url: "https://thedesk.au/og-card.png",
+          width: 1200,
+          height: 630,
         },
       },
-      "isPartOf": {
+      isPartOf: {
         "@type": "Periodical",
-        "name": "The Desk",
-        "url": "https://thedesk.au",
+        name: "The Desk",
+        url: "https://thedesk.au",
       },
     };
 
@@ -158,7 +150,10 @@ async function handleEditionMeta(
       `<meta name="twitter:description" content="${htmlEscape(ogDescription)}" />`,
       `<meta name="twitter:image" content="${htmlEscape(ogImage)}" />`,
       `<link rel="canonical" href="${htmlEscape(canonical)}" />`,
-      `<script type="application/ld+json">${JSON.stringify(articleSchema)}</script>`,
+      // JSON.stringify doesn't escape `<`, so a `</script>` inside the
+      // title/description would terminate the block and inject markup.
+      // The < escape decodes back to `<` for any JSON-LD consumer.
+      `<script type="application/ld+json">${JSON.stringify(articleSchema).replace(/</g, "\\u003c")}</script>`,
     ].join("\n    ");
 
     html = html.replace(
@@ -192,10 +187,7 @@ async function handleEditionMeta(
  * stored content-type. 404 if the edition has no asset of that kind.
  * Aggressively cacheable, images regenerate at most once a week.
  */
-async function handleEditionImage(
-  req: Request,
-  res: Response
-): Promise<void> {
+async function handleEditionImage(req: Request, res: Response): Promise<void> {
   const id = parseInt(routeParam(req.params.id), 10);
   const kind = req.params.kind === "substack" ? "substack" : "hero";
   if (!Number.isFinite(id) || id <= 0) {
@@ -212,10 +204,7 @@ async function handleEditionImage(
     res.set("Cache-Control", "public, max-age=86400, immutable");
     res.send(asset.bytes);
   } catch (err) {
-    console.warn(
-      `[seo] edition image fetch failed for ${id}/${kind}:`,
-      (err as Error).message
-    );
+    console.warn(`[seo] edition image fetch failed for ${id}/${kind}:`, (err as Error).message);
     res.status(500).send("Image fetch failed");
   }
 }
@@ -226,10 +215,7 @@ async function handleEditionImage(
  * mutate in place (admins delete + replace), so an immutable cache is
  * safe.
  */
-async function handleHeroLibraryImage(
-  req: Request,
-  res: Response
-): Promise<void> {
+async function handleHeroLibraryImage(req: Request, res: Response): Promise<void> {
   const id = parseInt(routeParam(req.params.id), 10);
   if (!Number.isFinite(id) || id <= 0) {
     res.status(400).send("Bad id");
@@ -245,10 +231,7 @@ async function handleHeroLibraryImage(
     res.set("Cache-Control", "public, max-age=86400, immutable");
     res.send(row.bytes);
   } catch (err) {
-    console.warn(
-      `[seo] hero library fetch failed for ${id}:`,
-      (err as Error).message
-    );
+    console.warn(`[seo] hero library fetch failed for ${id}:`, (err as Error).message);
     res.status(500).send("Image fetch failed");
   }
 }
@@ -260,10 +243,7 @@ async function handleHeroLibraryImage(
  * busts whenever the edition is republished, so an updated headline
  * propagates to the next preview without manual purging.
  */
-async function handleEditionOgCard(
-  req: Request,
-  res: Response
-): Promise<void> {
+async function handleEditionOgCard(req: Request, res: Response): Promise<void> {
   const editionNumber = parseInt(routeParam(req.params.n), 10);
   if (!Number.isFinite(editionNumber) || editionNumber <= 0) {
     res.status(400).send("Bad edition number");
@@ -297,10 +277,19 @@ export function registerSeoRoutes(app: Express): void {
   app.get("/editions/:n", handleEditionMeta);
 
   app.get("/sitemap.xml", async (req: Request, res: Response) => {
-    const base = siteUrl(req);
+    const base = siteUrl();
     const editions = await db.listEditions().catch(() => []);
 
-    const staticPaths = ["/", "/editions", "/archive", "/trends", "/about", "/editorial-standards", "/privacy", "/terms"];
+    const staticPaths = [
+      "/",
+      "/editions",
+      "/archive",
+      "/trends",
+      "/about",
+      "/editorial-standards",
+      "/privacy",
+      "/terms",
+    ];
 
     const urls: string[] = [];
     for (const path of staticPaths) {
@@ -327,7 +316,7 @@ ${urls.join("\n")}
   });
 
   app.get("/feed.xml", async (req: Request, res: Response) => {
-    const base = siteUrl(req);
+    const base = siteUrl();
     const editions = (await db.listEditions().catch(() => [])).slice(0, 50);
 
     const items = editions

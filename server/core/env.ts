@@ -61,8 +61,7 @@ export const env = Object.freeze({
   scheduledApiKey: process.env.SCHEDULED_API_KEY ?? "",
   anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? "",
   anthropicModel: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6",
-  anthropicModelPremium:
-    process.env.ANTHROPIC_MODEL_PREMIUM ?? "claude-opus-4-8",
+  anthropicModelPremium: process.env.ANTHROPIC_MODEL_PREMIUM ?? "claude-opus-4-8",
   openAiApiKey: process.env.OPENAI_API_KEY ?? "",
   adminPassword: process.env.ADMIN_PASSWORD ?? "",
   instagramAccessToken: process.env.INSTAGRAM_ACCESS_TOKEN ?? "",
@@ -84,3 +83,19 @@ export const env = Object.freeze({
 });
 
 export type Env = typeof env;
+
+/**
+ * The secret used to HMAC-sign links (unsubscribe, nudge responses). One
+ * shared accessor instead of scattered `process.env.JWT_SECRET ?? "dev"`
+ * fallbacks: in production a missing JWT_SECRET refuses to sign (boot
+ * already exits without it, so this is a belt-and-braces guard for any
+ * future path that skips the boot check); outside production the "dev"
+ * fallback keeps local flows working without configuration.
+ */
+export function signingSecret(): string {
+  if (env.cookieSecret) return env.cookieSecret;
+  if (env.isProduction) {
+    throw new Error("JWT_SECRET must be set in production to sign links");
+  }
+  return "dev";
+}

@@ -4,6 +4,12 @@ Full-repo audit of The Desk at `31b4b78` (main). Scope: server (Express 5 + tRPC
 client (React 19), shared, ingest scripts. Method: manual review of every security-sensitive
 surface plus correctness spot-checks, verified against `pnpm check` and `pnpm test`.
 
+> **Remediation status (same day):** every High and Medium finding below, plus
+> L1–L4 and L6, was fixed in the follow-up commit on this branch. L5 (CSP
+> nonce pipeline) is the one deliberate deferral — it needs build-time nonce
+> injection for the two inline scripts in `index.html` and is tracked as
+> future hardening rather than a defect.
+
 **Repo health: good.** `tsc --noEmit` is clean and all 211 tests across 28 files pass.
 The codebase is unusually well-commented, input validation via Zod is consistent, raw SQL is
 parameterised throughout (the only `sql.raw` is the static catch-up migration list), admin

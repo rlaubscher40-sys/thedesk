@@ -21,8 +21,23 @@
  */
 
 import { createHmac } from "node:crypto";
+import { signingSecret } from "./env";
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
+
+/**
+ * Escape a dynamic value before interpolating it into email HTML. Subscriber
+ * names arrive from the public subscribe form and story titles / context
+ * lines arrive from external RSS sources — without this, a crafted headline
+ * would render as live markup in every subscriber's inbox.
+ */
+function esc(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
 
 type SendInput = {
   to: string;
@@ -40,9 +55,7 @@ export async function send(input: SendInput): Promise<SendResult> {
   const from = process.env.MAIL_FROM ?? "The Desk <hello@thedesk.au>";
 
   if (!apiKey) {
-    console.log(
-      `[mailer] no RESEND_API_KEY set, dry-run send to ${input.to}: ${input.subject}`
-    );
+    console.log(`[mailer] no RESEND_API_KEY set, dry-run send to ${input.to}: ${input.subject}`);
     return { delivered: false, reason: "no-key" };
   }
 
@@ -80,16 +93,16 @@ export async function send(input: SendInput): Promise<SendResult> {
 // Navy palette baked in as the inline default so every client (Gmail
 // included) renders the same dark brand surface.
 const L = {
-  outerBg:  "#0C1220",
-  bg:       "#0C1220",
-  heading:  "#F0C75E",   // gold wordmark + headlines on navy
-  amber:    "#D4A853",   // section labels / eyebrows
-  amberBtn: "#D4A853",   // CTA button background (navy text on top)
-  btnText:  "#0C1220",   // navy text on the gold CTA button
-  text:     "#F0EDE8",   // cream body copy
-  muted:    "#9BA3B5",   // slate secondary copy
-  subtle:   "#6B7280",   // footer / fine print
-  border:   "rgba(212,168,83,0.25)",
+  outerBg: "#0C1220",
+  bg: "#0C1220",
+  heading: "#F0C75E", // gold wordmark + headlines on navy
+  amber: "#D4A853", // section labels / eyebrows
+  amberBtn: "#D4A853", // CTA button background (navy text on top)
+  btnText: "#0C1220", // navy text on the gold CTA button
+  text: "#F0EDE8", // cream body copy
+  muted: "#9BA3B5", // slate secondary copy
+  subtle: "#6B7280", // footer / fine print
+  border: "rgba(212,168,83,0.25)",
 };
 
 // Re-pins the navy palette for clients that try to auto-invert a dark
@@ -199,7 +212,7 @@ function ctaRow(href: string, label: string): string {
       <table role="presentation" cellpadding="0" cellspacing="0">
         <tr>
           <td style="background:${L.amberBtn};border-radius:4px;">
-            <a href="${href}" class="em-btn-t" style="display:inline-block;padding:14px 28px;font-family:'JetBrains Mono',Consolas,monospace;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:${L.btnText};text-decoration:none;font-weight:600;">${label}</a>
+            <a href="${esc(href)}" class="em-btn-t" style="display:inline-block;padding:14px 28px;font-family:'JetBrains Mono',Consolas,monospace;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:${L.btnText};text-decoration:none;font-weight:600;">${label}</a>
           </td>
         </tr>
       </table>
@@ -209,7 +222,7 @@ function ctaRow(href: string, label: string): string {
 
 function footerRow(unsubscribeUrl?: string): string {
   const unsub = unsubscribeUrl
-    ? `<p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.12em;color:${L.subtle};margin:8px 0 0;"><a class="em-s" href="${unsubscribeUrl}" style="color:${L.subtle};text-decoration:underline;">Unsubscribe</a></p>`
+    ? `<p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.12em;color:${L.subtle};margin:8px 0 0;"><a class="em-s" href="${esc(unsubscribeUrl)}" style="color:${L.subtle};text-decoration:underline;">Unsubscribe</a></p>`
     : "";
   return `${ruleSubRow()}
   <tr>
@@ -285,9 +298,7 @@ export function editionUnsubscribeUrl(email: string, siteOrigin: string): string
   // enough that a leaked old email can't be used to unsubscribe someone
   // forever after. The expiry is signed into the HMAC so it can't be edited.
   const exp = Date.now() + 90 * 24 * 60 * 60 * 1000;
-  const sig = createHmac("sha256", process.env.JWT_SECRET ?? "dev")
-    .update(`${email}:${exp}`)
-    .digest("base64url");
+  const sig = createHmac("sha256", signingSecret()).update(`${email}:${exp}`).digest("base64url");
   return `${siteOrigin}/api/unsubscribe?email=${encodeURIComponent(email)}&exp=${exp}&sig=${sig}`;
 }
 
@@ -347,7 +358,13 @@ export async function sendEditionNotificationEmail({
   unsubscribeUrl: string;
 }): Promise<SendResult> {
   const greeting: string | null = name ? (name.split(" ")[0] ?? null) : null;
-  const html = editionNotificationHtml({ greeting, editionNumber, weekRange, editionUrl, unsubscribeUrl });
+  const html = editionNotificationHtml({
+    greeting,
+    editionNumber,
+    weekRange,
+    editionUrl,
+    unsubscribeUrl,
+  });
   const text = [
     "The Desk · Intelligence",
     "",
@@ -405,8 +422,8 @@ export async function sendDailyBriefEmail({
     timeZone: "UTC",
   });
   const html = dailyBriefHtml({ greeting, items, displayDate, briefUrl: siteUrl, unsubscribeUrl });
-  const storyLines = items.map((it, i) =>
-    `${i + 1}. ${it.title}\n   ${it.whyItMatters ?? it.summary}`
+  const storyLines = items.map(
+    (it, i) => `${i + 1}. ${it.title}\n   ${it.whyItMatters ?? it.summary}`
   );
   const text = [
     "The Desk · Intelligence",
@@ -433,8 +450,12 @@ export async function sendDailyBriefEmail({
 }
 
 /** HMAC-signed URL for the one-tap nudge response. */
-export function nudgeResponseUrl(queueItemId: number, result: "yes" | "not-yet", siteOrigin: string): string {
-  const sig = createHmac("sha256", process.env.JWT_SECRET ?? "dev")
+export function nudgeResponseUrl(
+  queueItemId: number,
+  result: "yes" | "not-yet",
+  siteOrigin: string
+): string {
+  const sig = createHmac("sha256", signingSecret())
     .update(`nudge:${queueItemId}`)
     .digest("base64url");
   return `${siteOrigin}/api/nudge/respond?id=${queueItemId}&sig=${encodeURIComponent(sig)}&result=${result}`;
@@ -459,9 +480,16 @@ export async function sendWeeklyRecapEmail({
   unsubscribeUrl: string;
 }): Promise<SendResult> {
   const greeting = name ? (name.split(" ")[0] ?? null) : null;
-  const html = weeklyRecapHtml({ greeting, weekRange, storyCount, talkingPoints, thisWeekUrl, unsubscribeUrl });
-  const tpLines = talkingPoints.map((tp, i) =>
-    `${i + 1}. [${tp.category}] ${tp.title}\n   "${tp.sayThis}"`
+  const html = weeklyRecapHtml({
+    greeting,
+    weekRange,
+    storyCount,
+    talkingPoints,
+    thisWeekUrl,
+    unsubscribeUrl,
+  });
+  const tpLines = talkingPoints.map(
+    (tp, i) => `${i + 1}. [${tp.category}] ${tp.title}\n   "${tp.sayThis}"`
   );
   const text = [
     "The Desk · Intelligence",
@@ -551,14 +579,15 @@ export async function sendAdminAlertEmail({
   detail: string;
   when: string;
 }): Promise<SendResult> {
-  const safeDetail = detail.replace(/[<>]/g, "").slice(0, 1000);
+  const safeDetail = esc(detail.slice(0, 1000));
+  const safeJobKey = esc(jobKey);
   const inner = `
     ${mastheadRow()}
     ${ruleFullRow()}
     <tr>
       <td class="em-bg" bgcolor="${L.bg}" style="padding:0 0 20px;background-color:${L.bg};">
         <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${L.amber};text-transform:uppercase;margin-bottom:12px;">Scheduler alert</div>
-        <h1 class="em-h" style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:26px;line-height:1.1;color:${L.heading};margin:0 0 14px;letter-spacing:-0.02em;">Job <span style="color:${L.amber};">${jobKey}</span> failed.</h1>
+        <h1 class="em-h" style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:26px;line-height:1.1;color:${L.heading};margin:0 0 14px;letter-spacing:-0.02em;">Job <span style="color:${L.amber};">${safeJobKey}</span> failed.</h1>
         <p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.6;color:${L.muted};margin:0 0 16px;">It exhausted its retries on ${when} (Sydney) and did not complete. Nothing was posted/produced for this run — check the admin error log and re-run by hand once fixed.</p>
         <div style="background:rgba(212,168,83,0.07);border:1px solid ${L.border};border-radius:4px;padding:14px 16px;">
           <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:9px;letter-spacing:0.2em;color:${L.amber};text-transform:uppercase;margin-bottom:8px;">Error</div>
@@ -610,7 +639,13 @@ function dailyBriefHtml({
   unsubscribeUrl,
 }: {
   greeting: string | null;
-  items: Array<{ id: number; title: string; category: string; whyItMatters?: string | null; summary: string }>;
+  items: Array<{
+    id: number;
+    title: string;
+    category: string;
+    whyItMatters?: string | null;
+    summary: string;
+  }>;
   displayDate: string;
   briefUrl: string;
   unsubscribeUrl: string;
@@ -620,11 +655,11 @@ function dailyBriefHtml({
       const context = (item.whyItMatters || item.summary || "").slice(0, 220);
       return `<tr>
         <td class="em-bg em-story-border" bgcolor="${L.bg}" style="padding:18px 0;border-top:1px solid ${L.border};background-color:${L.bg};">
-          <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.2em;color:${L.amber};text-transform:uppercase;margin-bottom:8px;">${item.category}</div>
+          <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.2em;color:${L.amber};text-transform:uppercase;margin-bottom:8px;">${esc(item.category)}</div>
           <h3 class="em-h" style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:18px;line-height:1.25;color:${L.heading};margin:0 0 8px;letter-spacing:-0.01em;">
-            <a class="em-h" href="${briefUrl}/story/${item.id}" style="color:${L.heading};text-decoration:none;">${item.title}</a>
+            <a class="em-h" href="${esc(`${briefUrl}/story/${item.id}`)}" style="color:${L.heading};text-decoration:none;">${esc(item.title)}</a>
           </h3>
-          ${context ? `<p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:14px;line-height:1.6;color:${L.muted};margin:0;">${context}</p>` : ""}
+          ${context ? `<p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:14px;line-height:1.6;color:${L.muted};margin:0;">${esc(context)}</p>` : ""}
         </td>
       </tr>`;
     })
@@ -635,8 +670,8 @@ function dailyBriefHtml({
     ${ruleFullRow()}
     <tr>
       <td class="em-bg" bgcolor="${L.bg}" style="padding:0 0 8px;background-color:${L.bg};">
-        <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${L.amber};text-transform:uppercase;margin-bottom:10px;">Today's brief · ${displayDate}</div>
-        ${greeting ? `<p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.55;color:${L.muted};margin:0 0 6px;">Hi ${greeting},</p>` : ""}
+        <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${L.amber};text-transform:uppercase;margin-bottom:10px;">Today's brief · ${esc(displayDate)}</div>
+        ${greeting ? `<p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.55;color:${L.muted};margin:0 0 6px;">Hi ${esc(greeting)},</p>` : ""}
         <p class="em-t" style="font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.55;color:${L.text};margin:0;">${items.length} stor${items.length === 1 ? "y" : "ies"} worth knowing before your next conversation.</p>
       </td>
     </tr>
@@ -666,8 +701,8 @@ function editionNotificationHtml({
     ${ruleFullRow()}
     <tr>
       <td class="em-bg" bgcolor="${L.bg}" style="padding:0 0 24px;background-color:${L.bg};">
-        <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${L.amber};text-transform:uppercase;margin-bottom:12px;">Weekly Edition · ${weekRange}</div>
-        ${greeting ? `<p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.55;color:${L.muted};margin:0 0 14px;">Hi ${greeting},</p>` : ""}
+        <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${L.amber};text-transform:uppercase;margin-bottom:12px;">Weekly Edition · ${esc(weekRange)}</div>
+        ${greeting ? `<p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.55;color:${L.muted};margin:0 0 14px;">Hi ${esc(greeting)},</p>` : ""}
         <h1 class="em-h" style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:34px;line-height:1.05;color:${L.heading};margin:0 0 14px;letter-spacing:-0.02em;">Edition #${editionNumber} is ready.</h1>
         <p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.6;color:${L.muted};margin:0 0 24px;">Your weekly intelligence briefing — market signals, talking points, and the context you need before any client conversation this week.</p>
       </td>
@@ -693,19 +728,23 @@ function weeklyRecapHtml({
   thisWeekUrl: string;
   unsubscribeUrl: string;
 }): string {
-  const tpSummary = talkingPoints.length === 1 ? "1 talking point" : `${talkingPoints.length} talking points`;
+  const tpSummary =
+    talkingPoints.length === 1 ? "1 talking point" : `${talkingPoints.length} talking points`;
 
-  const tpRows = talkingPoints.slice(0, 3)
-    .map((tp) => `<tr>
+  const tpRows = talkingPoints
+    .slice(0, 3)
+    .map(
+      (tp) => `<tr>
       <td class="em-bg em-story-border" bgcolor="${L.bg}" style="padding:18px 0;border-top:1px solid ${L.border};background-color:${L.bg};">
-        <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.2em;color:${L.amber};text-transform:uppercase;margin-bottom:8px;">${tp.category}</div>
-        <p class="em-h" style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:16px;line-height:1.3;color:${L.heading};margin:0 0 10px;">${tp.title}</p>
+        <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.2em;color:${L.amber};text-transform:uppercase;margin-bottom:8px;">${esc(tp.category)}</div>
+        <p class="em-h" style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:16px;line-height:1.3;color:${L.heading};margin:0 0 10px;">${esc(tp.title)}</p>
         <div class="em-pill" style="background:rgba(212,168,83,0.08);border:1px solid ${L.border};border-radius:4px;padding:12px 14px;">
           <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:9px;letter-spacing:0.2em;color:${L.amber};text-transform:uppercase;margin-bottom:6px;">Say this</div>
-          <p class="em-t em-pill-t" style="font-family:Georgia,'Times New Roman',serif;font-size:14px;line-height:1.5;color:${L.text};margin:0;">"${tp.sayThis}"</p>
+          <p class="em-t em-pill-t" style="font-family:Georgia,'Times New Roman',serif;font-size:14px;line-height:1.5;color:${L.text};margin:0;">"${esc(tp.sayThis)}"</p>
         </div>
       </td>
-    </tr>`)
+    </tr>`
+    )
     .join("");
 
   const inner = `
@@ -713,8 +752,8 @@ function weeklyRecapHtml({
     ${ruleFullRow()}
     <tr>
       <td class="em-bg" bgcolor="${L.bg}" style="padding:0 0 8px;background-color:${L.bg};">
-        <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${L.amber};text-transform:uppercase;margin-bottom:10px;">Your week · ${weekRange}</div>
-        ${greeting ? `<p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.55;color:${L.muted};margin:0 0 8px;">Hi ${greeting},</p>` : ""}
+        <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${L.amber};text-transform:uppercase;margin-bottom:10px;">Your week · ${esc(weekRange)}</div>
+        ${greeting ? `<p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.55;color:${L.muted};margin:0 0 8px;">Hi ${esc(greeting)},</p>` : ""}
         <h1 class="em-h" style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:28px;line-height:1.1;color:${L.heading};margin:0 0 10px;letter-spacing:-0.02em;">The Desk delivered ${storyCount} stor${storyCount === 1 ? "y" : "ies"} this week.</h1>
         <p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.55;color:${L.muted};margin:0;">${tpSummary} worth using with clients — ready when you are.</p>
       </td>
@@ -745,13 +784,13 @@ function talkingPointNudgeHtml({
     ${ruleFullRow()}
     <tr>
       <td class="em-bg" bgcolor="${L.bg}" style="padding:0 0 24px;background-color:${L.bg};">
-        <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${L.amber};text-transform:uppercase;margin-bottom:12px;">Quick check-in · ${category}</div>
+        <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${L.amber};text-transform:uppercase;margin-bottom:12px;">Quick check-in · ${esc(category)}</div>
         <h1 class="em-h" style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:28px;line-height:1.1;color:${L.heading};margin:0 0 12px;letter-spacing:-0.02em;">Did the angle land?</h1>
         <p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.55;color:${L.muted};margin:0 0 16px;">A few days ago you saved this talking point to your queue:</p>
-        <p class="em-h" style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.4;color:${L.heading};font-weight:700;margin:0 0 14px;">${storyTitle}</p>
+        <p class="em-h" style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.4;color:${L.heading};font-weight:700;margin:0 0 14px;">${esc(storyTitle)}</p>
         <div class="em-pill" style="background:rgba(212,168,83,0.08);border:1px solid ${L.border};border-radius:4px;padding:14px 16px;margin:0 0 20px;">
           <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:9px;letter-spacing:0.2em;color:${L.amber};text-transform:uppercase;margin-bottom:8px;">Say this</div>
-          <p class="em-t em-pill-t" style="font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.5;color:${L.text};margin:0;">"${sayThis}"</p>
+          <p class="em-t em-pill-t" style="font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.5;color:${L.text};margin:0;">"${esc(sayThis)}"</p>
         </div>
         <p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.5;color:${L.muted};margin:0 0 24px;">Did you use it with a client? One tap — helps track what's working.</p>
       </td>
@@ -761,10 +800,10 @@ function talkingPointNudgeHtml({
         <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
           <tr>
             <td style="width:48%;padding-right:8px;">
-              <a href="${yesUrl}" style="display:block;text-align:center;padding:14px 16px;font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#FFFFFF;text-decoration:none;font-weight:600;background:#16A34A;border-radius:4px;">Yes, it landed ✓</a>
+              <a href="${esc(yesUrl)}" style="display:block;text-align:center;padding:14px 16px;font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#FFFFFF;text-decoration:none;font-weight:600;background:#16A34A;border-radius:4px;">Yes, it landed ✓</a>
             </td>
             <td style="width:48%;padding-left:8px;">
-              <a href="${notYetUrl}" style="display:block;text-align:center;padding:14px 16px;font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:${L.muted};text-decoration:none;font-weight:600;background:transparent;border:1px solid ${L.border};border-radius:4px;">Not yet</a>
+              <a href="${esc(notYetUrl)}" style="display:block;text-align:center;padding:14px 16px;font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:${L.muted};text-decoration:none;font-weight:600;background:transparent;border:1px solid ${L.border};border-radius:4px;">Not yet</a>
             </td>
           </tr>
         </table>

@@ -4,11 +4,12 @@
  *   POST /api/scheduled/daily-feed  , bulk ingest of daily scan items
  *   POST /api/scheduled/weekly-edition, single weekly edition payload
  *
- * Both authenticate against SCHEDULED_API_KEY (header or `?key=`), validate the
+ * Both authenticate against SCHEDULED_API_KEY (x-scheduled-key header only —
+ * a query-string key would leak into proxy/access logs), validate the
  * payload via Zod, persist what's valid, and schedule LLM enrichment in
  * setImmediate so the HTTP response returns quickly.
  */
-import { timingSafeEqual } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { COOKIE_NAME, isEnrichedChannel } from "../shared/const";
 import { defaultFeedPriority } from "../shared/feedPriority";
 import { bestMatch, titleTokens } from "../shared/textSimilarity";
@@ -17,7 +18,7 @@ import type { Express, Request, Response } from "express";
 import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import { invalidate } from "./core/cache";
-import { env } from "./core/env";
+import { env, signingSecret } from "./core/env";
 import { routeParam } from "./core/requestParams";
 import { resolveHeroForEdition } from "./core/heroSelection";
 import {
@@ -53,9 +54,13 @@ function siteOrigin(): string {
 
 async function authenticateScheduled(req: Request): Promise<boolean> {
   if (env.scheduledApiKey) {
+    // Header only. The old `?key=` query variant leaked the secret into
+    // proxy/access logs and error-tracker URLs; every caller (GitHub
+    // Actions, the in-process scheduler, the ingest scripts) already sends
+    // the header, and browser use (the preview endpoint) has the admin
+    // session cookie fallback below.
     const headerKey = req.headers["x-scheduled-key"];
-    const queryKey = typeof req.query.key === "string" ? req.query.key : undefined;
-    const provided = (typeof headerKey === "string" ? headerKey : undefined) ?? queryKey;
+    const provided = typeof headerKey === "string" ? headerKey : undefined;
     if (
       provided &&
       provided.length === env.scheduledApiKey.length &&
@@ -128,16 +133,13 @@ async function mapWithConcurrency<T>(
   worker: (item: T, index: number) => Promise<void>
 ): Promise<void> {
   let next = 0;
-  const runners = Array.from(
-    { length: Math.max(1, Math.min(limit, items.length)) },
-    async () => {
-      for (;;) {
-        const i = next++;
-        if (i >= items.length) return;
-        await worker(items[i]!, i);
-      }
+  const runners = Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, async () => {
+    for (;;) {
+      const i = next++;
+      if (i >= items.length) return;
+      await worker(items[i]!, i);
     }
-  );
+  });
   await Promise.all(runners);
 }
 
@@ -278,76 +280,76 @@ function registerDailyFeedRoute(app: Express): void {
           // createFeedItems returns IDs in input order (matching by title
           // collided when two sources ran the same headline).
           await mapWithConcurrency(freshItems, 4, async (item, index) => {
-              const id = insertedIds[index];
-              if (!id) return;
+            const id = insertedIds[index];
+            if (!id) return;
 
-              // Only the partner-relevant Australian lanes (AU, PROPERTY) get
-              // the expensive editorial enrichment. BUSINESS / TECH / GLOBAL
-              // are coverage-only — they skip angle generation and run
-              // image/dedup/threading alone (the latter two already ran
-              // pre-insert above). Any preset angle the source supplied was
-              // persisted at insert and is left untouched.
-              const enrich = isEnrichedChannel(item.channel);
+            // Only the partner-relevant Australian lanes (AU, PROPERTY) get
+            // the expensive editorial enrichment. BUSINESS / TECH / GLOBAL
+            // are coverage-only — they skip angle generation and run
+            // image/dedup/threading alone (the latter two already ran
+            // pre-insert above). Any preset angle the source supplied was
+            // persisted at insert and is left untouched.
+            const enrich = isEnrichedChannel(item.channel);
 
-              // One combined call writes all four angles together (and edits
-              // them against each other), instead of four generators plus a
-              // fifth QC pass each re-sending the full article text. Same
-              // editorial result, ~5x fewer calls and ~5x less input. Source-
-              // supplied presets always win; the call only fills the gaps.
-              let tagValue: string | null = null;
-              let sayValue: string | null = null;
-              let whyValue: string | null = null;
-              let cpValue: string | null = null;
-              if (enrich) {
-                const angles = await generateDailyAngles({
-                  title: item.title,
-                  summary: item.summary,
-                  category: item.category,
-                  articleText: item.articleText,
-                });
-                tagValue = item.partnerTag ?? angles.partnerTag;
-                sayValue = item.sayThis ?? angles.sayThis;
-                whyValue = item.whyItMatters ?? angles.whyItMatters;
-                cpValue = angles.counterpoint;
-              }
+            // One combined call writes all four angles together (and edits
+            // them against each other), instead of four generators plus a
+            // fifth QC pass each re-sending the full article text. Same
+            // editorial result, ~5x fewer calls and ~5x less input. Source-
+            // supplied presets always win; the call only fills the gaps.
+            let tagValue: string | null = null;
+            let sayValue: string | null = null;
+            let whyValue: string | null = null;
+            let cpValue: string | null = null;
+            if (enrich) {
+              const angles = await generateDailyAngles({
+                title: item.title,
+                summary: item.summary,
+                category: item.category,
+                articleText: item.articleText,
+              });
+              tagValue = item.partnerTag ?? angles.partnerTag;
+              sayValue = item.sayThis ?? angles.sayThis;
+              whyValue = item.whyItMatters ?? angles.whyItMatters;
+              cpValue = angles.counterpoint;
+            }
 
-              // Feed items don't use AI thumbnails post-refactor, they rely on
-              // the og:image scraped during ingest. Wiring per-item asset
-              // storage is doable (mirror the edition_assets pattern keyed on
-              // feedItemId) but isn't worth the schema churn for thumbnails
-              // that come free from the source URL.
-              const imageUrl = item.imageUrl ?? null;
+            // Feed items don't use AI thumbnails post-refactor, they rely on
+            // the og:image scraped during ingest. Wiring per-item asset
+            // storage is doable (mirror the edition_assets pattern keyed on
+            // feedItemId) but isn't worth the schema churn for thumbnails
+            // that come free from the source URL.
+            const imageUrl = item.imageUrl ?? null;
 
-              // Persist each angle independently. The Today page now gives a
-              // story a full card if it has EITHER a Say This or a Partner
-              // Angle (FeedItemCard renders whichever is present), so keeping
-              // a lone angle surfaces more full-size stories instead of
-              // demoting them to the signals strip.
-              if (tagValue) {
-                await db.updateFeedItemPartnerTag(id, tagValue);
-                tagOk++;
-              }
-              if (sayValue) {
-                await db.updateFeedItemSayThis(id, sayValue);
-                sayOk++;
-              }
-              // "Why it matters" stands alone — it's context, not a partner
-              // angle, so it persists independent of the say/tag pairing.
-              if (whyValue) {
-                await db.updateFeedItemWhyItMatters(id, whyValue);
-                whyOk++;
-              }
-              // Counterpoint also stands alone, present only when the story
-              // had a genuine second side.
-              if (cpValue) {
-                await db.updateFeedItemCounterpoint(id, cpValue);
-                cpOk++;
-              }
-              if (imageUrl) {
-                await db.updateFeedItemImageUrl(id, imageUrl);
-                imgOk++;
-              }
-            });
+            // Persist each angle independently. The Today page now gives a
+            // story a full card if it has EITHER a Say This or a Partner
+            // Angle (FeedItemCard renders whichever is present), so keeping
+            // a lone angle surfaces more full-size stories instead of
+            // demoting them to the signals strip.
+            if (tagValue) {
+              await db.updateFeedItemPartnerTag(id, tagValue);
+              tagOk++;
+            }
+            if (sayValue) {
+              await db.updateFeedItemSayThis(id, sayValue);
+              sayOk++;
+            }
+            // "Why it matters" stands alone — it's context, not a partner
+            // angle, so it persists independent of the say/tag pairing.
+            if (whyValue) {
+              await db.updateFeedItemWhyItMatters(id, whyValue);
+              whyOk++;
+            }
+            // Counterpoint also stands alone, present only when the story
+            // had a genuine second side.
+            if (cpValue) {
+              await db.updateFeedItemCounterpoint(id, cpValue);
+              cpOk++;
+            }
+            if (imageUrl) {
+              await db.updateFeedItemImageUrl(id, imageUrl);
+              imgOk++;
+            }
+          });
           console.log(
             `[scheduled] enriched ${feedDate}: ${tagOk} partnerTags, ${sayOk} sayThis, ${whyOk} whyItMatters, ${cpOk} counterpoints, ${imgOk} images`
           );
@@ -419,57 +421,67 @@ function registerWeeklyEditionRoute(app: Express): void {
     res.json({ success: true, editionNumber: edition.editionNumber });
 
     // ── Background: hero image + Ruben's Take ──────────────────────────────
+    // The whole body sits in one try/catch: this runs detached from any
+    // request, so a rejected await out here would be an unhandled rejection
+    // and crash the process under Node's default policy.
     setImmediate(async () => {
-      const inserted = await db.getEditionByNumber(edition.editionNumber);
-      if (!inserted) return;
+      try {
+        const inserted = await db.getEditionByNumber(edition.editionNumber);
+        if (!inserted) return;
 
-      // Hero image and take are independent, run them in parallel.
-      // Hero defaults to the library (zero OpenAI cost when there's an
-      // image to reuse). Falls back to fresh generation if the library
-      // is empty, and seeds the library on that fallback so future
-      // editions can reuse it.
-      const [imageResult, takeResult] = await Promise.allSettled([
-        resolveHeroForEdition({
-          editionId: inserted.id,
-          prompt: editionHeroPrompt({
+        // Hero image and take are independent, run them in parallel.
+        // Hero defaults to the library (zero OpenAI cost when there's an
+        // image to reuse). Falls back to fresh generation if the library
+        // is empty, and seeds the library on that fallback so future
+        // editions can reuse it.
+        const [imageResult, takeResult] = await Promise.allSettled([
+          resolveHeroForEdition({
+            editionId: inserted.id,
+            prompt: editionHeroPrompt({
+              weekRange: edition.weekRange,
+              topics: edition.topics,
+            }),
+          }),
+          generateRubensTake({
             weekRange: edition.weekRange,
             topics: edition.topics,
+            keyMetrics: edition.keyMetrics,
           }),
-        }),
-        generateRubensTake({
-          weekRange: edition.weekRange,
-          topics: edition.topics,
-          keyMetrics: edition.keyMetrics,
-        }),
-      ]);
+        ]);
 
-      if (imageResult.status === "rejected") {
-        console.warn(`[scheduled] hero image failed:`, imageResult.reason);
-      } else if (imageResult.value.ok) {
-        await db.updateHeroImage(inserted.id, db.editionAssetUrl(inserted.id, "hero"));
-        console.log(
-          `[scheduled] hero image set for Edition ${edition.editionNumber} (source: ${imageResult.value.source})`
-        );
-      } else {
-        console.warn(
-          `[scheduled] hero image unavailable for Edition ${edition.editionNumber}:`,
-          imageResult.value.reason
+        if (imageResult.status === "rejected") {
+          console.warn(`[scheduled] hero image failed:`, imageResult.reason);
+        } else if (imageResult.value.ok) {
+          await db.updateHeroImage(inserted.id, db.editionAssetUrl(inserted.id, "hero"));
+          console.log(
+            `[scheduled] hero image set for Edition ${edition.editionNumber} (source: ${imageResult.value.source})`
+          );
+        } else {
+          console.warn(
+            `[scheduled] hero image unavailable for Edition ${edition.editionNumber}:`,
+            imageResult.value.reason
+          );
+        }
+
+        if (takeResult.status === "fulfilled") {
+          await db.updateRubensTake(inserted.id, takeResult.value);
+          console.log(`[scheduled] Ruben's Take generated for Edition ${edition.editionNumber}`);
+        } else {
+          console.warn(`[scheduled] Ruben's Take failed:`, takeResult.reason);
+        }
+
+        // Hero + take landed — bust so the reader shows the finished edition.
+        invalidate("edition:");
+
+        // Notify subscribers now that enrichment is complete so the email
+        // links to a fully-rendered edition (hero image + take in place).
+        void notifySubscribers(edition.editionNumber, edition.weekRange);
+      } catch (err) {
+        console.error(
+          `[scheduled] weekly-edition background enrichment failed for Edition ${edition.editionNumber}:`,
+          err
         );
       }
-
-      if (takeResult.status === "fulfilled") {
-        await db.updateRubensTake(inserted.id, takeResult.value);
-        console.log(`[scheduled] Ruben's Take generated for Edition ${edition.editionNumber}`);
-      } else {
-        console.warn(`[scheduled] Ruben's Take failed:`, takeResult.reason);
-      }
-
-      // Hero + take landed — bust so the reader shows the finished edition.
-      invalidate("edition:");
-
-      // Notify subscribers now that enrichment is complete so the email
-      // links to a fully-rendered edition (hero image + take in place).
-      void notifySubscribers(edition.editionNumber, edition.weekRange);
     });
   };
   app.post("/api/scheduled/weekly-edition", handler);
@@ -624,112 +636,122 @@ function registerSynthesizeEditionRoute(app: Express): void {
     // The QC pass and headline optimiser run on the LIVE edition so a slow
     // call doesn't hold up the synthesise endpoint. Each step is best-effort
     //, a failure logs and moves on, the edition stays usable either way.
+    // Wrapped in one try/catch for the same reason as the weekly-edition
+    // background block: a rejected await in a detached async would be an
+    // unhandled rejection and crash the process.
     setImmediate(async () => {
-      const inserted = await db.getEditionByNumber(editionNumber);
-      if (!inserted) return;
-
-      // Step 1: Editor QC pass. Audits voice, clarity, audience hooks,
-      // unsupported claims and applies fixes in place. We feed it the
-      // synthesised output (not the DB row, which is the same shape).
-      let finalEdition = {
-        topics: edition.topics,
-        signals: edition.signals,
-        keyMetrics: edition.keyMetrics,
-        readingTime: edition.readingTime,
-        fullText: edition.fullText,
-        marketStress: edition.marketStress,
-        datesToWatch: edition.datesToWatch,
-      };
       try {
-        const qc = await runEditorQc(finalEdition);
-        if (!qc.approved) {
-          console.log(`[editor-qc] Edition ${editionNumber}: applied ${qc.notes.length} edits`);
-          for (const n of qc.notes) console.log(`  - ${n}`);
-        } else {
-          console.log(`[editor-qc] Edition ${editionNumber}: clean on first pass`);
-        }
-        finalEdition = qc.revised;
-        await db.updateEditionSynthesis(inserted.id, {
-          topics: finalEdition.topics,
-          signals: finalEdition.signals,
-          fullText: finalEdition.fullText,
-          keyMetrics: finalEdition.keyMetrics,
-          marketStress: finalEdition.marketStress,
-          datesToWatch: finalEdition.datesToWatch,
-        });
-      } catch (err) {
-        console.warn(`[editor-qc] Edition ${editionNumber} skipped: ${(err as Error).message}`);
-      }
+        const inserted = await db.getEditionByNumber(editionNumber);
+        if (!inserted) return;
 
-      // Step 1b: accountability look-back. Scores last week's forward-looking
-      // calls against this week's feed. Best-effort and skipped for the first
-      // edition (no prior to grade).
-      try {
-        const prior = await db.getEditionByNumber(editionNumber - 1);
-        if (prior) {
-          const lookback = await generateLookback({
-            priorWeekRange: prior.weekRange,
-            priorTopics: prior.topics ?? [],
-            priorDatesToWatch: prior.datesToWatch ?? null,
-            thisWeekItems: items,
-          });
-          if (lookback) {
-            await db.updateEditionLookback(inserted.id, lookback);
-            console.log(
-              `[lookback] Edition ${editionNumber}: scored ${lookback.items.length} prior call(s)`
-            );
+        // Step 1: Editor QC pass. Audits voice, clarity, audience hooks,
+        // unsupported claims and applies fixes in place. We feed it the
+        // synthesised output (not the DB row, which is the same shape).
+        let finalEdition = {
+          topics: edition.topics,
+          signals: edition.signals,
+          keyMetrics: edition.keyMetrics,
+          readingTime: edition.readingTime,
+          fullText: edition.fullText,
+          marketStress: edition.marketStress,
+          datesToWatch: edition.datesToWatch,
+        };
+        try {
+          const qc = await runEditorQc(finalEdition);
+          if (!qc.approved) {
+            console.log(`[editor-qc] Edition ${editionNumber}: applied ${qc.notes.length} edits`);
+            for (const n of qc.notes) console.log(`  - ${n}`);
+          } else {
+            console.log(`[editor-qc] Edition ${editionNumber}: clean on first pass`);
           }
+          finalEdition = qc.revised;
+          await db.updateEditionSynthesis(inserted.id, {
+            topics: finalEdition.topics,
+            signals: finalEdition.signals,
+            fullText: finalEdition.fullText,
+            keyMetrics: finalEdition.keyMetrics,
+            marketStress: finalEdition.marketStress,
+            datesToWatch: finalEdition.datesToWatch,
+          });
+        } catch (err) {
+          console.warn(`[editor-qc] Edition ${editionNumber} skipped: ${(err as Error).message}`);
         }
-      } catch (err) {
-        console.warn(`[lookback] Edition ${editionNumber} skipped: ${(err as Error).message}`);
-      }
 
-      // Step 2: hero image + Ruben's Take in parallel. Hero picks from
-      // the library by default, see resolveHeroForEdition for the
-      // library-vs-generate decision.
-      const [imageResult, takeResult] = await Promise.allSettled([
-        resolveHeroForEdition({
-          editionId: inserted.id,
-          prompt: editionHeroPrompt({
+        // Step 1b: accountability look-back. Scores last week's forward-looking
+        // calls against this week's feed. Best-effort and skipped for the first
+        // edition (no prior to grade).
+        try {
+          const prior = await db.getEditionByNumber(editionNumber - 1);
+          if (prior) {
+            const lookback = await generateLookback({
+              priorWeekRange: prior.weekRange,
+              priorTopics: prior.topics ?? [],
+              priorDatesToWatch: prior.datesToWatch ?? null,
+              thisWeekItems: items,
+            });
+            if (lookback) {
+              await db.updateEditionLookback(inserted.id, lookback);
+              console.log(
+                `[lookback] Edition ${editionNumber}: scored ${lookback.items.length} prior call(s)`
+              );
+            }
+          }
+        } catch (err) {
+          console.warn(`[lookback] Edition ${editionNumber} skipped: ${(err as Error).message}`);
+        }
+
+        // Step 2: hero image + Ruben's Take in parallel. Hero picks from
+        // the library by default, see resolveHeroForEdition for the
+        // library-vs-generate decision.
+        const [imageResult, takeResult] = await Promise.allSettled([
+          resolveHeroForEdition({
+            editionId: inserted.id,
+            prompt: editionHeroPrompt({
+              weekRange,
+              topics: finalEdition.topics,
+            }),
+          }),
+          generateRubensTake({
             weekRange,
             topics: finalEdition.topics,
+            keyMetrics: finalEdition.keyMetrics,
           }),
-        }),
-        generateRubensTake({
-          weekRange,
-          topics: finalEdition.topics,
-          keyMetrics: finalEdition.keyMetrics,
-        }),
-      ]);
-      if (imageResult.status === "fulfilled" && imageResult.value.ok) {
-        await db.updateHeroImage(inserted.id, db.editionAssetUrl(inserted.id, "hero"));
-      }
-      let rubensTake: string | null = null;
-      if (takeResult.status === "fulfilled") {
-        rubensTake = takeResult.value;
-        await db.updateRubensTake(inserted.id, rubensTake);
-      }
+        ]);
+        if (imageResult.status === "fulfilled" && imageResult.value.ok) {
+          await db.updateHeroImage(inserted.id, db.editionAssetUrl(inserted.id, "hero"));
+        }
+        let rubensTake: string | null = null;
+        if (takeResult.status === "fulfilled") {
+          rubensTake = takeResult.value;
+          await db.updateRubensTake(inserted.id, rubensTake);
+        }
 
-      // Step 3: headline + SEO optimiser. Needs the take if we have one
-      // (it informs the social-card framing).
-      try {
-        const seo = await optimiseHeadlines({
-          weekRange,
-          rubensTake,
-          topics: finalEdition.topics,
-          fullText: finalEdition.fullText,
-        });
-        await db.updateEditionSeo(inserted.id, seo);
-        console.log(
-          `[headline-optimiser] Edition ${editionNumber}: meta + ${seo.headlineVariants.length} variants saved`
-        );
+        // Step 3: headline + SEO optimiser. Needs the take if we have one
+        // (it informs the social-card framing).
+        try {
+          const seo = await optimiseHeadlines({
+            weekRange,
+            rubensTake,
+            topics: finalEdition.topics,
+            fullText: finalEdition.fullText,
+          });
+          await db.updateEditionSeo(inserted.id, seo);
+          console.log(
+            `[headline-optimiser] Edition ${editionNumber}: meta + ${seo.headlineVariants.length} variants saved`
+          );
+        } catch (err) {
+          console.warn(
+            `[headline-optimiser] Edition ${editionNumber} skipped: ${(err as Error).message}`
+          );
+        }
+
+        void notifySubscribers(editionNumber, weekRange);
       } catch (err) {
-        console.warn(
-          `[headline-optimiser] Edition ${editionNumber} skipped: ${(err as Error).message}`
+        console.error(
+          `[scheduled] synthesize-edition background enrichment failed for Edition ${editionNumber}:`,
+          err
         );
       }
-
-      void notifySubscribers(editionNumber, weekRange);
     });
   };
   app.post("/api/scheduled/synthesize-edition", handler);
@@ -743,9 +765,7 @@ async function notifyDailyBriefSubscribers(feedDate: string): Promise<void> {
     // Partner-facing output: the brief covers the enriched lanes (AU +
     // Property) only. Coverage lanes (Business / Tech / Global) surface on the
     // Today-page tabs but don't belong in a partner's inbox.
-    const items = (await db.listFeedItems(feedDate)).filter((it) =>
-      isEnrichedChannel(it.channel)
-    );
+    const items = (await db.listFeedItems(feedDate)).filter((it) => isEnrichedChannel(it.channel));
     if (items.length === 0) return;
     const subs = await db.listSubscribersForDailyBrief(feedDate);
     if (subs.length === 0) return;
@@ -787,19 +807,28 @@ async function notifySubscribers(editionNumber: number, weekRange: string): Prom
     if (subs.length === 0) return;
     const origin = siteOrigin();
     const editionUrl = `${origin}/editions/${editionNumber}`;
-    const results = await Promise.allSettled(
-      subs.map((sub) =>
-        sendEditionNotificationEmail({
+    // Paced like the daily brief (600ms between sends) rather than a flat
+    // Promise.allSettled burst: Resend rate-limits around 2 req/s, so an
+    // unpaced fan-out silently drops deliveries once the list grows.
+    let delivered = 0;
+    for (let i = 0; i < subs.length; i++) {
+      if (i > 0) await new Promise((r) => setTimeout(r, 600));
+      const sub = subs[i];
+      if (!sub) continue;
+      try {
+        const result = await sendEditionNotificationEmail({
           to: sub.email,
           name: sub.name,
           editionNumber,
           weekRange,
           editionUrl,
           unsubscribeUrl: editionUnsubscribeUrl(sub.email, origin),
-        })
-      )
-    );
-    const delivered = results.filter((r) => r.status === "fulfilled" && r.value.delivered).length;
+        });
+        if (result.delivered) delivered++;
+      } catch {
+        // best-effort per subscriber; the count below shows the gap
+      }
+    }
     console.log(
       `[mailer] Edition ${editionNumber}: notified ${delivered}/${subs.length} subscribers`
     );
@@ -1119,47 +1148,15 @@ function registerNudgeRespondRoute(app: Express): void {
     message: "Too many requests.",
   });
 
-  app.get("/api/nudge/respond", nudgeLimiter, async (req: Request, res: Response) => {
-    const id = parseInt(typeof req.query.id === "string" ? req.query.id : "", 10);
-    const sig = typeof req.query.sig === "string" ? req.query.sig : "";
-    const result = typeof req.query.result === "string" ? req.query.result : "";
-
-    if (!id || !sig || !["yes", "not-yet"].includes(result)) {
-      res.status(400).send("Invalid link.");
-      return;
-    }
-
-    const { createHmac } = await import("node:crypto");
-    const expected = createHmac("sha256", process.env.JWT_SECRET ?? "dev")
-      .update(`nudge:${id}`)
-      .digest("base64url");
-
-    // Constant-time compare so response latency can't be used to
-    // recover the signature byte-by-byte (same treatment as the
-    // unsubscribe link and the scheduled-key check).
-    const sigOk =
-      sig.length === expected.length && timingSafeEqual(Buffer.from(sig), Buffer.from(expected));
-    if (!sigOk) {
-      res.status(403).send("Invalid or expired link.");
-      return;
-    }
-
-    await db.recordNudgeResponse(id, result);
-
-    const isYes = result === "yes";
-    const headline = isYes ? "Great — logged as a win." : "Got it — noted.";
-    const subtext = isYes
-      ? "That angle landed. The Desk will keep surfacing more like it."
-      : "Thanks for the honesty. Knowing when it doesn't land is just as useful.";
-
-    res.setHeader("Content-Type", "text/html; charset=utf-8");
-    res.send(`<!doctype html>
+  /** Shared page chrome for the confirm + thank-you screens. */
+  const page = (title: string, body: string) => `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="dark" />
-    <title>${headline}</title>
+    <meta name="robots" content="noindex" />
+    <title>${title}</title>
     <style>
       html, body { background: ${NAVY}; color: ${FG}; font-family: Georgia, 'Times New Roman', serif; margin: 0; padding: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
     </style>
@@ -1167,12 +1164,95 @@ function registerNudgeRespondRoute(app: Express): void {
   <body>
     <div style="max-width:420px;padding:48px 24px;text-align:center;">
       <div style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${AMBER};text-transform:uppercase;margin-bottom:16px;">The Desk</div>
-      <h1 style="font-size:26px;font-weight:700;line-height:1.15;letter-spacing:-0.02em;margin:0 0 12px;">${headline}</h1>
-      <p style="font-size:16px;line-height:1.55;color:${FG_MUTED};margin:0 0 28px;">${subtext}</p>
-      <a href="${siteOrigin()}" style="display:inline-block;padding:13px 28px;background:${AMBER};color:${NAVY};font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;text-decoration:none;font-weight:600;border-radius:4px;">Back to The Desk →</a>
+      ${body}
     </div>
   </body>
-</html>`);
+</html>`;
+
+  /**
+   * Validate the id/sig/result triple shared by the GET and POST handlers.
+   * Constant-time signature compare so response latency can't be used to
+   * recover the signature byte-by-byte (same treatment as the unsubscribe
+   * link and the scheduled-key check).
+   */
+  const validateNudgeParams = (
+    rawId: unknown,
+    rawSig: unknown,
+    rawResult: unknown
+  ): { id: number; result: "yes" | "not-yet" } | null => {
+    const id = parseInt(typeof rawId === "string" ? rawId : "", 10);
+    const sig = typeof rawSig === "string" ? rawSig : "";
+    const result = typeof rawResult === "string" ? rawResult : "";
+    if (!id || !sig || !["yes", "not-yet"].includes(result)) return null;
+    const expected = createHmac("sha256", signingSecret())
+      .update(`nudge:${id}`)
+      .digest("base64url");
+    const sigOk =
+      sig.length === expected.length && timingSafeEqual(Buffer.from(sig), Buffer.from(expected));
+    if (!sigOk) return null;
+    return { id, result: result as "yes" | "not-yet" };
+  };
+
+  // GET renders a confirm page and records NOTHING. Email security scanners
+  // prefetch every link in a message (this codebase already handles the
+  // same behaviour on the subscribe-confirm link), so a state-changing GET
+  // would log a bogus answer — and with both a "yes" and a "not-yet" link
+  // in the email, whichever the scanner hit last would win. The human's
+  // actual answer arrives via the form POST below.
+  app.get("/api/nudge/respond", nudgeLimiter, async (req: Request, res: Response) => {
+    const params = validateNudgeParams(req.query.id, req.query.sig, req.query.result);
+    if (!params) {
+      res.status(400).send("Invalid or expired link.");
+      return;
+    }
+    const isYes = params.result === "yes";
+    const headline = isYes ? "Confirm: it landed?" : "Confirm: not yet?";
+    const subtext = isYes
+      ? "One tap to log this talking point as a win."
+      : "One tap to note this one hasn't landed yet.";
+    const label = isYes ? "Yes, it landed ✓" : "Not yet";
+
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.send(
+      page(
+        headline,
+        `<h1 style="font-size:26px;font-weight:700;line-height:1.15;letter-spacing:-0.02em;margin:0 0 12px;">${headline}</h1>
+      <p style="font-size:16px;line-height:1.55;color:${FG_MUTED};margin:0 0 28px;">${subtext}</p>
+      <form method="post" action="/api/nudge/respond" style="margin:0;">
+        <input type="hidden" name="id" value="${params.id}" />
+        <input type="hidden" name="sig" value="${typeof req.query.sig === "string" ? req.query.sig.replace(/[^A-Za-z0-9_-]/g, "") : ""}" />
+        <input type="hidden" name="result" value="${params.result}" />
+        <button type="submit" style="display:inline-block;padding:13px 28px;background:${AMBER};color:${NAVY};border:0;cursor:pointer;font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;font-weight:600;border-radius:4px;">${label}</button>
+      </form>`
+      )
+    );
+  });
+
+  app.post("/api/nudge/respond", nudgeLimiter, async (req: Request, res: Response) => {
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const params = validateNudgeParams(body.id, body.sig, body.result);
+    if (!params) {
+      res.status(403).send("Invalid or expired link.");
+      return;
+    }
+
+    await db.recordNudgeResponse(params.id, params.result);
+
+    const isYes = params.result === "yes";
+    const headline = isYes ? "Great — logged as a win." : "Got it — noted.";
+    const subtext = isYes
+      ? "That angle landed. The Desk will keep surfacing more like it."
+      : "Thanks for the honesty. Knowing when it doesn't land is just as useful.";
+
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.send(
+      page(
+        headline,
+        `<h1 style="font-size:26px;font-weight:700;line-height:1.15;letter-spacing:-0.02em;margin:0 0 12px;">${headline}</h1>
+      <p style="font-size:16px;line-height:1.55;color:${FG_MUTED};margin:0 0 28px;">${subtext}</p>
+      <a href="${siteOrigin()}" style="display:inline-block;padding:13px 28px;background:${AMBER};color:${NAVY};font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;text-decoration:none;font-weight:600;border-radius:4px;">Back to The Desk →</a>`
+      )
+    );
   });
 }
 
@@ -1217,9 +1297,7 @@ function registerInstagramRoutes(app: Express): void {
 
     // Instagram is partner-facing: post from the enriched lanes (AU +
     // Property) only, never the coverage tabs.
-    const items = (await db.listFeedItems(feedDate)).filter((it) =>
-      isEnrichedChannel(it.channel)
-    );
+    const items = (await db.listFeedItems(feedDate)).filter((it) => isEnrichedChannel(it.channel));
     if (items.length === 0) {
       res.status(422).json({ error: "No feed items for the requested date" });
       return;
@@ -1310,9 +1388,7 @@ function registerInstagramRoutes(app: Express): void {
     const feedDate = parsed.success ? parsed.data.feedDate : undefined;
 
     // The opposite filter to the daily post: coverage lanes only.
-    const items = (await db.listFeedItems(feedDate)).filter(
-      (it) => !isEnrichedChannel(it.channel)
-    );
+    const items = (await db.listFeedItems(feedDate)).filter((it) => !isEnrichedChannel(it.channel));
     if (items.length === 0) {
       res.status(422).json({ error: "No coverage stories for the requested date" });
       return;
@@ -1405,8 +1481,8 @@ function registerInstagramRoutes(app: Express): void {
 
   // GET /api/instagram/preview/:kind — render a single card to a browser so the
   // posts can be eyeballed (notably the real per-edition hero) before anything
-  // publishes. Auth is the same as the cron handlers: ?key=… or an admin
-  // session cookie. Renders straight from the DB; weekly is byte-identical to
+  // publishes. Auth is the same as the cron handlers: the x-scheduled-key
+  // header or an admin session cookie (the latter is what a browser uses). Renders straight from the DB; weekly is byte-identical to
   // what posts. Daily uses the raw feed titles (it skips the LLM headline
   // punch-up the live post applies) but is otherwise the production path.
   //   kind: weekly-cover | weekly-story | weekly-topic | daily-cover
@@ -1450,11 +1526,7 @@ function registerInstagramRoutes(app: Express): void {
       } else if (kind.startsWith("daily")) {
         const date = typeof req.query.date === "string" ? req.query.date : undefined;
         const variant =
-          req.query.variant === "light"
-            ? "light"
-            : req.query.variant === "navy"
-              ? "navy"
-              : "light";
+          req.query.variant === "light" ? "light" : req.query.variant === "navy" ? "navy" : "light";
         const stories = pickDailyTopStories(
           (await db.listFeedItems(date)).filter((it) => isEnrichedChannel(it.channel))
         ).map((s) => ({

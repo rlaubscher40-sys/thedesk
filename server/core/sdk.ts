@@ -15,6 +15,7 @@
  * foreign keys on reading queue / notes / conversations but is only ever
  * populated with one row.
  */
+import { createHash, timingSafeEqual } from "node:crypto";
 import { COOKIE_NAME, SESSION_TTL_MS } from "../../shared/const";
 import { ForbiddenError } from "../../shared/errors";
 import { parse as parseCookieHeader } from "cookie";
@@ -35,13 +36,12 @@ class AuthSdk {
   verifyPassword(password: string): boolean {
     const expected = env.adminPassword;
     if (!expected) return false;
-    if (password.length !== expected.length) return false;
-    // Constant-time compare, protects against timing attacks even at this scale.
-    let mismatch = 0;
-    for (let i = 0; i < expected.length; i++) {
-      mismatch |= expected.charCodeAt(i) ^ password.charCodeAt(i);
-    }
-    return mismatch === 0;
+    // Hash both sides to a fixed length, then compare in constant time.
+    // Comparing the raw strings needed a length check first, and that
+    // early return leaked the password's length through response timing.
+    const a = createHash("sha256").update(password).digest();
+    const b = createHash("sha256").update(expected).digest();
+    return timingSafeEqual(a, b);
   }
 
   async createSessionToken(opts: { expiresInMs?: number } = {}): Promise<string> {
