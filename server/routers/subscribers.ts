@@ -117,14 +117,26 @@ export const subscribersRouter = router({
   confirm: publicProcedure
     .input(z.object({ token: z.string().min(8).max(64) }))
     .mutation(async ({ input }) => {
-      const row = await db.confirmSubscriber(input.token);
-      if (!row) {
+      const result = await db.confirmSubscriber(input.token);
+      if (result.status === "expired") {
         throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "That confirmation link is invalid or expired.",
+          code: "BAD_REQUEST",
+          // Distinct from "invalid" so the confirm page can offer a resubscribe
+          // path rather than implying the link was never real.
+          message:
+            "That confirmation link has expired. Subscribe again and we'll send a fresh one.",
         });
       }
-      return { email: row.email, confirmedAt: row.confirmedAt };
+      if (result.status === "not-found") {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "That confirmation link is invalid.",
+        });
+      }
+      return {
+        email: result.subscriber.email,
+        confirmedAt: result.subscriber.confirmedAt,
+      };
     }),
 
   // NOTE: there is deliberately no public unsubscribe-by-email mutation here.

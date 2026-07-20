@@ -7,6 +7,7 @@
  * Arrows fire `onPrev` / `onNext` when their respective `canGoX` flag
  * is true.
  */
+import { useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/cn";
 
@@ -23,20 +24,34 @@ type Props = {
   onNext: () => void;
 };
 
-export function DatePager({
-  date,
-  isToday,
-  canGoPrev,
-  canGoNext,
-  onPrev,
-  onNext,
-}: Props) {
+export function DatePager({ date, isToday, canGoPrev, canGoNext, onPrev, onNext }: Props) {
   const [y, m, d] = date.split("-");
   const formatted = `${d}/${m}/${y}`;
 
+  const prevRef = useRef<HTMLButtonElement>(null);
+  const nextRef = useRef<HTMLButtonElement>(null);
+
+  // Rescue keyboard focus: paging to the last reachable day disables the
+  // very button that was just activated, which drops focus to <body>. When
+  // that happens, hand focus to the still-enabled sibling so the user can
+  // keep paging without reaching for the mouse.
+  useEffect(() => {
+    const active = document.activeElement;
+    if (active === prevRef.current && !canGoPrev && canGoNext) {
+      nextRef.current?.focus();
+    } else if (active === nextRef.current && !canGoNext && canGoPrev) {
+      prevRef.current?.focus();
+    }
+  }, [canGoPrev, canGoNext]);
+
   return (
-    <div className="inline-flex items-center gap-1 panel rounded p-1">
+    <div
+      className="inline-flex items-center gap-1 panel rounded p-1"
+      role="group"
+      aria-label="Browse feed by day"
+    >
       <button
+        ref={prevRef}
         type="button"
         onClick={onPrev}
         disabled={!canGoPrev}
@@ -51,7 +66,11 @@ export function DatePager({
         <ChevronLeft className="h-4 w-4" />
       </button>
       <div className="flex items-center gap-2 px-3">
-        <span className="font-mono text-xs tabular-nums text-[var(--color-fg)] tracking-wider">
+        <span
+          className="font-mono text-xs tabular-nums text-[var(--color-fg)] tracking-wider"
+          aria-live="polite"
+        >
+          <span className="sr-only">Showing </span>
           {formatted}
         </span>
         {isToday && (
@@ -69,6 +88,7 @@ export function DatePager({
         )}
       </div>
       <button
+        ref={nextRef}
         type="button"
         onClick={onNext}
         disabled={!canGoNext}

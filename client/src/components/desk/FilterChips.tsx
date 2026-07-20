@@ -66,12 +66,21 @@ export function FilterChips({
   // Keep the active tab in view when the row is horizontally scrolled (mobile),
   // so selecting a tab off-screen — or arrow-keying along — doesn't hide it.
   const activeRef = useRef<HTMLButtonElement>(null);
+  const tablistRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     activeRef.current?.scrollIntoView({
       behavior: "smooth",
       inline: "center",
       block: "nearest",
     });
+    // Roving-tabindex contract: when the selection moves via the keyboard,
+    // focus must follow to the newly-selected tab (its tabIndex just became
+    // 0). Only steal focus when it's already inside the tablist, so a
+    // programmatic channel change (e.g. deep link) doesn't yank focus.
+    const active = document.activeElement;
+    if (active && tablistRef.current?.contains(active) && active !== activeRef.current) {
+      activeRef.current?.focus();
+    }
   }, [channel]);
 
   // Amber, The Desk's editorial accent, for the active channel underline. The
@@ -99,18 +108,21 @@ export function FilterChips({
       {/* Channel tabs. The bottom border is the track the active underline
           sits on. */}
       <div
+        ref={tablistRef}
         role="tablist"
         aria-label="Content channels"
         className="flex gap-6 overflow-x-auto no-scrollbar border-b border-[var(--color-border)]"
         style={{ scrollbarWidth: "none" }}
         onKeyDown={(e) => {
-          if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-          e.preventDefault();
+          // APG tabs pattern: Left/Right step, Home/End jump to ends.
           const i = tabs.findIndex((t) => t.id === channel);
-          const next =
-            e.key === "ArrowRight"
-              ? tabs[Math.min(i + 1, tabs.length - 1)]
-              : tabs[Math.max(i - 1, 0)];
+          let next: (typeof tabs)[number] | undefined;
+          if (e.key === "ArrowRight") next = tabs[Math.min(i + 1, tabs.length - 1)];
+          else if (e.key === "ArrowLeft") next = tabs[Math.max(i - 1, 0)];
+          else if (e.key === "Home") next = tabs[0];
+          else if (e.key === "End") next = tabs[tabs.length - 1];
+          else return;
+          e.preventDefault();
           if (next) onChannelChange(next.id);
         }}
       >
@@ -155,8 +167,7 @@ export function FilterChips({
         >
           {catChips.map((f) => {
             const isActive = f.id === category;
-            const colour =
-              f.id === "ALL" ? "oklch(0.78 0.18 70)" : categoryColour(f.id as never);
+            const colour = f.id === "ALL" ? "oklch(0.78 0.18 70)" : categoryColour(f.id as never);
             return (
               <button
                 key={f.id}

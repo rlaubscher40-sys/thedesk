@@ -9,6 +9,12 @@ export const COOKIE_NAME = "app_session_id";
 export const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30;
 export const AXIOS_TIMEOUT_MS = 30_000;
 
+/**
+ * How long a subscribe confirmation link stays valid. The confirm email
+ * promises "expires in 24 hours"; this is the value that enforces it.
+ */
+export const CONFIRM_TOKEN_TTL_MS = 1000 * 60 * 60 * 24;
+
 export const UNAUTHED_ERR_MSG = "Please login (10001)";
 export const NOT_ADMIN_ERR_MSG = "You do not have required permission (10002)";
 

@@ -22,13 +22,31 @@ import { sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 
 export const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
-  { name: "0001 · users.isPremium", sql: "ALTER TABLE users ADD isPremium boolean NOT NULL DEFAULT false" },
-  { name: "0001 · daily_feed_items.imageUrl", sql: "ALTER TABLE daily_feed_items ADD imageUrl text" },
-  { name: "0004 · daily_feed_items.rubensNote", sql: "ALTER TABLE daily_feed_items ADD rubensNote text" },
-  { name: "0005 · editions.marketStress", sql: "ALTER TABLE editions ADD marketStress varchar(16)" },
+  {
+    name: "0001 · users.isPremium",
+    sql: "ALTER TABLE users ADD isPremium boolean NOT NULL DEFAULT false",
+  },
+  {
+    name: "0001 · daily_feed_items.imageUrl",
+    sql: "ALTER TABLE daily_feed_items ADD imageUrl text",
+  },
+  {
+    name: "0004 · daily_feed_items.rubensNote",
+    sql: "ALTER TABLE daily_feed_items ADD rubensNote text",
+  },
+  {
+    name: "0005 · editions.marketStress",
+    sql: "ALTER TABLE editions ADD marketStress varchar(16)",
+  },
   { name: "0005 · editions.datesToWatch", sql: "ALTER TABLE editions ADD datesToWatch json" },
-  { name: "0005 · daily_metrics.context", sql: "ALTER TABLE daily_metrics ADD context varchar(256)" },
-  { name: "0005 · daily_metrics.groupKey", sql: "ALTER TABLE daily_metrics ADD groupKey varchar(32)" },
+  {
+    name: "0005 · daily_metrics.context",
+    sql: "ALTER TABLE daily_metrics ADD context varchar(256)",
+  },
+  {
+    name: "0005 · daily_metrics.groupKey",
+    sql: "ALTER TABLE daily_metrics ADD groupKey varchar(32)",
+  },
   {
     name: "0006 · daily_metric_history table",
     sql: `CREATE TABLE daily_metric_history (
@@ -43,10 +61,19 @@ export const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
     sql: "CREATE INDEX idx_metric_history_key_recorded ON daily_metric_history (metricKey, recordedAt)",
   },
   { name: "0007 · editions.metaTitle", sql: "ALTER TABLE editions ADD metaTitle varchar(160)" },
-  { name: "0007 · editions.metaDescription", sql: "ALTER TABLE editions ADD metaDescription varchar(320)" },
+  {
+    name: "0007 · editions.metaDescription",
+    sql: "ALTER TABLE editions ADD metaDescription varchar(320)",
+  },
   { name: "0007 · editions.socialTitle", sql: "ALTER TABLE editions ADD socialTitle varchar(200)" },
-  { name: "0007 · editions.socialDescription", sql: "ALTER TABLE editions ADD socialDescription varchar(400)" },
-  { name: "0007 · editions.headlineVariants", sql: "ALTER TABLE editions ADD headlineVariants json" },
+  {
+    name: "0007 · editions.socialDescription",
+    sql: "ALTER TABLE editions ADD socialDescription varchar(400)",
+  },
+  {
+    name: "0007 · editions.headlineVariants",
+    sql: "ALTER TABLE editions ADD headlineVariants json",
+  },
   {
     name: "0008 · edition_assets table",
     sql: `CREATE TABLE edition_assets (
@@ -246,6 +273,10 @@ export const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
       UNIQUE KEY uq_job_runs_key_date (jobKey, runDate)
     )`,
   },
+  {
+    name: "0021 · subscribers.confirmTokenSentAt",
+    sql: "ALTER TABLE subscribers ADD confirmTokenSentAt timestamp NULL",
+  },
 ];
 
 /** MySQL/TiDB error message fragments that mean "already applied". */
@@ -330,8 +361,7 @@ export async function runCatchup(
       // Genuine failure, surface the most informative message we can
       // reach: the underlying SQL error wins over Drizzle's wrapper.
       const cause = (err as { cause?: { sqlMessage?: string; message?: string } }).cause;
-      const message =
-        cause?.sqlMessage ?? cause?.message ?? (err as Error).message ?? String(err);
+      const message = cause?.sqlMessage ?? cause?.message ?? (err as Error).message ?? String(err);
       failed.push({ name: stmt.name, message });
     }
   }

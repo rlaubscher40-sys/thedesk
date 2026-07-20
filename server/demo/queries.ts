@@ -23,6 +23,7 @@ import type {
   Subscriber,
   UptimePing,
 } from "../db/schema";
+import { rankResults } from "../db/searchRank";
 import { allocId, demo, demoUser, trimRing } from "./store";
 
 // ─── Editions ───────────────────────────────────────────────────────────────
@@ -222,9 +223,7 @@ function byPriorityThenRecent(a: DailyFeedItem, b: DailyFeedItem): number {
 
 export function listFeedItems(date?: string): DailyFeedItem[] {
   if (date) {
-    return [...demo.feed]
-      .filter((i) => i.feedDate === date)
-      .sort(byPriorityThenRecent);
+    return [...demo.feed].filter((i) => i.feedDate === date).sort(byPriorityThenRecent);
   }
   return [...demo.feed].sort(byPriorityThenRecent).slice(0, 30);
 }
@@ -397,23 +396,36 @@ export function getCategoryHeat(days: number) {
 
 export function searchAllContent(query: string) {
   const q = query.toLowerCase();
+  const editionMatches = demo.editions.filter(
+    (e) =>
+      (e.fullText ?? "").toLowerCase().includes(q) ||
+      e.weekRange.toLowerCase().includes(q) ||
+      e.weekOf.toLowerCase().includes(q) ||
+      (e.topics ?? []).some(
+        (t) =>
+          (t.title ?? "").toLowerCase().includes(q) || (t.summary ?? "").toLowerCase().includes(q)
+      )
+  );
+  const feedMatches = demo.feed.filter(
+    (f) =>
+      f.title.toLowerCase().includes(q) ||
+      f.summary.toLowerCase().includes(q) ||
+      f.category.toLowerCase().includes(q)
+  );
+  // Same relevance ranking + snippets as the live path so the demo mirrors
+  // production behaviour.
   return {
-    editions: demo.editions.filter(
-      (e) =>
-        (e.fullText ?? "").toLowerCase().includes(q) ||
-        e.weekRange.toLowerCase().includes(q) ||
-        e.weekOf.toLowerCase().includes(q) ||
-        (e.topics ?? []).some(
-          (t) =>
-            (t.title ?? "").toLowerCase().includes(q) ||
-            (t.summary ?? "").toLowerCase().includes(q)
-        )
+    editions: rankResults(
+      query,
+      editionMatches,
+      (e) => `Edition ${e.editionNumber} ${e.weekRange}`,
+      (e) => e.fullText ?? ""
     ),
-    feedItems: demo.feed.filter(
-      (f) =>
-        f.title.toLowerCase().includes(q) ||
-        f.summary.toLowerCase().includes(q) ||
-        f.category.toLowerCase().includes(q)
+    feedItems: rankResults(
+      query,
+      feedMatches,
+      (f) => f.title,
+      (f) => f.summary ?? ""
     ),
   };
 }
@@ -455,9 +467,15 @@ export function addToQueue(data: InsertReadingQueueItem): ReadingQueueItem {
   return item;
 }
 
-export function findQueueItemsNeedingNudge() { return []; }
-export function markNudgeSent(_id: number): void { /* no-op */ }
-export function recordNudgeResponse(_id: number, _response: string): void { /* no-op */ }
+export function findQueueItemsNeedingNudge() {
+  return [];
+}
+export function markNudgeSent(_id: number): void {
+  /* no-op */
+}
+export function recordNudgeResponse(_id: number, _response: string): void {
+  /* no-op */
+}
 
 export function markQueueItemRead(id: number, userId: number): void {
   const item = demo.queue.find((q) => q.id === id && q.userId === userId);
@@ -554,6 +572,7 @@ export function createSubscriber(data: InsertSubscriber): Subscriber {
     email: data.email,
     name: data.name ?? null,
     confirmToken: data.confirmToken ?? null,
+    confirmTokenSentAt: data.confirmTokenSentAt ?? new Date(),
     confirmedAt: data.confirmedAt ?? null,
     unsubscribedAt: null,
     source: data.source ?? null,
@@ -571,6 +590,7 @@ export function confirmSubscriber(token: string): Subscriber | undefined {
   if (!row) return undefined;
   row.confirmedAt = new Date();
   row.confirmToken = null;
+  row.confirmTokenSentAt = null;
   return row;
 }
 
@@ -580,9 +600,7 @@ export function unsubscribeByEmail(email: string): void {
 }
 
 export function listSubscribers(): Subscriber[] {
-  return [...demo.subscribers].sort(
-    (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
-  );
+  return [...demo.subscribers].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 }
 
 export function countConfirmedSubscribers(): number {
@@ -593,14 +611,18 @@ export function listSubscribersForWeeklyRecap(_weekOf: string): ReturnType<typeo
   return [];
 }
 
-export function markWeeklyRecapSent(_ids: number[], _weekOf: string): void { /* no-op */ }
+export function markWeeklyRecapSent(_ids: number[], _weekOf: string): void {
+  /* no-op */
+}
 
 // ─── Featured LinkedIn posts ────────────────────────────────────────────────
 
 export function listLiveLinkedInPosts(limit: number): FeaturedLinkedInPost[] {
   return [...demo.linkedInPosts]
     .filter((p) => p.isLive)
-    .sort((a, b) => a.displayOrder - b.displayOrder || b.createdAt.getTime() - a.createdAt.getTime())
+    .sort(
+      (a, b) => a.displayOrder - b.displayOrder || b.createdAt.getTime() - a.createdAt.getTime()
+    )
     .slice(0, limit);
 }
 
@@ -632,8 +654,10 @@ export function updateLinkedInPost(
   if (!row) return;
   if (patch.postUrl !== undefined) row.postUrl = patch.postUrl;
   if (patch.excerpt !== undefined) row.excerpt = patch.excerpt;
-  if (patch.authorName !== undefined && patch.authorName !== null) row.authorName = patch.authorName;
-  if (patch.displayOrder !== undefined && patch.displayOrder !== null) row.displayOrder = patch.displayOrder;
+  if (patch.authorName !== undefined && patch.authorName !== null)
+    row.authorName = patch.authorName;
+  if (patch.displayOrder !== undefined && patch.displayOrder !== null)
+    row.displayOrder = patch.displayOrder;
   if (patch.isLive !== undefined && patch.isLive !== null) row.isLive = patch.isLive;
 }
 
@@ -707,10 +731,7 @@ export function storeEditionAsset(_args: {
   return 0;
 }
 
-export function getLatestEditionAsset(
-  _editionId: number,
-  _kind: string
-): null {
+export function getLatestEditionAsset(_editionId: number, _kind: string): null {
   return null;
 }
 
@@ -847,9 +868,7 @@ export function uptimeWindowStats(since: Date): {
   const total = rows.length;
   const up = rows.filter((p) => p.statusCode >= 200 && p.statusCode < 300).length;
   const avgLatencyMs =
-    total === 0
-      ? 0
-      : Math.round(rows.reduce((sum, p) => sum + p.latencyMs, 0) / total);
+    total === 0 ? 0 : Math.round(rows.reduce((sum, p) => sum + p.latencyMs, 0) / total);
   return { total, up, avgLatencyMs };
 }
 
@@ -883,10 +902,7 @@ export function pageViewSummary(since: Date): {
   return { views: rows.length, sessions };
 }
 
-export function topPaths(
-  since: Date,
-  limit: number
-): Array<{ path: string; views: number }> {
+export function topPaths(since: Date, limit: number): Array<{ path: string; views: number }> {
   const counts = new Map<string, number>();
   for (const v of demo.pageViews) {
     if (v.viewedAt < since) continue;
@@ -914,9 +930,7 @@ export function topReferrers(
     .slice(0, limit);
 }
 
-export function pageViewsByDay(
-  since: Date
-): Array<{ day: string; views: number }> {
+export function pageViewsByDay(since: Date): Array<{ day: string; views: number }> {
   const buckets = new Map<string, number>();
   for (const v of demo.pageViews) {
     if (v.viewedAt < since) continue;

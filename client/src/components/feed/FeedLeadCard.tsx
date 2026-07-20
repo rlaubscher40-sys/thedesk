@@ -145,7 +145,11 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
             src={fallbackUrl}
             alt={item.title}
             className="editorial-art-img absolute inset-0 w-full h-full object-cover object-center"
-            loading="lazy"
+            // Above-the-fold lead art: load eagerly at high priority so it's
+            // the LCP candidate and the natural-ratio fit (onImageLoad) settles
+            // at first paint rather than shifting after the reader has started.
+            loading="eager"
+            fetchPriority="high"
             decoding="async"
             onLoad={onImageLoad}
             onError={() => setFallbackFailed(true)}
@@ -190,10 +194,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
             Source + date moved into the editorial column below so the
             badge isn't fighting tiny text overlaid on a photo. */}
         <div className="absolute bottom-5 left-5">
-          <p
-            className="overline-amber"
-            style={{ letterSpacing: "0.22em", fontSize: "10px" }}
-          >
+          <p className="overline-amber" style={{ letterSpacing: "0.22em", fontSize: "10px" }}>
             Lead story
           </p>
         </div>
@@ -229,10 +230,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
               className="p-2 sm:p-1.5 rounded text-[var(--color-fg-subtle)] hover:text-amber-300 transition-colors"
             >
               {inQueueId ? (
-                <BookmarkCheck
-                  key="saved"
-                  className="h-4 w-4 text-amber-400 bookmark-pop"
-                />
+                <BookmarkCheck key="saved" className="h-4 w-4 text-amber-400 bookmark-pop" />
               ) : (
                 <Bookmark key="empty" className="h-4 w-4" />
               )}
@@ -283,18 +281,13 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
         </div>
 
         <Link href={`/story/${item.id}`} className="block group mb-4">
-          <h2 className="display-2 group-hover:text-amber-200 transition-colors">
-            {title}
-          </h2>
+          <h2 className="display-2 group-hover:text-amber-200 transition-colors">{title}</h2>
         </Link>
 
         {/* Storyline spine: link back to the prior coverage this continues. */}
         {item.threadParentId && (
           <div className="-mt-2 mb-4">
-            <ThreadLink
-              parentId={item.threadParentId}
-              parentTitle={item.threadParentTitle}
-            />
+            <ThreadLink parentId={item.threadParentId} parentTitle={item.threadParentTitle} />
           </div>
         )}
 
@@ -313,7 +306,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
           <p className="font-serif text-lg text-[var(--color-fg-muted)] leading-relaxed mb-5">
             {dek.text}
           </p>
-        ) : (item.rubensNote || item.sayThis) ? (
+        ) : item.rubensNote || item.sayThis ? (
           <div className="mb-5">
             <RubensNoteBlock itemId={item.id} note={item.rubensNote} />
             {!item.rubensNote && item.sayThis && (
@@ -350,10 +343,7 @@ export function FeedLeadCard({ item }: { item: DailyFeedItem }) {
           (item.counterpoint && dek?.from !== "counterpoint")) && (
           <div className="mt-6 pt-6 border-t border-[var(--color-border)]">
             {item.whyItMatters && dek?.from !== "whyItMatters" && (
-              <WhyItMattersLine
-                whyItMatters={item.whyItMatters}
-                category={item.category}
-              />
+              <WhyItMattersLine whyItMatters={item.whyItMatters} category={item.category} />
             )}
             {/* Counterpoint — the contrarian read, when the story has a real
                 second side. Sits with "why it matters" as the analytical pair. */}

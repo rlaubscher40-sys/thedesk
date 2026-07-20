@@ -35,6 +35,52 @@ const PAGE = (msg: string, sub: boolean) => `<!doctype html>
 </body>
 </html>`;
 
+/** Outcome of validating an unsubscribe request's email/sig/exp triple. */
+type UnsubResult = { ok: true; email: string } | { ok: false; status: number; reason: string };
+
+/**
+ * Validate the signed unsubscribe params (shared by the GET link and the
+ * one-click POST). Constant-time HMAC compare so latency can't be used to
+ * recover the signature.
+ */
+function validateUnsubscribe(rawEmail: unknown, rawSig: unknown, rawExp: unknown): UnsubResult {
+  if (typeof rawEmail !== "string" || typeof rawSig !== "string") {
+    return {
+      ok: false,
+      status: 400,
+      reason: "This unsubscribe link is missing required parameters.",
+    };
+  }
+  // Current links sign `email:exp` so they age out after 90 days. Links
+  // sent before the expiry shipped sign the bare email — keep honouring
+  // those so an unsubscribe from an older email still works. Safe to drop
+  // the legacy branch once every email in flight predates it by a quarter
+  // (any time after 2026-09).
+  let payload: string;
+  if (typeof rawExp === "string") {
+    const expMs = Number(rawExp);
+    if (!Number.isFinite(expMs) || Date.now() > expMs) {
+      return {
+        ok: false,
+        status: 403,
+        reason:
+          "This unsubscribe link has expired. Use the link in a more recent email, or reply to any edition and we'll remove you by hand.",
+      };
+    }
+    payload = `${rawEmail}:${rawExp}`;
+  } else {
+    payload = rawEmail;
+  }
+  const expected = createHmac("sha256", signingSecret()).update(payload).digest("base64url");
+  const sigOk =
+    rawSig.length === expected.length &&
+    timingSafeEqual(Buffer.from(rawSig), Buffer.from(expected));
+  if (!sigOk) {
+    return { ok: false, status: 403, reason: "This unsubscribe link is invalid." };
+  }
+  return { ok: true, email: rawEmail };
+}
+
 export function registerUnsubscribeRoute(app: Express): void {
   // Public (clicked from email, no session). The HMAC check is already
   // constant-time; the limiter keeps the endpoint from being used to
@@ -46,48 +92,39 @@ export function registerUnsubscribeRoute(app: Express): void {
     legacyHeaders: false,
     message: "Too many requests.",
   });
+
   app.get("/api/unsubscribe", limiter, async (req, res) => {
-    const { email, sig, exp } = req.query;
-    if (typeof email !== "string" || typeof sig !== "string") {
-      res.status(400).send(PAGE("This unsubscribe link is missing required parameters.", false));
+    const result = validateUnsubscribe(req.query.email, req.query.sig, req.query.exp);
+    if (!result.ok) {
+      res.status(result.status).send(PAGE(result.reason, false));
       return;
     }
-    // Current links sign `email:exp` so they age out after 90 days. Links
-    // sent before the expiry shipped sign the bare email — keep honouring
-    // those so an unsubscribe from an older email still works. Safe to drop
-    // the legacy branch once every email in flight predates it by a quarter
-    // (any time after 2026-09).
-    let payload: string;
-    if (typeof exp === "string") {
-      const expMs = Number(exp);
-      if (!Number.isFinite(expMs) || Date.now() > expMs) {
-        res
-          .status(403)
-          .send(
-            PAGE(
-              "This unsubscribe link has expired. Use the link in a more recent email, or reply to any edition and we'll remove you by hand.",
-              false
-            )
-          );
-        return;
-      }
-      payload = `${email}:${exp}`;
-    } else {
-      payload = email;
-    }
-    const expected = createHmac("sha256", signingSecret()).update(payload).digest("base64url");
-    const sigOk =
-      sig.length === expected.length && timingSafeEqual(Buffer.from(sig), Buffer.from(expected));
-    if (!sigOk) {
-      res.status(403).send(PAGE("This unsubscribe link is invalid.", false));
-      return;
-    }
-    await db.unsubscribeByEmail(email);
+    await db.unsubscribeByEmail(result.email);
     res.send(
       PAGE(
         "You won't receive any more emails from The Desk. If this was a mistake, just re-subscribe on the site.",
         true
       )
     );
+  });
+
+  // RFC 8058 one-click unsubscribe: mail clients (Gmail, Yahoo) POST the
+  // List-Unsubscribe URL directly, with no browser and no rendered page, so
+  // the response is a bare 204 rather than the HTML confirmation. Same signed
+  // params as the GET — read from the form body or, since the URL carries the
+  // query string too, fall back to the query.
+  app.post("/api/unsubscribe", limiter, async (req, res) => {
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const result = validateUnsubscribe(
+      body.email ?? req.query.email,
+      body.sig ?? req.query.sig,
+      body.exp ?? req.query.exp
+    );
+    if (!result.ok) {
+      res.status(result.status).end();
+      return;
+    }
+    await db.unsubscribeByEmail(result.email);
+    res.status(204).end();
   });
 }
