@@ -20,6 +20,7 @@ import { SectionErrorBoundary } from "@/components/ErrorBoundary";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { categoryAccentClass, categoryColour } from "@/lib/category";
 import { cn } from "@/lib/cn";
+import { highlight } from "@/lib/highlight";
 import { useUserPrefs } from "@/lib/userPrefs";
 import { trpc } from "@/lib/trpc";
 
@@ -237,9 +238,7 @@ function CategoryChips({
             <span className="h-1.5 w-1.5 rounded-full" style={{ background: categoryColour(c) }} />
             <span>{c}</span>
             {counts.get(c) != null && (
-              <span className="text-[var(--color-fg-subtle)] tabular-nums">
-                {counts.get(c)}
-              </span>
+              <span className="text-[var(--color-fg-subtle)] tabular-nums">{counts.get(c)}</span>
             )}
           </button>
         );
@@ -301,10 +300,7 @@ function CategoryThreadCard({
   return (
     <Link
       href={`/topics/${category}`}
-      className={cn(
-        "block panel panel-hover rounded p-5 h-full",
-        categoryAccentClass(category)
-      )}
+      className={cn("block panel panel-hover rounded p-5 h-full", categoryAccentClass(category))}
     >
       <div className="flex items-center justify-between mb-4">
         <p className="overline-amber" style={{ color: categoryColour(category) }}>
@@ -361,10 +357,7 @@ function CategoryDrillDown({
             {data.feedItems.map((item) => (
               <li
                 key={item.id}
-                className={cn(
-                  "panel panel-hover rounded p-4",
-                  categoryAccentClass(item.category)
-                )}
+                className={cn("panel panel-hover rounded p-4", categoryAccentClass(item.category))}
               >
                 <Link
                   href={`/story/${item.id}`}
@@ -418,8 +411,13 @@ function SearchResults({
   query: string;
   data:
     | {
-        editions: Array<{ id: number; editionNumber: number; weekRange: string }>;
-        feedItems: DailyFeedItem[];
+        editions: Array<{
+          id: number;
+          editionNumber: number;
+          weekRange: string;
+          snippet?: string | null;
+        }>;
+        feedItems: Array<DailyFeedItem & { snippet?: string | null }>;
       }
     | undefined;
   loading: boolean;
@@ -454,7 +452,14 @@ function SearchResults({
                   className="block hover:text-amber-300 transition-colors"
                 >
                   <p className="overline mb-1">Edition {ed.editionNumber}</p>
-                  <p className="font-serif text-base leading-snug">{ed.weekRange}</p>
+                  <p className="font-serif text-base leading-snug">
+                    {highlight(ed.weekRange, query)}
+                  </p>
+                  {ed.snippet && (
+                    <p className="text-sm text-[var(--color-fg-muted)] mt-1 line-clamp-2">
+                      {highlight(ed.snippet, query)}
+                    </p>
+                  )}
                 </Link>
               </li>
             ))}
@@ -475,15 +480,20 @@ function SearchResults({
                   className="block hover:text-amber-300 transition-colors"
                 >
                   <div className="flex items-center gap-2 mb-1.5">
-                    <span className="overline-amber" style={{ color: categoryColour(item.category) }}>
+                    <span
+                      className="overline-amber"
+                      style={{ color: categoryColour(item.category) }}
+                    >
                       {item.category}
                     </span>
                     <span className="overline">·</span>
                     <span className="overline">{item.source}</span>
                   </div>
-                  <p className="font-serif text-base leading-snug">{item.title}</p>
+                  <p className="font-serif text-base leading-snug">
+                    {highlight(item.title, query)}
+                  </p>
                   <p className="text-sm text-[var(--color-fg-muted)] mt-1 line-clamp-2">
-                    {item.summary}
+                    {highlight(item.snippet || item.summary, query)}
                   </p>
                 </Link>
               </li>
@@ -515,16 +525,10 @@ function ArchiveMetaPanel({
       style={{ minWidth: 200 }}
     >
       {totalStories > 0 && (
-        <ArchiveMetaRow
-          label="Stories archived"
-          value={totalStories.toLocaleString("en-AU")}
-        />
+        <ArchiveMetaRow label="Stories archived" value={totalStories.toLocaleString("en-AU")} />
       )}
       {categoryCount > 0 && (
-        <ArchiveMetaRow
-          label="Categories indexed"
-          value={String(categoryCount).padStart(2, "0")}
-        />
+        <ArchiveMetaRow label="Categories indexed" value={String(categoryCount).padStart(2, "0")} />
       )}
     </div>
   );

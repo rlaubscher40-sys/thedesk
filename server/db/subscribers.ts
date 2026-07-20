@@ -1,30 +1,25 @@
 import { and, desc, eq, inArray, isNotNull, isNull, ne, or } from "drizzle-orm";
+import { CONFIRM_TOKEN_TTL_MS } from "../../shared/const";
 import * as demoQueries from "../demo/queries";
 import { isDemoMode } from "../demo/store";
 import { getDb } from "./client";
-import {
-  subscribers,
-  type InsertSubscriber,
-  type Subscriber,
-} from "./schema";
+import { subscribers, type InsertSubscriber, type Subscriber } from "./schema";
 
-export async function findSubscriberByEmail(
-  email: string
-): Promise<Subscriber | undefined> {
+/** Outcome of a confirm attempt, so the caller can message the reader precisely. */
+export type ConfirmResult =
+  | { status: "confirmed"; subscriber: Subscriber }
+  | { status: "not-found" }
+  | { status: "expired" };
+
+export async function findSubscriberByEmail(email: string): Promise<Subscriber | undefined> {
   if (isDemoMode()) return demoQueries.findSubscriberByEmail(email);
   const db = getDb();
   if (!db) return undefined;
-  const rows = await db
-    .select()
-    .from(subscribers)
-    .where(eq(subscribers.email, email))
-    .limit(1);
+  const rows = await db.select().from(subscribers).where(eq(subscribers.email, email)).limit(1);
   return rows[0];
 }
 
-export async function findSubscriberByToken(
-  token: string
-): Promise<Subscriber | undefined> {
+export async function findSubscriberByToken(token: string): Promise<Subscriber | undefined> {
   if (isDemoMode()) return demoQueries.findSubscriberByToken(token);
   const db = getDb();
   if (!db) return undefined;
@@ -58,31 +53,54 @@ export async function createSubscriber(data: InsertSubscriber): Promise<Subscrib
     // Leave confirmed+active rows alone; the router handles them.
     if (existing.confirmedAt && !existing.unsubscribedAt) return existing;
     if (data.confirmToken) {
-      // Refresh the token and also clear unsubscribedAt so a re-subscriber
-      // who had previously unsubscribed is treated as a fresh subscription
-      // once they confirm again.
+      // Refresh the token (and stamp its issue time so the 24h expiry runs
+      // from this send, not the original signup) and clear unsubscribedAt so
+      // a re-subscriber who had previously unsubscribed is treated as a fresh
+      // subscription once they confirm again.
       await db
         .update(subscribers)
-        .set({ confirmToken: data.confirmToken, unsubscribedAt: null })
+        .set({
+          confirmToken: data.confirmToken,
+          confirmTokenSentAt: new Date(),
+          unsubscribedAt: null,
+        })
         .where(eq(subscribers.id, existing.id));
     }
     return findSubscriberByEmail(data.email);
   }
-  await db.insert(subscribers).values(data);
+  await db.insert(subscribers).values({ ...data, confirmTokenSentAt: new Date() });
   return findSubscriberByEmail(data.email);
 }
 
-export async function confirmSubscriber(token: string): Promise<Subscriber | undefined> {
-  if (isDemoMode()) return demoQueries.confirmSubscriber(token);
+export async function confirmSubscriber(token: string): Promise<ConfirmResult> {
+  if (isDemoMode()) {
+    const sub = await demoQueries.confirmSubscriber(token);
+    return sub ? { status: "confirmed", subscriber: sub } : { status: "not-found" };
+  }
   const db = getDb();
-  if (!db) return undefined;
+  if (!db) return { status: "not-found" };
   const row = await findSubscriberByToken(token);
-  if (!row) return undefined;
+  if (!row) return { status: "not-found" };
+  // Enforce the 24h expiry the confirm email promises. A token with no
+  // sent-at (predates this column) is treated as still valid so links
+  // already in flight when this shipped keep working.
+  if (
+    row.confirmTokenSentAt &&
+    Date.now() - new Date(row.confirmTokenSentAt).getTime() > CONFIRM_TOKEN_TTL_MS
+  ) {
+    return { status: "expired" };
+  }
   await db
     .update(subscribers)
-    .set({ confirmedAt: new Date(), confirmToken: null, unsubscribedAt: null })
+    .set({
+      confirmedAt: new Date(),
+      confirmToken: null,
+      confirmTokenSentAt: null,
+      unsubscribedAt: null,
+    })
     .where(eq(subscribers.id, row.id));
-  return findSubscriberByEmail(row.email);
+  const subscriber = await findSubscriberByEmail(row.email);
+  return subscriber ? { status: "confirmed", subscriber } : { status: "not-found" };
 }
 
 export async function unsubscribeByEmail(email: string): Promise<void> {
@@ -130,10 +148,7 @@ export async function listSubscribersForDailyBrief(todayDate: string): Promise<S
       and(
         isNotNull(subscribers.confirmedAt),
         isNull(subscribers.unsubscribedAt),
-        or(
-          isNull(subscribers.lastDailyBriefDate),
-          ne(subscribers.lastDailyBriefDate, todayDate)
-        )
+        or(isNull(subscribers.lastDailyBriefDate), ne(subscribers.lastDailyBriefDate, todayDate))
       )
     );
 }
@@ -162,10 +177,7 @@ export async function listSubscribersForWeeklyRecap(weekOf: string): Promise<Sub
       and(
         isNotNull(subscribers.confirmedAt),
         isNull(subscribers.unsubscribedAt),
-        or(
-          isNull(subscribers.lastWeeklyRecapDate),
-          ne(subscribers.lastWeeklyRecapDate, weekOf)
-        )
+        or(isNull(subscribers.lastWeeklyRecapDate), ne(subscribers.lastWeeklyRecapDate, weekOf))
       )
     );
 }

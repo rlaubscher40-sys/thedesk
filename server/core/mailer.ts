@@ -44,11 +44,28 @@ type SendInput = {
   subject: string;
   html: string;
   text?: string;
+  /** Extra RFC-5322 headers (e.g. List-Unsubscribe). Passed to Resend as-is. */
+  headers?: Record<string, string>;
 };
 
 type SendResult =
   | { delivered: true; id: string }
   | { delivered: false; reason: "no-key" | "api-error"; detail?: string };
+
+/**
+ * Build the RFC 8058 one-click List-Unsubscribe headers from a signed
+ * unsubscribe URL. Gmail and Yahoo surface a native "Unsubscribe" button in
+ * the message header when these are present — and for bulk senders now
+ * effectively require them for good inbox placement. `List-Unsubscribe-Post`
+ * lets the client POST the URL to unsubscribe with no further interaction;
+ * the /api/unsubscribe route accepts that POST (same HMAC check as the GET).
+ */
+export function listUnsubscribeHeaders(unsubscribeUrl: string): Record<string, string> {
+  return {
+    "List-Unsubscribe": `<${unsubscribeUrl}>`,
+    "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+  };
+}
 
 export async function send(input: SendInput): Promise<SendResult> {
   const apiKey = process.env.RESEND_API_KEY;
@@ -72,6 +89,7 @@ export async function send(input: SendInput): Promise<SendResult> {
         subject: input.subject,
         html: input.html,
         text: input.text,
+        ...(input.headers ? { headers: input.headers } : {}),
       }),
     });
     if (!res.ok) {
@@ -387,6 +405,7 @@ export async function sendEditionNotificationEmail({
     subject: `Edition #${editionNumber} — ${weekRange} · The Desk`,
     html,
     text,
+    headers: listUnsubscribeHeaders(unsubscribeUrl),
   });
 }
 
@@ -446,6 +465,7 @@ export async function sendDailyBriefEmail({
     subject: `The Desk · ${displayDate} — ${items.length} stor${items.length === 1 ? "y" : "ies"}`,
     html,
     text,
+    headers: listUnsubscribeHeaders(unsubscribeUrl),
   });
 }
 
@@ -514,6 +534,7 @@ export async function sendWeeklyRecapEmail({
     subject: `Your week on The Desk · ${weekRange}`,
     html,
     text,
+    headers: listUnsubscribeHeaders(unsubscribeUrl),
   });
 }
 

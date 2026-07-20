@@ -1,45 +1,22 @@
 /**
- * Subscribe rail card, email + Subscribe button. Posts to the
- * `subscribers.subscribe` tRPC mutation (double-opt-in: a confirm token is
- * returned which would normally arrive by email). Falls back to a toast on
- * server error so the rail never breaks the page.
+ * Subscribe rail card, email + Subscribe button. All the mutation wiring
+ * (validation, honeypot, uniform success/error copy) lives in the shared
+ * useSubscribe hook so every subscribe surface behaves identically.
+ * Hidden once this device has already subscribed — no point pitching a
+ * reader who's on the list.
  */
 import { useState } from "react";
-import { toast } from "sonner";
 import { Honeypot } from "@/components/Honeypot";
-import { trpc } from "@/lib/trpc";
+import { hasSubscribed, useSubscribe } from "@/lib/useSubscribe";
 import { RailPanel } from "./RailPanel";
 
 export function Subscribe({ source = "right-rail" }: { source?: string }) {
-  const [email, setEmail] = useState("");
-  const [hp, setHp] = useState("");
-  const subscribe = trpc.subscribers.subscribe.useMutation({
-    onSuccess: () => {
-      setEmail("");
-      // One message for every outcome — the server no longer distinguishes
-      // "already subscribed" in its response (that would let anyone probe
-      // whether an address is on the list). Already-confirmed addresses get
-      // told by email instead.
-      toast.success("Check your inbox", {
-        description: "Confirm the email to lock in your subscription.",
-      });
-    },
-    onError: () => {
-      toast.error("Couldn't subscribe. Try again in a minute.");
-    },
-  });
+  // Read once on mount: hiding mid-session right after a subscribe would
+  // yank the panel out from under the success toast.
+  const [alreadySubscribed] = useState(hasSubscribed);
+  const { email, setEmail, hp, setHp, submit: onSubmit, busy } = useSubscribe({ source });
 
-  function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    if (!ok) {
-      toast.error("That email doesn't look right");
-      return;
-    }
-    subscribe.mutate({ email, source, _hp: hp });
-  }
-
-  const busy = subscribe.isPending;
+  if (alreadySubscribed) return null;
 
   return (
     <RailPanel overline="Subscribe">

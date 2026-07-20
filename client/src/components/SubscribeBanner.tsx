@@ -2,39 +2,30 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Honeypot } from "@/components/Honeypot";
-import { trpc } from "@/lib/trpc";
+import { hasSubscribed, useSubscribe } from "@/lib/useSubscribe";
 
 export function SubscribeBanner({ source = "banner" }: { source?: string }) {
   const [expanded, setExpanded] = useState(false);
-  const [email, setEmail] = useState("");
-  const [hp, setHp] = useState("");
+  // Read once on mount so the banner doesn't vanish mid-session right after
+  // a successful subscribe (the green confirmation state handles that).
+  const [alreadySubscribed] = useState(hasSubscribed);
   const [subscribed, setSubscribed] = useState(false);
-
-  const subscribe = trpc.subscribers.subscribe.useMutation({
-    onSuccess: () => {
-      setEmail("");
+  const {
+    email,
+    setEmail,
+    hp,
+    setHp,
+    submit: onSubmit,
+    busy,
+  } = useSubscribe({
+    source,
+    onSubscribed: () => {
       setSubscribed(true);
-      // One message for every outcome — see the subscribe mutation; the
-      // server response no longer reveals whether the address was already
-      // on the list.
       toast.success("Check your inbox to confirm");
-    },
-    onError: () => {
-      toast.error("Couldn't subscribe right now. Try again in a minute.");
     },
   });
 
-  function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    if (!ok) {
-      toast.error("That email doesn't look right");
-      return;
-    }
-    subscribe.mutate({ email, source, _hp: hp });
-  }
-
-  const busy = subscribe.isPending;
+  if (alreadySubscribed) return null;
 
   return (
     <aside

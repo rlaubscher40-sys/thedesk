@@ -28,7 +28,7 @@ import { toast } from "sonner";
 import { useLocation } from "wouter";
 import { Honeypot } from "@/components/Honeypot";
 import { Logomark } from "@/components/Logomark";
-import { trpc } from "@/lib/trpc";
+import { hasSubscribed, useSubscribe } from "@/lib/useSubscribe";
 
 const STORAGE_KEY = "thedesk:subscribe-modal-seen";
 const SUBSTACK_URL = "https://rubenlaubscher.substack.com/";
@@ -45,16 +45,21 @@ const SCROLL_TRIGGER_VH = 1.4;
 export function SubscribeModal() {
   const [location] = useLocation();
   const [open, setOpen] = useState(false);
-  const [email, setEmail] = useState("");
-  const [hp, setHp] = useState("");
   const [done, setDone] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
+  const { email, setEmail, hp, setHp, submittedEmail, submit, busy } = useSubscribe({
+    source: "first-visit-modal",
+    onSubscribed: () => setDone(true),
+  });
 
   useEffect(() => {
     if (location !== "/") return;
     if (typeof window === "undefined") return;
     if (window.localStorage.getItem(STORAGE_KEY) === "1") return;
+    // Already on the list (subscribed via any surface on this device) —
+    // never interrupt with a pitch for something they've done.
+    if (hasSubscribed()) return;
 
     let fired = false;
     function fire() {
@@ -97,8 +102,7 @@ export function SubscribeModal() {
     // post-subscribe view, which has no input).
     const t = window.setTimeout(() => {
       const target =
-        dialogRef.current?.querySelector<HTMLElement>('input[type="email"]') ??
-        focusables()[0];
+        dialogRef.current?.querySelector<HTMLElement>('input[type="email"]') ?? focusables()[0];
       target?.focus();
     }, 0);
 
@@ -145,25 +149,6 @@ export function SubscribeModal() {
     }
   }
 
-  const subscribeMut = trpc.subscribers.subscribe.useMutation({
-    onSuccess: () => setDone(true),
-    onError: () => {
-      toast.error("Couldn't subscribe. Try again in a minute.");
-    },
-  });
-
-  function subscribe(e: React.FormEvent) {
-    e.preventDefault();
-    const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    if (!ok) {
-      toast.error("That email doesn't look right");
-      return;
-    }
-    subscribeMut.mutate({ email, source: "first-visit-modal", _hp: hp });
-  }
-
-  const busy = subscribeMut.isPending;
-
   if (!open) return null;
 
   return (
@@ -190,7 +175,10 @@ export function SubscribeModal() {
         >
           <span className="absolute inset-0 noise-overlay" style={{ opacity: 0.5 }} />
           {done ? (
-            <CheckCircle2 className="absolute top-6 left-7 h-8 w-8 text-amber-300/80" strokeWidth={1.4} />
+            <CheckCircle2
+              className="absolute top-6 left-7 h-8 w-8 text-amber-300/80"
+              strokeWidth={1.4}
+            />
           ) : (
             <div className="absolute top-6 left-7">
               <Logomark size={32} animated={false} />
@@ -222,7 +210,9 @@ export function SubscribeModal() {
                 Check your inbox.
               </h2>
               <p className="text-base text-[var(--color-fg-muted)] leading-relaxed mb-6">
-                A confirmation link is on its way to <span className="text-[var(--color-fg)]">{email}</span>. Click it to lock in your subscription, it expires in 24 hours.
+                A confirmation link is on its way to{" "}
+                <span className="text-[var(--color-fg)]">{submittedEmail}</span>. Click it to lock
+                in your subscription, it expires in 24 hours.
               </p>
               <button
                 onClick={() => dismiss("subscribed")}
@@ -247,10 +237,11 @@ export function SubscribeModal() {
                 Get the weekly edition in your inbox.
               </h2>
               <p className="text-base text-[var(--color-fg-muted)] leading-relaxed mb-6">
-                One long-form essay on Sundays. The Daily Brief on weekdays. No spam, no broadcast, just the stories I think a partner conversation should know about.
+                One long-form essay on Sundays. The Daily Brief on weekdays. No spam, no broadcast,
+                just the stories I think a partner conversation should know about.
               </p>
 
-              <form onSubmit={subscribe} className="space-y-2.5">
+              <form onSubmit={submit} className="space-y-2.5">
                 <Honeypot value={hp} onChange={setHp} />
                 <input
                   type="email"

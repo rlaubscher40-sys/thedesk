@@ -3,6 +3,7 @@ import * as demoQueries from "../demo/queries";
 import { isDemoMode } from "../demo/store";
 import { getDb } from "./client";
 import { escapeLike } from "./like";
+import { rankResults } from "./searchRank";
 import { dailyFeedItems, editions, type DailyFeedItem, type InsertDailyFeedItem } from "./schema";
 
 /** Most recent 30 items if no date specified, otherwise everything for that day. */
@@ -389,5 +390,21 @@ export async function searchAllContent(query: string) {
     .where(or(like(dailyFeedItems.title, pattern), like(dailyFeedItems.summary, pattern)))
     .orderBy(desc(dailyFeedItems.createdAt))
     .limit(50);
-  return { editions: editionResults, feedItems: feedResults };
+  // Re-rank by relevance (title hits above body-only hits, recency as the
+  // DB-order tiebreak) and attach a match snippet. The DB LIKE scan only
+  // knows "matched or not", so this is where a query actually gets ranked.
+  return {
+    editions: rankResults(
+      query,
+      editionResults,
+      (e) => `Edition ${e.editionNumber} ${e.weekRange}`,
+      (e) => e.fullText ?? ""
+    ),
+    feedItems: rankResults(
+      query,
+      feedResults,
+      (f) => f.title,
+      (f) => f.summary ?? ""
+    ),
+  };
 }

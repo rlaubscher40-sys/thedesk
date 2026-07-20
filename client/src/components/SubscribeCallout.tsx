@@ -12,7 +12,7 @@ import { useState } from "react";
 import { Honeypot } from "@/components/Honeypot";
 import { ArrowRight, Mail } from "lucide-react";
 import { toast } from "sonner";
-import { trpc } from "@/lib/trpc";
+import { hasSubscribed, useSubscribe } from "@/lib/useSubscribe";
 
 type Variant = "edition" | "story";
 
@@ -29,39 +29,30 @@ export function SubscribeCallout({
   headline?: string;
   subhead?: string;
 }) {
-  const [email, setEmail] = useState("");
-  const [hp, setHp] = useState("");
+  // Read once on mount so the panel doesn't vanish mid-session right after
+  // a successful subscribe (the green confirmation state handles that).
+  const [alreadySubscribed] = useState(hasSubscribed);
   const [subscribed, setSubscribed] = useState(false);
-
-  const subscribe = trpc.subscribers.subscribe.useMutation({
-    onSuccess: () => {
-      setEmail("");
+  const {
+    email,
+    setEmail,
+    hp,
+    setHp,
+    submit: onSubmit,
+    busy,
+  } = useSubscribe({
+    source,
+    onSubscribed: () => {
       setSubscribed(true);
-      // One message for every outcome — see the subscribe mutation; the
-      // server response no longer reveals whether the address was already
-      // on the list.
       toast.success("Check your inbox to confirm");
     },
-    onError: () => {
-      toast.error("Couldn't subscribe right now. Try again in a minute.");
-    },
   });
-
-  function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    if (!ok) {
-      toast.error("That email doesn't look right");
-      return;
-    }
-    subscribe.mutate({ email, source, _hp: hp });
-  }
-
-  const busy = subscribe.isPending;
 
   // Edition: full-bleed-feel panel, big serif headline, two-row layout.
   // Story: tighter, single-row, sized for the end of a 4-min read.
   const isEdition = variant === "edition";
+
+  if (alreadySubscribed) return null;
 
   const defaultHeadline = isEdition ? "Get next Sunday's edition" : "Read the next one with us";
   const defaultSubhead = isEdition

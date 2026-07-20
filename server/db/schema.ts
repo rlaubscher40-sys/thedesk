@@ -192,6 +192,9 @@ export const subscribers = mysqlTable("subscribers", {
   /** Token used to confirm the email (double opt-in). Cleared on
    *  confirm. NULL once confirmed. */
   confirmToken: varchar("confirmToken", { length: 64 }),
+  /** When the current confirmToken was issued. Used to expire the confirm
+   *  link after CONFIRM_TOKEN_TTL_MS. Refreshed whenever the token is. */
+  confirmTokenSentAt: timestamp("confirmTokenSentAt"),
   confirmedAt: timestamp("confirmedAt"),
   unsubscribedAt: timestamp("unsubscribedAt"),
   /** Free-form source attribution: "sidebar", "modal", "hero",
@@ -271,10 +274,7 @@ export const dailyMetricHistory = mysqlTable(
     recordedAt: timestamp("recordedAt").defaultNow().notNull(),
   },
   (t) => ({
-    keyRecorded: index("idx_metric_history_key_recorded").on(
-      t.metricKey,
-      t.recordedAt
-    ),
+    keyRecorded: index("idx_metric_history_key_recorded").on(t.metricKey, t.recordedAt),
   })
 );
 

@@ -11,16 +11,9 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
-import {
-  ArrowRight,
-  BarChart3,
-  BookOpen,
-  Bookmark,
-  Info,
-  Newspaper,
-  Search,
-} from "lucide-react";
+import { ArrowRight, BarChart3, BookOpen, Bookmark, Info, Newspaper, Search } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { highlight as highlightMatch } from "@/lib/highlight";
 import { trpc } from "@/lib/trpc";
 
 type Item = {
@@ -30,15 +23,52 @@ type Item = {
   icon?: typeof Newspaper;
   group: "nav" | "edition" | "feed";
   href: string;
+  /** When true, the query is highlighted in the label/hint (search hits). */
+  highlightable?: boolean;
 };
 
 const NAV_ITEMS: Item[] = [
   { id: "nav-today", label: "Today", hint: "Daily scan", icon: Newspaper, group: "nav", href: "/" },
-  { id: "nav-editions", label: "Editions", hint: "Weekly deep-dives", icon: BookOpen, group: "nav", href: "/editions" },
-  { id: "nav-trends", label: "Trends", hint: "Intelligence dashboard", icon: BarChart3, group: "nav", href: "/trends" },
-  { id: "nav-queue", label: "Reading Queue", hint: "Saved items", icon: Bookmark, group: "nav", href: "/queue" },
-  { id: "nav-archive", label: "Archive", hint: "Search + browse", icon: Search, group: "nav", href: "/archive" },
-  { id: "nav-about", label: "About", hint: "What this is", icon: Info, group: "nav", href: "/about" },
+  {
+    id: "nav-editions",
+    label: "Editions",
+    hint: "Weekly deep-dives",
+    icon: BookOpen,
+    group: "nav",
+    href: "/editions",
+  },
+  {
+    id: "nav-trends",
+    label: "Trends",
+    hint: "Intelligence dashboard",
+    icon: BarChart3,
+    group: "nav",
+    href: "/trends",
+  },
+  {
+    id: "nav-queue",
+    label: "Reading Queue",
+    hint: "Saved items",
+    icon: Bookmark,
+    group: "nav",
+    href: "/queue",
+  },
+  {
+    id: "nav-archive",
+    label: "Archive",
+    hint: "Search + browse",
+    icon: Search,
+    group: "nav",
+    href: "/archive",
+  },
+  {
+    id: "nav-about",
+    label: "About",
+    hint: "What this is",
+    icon: Info,
+    group: "nav",
+    href: "/about",
+  },
 ];
 
 export function CommandPalette() {
@@ -119,6 +149,7 @@ export function CommandPalette() {
               icon: Newspaper,
               group: "feed",
               href: `/story/${f.id}`,
+              highlightable: true,
             })
           )
         : [];
@@ -138,6 +169,12 @@ export function CommandPalette() {
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setHighlight((h) => Math.max(0, h - 1));
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      setHighlight(0);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      setHighlight(Math.max(0, items.length - 1));
     } else if (e.key === "Enter") {
       e.preventDefault();
       const sel = items[highlight];
@@ -145,8 +182,20 @@ export function CommandPalette() {
         navigate(sel.href);
         setOpen(false);
       }
+    } else if (e.key === "Tab") {
+      // The only focusable control is the input; keep focus here so Tab
+      // can't wander into the page behind the modal. Arrow keys drive the
+      // list, so Tab has no navigation role to fill inside the palette.
+      e.preventDefault();
     }
   }
+
+  // Keep the highlighted option scrolled into view as the cursor moves.
+  const activeId = items[highlight]?.id;
+  useEffect(() => {
+    if (!activeId) return;
+    document.getElementById(`cmdk-opt-${activeId}`)?.scrollIntoView({ block: "nearest" });
+  }, [activeId]);
 
   if (!open) return null;
 
@@ -182,9 +231,12 @@ export function CommandPalette() {
       <div
         className="relative w-full max-w-2xl panel rounded shadow-2xl animate-fade-in flex flex-col max-h-[70vh]"
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Search and jump to"
       >
         <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--color-border)]">
-          <Search className="h-4 w-4 text-[var(--color-fg-subtle)]" />
+          <Search className="h-4 w-4 text-[var(--color-fg-subtle)]" aria-hidden="true" />
           <input
             ref={inputRef}
             value={query}
@@ -192,21 +244,36 @@ export function CommandPalette() {
             onKeyDown={onKeyDown}
             placeholder="Jump to a page, edition or story…"
             className="flex-1 bg-transparent text-base focus:outline-none placeholder:text-[var(--color-fg-subtle)]"
+            role="combobox"
+            aria-expanded={items.length > 0}
+            aria-controls="cmdk-listbox"
+            aria-activedescendant={activeId ? `cmdk-opt-${activeId}` : undefined}
+            aria-label="Search pages, editions and stories"
+            aria-autocomplete="list"
+            autoComplete="off"
           />
           <kbd className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-white/[0.06] border border-[var(--color-border)] text-[var(--color-fg-subtle)]">
             ESC
           </kbd>
         </div>
 
-        <div className="overflow-y-auto flex-1 py-2">
+        <div
+          id="cmdk-listbox"
+          role="listbox"
+          aria-label="Results"
+          className="overflow-y-auto flex-1 py-2"
+        >
           {items.length === 0 && (
-            <p className="px-4 py-6 text-sm text-[var(--color-fg-muted)]">
+            <p className="px-4 py-6 text-sm text-[var(--color-fg-muted)]" role="status">
               No matches. Try a different word.
             </p>
           )}
           {sections.map((section) => (
-            <div key={section.label}>
-              <p className="overline px-4 py-2 mt-1 text-[var(--color-fg-subtle)]">
+            <div key={section.label} role="group" aria-label={section.label}>
+              <p
+                className="overline px-4 py-2 mt-1 text-[var(--color-fg-subtle)]"
+                aria-hidden="true"
+              >
                 {section.label}
               </p>
               {section.items.map((it) => {
@@ -216,6 +283,10 @@ export function CommandPalette() {
                 return (
                   <button
                     key={it.id}
+                    id={`cmdk-opt-${it.id}`}
+                    role="option"
+                    aria-selected={active}
+                    tabIndex={-1}
                     onMouseEnter={() => setHighlight(idx)}
                     onClick={() => {
                       navigate(it.href);
@@ -229,12 +300,15 @@ export function CommandPalette() {
                     )}
                   >
                     <Icon
+                      aria-hidden="true"
                       className={cn(
                         "h-4 w-4 shrink-0",
                         active ? "text-amber-300" : "text-[var(--color-fg-subtle)]"
                       )}
                     />
-                    <span className="flex-1 min-w-0 truncate text-sm">{it.label}</span>
+                    <span className="flex-1 min-w-0 truncate text-sm">
+                      {it.highlightable ? highlightMatch(it.label, query) : it.label}
+                    </span>
                     {it.hint && (
                       <span className="overline shrink-0 text-[var(--color-fg-subtle)] truncate max-w-[40%]">
                         {it.hint}
