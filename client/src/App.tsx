@@ -31,6 +31,7 @@ const TopicThreads = lazyWithReload(() => import("./pages/TopicThreads"), "Topic
 const Trends = lazyWithReload(() => import("./pages/Trends"), "Trends");
 const About = lazyWithReload(() => import("./pages/About"), "About");
 const Founding = lazyWithReload(() => import("./pages/Founding"), "Founding");
+const LeadMagnet = lazyWithReload(() => import("./pages/LeadMagnet"), "LeadMagnet");
 const StoryPage = lazyWithReload(() => import("./pages/StoryPage"), "StoryPage");
 const AdminPage = lazyWithReload(() => import("./pages/Admin"), "Admin");
 const Archive = lazyWithReload(() => import("./pages/Archive"), "Archive");
@@ -130,6 +131,7 @@ function Routes() {
         <Route path="/topics/:category" component={TopicThreads} />
         <Route path="/about" component={About} />
         <Route path="/founding" component={Founding} />
+        <Route path="/free/:slug" component={LeadMagnet} />
         <Route path="/archive" component={Archive} />
         <Route path="/story/:id" component={StoryPage} />
         <Route path="/admin" component={AdminPage} />

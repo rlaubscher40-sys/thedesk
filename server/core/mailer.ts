@@ -310,6 +310,45 @@ export async function sendConfirmEmail({
   });
 }
 
+/**
+ * Deliver a gated lead magnet. `deliverUrl` is the confirm-and-redirect link
+ * (/api/magnet/<slug>?token=…): clicking it confirms the subscriber and 302s
+ * to the asset, so double opt-in and instant delivery are the same click.
+ */
+export async function sendLeadMagnetEmail({
+  to,
+  title,
+  deliverUrl,
+  buttonLabel,
+}: {
+  to: string;
+  title: string;
+  deliverUrl: string;
+  buttonLabel: string;
+}): Promise<SendResult> {
+  const html = leadMagnetHtml({ title, deliverUrl, buttonLabel });
+  const text = [
+    "The Desk · Intelligence",
+    "",
+    `Your download: ${title}`,
+    "",
+    "Open the link below to get it. That also confirms your email so the daily brief starts landing at 7am AEST. The link expires in 24 hours.",
+    "",
+    deliverUrl,
+    "",
+    "If you didn't ask for this, ignore the message and nothing happens.",
+    "",
+    "The Desk · Daily intelligence for property partnerships",
+    "Curated by Ruben Laubscher.",
+  ].join("\n");
+  return send({
+    to,
+    subject: `Your download: ${title} · The Desk`,
+    html,
+    text,
+  });
+}
+
 export function editionUnsubscribeUrl(email: string, siteOrigin: string): string {
   // Links expire after 90 days: long enough that any email still sitting in
   // an inbox has a working link (a fresh one ships with every send), short
@@ -650,6 +689,31 @@ function confirmEmailHtml({ confirmUrl }: { confirmUrl: string }): string {
     ${footerRow()}
   `;
   return wrapLayout("Confirm your subscription", inner);
+}
+
+function leadMagnetHtml({
+  title,
+  deliverUrl,
+  buttonLabel,
+}: {
+  title: string;
+  deliverUrl: string;
+  buttonLabel: string;
+}): string {
+  const inner = `
+    ${mastheadRow()}
+    ${ruleFullRow()}
+    <tr>
+      <td class="em-bg" bgcolor="${L.bg}" style="padding:0 0 24px;background-color:${L.bg};">
+        <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${L.amber};text-transform:uppercase;margin-bottom:12px;">Your download</div>
+        <h1 class="em-h" style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:34px;line-height:1.05;color:${L.heading};margin:0 0 14px;letter-spacing:-0.02em;">${esc(title)}</h1>
+        <p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.6;color:${L.muted};margin:0 0 24px;">Tap the button to open it. That also confirms your email, so the daily brief starts landing at 7am AEST. The link expires in 24 hours. If you didn't ask for this, ignore the message and nothing happens.</p>
+      </td>
+    </tr>
+    ${ctaRow(deliverUrl, buttonLabel)}
+    ${footerRow()}
+  `;
+  return wrapLayout(title, inner);
 }
 
 function dailyBriefHtml({

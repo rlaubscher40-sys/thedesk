@@ -25,10 +25,12 @@ import {
   sendConfirmEmail,
   sendAlreadyConfirmedEmail,
   sendDailyBriefEmail,
+  sendLeadMagnetEmail,
   editionUnsubscribeUrl,
 } from "../core/mailer";
 import { adminProcedure, publicProcedure, router } from "../core/trpc";
 import { DEFAULT_SITE_URL, isEnrichedChannel } from "../../shared/const";
+import { getLeadMagnet } from "../../shared/leadMagnets";
 
 function todayAEST(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
@@ -111,6 +113,71 @@ export const subscribersRouter = router({
         // caller would let anyone subscribe AND confirm someone else's
         // address without ever seeing their inbox, defeating double opt-in.
         confirmToken: isDemoMode() || process.env.NODE_ENV !== "production" ? token : null,
+      };
+    }),
+
+  /**
+   * Request a gated lead magnet. Upserts the email (source "magnet:<slug>")
+   * and emails a link that, when clicked, confirms the address and redirects
+   * to the asset. An already-confirmed subscriber skips the confirm step and
+   * gets the asset link directly. The response is uniform regardless of
+   * whether the address already existed, for the same reason `subscribe` is:
+   * it must not leak who is on the list.
+   */
+  requestLeadMagnet: publicProcedure
+    .input(
+      z.object({
+        email: emailSchema,
+        slug: z.string().min(1).max(64),
+        _hp: z.string().max(0).optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const magnet = getLeadMagnet(input.slug);
+      if (!magnet) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "That resource doesn't exist." });
+      }
+      const origin = siteOrigin();
+      const assetUrl = magnet.deliveryUrl.startsWith("http")
+        ? magnet.deliveryUrl
+        : `${origin}${magnet.deliveryUrl}`;
+      const buttonLabel = `Download ${magnet.assetNoun}`;
+
+      const existing = await db.findSubscriberByEmail(input.email);
+      if (existing?.confirmedAt && !existing.unsubscribedAt) {
+        // Already on the list — no confirm needed. Send the asset straight,
+        // no token, so a known reader isn't asked to re-verify.
+        void sendLeadMagnetEmail({
+          to: input.email,
+          title: magnet.title,
+          deliverUrl: assetUrl,
+          buttonLabel,
+        }).catch((err) => console.warn(`[lead-magnet] direct send failed:`, err));
+        return { status: "sent" as const, token: null };
+      }
+
+      const token = randomUUID().replace(/-/g, "");
+      await db.createSubscriber({
+        email: input.email,
+        name: null,
+        confirmToken: token,
+        source: `magnet:${input.slug}`,
+      });
+
+      const deliverUrl = `${origin}/api/magnet/${input.slug}?token=${token}`;
+      void sendLeadMagnetEmail({
+        to: input.email,
+        title: magnet.title,
+        deliverUrl,
+        buttonLabel,
+      }).catch((err) => console.warn(`[lead-magnet] confirm send failed:`, err));
+
+      return {
+        status: "sent" as const,
+        // Dev/demo only, so the flow can be walked without a mail provider —
+        // never in production, where handing back the token would let a
+        // caller confirm someone else's address (see `subscribe`).
+        token: isDemoMode() || process.env.NODE_ENV !== "production" ? token : null,
       };
     }),
 

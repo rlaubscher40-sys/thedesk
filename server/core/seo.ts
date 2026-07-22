@@ -16,6 +16,7 @@ import { routeParam } from "./requestParams";
 import path from "node:path";
 import { DEFAULT_SITE_URL } from "../../shared/const";
 import * as db from "../db";
+import { LEAD_MAGNETS } from "../../shared/leadMagnets";
 import { renderEditionCard } from "../og/editionCard";
 
 function siteUrl(): string {
@@ -296,6 +297,13 @@ export function registerSeoRoutes(app: Express): void {
     for (const path of staticPaths) {
       urls.push(
         `<url><loc>${base}${path}</loc><changefreq>${path === "/" ? "daily" : "weekly"}</changefreq></url>`
+      );
+    }
+    // Lead-magnet landing pages — indexable so the free resource pulls
+    // organic search traffic into the list, not just paid/social clicks.
+    for (const magnet of LEAD_MAGNETS) {
+      urls.push(
+        `<url><loc>${base}/free/${magnet.slug}</loc><changefreq>monthly</changefreq></url>`
       );
     }
     for (const edition of editions) {
