@@ -10,6 +10,7 @@ import {
   BookOpen,
   Bookmark,
   ChevronUp,
+  Crown,
   Info,
   LogIn,
   Menu,
@@ -55,6 +56,7 @@ const NAV_ITEMS: NavItem[] = [
   { path: "/trends", label: "Trends", icon: BarChart3 },
   { path: "/queue", label: "Reading Queue", icon: Bookmark },
   { path: "/install", label: "Get the App", icon: Smartphone },
+  { path: "/founding", label: "Premium", icon: Crown },
   { path: "/about", label: "About", icon: Info },
   { path: "/admin", label: "Admin", icon: Settings, requiresAdmin: true },
 ];
@@ -217,7 +219,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
           isAuthenticated={isAuthenticated}
         />
 
-        <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto relative focus:outline-none">
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="flex-1 overflow-y-auto relative focus:outline-none"
+        >
           <MobileHeader onOpen={() => setMobileOpen(true)} />
           <div className="editorial-rule shrink-0" aria-hidden="true" />
           {/* The container is wider than the previous max-w-5xl so the
@@ -440,14 +446,9 @@ function SidebarLink({
         }
         title={collapsed ? item.label : undefined}
       >
-        <Icon
-          className="h-[14px] w-[14px] shrink-0"
-          strokeWidth={active ? 2 : 1.6}
-        />
+        <Icon className="h-[14px] w-[14px] shrink-0" strokeWidth={active ? 2 : 1.6} />
         {!collapsed && (
-          <span className={cn("flex-1 truncate", active ? "font-medium" : "")}>
-            {item.label}
-          </span>
+          <span className={cn("flex-1 truncate", active ? "font-medium" : "")}>{item.label}</span>
         )}
         {!collapsed && item.path === "/queue" && unreadCount > 0 && (
           <span className="font-mono text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[var(--color-panel-tile-bg)] text-[var(--color-fg-muted)] tabular-nums">
@@ -542,11 +543,9 @@ function SidebarFooter({
         rel="noopener noreferrer"
         className="mt-4 flex items-center justify-center gap-1.5 rounded-sm px-3 py-2 text-[10px] font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.98]"
         style={{
-          background:
-            "var(--grad-cta-amber)",
+          background: "var(--grad-cta-amber)",
           color: "var(--color-on-amber)",
-          boxShadow:
-            "0 1px 0 oklch(1 0 0 / 18%) inset, 0 4px 14px oklch(0.75 0.18 70 / 25%)",
+          boxShadow: "0 1px 0 oklch(1 0 0 / 18%) inset, 0 4px 14px oklch(0.75 0.18 70 / 25%)",
         }}
       >
         ✦ Subscribe to Ruben
@@ -579,7 +578,11 @@ function MobileSidebar({
       <aside className="lg:hidden fixed inset-y-0 left-0 z-40 w-64 bg-[var(--color-bg)] border-r border-[var(--color-border)] flex flex-col">
         <div className="px-5 pt-6 pb-4 flex items-center justify-between">
           <span className="font-serif font-bold text-amber-400 text-lg">The Desk</span>
-          <button onClick={onClose} aria-label="Close menu" className="p-1.5 text-[var(--color-fg-muted)]">
+          <button
+            onClick={onClose}
+            aria-label="Close menu"
+            className="p-1.5 text-[var(--color-fg-muted)]"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>

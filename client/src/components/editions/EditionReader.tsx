@@ -5,10 +5,14 @@
  */
 import type { Edition } from "@shared/types";
 import type { KeyMetrics } from "@shared/schemas";
+import { useState } from "react";
 import { SectionErrorBoundary } from "../ErrorBoundary";
+import { FoundingMemberCTA, hasFoundingInterest } from "../FoundingMemberCTA";
 import { ScrollProgress } from "../ScrollProgress";
 import { StaggerList } from "../StaggerList";
 import { SubscribeCallout } from "../SubscribeCallout";
+import { hasSubscribed } from "@/lib/useSubscribe";
+import { FOUNDING_SOURCE_EDITION_FOOT } from "@/lib/premium";
 import { EditionAdminPanel } from "./EditionAdminPanel";
 import { EditionHero } from "./EditionHero";
 import { EditorsLetter } from "./EditorsLetter";
@@ -53,6 +57,10 @@ export function EditionReader({
   const topics = edition.topics ?? [];
   const [lead, ...rest] = topics;
   const audioScript = buildAudioScript(edition);
+  // Free-first funnel: a reader already on the list has taken the free step,
+  // so the end-of-read beat becomes the Premium upsell instead of pitching
+  // the free brief again. Read once on mount so it doesn't flip mid-session.
+  const [showFounding] = useState(() => hasSubscribed() && !hasFoundingInterest());
 
   return (
     <article>
@@ -128,8 +136,7 @@ export function EditionReader({
               className="block flex-1"
               style={{
                 height: "1px",
-                background:
-                  "linear-gradient(90deg, oklch(0.75 0.18 70 / 30%), transparent)",
+                background: "linear-gradient(90deg, oklch(0.75 0.18 70 / 30%), transparent)",
               }}
               aria-hidden="true"
             />
@@ -147,11 +154,7 @@ export function EditionReader({
                 id={`topic-${idx + 1}`}
                 className="scroll-mt-24"
               >
-                <TopicCard
-                  topic={topic}
-                  editionId={edition.id}
-                  topicIndex={idx + 1}
-                />
+                <TopicCard topic={topic} editionId={edition.id} topicIndex={idx + 1} />
               </div>
             ))}
           </StaggerList>
@@ -169,10 +172,7 @@ export function EditionReader({
               <p className="overline-amber" style={{ letterSpacing: "0.22em" }}>
                 Dates to watch
               </p>
-              <span
-                className="block flex-1 h-px bg-[var(--color-border)]"
-                aria-hidden="true"
-              />
+              <span className="block flex-1 h-px bg-[var(--color-border)]" aria-hidden="true" />
             </div>
             <ul className="space-y-3">
               {edition.datesToWatch.map((d, idx) => (
@@ -204,7 +204,11 @@ export function EditionReader({
           voice, so the offer to keep getting it lands at the right moment. */}
       <SectionErrorBoundary section="Subscribe">
         <div className="mt-16 mb-12">
-          <SubscribeCallout source="edition-foot" variant="edition" />
+          {showFounding ? (
+            <FoundingMemberCTA source={FOUNDING_SOURCE_EDITION_FOOT} compact showLearnMore />
+          ) : (
+            <SubscribeCallout source="edition-foot" variant="edition" />
+          )}
         </div>
       </SectionErrorBoundary>
 

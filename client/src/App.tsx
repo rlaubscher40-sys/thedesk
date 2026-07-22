@@ -30,15 +30,22 @@ const ReadingQueue = lazyWithReload(() => import("./pages/ReadingQueue"), "Readi
 const TopicThreads = lazyWithReload(() => import("./pages/TopicThreads"), "TopicThreads");
 const Trends = lazyWithReload(() => import("./pages/Trends"), "Trends");
 const About = lazyWithReload(() => import("./pages/About"), "About");
+const Founding = lazyWithReload(() => import("./pages/Founding"), "Founding");
 const StoryPage = lazyWithReload(() => import("./pages/StoryPage"), "StoryPage");
 const AdminPage = lazyWithReload(() => import("./pages/Admin"), "Admin");
 const Archive = lazyWithReload(() => import("./pages/Archive"), "Archive");
 const Login = lazyWithReload(() => import("./pages/Login"), "Login");
 const Privacy = lazyWithReload(() => import("./pages/Privacy"), "Privacy");
 const Terms = lazyWithReload(() => import("./pages/Terms"), "Terms");
-const EditorialStandards = lazyWithReload(() => import("./pages/EditorialStandards"), "EditorialStandards");
+const EditorialStandards = lazyWithReload(
+  () => import("./pages/EditorialStandards"),
+  "EditorialStandards"
+);
 const Corrections = lazyWithReload(() => import("./pages/Corrections"), "Corrections");
-const ConfirmSubscription = lazyWithReload(() => import("./pages/ConfirmSubscription"), "ConfirmSubscription");
+const ConfirmSubscription = lazyWithReload(
+  () => import("./pages/ConfirmSubscription"),
+  "ConfirmSubscription"
+);
 const Settings = lazyWithReload(() => import("./pages/Settings"), "Settings");
 const InstallApp = lazyWithReload(() => import("./pages/InstallApp"), "InstallApp");
 const NotFound = lazyWithReload(() => import("./pages/NotFound"), "NotFound");
@@ -122,6 +129,7 @@ function Routes() {
         <Route path="/topics" component={TopicThreads} />
         <Route path="/topics/:category" component={TopicThreads} />
         <Route path="/about" component={About} />
+        <Route path="/founding" component={Founding} />
         <Route path="/archive" component={Archive} />
         <Route path="/story/:id" component={StoryPage} />
         <Route path="/admin" component={AdminPage} />
@@ -168,17 +176,17 @@ export default function App() {
     <ErrorBoundary>
       <ThemeProvider>
         <UserPrefsProvider>
-        <PersonaProvider>
-          <Toaster />
-          <AppLayout>
-            <KeyboardShortcuts />
-            <Routes />
-          </AppLayout>
-          <CommandPalette />
-          <BreakingSignalToast />
-          <OnboardingModal />
-          <SubscribeModal />
-        </PersonaProvider>
+          <PersonaProvider>
+            <Toaster />
+            <AppLayout>
+              <KeyboardShortcuts />
+              <Routes />
+            </AppLayout>
+            <CommandPalette />
+            <BreakingSignalToast />
+            <OnboardingModal />
+            <SubscribeModal />
+          </PersonaProvider>
         </UserPrefsProvider>
       </ThemeProvider>
     </ErrorBoundary>

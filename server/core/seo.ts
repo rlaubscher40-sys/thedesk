@@ -286,6 +286,7 @@ export function registerSeoRoutes(app: Express): void {
       "/archive",
       "/trends",
       "/about",
+      "/founding",
       "/editorial-standards",
       "/privacy",
       "/terms",
