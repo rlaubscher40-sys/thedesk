@@ -10,12 +10,13 @@
       scale rather than flashing the wrong canvas or shrinking from
       comfortable to default. The default is the warm-paper light
       broadsheet; dark is the alternate. Mirrors the logic in
-      client/src/lib/theme.tsx — change both together.
+      client/src/lib/theme.tsx — change both together, including the
+      :v2 storage key (see the note there for why it was bumped).
     -->
     <script>
       (function () {
         try {
-          var stored = localStorage.getItem("thedesk:theme");
+          var stored = localStorage.getItem("thedesk:theme:v2");
           var mode = stored === "light" || stored === "dark" || stored === "system" ? stored : "light";
           var resolved =
             mode === "system"

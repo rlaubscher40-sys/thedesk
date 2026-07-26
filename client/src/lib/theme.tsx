@@ -40,7 +40,22 @@ type Ctx = {
 
 const ThemeContext = createContext<Ctx | null>(null);
 
-const STORAGE_KEY = "thedesk:theme";
+/**
+ * Bumped to :v2 with the broadsheet redesign.
+ *
+ * The v1 provider wrote its default to storage eagerly on mount, so every
+ * device that had ever loaded the site carried `thedesk:theme: "dark"` —
+ * whether or not the reader had chosen it. There's no way to tell "chose
+ * dark" from "never chose" in that value, so honouring it would have kept
+ * the entire existing audience on the old canvas and the new light default
+ * would only ever have reached brand-new devices.
+ *
+ * A new key resets everyone to the light default once; anyone who actually
+ * wants dark re-picks it, and that choice then persists under v2. The
+ * stale v1 key is removed below rather than left to linger.
+ */
+const STORAGE_KEY = "thedesk:theme:v2";
+const LEGACY_STORAGE_KEY = "thedesk:theme";
 const READING_SIZE_KEY = "thedesk:reading-size";
 
 /**
@@ -90,6 +105,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     root.classList.toggle("light", resolvedTheme === "light");
     root.style.colorScheme = resolvedTheme;
     window.localStorage.setItem(STORAGE_KEY, theme);
+    // Drop the superseded v1 key so it doesn't sit in storage forever.
+    window.localStorage.removeItem(LEGACY_STORAGE_KEY);
   }, [resolvedTheme, theme]);
 
   useEffect(() => {
