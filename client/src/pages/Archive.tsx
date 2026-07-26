@@ -1,28 +1,43 @@
 /**
- * The Archive, unified browse + search page.
+ * The Archive — search and browse as an index, not a card wall.
  *
- * Empty query: browse-by-category mode. Categories render as a grid of
- * thread cards, each showing the most recent feed items in that category.
- * Clicking a chip filters the page to that category (drill-down view).
+ * Title block with corpus stats in hairline-divided cells, then a
+ * typographic search field (a 3px rule above, a hairline below, the query
+ * set in Playfair with an accent caret — no bordered box), the category
+ * index row, and a `1fr / 1px / 340px` results grid.
  *
- * Non-empty query: search results across editions and feed items, with the
- * same category chips above so the user can keep narrowing.
- *
- * Replaces both the old SearchPage and the old TopicThreads index, they
- * served related needs and one unified page reads cleaner.
+ * Behaviour is unchanged: the same `?q=` / `?cat=` URL state, the same
+ * tRPC queries, the same topic-allowlist filtering, and `highlight()`
+ * still marks matched terms. The Today page's category sub-filter now
+ * lives in the category index row here, which is where browsing by topic
+ * belongs.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useSearch } from "wouter";
-import { Search as SearchIcon, X } from "lucide-react";
+import { Search as SearchIcon } from "lucide-react";
 import type { DailyFeedItem } from "@shared/types";
-import { PageHeader } from "@/components/PageHeader";
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { categoryAccentClass, categoryColour } from "@/lib/category";
+import { GUTTER_X } from "@/components/broadsheet/tokens";
+import { useCategoryColour } from "@/lib/category";
 import { cn } from "@/lib/cn";
 import { highlight } from "@/lib/highlight";
 import { useUserPrefs } from "@/lib/userPrefs";
 import { trpc } from "@/lib/trpc";
+
+/** One-line description per beat for the "Or follow a beat" rail. */
+const BEAT_BLURB: Record<string, string> = {
+  MACRO: "The rate cycle and the signals that move it.",
+  PROPERTY: "Clearance, listings and the capacity constraint at the mid-tier.",
+  POLICY: "APRA, Treasury and everything that changes a client's borrowing power.",
+  MARKETS: "Lender pricing, SMSF lending and the non-bank channel.",
+  ECONOMICS: "Inflation, wages and the labour market.",
+  TECH: "The tooling reshaping origination and advice.",
+  AI: "Where models are actually being put to work.",
+  GEOPOLITICS: "Offshore events with a domestic transmission line.",
+  SCIENCE: "Research with a read-through to the built environment.",
+  OTHER: "Everything that doesn't sit on a named beat.",
+};
 
 function parseSearch(search: string): { q: string; cat: string | null } {
   const params = new URLSearchParams(search);
@@ -30,19 +45,17 @@ function parseSearch(search: string): { q: string; cat: string | null } {
 }
 
 export default function ArchivePage() {
-  // URL query state, /archive?q=foo and /archive?cat=PROPERTY both deep-link,
-  // and the legacy /search redirect carries its query across via this.
   const search = useSearch();
   const [, navigate] = useLocation();
   const initial = parseSearch(search);
   const [query, setQuery] = useState(initial.q);
   const [category, setCategory] = useState<string | null>(initial.cat);
   const inputRef = useRef<HTMLInputElement>(null);
+  const colourFor = useCategoryColour();
 
-  // Auto-focus the search input on desktop so the user can start typing
-  // immediately. On mobile we skip this, focusing pops the keyboard the
-  // instant the page loads, which obscures the category chips and is
-  // jarring when the user came here to browse, not search.
+  // Auto-focus on desktop so the reader can start typing immediately. On
+  // mobile that pops the keyboard the instant the page loads and hides the
+  // category row, which is jarring for someone who came here to browse.
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (window.innerWidth < 768) return;
@@ -50,7 +63,7 @@ export default function ArchivePage() {
   }, []);
 
   // Mirror state back into the URL so a refresh or share preserves the view.
-  // Replace (don't push) so we don't fill the back stack with keystrokes.
+  // Replace (don't push) so keystrokes don't fill the back stack.
   useEffect(() => {
     const params = new URLSearchParams();
     if (query.trim()) params.set("q", query.trim());
@@ -61,6 +74,7 @@ export default function ArchivePage() {
 
   const recentByCategoryQuery = trpc.topics.recentByCategory.useQuery();
   const countsQuery = trpc.topics.itemCounts.useQuery();
+  const editionsQuery = trpc.editions.list.useQuery();
   const searchQuery = trpc.search.all.useQuery(
     { query },
     { enabled: query.trim().length >= 2, staleTime: 30_000 }
@@ -70,16 +84,19 @@ export default function ArchivePage() {
     { enabled: !!category }
   );
 
-  // User's topic-allowlist preference. Applied to the overview's category
-  // thread cards and to the search results, but NOT to the explicit
-  // category drill-down, if the reader taps a chip the assumption is
-  // they want to see that category regardless of their global filter.
+  // User's topic-allowlist preference. Applied to the browse view and to
+  // search results, but NOT to an explicit category drill-down: if the
+  // reader picked a beat, they want that beat regardless of the filter.
   const { isCategoryAllowed } = useUserPrefs();
 
-  const counts = new Map<string, number>(
-    (countsQuery.data ?? [])
-      .filter((r) => isCategoryAllowed(r.category))
-      .map((r) => [r.category, r.total])
+  const counts = useMemo(
+    () =>
+      new Map<string, number>(
+        (countsQuery.data ?? [])
+          .filter((r) => isCategoryAllowed(r.category))
+          .map((r) => [r.category, r.total])
+      ),
+    [countsQuery.data, isCategoryAllowed]
   );
   const recentByCategoryFiltered = useMemo(() => {
     const raw = recentByCategoryQuery.data ?? {};
@@ -97,311 +114,422 @@ export default function ArchivePage() {
       feedItems: raw.feedItems.filter((it) => isCategoryAllowed(it.category)),
     };
   }, [searchQuery.data, isCategoryAllowed]);
+
   const categories = Object.keys(recentByCategoryFiltered).sort(
     (a, b) => (counts.get(b) ?? 0) - (counts.get(a) ?? 0)
   );
+  const totalStories = Array.from(counts.values()).reduce((a, b) => a + b, 0);
+  const editions = editionsQuery.data ?? [];
 
   const isSearching = query.trim().length >= 2;
   const isCategoryView = !!category && !isSearching;
-  const isOverview = !isSearching && !isCategoryView;
+
+  const resultCount = filteredSearchResults
+    ? filteredSearchResults.editions.length + filteredSearchResults.feedItems.length
+    : 0;
 
   return (
-    <div>
-      <PageHeader
-        overline="The Desk · Archive"
-        title="Search and browse"
-        kicker="Every weekly edition, every daily item. Find by keyword or follow a thread."
-        actions={
-          <ArchiveMetaPanel
-            totalStories={Array.from(counts.values()).reduce((a, b) => a + b, 0)}
-            categoryCount={categories.length}
-          />
-        }
-      />
-
-      {/* Search input. */}
-      <div className="relative mb-5">
-        <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-fg-subtle)]" />
-        <input
-          ref={inputRef}
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search the archive…"
-          className="w-full pl-11 pr-12 py-3.5 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded text-base focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors"
-        />
-        {query && (
-          <button
-            onClick={() => setQuery("")}
-            aria-label="Clear search"
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded text-[var(--color-fg-subtle)] hover:text-[var(--color-fg)] hover:bg-white/5"
+    <div className={cn(GUTTER_X, "pt-9")}>
+      {/* Title block + corpus stats */}
+      <div className="flex items-end justify-between gap-10 flex-wrap">
+        <div className="min-w-0">
+          <p className="bs-label-accent" style={{ letterSpacing: "0.24em" }}>
+            The Desk · Archive
+          </p>
+          <h1
+            className="font-serif font-bold mt-3.5"
+            style={{
+              fontSize: "clamp(36px, 4.6vw, 64px)",
+              lineHeight: 0.94,
+              letterSpacing: "-0.03em",
+            }}
           >
-            <X className="h-4 w-4" />
-          </button>
-        )}
+            Search and browse
+          </h1>
+          <p
+            className="font-serif mt-3.5 max-w-[52ch]"
+            style={{ fontSize: 21, lineHeight: 1.42, color: "var(--color-fg-muted)" }}
+          >
+            Every weekly edition and every daily item. Find it by keyword, or follow one
+            beat back through the year.
+          </p>
+        </div>
+
+        <div className="shrink-0 flex rule-hair-l">
+          <CorpusStat label="Stories archived" value={totalStories.toLocaleString("en-AU")} />
+          {editions.length > 0 && (
+            <div className="rule-hair-l">
+              <CorpusStat label="Editions" value={String(editions.length)} />
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Category chip row, drives the drill-down filter. */}
-      <SectionErrorBoundary section="Category chips">
-        {categories.length > 0 && (
-          <CategoryChips
-            categories={categories}
-            counts={counts}
-            selected={category}
-            onSelect={(c) => setCategory(c === category ? null : c)}
+      {/* Typographic search field. */}
+      <div className="rule-major rule-hair-b mt-7">
+        <label className="flex items-center gap-4 py-4" htmlFor="archive-search">
+          <SearchIcon
+            className="h-[22px] w-[22px] shrink-0 text-[var(--color-fg-muted)]"
+            strokeWidth={1.7}
+            aria-hidden="true"
           />
-        )}
-      </SectionErrorBoundary>
+          <span className="sr-only">Search the archive</span>
+          <input
+            id="archive-search"
+            ref={inputRef}
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search the archive…"
+            className="flex-1 min-w-0 bg-transparent border-0 outline-none font-serif"
+            style={{
+              fontSize: "clamp(22px, 3vw, 34px)",
+              color: "var(--color-fg)",
+              caretColor: "var(--color-accent-text)",
+            }}
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              className="bs-label bs-link shrink-0"
+              style={{ letterSpacing: "0.18em" }}
+            >
+              {isSearching ? `${resultCount} result${resultCount === 1 ? "" : "s"} · ` : ""}
+              clear ✕
+            </button>
+          )}
+        </label>
+      </div>
 
-      {/* Body switches based on query / category. */}
-      <div className="mt-8">
-        {isSearching && (
-          <SectionErrorBoundary section="Search results">
-            <SearchResults
-              query={query}
-              data={filteredSearchResults}
-              loading={searchQuery.isLoading}
+      {/* Category index row. Hairline-divided buttons, each a dot + name +
+          tabular count; the active one carries the accent underline. */}
+      {categories.length > 0 && (
+        <SectionErrorBoundary section="Category index">
+          <div className="rule-hair-b flex flex-wrap overflow-x-auto no-scrollbar">
+            <IndexButton
+              label="All"
+              count={totalStories}
+              active={category === null}
+              onClick={() => setCategory(null)}
+              first
             />
-          </SectionErrorBoundary>
-        )}
+            {categories.map((c) => (
+              <IndexButton
+                key={c}
+                label={c}
+                count={counts.get(c)}
+                dot={colourFor(c)}
+                active={category === c}
+                onClick={() => setCategory(category === c ? null : c)}
+              />
+            ))}
+          </div>
+        </SectionErrorBoundary>
+      )}
 
-        {isCategoryView && category && (
-          <SectionErrorBoundary section="Category drill-down">
-            <CategoryDrillDown
-              category={category}
-              data={categoryQuery.data}
-              loading={categoryQuery.isLoading}
-            />
-          </SectionErrorBoundary>
-        )}
+      {/* Results + rail */}
+      <div className="grid lg:grid-cols-[minmax(0,1fr)_1px_340px]">
+        <div className="pt-8 lg:pr-13 min-w-0">
+          {isSearching && (
+            <SectionErrorBoundary section="Search results">
+              <SearchResults
+                query={query}
+                data={filteredSearchResults}
+                loading={searchQuery.isLoading}
+              />
+            </SectionErrorBoundary>
+          )}
 
-        {isOverview && (
-          <SectionErrorBoundary section="Topic threads overview">
-            <TopicOverview
-              recent={recentByCategoryFiltered}
-              counts={counts}
-              loading={recentByCategoryQuery.isLoading}
-            />
-          </SectionErrorBoundary>
-        )}
+          {isCategoryView && category && (
+            <SectionErrorBoundary section="Category drill-down">
+              <CategoryResults
+                category={category}
+                data={categoryQuery.data}
+                loading={categoryQuery.isLoading}
+              />
+            </SectionErrorBoundary>
+          )}
+
+          {!isSearching && !isCategoryView && (
+            <SectionErrorBoundary section="Recent by beat">
+              <RecentByBeat
+                recent={recentByCategoryFiltered}
+                counts={counts}
+                loading={recentByCategoryQuery.isLoading}
+              />
+            </SectionErrorBoundary>
+          )}
+        </div>
+
+        <div
+          className="hidden lg:block"
+          style={{ background: "var(--color-border)" }}
+          aria-hidden="true"
+        />
+
+        <aside className="pt-8 lg:pl-10 min-w-0">
+          {categories.length > 0 && (
+            <>
+              <p className="bs-label" style={{ letterSpacing: "0.24em" }}>
+                Or follow a beat
+              </p>
+              <div className="mt-4">
+                {categories.slice(0, 4).map((c, i) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => {
+                      setQuery("");
+                      setCategory(c);
+                    }}
+                    className={cn(
+                      "bs-row rule-hair block w-full text-left py-3.5",
+                      i === Math.min(categories.length, 4) - 1 && "rule-hair-b"
+                    )}
+                  >
+                    <span className="flex items-baseline justify-between gap-3">
+                      <span
+                        className="font-mono uppercase"
+                        style={{ fontSize: 10, letterSpacing: "0.18em", color: colourFor(c) }}
+                      >
+                        {c}
+                      </span>
+                      <span
+                        className="font-mono tabular-nums text-[var(--color-fg-subtle)]"
+                        style={{ fontSize: 11 }}
+                      >
+                        {counts.get(c) ?? 0}
+                      </span>
+                    </span>
+                    <span
+                      className="block mt-1.5 text-[var(--color-fg-muted)]"
+                      style={{ fontSize: 14.5, lineHeight: 1.45 }}
+                    >
+                      {BEAT_BLURB[c] ?? BEAT_BLURB.OTHER}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          {editions.length > 0 && (
+            <>
+              <p className="bs-label mt-8 mb-3.5" style={{ letterSpacing: "0.24em" }}>
+                By edition
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {editions.slice(0, 7).map((ed) => (
+                  <Link
+                    key={ed.editionNumber}
+                    href={`/editions/${ed.editionNumber}`}
+                    className="bs-link font-mono tabular-nums px-3 py-2 rounded-sm"
+                    style={{
+                      fontSize: 11,
+                      letterSpacing: "0.1em",
+                      border: "1px solid var(--color-border-strong)",
+                    }}
+                  >
+                    {String(ed.editionNumber).padStart(2, "0")}
+                  </Link>
+                ))}
+                <Link
+                  href="/editions"
+                  className="bs-link font-mono px-3 py-2 rounded-sm text-[var(--color-fg-subtle)]"
+                  style={{
+                    fontSize: 11,
+                    letterSpacing: "0.1em",
+                    border: "1px solid var(--color-border-strong)",
+                  }}
+                >
+                  All {editions.length}
+                </Link>
+              </div>
+            </>
+          )}
+
+          <div
+            className="mt-8 p-5"
+            style={{
+              border: "1px solid var(--color-border)",
+              background: "var(--color-bg-elevated)",
+            }}
+          >
+            <p className="bs-label">Shortcuts</p>
+            <div className="flex flex-col gap-2.5 mt-3">
+              <Shortcut keys="/" label="Jump to search" />
+              <Shortcut keys="⌘K" label="Command palette" />
+              <Shortcut keys="J K" label="Move through results" />
+            </div>
+          </div>
+        </aside>
       </div>
     </div>
   );
 }
 
-// ─── Category chips ─────────────────────────────────────────────────────────
-
-function CategoryChips({
-  categories,
-  counts,
-  selected,
-  onSelect,
-}: {
-  categories: string[];
-  counts: Map<string, number>;
-  selected: string | null;
-  onSelect: (c: string) => void;
-}) {
+function CorpusStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex gap-2 flex-wrap">
-      <button
-        onClick={() => onSelect(selected ?? "")}
-        aria-pressed={selected === null}
-        className={cn(
-          "shrink-0 px-3 py-1.5 rounded transition-all border text-xs font-mono uppercase tracking-wider",
-          selected === null
-            ? "border-amber-400/60 bg-amber-500/10 text-amber-200"
-            : "border-[var(--color-border)] text-[var(--color-fg-muted)] hover:border-[var(--color-border-strong)] hover:text-[var(--color-fg)]"
-        )}
+    <div className="px-6 text-right">
+      <p className="bs-label" style={{ letterSpacing: "0.2em" }}>
+        {label}
+      </p>
+      <p
+        className="font-serif font-bold tabular-nums mt-2"
+        style={{ fontSize: 40, lineHeight: 1 }}
       >
-        All
-      </button>
-      {categories.map((c) => {
-        const active = selected === c;
-        return (
-          <button
-            key={c}
-            onClick={() => onSelect(c)}
-            aria-pressed={active}
-            className={cn(
-              "shrink-0 px-3 py-1.5 rounded transition-all border text-xs font-mono uppercase tracking-wider flex items-center gap-2",
-              active
-                ? "bg-amber-500/10 text-amber-200"
-                : "border-[var(--color-border)] text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] hover:border-[var(--color-border-strong)]"
-            )}
-            style={
-              active
-                ? { borderColor: categoryColour(c), boxShadow: `0 0 14px ${categoryColour(c)}25` }
-                : {}
-            }
-          >
-            <span className="h-1.5 w-1.5 rounded-full" style={{ background: categoryColour(c) }} />
-            <span>{c}</span>
-            {counts.get(c) != null && (
-              <span className="text-[var(--color-fg-subtle)] tabular-nums">{counts.get(c)}</span>
-            )}
-          </button>
-        );
-      })}
+        {value}
+      </p>
     </div>
   );
 }
 
-// ─── Overview (no query, no category) ───────────────────────────────────────
-
-function TopicOverview({
-  recent,
-  counts,
-  loading,
+function IndexButton({
+  label,
+  count,
+  dot,
+  active,
+  onClick,
+  first = false,
 }: {
-  recent: Record<string, DailyFeedItem[]> | undefined;
-  counts: Map<string, number>;
-  loading: boolean;
+  label: string;
+  count?: number;
+  dot?: string;
+  active: boolean;
+  onClick: () => void;
+  first?: boolean;
 }) {
-  if (loading) {
-    return (
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-48 rounded" />
-        ))}
-      </div>
-    );
-  }
-  if (!recent || Object.keys(recent).length === 0) {
-    return <p className="text-sm text-[var(--color-fg-muted)]">No threads yet.</p>;
-  }
-  const entries = Object.entries(recent).sort(
-    ([a], [b]) => (counts.get(b) ?? 0) - (counts.get(a) ?? 0)
-  );
-
   return (
-    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-      {entries.map(([category, items]) => (
-        <CategoryThreadCard
-          key={category}
-          category={category}
-          items={items}
-          total={counts.get(category) ?? items.length}
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        "bs-link inline-flex items-baseline gap-2 whitespace-nowrap py-3.5",
+        first ? "pr-4" : "rule-hair-l px-4"
+      )}
+      style={{
+        fontFamily: "var(--font-mono)",
+        fontSize: 11,
+        letterSpacing: "0.16em",
+        textTransform: "uppercase",
+        color: active ? "var(--color-fg)" : "var(--color-fg-muted)",
+      }}
+    >
+      {dot && (
+        <span
+          className="inline-block h-[5px] w-[5px] rounded-full"
+          style={{ background: dot }}
+          aria-hidden="true"
         />
-      ))}
-    </div>
+      )}
+      <span
+        style={{
+          borderBottom: active ? "2px solid var(--color-accent-text)" : "2px solid transparent",
+          paddingBottom: 3,
+        }}
+      >
+        {label}
+      </span>
+      {count != null && (
+        <span className="tabular-nums text-[var(--color-fg-subtle)]">{count}</span>
+      )}
+    </button>
   );
 }
 
-function CategoryThreadCard({
-  category,
-  items,
-  total,
+function Shortcut({ keys, label }: { keys: string; label: string }) {
+  return (
+    <p className="flex items-center gap-2.5" style={{ fontSize: 13.5, color: "var(--color-fg-muted)" }}>
+      <kbd
+        className="font-mono rounded-sm px-1.5 py-0.5"
+        style={{ fontSize: 10, border: "1px solid var(--color-border-strong)" }}
+      >
+        {keys}
+      </kbd>
+      {label}
+    </p>
+  );
+}
+
+/** A result row: a 96px meta column beside headline + snippet. */
+function ResultRow({
+  href,
+  meta,
+  metaSub,
+  title,
+  snippet,
+  first = false,
+  last = false,
 }: {
-  category: string;
-  items: DailyFeedItem[];
-  total: number;
+  href: string;
+  meta: React.ReactNode;
+  metaSub?: string;
+  title: React.ReactNode;
+  snippet?: React.ReactNode;
+  first?: boolean;
+  last?: boolean;
 }) {
   return (
     <Link
-      href={`/topics/${category}`}
-      className={cn("block panel panel-hover rounded p-5 h-full", categoryAccentClass(category))}
+      href={href}
+      className={cn(
+        "bs-row rule-hair grid grid-cols-[96px_minmax(0,1fr)] gap-5 py-4 items-baseline",
+        first && "rule-band",
+        last && "rule-hair-b"
+      )}
     >
-      <div className="flex items-center justify-between mb-4">
-        <p className="overline-amber" style={{ color: categoryColour(category) }}>
-          {category}
-        </p>
-        <span className="font-mono text-xs tabular-nums text-[var(--color-fg-subtle)]">
-          {total}
-        </span>
+      <div>
+        <div
+          className="font-mono uppercase"
+          style={{ fontSize: 10, letterSpacing: "0.16em" }}
+        >
+          {meta}
+        </div>
+        {metaSub && (
+          <p className="font-mono mt-1.5 text-[var(--color-fg-subtle)]" style={{ fontSize: 10 }}>
+            {metaSub}
+          </p>
+        )}
       </div>
-      <ul className="space-y-3">
-        {items.slice(0, 3).map((item, idx) => (
-          <li key={item.id || `item-${idx}`} className="text-sm leading-snug">
-            <span className="font-serif line-clamp-2 text-[var(--color-fg-muted)]">
-              {item.title}
-            </span>
-          </li>
-        ))}
-      </ul>
+      <div className="min-w-0">
+        <p
+          className="font-serif"
+          style={{ fontSize: 21, lineHeight: 1.28, letterSpacing: "-0.02em" }}
+        >
+          {title}
+        </p>
+        {snippet && (
+          <p
+            className="mt-1.5 text-[var(--color-fg-muted)]"
+            style={{ fontSize: 15, lineHeight: 1.55 }}
+          >
+            {snippet}
+          </p>
+        )}
+      </div>
     </Link>
   );
 }
 
-// ─── Category drill-down (category chip selected, no query) ─────────────────
-
-function CategoryDrillDown({
-  category,
-  data,
-  loading,
-}: {
-  category: string;
-  data:
-    | {
-        feedItems: DailyFeedItem[];
-        editions: Array<{ id: number; editionNumber: number; weekRange: string }>;
-      }
-    | undefined;
-  loading: boolean;
-}) {
-  if (loading) return <Skeleton className="h-64 w-full rounded" />;
-  if (!data) return null;
-
+function ResultGroup({ label, count }: { label: string; count: number }) {
   return (
-    <div className="space-y-10">
-      {data.feedItems.length === 0 && data.editions.length === 0 && (
-        <div className="panel p-6 rounded text-sm text-[var(--color-fg-muted)]">
-          Nothing tagged {category} yet.
-        </div>
-      )}
-
-      {data.feedItems.length > 0 && (
-        <section>
-          <p className="overline mb-3">Daily feed ({data.feedItems.length})</p>
-          <ul className="space-y-3">
-            {data.feedItems.map((item) => (
-              <li
-                key={item.id}
-                className={cn("panel panel-hover rounded p-4", categoryAccentClass(item.category))}
-              >
-                <Link
-                  href={`/story/${item.id}`}
-                  className="block hover:text-amber-300 transition-colors"
-                >
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="overline">{item.source}</span>
-                    <span className="overline">·</span>
-                    <span className="overline">{item.feedDate}</span>
-                  </div>
-                  <p className="font-serif text-base leading-snug">{item.title}</p>
-                  <p className="text-sm text-[var(--color-fg-muted)] mt-1 line-clamp-2">
-                    {item.summary}
-                  </p>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {data.editions.length > 0 && (
-        <section>
-          <p className="overline mb-3">Editions ({data.editions.length})</p>
-          <ul className="space-y-3">
-            {data.editions.map((ed) => (
-              <li key={ed.id} className="panel panel-hover rounded p-4">
-                <Link
-                  href={`/editions/${ed.editionNumber}`}
-                  className="block hover:text-amber-300 transition-colors"
-                >
-                  <p className="overline mb-1">Edition {ed.editionNumber}</p>
-                  <p className="font-serif text-base leading-snug">{ed.weekRange}</p>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-    </div>
+    <p className="bs-label mb-1.5" style={{ letterSpacing: "0.24em" }}>
+      {label} · {count} match{count === 1 ? "" : "es"}
+    </p>
   );
 }
 
-// ─── Search results (query active) ──────────────────────────────────────────
+function RowsSkeleton({ rows = 4 }: { rows?: number }) {
+  return (
+    <div className="space-y-4" aria-busy="true">
+      {Array.from({ length: rows }).map((_, i) => (
+        <Skeleton key={i} className="h-14 w-full rounded-none" />
+      ))}
+    </div>
+  );
+}
 
 function SearchResults({
   query,
@@ -422,133 +550,173 @@ function SearchResults({
     | undefined;
   loading: boolean;
 }) {
-  if (loading) {
-    return (
-      <div className="space-y-3">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-16 w-full rounded" />
-        ))}
-      </div>
-    );
-  }
+  const colourFor = useCategoryColour();
+  if (loading) return <RowsSkeleton />;
   if (!data) return null;
   if (data.editions.length === 0 && data.feedItems.length === 0) {
     return (
-      <div className="panel p-6 rounded text-sm text-[var(--color-fg-muted)]">
-        No results for "{query}".
-      </div>
+      <p className="py-10 text-[var(--color-fg-muted)]">No results for &ldquo;{query}&rdquo;.</p>
     );
   }
+
   return (
-    <div className="space-y-10">
+    <div className="space-y-9">
       {data.editions.length > 0 && (
         <section>
-          <p className="overline mb-3">Editions ({data.editions.length})</p>
-          <ul className="space-y-3">
-            {data.editions.map((ed) => (
-              <li key={ed.id} className="panel panel-hover rounded p-4">
-                <Link
-                  href={`/editions/${ed.editionNumber}`}
-                  className="block hover:text-amber-300 transition-colors"
-                >
-                  <p className="overline mb-1">Edition {ed.editionNumber}</p>
-                  <p className="font-serif text-base leading-snug">
-                    {highlight(ed.weekRange, query)}
-                  </p>
-                  {ed.snippet && (
-                    <p className="text-sm text-[var(--color-fg-muted)] mt-1 line-clamp-2">
-                      {highlight(ed.snippet, query)}
-                    </p>
-                  )}
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <ResultGroup label="Editions" count={data.editions.length} />
+          {data.editions.map((ed, i) => (
+            <ResultRow
+              key={ed.id}
+              href={`/editions/${ed.editionNumber}`}
+              first={i === 0}
+              last={i === data.editions.length - 1}
+              meta={
+                <span style={{ color: "var(--color-accent-text)" }}>
+                  Ed. {String(ed.editionNumber).padStart(2, "0")}
+                </span>
+              }
+              title={highlight(ed.weekRange, query)}
+              snippet={ed.snippet ? highlight(ed.snippet, query) : undefined}
+            />
+          ))}
         </section>
       )}
+
       {data.feedItems.length > 0 && (
         <section>
-          <p className="overline mb-3">Feed items ({data.feedItems.length})</p>
-          <ul className="space-y-3">
-            {data.feedItems.map((item) => (
-              <li
-                key={item.id}
-                className={cn("panel panel-hover rounded p-4", categoryAccentClass(item.category))}
-              >
-                <Link
-                  href={`/story/${item.id}`}
-                  className="block hover:text-amber-300 transition-colors"
-                >
-                  <div className="flex items-center gap-2 mb-1.5">
+          <ResultGroup label="Daily items" count={data.feedItems.length} />
+          {data.feedItems.map((item, i) => (
+            <ResultRow
+              key={item.id}
+              href={`/story/${item.id}`}
+              first={i === 0}
+              last={i === data.feedItems.length - 1}
+              meta={<span style={{ color: colourFor(item.category) }}>{item.category}</span>}
+              metaSub={item.feedDate}
+              title={highlight(item.title, query)}
+              snippet={
+                <>
+                  {highlight(item.snippet || item.summary, query)}{" "}
+                  {item.source && (
                     <span
-                      className="overline-amber"
-                      style={{ color: categoryColour(item.category) }}
+                      className="font-mono uppercase text-[var(--color-fg-subtle)]"
+                      style={{ fontSize: 10, letterSpacing: "0.14em" }}
                     >
-                      {item.category}
+                      {item.source}
                     </span>
-                    <span className="overline">·</span>
-                    <span className="overline">{item.source}</span>
-                  </div>
-                  <p className="font-serif text-base leading-snug">
-                    {highlight(item.title, query)}
-                  </p>
-                  <p className="text-sm text-[var(--color-fg-muted)] mt-1 line-clamp-2">
-                    {highlight(item.snippet || item.summary, query)}
-                  </p>
-                </Link>
-              </li>
-            ))}
-          </ul>
+                  )}
+                </>
+              }
+            />
+          ))}
         </section>
       )}
     </div>
   );
 }
 
-/**
- * Editorial meta panel for the Archive header. Earns the right-side
- * whitespace with two corpus stats: total stories indexed across
- * every category, and how many categories are active for the current
- * user (after their topic-allowlist preference).
- */
-function ArchiveMetaPanel({
-  totalStories,
-  categoryCount,
+function CategoryResults({
+  category,
+  data,
+  loading,
 }: {
-  totalStories: number;
-  categoryCount: number;
+  category: string;
+  data:
+    | {
+        feedItems: DailyFeedItem[];
+        editions: Array<{ id: number; editionNumber: number; weekRange: string }>;
+      }
+    | undefined;
+  loading: boolean;
 }) {
-  if (!totalStories && !categoryCount) return null;
+  const colourFor = useCategoryColour();
+  if (loading) return <RowsSkeleton />;
+  if (!data) return null;
+  if (data.feedItems.length === 0 && data.editions.length === 0) {
+    return <p className="py-10 text-[var(--color-fg-muted)]">Nothing tagged {category} yet.</p>;
+  }
+
   return (
-    <div
-      className="hidden md:block panel rounded-sm px-5 py-4 space-y-3.5 text-right shrink-0"
-      style={{ minWidth: 200 }}
-    >
-      {totalStories > 0 && (
-        <ArchiveMetaRow label="Stories archived" value={totalStories.toLocaleString("en-AU")} />
+    <div className="space-y-9">
+      {data.editions.length > 0 && (
+        <section>
+          <ResultGroup label="Editions" count={data.editions.length} />
+          {data.editions.map((ed, i) => (
+            <ResultRow
+              key={ed.id}
+              href={`/editions/${ed.editionNumber}`}
+              first={i === 0}
+              last={i === data.editions.length - 1}
+              meta={
+                <span style={{ color: "var(--color-accent-text)" }}>
+                  Ed. {String(ed.editionNumber).padStart(2, "0")}
+                </span>
+              }
+              title={ed.weekRange}
+            />
+          ))}
+        </section>
       )}
-      {categoryCount > 0 && (
-        <ArchiveMetaRow label="Categories indexed" value={String(categoryCount).padStart(2, "0")} />
+
+      {data.feedItems.length > 0 && (
+        <section>
+          <ResultGroup label="Daily items" count={data.feedItems.length} />
+          {data.feedItems.map((item, i) => (
+            <ResultRow
+              key={item.id}
+              href={`/story/${item.id}`}
+              first={i === 0}
+              last={i === data.feedItems.length - 1}
+              meta={<span style={{ color: colourFor(item.category) }}>{item.category}</span>}
+              metaSub={item.feedDate}
+              title={item.title}
+              snippet={item.summary}
+            />
+          ))}
+        </section>
       )}
     </div>
   );
 }
 
-function ArchiveMetaRow({ label, value }: { label: string; value: string }) {
+/** Browse view: the most recent items on each beat, as an index. */
+function RecentByBeat({
+  recent,
+  counts,
+  loading,
+}: {
+  recent: Record<string, DailyFeedItem[]> | undefined;
+  counts: Map<string, number>;
+  loading: boolean;
+}) {
+  const colourFor = useCategoryColour();
+  if (loading) return <RowsSkeleton rows={6} />;
+  if (!recent || Object.keys(recent).length === 0) {
+    return <p className="py-10 text-[var(--color-fg-muted)]">No stories archived yet.</p>;
+  }
+
+  const entries = Object.entries(recent).sort(
+    ([a], [b]) => (counts.get(b) ?? 0) - (counts.get(a) ?? 0)
+  );
+
   return (
-    <div className="space-y-1">
-      <p
-        className="font-mono uppercase text-[var(--color-fg-subtle)]"
-        style={{ fontSize: "10px", letterSpacing: "0.22em" }}
-      >
-        {label}
-      </p>
-      <p
-        className="font-mono text-[var(--color-fg)] tabular-nums"
-        style={{ fontSize: "12px", letterSpacing: "0.04em" }}
-      >
-        {value}
-      </p>
+    <div className="space-y-9">
+      {entries.map(([category, items]) => (
+        <section key={category}>
+          <ResultGroup label={category} count={counts.get(category) ?? items.length} />
+          {items.slice(0, 3).map((item, i) => (
+            <ResultRow
+              key={item.id || `${category}-${i}`}
+              href={`/story/${item.id}`}
+              first={i === 0}
+              last={i === Math.min(items.length, 3) - 1}
+              meta={<span style={{ color: colourFor(category) }}>{category}</span>}
+              metaSub={item.feedDate}
+              title={item.title}
+            />
+          ))}
+        </section>
+      ))}
     </div>
   );
 }
