@@ -543,6 +543,24 @@
   }
 }
 
+/* ─── Broadsheet rules ─────────────────────────────────────────────────────
+   The three rule weights, as top / bottom / side borders.
+
+   These are `@utility`, not `@layer components`, because the layout leans on
+   them responsively — the column hairlines only exist once the grid has
+   columns, so they're written `lg:rule-hair-l`, `sm:rule-hair-r`. Tailwind
+   only generates variants for registered utilities: declared as plain
+   classes in a component layer, every prefixed form silently compiles to
+   nothing and the column hairlines disappear. */
+@utility rule-major   { border-top: var(--rule-major); }
+@utility rule-major-b { border-bottom: var(--rule-major); }
+@utility rule-band    { border-top: var(--rule-band); }
+@utility rule-band-b  { border-bottom: var(--rule-band); }
+@utility rule-hair    { border-top: var(--rule-hair); }
+@utility rule-hair-b  { border-bottom: var(--rule-hair); }
+@utility rule-hair-l  { border-left: var(--rule-hair); }
+@utility rule-hair-r  { border-right: var(--rule-hair); }
+
 @layer components {
   /* Hide the scrollbar on horizontally-scrollable strips (topic tabs,
      filter rows) while keeping them scrollable by touch / wheel. */
@@ -888,16 +906,6 @@
      through the --rule-* tokens so a single set of classes serves both
      the paper and navy canvases.
   */
-
-  /* The three rule weights, as top / bottom / side borders. */
-  .rule-major     { border-top: var(--rule-major); }
-  .rule-major-b   { border-bottom: var(--rule-major); }
-  .rule-band      { border-top: var(--rule-band); }
-  .rule-band-b    { border-bottom: var(--rule-band); }
-  .rule-hair      { border-top: var(--rule-hair); }
-  .rule-hair-b    { border-bottom: var(--rule-hair); }
-  .rule-hair-l    { border-left: var(--rule-hair); }
-  .rule-hair-r    { border-right: var(--rule-hair); }
 
   /* Overline / label. The 10px mono uppercase line that heads every
      block. `.bs-label-accent` is the same line in the brand accent. */
