@@ -33,7 +33,6 @@ import { AnimatedBackground } from "./AnimatedBackground";
 import { DemoModeBanner } from "./DemoModeBanner";
 import { IosSafariNudge } from "./IosSafariNudge";
 import { FeedbackButton } from "./FeedbackButton";
-import { LiveTicker } from "./LiveTicker";
 import { Footer } from "./desk/Footer";
 import { MobilePageNav, SlimMasthead } from "./broadsheet/Masthead";
 import { UtilityBar } from "./broadsheet/UtilityBar";
@@ -157,7 +156,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
       </a>
       {theme === "dark" && <AnimatedBackground />}
       <DemoModeBanner />
-      <LiveTicker />
 
       <main
         id="main-content"

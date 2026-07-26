@@ -1043,18 +1043,6 @@
   100% { transform: scale(2.6); opacity: 0; }
 }
 
-@keyframes ticker-scroll {
-  0%   { transform: translate3d(0, 0, 0); }
-  100% { transform: translate3d(-50%, 0, 0); }
-}
-
-.ticker-track {
-  /* 110s (was 70s) so the strip reads at a calmer ~55px/s rather than
-     racing past. Speed still scales with item count — see note in
-     LiveTicker.tsx if a constant-speed pass is wanted later. */
-  animation: ticker-scroll 110s linear infinite;
-}
-
 @keyframes reveal-up {
   from { transform: translateY(110%); opacity: 0; }
   to   { transform: translateY(0%);   opacity: 1; }
@@ -1107,7 +1095,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .ambient-orb-1, .ambient-orb-2, .ambient-orb-3, .live-dot::before, .skeleton,
-  .hero-cover-img, .hero-cover-shine, .ticker-track, .reveal-mask > *,
+  .hero-cover-img, .hero-cover-shine, .reveal-mask > *,
   .first-paint-mark, .first-paint-rule, .first-paint-content {
     animation: none !important;
     opacity: 1 !important;

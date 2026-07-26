@@ -1,7 +1,7 @@
 /**
  * Filters a list of feed items through the user's topic-allowlist
  * preference. Centralised so every surface that consumes feed items
- * (Today, Today-in-brief, TodaysTopics rail, LiveTicker, Archive
+ * (Today, the index strip, TodaysTopics rail, Archive
  * overview, search results) gets the same gate without each component
  * having to know about UserPrefs.
  *
