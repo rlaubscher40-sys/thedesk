@@ -196,7 +196,6 @@ export default function StoryPage() {
             alt=""
             aspect="16 / 9"
             className="mt-7"
-            caption={story.source ? `Source: ${story.source}` : undefined}
           />
 
           {/* Body prose with the existing `.has-dropcap` treatment.

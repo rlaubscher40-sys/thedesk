@@ -77,7 +77,6 @@ export function Lead({ item }: { item: DailyFeedItem }) {
           alt=""
           className="mt-6"
           aspect="16 / 9"
-          caption={item.source ? `Source: ${item.source}` : undefined}
         />
 
         {(item.whyItMatters || item.counterpoint) && (

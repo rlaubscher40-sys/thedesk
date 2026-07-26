@@ -59,7 +59,12 @@ export function StoryImage({
           <img
             src={url}
             alt={alt}
-            className="editorial-art-img absolute inset-0 h-full w-full object-cover object-center"
+            // Deliberately NOT .editorial-art-img: that class fades art to
+            // 62% and desaturates it, which existed to stop dark-authored
+            // illustrations reading as black rectangles *behind* text on
+            // the old cards. Here the image is a standalone framed
+            // element, so it renders at full strength.
+            className="absolute inset-0 h-full w-full object-cover object-center"
             loading="lazy"
             decoding="async"
             onError={() => setFailed(true)}
