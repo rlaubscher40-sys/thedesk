@@ -1,12 +1,17 @@
 /**
- * Editor's letter, the 800-1200 word narrative thread that runs across an
- * edition's topics. Collapsed by default on mobile so the lead and topic
- * deck land sooner; expanded by default on desktop where the two-column
- * broadsheet layout actually earns its room. Choice persists in
- * localStorage so the reader's preference sticks across visits.
+ * Editor's letter — the 800-1200 word narrative thread that runs across an
+ * edition's topics.
+ *
+ * The redesign's section list for the edition reader doesn't name this
+ * block, but it carries real editorial prose (not chrome), so it is kept
+ * rather than dropped: a major rule, a section head, and the same
+ * two-column measure with a drop cap the lead topic uses. The
+ * collapse-on-mobile behaviour and its localStorage key are unchanged.
  */
 import { useEffect, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { cn } from "@/lib/cn";
+import { dedash } from "@/lib/dedash";
+import { GUTTER_X } from "@/components/broadsheet/tokens";
 
 const STORAGE_KEY = "thedesk:editors-letter-expanded";
 
@@ -27,70 +32,44 @@ export function EditorsLetter({ fullText }: { fullText: string }) {
 
   // Word-count hint when collapsed so the reader knows what they're
   // skipping. Cheap split, good enough for the header.
-  const wordCount = fullText.trim().split(/\s+/).length;
-  const minutes = Math.max(1, Math.round(wordCount / 220));
+  const minutes = Math.max(1, Math.round(fullText.trim().split(/\s+/).length / 220));
+  const paragraphs = fullText
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean);
 
   return (
-    <section
-      className="panel rounded-sm mb-12 overflow-hidden"
-      aria-label="Editor's letter"
-    >
+    <section className={cn(GUTTER_X, "rule-major mt-11 pt-5")} aria-label="Editor's letter">
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
         aria-expanded={expanded}
         aria-controls="editors-letter-body"
-        className="w-full text-left flex items-center justify-between gap-4 px-8 sm:px-12 lg:px-16 py-6 hover:bg-white/[0.02] transition-colors"
+        className="bs-link flex w-full items-baseline justify-between gap-4 text-left"
       >
-        <div className="inline-flex items-center gap-3 flex-wrap">
-          <span
-            className="inline-block h-px w-8"
-            style={{
-              background:
-                "linear-gradient(90deg, var(--color-amber), oklch(0.75 0.18 70 / 20%))",
-            }}
-            aria-hidden="true"
-          />
-          <p
-            className="overline-amber"
-            style={{ letterSpacing: "0.24em", fontSize: "11px" }}
-          >
-            Editor's letter
-          </p>
-          {!expanded && (
-            <span
-              className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-fg-subtle)]"
-            >
-              {minutes} min read
-            </span>
-          )}
-        </div>
-        <ChevronDown
-          className="h-3.5 w-3.5 text-[var(--color-fg-subtle)] shrink-0 transition-transform"
-          style={{ transform: expanded ? "rotate(180deg)" : "none" }}
-          aria-hidden="true"
-        />
+        <span className="bs-label" style={{ letterSpacing: "0.24em" }}>
+          Editor&apos;s letter
+        </span>
+        <span className="bs-label">
+          {expanded ? "Collapse" : `${minutes} min read · Read →`}
+        </span>
       </button>
 
       {expanded && (
-        <div
-          id="editors-letter-body"
-          className="px-8 sm:px-12 lg:px-16 pb-8 sm:pb-12 lg:pb-16"
-        >
-          <div
-            className="has-dropcap text-[var(--color-fg-muted)] whitespace-pre-line lg:columns-2"
-            style={{
-              columnGap: "3rem",
-              columnRuleWidth: "1px",
-              columnRuleStyle: "solid",
-              columnRuleColor: "var(--color-border)",
-              columnFill: "balance",
-              fontSize: "15.5px",
-              lineHeight: "1.75",
-            }}
-          >
-            {fullText}
-          </div>
+        <div id="editors-letter-body" className="bs-columns has-dropcap mt-6">
+          {paragraphs.map((para, i) => (
+            <p
+              key={i}
+              style={{
+                fontSize: 16.5,
+                lineHeight: 1.75,
+                color: "var(--color-fg-body)",
+                margin: "0 0 18px 0",
+              }}
+            >
+              {dedash(para)}
+            </p>
+          ))}
         </div>
       )}
     </section>

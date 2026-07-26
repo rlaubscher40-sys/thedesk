@@ -42,9 +42,10 @@ export function TalkingPointsBlock({ points }: { points: TalkingPoints }) {
   });
 
   return (
-    <div className="mt-5 pt-4 border-t border-[var(--color-border)]">
-      <p className="overline mb-3">Talking points</p>
-      <ul className="space-y-2.5">
+    // The heading belongs to the calling section (the edition lead topic
+    // sets it beside "What to watch"), so this renders the rows only.
+    <div>
+      <ul className="list-none m-0 p-0 flex flex-col gap-3.5">
         {sorted.map(([partner, line], idx) => (
           // partner key is defensive, duplicate keys in the source JSON would
           // otherwise trigger React key warnings (issue #1).
@@ -82,31 +83,36 @@ function TalkingPointLine({
     }
   }
 
+  // Persona label / line / copy affordance on one baseline grid, active
+  // persona at full ink and the rest muted — no panel, no borders.
   return (
-    <li
-      className="flex items-start gap-3 text-sm transition-opacity"
-      style={highlighted ? undefined : { opacity: 0.55 }}
-    >
+    <li className="grid grid-cols-[118px_minmax(0,1fr)_24px] gap-3 items-baseline">
       <span
-        className="overline mt-1 w-28 shrink-0 truncate"
-        style={highlighted ? { color: "var(--color-amber)" } : undefined}
+        className="font-mono uppercase truncate"
+        style={{
+          fontSize: 10,
+          letterSpacing: "0.14em",
+          color: highlighted ? "var(--color-accent-text)" : "var(--color-fg-muted)",
+        }}
+        title={personaDisplayLabel(partner)}
       >
         {personaDisplayLabel(partner)}
       </span>
       <span
-        className="flex-1 leading-relaxed"
         style={{
-          color: highlighted ? "var(--color-fg)" : "var(--color-fg-muted)",
+          fontSize: 15.5,
+          lineHeight: 1.55,
+          color: highlighted ? "var(--color-fg-body)" : "var(--color-fg-muted)",
         }}
       >
-        {line}
+        &ldquo;{line}&rdquo;
       </span>
       <button
         onClick={handleCopy}
         aria-label={copied ? "Copied" : `Copy line for ${partner}`}
-        className="p-1 rounded text-[var(--color-fg-subtle)] hover:text-amber-300 shrink-0"
+        className="bs-link justify-self-end text-[var(--color-fg-subtle)]"
       >
-        {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+        {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
       </button>
     </li>
   );

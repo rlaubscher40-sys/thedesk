@@ -21,6 +21,8 @@ import { EditionReader } from "@/components/editions/EditionReader";
 import { EditionReaderSkeleton } from "@/components/editions/EditionReaderSkeleton";
 import { EditionSelector } from "@/components/editions/EditionSelector";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { GUTTER_X } from "@/components/broadsheet/tokens";
+import { cn } from "@/lib/cn";
 import { useAuth } from "@/lib/useAuth";
 import { useEditionMeta } from "@/lib/useEditionMeta";
 import { getNextEditionLabel } from "@/lib/date";
@@ -100,37 +102,40 @@ export default function EditionsPage() {
 
   return (
     <div>
-      <PageHeader
-        overline="The Desk · Editions"
-        title="Weekly deep dives"
-        kicker="Editorial intelligence for partner conversations. New edition each Sunday."
-        actions={
-          <div className="flex items-end gap-4">
-            <EditionsMetaPanel editions={listQuery.data ?? []} />
-            {user?.role === "admin" && <BackfillRubensTakeButton />}
-          </div>
-        }
-      />
+      {/* Header + selector are page chrome, so they carry the gutter
+          themselves — the reader below lays out gutter-to-gutter and owns
+          its own. */}
+      <div className={cn(GUTTER_X, "pt-8")}>
+        <PageHeader
+          overline="The Desk · Editions"
+          title="Weekly deep dives"
+          kicker="Editorial intelligence for partner conversations. New edition each Sunday."
+          actions={
+            <div className="flex items-end gap-4">
+              <EditionsMetaPanel editions={listQuery.data ?? []} />
+              {user?.role === "admin" && <BackfillRubensTakeButton />}
+            </div>
+          }
+        />
 
-      {/* Horizontal selector row. Empty + loading states handled by the
-          reader block below so the chrome doesn't double-render an empty
-          message, see the EmptyEditions component. */}
-      <SectionErrorBoundary section="Editions selector">
-        {listQuery.isLoading ? (
-          <SelectorSkeleton />
-        ) : listQuery.data && listQuery.data.length > 0 ? (
-          <EditionSelector
-            editions={listQuery.data}
-            activeNumber={selectedNumber}
-          />
-        ) : null}
-      </SectionErrorBoundary>
+        {/* Horizontal selector row. Empty + loading states handled by the
+            reader block below so the chrome doesn't double-render an empty
+            message, see the EmptyEditions component. */}
+        <SectionErrorBoundary section="Editions selector">
+          {listQuery.isLoading ? (
+            <SelectorSkeleton />
+          ) : listQuery.data && listQuery.data.length > 0 ? (
+            <EditionSelector editions={listQuery.data} activeNumber={selectedNumber} />
+          ) : null}
+        </SectionErrorBoundary>
+      </div>
 
-      {/* Full-width reader. */}
-      <div className="mt-12">
+      <div className="mt-11">
         <SectionErrorBoundary section="Edition reader">
           {listQuery.isLoading || editionQuery.isLoading ? (
-            <EditionReaderSkeleton />
+            <div className={GUTTER_X}>
+              <EditionReaderSkeleton />
+            </div>
           ) : editionQuery.data ? (
             <EditionReader
               edition={editionQuery.data}
@@ -138,7 +143,9 @@ export default function EditionsPage() {
               priorMarketStress={priorMarketStress}
             />
           ) : (
-            <EmptyEditions />
+            <div className={GUTTER_X}>
+              <EmptyEditions />
+            </div>
           )}
         </SectionErrorBoundary>
       </div>
