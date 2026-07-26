@@ -43,11 +43,19 @@ const ThemeContext = createContext<Ctx | null>(null);
 const STORAGE_KEY = "thedesk:theme";
 const READING_SIZE_KEY = "thedesk:reading-size";
 
+/**
+ * The broadsheet redesign makes the warm-paper light theme the product's
+ * default; dark is the alternate a reader opts into. Mirrored by the
+ * pre-paint script in client/index.html — change both together or the
+ * first frame flashes the wrong canvas.
+ */
+const DEFAULT_THEME: ThemeMode = "light";
+
 function readStored(): ThemeMode {
-  if (typeof window === "undefined") return "dark";
+  if (typeof window === "undefined") return DEFAULT_THEME;
   const stored = window.localStorage.getItem(STORAGE_KEY);
   if (stored === "light" || stored === "dark" || stored === "system") return stored;
-  return "dark";
+  return DEFAULT_THEME;
 }
 
 function readStoredReadingSize(): ReadingSize {
@@ -57,8 +65,8 @@ function readStoredReadingSize(): ReadingSize {
 }
 
 function readSystem(): ResolvedTheme {
-  if (typeof window === "undefined") return "dark";
-  return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  if (typeof window === "undefined") return "light";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
@@ -69,8 +77,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // Listen for OS theme flips so "system" mode follows live.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const mq = window.matchMedia("(prefers-color-scheme: light)");
-    const onChange = () => setSystemPreferred(mq.matches ? "light" : "dark");
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = () => setSystemPreferred(mq.matches ? "dark" : "light");
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
   }, []);
@@ -96,10 +104,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  // Legacy toggle: cycle dark → light → system → dark.
+  // Legacy toggle: cycle light → dark → system → light, starting from the
+  // product default.
   const toggleTheme = useCallback(() => {
     setThemeState((t) =>
-      t === "dark" ? "light" : t === "light" ? "system" : "dark"
+      t === "light" ? "dark" : t === "dark" ? "system" : "light"
     );
   }, []);
 

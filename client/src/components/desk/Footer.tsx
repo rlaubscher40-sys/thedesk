@@ -1,99 +1,128 @@
 /**
- * Site footer. Three rows:
+ * Site footer, broadsheet register.
  *
- *   1. Brand line + edition meta + nav links
- *   2. Legal disclaimer ("General information only, not financial advice")
- *   3. Publisher line (curator + copyright)
+ * Two variants of the same content:
  *
- * The disclaimer is required for an Australian audience, ASIC treats
+ *   · full    — Today. Lockup + nav, the ASIC disclaimer, publisher line.
+ *   · compact — every other page. A single hairline-topped row of
+ *               publisher line and links.
+ *
+ * The disclaimer is required for an Australian audience: ASIC treats
  * commentary on rates / property as "general advice" by default and
  * expects a visible disclaimer that the content isn't personal advice.
+ * Its wording is unchanged from the pre-redesign footer.
  */
 import { Link } from "wouter";
-import { Instagram } from "@/components/icons/BrandIcons";
-import { BrandLockup } from "@/components/Logomark";
+import { cn } from "@/lib/cn";
+import { Logomark } from "@/components/Logomark";
+import { useAuth } from "@/lib/useAuth";
+import { useTheme } from "@/lib/theme";
 import { useLiveEditionMeta } from "@/lib/useLiveEditionMeta";
+import { GUTTER_X } from "@/components/broadsheet/tokens";
 
-export function Footer() {
-  const edition = useLiveEditionMeta();
+const LINKS = [
+  { href: "/about", label: "About" },
+  { href: "/editorial-standards", label: "Editorial standards" },
+  { href: "/corrections", label: "Corrections" },
+  { href: "/privacy", label: "Privacy" },
+  { href: "/terms", label: "Terms" },
+  // The broadsheet has no sidebar, so the two destinations it used to
+  // carry that aren't in the masthead nav or the utility bar land here.
+  { href: "/install", label: "Get the app" },
+];
+
+const DISCLAIMER =
+  "The Desk publishes editorial commentary on macro, property and policy " +
+  "developments relevant to the partner channel. Nothing on this site " +
+  "constitutes personal financial, tax, legal or property advice. Before " +
+  "acting on anything you read here, consider whether it's appropriate to " +
+  "your circumstances and seek qualified advice.";
+
+function FooterNav() {
+  const { user } = useAuth();
   return (
-    <footer className="mt-16 border-t border-[var(--color-border)] pt-6 pb-10 space-y-5 text-[var(--color-fg-subtle)]">
-      {/* Row 1, canonical lockup + edition + nav. The lockup replaces
-          the prior plain-text "The Desk · ..." string so the footer
-          carries the same brand surface as every other masthead. */}
-      <div className="flex items-center justify-between flex-wrap gap-6">
-        <BrandLockup size={28} />
-        {edition && (
-          <p
-            className="font-mono uppercase tracking-[0.16em]"
-            style={{ fontSize: "10px" }}
-          >
-            Edition {edition.number} · {edition.longDate}
-          </p>
+    <nav className="flex gap-5 flex-wrap" aria-label="Footer navigation">
+      {LINKS.map((l) => (
+        <Link key={l.label} href={l.href} className="bs-label bs-link">
+          {l.label}
+        </Link>
+      ))}
+      {user?.role === "admin" && (
+        <Link href="/admin" className="bs-label bs-link">
+          Admin
+        </Link>
+      )}
+      <a href="/feed.xml" className="bs-label bs-link">
+        RSS
+      </a>
+      <a
+        href="https://www.instagram.com/thedesk.au/"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="bs-label bs-link"
+      >
+        @thedesk.au
+      </a>
+    </nav>
+  );
+}
+
+function PublisherLine({ prefix }: { prefix?: string }) {
+  return (
+    <span className="bs-label" style={{ letterSpacing: "0.16em" }}>
+      {prefix ? `${prefix} · ` : ""}Curated by Ruben Laubscher · ©{" "}
+      {new Date().getFullYear()} The Desk
+    </span>
+  );
+}
+
+export function Footer({ compact = false }: { compact?: boolean }) {
+  const edition = useLiveEditionMeta();
+  const { resolvedTheme } = useTheme();
+
+  if (compact) {
+    return (
+      <footer
+        className={cn(
+          GUTTER_X,
+          "rule-hair mt-9 pt-5 pb-10 flex items-center justify-between flex-wrap gap-5"
         )}
-        <nav className="flex gap-5 flex-wrap" aria-label="Footer navigation">
-          {[
-            { href: "/about", label: "About" },
-            { href: "/editorial-standards", label: "Editorial standards" },
-            { href: "/corrections", label: "Corrections" },
-            { href: "/privacy", label: "Privacy" },
-            { href: "/terms", label: "Terms" },
-          ].map((l) => (
-            <Link
-              key={l.label}
-              href={l.href}
-              className="font-mono uppercase tracking-[0.16em] hover:text-amber-300 transition-colors"
-              style={{ fontSize: "10px" }}
-            >
-              {l.label}
-            </Link>
-          ))}
-          <a
-            href="/feed.xml"
-            className="font-mono uppercase tracking-[0.16em] hover:text-amber-300 transition-colors"
-            style={{ fontSize: "10px" }}
+      >
+        <PublisherLine prefix={edition ? `Edition ${edition.number}` : undefined} />
+        <FooterNav />
+      </footer>
+    );
+  }
+
+  return (
+    <footer className={cn(GUTTER_X, "rule-hair mt-11 pt-5 pb-11 space-y-4")}>
+      <div className="flex items-center justify-between flex-wrap gap-6">
+        <div className="flex items-center gap-3">
+          <Logomark size={26} animated={false} />
+          <span
+            className={cn("font-serif font-bold", resolvedTheme === "dark" && "wordmark")}
+            style={{ fontSize: 19, letterSpacing: "-0.02em" }}
           >
-            RSS
-          </a>
-        </nav>
+            The Desk
+          </span>
+          <span className="bs-label" style={{ letterSpacing: "0.22em" }}>
+            Intelligence
+          </span>
+        </div>
+        <FooterNav />
       </div>
 
-      {/* Row 2, disclaimer. */}
       <p
-        className="text-[11px] leading-relaxed max-w-[78ch]"
-        style={{ color: "var(--color-fg-subtle)" }}
+        className="max-w-[78ch] text-[var(--color-fg-muted)]"
+        style={{ fontSize: 11.5, lineHeight: 1.6 }}
       >
-        <span className="font-mono uppercase tracking-[0.16em] mr-2" style={{ fontSize: "10px" }}>
+        <span className="bs-label mr-2" style={{ letterSpacing: "0.16em" }}>
           General information only
         </span>
-        The Desk publishes editorial commentary on macro, property and policy
-        developments relevant to the partner channel. Nothing on this site
-        constitutes personal financial, tax, legal or property advice. Before
-        acting on anything you read here, consider whether it's appropriate
-        to your circumstances and seek qualified advice.
+        {DISCLAIMER}
       </p>
 
-      {/* Row 3, publisher + Instagram. */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <p
-          className="font-mono tracking-[0.12em]"
-          style={{ fontSize: "10px" }}
-        >
-          Curated by Ruben Laubscher ·{" "}
-          © {new Date().getFullYear()} The Desk
-        </p>
-        <a
-          href="https://www.instagram.com/thedesk.au/"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="The Desk on Instagram"
-          className="inline-flex items-center gap-1.5 font-mono uppercase tracking-[0.14em] text-[var(--color-fg-subtle)] hover:text-amber-300 transition-colors"
-          style={{ fontSize: "10px" }}
-        >
-          <Instagram className="h-3 w-3" />
-          @thedesk.au
-        </a>
-      </div>
+      <PublisherLine />
     </footer>
   );
 }

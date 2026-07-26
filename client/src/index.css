@@ -79,12 +79,37 @@
   --radius-md: 4px;
   --radius-lg: 8px;
 
+  /* ─── Broadsheet rules ──────────────────────────────────────
+     The redesign uses exactly three rule weights and nothing else:
+     major = section break, band = folio / band edge, hair = row and
+     column hairlines. They're tokens rather than literals because the
+     major rule is the one thing an automated light→dark swap gets
+     wrong: 3px of solid ink is right on paper and far too heavy on a
+     navy canvas, so dark substitutes 2px at 40% foreground. */
+  --rule-major: 2px solid oklch(0.94 0.005 80 / 40%);
+  --rule-band: 1px solid var(--color-border-strong);
+  --rule-hair: 1px solid var(--color-border);
+
+  /* Metric sentiment — is this number moving the way the partner channel
+     wants? Tokenised (rather than read from the SENTIMENT_COLOUR map in
+     lib/metrics) so deltas and arrows rendered as *text* stay theme-aware;
+     the SVG charts still need resolved values, which live alongside these
+     in components/charts/BroadsheetCharts.tsx. */
+  --sentiment-good: oklch(0.72 0.17 155);
+  --sentiment-bad: oklch(0.68 0.20 15);
+  --sentiment-neutral: oklch(0.80 0.17 72);
+
   --color-bg: oklch(0.11 0.018 260);
   --color-bg-elevated: oklch(0.16 0.018 260);
   --color-bg-deep: oklch(0.08 0.018 260);
   --color-fg: oklch(0.94 0.005 80);
   --color-fg-muted: oklch(0.68 0.012 260);
   --color-fg-subtle: oklch(0.62 0.012 260);
+  /* Long-form prose ink. Sits between --color-fg and --color-fg-muted:
+     muted is tuned for labels and metadata and reads too light across a
+     66ch measure of 18px body copy. Every broadsheet body paragraph uses
+     this rather than inlining a one-off oklch(). */
+  --color-fg-body: oklch(0.82 0.008 260);
 
   --color-amber: oklch(0.75 0.18 70);
   --color-amber-bright: oklch(0.88 0.19 82);
@@ -225,8 +250,17 @@
   --color-fg: oklch(0.16 0.018 260);
   --color-fg-muted: oklch(0.40 0.015 260);
   --color-fg-subtle: oklch(0.42 0.015 260);
+  --color-fg-body: oklch(0.22 0.015 260);
   --color-border: oklch(0 0 0 / 12%);
   --color-border-strong: oklch(0 0 0 / 22%);
+
+  /* Solid ink on paper — the broadsheet's defining section break. */
+  --rule-major: 3px solid oklch(0.16 0.018 260);
+
+  /* Sentiment pulls deeper so the delta text clears AA on warm paper. */
+  --sentiment-good: oklch(0.45 0.17 155);
+  --sentiment-bad: oklch(0.48 0.20 15);
+  --sentiment-neutral: oklch(0.54 0.16 55);
 
   /* Amber accents pull deeper in light mode so they don't glow out
      against the paper canvas. */
@@ -485,7 +519,9 @@
     float: left;
     line-height: 0.9;
     padding: 0.05em 0.08em 0 0;
-    color: var(--color-amber);
+    /* Accent-text, not raw amber: on the paper canvas the bright amber
+       drop cap glows out against 18px body ink. */
+    color: var(--color-accent-text);
   }
 
   *:focus-visible {
@@ -844,6 +880,125 @@
   .ambient-orb-1 { animation: orb-drift-1 26s ease-in-out infinite; }
   .ambient-orb-2 { animation: orb-drift-2 32s ease-in-out infinite; }
   .ambient-orb-3 { animation: orb-drift-3 38s ease-in-out infinite; }
+
+  /* ═══ Broadsheet ═══════════════════════════════════════════
+     The redesign's shared vocabulary. Editorial content carries no
+     cards, no radius, no shadow — structure comes from rules and
+     symmetric column padding instead. Everything below is theme-aware
+     through the --rule-* tokens so a single set of classes serves both
+     the paper and navy canvases.
+  */
+
+  /* The three rule weights, as top / bottom / side borders. */
+  .rule-major     { border-top: var(--rule-major); }
+  .rule-major-b   { border-bottom: var(--rule-major); }
+  .rule-band      { border-top: var(--rule-band); }
+  .rule-band-b    { border-bottom: var(--rule-band); }
+  .rule-hair      { border-top: var(--rule-hair); }
+  .rule-hair-b    { border-bottom: var(--rule-hair); }
+  .rule-hair-l    { border-left: var(--rule-hair); }
+  .rule-hair-r    { border-right: var(--rule-hair); }
+
+  /* Overline / label. The 10px mono uppercase line that heads every
+     block. `.bs-label-accent` is the same line in the brand accent. */
+  .bs-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--color-fg-muted);
+  }
+  .bs-label-accent {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--color-accent-text);
+  }
+
+  /* Inverted band (subscribe CTA). On paper this is a solid ink panel
+     with paper-white type. On navy there is no "more ink" to invert
+     into, so it becomes an elevated panel ringed in amber instead —
+     the substitution called out in the redesign brief. */
+  .bs-ink-band {
+    background: var(--color-bg-elevated);
+    color: var(--color-fg);
+    box-shadow: inset 0 0 0 1px oklch(0.80 0.17 72 / 30%);
+  }
+  .light .bs-ink-band {
+    background: oklch(0.16 0.018 260);
+    color: oklch(0.97 0.005 82);
+    box-shadow: none;
+  }
+  /* Muted / subtle text *inside* an ink band can't use the page tokens —
+     they resolve to dark ink on what is now a dark panel. */
+  .bs-ink-band .bs-label,
+  .bs-ink-band .bs-band-muted {
+    color: oklch(0.72 0.01 260);
+  }
+
+  /* Primary button. Ink fill on paper, amber fill on navy. */
+  .bs-btn {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    border-radius: var(--radius-sm);
+    padding: 12px 18px;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: opacity 150ms var(--ease-standard),
+      background-color 150ms var(--ease-standard);
+  }
+  .bs-btn-solid {
+    border: 0;
+    background: oklch(0.80 0.17 72);
+    color: oklch(0.14 0.018 260);
+  }
+  .light .bs-btn-solid {
+    background: oklch(0.16 0.018 260);
+    color: oklch(0.97 0.005 82);
+  }
+  .bs-btn-solid:hover { opacity: 0.88; }
+  .bs-btn-outline {
+    border: 1px solid var(--color-border-strong);
+    background: transparent;
+    color: var(--color-fg);
+  }
+  .bs-btn-outline:hover {
+    background: color-mix(in oklab, var(--color-fg) 6%, transparent);
+  }
+  /* Outline button sitting on an ink band inherits the band's foreground,
+     not the page's. */
+  .bs-ink-band .bs-btn-outline {
+    border-color: oklch(1 0 0 / 20%);
+    color: inherit;
+  }
+
+  /* Editorial hover. Links and headlines take the accent; rows take a
+     3% ink wash. No lift, no shadow, no scale — see .hover-lift, which
+     is deliberately retired from editorial content. */
+  .bs-link {
+    transition: color 150ms var(--ease-standard);
+  }
+  .bs-link:hover,
+  .bs-link:focus-visible { color: var(--color-accent-text); }
+  .bs-row {
+    transition: background-color 150ms var(--ease-standard);
+  }
+  .bs-row:hover {
+    background: color-mix(in oklab, var(--color-fg) 3%, transparent);
+  }
+
+  /* Two-column body prose for the edition lead topic. */
+  .bs-columns {
+    columns: 2;
+    column-gap: 52px;
+    column-rule: var(--rule-hair);
+  }
+  @media (max-width: 1000px) {
+    .bs-columns { columns: 1; }
+  }
 }
 
 @layer utilities {
