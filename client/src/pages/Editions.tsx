@@ -2,25 +2,23 @@
  * Editions page.
  *
  * Editorial flow, top-to-bottom:
- *   1. PageHeader, title, kicker, Backfill button (admin)
+ *   1. Broadsheet title block with next-edition / published / avg-read
+ *      figures, plus the Backfill button for admins
  *   2. Horizontal EditionSelector, every edition as a card row
  *   3. EditionReader, full-width reader for the selected edition
  *
- * Previously the editions list was a sticky-left-rail and the reader sat
- * in the right column. On wide viewports the rail wasted ~25% of the
- * horizontal real estate. Promoting the list to a horizontal row at the
- * top frees the reader to occupy the full width.
+ * The title block and selector are page chrome and carry their own
+ * gutter; the reader below lays out gutter-to-gutter and owns its own.
  */
 import { useEffect, useMemo } from "react";
-import { CalendarClock } from "lucide-react";
 import { useLocation, useParams } from "wouter";
-import { PageHeader } from "@/components/PageHeader";
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
 import { BackfillRubensTakeButton } from "@/components/editions/EditionAdminPanel";
 import { EditionReader } from "@/components/editions/EditionReader";
 import { EditionReaderSkeleton } from "@/components/editions/EditionReaderSkeleton";
 import { EditionSelector } from "@/components/editions/EditionSelector";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { PageTitle, type TitleStat } from "@/components/broadsheet/PageTitle";
 import { GUTTER_X } from "@/components/broadsheet/tokens";
 import { cn } from "@/lib/cn";
 import { useAuth } from "@/lib/useAuth";
@@ -105,19 +103,15 @@ export default function EditionsPage() {
       {/* Header + selector are page chrome, so they carry the gutter
           themselves — the reader below lays out gutter-to-gutter and owns
           its own. */}
-      <div className={cn(GUTTER_X, "pt-8")}>
-        <PageHeader
-          overline="The Desk · Editions"
-          title="Weekly deep dives"
-          kicker="Editorial intelligence for partner conversations. New edition each Sunday."
-          actions={
-            <div className="flex items-end gap-4">
-              <EditionsMetaPanel editions={listQuery.data ?? []} />
-              {user?.role === "admin" && <BackfillRubensTakeButton />}
-            </div>
-          }
-        />
+      <PageTitle
+        kicker="The Desk · Editions"
+        title="Weekly deep dives"
+        standfirst="Editorial intelligence for partner conversations. New edition each Sunday."
+        stats={editionStats(listQuery.data ?? [])}
+        actions={user?.role === "admin" ? <BackfillRubensTakeButton /> : undefined}
+      />
 
+      <div className={cn(GUTTER_X, "rule-major mt-7 pt-6")}>
         {/* Horizontal selector row. Empty + loading states handled by the
             reader block below so the chrome doesn't double-render an empty
             message, see the EmptyEditions component. */}
@@ -160,108 +154,48 @@ export default function EditionsPage() {
  */
 function EmptyEditions() {
   return (
-    <div
-      className="panel rounded p-10 sm:p-14 text-center max-w-[640px] mx-auto"
-      style={{ background: "var(--grad-panel-soft)" }}
-    >
-      <div
-        className="inline-flex items-center justify-center rounded-full mb-5"
-        style={{
-          width: 56,
-          height: 56,
-          background: "oklch(0.75 0.18 70 / 12%)",
-          boxShadow: "inset 0 0 0 1px oklch(0.75 0.18 70 / 30%)",
-        }}
-      >
-        <CalendarClock
-          className="h-6 w-6 text-amber-300"
-          strokeWidth={1.4}
-        />
-      </div>
-      <p
-        className="overline-amber mb-3"
-        style={{ letterSpacing: "0.24em", fontSize: "10px" }}
-      >
+    <div className="rule-hair rule-hair-b py-16 text-center">
+      <p className="bs-label-accent" style={{ letterSpacing: "0.24em" }}>
         Editions · Coming Sunday
       </p>
-      <h2 className="font-serif text-2xl sm:text-3xl font-bold leading-tight mb-3">
+      <h2
+        className="font-serif font-bold mt-3"
+        style={{ fontSize: 40, lineHeight: 1.04, letterSpacing: "-0.03em" }}
+      >
         The first Weekly Edition lands soon.
       </h2>
-      <p className="text-sm text-[var(--color-fg-muted)] leading-relaxed max-w-[44ch] mx-auto">
-        Sundays 7am AEST. A long-form read on what shifted in Australian
-        property partnerships that week, written for brokers, advisers,
-        accountants and buyer&apos;s agents. The Daily Brief ships every
-        weekday in the meantime.
+      <p className="mx-auto mt-4 max-w-[52ch] text-[var(--color-fg-muted)]">
+        Sundays 7am AEST. A long-form read on what shifted in Australian property
+        partnerships that week, written for brokers, advisers, accountants and
+        buyer&apos;s agents. The Daily Brief ships every weekday in the meantime.
       </p>
     </div>
   );
 }
 
 /**
- * Editorial meta panel for the Editions page header.
- *
- * Quiet block of mono-overline metadata that earns the right-side
- * whitespace next to the "Weekly deep dives" title. Three lines: when
- * the next edition lands, how many have shipped to date, and the
- * average read time. Falls back gracefully when there are no editions
- * yet, only the "next edition" row renders, so the panel still has
- * editorial weight without empty zeroes.
+ * Right-hand figures for the Editions title block: when the next edition
+ * lands, how many have shipped, and the average read time. Rows that have
+ * no data are omitted rather than rendered as empty zeroes.
  */
-function EditionsMetaPanel({
-  editions,
-}: {
-  editions: Array<{ readingTime?: string | null }>;
-}) {
-  const nextEdition = getNextEditionLabel();
-  const count = editions.length;
-  const avgRead = useMemo(() => {
-    if (!count) return null;
-    const minutes = editions
-      .map((e) => {
-        const raw = e.readingTime?.match(/(\d+)/)?.[1];
-        return raw ? parseInt(raw, 10) : null;
-      })
-      .filter((m): m is number => m !== null && m > 0);
-    if (!minutes.length) return null;
-    return Math.round(minutes.reduce((a, b) => a + b, 0) / minutes.length);
-  }, [editions, count]);
-
-  return (
-    <div
-      className="hidden md:block panel rounded-sm px-5 py-4 space-y-3.5 text-right shrink-0"
-      style={{ minWidth: 200 }}
-    >
-      <MetaRow label="Next edition" value={`${nextEdition} · 07:00 AEST`} />
-      {count > 0 && (
-        <MetaRow
-          label="Editions published"
-          value={String(count).padStart(2, "0")}
-        />
-      )}
-      {avgRead !== null && (
-        <MetaRow label="Avg read time" value={`${avgRead} min`} />
-      )}
-    </div>
-  );
-}
-
-function MetaRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="space-y-1">
-      <p
-        className="font-mono uppercase text-[var(--color-fg-subtle)]"
-        style={{ fontSize: "10px", letterSpacing: "0.22em" }}
-      >
-        {label}
-      </p>
-      <p
-        className="font-mono text-[var(--color-fg)] tabular-nums"
-        style={{ fontSize: "12px", letterSpacing: "0.04em" }}
-      >
-        {value}
-      </p>
-    </div>
-  );
+function editionStats(
+  editions: Array<{ readingTime?: string | null }>
+): TitleStat[] {
+  const stats: TitleStat[] = [{ label: "Next edition", value: getNextEditionLabel() }];
+  if (editions.length > 0) {
+    stats.push({ label: "Published", value: String(editions.length) });
+  }
+  const minutes = editions
+    .map((e) => {
+      const raw = e.readingTime?.match(/(\d+)/)?.[1];
+      return raw ? parseInt(raw, 10) : null;
+    })
+    .filter((m): m is number => m !== null && m > 0);
+  if (minutes.length > 0) {
+    const avg = Math.round(minutes.reduce((a, b) => a + b, 0) / minutes.length);
+    stats.push({ label: "Avg read", value: `${avg} min` });
+  }
+  return stats;
 }
 
 function SelectorSkeleton() {
@@ -270,7 +204,7 @@ function SelectorSkeleton() {
       {Array.from({ length: 4 }).map((_, i) => (
         <div
           key={i}
-          className="shrink-0 panel rounded-sm overflow-hidden"
+          className="shrink-0 overflow-hidden rule-hair-b"
           style={{ width: 240 }}
         >
           <Skeleton className="w-full" style={{ aspectRatio: "16/5" }} />

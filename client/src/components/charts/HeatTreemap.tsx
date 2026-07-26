@@ -9,7 +9,7 @@
  *
  * Tiles fade in with a stagger via CSS variable + animation-delay.
  */
-import { categoryColour } from "@/lib/category";
+import { useCategoryColour } from "@/lib/category";
 
 type Datum = {
   category: string;
@@ -120,6 +120,7 @@ export function HeatTreemap({
   width?: number;
   height?: number;
 }) {
+  const colourFor = useCategoryColour();
   if (data.length === 0) {
     return <p className="text-sm text-[var(--color-fg-muted)]">No data yet.</p>;
   }
@@ -134,7 +135,7 @@ export function HeatTreemap({
       aria-label="Category heat treemap"
     >
       {tiles.map((t, i) => {
-        const colour = categoryColour(t.category);
+        const colour = colourFor(t.category);
         const showLabel = t.w > 70 && t.h > 38;
         const showCount = t.w > 50 && t.h > 22;
         // Rough char-width budget at 10px mono + 2 letter-spacing ≈ 9px
@@ -190,7 +191,7 @@ export function HeatTreemap({
               <text
                 x={t.x + 10}
                 y={t.y + (showLabel ? 44 : 22)}
-                fill="oklch(0.94 0.005 80)"
+                style={{ fill: "var(--color-fg)" }}
                 fontFamily="Playfair Display, serif"
                 fontWeight={700}
                 fontSize={Math.min(28, Math.max(14, t.h * 0.32))}
@@ -202,7 +203,7 @@ export function HeatTreemap({
               <text
                 x={t.x + 10}
                 y={t.y + t.h - 10}
-                fill="oklch(0.62 0.012 260)"
+                style={{ fill: "var(--color-fg-subtle)" }}
                 fontFamily="JetBrains Mono, monospace"
                 fontSize={9}
                 letterSpacing="1.5"

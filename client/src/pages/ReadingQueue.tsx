@@ -6,27 +6,23 @@
  *   - Anonymous: localStorage bookmarks. Hydrated by a single feed.getByIds
  *     batch fetch so the same UI can render either source.
  *
- * Both modes share status tabs (All / Unread / Read, Unread/Read only
- * meaningful when authenticated) and a "group by category" toggle that
- * folds the queue into category sections.
+ * Both modes share status tabs (All / Unread / Read, meaningful only when
+ * authenticated) and a "group by category" toggle.
+ *
+ * Redesign: the panel cards are gone. Saved items are an index — a meta
+ * column beside headline and summary, on hairlines — matching the Archive
+ * results. All queue behaviour and its optimistic mutations are unchanged.
  */
 import { useMemo, useState } from "react";
-import {
-  Check,
-  CheckCheck,
-  ExternalLink,
-  LayoutGrid,
-  List,
-  Trash2,
-} from "lucide-react";
+import { Check, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "wouter";
 import type { DailyFeedItem } from "@shared/types";
-import { PageHeader } from "@/components/PageHeader";
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
-import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { categoryAccentClass, categoryColour } from "@/lib/category";
+import { PageTitle } from "@/components/broadsheet/PageTitle";
+import { GUTTER_X } from "@/components/broadsheet/tokens";
+import { useCategoryColour } from "@/lib/category";
 import { cn } from "@/lib/cn";
 import { formatRelative } from "@/lib/date";
 import { useAuth } from "@/lib/useAuth";
@@ -56,14 +52,10 @@ export default function ReadingQueuePage() {
   const [status, setStatus] = useState<StatusFilter>("all");
   const [grouped, setGrouped] = useState(false);
 
-  return (
-    <div>
-      {isAuthenticated ? (
-        <AuthQueue status={status} grouped={grouped} onStatus={setStatus} onGrouped={setGrouped} />
-      ) : (
-        <AnonQueue grouped={grouped} onGrouped={setGrouped} />
-      )}
-    </div>
+  return isAuthenticated ? (
+    <AuthQueue status={status} grouped={grouped} onStatus={setStatus} onGrouped={setGrouped} />
+  ) : (
+    <AnonQueue grouped={grouped} onGrouped={setGrouped} />
   );
 }
 
@@ -135,20 +127,32 @@ function AuthQueue({
   const unreadCount = rows.filter((r) => !r.isRead).length;
 
   return (
-    <>
-      <PageHeader
-        overline="The Desk · Reading queue"
+    <div>
+      <PageTitle
+        kicker="The Desk · Reading queue"
         title="Saved items"
-        kicker={
+        standfirst={
           rows.length === 0
             ? "Nothing here yet. Bookmark stories from Today or the Archive."
-            : `${unreadCount} unread of ${rows.length} saved`
+            : `${unreadCount} unread of ${rows.length} saved.`
+        }
+        stats={
+          rows.length > 0
+            ? [
+                { label: "Saved", value: String(rows.length) },
+                { label: "Unread", value: String(unreadCount) },
+              ]
+            : []
         }
         actions={
           unreadCount > 0 ? (
-            <Button variant="outline" size="sm" onClick={() => markAll.mutate()}>
-              <CheckCheck className="h-3.5 w-3.5" /> Mark all read
-            </Button>
+            <button
+              type="button"
+              onClick={() => markAll.mutate()}
+              className="bs-btn bs-btn-outline"
+            >
+              Mark all read
+            </button>
           ) : undefined
         }
       />
@@ -159,27 +163,29 @@ function AuthQueue({
         onGrouped={onGrouped}
         showStatusTabs
       />
-      <SectionErrorBoundary section="Reading queue">
-        {listQuery.isLoading ? (
-          <QueueSkeleton />
-        ) : rows.length === 0 ? (
-          <EmptyState />
-        ) : (
-          <QueueList
-            rows={applyFilters(rows, status)}
-            grouped={grouped}
-            onMarkRead={(idStr) => {
-              const id = Number(idStr.slice(2));
-              if (Number.isFinite(id)) markRead.mutate({ id });
-            }}
-            onRemove={(idStr) => {
-              const id = Number(idStr.slice(2));
-              if (Number.isFinite(id)) remove.mutate({ id });
-            }}
-          />
-        )}
-      </SectionErrorBoundary>
-    </>
+      <div className={GUTTER_X}>
+        <SectionErrorBoundary section="Reading queue">
+          {listQuery.isLoading ? (
+            <QueueSkeleton />
+          ) : rows.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <QueueList
+              rows={applyFilters(rows, status)}
+              grouped={grouped}
+              onMarkRead={(idStr) => {
+                const id = Number(idStr.slice(2));
+                if (Number.isFinite(id)) markRead.mutate({ id });
+              }}
+              onRemove={(idStr) => {
+                const id = Number(idStr.slice(2));
+                if (Number.isFinite(id)) remove.mutate({ id });
+              }}
+            />
+          )}
+        </SectionErrorBoundary>
+      </div>
+    </div>
   );
 }
 
@@ -222,15 +228,16 @@ function AnonQueue({
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
   return (
-    <>
-      <PageHeader
-        overline="The Desk · Reading queue"
+    <div>
+      <PageTitle
+        kicker="The Desk · Reading queue"
         title="Saved items"
-        kicker={
+        standfirst={
           ids.length === 0
             ? "Nothing here yet. Bookmark stories from Today or the Archive."
-            : `${ids.length} saved · stored on this device`
+            : `${ids.length} saved, stored on this device.`
         }
+        stats={ids.length > 0 ? [{ label: "Saved", value: String(ids.length) }] : []}
       />
       <Toolbar
         status="all"
@@ -239,24 +246,23 @@ function AnonQueue({
         onGrouped={onGrouped}
         showStatusTabs={false}
       />
-      <SectionErrorBoundary section="Reading queue">
-        {ids.length === 0 ? (
-          <EmptyState />
-        ) : itemsQuery.isLoading ? (
-          <QueueSkeleton />
-        ) : (
-          <QueueList
-            rows={rows}
-            grouped={grouped}
-            onMarkRead={undefined}
-            onRemove={(idStr) => {
-              const fid = idStr.slice(2);
-              toggle(fid);
-            }}
-          />
-        )}
-      </SectionErrorBoundary>
-    </>
+      <div className={GUTTER_X}>
+        <SectionErrorBoundary section="Reading queue">
+          {ids.length === 0 ? (
+            <EmptyState />
+          ) : itemsQuery.isLoading ? (
+            <QueueSkeleton />
+          ) : (
+            <QueueList
+              rows={rows}
+              grouped={grouped}
+              onMarkRead={undefined}
+              onRemove={(idStr) => toggle(idStr.slice(2))}
+            />
+          )}
+        </SectionErrorBoundary>
+      </div>
+    </div>
   );
 }
 
@@ -276,23 +282,40 @@ function Toolbar({
   showStatusTabs: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 flex-wrap mb-5">
+    <div
+      className={cn(
+        GUTTER_X,
+        "rule-major rule-hair-b mt-7 flex items-center justify-between gap-3 flex-wrap"
+      )}
+    >
       {showStatusTabs ? (
-        <div className="inline-flex rounded-sm border border-[var(--color-border)] p-0.5">
-          {(["all", "unread", "read"] as const).map((s) => {
+        <div className="flex">
+          {(["all", "unread", "read"] as const).map((s, i) => {
             const active = status === s;
             return (
               <button
                 key={s}
                 onClick={() => onStatus(s)}
-                className={cn(
-                  "px-3 py-1.5 rounded-sm text-[10px] font-mono uppercase tracking-[0.18em] transition-colors",
-                  active
-                    ? "bg-amber-500/15 text-amber-200"
-                    : "text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]"
-                )}
+                aria-pressed={active}
+                className={cn("bs-link py-3.5", i > 0 ? "rule-hair-l px-4" : "pr-4")}
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 11,
+                  letterSpacing: "0.16em",
+                  textTransform: "uppercase",
+                  color: active ? "var(--color-fg)" : "var(--color-fg-muted)",
+                }}
               >
-                {s}
+                <span
+                  style={{
+                    borderBottom: active
+                      ? "2px solid var(--color-accent-text)"
+                      : "2px solid transparent",
+                    paddingBottom: 3,
+                  }}
+                >
+                  {s}
+                </span>
               </button>
             );
           })}
@@ -302,10 +325,9 @@ function Toolbar({
       )}
       <button
         onClick={() => onGrouped(!grouped)}
-        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-[10px] font-mono uppercase tracking-[0.16em] text-[var(--color-fg-muted)] hover:text-amber-300 transition-colors border border-[var(--color-border)]"
+        className="bs-label bs-link py-3.5"
         title={grouped ? "Show as flat list" : "Group by category"}
       >
-        {grouped ? <List className="h-3 w-3" /> : <LayoutGrid className="h-3 w-3" />}
         {grouped ? "Flat list" : "Group by category"}
       </button>
     </div>
@@ -331,23 +353,23 @@ function QueueList({
 }) {
   if (rows.length === 0) {
     return (
-      <p className="text-sm text-[var(--color-fg-muted)]">
-        Nothing matches this filter.
-      </p>
+      <p className="py-10 text-[var(--color-fg-muted)]">Nothing matches this filter.</p>
     );
   }
+
   if (!grouped) {
     return (
-      <ul className="space-y-3">
-        {rows.map((row) => (
-          <QueueRowCard
+      <div>
+        {rows.map((row, i) => (
+          <QueueRowIndex
             key={row.id}
             row={row}
             onMarkRead={onMarkRead}
             onRemove={onRemove}
+            last={i === rows.length - 1}
           />
         ))}
-      </ul>
+      </div>
     );
   }
 
@@ -359,151 +381,151 @@ function QueueList({
     arr.push(row);
     byCategory.set(k, arr);
   }
-  const groups = Array.from(byCategory.entries()).sort(
-    ([, a], [, b]) => b.length - a.length
-  );
+  const groups = Array.from(byCategory.entries()).sort(([, a], [, b]) => b.length - a.length);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-9">
       {groups.map(([category, items]) => (
         <section key={category}>
-          <div className="flex items-center gap-3 mb-3">
-            <p
-              className="overline-amber"
-              style={{
-                color: categoryColour(category),
-                letterSpacing: "0.22em",
-              }}
-            >
-              {category}
-            </p>
-            <span className="overline text-[var(--color-fg-subtle)] tabular-nums">
-              {items.length}
-            </span>
-            <span
-              className="block flex-1 h-px bg-[var(--color-border)]"
-              aria-hidden="true"
+          <p className="bs-label mb-1.5" style={{ letterSpacing: "0.24em" }}>
+            {category} · {items.length}
+          </p>
+          {items.map((row, i) => (
+            <QueueRowIndex
+              key={row.id}
+              row={row}
+              onMarkRead={onMarkRead}
+              onRemove={onRemove}
+              last={i === items.length - 1}
             />
-          </div>
-          <ul className="space-y-3">
-            {items.map((row) => (
-              <QueueRowCard
-                key={row.id}
-                row={row}
-                onMarkRead={onMarkRead}
-                onRemove={onRemove}
-              />
-            ))}
-          </ul>
+          ))}
         </section>
       ))}
     </div>
   );
 }
 
-function QueueRowCard({
+function QueueRowIndex({
   row,
   onMarkRead,
   onRemove,
+  last,
 }: {
   row: QueueRow;
   onMarkRead?: (id: string) => void;
   onRemove: (id: string) => void;
+  last: boolean;
 }) {
+  const colourFor = useCategoryColour();
   return (
-    <li
+    <div
       className={cn(
-        "panel panel-hover p-4 rounded transition-colors",
-        row.category ? categoryAccentClass(row.category) : "accent-other",
+        "bs-row rule-hair grid grid-cols-[96px_minmax(0,1fr)_auto] gap-4 sm:gap-5 py-4 items-baseline",
+        last && "rule-hair-b",
         row.isRead && "opacity-60"
       )}
     >
-      <div className="flex items-start gap-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
-            {row.category && (
-              <span className="overline" style={{ color: "var(--color-amber)" }}>
-                {row.category}
+      <div>
+        {row.category && (
+          <p
+            className="font-mono uppercase"
+            style={{
+              fontSize: 10,
+              letterSpacing: "0.16em",
+              color: colourFor(row.category),
+            }}
+          >
+            {row.category}
+          </p>
+        )}
+        <p className="font-mono mt-1.5 text-[var(--color-fg-subtle)]" style={{ fontSize: 10 }}>
+          {formatRelative(row.createdAt)}
+        </p>
+      </div>
+
+      <div className="min-w-0">
+        {row.feedItemId ? (
+          <Link
+            href={`/story/${row.feedItemId}`}
+            className="bs-link font-serif block"
+            style={{ fontSize: 21, lineHeight: 1.28, letterSpacing: "-0.02em" }}
+          >
+            {row.title}
+          </Link>
+        ) : (
+          <p
+            className="font-serif"
+            style={{ fontSize: 21, lineHeight: 1.28, letterSpacing: "-0.02em" }}
+          >
+            {row.title}
+          </p>
+        )}
+        {row.summary && (
+          <p
+            className="mt-1.5 text-[var(--color-fg-muted)] line-clamp-2"
+            style={{ fontSize: 15, lineHeight: 1.55 }}
+          >
+            {row.summary}
+          </p>
+        )}
+        {(row.source || row.sourceUrl) && (
+          <p className="mt-1.5">
+            {row.sourceUrl ? (
+              <a
+                href={row.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bs-label bs-link"
+                style={{ letterSpacing: "0.14em" }}
+              >
+                {row.source ?? "Source"} ↗
+              </a>
+            ) : (
+              <span className="bs-label" style={{ letterSpacing: "0.14em" }}>
+                {row.source}
               </span>
             )}
-            {row.source && <span className="overline">{row.source}</span>}
-            <span className="overline">{formatRelative(row.createdAt)}</span>
-          </div>
-          {row.feedItemId ? (
-            <Link
-              href={`/story/${row.feedItemId}`}
-              className="font-serif text-base leading-snug hover:text-amber-300"
-            >
-              {row.title}
-            </Link>
-          ) : (
-            <p className="font-serif text-base leading-snug">{row.title}</p>
-          )}
-          {row.summary && (
-            <p className="text-sm text-[var(--color-fg-muted)] mt-1 leading-relaxed line-clamp-2">
-              {row.summary}
-            </p>
-          )}
-          {row.sourceUrl && (
-            <a
-              href={row.sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 mt-2 overline hover:text-amber-300"
-            >
-              <ExternalLink className="h-3 w-3" /> Source
-            </a>
-          )}
-        </div>
-        <div className="flex flex-col gap-1 shrink-0">
-          {onMarkRead && !row.isRead && (
-            <button
-              aria-label="Mark read"
-              onClick={() => onMarkRead(row.id)}
-              className="p-1.5 rounded text-[var(--color-fg-subtle)] hover:text-amber-300"
-            >
-              <Check className="h-3.5 w-3.5" />
-            </button>
-          )}
-          <button
-            aria-label="Remove from queue"
-            onClick={() => onRemove(row.id)}
-            className="p-1.5 rounded text-[var(--color-fg-subtle)] hover:text-red-400"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-        </div>
+          </p>
+        )}
       </div>
-    </li>
+
+      <div className="flex gap-1 shrink-0">
+        {onMarkRead && !row.isRead && (
+          <button
+            aria-label="Mark read"
+            onClick={() => onMarkRead(row.id)}
+            className="bs-link p-2 text-[var(--color-fg-subtle)]"
+          >
+            <Check className="h-3.5 w-3.5" />
+          </button>
+        )}
+        <button
+          aria-label="Remove from queue"
+          onClick={() => onRemove(row.id)}
+          className="p-2 text-[var(--color-fg-subtle)] hover:text-red-500 transition-colors"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
   );
 }
 
 function EmptyState() {
   return (
-    <div className="panel p-8 sm:p-10 rounded text-center max-w-xl mx-auto">
-      <p className="font-serif italic text-lg text-[var(--color-fg-muted)] mb-2">
+    <div className="rule-hair-b py-16 text-center">
+      <p className="font-serif italic text-[var(--color-fg-muted)]" style={{ fontSize: 21 }}>
         Empty queue.
       </p>
-      <p className="text-sm text-[var(--color-fg-muted)] mb-6 leading-relaxed">
-        Bookmark anything from Today or the Archive. It'll sit here ready for
-        when you have a window to read.
+      <p className="mx-auto mt-3 max-w-[52ch] text-[var(--color-fg-muted)]">
+        Bookmark anything from Today or the Archive. It&apos;ll sit here ready for when
+        you have a window to read.
       </p>
-      <div className="flex items-center justify-center gap-2 flex-wrap">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1.5 rounded px-3.5 py-2 text-[10px] font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.98]"
-          style={{
-            background:
-              "var(--grad-cta-amber)",
-            color: "var(--color-on-amber)",
-          }}
-        >
+      <div className="flex items-center justify-center gap-2.5 mt-6 flex-wrap">
+        <Link href="/" className="bs-btn bs-btn-solid">
           Open Today
         </Link>
-        <Link
-          href="/archive"
-          className="inline-flex items-center gap-1.5 rounded px-3.5 py-2 text-[10px] font-mono uppercase tracking-[0.18em] text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] border border-[var(--color-border)]"
-        >
+        <Link href="/archive" className="bs-btn bs-btn-outline">
           Browse the archive
         </Link>
       </div>
@@ -513,13 +535,9 @@ function EmptyState() {
 
 function QueueSkeleton() {
   return (
-    <div className="space-y-3" aria-busy="true">
+    <div className="space-y-4 pt-4" aria-busy="true">
       {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="panel p-4 rounded space-y-2">
-          <Skeleton className="h-3 w-1/3" />
-          <Skeleton className="h-4 w-3/4" />
-          <Skeleton className="h-3 w-full" />
-        </div>
+        <Skeleton key={i} className="h-16 w-full rounded-none" />
       ))}
     </div>
   );

@@ -1,60 +1,65 @@
 /**
- * Intelligence dashboard. Three layers, top to bottom:
+ * Trends — the numbers, in broadsheet dress.
  *
- *   1. "This week in motion" hero, biggest 7-day movers, market-stress
- *      signal, next dates to watch. Editorial front-page.
- *   2. Grouped metric grid, every live daily_metrics row with a 30-day
- *      sparkline, sectioned by groupKey (Macro / Property / Labour /
- *      Markets / Demographics).
- *   3. Editorial telemetry, category heat + signal cadence across recent
- *      editions. These remain edition-level since they describe editorial
- *      output, not market data.
+ * Three layers under the title block:
+ *
+ *   1. "In motion" — biggest 7-day movers, market-stress signal, next
+ *      dates to watch, as three hairline-divided columns.
+ *   2. The metric index — every live daily_metrics row with its 30-day
+ *      series, sectioned by groupKey.
+ *   3. Editorial telemetry — category heat + signal cadence. Still
+ *      edition-level: these describe editorial output, not market data.
+ *
+ * Data sources and queries are unchanged; the panels, radii, shadows and
+ * gradient section rules are gone.
  */
-import { PageHeader } from "@/components/PageHeader";
 import { BarChart } from "@/components/charts/BarChart";
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
 import { HeatTreemap } from "@/components/charts/HeatTreemap";
+import { sentimentStroke } from "@/components/charts/BroadsheetCharts";
+import { useCategoryColour } from "@/lib/category";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { MetricGroupGrid } from "@/components/trends/MetricGroupGrid";
 import { ThisWeekInMotion } from "@/components/trends/ThisWeekInMotion";
+import { PageTitle, SectionHead } from "@/components/broadsheet/PageTitle";
+import { GUTTER_X } from "@/components/broadsheet/tokens";
 import { cn } from "@/lib/cn";
 import { trpc } from "@/lib/trpc";
 
 export default function TrendsPage() {
-  // Live daily_metrics + 30-day history (same source the Today strip uses).
-  const metricsQuery = trpc.metrics.list.useQuery(undefined, {
-    staleTime: 5 * 60_000,
-  });
+  // Live daily_metrics + 30-day history (same source Today's strip uses).
+  const metricsQuery = trpc.metrics.list.useQuery(undefined, { staleTime: 5 * 60_000 });
   const historiesQuery = trpc.metrics.histories.useQuery(undefined, {
     staleTime: 30 * 60_000,
   });
-  // Recent editions (newest-first) so the hero can pull marketStress +
+  // Recent editions (newest-first) so the lede can pull marketStress +
   // datesToWatch from the most recent one.
   const editionsQuery = trpc.editions.list.useQuery();
 
-  // Editorial telemetry still pulled from the edition-level aggregates.
+  // Editorial telemetry, still from the edition-level aggregates.
   const heatQuery = trpc.trends.categoryHeat.useQuery({ days: 30 });
   const signalQuery = trpc.trends.signalFrequency.useQuery({ editionLimit: 8 });
 
   const heroLoading =
     metricsQuery.isLoading || historiesQuery.isLoading || editionsQuery.isLoading;
   const gridLoading = metricsQuery.isLoading || historiesQuery.isLoading;
+  const metricCount = metricsQuery.data?.length ?? 0;
 
   return (
     <div>
-      <PageHeader
-        overline="The Desk · Trends"
+      <PageTitle
+        kicker="The Desk · Trends"
         title="The numbers"
-        kicker="What's moving, what isn't, and where the conversations are concentrating."
-        actions={
-          <TrendsMetaPanel
-            metricCount={metricsQuery.data?.length ?? 0}
-            historyDays={30}
-          />
-        }
+        standfirst="What's moving, what isn't, and where the conversations are concentrating."
+        stats={[
+          ...(metricCount > 0
+            ? [{ label: "Live metrics", value: String(metricCount) }]
+            : []),
+          { label: "History", value: "30 days" },
+        ]}
       />
 
-      <SectionErrorBoundary section="This week in motion">
+      <SectionErrorBoundary section="In motion">
         <ThisWeekInMotion
           metrics={metricsQuery.data}
           histories={historiesQuery.data}
@@ -63,104 +68,57 @@ export default function TrendsPage() {
         />
       </SectionErrorBoundary>
 
-      <div className="mb-4 flex items-center gap-3">
-        <p className="overline-amber" style={{ letterSpacing: "0.2em" }}>
-          Live metrics · 30-day history
-        </p>
-        <span
-          className="block flex-1"
-          style={{
-            height: "1px",
-            background:
-              "linear-gradient(90deg, oklch(0.75 0.18 70 / 30%), transparent)",
-          }}
-          aria-hidden="true"
-        />
+      <SectionHead label="Live metrics · 30-day history" note="Refreshed every 5 min" />
+      <div className={GUTTER_X}>
+        <SectionErrorBoundary section="Metric index">
+          <MetricGroupGrid
+            metrics={metricsQuery.data}
+            histories={historiesQuery.data}
+            loading={gridLoading}
+          />
+        </SectionErrorBoundary>
       </div>
 
-      <SectionErrorBoundary section="Metric group grid">
-        <MetricGroupGrid
-          metrics={metricsQuery.data}
-          histories={historiesQuery.data}
-          loading={gridLoading}
-        />
-      </SectionErrorBoundary>
-
-      <div className="mt-12 mb-4 flex items-center gap-3">
-        <p className="overline-amber" style={{ letterSpacing: "0.2em" }}>
-          Editorial telemetry
-        </p>
-        <span
-          className="block flex-1"
-          style={{
-            height: "1px",
-            background:
-              "linear-gradient(90deg, oklch(0.75 0.18 70 / 30%), transparent)",
-          }}
-          aria-hidden="true"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      <SectionHead label="Editorial telemetry" />
+      <div
+        className={cn(
+          GUTTER_X,
+          "grid gap-y-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] mt-6"
+        )}
+      >
         <SectionErrorBoundary section="Category heat">
-          <Panel
-            className="lg:col-span-5"
-            overline="Category heat"
-            subtitle="Last 30 days"
-          >
-            <CategoryHeat
-              data={heatQuery.data}
-              loading={heatQuery.isLoading}
-            />
-          </Panel>
+          <div className="lg:pr-9 min-w-0">
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="bs-label-accent" style={{ letterSpacing: "0.22em" }}>
+                Category heat
+              </p>
+              <p className="bs-label">Last 30 days</p>
+            </div>
+            <div className="mt-4">
+              <CategoryHeat data={heatQuery.data} loading={heatQuery.isLoading} />
+            </div>
+          </div>
         </SectionErrorBoundary>
 
-        <SectionErrorBoundary section="Signal frequency">
-          <Panel
-            className="lg:col-span-7"
-            overline="Signal cadence"
-            subtitle={`Signals + topics across last ${signalQuery.data?.length ?? 0} editions`}
-          >
-            <SignalCadence
-              data={signalQuery.data}
-              loading={signalQuery.isLoading}
-            />
-          </Panel>
+        <SectionErrorBoundary section="Signal cadence">
+          <div className="lg:rule-hair-l lg:pl-9 min-w-0">
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="bs-label-accent" style={{ letterSpacing: "0.22em" }}>
+                Signal cadence
+              </p>
+              <p className="bs-label">
+                Signals + topics, last {signalQuery.data?.length ?? 0} editions
+              </p>
+            </div>
+            <div className="mt-4">
+              <SignalCadence data={signalQuery.data} loading={signalQuery.isLoading} />
+            </div>
+          </div>
         </SectionErrorBoundary>
       </div>
     </div>
   );
 }
-
-// ─── Panel chrome ───────────────────────────────────────────────────────────
-
-function Panel({
-  className,
-  overline,
-  subtitle,
-  children,
-}: {
-  className?: string;
-  overline: string;
-  subtitle?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className={cn("panel rounded p-5 sm:p-6", className)}>
-      <header className="flex items-baseline justify-between gap-3 mb-5">
-        <p className="overline-amber" style={{ letterSpacing: "0.2em" }}>
-          {overline}
-        </p>
-        {subtitle && (
-          <p className="overline text-[var(--color-fg-subtle)]">{subtitle}</p>
-        )}
-      </header>
-      {children}
-    </section>
-  );
-}
-
-// ─── Editorial telemetry panels (unchanged from the previous Trends) ─────────
 
 function CategoryHeat({
   data,
@@ -171,9 +129,9 @@ function CategoryHeat({
     | undefined;
   loading: boolean;
 }) {
-  if (loading) return <Skeleton className="h-72 w-full" />;
+  if (loading) return <Skeleton className="h-72 w-full rounded-none" />;
   if (!data || data.length === 0)
-    return <p className="text-sm text-[var(--color-fg-muted)]">No data yet.</p>;
+    return <p className="text-[var(--color-fg-muted)]">No data yet.</p>;
   return <HeatTreemap data={data.slice(0, 9)} height={320} />;
 }
 
@@ -191,103 +149,56 @@ function SignalCadence({
     | undefined;
   loading: boolean;
 }) {
-  if (loading) return <Skeleton className="h-64 w-full" />;
+  const colourFor = useCategoryColour();
+  if (loading) return <Skeleton className="h-64 w-full rounded-none" />;
   if (!data || data.length === 0)
-    return <p className="text-sm text-[var(--color-fg-muted)]">No editions yet.</p>;
+    return <p className="text-[var(--color-fg-muted)]">No editions yet.</p>;
 
-  const xLabels = data.map((d) => `#${d.editionNumber}`);
+  // BarChart paints these into SVG `fill` attributes, where a CSS var()
+  // is not substituted — so they have to be resolved colours, and both
+  // sources here are already theme-aware.
+  const signalsColour = sentimentStroke("neutral");
+  const topicsColour = colourFor("TECH");
+
   return (
     <>
       <BarChart
-        xLabels={xLabels}
+        xLabels={data.map((d) => `#${d.editionNumber}`)}
         series={[
           {
             key: "signals",
             label: "Signals",
             values: data.map((d) => d.signalCount),
-            colour: "oklch(0.78 0.18 70)",
+            colour: signalsColour,
           },
           {
             key: "topics",
             label: "Topics",
             values: data.map((d) => d.topicCount),
-            colour: "oklch(0.65 0.18 255)",
+            colour: topicsColour,
           },
         ]}
         height={260}
       />
-      <div className="flex flex-wrap gap-x-5 gap-y-2 mt-4">
-        <span
-          className="overline flex items-center gap-2"
-          style={{ color: "oklch(0.78 0.18 70)" }}
-        >
+      <div className="flex flex-wrap gap-x-6 gap-y-2 mt-4">
+        {[
+          { label: "Signals", colour: signalsColour },
+          { label: "Topics", colour: topicsColour },
+        ].map((s) => (
           <span
-            className="h-1.5 w-3 rounded-full"
-            style={{ background: "oklch(0.78 0.18 70)" }}
-          />
-          Signals
-        </span>
-        <span
-          className="overline flex items-center gap-2"
-          style={{ color: "oklch(0.65 0.18 255)" }}
-        >
-          <span
-            className="h-1.5 w-3 rounded-full"
-            style={{ background: "oklch(0.65 0.18 255)" }}
-          />
-          Topics
-        </span>
+            key={s.label}
+            className="bs-label flex items-center gap-2"
+            style={{ color: s.colour }}
+          >
+            <span
+              className="h-1.5 w-3"
+              style={{ background: s.colour }}
+              aria-hidden="true"
+            />
+            {s.label}
+          </span>
+        ))}
       </div>
     </>
-  );
-}
-
-/**
- * Editorial meta panel for the Trends header. Earns the right-side
- * whitespace with three telemetry stats: how many live daily_metrics
- * series are tracked, the rolling history window for the sparklines,
- * and the live-data refresh cadence. Same mono-overline pattern as
- * Editions and Archive so the masthead reads consistently.
- */
-function TrendsMetaPanel({
-  metricCount,
-  historyDays,
-}: {
-  metricCount: number;
-  historyDays: number;
-}) {
-  return (
-    <div
-      className="hidden md:block panel rounded-sm px-5 py-4 space-y-3.5 text-right shrink-0"
-      style={{ minWidth: 200 }}
-    >
-      {metricCount > 0 && (
-        <TrendsMetaRow
-          label="Live metrics"
-          value={String(metricCount).padStart(2, "0")}
-        />
-      )}
-      <TrendsMetaRow label="History window" value={`${historyDays} days`} />
-      <TrendsMetaRow label="Refresh" value="Every 5 min" />
-    </div>
-  );
-}
-
-function TrendsMetaRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="space-y-1">
-      <p
-        className="font-mono uppercase text-[var(--color-fg-subtle)]"
-        style={{ fontSize: "10px", letterSpacing: "0.22em" }}
-      >
-        {label}
-      </p>
-      <p
-        className="font-mono text-[var(--color-fg)] tabular-nums"
-        style={{ fontSize: "12px", letterSpacing: "0.04em" }}
-      >
-        {value}
-      </p>
-    </div>
   );
 }

@@ -48,24 +48,24 @@ export function EditionSelector({
   );
 }
 
+/**
+ * One edition in the selector row. No panel, no lift, no shadow: the
+ * active edition is marked with an accent rule along its top edge, the
+ * same signal the lane nav and the Archive's category index use.
+ */
 function EditionChip({ edition, active }: { edition: Edition; active: boolean }) {
   return (
     <Link
       href={`/editions/${edition.editionNumber}`}
       role="tab"
       aria-selected={active}
-      className={cn(
-        "snap-start shrink-0 rounded-sm overflow-hidden transition-all duration-200",
-        "panel hover-lift",
-        active
-          ? "border-amber-400/40"
-          : "border-[var(--color-border)] hover:border-[var(--color-border-strong)]"
-      )}
+      className="bs-row snap-start shrink-0 overflow-hidden"
       style={{
         width: 240,
-        boxShadow: active
-          ? "0 0 0 1px oklch(0.75 0.18 70 / 50%), 0 8px 24px oklch(0.75 0.18 70 / 12%)"
-          : undefined,
+        borderTop: active
+          ? "2px solid var(--color-accent-text)"
+          : "2px solid transparent",
+        borderBottom: "1px solid var(--color-border)",
       }}
     >
       {/* Thumbnail strip, squat 16:5 so the row reads as a row of
