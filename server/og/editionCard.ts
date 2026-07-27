@@ -50,11 +50,17 @@ async function loadFonts(): Promise<LoadedFonts> {
   return cachedFonts;
 }
 
-const NAVY = "#0C1220";
-const AMBER = "#D4A853";
-const AMBER_BRIGHT = "#F0C75E";
-const FG = "#F0EDE8";
-const FG_MUTED = "#9BA3B5";
+// Warm-paper palette, matching the broadsheet site. This card is the first
+// frame a stranger sees when a story is shared to LinkedIn, and the page it
+// lands on is the paper canvas — a navy card followed by a paper page is a
+// visible break on the coldest, highest-stakes path into the product.
+// Values are the site's light-theme tokens converted from oklch; keep them in
+// sync with the `.light` block in client/src/index.css.
+const PAPER = "#F5F3EF"; // --color-bg
+const INK = "#090D15"; // --color-fg
+const ACCENT = "#B14D00"; // --color-accent-text
+const FG = INK;
+const FG_MUTED = "#434850"; // --color-fg-muted
 
 /** D-Sunrise mark as JSX-style satori nodes. Geometry mirrors the
  *  canonical brand SVG; `stroke` honours `currentColor` via the colour
@@ -138,10 +144,11 @@ function buildCard(edition: Edition) {
         width: "1200px",
         height: "630px",
         padding: "64px 72px",
-        backgroundColor: NAVY,
-        // Subtle amber radial bloom in the top-right corner.
+        backgroundColor: PAPER,
+        // Barely-there accent bloom in the top-right. Much lighter than the
+        // navy card's: on paper the same strength reads as a stain.
         backgroundImage:
-          "radial-gradient(circle at 88% 8%, rgba(212,168,83,0.16) 0%, transparent 55%)",
+          "radial-gradient(circle at 88% 8%, rgba(177,77,0,0.07) 0%, transparent 55%)",
         color: FG,
         fontFamily: "Playfair Display",
         justifyContent: "space-between",
@@ -153,7 +160,7 @@ function buildCard(edition: Edition) {
           props: {
             style: { display: "flex", alignItems: "center", gap: "16px" },
             children: [
-              mark(54, AMBER),
+              mark(54, INK),
               {
                 type: "div",
                 props: {
@@ -166,7 +173,7 @@ function buildCard(edition: Edition) {
                           fontFamily: "Playfair Display",
                           fontWeight: 700,
                           fontSize: "36px",
-                          color: AMBER_BRIGHT,
+                          color: INK,
                           letterSpacing: "-0.02em",
                         },
                         children: "The Desk",
@@ -206,7 +213,7 @@ function buildCard(edition: Edition) {
                     display: "flex",
                     fontFamily: "JetBrains Mono",
                     fontSize: "13px",
-                    color: AMBER,
+                    color: ACCENT,
                     letterSpacing: "0.28em",
                     textTransform: "uppercase",
                   },
@@ -245,8 +252,10 @@ function buildCard(edition: Edition) {
                   style: {
                     display: "flex",
                     width: "100%",
-                    height: "1px",
-                    backgroundImage: `linear-gradient(90deg, ${AMBER} 0%, rgba(212,168,83,0) 80%)`,
+                    // The broadsheet's major rule: 3px of solid ink, not the
+                    // 1px amber gradient the navy card used.
+                    height: "3px",
+                    backgroundColor: INK,
                   },
                   children: "",
                 },
