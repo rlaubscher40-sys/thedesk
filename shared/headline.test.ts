@@ -3,6 +3,7 @@ import {
   cleanHeadline,
   isRedundantSummary,
   looksLikeGarbage,
+  looksLikeSiteBoilerplate,
   MAX_HELPER_INPUT,
   shouldShowSummary,
 } from "./headline";
@@ -137,5 +138,68 @@ describe("shouldShowSummary", () => {
         "The Reserve Bank kept the cash rate steady as services inflation cools."
       )
     ).toBe(true);
+  });
+});
+
+describe("looksLikeSiteBoilerplate", () => {
+  it("catches the save-limit notice that reached production as a lead standfirst", () => {
+    expect(
+      looksLikeSiteBoilerplate(
+        "You have reached your maximum number of saved items. Remove items from your saved list to add more."
+      )
+    ).toBe(true);
+  });
+
+  it("catches paywall, consent and interstitial copy", () => {
+    const boilerplate = [
+      "Subscribe to continue reading this article.",
+      "Sign in to continue reading.",
+      "Register to keep reading and get unlimited access.",
+      "This article is available for subscribers only.",
+      "Already a subscriber? Log in here.",
+      "You have 3 free articles remaining this month.",
+      "Create a free account to save this story.",
+      "We use cookies to improve your experience on our site.",
+      "Please enable JavaScript to view this content.",
+      "Your browser is no longer supported. Update to keep reading.",
+      "Ad blocker detected. Please disable it to continue.",
+      "Something went wrong. Please try again later.",
+      "Checking your browser before accessing the site.",
+    ];
+    for (const text of boilerplate) {
+      expect(looksLikeSiteBoilerplate(text), text).toBe(true);
+    }
+  });
+
+  it("leaves real editorial prose alone, including stories about these topics", () => {
+    const prose = [
+      "The Reserve Bank kept the cash rate steady as services inflation cools.",
+      "Subscriber growth at the masthead slowed for a third straight quarter.",
+      "The regulator will require banks to log in-app consent before sharing data.",
+      "Cookies and tracking pixels face a fresh privacy review in Canberra.",
+      "Access to credit tightened for first-home buyers in the outer rings.",
+      "Brokers report more clients asking to register interest before auction day.",
+      "",
+      null,
+      undefined,
+    ];
+    for (const text of prose) {
+      expect(looksLikeSiteBoilerplate(text), String(text)).toBe(false);
+    }
+  });
+
+  it("defers to the garbage check past the helper ceiling", () => {
+    const huge = "We use cookies. ".repeat(MAX_HELPER_INPUT);
+    expect(looksLikeSiteBoilerplate(huge)).toBe(false);
+    expect(looksLikeGarbage(huge)).toBe(true);
+  });
+
+  it("stops a boilerplate summary rendering, even for a row already stored", () => {
+    expect(
+      shouldShowSummary(
+        "The RBA faces a dilemma, but more rate hikes aren't the solution",
+        "You have reached your maximum number of saved items. Remove items from your saved list to add more."
+      )
+    ).toBe(false);
   });
 });

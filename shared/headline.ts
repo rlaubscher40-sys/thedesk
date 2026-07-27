@@ -72,9 +72,69 @@ export function looksLikeGarbage(text: string | null | undefined): boolean {
 }
 
 /**
+ * Publisher chrome that scrapes cleanly as prose.
+ *
+ * `looksLikeGarbage` catches script soup — code markers, symbol density, no
+ * whitespace. It cannot catch a paywall notice, a cookie banner or a
+ * save-limit warning, because those are grammatical English sentences and
+ * look exactly like a summary to every heuristic above. One reached
+ * production as the lead story's standfirst ("You have reached your maximum
+ * number of saved items…"), sitting under a real headline on the homepage.
+ *
+ * Matching is by anchored multi-word phrase rather than by keyword: a
+ * property story can legitimately discuss subscriptions, sign-ins or
+ * cookies, so single words like "subscribe" are far too eager. Every entry
+ * here is a string a publisher's UI emits and an editor never would.
+ */
+const SITE_BOILERPLATE = [
+  // Save / bookmark limits (the one that shipped).
+  /\byou have reached your maximum number of saved items\b/iu,
+  /\bremove items from your saved list\b/iu,
+  /\bsaved (?:items|articles) limit\b/iu,
+  // Paywall + registration walls.
+  /\b(?:subscribe|register|sign in|log ?in) to (?:continue|keep) reading\b/iu,
+  /\bto continue reading[, ]/iu,
+  /\bthis (?:article|content|story) is (?:only )?(?:available |reserved )?(?:for|to) subscribers\b/iu,
+  /\bsubscribers only\b/iu,
+  /\balready a subscriber\b/iu,
+  /\byou have \d+ free (?:articles?|stories) (?:remaining|left)\b/iu,
+  /\bcreate a free account to\b/iu,
+  /\bstart your (?:free )?trial\b/iu,
+  // Consent / capability notices.
+  /\bwe use cookies\b/iu,
+  /\baccept (?:all )?cookies\b/iu,
+  /\bplease enable javascript\b/iu,
+  /\bjavascript is (?:disabled|required)\b/iu,
+  /\byour browser is (?:no longer |not )?supported\b/iu,
+  /\b(?:ad ?blocker|ad blocking) detected\b/iu,
+  // Error / interstitial pages.
+  /\b(?:page|content) not found\b/iu,
+  /\baccess (?:denied|to this page is restricted)\b/iu,
+  /\bsomething went wrong\b/iu,
+  /\bare you a robot\b/iu,
+  /\bchecking your browser\b/iu,
+];
+
+/**
+ * True when a string is a publisher's interface talking, not an editor.
+ * See {@link SITE_BOILERPLATE}.
+ */
+export function looksLikeSiteBoilerplate(text: string | null | undefined): boolean {
+  if (!text) return false;
+  // Past the ceiling `looksLikeGarbage` already rejects it; don't run this
+  // pattern list over a multi-kilobyte blob.
+  if (text.length > MAX_HELPER_INPUT) return false;
+  const t = text.trim();
+  if (!t) return false;
+  return SITE_BOILERPLATE.some((re) => re.test(t));
+}
+
+/**
  * Whether a card should render the summary at all: present, not a redundant
- * echo of the title, and not extraction garbage. The single predicate the
- * feed cards use so the three of them stay consistent.
+ * echo of the title, not extraction garbage, and not the publisher's own
+ * interface copy. The single predicate the feed surfaces use so they stay
+ * consistent — and the reason a boilerplate row already in the database
+ * stops rendering without needing a re-ingest.
  */
 export function shouldShowSummary(
   title: string,
@@ -83,6 +143,7 @@ export function shouldShowSummary(
   if (!summary) return false;
   if (isRedundantSummary(title, summary)) return false;
   if (looksLikeGarbage(summary)) return false;
+  if (looksLikeSiteBoilerplate(summary)) return false;
   return true;
 }
 

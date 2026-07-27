@@ -14,7 +14,11 @@
  *   SCHEDULED_API_KEY  — matches the server's SCHEDULED_API_KEY env var
  */
 import { FEED_CHANNELS } from "../../shared/const";
-import { isRedundantSummary, looksLikeGarbage } from "../../shared/headline";
+import {
+  isRedundantSummary,
+  looksLikeGarbage,
+  looksLikeSiteBoilerplate,
+} from "../../shared/headline";
 import { CHANNEL_TARGETS, DAILY_ITEM_MIN, SOURCES } from "./sources";
 import { fetchArticle } from "./lib/article";
 import { resolveArticleUrl } from "./lib/gnews";
@@ -127,6 +131,9 @@ function deriveDek(articleText: string | null | undefined, max = 260): string | 
   // Google News article links resolve to a JS interstitial, not the real
   // page, so the "body" can be script soup — never let that become a dek.
   if (looksLikeGarbage(out)) return null;
+  // A paywall or consent notice extracts as clean prose, so the garbage
+  // check above can't see it. Reject it here too.
+  if (looksLikeSiteBoilerplate(out)) return null;
   return out.length >= 40 ? out : null;
 }
 
@@ -135,15 +142,23 @@ function deriveDek(articleText: string | null | undefined, max = 260): string | 
  * something over the headline; otherwise falls back to a dek pulled from the
  * article body, and finally to the original summary (the cards suppress a
  * still-redundant subline rather than render a double-up).
+ *
+ * A summary that is the publisher's own interface copy — a paywall notice, a
+ * save-limit warning — is treated as unusable rather than merely redundant,
+ * so an article-body dek is preferred over it even when that dek echoes the
+ * headline. An echo is dull; a save-limit warning under a real headline is
+ * wrong.
  */
 function bestSummary(
   title: string,
   rssSummary: string,
   articleText: string | null | undefined
 ): string {
-  if (!isRedundantSummary(title, rssSummary)) return rssSummary;
+  const rssIsBoilerplate = looksLikeSiteBoilerplate(rssSummary);
+  if (!rssIsBoilerplate && !isRedundantSummary(title, rssSummary)) return rssSummary;
   const dek = deriveDek(articleText);
   if (dek && !isRedundantSummary(title, dek)) return dek;
+  if (rssIsBoilerplate && dek) return dek;
   return rssSummary;
 }
 
