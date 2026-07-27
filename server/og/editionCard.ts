@@ -22,6 +22,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import satori from "satori";
 import type { Edition } from "../db/schema";
+import { BRAND_LIGHT, BRAND_LIGHT_ACCENT_SOFT } from "../../shared/brandPalette";
 
 const FONT_DIR = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -54,13 +55,15 @@ async function loadFonts(): Promise<LoadedFonts> {
 // frame a stranger sees when a story is shared to LinkedIn, and the page it
 // lands on is the paper canvas — a navy card followed by a paper page is a
 // visible break on the coldest, highest-stakes path into the product.
-// Values are the site's light-theme tokens converted from oklch; keep them in
-// sync with the `.light` block in client/src/index.css.
-const PAPER = "#F5F3EF"; // --color-bg
-const INK = "#090D15"; // --color-fg
-const ACCENT = "#B14D00"; // --color-accent-text
+//
+// satori resolves styles itself and never sees a stylesheet, so these have
+// to be literals; they come from shared/brandPalette, which is checked
+// against the `.light` block of client/src/index.css by a test.
+const PAPER = BRAND_LIGHT.paper;
+const INK = BRAND_LIGHT.ink;
+const ACCENT = BRAND_LIGHT.accent;
 const FG = INK;
-const FG_MUTED = "#434850"; // --color-fg-muted
+const FG_MUTED = BRAND_LIGHT.muted;
 
 /** D-Sunrise mark as JSX-style satori nodes. Geometry mirrors the
  *  canonical brand SVG; `stroke` honours `currentColor` via the colour
@@ -148,7 +151,7 @@ function buildCard(edition: Edition) {
         // Barely-there accent bloom in the top-right. Much lighter than the
         // navy card's: on paper the same strength reads as a stain.
         backgroundImage:
-          "radial-gradient(circle at 88% 8%, rgba(177,77,0,0.07) 0%, transparent 55%)",
+          `radial-gradient(circle at 88% 8%, ${BRAND_LIGHT_ACCENT_SOFT} 0%, transparent 55%)`,
         color: FG,
         fontFamily: "Playfair Display",
         justifyContent: "space-between",

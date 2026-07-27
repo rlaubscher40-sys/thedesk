@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { Express } from "express";
 import rateLimit from "express-rate-limit";
+import { BRAND_LIGHT, BRAND_LIGHT_BORDER } from "../../shared/brandPalette";
 import { signingSecret } from "./env";
 import * as db from "../db";
 
@@ -9,7 +10,8 @@ import * as db from "../db";
  * copy of the broadsheet's warm-paper palette. A reader reaches it by
  * clicking unsubscribe in an email, so it sits between the (paper) email and
  * the (paper) site — a navy interstitial would be the only dark frame on
- * that path. Values match the `.light` block in client/src/index.css.
+ * that path. Colours come from shared/brandPalette, which a test checks
+ * against the `.light` block of client/src/index.css.
  */
 const PAGE = (msg: string, sub: boolean) => `<!doctype html>
 <html lang="en">
@@ -20,15 +22,15 @@ const PAGE = (msg: string, sub: boolean) => `<!doctype html>
   <title>${sub ? "Unsubscribed" : "Invalid link"} · The Desk</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
-    body{background:#f5f3ef;color:#171b22;font-family:Georgia,'Times New Roman',serif;
+    body{background:${BRAND_LIGHT.paper};color:${BRAND_LIGHT.body};font-family:Georgia,'Times New Roman',serif;
          display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
     .card{max-width:480px;width:100%;text-align:center}
     .overline{font-family:'Courier New',monospace;font-size:10px;letter-spacing:.22em;
-              color:#434850;text-transform:uppercase;margin-bottom:20px}
-    .rule{height:3px;background:#090d15;margin:0 0 20px}
-    h1{font-size:28px;font-weight:700;letter-spacing:-.02em;margin-bottom:12px;color:#090d15}
-    p{font-size:16px;line-height:1.6;color:#434850;margin-bottom:24px}
-    a{color:#b14d00;font-family:'Courier New',monospace;font-size:12px;letter-spacing:.18em;
+              color:${BRAND_LIGHT.muted};text-transform:uppercase;margin-bottom:20px}
+    .rule{height:3px;background:${BRAND_LIGHT.ink};margin:0 0 20px}
+    h1{font-size:28px;font-weight:700;letter-spacing:-.02em;margin-bottom:12px;color:${BRAND_LIGHT.ink}}
+    p{font-size:16px;line-height:1.6;color:${BRAND_LIGHT.muted};margin-bottom:24px}
+    a{color:${BRAND_LIGHT.accent};font-family:'Courier New',monospace;font-size:12px;letter-spacing:.18em;
       text-transform:uppercase;text-decoration:none}
     a:hover{text-decoration:underline}
   </style>

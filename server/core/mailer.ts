@@ -21,6 +21,11 @@
  */
 
 import { createHmac } from "node:crypto";
+import {
+  BRAND_LIGHT,
+  BRAND_LIGHT_ACCENT_SOFT,
+  BRAND_LIGHT_BORDER,
+} from "../../shared/brandPalette";
 import { signingSecret } from "./env";
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
@@ -108,24 +113,25 @@ export async function send(input: SendInput): Promise<SendResult> {
 
 // ─── Shared design tokens ────────────────────────────────────────────────────
 
-// Warm-paper palette, baked in inline so every client renders the same
-// surface. These are the site's light-theme tokens converted from oklch to
-// hex — email can't resolve custom properties, so the values are duplicated
-// here rather than referenced. Keep them in sync with the `.light` block in
-// client/src/index.css: a reader taps a link in this email and lands on
-// that canvas, so a drift between the two shows up as a jolt.
+// Warm-paper palette, matching the broadsheet site.
+//
+// Email can't resolve CSS custom properties, so the values have to be
+// literals — but they come from shared/brandPalette rather than being
+// hand-copied here. That module mirrors the `.light` block of
+// client/src/index.css and a test fails if the two drift, so retuning a
+// token on the site can't silently leave the inbox behind.
 const L = {
-  outerBg: "#E6E4E0", // --color-bg-deep, the desk the sheet sits on
-  bg: "#F5F3EF", // --color-bg, the sheet itself
-  heading: "#090D15", // --color-fg, ink wordmark + headlines
-  accent: "#B14D00", // --color-accent-text, eyebrows and section labels
-  btnBg: "#090D15", // ink CTA fill, matching .bs-btn-solid in light
-  btnText: "#F5F3EF", // paper text on the ink CTA
-  text: "#171B22", // --color-fg-body
-  muted: "#434850", // --color-fg-muted
-  subtle: "#484D55", // --color-fg-subtle
-  border: "#D8D6D2", // --color-border, flattened over paper (email has no alpha)
-  accentSoft: "rgba(177,77,0,0.07)", // tinted plate behind a Say This / error block
+  outerBg: BRAND_LIGHT.paperDeep, // the desk the sheet sits on
+  bg: BRAND_LIGHT.paper, // the sheet itself
+  heading: BRAND_LIGHT.ink, // ink wordmark + headlines
+  accent: BRAND_LIGHT.accent, // eyebrows and section labels
+  btnBg: BRAND_LIGHT.ink, // ink CTA fill, matching .bs-btn-solid in light
+  btnText: BRAND_LIGHT.paper, // paper text on the ink CTA
+  text: BRAND_LIGHT.body,
+  muted: BRAND_LIGHT.muted,
+  subtle: BRAND_LIGHT.subtle,
+  border: BRAND_LIGHT_BORDER, // hairline, pre-composited (email has no alpha)
+  accentSoft: BRAND_LIGHT_ACCENT_SOFT, // tint behind a Say This / error block
 };
 
 // Re-pins the paper palette for clients that force their own dark theme.
@@ -143,39 +149,35 @@ const L = {
 // Classes: em-bg, em-ob, em-h, em-t, em-m, em-s, em-a, em-btn-t
 const FORCE_LIGHT_CSS = `
   @media (prefers-color-scheme:dark){
-    .em-ob{background-color:#E6E4E0!important}
-    .em-bg{background-color:#F5F3EF!important}
-    .em-h{color:#090D15!important}
-    .em-t{color:#171B22!important}
-    .em-m{color:#434850!important}
-    .em-s{color:#484D55!important}
-    .em-a{color:#B14D00!important}
-    .em-btn{background-color:#090D15!important}
-    .em-btn-t{color:#F5F3EF!important}
-    .em-rule-full{background:#090D15!important}
-    .em-rule-sub{background:#D8D6D2!important}
-    .em-story-border{border-top-color:#D8D6D2!important}
-    .em-pill{background:rgba(177,77,0,0.07)!important;border-color:#D8D6D2!important}
-    .em-pill-t{color:#171B22!important}
+    .em-ob{background-color:${L.outerBg}!important}
+    .em-bg{background-color:${L.bg}!important}
+    .em-h{color:${L.heading}!important}
+    .em-t{color:${L.text}!important}
+    .em-m{color:${L.muted}!important}
+    .em-s{color:${L.subtle}!important}
+    .em-a{color:${L.accent}!important}
+    .em-btn{background-color:${L.btnBg}!important}
+    .em-btn-t{color:${L.btnText}!important}
+    .em-rule-full{background:${L.heading}!important}
+    .em-rule-sub{background:${L.border}!important}
+    .em-story-border{border-top-color:${L.border}!important}
+    .em-pill{background:${L.accentSoft}!important;border-color:${L.border}!important}
+    .em-pill-t{color:${L.text}!important}
   }
-  [data-ogsc] .em-ob{background-color:#E6E4E0!important}
-  [data-ogsc] .em-bg{background-color:#F5F3EF!important}
-  [data-ogsc] .em-h{color:#090D15!important}
-  [data-ogsc] .em-t{color:#171B22!important}
-  [data-ogsc] .em-m{color:#434850!important}
-  [data-ogsc] .em-s{color:#484D55!important}
-  [data-ogsc] .em-a{color:#B14D00!important}
-  [data-ogsc] .em-btn{background-color:#090D15!important}
-  [data-ogsc] .em-btn-t{color:#F5F3EF!important}
-  u+.em-body .em-ob{background-color:#E6E4E0!important}
-  u+.em-body .em-bg{background-color:#F5F3EF!important}
-  u+.em-body .em-h{color:#090D15!important}
-  u+.em-body .em-t{color:#171B22!important}
-  u+.em-body .em-m{color:#434850!important}
-  u+.em-body .em-s{color:#484D55!important}
-  u+.em-body .em-a{color:#B14D00!important}
-  u+.em-body .em-btn{background-color:#090D15!important}
-  u+.em-body .em-btn-t{color:#F5F3EF!important}
+  ${["[data-ogsc]", "u+.em-body"]
+    .map(
+      (sel) => `
+  ${sel} .em-ob{background-color:${L.outerBg}!important}
+  ${sel} .em-bg{background-color:${L.bg}!important}
+  ${sel} .em-h{color:${L.heading}!important}
+  ${sel} .em-t{color:${L.text}!important}
+  ${sel} .em-m{color:${L.muted}!important}
+  ${sel} .em-s{color:${L.subtle}!important}
+  ${sel} .em-a{color:${L.accent}!important}
+  ${sel} .em-btn{background-color:${L.btnBg}!important}
+  ${sel} .em-btn-t{color:${L.btnText}!important}`
+    )
+    .join("")}
 `.trim();
 
 function emailHead(title: string): string {
@@ -190,14 +192,14 @@ function emailHead(title: string): string {
 }
 
 const LOGO_SVG = `<svg width="36" height="42" viewBox="0 0 240 280" xmlns="http://www.w3.org/2000/svg">
-  <g fill="none" stroke="#090D15" stroke-linecap="round" stroke-linejoin="round">
+  <g fill="none" stroke="${BRAND_LIGHT.ink}" stroke-linecap="round" stroke-linejoin="round">
     <g stroke-width="7">
       <line x1="56" y1="16" x2="56" y2="264"/>
       <line x1="56" y1="100" x2="92" y2="100"/>
       <line x1="56" y1="264" x2="92" y2="264"/>
       <path d="M 92 100 A 82 82 0 0 1 92 264"/>
     </g>
-    <path d="M 68.3 177 A 36 36 0 0 1 140.3 177 Z" fill="#090D15" stroke="none"/>
+    <path d="M 68.3 177 A 36 36 0 0 1 140.3 177 Z" fill="${BRAND_LIGHT.ink}" stroke="none"/>
     <g stroke-width="3">
       <line x1="104.3" y1="173" x2="58" y2="173"/>
       <line x1="104.3" y1="173" x2="61.6" y2="148.3"/>
