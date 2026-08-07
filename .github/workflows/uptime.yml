@@ -3,17 +3,31 @@ name: Uptime check
 # Least privilege: pure curl job, no GITHUB_TOKEN access needed.
 permissions: {}
 
-# Pings /api/healthz from GitHub's infrastructure every 5 minutes,
-# then posts the result back to /api/uptime/record so the admin
-# /health panel can render uptime history. Runs outside Railway so
-# the monitor survives the app going down.
+# Manual one-off probe. Pings /api/healthz from GitHub's infrastructure and
+# posts the result to /api/uptime/record so it lands in the admin /health
+# panel alongside the regular samples.
+#
+# This used to run on a `schedule:` cron every 5 minutes. It didn't: over
+# 3 days in Aug 2026 GitHub fired it at 57–346 minute intervals (median ~99)
+# and cancelled two runs without ever assigning a runner, which is what
+# generated the "All jobs were cancelled" failure mail. Same best-effort cron
+# behaviour that moved the daily jobs in-process — see
+# docs/reliable-scheduling.md and docs/uptime-monitoring.md.
+#
+# Continuous monitoring now comes from two places instead:
+#   · server/scheduler/uptimeSampler — 5-minute latency samples while up
+#   · an external monitor → /api/uptime/webhook — down/up transitions
+#
+# Kept here as workflow_dispatch so you can still get an off-Railway probe
+# on demand from the Actions tab.
 
 on:
-  schedule:
-    # Every 5 minutes. GitHub may add a few seconds of jitter under
-    # load, which is fine — the panel renders averages over a window.
-    - cron: "*/5 * * * *"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Why are you running this manually?"
+        required: false
+        default: "manual check"
 
 concurrency:
   group: uptime

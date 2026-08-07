@@ -49,6 +49,14 @@ Rollback is trivial: unset `ENABLE_SCHEDULER` (and/or re-add the cron blocks).
 `workflow_dispatch` stays on every workflow, so you can always trigger a job by
 hand from the Actions tab regardless.
 
+## Uptime is the one job that couldn't move in-process
+`uptime.yml` was the last workflow still on GitHub `schedule:` cron, and it hit
+the same problem — 57–346 minute intervals instead of 5, plus two runs
+cancelled without ever being assigned a runner. It needed a different fix,
+because a monitor that lives inside the app can't see the app go down. That
+split (in-process sampler for history, external monitor webhook for outages)
+is written up in **docs/uptime-monitoring.md**.
+
 ## Alternative (not used): external cron → workflow_dispatch
 A punctual external service (cron-job.org, etc.) can `POST` GitHub's
 `workflow_dispatch` API on schedule. Reliable, but adds a third-party

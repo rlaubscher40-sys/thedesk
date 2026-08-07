@@ -23,6 +23,7 @@ import { getDb } from "./db/client";
 import { runCatchup } from "./db/catchup";
 import { isDemoMode } from "./demo/store";
 import { startScheduler } from "./scheduler";
+import { startUptimeSampler } from "./scheduler/uptimeSampler";
 
 /**
  * Apply idempotent schema catch-up before we start serving. This closes the
@@ -205,6 +206,8 @@ async function startServer() {
     // Self-healing in-process scheduler (replaces GitHub cron when enabled).
     // Bound to the actual listening port so its loopback self-calls hit us.
     startScheduler({ port });
+    // Dense uptime sampling, replacing the retired GitHub Actions cron.
+    startUptimeSampler();
   });
 }
 

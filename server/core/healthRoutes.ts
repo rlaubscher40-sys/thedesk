@@ -6,10 +6,14 @@
  *                          the external uptime cron. Returns 200 with
  *                          a small JSON body when the DB and basic
  *                          deps respond.
- *   · POST /api/uptime/record — admin-key-gated; the cron posts each
- *                               ping's status + latency back so the
- *                               admin /health page can render uptime
+ *   · POST /api/uptime/record — admin-key-gated; a manual or scripted probe
+ *                               posts each ping's status + latency back so
+ *                               the admin /health page can render uptime
  *                               history without an external dashboard.
+ *   · POST /api/uptime/webhook — admin-key-gated; up/down transitions from
+ *                               an external monitor, normalised in
+ *                               ./uptimeWebhook. This is the only source
+ *                               that can observe the app being down.
  *
  * Plus an Express error middleware (`recordExpressError`) that writes
  * uncaught route errors into the `serverErrors` table before letting
@@ -20,6 +24,7 @@ import type { Express, NextFunction, Request, Response } from "express";
 import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import * as db from "../db";
+import { handleUptimeWebhook } from "./uptimeWebhook";
 
 const SCHEDULED_KEY_HEADER = "x-scheduled-key";
 
@@ -167,5 +172,17 @@ export function registerHealthRoutes(app: Express): void {
   });
   app.get("/api/healthz", handleHealthz);
   app.post("/api/uptime/record", handleRecordPing);
+  // External monitor state-change alerts. Its own limiter: the key can travel
+  // in the query string (UptimeRobot can't set headers on the free tier), so
+  // it's the more guessable of the two write paths. State changes arrive a
+  // few times a month, so 20/min/IP is far above any legitimate burst.
+  const uptimeWebhookLimiter = rateLimit({
+    windowMs: 60_000,
+    limit: 20,
+    standardHeaders: false,
+    legacyHeaders: false,
+    message: { error: "Too many events" },
+  });
+  app.post("/api/uptime/webhook", uptimeWebhookLimiter, handleUptimeWebhook);
   app.post("/api/errors/client", clientErrorLimiter, handleClientError);
 }
