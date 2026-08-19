@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { DailyFeedItem } from "../db/schema";
-import { buildCoverageCaption, buildDailyCaption, pickDailyTopStories } from "./post";
-import { isRateLimitError } from "./api";
+import {
+  buildCoverageCaption,
+  buildDailyCaption,
+  findAlreadyPublished,
+  pickDailyTopStories,
+} from "./post";
+import { isRateLimitError, isTransientServerError } from "./api";
 
 function fakeStory(o: Partial<DailyFeedItem> = {}): DailyFeedItem {
   return {
@@ -112,5 +117,70 @@ describe("isRateLimitError — block detection", () => {
       "fetch failed",
     ];
     for (const m of cases) expect(isRateLimitError(new Error(m))).toBe(false);
+  });
+});
+
+// The morning carousel died on `Instagram API 500 at /{ig-id}/media: {"error":
+// {"message":"An unexpected error has occurred. Please retry your request
+// later."}}` — a Meta-side blip on an otherwise valid request. These have to be
+// told apart from a rate-limit block (never retried) and from a real, permanent
+// rejection (bad token, invalid image), because only the transient ones earn
+// the long backoff that would have saved the post.
+describe("isTransientServerError — Meta-side fault detection", () => {
+  it("flags the Graph API 500 that killed the daily carousel", () => {
+    const cases = [
+      // The exact payload off the admin error log, is_transient flag and all.
+      'Instagram API 500 at /17841425195143644/media: {"error":{"message":"An unexpected error has occurred. Please retry your request later.","type":"OAuthException","is_transient":true,"code":2,"fbtrace_id":"A3fdBAeUu4WUx"}}',
+      // Same flag, arriving escaped (the message gets re-serialised on the way
+      // out through the 502 body and into the scheduler's error string).
+      'POST /api/ingest/instagram-daily -> 502 {"message":"Instagram API 500: {\\"error\\":{\\"is_transient\\":true}}"}',
+      'Instagram API 500 at /17841425195143644/media: {"error":{"message":"An unexpected error has occurred. Please retry your request later.","type":"OAuthException","code":2}}',
+      "Instagram API 502 at /media: bad gateway",
+      "Instagram API 503 at /media_publish: service unavailable",
+      'Instagram API 400 at /media: {"error":{"code":1,"message":"Please retry your request later."}}',
+      "fetch failed",
+      "connect ETIMEDOUT 157.240.8.1:443",
+      "read ECONNRESET",
+    ];
+    for (const m of cases) expect(isTransientServerError(new Error(m))).toBe(true);
+  });
+
+  it("never flags a rate-limit / integrity block as transient", () => {
+    // A block must keep short-circuiting the retry ladder, not earn a longer one.
+    const cases = [
+      'Instagram API 403 at /media: {"error":{"message":"Application request limit reached"}}',
+      'Instagram API 400 at /media_publish: {"error":{"message":"Action is blocked","error_subcode":2207051}}',
+    ];
+    for (const m of cases) {
+      expect(isRateLimitError(new Error(m))).toBe(true);
+      expect(isTransientServerError(new Error(m))).toBe(false);
+    }
+  });
+
+  it("does not flag permanent rejections that a retry can't fix", () => {
+    const cases = [
+      'Instagram API 400 at /media: {"error":{"message":"The image is not a valid format","code":9004}}',
+      'Instagram API 190 at /media: {"error":{"message":"Error validating access token","code":190}}',
+      "container 123 not ready after 20000ms (last status: IN_PROGRESS)",
+      "INSTAGRAM_ACCESS_TOKEN and INSTAGRAM_BUSINESS_ACCOUNT_ID must be set",
+    ];
+    for (const m of cases) expect(isTransientServerError(new Error(m))).toBe(false);
+  });
+});
+
+// The guard that makes a scheduler retry safe. The dangerous direction is a
+// FALSE positive on the first attempt: mistaking the previous run's post for
+// this one's would silently skip the day, which is the failure mode the retry
+// exists to prevent. So attempt 1 must never even ask the API.
+describe("findAlreadyPublished — retry duplicate guard", () => {
+  it("never consults the account on a first attempt", async () => {
+    await expect(findAlreadyPublished(1)).resolves.toBeNull();
+    await expect(findAlreadyPublished(0)).resolves.toBeNull();
+  });
+
+  it("returns null (and lets the post proceed) when credentials are absent", async () => {
+    // No IG env in the test environment, so a retry degrades to "just post"
+    // rather than throwing — a missed post is worse than a rare duplicate.
+    await expect(findAlreadyPublished(2)).resolves.toBeNull();
   });
 });

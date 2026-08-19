@@ -33,6 +33,45 @@ export function isRateLimitError(err: unknown): boolean {
   );
 }
 
+/**
+ * True when an Instagram error is one of Meta's OWN transient server faults —
+ * the generic "An unexpected error has occurred. Please retry your request
+ * later." that comes back as an HTTP 5xx (or error code 1/2) on a request that
+ * is otherwise perfectly valid — or a plain network hiccup reaching the API.
+ *
+ * These are the opposite case to isRateLimitError: they clear on their own,
+ * usually within a minute, so they're worth waiting out patiently rather than
+ * failing the run. A 500 on container creation is what killed a whole morning
+ * carousel, so the backoff for these is deliberately longer than for an
+ * ordinary one-off failure.
+ *
+ * The strongest signal is Meta's own `"is_transient": true` flag, which it sets
+ * on exactly these faults — the observed payload was:
+ *   {"error":{"message":"An unexpected error has occurred. Please retry your
+ *    request later.","type":"OAuthException","is_transient":true,"code":2}}
+ * The rest are fallbacks for the same condition arriving without that flag (a
+ * bare 5xx, a network-level failure before any body came back).
+ */
+export function isTransientServerError(err: unknown): boolean {
+  if (isRateLimitError(err)) return false;
+  const msg = err instanceof Error ? err.message : String(err);
+  const lower = msg.toLowerCase();
+  return (
+    // Meta says so itself. Matched loosely because the flag reaches us inside a
+    // JSON string that may have been escaped (\"is_transient\":true) on the way.
+    /is_transient\\?"?\s*:\s*true/i.test(msg) ||
+    /instagram api 5\d\d\b/i.test(msg) ||
+    lower.includes("an unexpected error has occurred") ||
+    lower.includes("please retry your request later") ||
+    // Meta's generic transient codes: 1 = unknown, 2 = service unavailable.
+    /"code":\s*[12]\b/.test(msg) ||
+    lower.includes("fetch failed") ||
+    lower.includes("econnreset") ||
+    lower.includes("etimedout") ||
+    lower.includes("socket hang up")
+  );
+}
+
 async function igPost<T>(endpoint: string, params: Record<string, string>): Promise<T> {
   const body = new URLSearchParams(params);
   const res = await fetch(`${BASE}${endpoint}`, {
@@ -47,16 +86,34 @@ async function igPost<T>(endpoint: string, params: Record<string, string>): Prom
 }
 
 /**
- * Retry a transient Instagram call a few times with linear backoff. Use only
- * for idempotent operations — container creation is safe to retry because a
- * repeated attempt just registers a fresh throwaway container. Never wrap
+ * Attempts every container-creation call gets. Five with the transient backoff
+ * below spans about 80 seconds, which comfortably outlasts the Meta-side 500s
+ * we actually see (they clear in seconds to a minute) while still leaving the
+ * whole post well inside the scheduled job's budget.
+ */
+const IG_RETRY_ATTEMPTS = 5;
+
+/**
+ * Retry a transient Instagram call with linear backoff. Use only for
+ * idempotent operations — creating ANY container (image, carousel parent, or
+ * story) is safe to retry because a repeated attempt just registers a fresh
+ * throwaway container, and an unpublished one expires on its own. Never wrap
  * publishContainer, which is not idempotent and would risk a double-post.
  *
  * A rate-limit / integrity block is never retried: those don't clear in
  * seconds, and repeating the call only reinforces the block, so we throw on the
  * first one and let the account breathe.
+ *
+ * Meta's own transient faults (5xx / "please retry your request later") get a
+ * markedly longer backoff than an ordinary hiccup. The old 3 × 3s ladder gave
+ * up after ~9 seconds, which is how a single Graph API 500 on container
+ * creation took out an entire morning carousel.
  */
-async function withIgRetry<T>(label: string, fn: () => Promise<T>, attempts = 3): Promise<T> {
+async function withIgRetry<T>(
+  label: string,
+  fn: () => Promise<T>,
+  attempts = IG_RETRY_ATTEMPTS
+): Promise<T> {
   let lastErr: unknown;
   for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
@@ -68,7 +125,8 @@ async function withIgRetry<T>(label: string, fn: () => Promise<T>, attempts = 3)
         throw err;
       }
       if (attempt === attempts) break;
-      const delayMs = 3000 * attempt;
+      const step = isTransientServerError(err) ? 8000 : 3000;
+      const delayMs = step * attempt;
       console.warn(
         `[instagram] ${label} attempt ${attempt}/${attempts} failed, retrying in ${delayMs}ms:`,
         (err as Error).message
@@ -115,11 +173,13 @@ export async function createStoryContainer(opts: {
   accessToken: string;
   imageUrl: string;
 }): Promise<string> {
-  const data = await igPost<{ id: string }>(`/${opts.igUserId}/media`, {
-    media_type: "STORIES",
-    image_url: opts.imageUrl,
-    access_token: opts.accessToken,
-  });
+  const data = await withIgRetry("createStoryContainer", () =>
+    igPost<{ id: string }>(`/${opts.igUserId}/media`, {
+      media_type: "STORIES",
+      image_url: opts.imageUrl,
+      access_token: opts.accessToken,
+    })
+  );
   return data.id;
 }
 
@@ -130,6 +190,12 @@ export async function createStoryContainer(opts: {
  * ready almost immediately, but STORIES media can lag a beat, so we poll.
  *
  * Resolves on FINISHED, throws on ERROR/EXPIRED or once the timeout elapses.
+ *
+ * A transient fault on the STATUS READ is not a failure of the container — the
+ * container is fine, we just couldn't ask about it — so those are swallowed and
+ * the poll carries on until the deadline. Losing a whole post to one flaky read
+ * seconds before publish is the exact fragility this whole file guards against.
+ * Anything else (a bad token, a malformed id) still throws immediately.
  */
 export async function waitForContainerReady(opts: {
   containerId: string;
@@ -140,41 +206,65 @@ export async function waitForContainerReady(opts: {
   const timeoutMs = opts.timeoutMs ?? 30000;
   const intervalMs = opts.intervalMs ?? 3000;
   const deadline = Date.now() + timeoutMs;
+  let lastStatus = "unknown";
 
   for (;;) {
-    const data = await igGet<{ status_code?: string }>(`/${opts.containerId}`, {
-      fields: "status_code",
-      access_token: opts.accessToken,
-    });
-    const status = data.status_code;
+    // Read the status. Only the READ is guarded — the container's own verdict
+    // below is evaluated outside the catch, so an ERROR/EXPIRED container can
+    // never be mistaken for a flaky read and polled on regardless.
+    let status: string | undefined;
+    try {
+      const data = await igGet<{ status_code?: string }>(`/${opts.containerId}`, {
+        fields: "status_code",
+        access_token: opts.accessToken,
+      });
+      status = data.status_code;
+      lastStatus = status ?? "unknown";
+    } catch (err) {
+      if (!isTransientServerError(err)) throw err;
+      lastStatus = `read failed (${(err as Error).message.slice(0, 120)})`;
+      console.warn(
+        `[instagram] status read for container ${opts.containerId} failed transiently, still polling:`,
+        (err as Error).message
+      );
+    }
     if (status === "FINISHED") return;
     if (status === "ERROR" || status === "EXPIRED") {
       throw new Error(`container ${opts.containerId} reported status ${status}`);
     }
     if (Date.now() > deadline) {
       throw new Error(
-        `container ${opts.containerId} not ready after ${timeoutMs}ms (last status: ${status ?? "unknown"})`
+        `container ${opts.containerId} not ready after ${timeoutMs}ms (last status: ${lastStatus})`
       );
     }
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
   }
 }
 
-/** Bundle child container IDs into a CAROUSEL container. */
+/**
+ * Bundle child container IDs into a CAROUSEL container.
+ *
+ * Retried like the child containers. This was the one unprotected write left in
+ * the carousel path, so a Meta-side 500 here aborted the whole post even though
+ * every child image had already been accepted. Re-bundling the same children is
+ * harmless: the abandoned parent is never published and expires on its own.
+ */
 export async function createCarouselContainer(opts: {
   igUserId: string;
   accessToken: string;
   childrenIds: string[];
   caption: string;
 }): Promise<string> {
-  const data = await igPost<{ id: string }>(
-    `/${opts.igUserId}/media`,
-    {
-      media_type: "CAROUSEL",
-      children: opts.childrenIds.join(","),
-      caption: opts.caption,
-      access_token: opts.accessToken,
-    }
+  const data = await withIgRetry("createCarouselContainer", () =>
+    igPost<{ id: string }>(
+      `/${opts.igUserId}/media`,
+      {
+        media_type: "CAROUSEL",
+        children: opts.childrenIds.join(","),
+        caption: opts.caption,
+        access_token: opts.accessToken,
+      }
+    )
   );
   return data.id;
 }
