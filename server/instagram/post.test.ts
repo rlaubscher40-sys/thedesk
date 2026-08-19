@@ -141,6 +141,12 @@ describe("isTransientServerError — Meta-side fault detection", () => {
       "fetch failed",
       "connect ETIMEDOUT 157.240.8.1:443",
       "read ECONNRESET",
+      // Observed on the publishing-quota read, minutes after the carousel
+      // failure above: same class of fault, different wording ("unknown", not
+      // "unexpected") and code 1 rather than 2.
+      'Instagram API 500 at /17841425195143644: {"error":{"message":"An unknown error has occurred.","type":"OAuthException","code":1,"fbtrace_id":"A4PSbQCJDWJPF"}}',
+      // The same wording without the 5xx, in case Meta ever pairs it with a 400.
+      'Instagram API 400 at /media: {"error":{"message":"An unknown error has occurred."}}',
     ];
     for (const m of cases) expect(isTransientServerError(new Error(m))).toBe(true);
   });

@@ -10,7 +10,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { env } from "../core/env";
 import { loopbackBaseUrl } from "../core/loopback";
-import { fetchPublishingLimit } from "../instagram/api";
+import { fetchPublishingLimit, isTransientServerError } from "../instagram/api";
 import { listInstagramPosts } from "../db/instagramPosts";
 import { adminProcedure, router } from "../core/trpc";
 
@@ -65,11 +65,12 @@ export const instagramRouter = router({
         quota: null,
         windowHours: null,
         error: null as string | null,
+        transient: false,
       };
     }
     try {
       const limit = await fetchPublishingLimit({ igUserId, accessToken });
-      return { configured: true, ...limit, error: null as string | null };
+      return { configured: true, ...limit, error: null as string | null, transient: false };
     } catch (err) {
       return {
         configured: true,
@@ -77,6 +78,12 @@ export const instagramRouter = router({
         quota: null,
         windowHours: null,
         error: (err as Error).message.slice(0, 200),
+        /**
+         * A Meta-side blip rather than anything wrong here. Flagged so the panel
+         * can say so in plain words instead of printing Graph API JSON at the
+         * reader, who can do nothing about it and shouldn't be alarmed by it.
+         */
+        transient: isTransientServerError(err),
       };
     }
   }),
