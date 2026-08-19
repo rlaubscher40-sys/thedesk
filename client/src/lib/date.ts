@@ -10,18 +10,32 @@ export function getSydneyDate(): string {
   });
 }
 
-/** ISO date in Sydney tz, e.g. "2026-05-13". */
-export function getSydneyIsoDate(): string {
+/**
+ * ISO date of an instant in Sydney tz, e.g. "2026-05-13". Returns null for an
+ * unparseable input so callers can fall back rather than render "NaN-NaN-NaN".
+ *
+ * Sydney rather than the viewer's zone on purpose: this formats the same
+ * calendar day the feed and the scheduler work in, so a timestamp rendered next
+ * to a feedDate is directly comparable with it.
+ */
+export function toSydneyIsoDate(value: Date | string): string | null {
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Australia/Sydney",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).formatToParts(new Date());
+  }).formatToParts(d);
   const y = parts.find((p) => p.type === "year")?.value;
   const m = parts.find((p) => p.type === "month")?.value;
-  const d = parts.find((p) => p.type === "day")?.value;
-  return `${y}-${m}-${d}`;
+  const dd = parts.find((p) => p.type === "day")?.value;
+  return `${y}-${m}-${dd}`;
+}
+
+/** ISO date right now in Sydney tz, e.g. "2026-05-13". */
+export function getSydneyIsoDate(): string {
+  return toSydneyIsoDate(new Date())!;
 }
 
 /** Label for the next Weekly Edition's ship day, Sunday 07:00 AEST.

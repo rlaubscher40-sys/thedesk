@@ -62,6 +62,9 @@ export function isTransientServerError(err: unknown): boolean {
     /is_transient\\?"?\s*:\s*true/i.test(msg) ||
     /instagram api 5\d\d\b/i.test(msg) ||
     lower.includes("an unexpected error has occurred") ||
+    // Meta uses both wordings for the same class of fault: "unexpected" came
+    // back on container creation, "unknown" on a quota read minutes later.
+    lower.includes("an unknown error has occurred") ||
     lower.includes("please retry your request later") ||
     // Meta's generic transient codes: 1 = unknown, 2 = service unavailable.
     /"code":\s*[12]\b/.test(msg) ||
@@ -93,6 +96,15 @@ async function igPost<T>(endpoint: string, params: Record<string, string>): Prom
  */
 const IG_RETRY_ATTEMPTS = 5;
 
+type RetryOpts = {
+  /** Total attempts, including the first. */
+  attempts?: number;
+  /** Backoff step for a Meta-side transient fault (multiplied by attempt no). */
+  transientDelayMs?: number;
+  /** Backoff step for any other failure. */
+  delayMs?: number;
+};
+
 /**
  * Retry a transient Instagram call with linear backoff. Use only for
  * idempotent operations — creating ANY container (image, carousel parent, or
@@ -112,8 +124,11 @@ const IG_RETRY_ATTEMPTS = 5;
 async function withIgRetry<T>(
   label: string,
   fn: () => Promise<T>,
-  attempts = IG_RETRY_ATTEMPTS
+  opts: RetryOpts = {}
 ): Promise<T> {
+  const attempts = opts.attempts ?? IG_RETRY_ATTEMPTS;
+  const transientDelayMs = opts.transientDelayMs ?? 8000;
+  const otherDelayMs = opts.delayMs ?? 3000;
   let lastErr: unknown;
   for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
@@ -125,7 +140,7 @@ async function withIgRetry<T>(
         throw err;
       }
       if (attempt === attempts) break;
-      const step = isTransientServerError(err) ? 8000 : 3000;
+      const step = isTransientServerError(err) ? transientDelayMs : otherDelayMs;
       const delayMs = step * attempt;
       console.warn(
         `[instagram] ${label} attempt ${attempt}/${attempts} failed, retrying in ${delayMs}ms:`,
@@ -358,22 +373,34 @@ export type PublishingLimit = {
  * it's the one number Instagram will give us, so the admin can see at a glance
  * how much of the daily allowance a run consumed. Best-effort: any miss returns
  * nulls rather than throwing, so a quota check never breaks the admin panel.
+ *
+ * Retried, but on a much shorter ladder than the posting path: Meta throws its
+ * transient 500s at this read too, and the panel was showing raw Graph API JSON
+ * where a number should be. Two quick attempts absorb a one-off blip; anything
+ * longer would be wrong here, because this drives a UI query that refetches
+ * every 60 seconds — a leisurely 80-second backoff would just pile requests up
+ * behind each other for a cosmetic figure.
  */
 export async function fetchPublishingLimit(opts: {
   igUserId: string;
   accessToken: string;
 }): Promise<PublishingLimit> {
-  const data = await igGet<{
-    content_publishing_limit?: {
-      data?: Array<{
-        quota_usage?: number;
-        config?: { quota_total?: number; quota_duration?: number };
-      }>;
-    };
-  }>(`/${opts.igUserId}`, {
-    fields: "content_publishing_limit{quota_usage,config}",
-    access_token: opts.accessToken,
-  });
+  const data = await withIgRetry(
+    "fetchPublishingLimit",
+    () =>
+      igGet<{
+        content_publishing_limit?: {
+          data?: Array<{
+            quota_usage?: number;
+            config?: { quota_total?: number; quota_duration?: number };
+          }>;
+        };
+      }>(`/${opts.igUserId}`, {
+        fields: "content_publishing_limit{quota_usage,config}",
+        access_token: opts.accessToken,
+      }),
+    { attempts: 2, transientDelayMs: 1500, delayMs: 1500 }
+  );
   const row = data.content_publishing_limit?.data?.[0];
   const duration = row?.config?.quota_duration;
   return {

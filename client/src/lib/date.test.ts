@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, afterEach, beforeEach } from "vitest";
-import { getNextEditionLabel, getSydneyIsoDate, getIsoWeekId } from "./date";
+import { getNextEditionLabel, getSydneyIsoDate, getIsoWeekId, toSydneyIsoDate } from "./date";
 
 describe("getNextEditionLabel", () => {
   beforeEach(() => vi.useFakeTimers());
@@ -40,5 +40,35 @@ describe("getIsoWeekId", () => {
     // 2026-05-13 is a Wednesday in ISO week 20.
     const id = getIsoWeekId(new Date("2026-05-13T00:00:00Z"));
     expect(id).toMatch(/^2026-W\d{2}$/);
+  });
+});
+
+// Backs the admin log's DATE column. A scheduled Instagram post records no
+// feedDate, so the column falls back to this — and it must read as a Sydney
+// calendar day whatever zone the browser is in, or it won't line up with the
+// feedDates sitting next to it.
+describe("toSydneyIsoDate", () => {
+  it("formats an instant as its Sydney calendar day", () => {
+    // 2026-08-19 21:14 UTC is already the 20th in Sydney (UTC+10).
+    expect(toSydneyIsoDate("2026-08-19T21:14:00Z")).toBe("2026-08-20");
+  });
+
+  it("does not roll the day over early", () => {
+    // 13:59 UTC is still the 19th in Sydney (23:59); one minute later it isn't.
+    expect(toSydneyIsoDate("2026-08-19T13:59:00Z")).toBe("2026-08-19");
+    expect(toSydneyIsoDate("2026-08-19T14:00:00Z")).toBe("2026-08-20");
+  });
+
+  it("accepts a Date as well as a string", () => {
+    expect(toSydneyIsoDate(new Date("2026-08-19T21:14:00Z"))).toBe("2026-08-20");
+  });
+
+  it("returns null for an unparseable value rather than NaN-NaN-NaN", () => {
+    expect(toSydneyIsoDate("not a date")).toBeNull();
+    expect(toSydneyIsoDate(new Date("nope"))).toBeNull();
+  });
+
+  it("agrees with getSydneyIsoDate for the current instant", () => {
+    expect(toSydneyIsoDate(new Date())).toBe(getSydneyIsoDate());
   });
 });

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { toSydneyIsoDate } from "@/lib/date";
 import { trpc } from "@/lib/trpc";
 import {
   jobState,
@@ -14,6 +15,26 @@ import { Skeleton } from "@/components/ui/Skeleton";
 function fmt(n: number | null | undefined) {
   if (n == null) return "—";
   return n.toLocaleString();
+}
+
+/**
+ * What goes in the log's DATE column.
+ *
+ * feedDate is only ever set when a date was passed by hand, so a scheduled post
+ * has none — which left this column showing "—" for every normal post and made
+ * the log much harder to read than it needed to be. Fall back to the day the
+ * row was written, in Sydney, so it lines up with the feedDates beside it.
+ *
+ * The weekly keeps its edition number: "Ed. 15" places it better than a date.
+ */
+function postRowDate(p: {
+  feedDate: string | null;
+  editionNumber: number | null;
+  createdAt: string | Date;
+}): string {
+  if (p.feedDate) return p.feedDate;
+  if (p.editionNumber != null) return `Ed. ${p.editionNumber}`;
+  return toSydneyIsoDate(p.createdAt) ?? "—";
 }
 
 /**
@@ -191,6 +212,13 @@ function PublishingQuota() {
   let detail: string;
   if (!data.configured) {
     detail = "Instagram not configured";
+  } else if (data.error && data.transient) {
+    // Meta's own transient fault. Nothing is wrong with the account or the
+    // token, and there's nothing to do about it, so say that rather than
+    // printing Graph API JSON at someone who can't act on it. The raw error
+    // stays on the title attribute for when you do want to look.
+    detail =
+      "Instagram's API is having a moment. Meta-side, not the account — the number's back shortly.";
   } else if (data.error) {
     detail = `Couldn't read quota — ${data.error}`;
   } else if (data.usage == null || data.quota == null) {
@@ -226,7 +254,9 @@ function PublishingQuota() {
           />
         </div>
       )}
-      <p className="text-xs text-[var(--color-fg-muted)]">{detail}</p>
+      <p className="text-xs text-[var(--color-fg-muted)]" title={data.error ?? undefined}>
+        {detail}
+      </p>
     </div>
   );
 }
@@ -280,7 +310,7 @@ export function InstagramAdminPanel() {
                   className="border-b border-[var(--color-border)] last:border-b-0 hover:bg-white/[0.02] transition-colors"
                 >
                   <td className="py-2.5 pr-4 font-mono tabular-nums text-[var(--color-fg-muted)] whitespace-nowrap">
-                    {p.feedDate ?? (p.editionNumber != null ? `Ed. ${p.editionNumber}` : "—")}
+                    {postRowDate(p)}
                   </td>
                   <td className="py-2.5 pr-4 font-mono uppercase tracking-[0.12em] text-[var(--color-fg-subtle)] whitespace-nowrap">
                     {p.postType}
