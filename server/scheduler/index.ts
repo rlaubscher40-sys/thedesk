@@ -145,16 +145,22 @@ const JOBS: Job[] = [
 ];
 
 /**
- * Email the admin when a job has used up its retries for the day. Best-effort
+ * Email the admin when a job has used up its attempts for the day. Best-effort
  * and self-contained: a mailer hiccup must never crash the tick or mask the
  * original failure (which is already logged + recorded above). Fires at most
  * once per job per day because a terminal failure leaves attempts == maxAttempts,
  * so claimJobRun won't re-claim it.
+ *
+ * The attempt counts are passed through so the email can say what actually
+ * happened — "failed on its only attempt" reads very differently from "failed
+ * twice", and the old copy claimed exhausted retries either way.
  */
 async function alertTerminalFailure(
   jobKey: string,
   clock: SchedulerClock,
-  detail: string
+  detail: string,
+  attempt: number,
+  maxAttempts: number
 ): Promise<void> {
   const to = env.adminAlertEmail;
   if (!to) return;
@@ -166,6 +172,8 @@ async function alertTerminalFailure(
       jobKey,
       detail,
       when,
+      attempt,
+      maxAttempts,
     });
   } catch (err) {
     console.warn(`[scheduler] alert email for ${jobKey} failed:`, (err as Error).message);
@@ -203,7 +211,7 @@ async function tick(baseUrl: string, apiKey: string): Promise<void> {
         // letting it sink into the error log — the silent weekly-post failure
         // is exactly what this guards against.
         if (attempt >= maxAttempts) {
-          await alertTerminalFailure(job.key, clock, msg);
+          await alertTerminalFailure(job.key, clock, msg, attempt, maxAttempts);
         }
       }
     }

@@ -13,6 +13,7 @@ import { registerAnalyticsRoutes } from "./core/analyticsRoutes";
 import { registerUnsubscribeRoute } from "./core/unsubscribeRoute";
 import { createContext } from "./core/context";
 import { registerHealthRoutes, recordExpressError } from "./core/healthRoutes";
+import { setLoopbackBaseUrl } from "./core/loopback";
 import { registerOAuthRoutes } from "./core/oauth";
 import { registerSecurityHeaders } from "./core/securityHeaders";
 import { registerSeoRoutes } from "./core/seo";
@@ -202,6 +203,10 @@ async function startServer() {
   }
   server.listen(port, () => {
     console.log(`The Desk running at http://localhost:${port}/`);
+    // Publish the real bound port for the self-calls that need it (the admin
+    // panel's manual job re-runs). Same reason the scheduler takes it as an
+    // argument: in dev this can differ from the configured PORT.
+    setLoopbackBaseUrl(port);
     // Self-healing in-process scheduler (replaces GitHub cron when enabled).
     // Bound to the actual listening port so its loopback self-calls hit us.
     startScheduler({ port });

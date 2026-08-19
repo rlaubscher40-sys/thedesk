@@ -601,6 +601,27 @@ export async function sendTalkingPointNudgeEmail({
 }
 
 /**
+ * How the alert describes what the job actually did. The old copy always said
+ * "it exhausted its retries", which read as though several attempts had been
+ * made — misleading on a job configured with a single attempt, where the first
+ * failure is also the last and there was never a retry to exhaust. Say plainly
+ * which case it was, so the reader knows whether the schedule already tried
+ * again or never got the chance.
+ *
+ * Exported for tests. `attempt`/`maxAttempts` are optional: a caller that
+ * doesn't know them gets the neutral phrasing rather than an invented count.
+ */
+export function attemptSentence(when: string, attempt?: number, maxAttempts?: number): string {
+  if (maxAttempts === 1) {
+    return `It failed at ${when} (Sydney) on its only attempt of the day, so the schedule will not try again.`;
+  }
+  if (attempt != null && maxAttempts != null && attempt >= maxAttempts && maxAttempts > 1) {
+    return `It failed ${maxAttempts} times, the last at ${when} (Sydney), and has no attempts left today.`;
+  }
+  return `It failed at ${when} (Sydney) and has no attempts left today.`;
+}
+
+/**
  * Operational alert to the admin/owner — e.g. a scheduled job (the weekly
  * Instagram post) failed terminally. Plain, high-signal, no marketing chrome:
  * the job key, when, and the error detail, so a failure is something you're
@@ -613,15 +634,23 @@ export async function sendAdminAlertEmail({
   jobKey,
   detail,
   when,
+  attempt,
+  maxAttempts,
 }: {
   to: string;
   subject: string;
   jobKey: string;
   detail: string;
   when: string;
+  /** Which attempt failed, and the cap — used only for the wording above. */
+  attempt?: number;
+  maxAttempts?: number;
 }): Promise<SendResult> {
   const safeDetail = esc(detail.slice(0, 1000));
   const safeJobKey = esc(jobKey);
+  const what = esc(attemptSentence(when, attempt, maxAttempts));
+  const nextStep =
+    "Nothing was posted or produced for this run. Check the admin error log, then re-run it from the admin panel once it's fixed.";
   const inner = `
     ${mastheadRow()}
     ${ruleFullRow()}
@@ -629,7 +658,7 @@ export async function sendAdminAlertEmail({
       <td class="em-bg" bgcolor="${L.bg}" style="padding:0 0 20px;background-color:${L.bg};">
         <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${L.accent};text-transform:uppercase;margin-bottom:12px;">Scheduler alert</div>
         <h1 class="em-h" style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:26px;line-height:1.1;color:${L.heading};margin:0 0 14px;letter-spacing:-0.02em;">Job <span style="color:${L.accent};">${safeJobKey}</span> failed.</h1>
-        <p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.6;color:${L.muted};margin:0 0 16px;">It exhausted its retries on ${when} (Sydney) and did not complete. Nothing was posted/produced for this run — check the admin error log and re-run by hand once fixed.</p>
+        <p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.6;color:${L.muted};margin:0 0 16px;">${what} ${nextStep}</p>
         <div style="background:${L.accentSoft};border:1px solid ${L.border};border-radius:4px;padding:14px 16px;">
           <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:9px;letter-spacing:0.2em;color:${L.accent};text-transform:uppercase;margin-bottom:8px;">Error</div>
           <p class="em-t" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:13px;line-height:1.5;color:${L.text};margin:0;word-break:break-word;">${safeDetail}</p>
@@ -642,13 +671,13 @@ export async function sendAdminAlertEmail({
   const text = [
     "The Desk · Scheduler alert",
     "",
-    `Job "${jobKey}" failed terminally on ${when} (Sydney).`,
-    "Nothing was posted/produced for this run.",
+    `Job "${jobKey}" failed.`,
+    attemptSentence(when, attempt, maxAttempts),
     "",
     "Error:",
     safeDetail,
     "",
-    "Check the admin error log and re-run by hand once fixed.",
+    nextStep,
   ].join("\n");
   return send({ to, subject, html, text });
 }
