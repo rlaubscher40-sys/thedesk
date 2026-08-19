@@ -103,6 +103,49 @@ async function publishCarouselConfirmed(opts: {
   }
 }
 
+/**
+ * How recently a post must have landed for a RETRY to treat it as "this run
+ * already went out". The scheduler re-attempts a failed job on its next tick
+ * (5 minutes), so ~25 minutes covers a couple of ticks. The three posting
+ * streams sit hours apart (07:13 daily, 09:19 Sunday weekly, 12:13 coverage),
+ * so a window this tight can never mistake one stream's post for another's.
+ */
+const RETRY_DUPLICATE_WINDOW_MS = 25 * 60 * 1000;
+
+/**
+ * Did the PREVIOUS attempt of this job actually publish before it reported
+ * failure? Instagram can accept a publish and still fail the response (a
+ * timeout, or the rate-limit-403-that-published), which leaves the run marked
+ * failed with a live post on the grid — so a blind re-attempt would double-post.
+ * Returns the existing media id when one landed inside the window, else null.
+ *
+ * This is what makes it safe for the scheduler to give the posting jobs a
+ * second attempt at all: before this guard, `maxAttempts: 1` was the only
+ * defence against a duplicate, which meant one transient Graph API 500 cost the
+ * whole day's post.
+ *
+ * Only ever consults the API for attempt > 1 — on a first attempt the newest
+ * media is simply the previous run's (or a hand-made) post, and skipping on it
+ * would silently drop the day. Best-effort: a read failure returns null and the
+ * post proceeds, because a missed post is the worse outcome of the two.
+ */
+export async function findAlreadyPublished(attempt: number): Promise<string | null> {
+  if (attempt <= 1) return null;
+  const { instagramAccessToken: accessToken, instagramBusinessAccountId: igUserId } = env;
+  if (!accessToken || !igUserId) return null;
+  const landed = await findRecentMedia({
+    igUserId,
+    accessToken,
+    withinMs: RETRY_DUPLICATE_WINDOW_MS,
+  }).catch(() => null);
+  if (landed) {
+    console.warn(
+      `[instagram] attempt ${attempt}: a post already landed (${landed}) — the previous attempt published before it failed, not posting again.`
+    );
+  }
+  return landed;
+}
+
 function sanitizeStory(story: DailyFeedItem): DailyFeedItem {
   return {
     ...story,

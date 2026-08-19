@@ -83,12 +83,16 @@ type Job = {
   /** Restrict to these days (0=Sun…6=Sat). Omitted = every day. */
   dow?: number[];
   /**
-   * Max attempts per day. Posting jobs (Instagram) set 1: a "failed" post may
-   * actually have published (a timeout after the Graph API accepted it), so
-   * retrying risks a duplicate. Ingest jobs are safe to retry (default 3).
+   * Max attempts per day. The Instagram posting jobs sit at 2 rather than the
+   * ingest default of 3: the risk they used to guard against with 1 — a
+   * "failed" post that actually published (a timeout after the Graph API
+   * accepted it) turning into a duplicate — is now handled properly on the
+   * route, which checks the account's newest media before re-posting and
+   * records the existing post instead. One retry buys back the case that
+   * matters: a transient Graph API 500 no longer costs the whole day's post.
    */
   maxAttempts?: number;
-  run: (baseUrl: string, apiKey: string) => Promise<void>;
+  run: (baseUrl: string, apiKey: string, attempt: number) => Promise<void>;
 };
 
 /**
@@ -102,11 +106,22 @@ export function isJobDue(job: Job, clock: SchedulerClock): boolean {
   return clock.minutes >= at && clock.minutes <= at + GRACE_MINUTES;
 }
 
-async function postLocal(baseUrl: string, apiKey: string, path: string): Promise<void> {
+/**
+ * POST a scheduled endpoint on loopback. The attempt number rides along in the
+ * body so a posting route can tell a first run from a retry — a retry checks
+ * the account for a post the previous attempt may have published before it
+ * failed, instead of blindly posting again.
+ */
+async function postLocal(
+  baseUrl: string,
+  apiKey: string,
+  path: string,
+  attempt = 1
+): Promise<void> {
   const res = await fetch(`${baseUrl}${path}`, {
     method: "POST",
     headers: { "content-type": "application/json", "x-scheduled-key": apiKey },
-    body: "{}",
+    body: JSON.stringify({ attempt }),
   });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
@@ -122,11 +137,11 @@ async function postLocal(baseUrl: string, apiKey: string, path: string): Promise
 const JOBS: Job[] = [
   { key: "daily-metrics", at: "06:33", run: (b, k) => runDailyMetricsIngest(b, k) },
   { key: "daily-feed", at: "06:43", run: (b, k) => runDailyFeedIngest(b, k) },
-  { key: "instagram-daily", at: "07:13", maxAttempts: 1, run: (b, k) => postLocal(b, k, "/api/ingest/instagram-daily") },
+  { key: "instagram-daily", at: "07:13", maxAttempts: 2, run: (b, k, a) => postLocal(b, k, "/api/ingest/instagram-daily", a) },
   { key: "instagram-insights", at: "07:17", run: (b, k) => postLocal(b, k, "/api/ingest/instagram-insights") },
-  { key: "instagram-coverage", at: "12:13", maxAttempts: 1, run: (b, k) => postLocal(b, k, "/api/ingest/instagram-coverage") },
+  { key: "instagram-coverage", at: "12:13", maxAttempts: 2, run: (b, k, a) => postLocal(b, k, "/api/ingest/instagram-coverage", a) },
   { key: "weekly-edition", at: "07:17", dow: [0], run: (b, k) => postLocal(b, k, "/api/ingest/synthesize-edition") },
-  { key: "instagram-weekly", at: "09:19", dow: [0], maxAttempts: 1, run: (b, k) => postLocal(b, k, "/api/ingest/instagram-weekly") },
+  { key: "instagram-weekly", at: "09:19", dow: [0], maxAttempts: 2, run: (b, k, a) => postLocal(b, k, "/api/ingest/instagram-weekly", a) },
 ];
 
 /**
@@ -171,7 +186,7 @@ async function tick(baseUrl: string, apiKey: string): Promise<void> {
       if (!attempt) continue;
       console.log(`[scheduler] running ${job.key} (${clock.dateISO}, attempt ${attempt}/${maxAttempts})`);
       try {
-        await job.run(baseUrl, apiKey);
+        await job.run(baseUrl, apiKey, attempt);
         await markJobRun(job.key, clock.dateISO, "success");
         console.log(`[scheduler] ${job.key} ✓`);
       } catch (err) {

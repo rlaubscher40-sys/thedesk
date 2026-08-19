@@ -1284,16 +1284,19 @@ function registerInstagramRoutes(app: Express): void {
       res.status(503).json({ error: "Instagram credentials not configured" });
       return;
     }
-    // Parse optional feedDate override
+    // Parse optional feedDate override, plus the scheduler's attempt number
+    // (see attemptFromBody) so a retry can't double-post.
     const parsed = z
       .object({
         feedDate: z
           .string()
           .regex(/^\d{4}-\d{2}-\d{2}$/)
           .optional(),
+        attempt: z.number().int().min(1).optional(),
       })
       .safeParse(req.body ?? {});
     const feedDate = parsed.success ? parsed.data.feedDate : undefined;
+    const attempt = parsed.success ? (parsed.data.attempt ?? 1) : 1;
 
     // Instagram is partner-facing: post from the enriched lanes (AU +
     // Property) only, never the coverage tabs.
@@ -1310,12 +1313,38 @@ function registerInstagramRoutes(app: Express): void {
     // a missing post is actually noticed. The job's 10-minute timeout is
     // ample headroom for image render + Graph API publish.
     try {
-      const { postDailyCarousel } = await import("./instagram/post");
+      const { findAlreadyPublished, pickDailyTopStories, postDailyCarousel } =
+        await import("./instagram/post");
 
       // Checkerboard the profile grid (slide 1 is the grid thumbnail) and
       // surface the morning's market metrics on the cover's lower third. The
       // tone flips from whatever the last grid post used.
       const variant = await nextCoverVariant();
+
+      // A retry only re-posts if the previous attempt truly published nothing.
+      // When it did publish and then failed to report it, repair the record and
+      // call the run the success it was, rather than duplicating the carousel.
+      // The variant above is the one that attempt used: it flips from the last
+      // RECORDED post, and a publish it never got to record didn't move that.
+      const alreadyPublished = await findAlreadyPublished(attempt);
+      if (alreadyPublished) {
+        const recoveredHeadline = pickDailyTopStories(items, 1)[0]?.title ?? "Daily briefing";
+        await db.recordInstagramPost({
+          mediaId: alreadyPublished,
+          postType: "daily",
+          feedDate: feedDate ?? null,
+          headline: recoveredHeadline,
+          coverVariant: variant,
+        });
+        console.log(`[instagram] daily post recovered from a prior attempt: ${alreadyPublished}`);
+        res.json({
+          success: true,
+          postId: alreadyPublished,
+          headline: recoveredHeadline,
+          recovered: true,
+        });
+        return;
+      }
       const metrics = dailyCoverMetrics(await db.listDailyMetrics());
       // The metrics ingest runs before this job, so an empty strip means that
       // job didn't land today. The post still goes out (a clean cover without
@@ -1383,9 +1412,11 @@ function registerInstagramRoutes(app: Express): void {
           .string()
           .regex(/^\d{4}-\d{2}-\d{2}$/)
           .optional(),
+        attempt: z.number().int().min(1).optional(),
       })
       .safeParse(req.body ?? {});
     const feedDate = parsed.success ? parsed.data.feedDate : undefined;
+    const attempt = parsed.success ? (parsed.data.attempt ?? 1) : 1;
 
     // The opposite filter to the daily post: coverage lanes only.
     const items = (await db.listFeedItems(feedDate)).filter((it) => !isEnrichedChannel(it.channel));
@@ -1394,9 +1425,33 @@ function registerInstagramRoutes(app: Express): void {
       return;
     }
     try {
-      const { postDailyCarousel } = await import("./instagram/post");
+      const { findAlreadyPublished, pickDailyTopStories, postDailyCarousel } =
+        await import("./instagram/post");
       // Flip from the morning's daily cover so the two alternate.
       const variant = await nextCoverVariant();
+
+      // Same retry guard as the daily post — see the comment there.
+      const alreadyPublished = await findAlreadyPublished(attempt);
+      if (alreadyPublished) {
+        const recoveredHeadline = pickDailyTopStories(items, 1)[0]?.title ?? "The Wider Lens";
+        await db.recordInstagramPost({
+          mediaId: alreadyPublished,
+          postType: "coverage",
+          feedDate: feedDate ?? null,
+          headline: recoveredHeadline,
+          coverVariant: variant,
+        });
+        console.log(
+          `[instagram] coverage post recovered from a prior attempt: ${alreadyPublished}`
+        );
+        res.json({
+          success: true,
+          postId: alreadyPublished,
+          headline: recoveredHeadline,
+          recovered: true,
+        });
+        return;
+      }
       const { postId, headline } = await postDailyCarousel(items, siteOrigin(), {
         variant,
         mode: "coverage",
@@ -1438,6 +1493,12 @@ function registerInstagramRoutes(app: Express): void {
       res.status(503).json({ error: "Instagram credentials not configured" });
       return;
     }
+    const attempt = (() => {
+      const parsed = z
+        .object({ attempt: z.number().int().min(1).optional() })
+        .safeParse(req.body ?? {});
+      return parsed.success ? (parsed.data.attempt ?? 1) : 1;
+    })();
     const editions = await db.listEditions();
     const latest = editions[0];
     if (!latest) {
@@ -1448,10 +1509,33 @@ function registerInstagramRoutes(app: Express): void {
     // must mean the edition actually posted, not just that the request was
     // accepted.
     try {
-      const { postWeeklyEdition } = await import("./instagram/post");
+      const { findAlreadyPublished, postWeeklyEdition } = await import("./instagram/post");
       // The weekly now flips from the last grid post too, so it slots into the
       // checkerboard instead of always being navy and clashing.
       const variant = await nextCoverVariant();
+
+      // Same retry guard as the daily post — see the comment there.
+      const alreadyPublished = await findAlreadyPublished(attempt);
+      if (alreadyPublished) {
+        const recoveredHeadline = `Weekly Edition #${latest.editionNumber}`;
+        await db.recordInstagramPost({
+          mediaId: alreadyPublished,
+          postType: "weekly",
+          editionNumber: latest.editionNumber,
+          headline: recoveredHeadline,
+          coverVariant: variant,
+        });
+        console.log(`[instagram] weekly post recovered from a prior attempt: ${alreadyPublished}`);
+        res.json({
+          success: true,
+          editionNumber: latest.editionNumber,
+          postId: alreadyPublished,
+          headline: recoveredHeadline,
+          recovered: true,
+        });
+        return;
+      }
+
       const { postId, headline } = await postWeeklyEdition(latest, siteOrigin(), variant);
       console.log(`[instagram] weekly post complete: ${postId}`);
       await db.recordInstagramPost({
