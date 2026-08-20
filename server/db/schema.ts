@@ -516,6 +516,14 @@ export const pageViews = mysqlTable("page_views", {
   /** Ephemeral sessionStorage token. Lets us compute "unique
    *  sessions" within a window without persistent identification. */
   sessionId: varchar("sessionId", { length: 64 }).notNull(),
+  /** ISO 3166-1 alpha-2 country, read from Cloudflare's CF-IPCountry
+   *  header at the edge. null when the header is absent (direct hit
+   *  that bypassed the proxy, or local dev) or when Cloudflare
+   *  couldn't resolve it. Country is the coarsest useful geo unit and
+   *  is derived, never stored, from the IP — we still persist no
+   *  address. Exists to answer one question the Cloudflare dashboard
+   *  can't: how much of the *human* readership is Australian. */
+  country: varchar("country", { length: 2 }),
 });
 
 export type PageView = typeof pageViews.$inferSelect;

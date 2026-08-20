@@ -883,6 +883,7 @@ export function recordPageView(data: InsertPageView): void {
     path: data.path,
     referrer: data.referrer ?? null,
     sessionId: data.sessionId,
+    country: data.country ?? null,
   };
   demo.pageViews = trimRing([...demo.pageViews, row], PAGEVIEW_CAP);
 }
@@ -928,6 +929,52 @@ export function topReferrers(
     .map(([referrer, views]) => ({ referrer, views }))
     .sort((a, b) => b.views - a.views)
     .slice(0, limit);
+}
+
+export function topCountries(
+  since: Date,
+  limit: number
+): Array<{ country: string; views: number }> {
+  const counts = new Map<string, number>();
+  for (const v of demo.pageViews) {
+    if (v.viewedAt < since) continue;
+    if (!v.country) continue;
+    counts.set(v.country, (counts.get(v.country) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([country, views]) => ({ country, views }))
+    .sort((a, b) => b.views - a.views)
+    .slice(0, limit);
+}
+
+export function countrySplit(since: Date): {
+  au: number;
+  other: number;
+  unknown: number;
+  auSessions: number;
+  totalSessions: number;
+} {
+  const rows = demo.pageViews.filter((v) => v.viewedAt >= since);
+  const auSessions = new Set<string>();
+  const allSessions = new Set<string>();
+  let au = 0;
+  let other = 0;
+  let unknown = 0;
+  for (const v of rows) {
+    allSessions.add(v.sessionId);
+    if (!v.country) unknown += 1;
+    else if (v.country === "AU") {
+      au += 1;
+      auSessions.add(v.sessionId);
+    } else other += 1;
+  }
+  return {
+    au,
+    other,
+    unknown,
+    auSessions: auSessions.size,
+    totalSessions: allSessions.size,
+  };
 }
 
 export function pageViewsByDay(since: Date): Array<{ day: string; views: number }> {

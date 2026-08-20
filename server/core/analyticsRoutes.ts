@@ -10,8 +10,12 @@
  *      "no tracking pixels". Same spirit.
  *   3. Reduce the supplied referrer to a hostname so we never persist
  *      a full URL (which can leak query strings).
- *   4. Persist {viewedAt, path, referrer-hostname, sessionId} into
- *      page_views.
+ *   4. Read the visitor's country from Cloudflare's CF-IPCountry
+ *      header. Country is trusted from the edge only — never from the
+ *      client body — and is the coarsest useful geo unit. We still
+ *      store no IP.
+ *   5. Persist {viewedAt, path, referrer-hostname, sessionId, country}
+ *      into page_views.
  *
  * Rate-limited per-IP at 60 events/min — a real reader navigating
  * fast sits well under this, but a misbehaving tab can't carpet-bomb
@@ -57,6 +61,23 @@ function reduceReferrer(raw: string | undefined): string | null {
   }
 }
 
+/** Cloudflare sets CF-IPCountry on every proxied request. Values are
+ *  ISO 3166-1 alpha-2, plus two sentinels we treat as unknown:
+ *  "XX" (Cloudflare couldn't determine it) and "T1" (Tor exit node).
+ *
+ *  Read from the header only. A client-supplied country would be
+ *  trivially spoofable and would poison the one number this table
+ *  exists to answer honestly. When the header is missing — local dev,
+ *  or a request that reached the origin without passing the proxy —
+ *  we record null rather than guessing. */
+export function countryFromEdge(raw: string | undefined): string | null {
+  if (!raw) return null;
+  const code = raw.trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(code)) return null;
+  if (code === "XX" || code === "T1") return null;
+  return code;
+}
+
 /** Trim path: drop query string and fragment defensively. */
 function reducePath(raw: string): string {
   return raw.split(/[?#]/, 1)[0]?.slice(0, 256) ?? "/";
@@ -95,6 +116,7 @@ async function handlePageView(req: Request, res: Response): Promise<void> {
     path: reducePath(parsed.data.path),
     referrer,
     sessionId: parsed.data.sessionId,
+    country: countryFromEdge(req.header("cf-ipcountry")),
   });
   res.status(204).end();
 }

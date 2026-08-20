@@ -277,6 +277,14 @@ export const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
     name: "0021 · subscribers.confirmTokenSentAt",
     sql: "ALTER TABLE subscribers ADD confirmTokenSentAt timestamp NULL",
   },
+  {
+    name: "0022 · page_views.country",
+    sql: "ALTER TABLE page_views ADD country varchar(2)",
+  },
+  {
+    name: "0022 · page_views index by country",
+    sql: "CREATE INDEX idx_page_views_country ON page_views (country, viewedAt)",
+  },
 ];
 
 /** MySQL/TiDB error message fragments that mean "already applied". */

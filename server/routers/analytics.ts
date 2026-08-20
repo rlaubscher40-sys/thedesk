@@ -31,15 +31,40 @@ export const analyticsRouter = router({
     };
   }),
 
-  /** Top paths and top referrers over a rolling window. */
+  /** Top paths, referrers and countries over a rolling window. */
   breakdown: adminProcedure.input(windowSchema).query(async ({ input }) => {
     const hours = input?.hours ?? 24;
-    const [paths, referrers] = await Promise.all([
+    const [paths, referrers, countries] = await Promise.all([
       db.topPaths(hours, 10),
       db.topReferrers(hours, 10),
+      db.topCountries(hours, 10),
     ]);
-    return { paths, referrers };
+    return { paths, referrers, countries };
   }),
+
+  /** Australian share of readership. Defaults to a 30-day window —
+   *  the daily numbers on a site this size are too small for a
+   *  percentage to mean anything, and the whole point of this figure
+   *  is to track a trend rather than a day. */
+  audience: adminProcedure
+    .input(
+      z
+        .object({ hours: z.number().int().min(1).max(24 * 90).default(24 * 30) })
+        .optional()
+    )
+    .query(async ({ input }) => {
+      const hours = input?.hours ?? 24 * 30;
+      const split = await db.countrySplit(hours);
+      const known = split.au + split.other;
+      return {
+        hours,
+        ...split,
+        /** AU share of views with a known country, 0-100. null when
+         *  nothing is attributable yet — the panel renders a dash
+         *  rather than a misleading 0%. */
+        auShare: known > 0 ? Math.round((split.au / known) * 100) : null,
+      };
+    }),
 
   /** Per-day view counts across the last N days for a sparkline. */
   byDay: adminProcedure
