@@ -541,7 +541,7 @@ export async function renderDailyCoverCard(
   feedDate?: string | null,
   variant: CardVariant = "navy",
   metrics?: Array<{ label: string; value: string }>,
-  opts: { title?: string; kicker?: string } = {}
+  opts: { title?: string; kicker?: string; swipe?: string } = {}
 ): Promise<Buffer> {
   const logo = await loadLogo(variant);
   const c = colorScheme(variant);
@@ -816,7 +816,14 @@ export async function renderDailyCoverCard(
                           textTransform: "uppercase",
                           color: c.fgMuted,
                         },
-                        children: "Swipe for today's stories »",
+                        /**
+                         * Name what the swipe actually buys. "Swipe for today's
+                         * stories" promised the headlines this cover has already
+                         * listed, so it asked for the swipe having spent the
+                         * reason for it. The slides carry the analysis the cover
+                         * withholds, and saying so is the open loop.
+                         */
+                        children: opts.swipe ?? "Swipe for why each one matters »",
                       },
                     },
                     {

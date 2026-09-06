@@ -182,19 +182,36 @@ function categoryHashtag(category: string | null | undefined): string {
   return CATEGORY_HASHTAG[(category ?? "").toUpperCase()] ?? "#Markets";
 }
 
+/** Shown when the lead story has no say-this to open with. Generic by
+ *  necessity, so it is a fallback rather than the default. */
+const DAILY_CAPTION_FALLBACK_HOOK =
+  "The stories moving Australian markets today, and what each one means for your money.";
+
 /**
- * The caption leads with a hook + benefit (the first ~125 chars are all
- * Instagram shows before "…more"), carries the conversational "say this" hook
- * for each slide in swipe order, then asks for a comment and a save — for
- * evergreen brief content, saves are the strongest ranking signal. The
- * analytical why-it-matters stays on the cards so the caption doesn't repeat
- * them.
+ * The caption opens with the day's own hook, carries the conversational "say
+ * this" line for each remaining slide in swipe order, then asks for a comment
+ * and a save — for evergreen brief content, saves are the strongest ranking
+ * signal. The analytical why-it-matters stays on the cards so the caption
+ * doesn't repeat them.
+ *
+ * The opening line matters more than its length suggests: the first ~125
+ * characters are all Instagram shows before "…more", so they are the entire
+ * pitch to someone deciding whether to stop. A fixed sentence spends that
+ * budget saying the same thing every day, which is the same weakness a
+ * contents-page cover has — nothing about it is specific to today. So the lead
+ * story's say-this is promoted to the top and dropped from the rundown below,
+ * said once, where it does the most work.
  */
 export function buildDailyCaption(stories: DailyFeedItem[]): string {
+  const leadHook = stories[0]?.sayThis?.trim()
+    ? sanitizeDashes(stories[0]!.sayThis!.trim()).slice(0, 200)
+    : DAILY_CAPTION_FALLBACK_HOOK;
+
   const rundown = stories.flatMap((s, i) => {
     const headline = sanitizeDashes(s.title).slice(0, 120);
     const lines = [`${i + 1}. ${headline}`];
-    if (s.sayThis) {
+    // Slide 1's say-this is already the opening hook, so it is not repeated.
+    if (s.sayThis && !(i === 0 && leadHook !== DAILY_CAPTION_FALLBACK_HOOK)) {
       lines.push(sanitizeDashes(s.sayThis).slice(0, 220));
     }
     lines.push("");
@@ -204,7 +221,7 @@ export function buildDailyCaption(stories: DailyFeedItem[]): string {
   const tags = `${CORE_HASHTAGS} ${categoryHashtag(stories[0]?.category)}`;
 
   return [
-    "The stories moving Australian markets today, and what each one means for your money.",
+    leadHook,
     "",
     ...rundown,
     "Which one are you watching this week? Tell us below.",
@@ -512,7 +529,11 @@ export async function postDailyCarousel(
 
   // Coverage carousel gets its own cover title + card labels so it reads as a
   // distinct series on the grid, not another "Today's Briefing".
-  const coverOpts = isCoverage ? { title: "The Wider Lens", kicker: "Wider Lens" } : {};
+  // Coverage slides carry an "In Brief" paraphrase rather than a partner
+  // why-it-matters, so its swipe promise has to name that instead.
+  const coverOpts = isCoverage
+    ? { title: "The Wider Lens", kicker: "Wider Lens", swipe: "Swipe for the full rundown »" }
+    : {};
   const cardOpts = isCoverage ? { subtextLabel: "In Brief" } : {};
   const verticalOpts = isCoverage ? { subtextLabel: "In Brief", header: "Wider Lens" } : {};
 
