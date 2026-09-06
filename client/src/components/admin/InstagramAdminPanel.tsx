@@ -10,6 +10,12 @@ import {
   type JobState,
   type PostedRow,
 } from "@/lib/instagramRuns";
+import {
+  MIN_POSTS_FOR_SIGNAL,
+  readFormats,
+  summariseFormats,
+  type InsightRow,
+} from "@/lib/instagramInsights";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 function fmt(n: number | null | undefined) {
@@ -291,8 +297,120 @@ function PublishingQuota() {
   );
 }
 
+/** One rate, or an em dash when there is nothing to show. */
+function rate(n: number | null): string {
+  return n == null ? "—" : n.toFixed(1);
+}
+
+/**
+ * Which format is earning its slot.
+ *
+ * The account has collected reach, saves and shares per post for months and
+ * nothing ever read them, so "should we keep posting X" has always been settled
+ * by argument. This is the table that settles it by measurement instead.
+ *
+ * Saves lead because for reference content a save is the strongest ranking
+ * signal Instagram takes, and it is the one the captions actually ask for. Every
+ * figure is per 1,000 reach and taken as a median — see lib/instagramInsights
+ * for why both of those matter more than they look.
+ *
+ * The reading above the table is the point of the whole thing: four rows of
+ * rates still need interpreting, and the interpretation is where someone
+ * reaches a confident conclusion off five posts. So the summary line does the
+ * refusing, out loud, rather than leaving it to whoever is looking.
+ */
+function FormatPerformance({ posts, ready }: { posts: InsightRow[]; ready: boolean }) {
+  if (!ready) return <Skeleton className="h-32 w-full rounded" />;
+
+  const summaries = summariseFormats(posts);
+  const reading = readFormats(summaries);
+
+  return (
+    <div className="rounded border border-[var(--color-border)] p-4 space-y-3">
+      <div>
+        <p className="overline-amber" style={{ letterSpacing: "0.18em", fontSize: "10px" }}>
+          Which format is working
+        </p>
+        <p className="text-xs text-[var(--color-fg-muted)] mt-1.5 max-w-[68ch] leading-relaxed">
+          Median saves, shares and engagement per 1,000 reach, so a post that simply travelled
+          further does not read as a post that landed harder. Posts still waiting on the insights
+          job are excluded rather than counted as zeroes.
+        </p>
+      </div>
+
+      <p className="text-sm text-[var(--color-fg)] leading-relaxed border-l-2 border-[var(--color-accent)] pl-3">
+        {reading}
+      </p>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs border-collapse min-w-[520px]">
+          <thead>
+            <tr className="border-b border-[var(--color-border)]">
+              {["Format", "Posts", "Reach", "Saves /1k", "Shares /1k", "Eng. /1k"].map((h, i) => (
+                <th
+                  key={h}
+                  className={`pb-2 font-mono uppercase tracking-[0.16em] text-[var(--color-fg-subtle)] pr-4 whitespace-nowrap ${
+                    i === 0 ? "text-left" : "text-right"
+                  }`}
+                >
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {summaries.map((s) => (
+              <tr
+                key={s.postType}
+                className="border-b border-[var(--color-border)] last:border-b-0"
+                // Dim a format we cannot yet read, so the eye goes to the rows
+                // that mean something instead of treating all four as equal.
+                style={{ opacity: s.conclusive ? 1 : 0.55 }}
+              >
+                <td className="py-2.5 pr-4 text-[var(--color-fg)] whitespace-nowrap">
+                  {s.label}
+                  {!s.conclusive && (
+                    <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-fg-subtle)]">
+                      too few
+                    </span>
+                  )}
+                </td>
+                <td className="py-2.5 pr-4 tabular-nums text-right text-[var(--color-fg-muted)] whitespace-nowrap">
+                  {s.measured}
+                  {s.awaiting > 0 && (
+                    <span className="text-[var(--color-fg-subtle)]"> +{s.awaiting}</span>
+                  )}
+                </td>
+                <td className="py-2.5 pr-4 tabular-nums text-right text-[var(--color-fg-muted)]">
+                  {s.medianReach == null ? "—" : Math.round(s.medianReach).toLocaleString()}
+                </td>
+                <td className="py-2.5 pr-4 tabular-nums text-right text-[var(--color-fg)]">
+                  {rate(s.savesPer1k)}
+                </td>
+                <td className="py-2.5 pr-4 tabular-nums text-right text-[var(--color-fg-muted)]">
+                  {rate(s.sharesPer1k)}
+                </td>
+                <td className="py-2.5 tabular-nums text-right text-[var(--color-fg-muted)]">
+                  {rate(s.engagementPer1k)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <p className="text-[11px] text-[var(--color-fg-subtle)] leading-relaxed">
+        A format is read as inconclusive under {MIN_POSTS_FOR_SIGNAL} measured posts. "Posts" counts
+        those with metrics in; a "+n" is published but still waiting on the insights job.
+      </p>
+    </div>
+  );
+}
+
 export function InstagramAdminPanel() {
-  const { data, isLoading } = trpc.instagram.listAll.useQuery();
+  // 100 rather than the default 30: the format comparison below needs enough
+  // history to have anything to say, and 30 rows is barely a fortnight.
+  const { data, isLoading } = trpc.instagram.listAll.useQuery({ limit: 100 });
   const posts = data ?? [];
 
   return (
@@ -311,6 +429,8 @@ export function InstagramAdminPanel() {
       <PublishingQuota />
 
       <RerunJobs posts={posts} ready={!isLoading} />
+
+      <FormatPerformance posts={posts} ready={!isLoading} />
 
       {isLoading ? (
         <Skeleton className="h-40 w-full rounded" />

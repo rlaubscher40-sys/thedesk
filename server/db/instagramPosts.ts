@@ -11,13 +11,11 @@
  * so posting is never blocked by analytics.
  */
 import { and, count, desc, gte, inArray, isNotNull, isNull, eq } from "drizzle-orm";
+import * as demoQueries from "../demo/queries";
 import { isDemoMode } from "../demo/store";
 import { getDb } from "./client";
-import {
-  instagramPosts,
-  type InsertInstagramPost,
-  type InstagramPost,
-} from "./schema";
+import { INSTAGRAM_POST_TYPES, type InstagramPostType } from "../../shared/const";
+import { instagramPosts, type InsertInstagramPost, type InstagramPost } from "./schema";
 
 export type InstagramPostMetrics = {
   likes?: number | null;
@@ -28,12 +26,18 @@ export type InstagramPostMetrics = {
   totalInteractions?: number | null;
 };
 
-/** Insert a published post. Idempotent on mediaId; never throws. */
+/**
+ * Insert a published post. Idempotent on mediaId; never throws.
+ *
+ * `postType` is narrowed from the schema's plain string to the shared union,
+ * so a new kind of post cannot be recorded without first being added to
+ * INSTAGRAM_POST_TYPES — which is what the grid flip and the admin panel read.
+ */
 export async function recordInstagramPost(
   input: Pick<
     InsertInstagramPost,
-    "mediaId" | "postType" | "feedDate" | "editionNumber" | "headline" | "coverVariant"
-  >
+    "mediaId" | "feedDate" | "editionNumber" | "headline" | "coverVariant"
+  > & { postType: InstagramPostType }
 ): Promise<void> {
   if (isDemoMode()) return;
   const db = getDb();
@@ -42,10 +46,7 @@ export async function recordInstagramPost(
     await db.insert(instagramPosts).values(input);
   } catch (err) {
     // Duplicate mediaId or missing table (pre-migration): log and move on.
-    console.warn(
-      `[instagramPosts] record skipped for ${input.mediaId}:`,
-      (err as Error).message
-    );
+    console.warn(`[instagramPosts] record skipped for ${input.mediaId}:`, (err as Error).message);
   }
 }
 
@@ -53,9 +54,7 @@ export async function recordInstagramPost(
  * Posts published within the last `withinDays` whose metrics have not been
  * fetched yet. The insights job runs daily and picks up the prior day's post.
  */
-export async function listInstagramPostsNeedingMetrics(
-  withinDays = 7
-): Promise<InstagramPost[]> {
+export async function listInstagramPostsNeedingMetrics(withinDays = 7): Promise<InstagramPost[]> {
   if (isDemoMode()) return [];
   const db = getDb();
   if (!db) return [];
@@ -64,12 +63,7 @@ export async function listInstagramPostsNeedingMetrics(
     return await db
       .select()
       .from(instagramPosts)
-      .where(
-        and(
-          isNull(instagramPosts.metricsFetchedAt),
-          gte(instagramPosts.createdAt, since)
-        )
-      )
+      .where(and(isNull(instagramPosts.metricsFetchedAt), gte(instagramPosts.createdAt, since)))
       .orderBy(desc(instagramPosts.createdAt));
   } catch (err) {
     console.warn("[instagramPosts] needing-metrics query failed:", (err as Error).message);
@@ -91,65 +85,17 @@ export async function updateInstagramPostMetrics(
       .set({ ...metrics, metricsFetchedAt: new Date() })
       .where(eq(instagramPosts.mediaId, mediaId));
   } catch (err) {
-    console.warn(
-      `[instagramPosts] metrics update failed for ${mediaId}:`,
-      (err as Error).message
-    );
+    console.warn(`[instagramPosts] metrics update failed for ${mediaId}:`, (err as Error).message);
   }
 }
 
 /**
- * How many posts of a given type have been published. Drives the daily
- * cover's navy/light alternation: slide 1 is the profile-grid thumbnail, so
- * flipping the variant on each successive daily post makes the 3-wide grid
- * read as a checkerboard. Returns 0 on any error (or pre-migration), which
- * keeps the next post on the default "navy" rather than blocking it.
- */
-export async function countInstagramPosts(postType: string): Promise<number> {
-  if (isDemoMode()) return 0;
-  const db = getDb();
-  if (!db) return 0;
-  try {
-    const rows = await db
-      .select({ value: count() })
-      .from(instagramPosts)
-      .where(eq(instagramPosts.postType, postType));
-    return rows[0]?.value ?? 0;
-  } catch (err) {
-    console.warn("[instagramPosts] count query failed:", (err as Error).message);
-    return 0;
-  }
-}
-
-/**
- * How many posts share the alternating navy/light grid cover. The daily
- * ("Today's Briefing") and coverage ("The Wider Lens") posts both use that
- * cover and now publish twice a day, so the checkerboard only stays clean if
- * we alternate across BOTH streams combined — counting "daily" alone left the
- * coverage post on the same colour as that morning's daily post.
- */
-export async function countCheckerboardPosts(): Promise<number> {
-  if (isDemoMode()) return 0;
-  const db = getDb();
-  if (!db) return 0;
-  try {
-    const rows = await db
-      .select({ value: count() })
-      .from(instagramPosts)
-      .where(inArray(instagramPosts.postType, ["daily", "coverage"]));
-    return rows[0]?.value ?? 0;
-  } catch (err) {
-    console.warn("[instagramPosts] checkerboard count failed:", (err as Error).message);
-    return 0;
-  }
-}
-
-/**
- * The grid cover tone of the most recent daily/coverage/weekly post that has
- * one recorded. The next post flips from this so the profile checkerboard stays
- * clean across all three streams (the weekly no longer breaks the rhythm).
- * Returns null pre-migration or when no prior post carries a tone — the caller
- * picks a default to start the pattern.
+ * The navy/light tone of the newest post on the profile grid, so the next post
+ * can flip from it and keep the 3-wide grid reading as a checkerboard.
+ *
+ * Reads across every post type rather than matching like with like: the grid
+ * interleaves them chronologically, so what matters is the tile immediately
+ * before this one, whatever kind of post it was.
  */
 export async function latestGridCoverVariant(): Promise<"navy" | "light" | null> {
   if (isDemoMode()) return null;
@@ -161,7 +107,7 @@ export async function latestGridCoverVariant(): Promise<"navy" | "light" | null>
       .from(instagramPosts)
       .where(
         and(
-          inArray(instagramPosts.postType, ["daily", "coverage", "weekly"]),
+          inArray(instagramPosts.postType, [...INSTAGRAM_POST_TYPES]),
           isNotNull(instagramPosts.coverVariant)
         )
       )
@@ -177,7 +123,9 @@ export async function latestGridCoverVariant(): Promise<"navy" | "light" | null>
 
 /** Recent posts, newest first. For reporting / admin. */
 export async function listInstagramPosts(limit = 30): Promise<InstagramPost[]> {
-  if (isDemoMode()) return [];
+  // Demo mode serves the seed so the admin panel's format comparison can be
+  // reviewed without a live account behind it.
+  if (isDemoMode()) return demoQueries.listInstagramPosts(limit);
   const db = getDb();
   if (!db) return [];
   try {

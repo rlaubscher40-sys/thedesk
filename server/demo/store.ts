@@ -13,6 +13,7 @@ import type {
   Edition,
   FeaturedLinkedInPost,
   FeedbackSubmission,
+  InstagramPost,
   PageView,
   ReadingQueueItem,
   ServerError,
@@ -63,6 +64,7 @@ export const demo = {
   subscribers: [] as Subscriber[],
   linkedInPosts: linkedInSeed(),
   metrics: metricsSeed(),
+  instagramPosts: instagramPostsSeed(),
   feedback: [] as FeedbackSubmission[],
   // Health: in-memory ring buffers. Bounded so a long-running demo
   // doesn't grow unbounded; old entries fall off the front.
@@ -75,6 +77,68 @@ export const demo = {
 export function trimRing<T>(arr: T[], maxLen: number): T[] {
   if (arr.length <= maxLen) return arr;
   return arr.slice(arr.length - maxLen);
+}
+
+/**
+ * Seed Instagram posts so the admin panel's format comparison is reviewable in
+ * demo mode. Without these the new table renders empty, which is honest but
+ * makes the thing impossible to look at, and demo mode exists precisely so the
+ * UI can be reviewed without live data.
+ *
+ * Shaped to exercise the states the panel has to handle rather than to flatter
+ * it: The Number reads well but is still one post short of conclusive, the two
+ * carousels are conclusive and close, The Wider Lens has almost nothing since
+ * it came off the schedule, and one recent post is still awaiting metrics.
+ */
+function instagramPostsSeed(): InstagramPost[] {
+  const day = 86_400_000;
+  const now = Date.now();
+  let n = 0;
+  const post = (
+    postType: string,
+    daysAgo: number,
+    reach: number | null,
+    saved: number | null,
+    shares: number | null,
+    headline: string
+  ): InstagramPost =>
+    ({
+      id: ++n,
+      mediaId: `demo-${postType}-${n}`,
+      postType,
+      feedDate: null,
+      editionNumber: postType === "weekly" ? 40 + n : null,
+      headline,
+      coverVariant: n % 2 === 0 ? "light" : "navy",
+      likes: reach == null ? null : Math.round(reach * 0.031),
+      comments: reach == null ? null : Math.round(reach * 0.004),
+      reach,
+      saved,
+      shares,
+      totalInteractions: reach == null ? null : Math.round(reach * 0.05),
+      metricsFetchedAt: reach == null ? null : new Date(now - daysAgo * day + day),
+      createdAt: new Date(now - daysAgo * day),
+    }) as InstagramPost;
+
+  return [
+    // Awaiting metrics — published, insights job has not run for it yet.
+    post("daily", 0, null, null, null, "Investor lending hits its highest share since 2015"),
+    post("stat", 1, 4120, 96, 31, "Auction clearance: 58.4%"),
+    post("daily", 1, 5230, 61, 14, "RBA holds the cash rate at 3.85%"),
+    post("stat", 3, 3880, 84, 26, "Nat'l dwelling value: $815,439"),
+    post("daily", 3, 4980, 55, 12, "Fixed-rate share climbs for a fourth month"),
+    post("stat", 5, 4460, 103, 35, "Mortgage arrears: 1.62%"),
+    post("daily", 5, 5610, 70, 18, "Building approvals fall to a three-year low"),
+    post("weekly", 6, 6240, 88, 22, "This Week in Australian Property, Ed. 44"),
+    post("daily", 7, 5120, 58, 11, "Sydney clearance slips under 60% for a sixth week"),
+    post("weekly", 13, 5980, 79, 19, "This Week in Australian Property, Ed. 43"),
+    post("daily", 9, 4740, 64, 15, "Net migration eases from its 2024 peak"),
+    post("weekly", 20, 6110, 91, 24, "This Week in Australian Property, Ed. 42"),
+    post("weekly", 27, 5740, 74, 17, "This Week in Australian Property, Ed. 41"),
+    // Off the schedule, so only the historic ones remain.
+    post("coverage", 11, 3210, 19, 4, "The Wider Lens"),
+    post("coverage", 12, 2980, 16, 3, "The Wider Lens"),
+  ];
 }
 
 function metricsSeed(): DailyMetric[] {
@@ -106,18 +170,128 @@ function metricsSeed(): DailyMetric[] {
     updatedAt: now,
   });
   return [
-    m(900, "cash_rate", "RBA cash rate", "4.35", "%", "4.35", "RBA", "ANZ expects extended hold", "MACRO", 10),
-    m(901, "cpi_trimmed", "Trimmed mean CPI", "3.3", "%", "3.4", "ABS", "Peak forecast 3.8%", "MACRO", 20),
-    m(902, "consumer_confidence", "Consumer confidence", "64.1", null, "67.2", "ANZ-Roy Morgan", "4th lowest reading ever", "MACRO", 30),
-    m(903, "dwelling_value", "Nat'l dwelling value", "$933,137", null, "$930,401", "CoreLogic", "Slowest growth since Jan 2025", "PROPERTY", 40),
-    m(904, "auction_clearance", "Auction clearance", "52.5", "%", "57.3", "Domain", "Below 60% for 7 straight weeks", "PROPERTY", 50),
-    m(905, "building_approvals", "Building approvals", "17,028", null, "17,540", "ABS", "Below household formation", "PROPERTY", 60),
-    m(906, "unemployment", "Unemployment rate", "4.3", "%", "4.2", "ABS", "RBA forecasts 4.7% mid-2026", "LABOUR", 70),
-    m(907, "wage_growth", "Wage growth (WPI)", "3.3", "%", "3.4", "ABS", "Real wages still pressured", "LABOUR", 80),
+    m(
+      900,
+      "cash_rate",
+      "RBA cash rate",
+      "4.35",
+      "%",
+      "4.35",
+      "RBA",
+      "ANZ expects extended hold",
+      "MACRO",
+      10
+    ),
+    m(
+      901,
+      "cpi_trimmed",
+      "Trimmed mean CPI",
+      "3.3",
+      "%",
+      "3.4",
+      "ABS",
+      "Peak forecast 3.8%",
+      "MACRO",
+      20
+    ),
+    m(
+      902,
+      "consumer_confidence",
+      "Consumer confidence",
+      "64.1",
+      null,
+      "67.2",
+      "ANZ-Roy Morgan",
+      "4th lowest reading ever",
+      "MACRO",
+      30
+    ),
+    m(
+      903,
+      "dwelling_value",
+      "Nat'l dwelling value",
+      "$933,137",
+      null,
+      "$930,401",
+      "CoreLogic",
+      "Slowest growth since Jan 2025",
+      "PROPERTY",
+      40
+    ),
+    m(
+      904,
+      "auction_clearance",
+      "Auction clearance",
+      "52.5",
+      "%",
+      "57.3",
+      "Domain",
+      "Below 60% for 7 straight weeks",
+      "PROPERTY",
+      50
+    ),
+    m(
+      905,
+      "building_approvals",
+      "Building approvals",
+      "17,028",
+      null,
+      "17,540",
+      "ABS",
+      "Below household formation",
+      "PROPERTY",
+      60
+    ),
+    m(
+      906,
+      "unemployment",
+      "Unemployment rate",
+      "4.3",
+      "%",
+      "4.2",
+      "ABS",
+      "RBA forecasts 4.7% mid-2026",
+      "LABOUR",
+      70
+    ),
+    m(
+      907,
+      "wage_growth",
+      "Wage growth (WPI)",
+      "3.3",
+      "%",
+      "3.4",
+      "ABS",
+      "Real wages still pressured",
+      "LABOUR",
+      80
+    ),
     m(908, "asx200", "ASX 200", "8,210", null, "8,150", "Yahoo Finance", "—", "MARKETS", 90),
     m(909, "audusd", "AUD / USD", "0.6543", null, "0.6580", "Yahoo Finance", "—", "MARKETS", 100),
-    m(910, "brent", "Brent crude", "$107", "/bbl", "$104", "Yahoo Finance", "Hormuz still closed", "MARKETS", 110),
-    m(911, "net_migration", "Net migration", "548K", null, "535K", "ABS", "Demand-side of supply gap", "DEMOGRAPHICS", 120),
+    m(
+      910,
+      "brent",
+      "Brent crude",
+      "$107",
+      "/bbl",
+      "$104",
+      "Yahoo Finance",
+      "Hormuz still closed",
+      "MARKETS",
+      110
+    ),
+    m(
+      911,
+      "net_migration",
+      "Net migration",
+      "548K",
+      null,
+      "535K",
+      "ABS",
+      "Demand-side of supply gap",
+      "DEMOGRAPHICS",
+      120
+    ),
   ];
 }
 
@@ -126,7 +300,8 @@ function linkedInSeed(): FeaturedLinkedInPost[] {
   return [
     {
       id: 800,
-      postUrl: "https://www.linkedin.com/posts/ruben-laubscher_apra-serviceability-buffer-activity-7195000000000000000-DESK/",
+      postUrl:
+        "https://www.linkedin.com/posts/ruben-laubscher_apra-serviceability-buffer-activity-7195000000000000000-DESK/",
       excerpt:
         "The APRA serviceability buffer consultation is a six-month story, not a six-week one. Brokers selling 'loosening' to clients this quarter are selling timing they cannot deliver.",
       authorName: "Ruben Laubscher",
@@ -136,7 +311,8 @@ function linkedInSeed(): FeaturedLinkedInPost[] {
     },
     {
       id: 801,
-      postUrl: "https://www.linkedin.com/posts/ruben-laubscher_sydney-clearance-rates-activity-7195000000000000001-DESK/",
+      postUrl:
+        "https://www.linkedin.com/posts/ruben-laubscher_sydney-clearance-rates-activity-7195000000000000001-DESK/",
       excerpt:
         "Sydney clearance over 65% for six straight weeks. The volume is finally catching up to the price story. Watch June listings, that's the test.",
       authorName: "Ruben Laubscher",
@@ -146,7 +322,8 @@ function linkedInSeed(): FeaturedLinkedInPost[] {
     },
     {
       id: 802,
-      postUrl: "https://www.linkedin.com/posts/ruben-laubscher_fixed-rate-rolloff-activity-7195000000000000002-DESK/",
+      postUrl:
+        "https://www.linkedin.com/posts/ruben-laubscher_fixed-rate-rolloff-activity-7195000000000000002-DESK/",
       excerpt:
         "Fixed-rate roll-offs land in mid-June. The decision was the easy part, broker channel share through June is where the real action is.",
       authorName: "Ruben Laubscher",

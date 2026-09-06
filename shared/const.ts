@@ -103,3 +103,28 @@ export const LINKEDIN_LIMITS = {
   /** Hard upper bound, LinkedIn truncates beyond ~3,000. */
   max: 3000,
 } as const;
+
+/**
+ * Every kind of Instagram feed post the site publishes and records.
+ *
+ * One list, because two things depend on it agreeing with itself. The admin
+ * panel groups performance by these keys, and the profile grid flips its
+ * navy/light cover from the newest post of any of them — so a type recorded
+ * but missing from the list is invisible to the flip, and the post after it
+ * lands on the same tone as its neighbour. Adding a post type means adding it
+ * here, and everything that has to know follows.
+ *
+ * Order is the day's running order, which is also how the admin panel reads.
+ */
+export const INSTAGRAM_POST_TYPES = ["daily", "stat", "weekly", "coverage"] as const;
+export type InstagramPostType = (typeof INSTAGRAM_POST_TYPES)[number];
+
+/** Audience-facing name of each post type — the title it wears on the grid.
+ *  The admin surfaces should say what you would see on the profile, not the
+ *  internal key. */
+export const INSTAGRAM_POST_TYPE_LABELS: Record<InstagramPostType, string> = {
+  daily: "Today's Briefing",
+  stat: "The Number",
+  weekly: "This Week",
+  coverage: "The Wider Lens",
+};
