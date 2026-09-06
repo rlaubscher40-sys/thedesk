@@ -260,7 +260,7 @@ first, paid tier later. The offer already exists (the newsletter), and as of
 5a the conversion from channel to subscriber is measured. What was a strategic
 question is now a reading on a panel.
 
-**9. Strip the partner framing out of the content generators.**
+**9. ~~Strip the partner framing out of the content generators.~~ Done (6 Sep).**
 The prompts still write for a persona this product does not have. Every feed
 item gets a `partnerTag` block addressed to
 `Institutional / Broker / Adviser / Buyers Agent`, and `sayThis` is generated
@@ -270,9 +270,17 @@ being asked to subscribe, that is the wrong reader in the model's head on every
 generation, and it shapes the daily feed, the Instagram captions and the weekly
 edition alike.
 
-This is the highest-leverage content change left, and it is a prompt edit
-rather than new machinery. It should happen before any investment in video,
-because video would otherwise scale copy written for the wrong audience.
+The partner roles became three reader positions (Buying / Holding / Watching)
+and every generator now writes to a reader rather than an intermediary. It was
+more than a prompt edit in the end: the personas had schema, UI in two design
+systems, persona colours and site copy behind them.
+
+With that done, the remaining gap to Glasshouse is entirely Tier 2: video, a
+face on the account, and a number nobody else can publish. Nothing in Tier 1
+or in this item moves the account past its current ceiling — they make the
+existing posts work harder and make the copy address the right person. The
+attribution loop should now be allowed to run long enough to say whether the
+funnel converts before committing to video.
 
 ---
 
