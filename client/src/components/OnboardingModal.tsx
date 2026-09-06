@@ -5,12 +5,7 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "./ui/Button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from "./ui/Dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "./ui/Dialog";
 
 const STORAGE_KEY = "thedesk:onboarding-seen";
 
@@ -18,7 +13,7 @@ const STEPS = [
   {
     overline: "Step 1 of 4 · Today",
     title: "Today is your morning scan.",
-    body: "The Desk is your daily sixty-second read on Australian property, built to sharpen partner conversations. Five stories land overnight, each tagged for the four personas. Open one to copy a ready-made line straight into a client conversation.",
+    body: "The Desk is your daily sixty-second read on Australian property. Five stories land overnight, each angled for where you stand: buying, holding, or watching to time a move. Open one for the read behind the headline.",
   },
   {
     overline: "Step 2 of 4 · Editions",

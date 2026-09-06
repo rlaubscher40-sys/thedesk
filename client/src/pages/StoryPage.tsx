@@ -19,7 +19,7 @@ import { SectionErrorBoundary } from "@/components/ErrorBoundary";
 import { LinkedInPostModal } from "@/components/LinkedInPostModal";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { CashRatePanel, MetricRows } from "@/components/broadsheet/MetricBlocks";
-import { PartnerAngleColumns } from "@/components/broadsheet/PartnerAngles";
+import { ReaderAngleColumns } from "@/components/broadsheet/ReaderAngles";
 import { SayThis } from "@/components/broadsheet/SayThis";
 import { StoryImage } from "@/components/broadsheet/StoryImage";
 import { SubscribeBand } from "@/components/broadsheet/SubscribeBand";
@@ -41,10 +41,7 @@ export default function StoryPage() {
   const colourFor = useCategoryColour();
   const { isBookmarked, toggle } = useBookmarks();
 
-  const itemQuery = trpc.feed.getById.useQuery(
-    { id },
-    { enabled: Number.isFinite(id) && id > 0 }
-  );
+  const itemQuery = trpc.feed.getById.useQuery({ id }, { enabled: Number.isFinite(id) && id > 0 });
 
   // Mark this story read so the Today index can show what's still unopened.
   useEffect(() => {
@@ -162,7 +159,7 @@ export default function StoryPage() {
             />
             <div className="min-w-0">
               <p style={{ fontSize: 14.5 }}>
-                <span className="font-semibold">Ruben Laubscher</span>, Head of Partnerships
+                <span className="font-semibold">Ruben Laubscher</span>
                 at InvestorKit
               </p>
               <p className="bs-label mt-1" style={{ letterSpacing: "0.16em" }}>
@@ -263,7 +260,7 @@ export default function StoryPage() {
             />
           )}
 
-          <PartnerAngleColumns raw={story.partnerTag} className="mt-9" />
+          <ReaderAngleColumns raw={story.partnerTag} className="mt-9" />
 
           {(prevStory || nextStory) && (
             <nav
@@ -382,7 +379,10 @@ function StoryStep({
 
 function StorySkeleton() {
   return (
-    <div className={cn(GUTTER_X, "grid lg:grid-cols-[minmax(0,1fr)_340px] gap-10 pt-9")} aria-busy="true">
+    <div
+      className={cn(GUTTER_X, "grid lg:grid-cols-[minmax(0,1fr)_340px] gap-10 pt-9")}
+      aria-busy="true"
+    >
       <div className="space-y-4">
         <Skeleton className="h-3 w-40" />
         <Skeleton className="h-12 w-4/5" />

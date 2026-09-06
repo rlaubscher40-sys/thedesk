@@ -30,7 +30,7 @@ export function LeadEnrichmentWarning({ item }: { item: DailyFeedItem }) {
       if (res.updated.length === 0) {
         toast.message("No new angles produced", {
           description:
-            "The LLM returned SKIP for the missing fields — this story may not have a genuine partner-channel angle.",
+            "The LLM returned SKIP for the missing fields — this story may not genuinely bear on the property market.",
         });
       } else {
         toast.success(`Enriched: ${res.updated.join(", ")}`);
@@ -46,13 +46,10 @@ export function LeadEnrichmentWarning({ item }: { item: DailyFeedItem }) {
   const enrichTop = trpc.feed.enrichTopCandidates.useMutation({
     onSuccess: (res) => {
       if (res.updates === 0) {
-        toast.message(
-          `No new angles produced across the top ${res.scanned}`,
-          {
-            description:
-              "Today's top candidates have no fillable gaps — likely an ingest-side thin day. Look deeper into sources.",
-          }
-        );
+        toast.message(`No new angles produced across the top ${res.scanned}`, {
+          description:
+            "Today's top candidates have no fillable gaps — likely an ingest-side thin day. Look deeper into sources.",
+        });
       } else {
         toast.success(`Enriched ${res.updates} field(s) across the top ${res.scanned}`);
       }
@@ -92,9 +89,9 @@ export function LeadEnrichmentWarning({ item }: { item: DailyFeedItem }) {
             Today&apos;s lead hasn&apos;t earned its slot.
           </span>{" "}
           The priority-top story is missing{" "}
-          <span className="font-medium text-[var(--color-fg)]">{gaps.join(", ")}</span>
-          {" "}— the hero treatment is built to hold those. Fill the gaps below, or
-          enrich the wider bench if this story has no genuine angle.
+          <span className="font-medium text-[var(--color-fg)]">{gaps.join(", ")}</span> — the hero
+          treatment is built to hold those. Fill the gaps below, or enrich the wider bench if this
+          story has no genuine angle.
         </p>
         <button
           type="button"
@@ -102,7 +99,9 @@ export function LeadEnrichmentWarning({ item }: { item: DailyFeedItem }) {
           disabled={pending}
           className="mt-1 inline-flex items-center gap-1 text-[11px] text-[var(--color-fg-subtle)] hover:text-amber-200 transition-colors disabled:opacity-50"
         >
-          {enrichTop.isPending ? "Enriching the top 5…" : "Or enrich the top 5 candidates instead →"}
+          {enrichTop.isPending
+            ? "Enriching the top 5…"
+            : "Or enrich the top 5 candidates instead →"}
         </button>
       </div>
       <button

@@ -18,9 +18,7 @@ const PersonaContext = createContext<Ctx | null>(null);
 function readStored(): Persona {
   if (typeof window === "undefined") return PERSONAS[0]!;
   const raw = window.localStorage.getItem(STORAGE_KEY);
-  return (PERSONAS as readonly string[]).includes(raw as string)
-    ? (raw as Persona)
-    : PERSONAS[0]!;
+  return (PERSONAS as readonly string[]).includes(raw as string) ? (raw as Persona) : PERSONAS[0]!;
 }
 
 export function PersonaProvider({ children }: { children: ReactNode }) {
@@ -33,9 +31,7 @@ export function PersonaProvider({ children }: { children: ReactNode }) {
   const setPersona = (p: Persona) => setPersonaState(p);
 
   return (
-    <PersonaContext.Provider value={{ persona, setPersona }}>
-      {children}
-    </PersonaContext.Provider>
+    <PersonaContext.Provider value={{ persona, setPersona }}>{children}</PersonaContext.Provider>
   );
 }
 
@@ -45,23 +41,30 @@ export function usePersona(): Ctx {
   return ctx;
 }
 
-/** Persona → distinguishing accent. Matches the brand palette. */
+/** Reader position → distinguishing accent. Matches the brand palette. */
 export const PERSONA_COLOUR: Record<Persona, string> = {
-  Broker: "oklch(0.78 0.18 70)", // amber
-  Adviser: "oklch(0.72 0.17 155)", // adviser / accountant green
-  "Buyers Agent": "oklch(0.62 0.18 25)", // ink / rust
+  Buying: "oklch(0.78 0.18 70)", // amber
+  Holding: "oklch(0.72 0.17 155)", // green
+  Watching: "oklch(0.62 0.18 25)", // ink / rust
 };
 
 /**
- * Display spelling for a persona label. The stored/canonical keys stay as
- * "Adviser" and "Buyers Agent" (no apostrophe, no slash) so parsing and
- * matching never break on legacy data, but the reader sees the fuller
- * "Adviser / Accountant" and grammatically correct "Buyer's Agent". Keyed
- * loosely so it also tidies LLM-generated talkingPoints keys.
+ * Display spelling for a reader position.
+ *
+ * The canonical keys stay single bare words ("Buying") because they are line
+ * prefixes in stored text and get built into a regex, but a bare gerund reads
+ * as a label rather than as something about the reader. Spelling it as a clause
+ * is what makes the block land as "this is you".
+ *
+ * Keyed loosely so it also tidies LLM-generated talkingPoints keys, and falls
+ * through unchanged for anything it does not recognise — including the old
+ * partner roles on rows written before the change, which should read as
+ * whatever they were rather than being silently relabelled.
  */
 export function personaDisplayLabel(label: string): string {
   const n = label.toLowerCase().replace(/[^a-z]/g, "");
-  if (n.startsWith("buyer")) return "Buyer's Agent";
-  if (n === "adviser" || n === "advisor") return "Adviser / Accountant";
+  if (n === "buying" || n === "buyer" || n === "buyers") return "If you're buying";
+  if (n === "holding" || n === "holder" || n === "holders") return "If you're holding";
+  if (n === "watching" || n === "watcher" || n === "watchers") return "If you're watching";
   return label;
 }

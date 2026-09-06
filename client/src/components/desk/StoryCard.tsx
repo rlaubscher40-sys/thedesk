@@ -15,7 +15,7 @@ import { CategoryPill } from "./CategoryPill";
 import { ContextExpander } from "./ContextExpander";
 import { CuratorByline } from "./CuratorByline";
 import { NoAngleNote } from "./NoAngleNote";
-import { PartnerAngles } from "./PartnerAngles";
+import { ReaderAngles } from "./ReaderAngles";
 import { PaywallHint } from "./PaywallHint";
 import { SayThis } from "./SayThis";
 import { SourceFooter } from "./SourceFooter";
@@ -47,9 +47,7 @@ export function StoryCard({ story }: { story: Story }) {
       >
         {story.headline}
       </h3>
-      <p className="text-[15px] text-[var(--color-fg-muted)] leading-relaxed">
-        {story.dek}
-      </p>
+      <p className="text-[15px] text-[var(--color-fg-muted)] leading-relaxed">{story.dek}</p>
 
       {angle ? (
         <SayThis story={story} persona={persona} sayThis={angle.sayThis} />
@@ -59,9 +57,7 @@ export function StoryCard({ story }: { story: Story }) {
 
       {story.context && <ContextExpander note={story.context} />}
 
-      {story.partnerAngles.length > 0 && (
-        <PartnerAngles angles={story.partnerAngles} />
-      )}
+      {story.partnerAngles.length > 0 && <ReaderAngles angles={story.partnerAngles} />}
 
       {story.tier === "paid" && <PaywallHint />}
 
@@ -69,11 +65,7 @@ export function StoryCard({ story }: { story: Story }) {
         <CuratorByline />
       </div>
 
-      <SourceFooter
-        source={story.source}
-        sourceUrl={story.sourceUrl}
-        category={story.category}
-      />
+      <SourceFooter source={story.source} sourceUrl={story.sourceUrl} category={story.category} />
     </article>
   );
 }

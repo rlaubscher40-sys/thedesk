@@ -14,15 +14,7 @@
  */
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import {
-  AlertTriangle,
-  Bug,
-  Heart,
-  Lightbulb,
-  MessageSquarePlus,
-  Send,
-  X,
-} from "lucide-react";
+import { AlertTriangle, Bug, Heart, Lightbulb, MessageSquarePlus, Send, X } from "lucide-react";
 import { toast } from "sonner";
 import { Honeypot } from "@/components/Honeypot";
 import { cn } from "@/lib/cn";
@@ -167,15 +159,10 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
       >
         <header className="flex items-center justify-between gap-3 px-5 py-4 border-b border-[var(--color-border)]">
           <div>
-            <p
-              className="overline-amber"
-              style={{ letterSpacing: "0.22em", fontSize: "10px" }}
-            >
+            <p className="overline-amber" style={{ letterSpacing: "0.22em", fontSize: "10px" }}>
               Tell Ruben
             </p>
-            <p className="font-serif text-lg font-bold leading-tight mt-0.5">
-              Feedback
-            </p>
+            <p className="font-serif text-lg font-bold leading-tight mt-0.5">Feedback</p>
           </div>
           <button
             onClick={onClose}
@@ -211,9 +198,7 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
                       active && "ring-1 ring-amber-400/60"
                     )}
                     style={{
-                      background: active
-                        ? `${opt.colour}18`
-                        : "oklch(1 0 0 / 2%)",
+                      background: active ? `${opt.colour}18` : "oklch(1 0 0 / 2%)",
                       boxShadow: active
                         ? `inset 0 0 0 1px ${opt.colour}55`
                         : "inset 0 0 0 1px var(--color-border)",
@@ -263,7 +248,7 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
                 kind === "bug"
                   ? "What broke? What were you doing when it broke?"
                   : kind === "idea"
-                    ? "What would make this more useful for partner conversations?"
+                    ? "What would make this more useful to you?"
                     : "What's working for you?"
               }
               className="w-full px-3 py-2 rounded text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors leading-relaxed"
@@ -306,13 +291,11 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
             </label>
           </div>
 
-          <p
-            className="flex items-start gap-1.5 text-[10px] text-[var(--color-fg-subtle)] leading-relaxed"
-          >
+          <p className="flex items-start gap-1.5 text-[10px] text-[var(--color-fg-subtle)] leading-relaxed">
             <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0 text-amber-400/60" />
             <span>
-              We capture the page URL and your browser type so Ruben can
-              reproduce. Nothing else, no tracking pixels.
+              We capture the page URL and your browser type so Ruben can reproduce. Nothing else, no
+              tracking pixels.
             </span>
           </p>
 
@@ -329,8 +312,7 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
               disabled={submit.isPending}
               className="inline-flex items-center gap-1.5 rounded px-4 py-2 text-[10px] font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.98] disabled:opacity-50"
               style={{
-                background:
-                  "var(--grad-cta-amber)",
+                background: "var(--grad-cta-amber)",
                 color: "var(--color-on-amber)",
               }}
             >

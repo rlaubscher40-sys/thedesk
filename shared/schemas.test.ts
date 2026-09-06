@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  dailyFeedIngestItemSchema,
-  parsePartnerTag,
-  weeklyEditionIngestSchema,
-} from "./schemas";
+import { dailyFeedIngestItemSchema, parseReaderAngles, weeklyEditionIngestSchema } from "./schemas";
 
 describe("dailyFeedIngestItemSchema", () => {
   it("accepts a minimal valid item and upper-cases the category", () => {
@@ -47,32 +43,45 @@ describe("weeklyEditionIngestSchema", () => {
   });
 });
 
-describe("parsePartnerTag", () => {
-  it("parses a well-formed 3-role block", () => {
+describe("parseReaderAngles", () => {
+  it("parses a well-formed 3-position block", () => {
     const raw = [
+      "Buying: what it changes if you are bidding...",
+      "Holding: what it changes if you already own...",
+      "Watching: what signal this is...",
+    ].join("\n");
+    const parsed = parseReaderAngles(raw);
+    expect(parsed).not.toBeNull();
+    expect(parsed?.Buying).toMatch(/bidding/);
+    expect(parsed?.Holding).toMatch(/already own/);
+    expect(parsed?.Watching).toMatch(/signal/);
+  });
+
+  it("returns null when any position is missing", () => {
+    expect(parseReaderAngles("Buying: only one position")).toBeNull();
+  });
+
+  it("returns null for rows written against the old partner roles", () => {
+    // Rows predating the switch to reader positions carry Broker / Adviser /
+    // Buyers Agent. They must not parse: the block then simply does not render
+    // on those stories, which is the intended outcome. There is no honest
+    // mapping from "Broker" to a reader position, so silently relabelling one
+    // would put words in the reader's mouth that were written for someone else.
+    const legacy = [
       "Broker: broker angle...",
       "Adviser: adviser angle...",
       "Buyers Agent: BA angle...",
     ].join("\n");
-    const parsed = parsePartnerTag(raw);
-    expect(parsed).not.toBeNull();
-    expect(parsed?.Broker).toMatch(/broker/);
+    expect(parseReaderAngles(legacy)).toBeNull();
   });
 
-  it("returns null when any role is missing", () => {
-    const raw = "Broker: only one role";
-    expect(parsePartnerTag(raw)).toBeNull();
-  });
-
-  it("tolerates legacy 4-line rows with an Institutional line", () => {
+  it("ignores an unrecognised extra line as long as all three positions are present", () => {
     const raw = [
-      "Institutional: legacy line, should be ignored on parse",
-      "Broker: broker angle...",
-      "Adviser: adviser angle...",
-      "Buyers Agent: BA angle...",
+      "Institutional: a stray line from somewhere else",
+      "Buying: what it changes if you are bidding...",
+      "Holding: what it changes if you already own...",
+      "Watching: what signal this is...",
     ].join("\n");
-    const parsed = parsePartnerTag(raw);
-    expect(parsed).not.toBeNull();
-    expect(parsed?.Broker).toMatch(/broker/);
+    expect(parseReaderAngles(raw)).not.toBeNull();
   });
 });

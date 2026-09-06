@@ -37,10 +37,7 @@ function Wordmark({ size }: { size: number }) {
   const { resolvedTheme } = useTheme();
   return (
     <span
-      className={cn(
-        "font-serif font-bold block",
-        resolvedTheme === "dark" && "wordmark"
-      )}
+      className={cn("font-serif font-bold block", resolvedTheme === "dark" && "wordmark")}
       style={{
         fontSize: size,
         lineHeight: 0.84,
@@ -85,9 +82,7 @@ function PageNav({ className }: { className?: string }) {
               letterSpacing: "0.2em",
               textTransform: "uppercase",
               color: active ? "var(--color-fg)" : "var(--color-fg-muted)",
-              borderBottom: active
-                ? "2px solid var(--color-accent-text)"
-                : "2px solid transparent",
+              borderBottom: active ? "2px solid var(--color-accent-text)" : "2px solid transparent",
             }}
           >
             {item.label}
@@ -103,21 +98,10 @@ function PageNav({ className }: { className?: string }) {
  * day's shape ("5 stories · 6 min · curated by Ruben Laubscher") so the
  * deleted FromTheDeskIntro block's attribution has somewhere to live.
  */
-export function Masthead({
-  dateLabel,
-  shapeLine,
-}: {
-  dateLabel: string;
-  shapeLine: string;
-}) {
+export function Masthead({ dateLabel, shapeLine }: { dateLabel: string; shapeLine: string }) {
   return (
     <header>
-      <div
-        className={cn(
-          GUTTER,
-          "pt-8 lg:pt-11 pb-4 flex items-end justify-between gap-10"
-        )}
-      >
+      <div className={cn(GUTTER, "pt-8 lg:pt-11 pb-4 flex items-end justify-between gap-10")}>
         <div className="flex items-end gap-4 lg:gap-[22px] min-w-0">
           <Logomark size={72} animated={false} className="hidden lg:block mb-1" />
           <Logomark size={30} animated={false} className="lg:hidden" />
@@ -132,7 +116,7 @@ export function Masthead({
               className="bs-label mt-3 lg:mt-4 hidden sm:block"
               style={{ fontSize: 11, letterSpacing: "0.3em" }}
             >
-              Australian property intelligence for the partner channel
+              The Australian property market, read every morning
             </p>
           </div>
         </div>
@@ -184,12 +168,7 @@ export function SlimMasthead() {
  */
 export function MobilePageNav() {
   return (
-    <div
-      className={cn(
-        GUTTER,
-        "no-scrollbar rule-hair-b lg:hidden overflow-x-auto py-3"
-      )}
-    >
+    <div className={cn(GUTTER, "no-scrollbar rule-hair-b lg:hidden overflow-x-auto py-3")}>
       <PageNav className="w-max" />
     </div>
   );

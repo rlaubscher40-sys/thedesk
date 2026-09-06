@@ -163,9 +163,7 @@ export function AngledFor({ className }: { className?: string }) {
     const next = PERSONAS[nextIndex];
     if (!next) return;
     setPersona(next);
-    groupRef.current
-      ?.querySelectorAll<HTMLButtonElement>('[role="radio"]')
-      ?.[nextIndex]?.focus();
+    groupRef.current?.querySelectorAll<HTMLButtonElement>('[role="radio"]')?.[nextIndex]?.focus();
   }
 
   return (
@@ -195,10 +193,12 @@ export function AngledFor({ className }: { className?: string }) {
         <div
           ref={groupRef}
           role="radiogroup"
-          aria-label="Partner role this story's Say This line is angled for"
+          aria-label="Where you stand in the market, which angle to show first"
           onKeyDown={onKeyDown}
           className="absolute right-0 top-full z-30 mt-2 flex flex-col min-w-[210px] bg-[var(--color-bg-elevated)]"
-          style={{ boxShadow: "0 12px 40px oklch(0 0 0 / 22%), inset 0 0 0 1px var(--color-border-strong)" }}
+          style={{
+            boxShadow: "0 12px 40px oklch(0 0 0 / 22%), inset 0 0 0 1px var(--color-border-strong)",
+          }}
         >
           {PERSONAS.map((p) => {
             const active = p === persona;
@@ -256,14 +256,15 @@ export function AngledForChips() {
     const next = PERSONAS[nextIndex];
     if (!next) return;
     setPersona(next);
-    groupRef.current
-      ?.querySelectorAll<HTMLButtonElement>('[role="radio"]')
-      ?.[nextIndex]?.focus();
+    groupRef.current?.querySelectorAll<HTMLButtonElement>('[role="radio"]')?.[nextIndex]?.focus();
   }
 
   return (
     <div
-      className={cn(GUTTER, "no-scrollbar rule-hair-b md:hidden flex items-center gap-2 overflow-x-auto py-2")}
+      className={cn(
+        GUTTER,
+        "no-scrollbar rule-hair-b md:hidden flex items-center gap-2 overflow-x-auto py-2"
+      )}
     >
       <span className="bs-label shrink-0" style={{ fontSize: 9.5 }}>
         Angled for
@@ -271,7 +272,7 @@ export function AngledForChips() {
       <div
         ref={groupRef}
         role="radiogroup"
-        aria-label="Partner role this story's Say This line is angled for"
+        aria-label="Where you stand in the market, which angle to show first"
         onKeyDown={onKeyDown}
         className="flex items-center gap-2"
       >

@@ -40,7 +40,7 @@ function buildPrompt(input: HeadlineOptimiserInput): string {
 
   return `You are optimising the headline + share metadata for a weekly edition of The Desk.
 
-The Desk is a daily / weekly intelligence brief for Australian property investment professionals, brokers, advisers, accountants, buyer's agents, SMSF specialists. Editorially serious, plain-spoken, commercially sharp. Curated by Ruben Laubscher.
+The Desk is a daily and weekly briefing on Australian property and the markets around it, read by people who follow the market closely and have money or a home in it. Editorially serious, plain-spoken, commercially sharp. Written by Ruben Laubscher.
 
 Week: ${input.weekRange}
 

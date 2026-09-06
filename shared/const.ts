@@ -28,18 +28,30 @@ export const NOT_ADMIN_ERR_MSG = "You do not have required permission (10002)";
 export const DEFAULT_SITE_URL = "https://thedesk.au";
 
 /**
- * Partner personas. The canonical four, matches `PARTNER_TAG_LABELS`
- * (`shared/schemas.ts`), the `PERSONA_COLOUR` map
- * (`client/src/lib/persona.tsx`), and the three-line Partner angles block
- * that runs under every tagged story. See `docs/brand-guidelines.md`
- * Section 2 for what each role reads The Desk for.
+ * Reader positions — where someone stands in relation to the property market,
+ * which is the thing that changes what a story means to them.
  *
- * Order is the order shown in any UI that lists them. Canonical key
- * "Adviser" covers the combined Financial Adviser / Accountant slot —
- * `personaDisplayLabel` expands it on the surface.
+ * These replaced the old partner roles (Broker / Adviser / Buyers Agent). That
+ * set was inherited from an earlier life of this codebase as an internal
+ * briefing tool, and it put the wrong reader in the model's head on every
+ * generation: The Desk is a subscription publication for people who follow
+ * Australian property, not a channel-marketing tool aimed at intermediaries.
+ *
+ * Kept to three because a reader recognises themselves instantly in one of
+ * them, and because a fourth would mostly be a rewording of an existing one.
+ *
+ * Matches `READER_ANGLE_LABELS` (`shared/schemas.ts`) and the `POSITION_COLOUR`
+ * map (`client/src/lib/persona.tsx`). The canonical keys stay one bare word so
+ * they survive as line prefixes in stored text and in a regex;
+ * `positionDisplayLabel` expands them for the reader.
+ *
+ * Note that rows written before this change carry the old labels and will no
+ * longer parse, so the angles block simply does not render on them. That is
+ * the intended outcome: the old lines were addressed to brokers, and there is
+ * no honest mapping from "Broker" to a reader position.
  */
-export const PARTNER_PERSONAS = ["Broker", "Adviser", "Buyers Agent"] as const;
-export type PartnerPersona = (typeof PARTNER_PERSONAS)[number];
+export const READER_POSITIONS = ["Buying", "Holding", "Watching"] as const;
+export type ReaderPosition = (typeof READER_POSITIONS)[number];
 
 /**
  * Feed channels — the Discover-style content lanes on the Today page. A

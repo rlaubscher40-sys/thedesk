@@ -18,7 +18,7 @@
  * (dailyItemQc.ts), which remain in use for the lower-volume on-demand and
  * Instagram paths. If you change an angle's rules, change it in both places.
  */
-import { PARTNER_TAG_LABELS, parsePartnerTag } from "../../shared/schemas";
+import { READER_ANGLE_LABELS, parseReaderAngles } from "../../shared/schemas";
 import { invokeLLM } from "../core/llm";
 import { rubenSystemPrompt, stripBannedChars, voiceRules } from "./voice";
 
@@ -49,7 +49,11 @@ function articleBlock(articleText: string | null | undefined): string {
 }
 
 function buildPrompt(input: DailyAnglesInput): string {
-  return `You are writing — and then editing — the full set of context lines stamped on a single daily feed story for The Desk, an intelligence brief read by Australian property and finance professionals (mortgage brokers, financial advisers, accountants, buyer's agents). Write all four lines, see them together, and only keep the ones that genuinely earn their place.
+  return `You are writing — and then editing — the full set of context lines stamped on a single daily feed story for The Desk, a daily briefing on Australian property and the markets around it.
+
+Its readers follow the market closely and have money or a home in it. Some are trying to buy, some already own, some are watching to time a move. They are smart and time-poor. They are NOT industry professionals working a client book, so never write to a broker, an adviser or an agent, and never frame a line as something to say to a client.
+
+Write all four fields, see them together, and only keep the ones that genuinely earn their place.
 
 STORY
 Title: ${input.title}
@@ -64,18 +68,18 @@ ${voiceRules}
 
 Produce these four fields. Each has its own bar; a field that does not clear its bar is null, never padded with contrived content.
 
-1) sayThis — the universal one-line conversation opener Ruben pastes into a client message or a LinkedIn comment.
-   - FIRST decide whether the story is genuinely commercially relevant to the partner channel: property, mortgages, lending, regulation, macro / markets, super, ATO, RBA, APRA — the kind of thing a broker or adviser actually raises with a client. If it is sport, entertainment, lifestyle, celebrity, true crime, weather, or any beat with NO real partner-channel angle, set sayThis to null. Do not invent a contrived angle.
-   - Otherwise: ONE sentence, max 28 words. Opens a conversation without explaining the news itself. Lands a sharp commercial insight or implied action. Sounds like a sharp operator, not a press release.
+1) sayThis — the hook. The sharpest single line on the story, and the first thing someone sees on social before deciding whether to keep reading. Written to the reader, not about them.
+   - FIRST decide whether the story genuinely bears on Australian property or the money around it: prices, rates, lending, rents, supply, construction, regulation, tax, and macro or markets where they reach housing. If it is sport, entertainment, lifestyle, celebrity, true crime, weather, or any beat with NO real bearing on that, set sayThis to null. Do not invent a contrived angle.
+   - Otherwise: ONE sentence, max 28 words. Says what the story means without re-reporting what happened. Lands the non-obvious read or the consequence. Sounds like a sharp person telling you the point over coffee, not a headline and not a pitch. Never instructs the reader to do something.
 
-2) partnerTag — three partner-role angles. Travels TOGETHER with sayThis: if sayThis is null (no partner-channel angle), partnerTag is null too. Keep both or cull both, never split the pair.
-   - EXACTLY three lines, one per role, each "Label: angle", in this order:
-     ${PARTNER_TAG_LABELS[0]}: one sentence, max 20 words, for mortgage brokers focused on borrowing capacity and lending
-     ${PARTNER_TAG_LABELS[1]}: one sentence, max 20 words, for financial advisers and accountants focused on wealth strategy, tax structure and SMSF
-     ${PARTNER_TAG_LABELS[2]}: one sentence, max 20 words, for buyer's agents and property professionals
-   - Each line must hook a specific, commercial conversation for that role, not a generic restatement of the news.
+2) partnerTag — three reader angles, one per position. Travels TOGETHER with sayThis: if sayThis is null, this is null too. Keep both or cull both, never split the pair.
+   - EXACTLY three lines, one per position, each "Label: angle", in this order:
+     ${READER_ANGLE_LABELS[0]}: one sentence, max 20 words, for someone actively trying to buy — what it changes about price, competition, borrowing power or timing
+     ${READER_ANGLE_LABELS[1]}: one sentence, max 20 words, for someone who already owns — what it changes about repayments, rent, equity or the value of what they hold
+     ${READER_ANGLE_LABELS[2]}: one sentence, max 20 words, for someone watching to time a move — what signal this is, and what would confirm it
+   - The three must genuinely differ. Saying the same thing three ways is a failure: find what is actually different between the positions, or null the field.
 
-3) whyItMatters — the analytical so-what, shown on every story card. This one has a LOWER bar than the partner angles: most stories get it, even general news.
+3) whyItMatters — the analytical so-what, shown on every story card. This one has a LOWER bar than the reader angles: most stories get it, even general news.
    - ONE sentence, max 30 words: the consequence, the signal, or the specific thing to watch next. NOT a recap of the headline. Concrete and specific; no "this could have implications" filler.
    - Only set it to null if the story is genuinely trivial with no broader significance (pure celebrity gossip, sport scores, weather).
 
@@ -89,7 +93,7 @@ Output a SINGLE JSON object, NOTHING ELSE — no markdown fences, no preamble, n
 
 {
   "sayThis": "the line, or null",
-  "partnerTag": "the three labelled lines separated by newlines, or null",
+  "partnerTag": "the three labelled reader-angle lines separated by newlines, or null",
   "whyItMatters": "the line, or null",
   "counterpoint": "the line, or null"
 }
@@ -106,13 +110,13 @@ function cleanLine(value: unknown, maxChars: number): string | null {
   return t;
 }
 
-/** Validate the three-line partner block; anything that doesn't parse to all
+/** Validate the three-line reader-angles block; anything that doesn't parse to all
  *  three roles collapses to null (same guard the standalone generator uses). */
 function cleanTag(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const cleaned = stripBannedChars(value.trim());
   if (!cleaned || /^SKIP\.?$/i.test(cleaned)) return null;
-  return parsePartnerTag(cleaned) ? cleaned : null;
+  return parseReaderAngles(cleaned) ? cleaned : null;
 }
 
 const EMPTY: DailyAngles = {

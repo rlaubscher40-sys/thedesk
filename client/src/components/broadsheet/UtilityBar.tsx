@@ -3,7 +3,7 @@
  *
  * Left: a live dot and the filing line, plus whatever page-level controls
  * are passed as `children` (Today puts the date pager and the bulk
- * "copy talking points" action here rather than on their own row).
+ * "copy lines" action here rather than on their own row).
  *
  * Right: the destinations and toggles the desktop sidebar used to hold.
  * The broadsheet has no sidebar, so this row is now the only desktop home
@@ -37,10 +37,7 @@ export function UtilityBar({
 
   return (
     <div
-      className={cn(
-        GUTTER,
-        "rule-hair-b flex items-center justify-between gap-4 flex-wrap py-2.5"
-      )}
+      className={cn(GUTTER, "rule-hair-b flex items-center justify-between gap-4 flex-wrap py-2.5")}
     >
       <div className="flex items-center gap-2.5 flex-wrap">
         <span className="live-dot" style={{ width: 7, height: 7 }} aria-hidden="true" />

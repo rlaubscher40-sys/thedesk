@@ -33,7 +33,7 @@ const LINKS = [
 
 const DISCLAIMER =
   "The Desk publishes editorial commentary on macro, property and policy " +
-  "developments relevant to the partner channel. Nothing on this site " +
+  "developments in Australian property. Nothing on this site " +
   "constitutes personal financial, tax, legal or property advice. Before " +
   "acting on anything you read here, consider whether it's appropriate to " +
   "your circumstances and seek qualified advice.";
@@ -70,8 +70,8 @@ function FooterNav() {
 function PublisherLine({ prefix }: { prefix?: string }) {
   return (
     <span className="bs-label" style={{ letterSpacing: "0.16em" }}>
-      {prefix ? `${prefix} · ` : ""}Curated by Ruben Laubscher · ©{" "}
-      {new Date().getFullYear()} The Desk
+      {prefix ? `${prefix} · ` : ""}Curated by Ruben Laubscher · © {new Date().getFullYear()} The
+      Desk
     </span>
   );
 }

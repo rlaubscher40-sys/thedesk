@@ -1,18 +1,18 @@
 /**
  * The three partner angles, in two broadsheet arrangements.
  *
- * `<PartnerAngleRows>` is the vertical form used in the Today lead rail:
+ * `<ReaderAngleRows>` is the vertical form used in the Today lead rail:
  * hairline-separated rows, active persona at full ink, the other two at
  * --color-fg-muted, active first.
  *
- * `<PartnerAngleColumns>` is the horizontal form used on the Story page:
+ * `<ReaderAngleColumns>` is the horizontal form used on the Story page:
  * three hairline-divided columns under a major rule.
  *
  * Both replace the collapsible PartnerTagBlock. The parsing
- * (`parsePartnerTag`), the persona state and `dedash()` are unchanged —
+ * (`parseReaderAngles`), the persona state and `dedash()` are unchanged —
  * only the collapse is gone.
  */
-import { parsePartnerTag, PARTNER_TAG_LABELS, type PartnerTagLabel } from "@shared/schemas";
+import { parseReaderAngles, READER_ANGLE_LABELS, type ReaderAngleLabel } from "@shared/schemas";
 import { cn } from "@/lib/cn";
 import { dedash } from "@/lib/dedash";
 import { PERSONA_COLOUR, personaDisplayLabel, usePersona } from "@/lib/persona";
@@ -20,17 +20,17 @@ import { PERSONA_COLOUR, personaDisplayLabel, usePersona } from "@/lib/persona";
 /** Angles ordered with the reader's own role first. */
 function useOrderedAngles(raw: string | null) {
   const { persona } = usePersona();
-  const parsed = parsePartnerTag(raw);
+  const parsed = parseReaderAngles(raw);
   if (!parsed) return null;
-  const active = persona as PartnerTagLabel;
+  const active = persona as ReaderAngleLabel;
   const ordered = [
-    ...PARTNER_TAG_LABELS.filter((l) => l === active),
-    ...PARTNER_TAG_LABELS.filter((l) => l !== active),
+    ...READER_ANGLE_LABELS.filter((l) => l === active),
+    ...READER_ANGLE_LABELS.filter((l) => l !== active),
   ];
   return { parsed, ordered, active };
 }
 
-export function PartnerAngleRows({
+export function ReaderAngleRows({
   raw,
   heading = "How it lands for you",
 }: {
@@ -64,8 +64,7 @@ export function PartnerAngleRows({
               style={{
                 fontSize: 16.5,
                 lineHeight: 1.55,
-                color:
-                  label === active ? "var(--color-fg-body)" : "var(--color-fg-muted)",
+                color: label === active ? "var(--color-fg-body)" : "var(--color-fg-muted)",
               }}
             >
               {dedash(parsed[label])}
@@ -77,7 +76,7 @@ export function PartnerAngleRows({
   );
 }
 
-export function PartnerAngleColumns({
+export function ReaderAngleColumns({
   raw,
   heading = "How it lands for each partner",
   className,

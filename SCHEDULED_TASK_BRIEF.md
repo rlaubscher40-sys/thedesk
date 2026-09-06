@@ -71,9 +71,9 @@ spirit is "no day is monothematic".
 | `title`       | yes      | 1 sentence. No clickbait. Lead with the number if there is one.                                             |
 | `source`      | yes      | Short masthead — "AFR", "Banking Day", "ABS", "X / @user", "Reddit / r/AusFinance".                         |
 | `sourceUrl`   | optional | Direct link to the source.                                                                                  |
-| `summary`     | yes      | 2–4 sentences. State what changed and why a partner would care. Australian English. No em dashes.           |
+| `summary`     | yes      | 2–4 sentences. State what changed and why a reader with money or a home in the market would care. Australian English. No em dashes. |
 | `category`    | yes      | One of `MACRO`, `PROPERTY`, `POLICY`, `MARKETS`, `AI`, `TECH`, `GEOPOLITICS`, `SCIENCE`, `ECONOMICS`, `OTHER`. |
-| `partnerTag`  | optional | If supplied, must be the 4-line `Institutional/Broker/Adviser/Buyers Agent` block. Otherwise the server generates one. |
+| `partnerTag`  | optional | If supplied, must be the 3-line `Buying/Holding/Watching` reader-angles block. Column name is legacy. Otherwise the server generates one. |
 | `sayThis`     | optional | One conversation-opening sentence. Otherwise the server generates one.                                      |
 | `imageUrl`    | optional | Pre-generated thumbnail. Otherwise the server generates one in the background.                              |
 

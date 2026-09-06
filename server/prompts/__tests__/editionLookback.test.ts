@@ -14,9 +14,9 @@ const priorTopics = [
     category: "MACRO",
     body: "…",
     keyTakeaway: "The hold gives brokers a stable runway into winter.",
-    whyItMatters: "Brokers can price serviceability around a stable rate.",
+    whyItMatters: "A stable rate lets you plan the next twelve months around a known number.",
     whatToWatch: ["April CPI on May 28"],
-    talkingPoints: { Broker: "Lock applications before CPI." },
+    talkingPoints: { Buying: "Get pre-approved before the next CPI print." },
   },
 ];
 

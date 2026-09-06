@@ -24,10 +24,7 @@ import satori from "satori";
 import type { Edition } from "../db/schema";
 import { BRAND_LIGHT, BRAND_LIGHT_ACCENT_SOFT } from "../../shared/brandPalette";
 
-const FONT_DIR = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "fonts"
-);
+const FONT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "fonts");
 
 type LoadedFonts = { playfair: ArrayBuffer; mono: ArrayBuffer };
 let cachedFonts: LoadedFonts | null = null;
@@ -43,10 +40,7 @@ async function loadFonts(): Promise<LoadedFonts> {
       playfair.byteOffset,
       playfair.byteOffset + playfair.byteLength
     ) as ArrayBuffer,
-    mono: mono.buffer.slice(
-      mono.byteOffset,
-      mono.byteOffset + mono.byteLength
-    ) as ArrayBuffer,
+    mono: mono.buffer.slice(mono.byteOffset, mono.byteOffset + mono.byteLength) as ArrayBuffer,
   };
   return cachedFonts;
 }
@@ -111,9 +105,18 @@ function mark(size: number, color: string) {
                 props: {
                   strokeWidth: 1.8,
                   children: [
-                    [58, 173], [58, 160.6], [58, 146.3], [63.3, 132],
-                    [75.3, 122.8], [89.3, 117], [104.3, 115], [119.3, 117],
-                    [133.3, 122.8], [145.3, 132], [154.5, 144], [160.3, 158],
+                    [58, 173],
+                    [58, 160.6],
+                    [58, 146.3],
+                    [63.3, 132],
+                    [75.3, 122.8],
+                    [89.3, 117],
+                    [104.3, 115],
+                    [119.3, 117],
+                    [133.3, 122.8],
+                    [145.3, 132],
+                    [154.5, 144],
+                    [160.3, 158],
                     [162.3, 173],
                   ].map(([x2, y2]) => ({
                     type: "line",
@@ -150,8 +153,7 @@ function buildCard(edition: Edition) {
         backgroundColor: PAPER,
         // Barely-there accent bloom in the top-right. Much lighter than the
         // navy card's: on paper the same strength reads as a stain.
-        backgroundImage:
-          `radial-gradient(circle at 88% 8%, ${BRAND_LIGHT_ACCENT_SOFT} 0%, transparent 55%)`,
+        backgroundImage: `radial-gradient(circle at 88% 8%, ${BRAND_LIGHT_ACCENT_SOFT} 0%, transparent 55%)`,
         color: FG,
         fontFamily: "Playfair Display",
         justifyContent: "space-between",
@@ -283,7 +285,7 @@ function buildCard(edition: Edition) {
                           letterSpacing: "0.18em",
                           textTransform: "uppercase",
                         },
-                        children: "By Ruben Laubscher · Head of Partnerships",
+                        children: "By Ruben Laubscher",
                       },
                     },
                     {
