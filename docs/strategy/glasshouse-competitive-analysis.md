@@ -268,10 +268,19 @@ rather than by default.
 - **Tier 1.4 — the open loop.** Done. The cover's swipe line names the payoff
   it withholds rather than the headlines it just listed, and the caption opens
   with the day's own hook instead of a sentence that never changed.
-- **Tier 1.5 — read the insights.** Not started. This is now the highest-value
-  remaining item: three formats are live, engagement data is being collected
-  per post, and nothing reads it. Until something does, the next decision about
-  what to post is another argument rather than a measurement.
+- **Tier 1.5 — read the insights.** Done. The admin panel now compares formats
+  on median saves, shares and engagement per 1,000 reach
+  (`client/src/lib/instagramInsights.ts`). It declines to name a winner until
+  two formats have at least four measured posts each AND the gap between them
+  is wide enough to survive a sample that small, because a confident league
+  table built on five posts is worse than no table.
+
+**What Tier 1 has not changed.** Everything above makes the existing posts work
+harder. None of it puts us on Reels, gives the account a face, or produces a
+number nobody else can publish — items 6 and 7, which are where the actual
+distance between the two accounts sits. Expect the measurements above to show
+formats separating from each other, not the account separating from its
+current ceiling. That comes from Tier 2, and from section 8.
 
 ---
 
