@@ -244,13 +244,23 @@ reaches non-followers. The higher-fidelity version is Ruben to camera, 30
 seconds, once a week, on the week's most interesting number. That solves the
 "faceless automated account" problem at the same time.
 
-**7. Build one genuinely proprietary series.**
+**7. ~~Build one genuinely proprietary series.~~ Started (6 Sep).**
 We cannot match their transaction data. We do not need to. We have a year of
 daily history on ~30 Australian macro and property metrics that nobody else is
-charting together. "What changed this month, across every number that matters"
-is ours to own, and it is computed entirely from data we already hold. Longer
-term, the ABS SDMX client can be pointed at interstate migration and dwelling
-approvals by state — the exact well Glasshouse is drawing from.
+charting together.
+
+**"The Month in Numbers" now exists** (`server/metrics/monthlyReview.ts`, on the
+Trends page). It ranks each metric's month against that metric's *own* normal
+monthly move, which is only possible because we kept the history — and which
+immediately reorders the obvious reading: a 2.9% ASX month ranks below a 0.22
+point CPI month, because the first is ordinary for the ASX and the second is
+twice normal for CPI.
+
+Still to do on this item: it is a page, not yet a post. The franchise only
+starts paying when it publishes — as a card on the 1st of the month, in the
+email, and on the grid. And longer term the ABS SDMX client can be pointed at
+interstate migration and dwelling approvals by state, which is the exact well
+Glasshouse draws from for its best-performing post.
 
 ### Tier 3 — the strategic question, not an engineering one
 
