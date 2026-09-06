@@ -154,15 +154,16 @@ const JOBS: Job[] = [
     at: "07:17",
     run: (b, k) => postLocal(b, k, "/api/ingest/instagram-insights"),
   },
-  {
-    key: "instagram-coverage",
-    at: "12:13",
-    maxAttempts: 2,
-    run: (b, k, a) => postLocal(b, k, "/api/ingest/instagram-coverage", a),
-  },
-  // Mid-afternoon, well clear of the morning briefing and the midday lens, so
-  // the three grid posts don't stack. Also late enough that any metric the
-  // 06:33 ingest revised during the day has settled.
+  // instagram-coverage ("The Wider Lens") deliberately has no slot any more.
+  // It posted general tech/business/world headlines at 12:13 daily: commodity
+  // news, no partner angle, nothing an Australian property audience follows
+  // this account for. Three posts a day of that trains the ranking system that
+  // the account is low-engagement, which costs reach on the two posts that do
+  // earn it. The endpoint and the admin re-run button stay, so it can still be
+  // fired by hand if a coverage story ever warrants one.
+  // Mid-afternoon, a long way clear of the 07:13 briefing so the day's two grid
+  // posts don't stack. Also late enough that any metric the 06:33 ingest
+  // revised during the day has settled.
   {
     key: "instagram-stat",
     at: "16:41",

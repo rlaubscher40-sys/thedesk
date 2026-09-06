@@ -28,6 +28,9 @@ type RerunResponse = {
   headline?: string;
   recovered?: boolean;
   editionNumber?: number;
+  /** The Number returns this on a day when no metric was worth a card. */
+  skipped?: boolean;
+  reason?: string;
   error?: string;
   message?: string;
 };
@@ -170,6 +173,19 @@ export const instagramRouter = router({
         editionNumber: parsed.editionNumber ?? null,
         /** True when the post was already live and we recorded it rather than reposting. */
         recovered: parsed.recovered === true,
+        /**
+         * True when the job ran fine and deliberately published nothing — only
+         * The Number does this, on a day when no metric cleared the bar. A 200
+         * with no postId is a success, but reporting it as "Posted" would send
+         * the admin looking for a card that was never meant to exist.
+         *
+         * A hand press does NOT force past this. If the day's numbers are dull,
+         * the honest outcome is no post: forcing one would put exactly the kind
+         * of filler on the grid that taking the format seriously is meant to
+         * avoid.
+         */
+        skipped: parsed.skipped === true,
+        reason: parsed.reason ?? null,
       };
     }),
 });

@@ -38,17 +38,18 @@ function postRowDate(p: {
 }
 
 /**
- * The three posting jobs, in the order they run through the day.
+ * The posting jobs, in the order they run through the day.
  *
  * `label` is the cover title each one actually carries on the grid — "Today's
- * Briefing" for the morning post, "The Wider Lens" for the midday one — not the
+ * Briefing" for the morning post, "The Number" for the afternoon one — not the
  * internal job key. The point of this panel is to answer "did the thing I can
  * see on my profile go out?", so it should use the names on the profile and
  * leave the reader no translation to do.
  *
  * Times and `dow` mirror the scheduler's own job table (server/scheduler) so
- * the "should this have posted by now?" read matches what actually runs.
- * `warning` is the second sentence of the confirmation prompt — what
+ * the "should this have posted by now?" read matches what actually runs. A job
+ * with `manual` has no row there at all and only runs when its button is
+ * pressed. `warning` is the second sentence of the confirmation prompt — what
  * specifically goes out if the click is a mistake.
  */
 const RERUN_JOBS = [
@@ -61,22 +62,14 @@ const RERUN_JOBS = [
     warning: "the morning carousel (top 3 AU/Property stories) plus its 24h Story frames",
   },
   {
-    job: "coverage" as const,
-    label: "The Wider Lens",
-    full: "The Wider Lens",
-    at: "12:13",
-    dow: null,
-    warning: "the midday carousel (Tech & Science, Business, Global)",
-  },
-  {
     job: "stat" as const,
     label: "The Number",
     full: "The Number",
     at: "16:41",
     dow: null,
-    // The only job here that is allowed to post nothing. On a day when no
-    // metric has moved enough to be worth a card, it skips, and the panel
-    // reports that as "no number today" rather than as a missed post.
+    // The only scheduled job here that is allowed to post nothing. On a day
+    // when no metric has moved enough to be worth a card, it skips, and the
+    // panel reports that as "no number today" rather than as a missed post.
     optional: true,
     warning: "a single-image card for the day's most notable metric movement",
   },
@@ -90,6 +83,19 @@ const RERUN_JOBS = [
     dow: 0, // Sunday
     warning: "the latest weekly edition carousel",
   },
+  {
+    job: "coverage" as const,
+    label: "The Wider Lens",
+    full: "The Wider Lens",
+    // Off the schedule since it was daily commodity news with no partner angle,
+    // and a third daily post cost reach on the two that earn it. Kept as a
+    // button because the machinery still works and a coverage story might one
+    // day warrant one. Listed last: it is no longer part of the day's run.
+    manual: true,
+    at: "on request",
+    dow: null,
+    warning: "a one-off carousel of general coverage (Tech & Science, Business, Global)",
+  },
 ];
 
 /** Label and colour for each job's state. "missing" is the only alarm. */
@@ -97,6 +103,7 @@ const STATE_STYLE: Record<JobState, { text: (at: string) => string; alarm: boole
   posted: { text: () => "posted today", alarm: false },
   missing: { text: () => "not posted", alarm: true },
   skipped: { text: () => "no number today", alarm: false },
+  manual: { text: () => "on request", alarm: false },
   pending: { text: (at) => at, alarm: false },
   unknown: { text: (at) => at, alarm: false },
 };
@@ -126,6 +133,10 @@ function RerunJobs({ posts, ready }: { posts: PostedRow[]; ready: boolean }) {
       utils.instagram.publishingStatus.invalidate();
       if (res.recovered) {
         toast.success("Already live — recorded the existing post, nothing reposted");
+      } else if (res.skipped) {
+        // Ran fine, published nothing on purpose. Saying "Posted" here would
+        // send someone hunting the grid for a card that does not exist.
+        toast.success(res.reason ?? "Nothing worth posting today — no card went out");
       } else {
         toast.success(res.headline ? `Posted: ${res.headline}` : "Posted");
       }
@@ -135,10 +146,14 @@ function RerunJobs({ posts, ready }: { posts: PostedRow[]; ready: boolean }) {
   });
 
   function stateOf(entry: (typeof RERUN_JOBS)[number]): JobState {
+    const manual = "manual" in entry && entry.manual === true;
     return jobState(
       done ? done.has(entry.job) : null,
-      slotHasPassed(entry.at, entry.dow),
-      "optional" in entry && entry.optional === true
+      manual ? false : slotHasPassed(entry.at, entry.dow),
+      {
+        optional: "optional" in entry && entry.optional === true,
+        manual,
+      }
     );
   }
 
@@ -190,7 +205,9 @@ function RerunJobs({ posts, ready }: { posts: PostedRow[]; ready: boolean }) {
                     ? `"${entry.full}" was due at ${schedule} and has nothing recorded today`
                     : state === "skipped"
                       ? `"${entry.full}" ran at ${schedule} and found no metric worth a card today`
-                      : `"${entry.full}" — runs ${schedule}`
+                      : state === "manual"
+                        ? `"${entry.full}" is off the schedule and only posts when you press this`
+                        : `"${entry.full}" — runs ${schedule}`
               }
               className="inline-flex items-center gap-1.5 rounded px-3.5 py-2 text-[10px] font-mono uppercase tracking-[0.18em] transition-colors disabled:opacity-50 bg-white/[0.04] text-[var(--color-fg)] hover:bg-white/[0.08]"
               style={{ boxShadow: "inset 0 0 0 1px var(--color-border)" }}

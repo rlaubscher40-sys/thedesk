@@ -49,9 +49,9 @@ export function sanitizeDashes(text: string): string {
 /**
  * Instagram integrity cooldown — applies to 24h Stories only.
  *
- * Both carousels (morning briefing + midday "Wider Lens") publish fine and stay
- * on. Stories are the part that (a) doesn't reliably land and (b) adds extra
- * publish actions on top of the carousels, which is what pushes the account's
+ * The feed posts (the morning briefing carousel and The Number) publish fine
+ * and stay on. Stories are the part that (a) doesn't reliably land and (b) adds
+ * extra publish actions on top of them, which is what pushes the account's
  * "Application request limit reached" response on the carousel publish. So while
  * the account is flagged we skip Stories to lighten the daily load, and let the
  * flag age out. Carousels are unaffected (and guarded separately by
@@ -107,8 +107,8 @@ async function publishCarouselConfirmed(opts: {
 /**
  * How recently a post must have landed for a RETRY to treat it as "this run
  * already went out". The scheduler re-attempts a failed job on its next tick
- * (5 minutes), so ~25 minutes covers a couple of ticks. The three posting
- * streams sit hours apart (07:13 daily, 09:19 Sunday weekly, 12:13 coverage),
+ * (5 minutes), so ~25 minutes covers a couple of ticks. The scheduled posting
+ * streams sit hours apart (07:13 daily, 16:41 The Number, 09:19 Sunday weekly),
  * so a window this tight can never mistake one stream's post for another's.
  */
 const RETRY_DUPLICATE_WINDOW_MS = 25 * 60 * 1000;
@@ -217,8 +217,9 @@ export function buildDailyCaption(stories: DailyFeedItem[]): string {
 }
 
 /**
- * Caption for the midday "Wider lens" coverage carousel (Tech & Science,
- * Business, Global). Same shape as the daily caption, but no per-story say-this
+ * Caption for the "Wider Lens" coverage carousel (Tech & Science, Business,
+ * Global), now a hand-fired post rather than a scheduled one. Same shape as the
+ * daily caption, but no per-story say-this
  * hook (coverage carries no partner angle) and a broader, non-AU-markets intro.
  */
 export function buildCoverageCaption(stories: DailyFeedItem[]): string {
@@ -496,8 +497,8 @@ export async function postDailyCarousel(
     metrics?: Array<{ label: string; value: string }>;
     /**
      * "daily" = the AU/Property partner briefing (default): say-this hooks,
-     * lines persisted to the feed item. "coverage" = the midday Tech/Business/
-     * Global carousel: same card format, but no say-this and nothing persisted
+     * lines persisted to the feed item. "coverage" = the hand-fired Tech/
+     * Business/Global carousel: same card format, but no say-this and nothing persisted
      * (coverage stories stay headline + summary on the website).
      */
     mode?: "daily" | "coverage";

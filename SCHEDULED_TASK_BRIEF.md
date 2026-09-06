@@ -116,8 +116,8 @@ Fires once a week, Sunday evening Sydney time. Body: a single edition object.
 
 ## The Number — `POST /api/ingest/instagram-stat`
 
-Fires mid-afternoon Sydney time (16:41), well clear of the 07:13 briefing and
-the 12:13 wider lens. No body required; `{"force": true}` posts even on a quiet
+Fires mid-afternoon Sydney time (16:41), well clear of the 07:13 briefing. No
+body required; `{"force": true}` posts even on a quiet
 day and `{"attempt": n}` is the scheduler's retry counter.
 
 Unlike every other posting job, **this one is allowed to publish nothing.** It

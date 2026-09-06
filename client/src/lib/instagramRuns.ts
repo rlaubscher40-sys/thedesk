@@ -29,9 +29,9 @@ export function postedToday(posts: PostedRow[], now: Date = new Date()): Set<str
  * Has this job's slot for today already come and gone?
  *
  * Without this, a "nothing posted today" indicator is useless: the weekly job
- * would read as missing every weekday, and the midday coverage job every
- * morning, so the one case that matters — a job that should have posted and
- * didn't — would be lost in permanent noise.
+ * would read as missing every weekday, and the daily briefing every morning
+ * before 07:13, so the one case that matters — a job that should have posted
+ * and didn't — would be lost in permanent noise.
  *
  * `dow` restricts the job to one weekday (0 = Sunday), matching the scheduler's
  * own `dow` field; null means every day. Local clock, same as postedToday.
@@ -49,21 +49,30 @@ export function slotHasPassed(atHHMM: string, dow: number | null, now: Date = ne
  * its slot hasn't come round yet. `posted` is null while the log is still
  * loading — we don't guess, because a wrong "missing" is an alarm.
  *
- * "skipped" is the state for a job that is allowed to decide there was nothing
- * worth posting. The Number does exactly that on a quiet day, by design, and
- * flagging that as a failure would train the reader to ignore the one state on
- * this panel that is meant to be alarming.
+ * Two states exist purely to keep "missing" meaning something. "skipped" is a
+ * job allowed to decide there was nothing worth posting — The Number does that
+ * on a quiet day, by design. "manual" is a job with no slot at all, fired only
+ * by hand — The Wider Lens, since it came off the schedule. Reporting either as
+ * missing would put a permanent red flag on the panel and teach the reader to
+ * ignore the one state that is meant to be alarming.
  */
-export type JobState = "posted" | "missing" | "skipped" | "pending" | "unknown";
+export type JobState = "posted" | "missing" | "skipped" | "manual" | "pending" | "unknown";
 
 export function jobState(
   posted: boolean | null,
   slotPassed: boolean,
-  /** True for jobs that may legitimately publish nothing on a given day. */
-  optional = false
+  opts: {
+    /** Job may legitimately publish nothing on a day it runs. */
+    optional?: boolean;
+    /** Job has no schedule; it only ever runs when someone presses the button. */
+    manual?: boolean;
+  } = {}
 ): JobState {
   if (posted == null) return "unknown";
   if (posted) return "posted";
+  // Checked before the slot: an unscheduled job has no slot to have passed, so
+  // asking whether its time has come round is meaningless.
+  if (opts.manual) return "manual";
   if (!slotPassed) return "pending";
-  return optional ? "skipped" : "missing";
+  return opts.optional ? "skipped" : "missing";
 }

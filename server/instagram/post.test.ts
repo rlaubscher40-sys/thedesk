@@ -75,7 +75,7 @@ describe("buildDailyCaption — partner briefing", () => {
   });
 });
 
-// Guardrail: the midday post stays the broader, angle-free coverage briefing.
+// Guardrail: the coverage post stays the broader, angle-free briefing.
 describe("buildCoverageCaption — wider lens", () => {
   it("uses the wider-lens framing, not the AU markets one", () => {
     const caption = buildCoverageCaption(trio);

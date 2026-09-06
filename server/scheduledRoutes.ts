@@ -1392,7 +1392,8 @@ function registerInstagramRoutes(app: Express): void {
   app.post("/api/scheduled/instagram-daily", dailyHandler);
   app.post("/api/ingest/instagram-daily", dailyHandler);
 
-  // POST /api/ingest/instagram-coverage — the midday "Wider lens" carousel
+  // POST /api/ingest/instagram-coverage — the "Wider Lens" carousel. No longer
+  // on the scheduler (see server/scheduler/index.ts); reachable by hand only.
   // across the coverage lanes (Tech & Science, Business, Global). Same card
   // format as the daily post, but the mirror-image channel filter, no market
   // metrics strip, and no partner say-this lines (coverage carries no angle).

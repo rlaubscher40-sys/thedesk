@@ -759,7 +759,7 @@ export async function renderDailyCoverCard(
                     },
                   ]
                 : [
-                    // No metric strip (e.g. the midday coverage carousel):
+                    // No metric strip (e.g. the coverage carousel):
                     // reserve the strip's vertical footprint so the briefing
                     // block keeps the same height and the title/contents line up
                     // with the cover that does carry a strip. marginTop (44) +
