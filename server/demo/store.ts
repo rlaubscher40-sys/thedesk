@@ -61,7 +61,7 @@ export const demo = {
   editions: editionsSeed(),
   feed: feedSeed(),
   queue: [] as ReadingQueueItem[],
-  subscribers: [] as Subscriber[],
+  subscribers: subscribersSeed(),
   linkedInPosts: linkedInSeed(),
   metrics: metricsSeed(),
   instagramPosts: instagramPostsSeed(),
@@ -138,6 +138,63 @@ function instagramPostsSeed(): InstagramPost[] {
     // Off the schedule, so only the historic ones remain.
     post("coverage", 11, 3210, 19, 4, "The Wider Lens"),
     post("coverage", 12, 2980, 16, 3, "The Wider Lens"),
+  ];
+}
+
+/**
+ * Seed subscribers so the admin's arrival-source panel is reviewable.
+ *
+ * Shaped to show the states that matter rather than a flattering split: a
+ * handful of rows predating attribution (which must be excluded, not guessed
+ * at), a mix of confirmed and pending, and a spread across channels wide
+ * enough that the reading has something to say.
+ */
+function subscribersSeed(): Subscriber[] {
+  const day = 86_400_000;
+  const now = Date.now();
+  let n = 0;
+  const sub = (
+    arrivalSource: string | null,
+    daysAgo: number,
+    confirmed: boolean,
+    unsubscribed = false
+  ): Subscriber =>
+    ({
+      id: 500 + ++n,
+      email: `reader${n}@example.com`,
+      name: null,
+      confirmToken: confirmed ? null : `tok${n}`,
+      confirmTokenSentAt: new Date(now - daysAgo * day),
+      confirmedAt: confirmed ? new Date(now - daysAgo * day + 3_600_000) : null,
+      unsubscribedAt: unsubscribed ? new Date(now - daysAgo * day + day) : null,
+      source: "first-visit-modal",
+      arrivalSource,
+      arrivalCampaign: arrivalSource === "instagram" ? "bio-link" : null,
+      isPremium: false,
+      lastDailyBriefDate: null,
+      lastWeeklyRecapDate: null,
+      createdAt: new Date(now - daysAgo * day),
+    }) as Subscriber;
+
+  return [
+    // Predate attribution — excluded from the channel table by design.
+    sub(null, 120, true),
+    sub(null, 110, true),
+    sub(null, 95, true),
+    sub(null, 88, false),
+
+    sub("instagram", 40, true),
+    sub("instagram", 34, true),
+    sub("instagram", 27, true),
+    sub("instagram", 19, false),
+    sub("instagram", 11, true),
+    sub("google", 38, true),
+    sub("google", 22, true),
+    sub("google", 9, false),
+    sub("linkedin", 31, true),
+    sub("linkedin", 14, true, true),
+    sub("direct", 25, true),
+    sub("substack", 17, true),
   ];
 }
 

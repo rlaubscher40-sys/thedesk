@@ -1,6 +1,88 @@
 import { Mail, Send } from "lucide-react";
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { readSources, summariseSources, type SubscriberRow } from "@/lib/subscriberSources";
+
+/**
+ * Where subscribers came from.
+ *
+ * The list has always recorded which form converted someone and never which
+ * channel brought them, so "is Instagram producing subscribers" has not been
+ * answerable. This answers it — and, for the first fortnight, says plainly
+ * that it cannot yet, because attribution started the day it shipped and an
+ * empty Instagram row means "not counting long enough" rather than "not
+ * working".
+ */
+function ArrivalSources({ subs }: { subs: SubscriberRow[] }) {
+  const summary = summariseSources(subs);
+  const reading = readSources(summary);
+
+  return (
+    <div className="rounded border border-[var(--color-border)] p-4 space-y-3">
+      <div>
+        <p className="overline-amber" style={{ letterSpacing: "0.18em", fontSize: "10px" }}>
+          Where subscribers came from
+        </p>
+        <p className="text-xs text-[var(--color-fg-muted)] mt-1.5 max-w-[68ch] leading-relaxed">
+          The channel that brought each subscriber to the site, as distinct from which form they
+          filled in. Captured on the first page of their session, so it survives the navigations
+          between landing and subscribing.
+        </p>
+      </div>
+
+      <p className="text-sm text-[var(--color-fg)] leading-relaxed border-l-2 border-[var(--color-accent)] pl-3">
+        {reading}
+      </p>
+
+      {summary.rows.length > 0 && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs border-collapse min-w-[360px]">
+            <thead>
+              <tr className="border-b border-[var(--color-border)]">
+                {["Channel", "Subscribers", "Confirmed"].map((h, i) => (
+                  <th
+                    key={h}
+                    className={`pb-2 font-mono uppercase tracking-[0.16em] text-[var(--color-fg-subtle)] pr-4 whitespace-nowrap ${
+                      i === 0 ? "text-left" : "text-right"
+                    }`}
+                  >
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {summary.rows.map((r) => (
+                <tr
+                  key={r.source}
+                  className="border-b border-[var(--color-border)] last:border-b-0"
+                >
+                  <td className="py-2.5 pr-4 text-[var(--color-fg)] whitespace-nowrap">
+                    {r.source}
+                  </td>
+                  <td className="py-2.5 pr-4 tabular-nums text-right text-[var(--color-fg)]">
+                    {r.total}
+                  </td>
+                  <td className="py-2.5 tabular-nums text-right text-[var(--color-fg-muted)]">
+                    {r.confirmed}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {summary.unattributed > 0 && (
+        <p className="text-[11px] text-[var(--color-fg-subtle)] leading-relaxed">
+          {summary.unattributed} subscriber{summary.unattributed === 1 ? "" : "s"} predate
+          attribution and cannot be assigned a channel. They are excluded above rather than guessed
+          at.
+        </p>
+      )}
+    </div>
+  );
+}
 
 export function SubscribersAdminPanel() {
   const listQuery = trpc.subscribers.list.useQuery();
@@ -17,17 +99,13 @@ export function SubscribersAdminPanel() {
   return (
     <section className="panel rounded p-6 sm:p-8 space-y-6">
       <div>
-        <p
-          className="overline-amber mb-2"
-          style={{ letterSpacing: "0.22em", fontSize: "10px" }}
-        >
+        <p className="overline-amber mb-2" style={{ letterSpacing: "0.22em", fontSize: "10px" }}>
           Audience
         </p>
         <h2 className="font-serif text-2xl font-bold leading-tight">Subscribers</h2>
         <p className="text-sm text-[var(--color-fg-muted)] mt-1.5 max-w-[60ch]">
-          Everyone who's filled in a subscribe form. Confirmation emails
-          send through Resend the moment the form posts; the row flips
-          to confirmed when the recipient clicks the link.
+          Everyone who's filled in a subscribe form. Confirmation emails send through Resend the
+          moment the form posts; the row flips to confirmed when the recipient clicks the link.
         </p>
       </div>
 
@@ -37,6 +115,8 @@ export function SubscribersAdminPanel() {
         <Stat label="Pending" value={pending} accent="oklch(0.78 0.18 70)" />
         <Stat label="Unsubscribed" value={unsubscribed} accent="oklch(0.68 0.20 15)" />
       </div>
+
+      <ArrivalSources subs={subs} />
 
       {subs.length === 0 ? (
         <div className="panel p-6 rounded text-sm text-[var(--color-fg-muted)]">
@@ -61,9 +141,7 @@ export function SubscribersAdminPanel() {
                   className="grid grid-cols-[minmax(0,1fr)_120px_120px_100px_36px] items-center gap-4 px-5 py-3 text-sm border-b border-[var(--color-border)] last:border-b-0 hover:bg-white/[0.02]"
                 >
                   <span className="font-mono text-[13px] truncate">{s.email}</span>
-                  <span className="text-[var(--color-fg-muted)] truncate">
-                    {s.source ?? "—"}
-                  </span>
+                  <span className="text-[var(--color-fg-muted)] truncate">{s.source ?? "—"}</span>
                   <span>
                     {s.unsubscribedAt ? (
                       <Badge label="Unsub'd" colour="oklch(0.68 0.20 15)" />
@@ -83,9 +161,11 @@ export function SubscribersAdminPanel() {
                     {canResend && (
                       <button
                         title={
-                          state === "done" ? "Sent!" :
-                          state === "error" ? "Failed — try again" :
-                          "Resend today's brief"
+                          state === "done"
+                            ? "Sent!"
+                            : state === "error"
+                              ? "Failed — try again"
+                              : "Resend today's brief"
                         }
                         disabled={state === "sending" || state === "done"}
                         onClick={async () => {
@@ -99,11 +179,12 @@ export function SubscribersAdminPanel() {
                         }}
                         className="p-1 rounded transition-opacity disabled:opacity-30"
                         style={{
-                          color: state === "done"
-                            ? "oklch(0.72 0.17 155)"
-                            : state === "error"
-                            ? "oklch(0.68 0.20 15)"
-                            : "var(--color-fg-muted)",
+                          color:
+                            state === "done"
+                              ? "oklch(0.72 0.17 155)"
+                              : state === "error"
+                                ? "oklch(0.68 0.20 15)"
+                                : "var(--color-fg-muted)",
                         }}
                       >
                         <Send className="h-3 w-3" />
@@ -132,10 +213,7 @@ function Stat({
   return (
     <div className="bg-[var(--color-bg-elevated)] p-5">
       <div className="flex items-center justify-between mb-3">
-        <p
-          className="overline truncate"
-          style={{ letterSpacing: "0.16em" }}
-        >
+        <p className="overline truncate" style={{ letterSpacing: "0.16em" }}>
           {label}
         </p>
         <Mail className="h-3 w-3" style={{ color: accent }} />

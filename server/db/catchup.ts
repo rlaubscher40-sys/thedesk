@@ -277,6 +277,18 @@ export const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
     name: "0021 · subscribers.confirmTokenSentAt",
     sql: "ALTER TABLE subscribers ADD confirmTokenSentAt timestamp NULL",
   },
+  {
+    name: "0022 · subscribers.arrivalSource",
+    sql: "ALTER TABLE subscribers ADD arrivalSource varchar(64)",
+  },
+  {
+    name: "0022 · subscribers.arrivalCampaign",
+    sql: "ALTER TABLE subscribers ADD arrivalCampaign varchar(64)",
+  },
+  {
+    name: "0022 · page_views.campaign",
+    sql: "ALTER TABLE page_views ADD campaign varchar(64)",
+  },
 ];
 
 /** MySQL/TiDB error message fragments that mean "already applied". */

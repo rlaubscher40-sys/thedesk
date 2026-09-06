@@ -576,6 +576,8 @@ export function createSubscriber(data: InsertSubscriber): Subscriber {
     confirmTokenSentAt: data.confirmTokenSentAt ?? new Date(),
     confirmedAt: data.confirmedAt ?? null,
     unsubscribedAt: null,
+    arrivalSource: data.arrivalSource ?? null,
+    arrivalCampaign: data.arrivalCampaign ?? null,
     source: data.source ?? null,
     isPremium: data.isPremium ?? false,
     lastDailyBriefDate: null,
@@ -883,6 +885,7 @@ export function recordPageView(data: InsertPageView): void {
     viewedAt: new Date(),
     path: data.path,
     referrer: data.referrer ?? null,
+    campaign: data.campaign ?? null,
     sessionId: data.sessionId,
   };
   demo.pageViews = trimRing([...demo.pageViews, row], PAGEVIEW_CAP);

@@ -197,9 +197,17 @@ export const subscribers = mysqlTable("subscribers", {
   confirmTokenSentAt: timestamp("confirmTokenSentAt"),
   confirmedAt: timestamp("confirmedAt"),
   unsubscribedAt: timestamp("unsubscribedAt"),
-  /** Free-form source attribution: "sidebar", "modal", "hero",
-   *  "edition-footer", etc. */
+  /** Which form converted them: "sidebar", "modal", "hero", "edition-footer".
+   *  A placement, not an origin — see arrivalSource for where they came from. */
   source: varchar("source", { length: 64 }),
+  /** Channel the visitor arrived from at the start of their session:
+   *  "instagram", "linkedin", "google", "direct". Captured on the first page
+   *  of the session and carried through to the subscribe call, because by the
+   *  time someone reaches a form their referrer is our own site. Null for rows
+   *  written before this column existed, or when storage was unavailable. */
+  arrivalSource: varchar("arrivalSource", { length: 64 }),
+  /** Campaign name from the link they followed, when it carried one. */
+  arrivalCampaign: varchar("arrivalCampaign", { length: 64 }),
   /** True when the subscriber has a paid tier on Substack. Synced
    *  manually or by webhook in production. */
   isPremium: boolean("isPremium").default(false).notNull(),
@@ -513,6 +521,11 @@ export const pageViews = mysqlTable("page_views", {
    *  Referer header missing. Never the full URL — that can leak
    *  query strings and identifiers. */
   referrer: varchar("referrer", { length: 256 }),
+  /** Campaign slug from a tagged link (utm_source / ref), whitelisted keys
+   *  only and never the rest of the query string. Instagram's in-app browser
+   *  often sends no Referer, so without this its traffic files as "direct"
+   *  and the channel we most want to measure is the one we undercount. */
+  campaign: varchar("campaign", { length: 64 }),
   /** Ephemeral sessionStorage token. Lets us compute "unique
    *  sessions" within a window without persistent identification. */
   sessionId: varchar("sessionId", { length: 64 }).notNull(),

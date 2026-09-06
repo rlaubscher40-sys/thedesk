@@ -12,6 +12,7 @@
  *   · The user has DNT enabled in their browser — the server also
  *     enforces this, but bailing early saves a network call.
  */
+import { getArrival } from "@/lib/attribution";
 
 const SESSION_KEY = "thedesk:session";
 
@@ -62,7 +63,13 @@ export function trackPageView(): void {
   lastPath = path;
 
   const referrer = document.referrer || "";
-  const body = JSON.stringify({ path, referrer, sessionId: id });
+  // The path deliberately drops the query string (it can carry identifiers),
+  // but that also discarded the campaign tag on an inbound link. Instagram's
+  // in-app browser frequently sends no Referer, so without the tag its traffic
+  // is indistinguishable from direct. Take the arrival's campaign slug only —
+  // already whitelisted and slugged in lib/attribution — never the raw query.
+  const campaign = getArrival()?.source;
+  const body = JSON.stringify({ path, referrer, campaign, sessionId: id });
 
   // Prefer sendBeacon — fires reliably even when the user is
   // navigating away. Fallback to fetch with keepalive so the

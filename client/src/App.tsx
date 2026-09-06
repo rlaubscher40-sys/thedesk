@@ -14,6 +14,7 @@ import { SubscribeModal } from "./components/SubscribeModal";
 import { Skeleton } from "./components/ui/Skeleton";
 import { Toaster } from "./components/ui/Toaster";
 import { trackPageView } from "./lib/analytics";
+import { captureArrival } from "./lib/attribution";
 import { lazyWithReload } from "./lib/chunkReload";
 import { isLiteMode } from "./lib/liteMode";
 import { PersonaProvider } from "./lib/persona";
@@ -36,9 +37,15 @@ const Archive = lazyWithReload(() => import("./pages/Archive"), "Archive");
 const Login = lazyWithReload(() => import("./pages/Login"), "Login");
 const Privacy = lazyWithReload(() => import("./pages/Privacy"), "Privacy");
 const Terms = lazyWithReload(() => import("./pages/Terms"), "Terms");
-const EditorialStandards = lazyWithReload(() => import("./pages/EditorialStandards"), "EditorialStandards");
+const EditorialStandards = lazyWithReload(
+  () => import("./pages/EditorialStandards"),
+  "EditorialStandards"
+);
 const Corrections = lazyWithReload(() => import("./pages/Corrections"), "Corrections");
-const ConfirmSubscription = lazyWithReload(() => import("./pages/ConfirmSubscription"), "ConfirmSubscription");
+const ConfirmSubscription = lazyWithReload(
+  () => import("./pages/ConfirmSubscription"),
+  "ConfirmSubscription"
+);
 const Settings = lazyWithReload(() => import("./pages/Settings"), "Settings");
 const InstallApp = lazyWithReload(() => import("./pages/InstallApp"), "InstallApp");
 const NotFound = lazyWithReload(() => import("./pages/NotFound"), "NotFound");
@@ -98,6 +105,11 @@ function Routes() {
   // before the bundle loads; this keeps that element pointing at the live
   // path during client-side navigation rather than adding a second one.
   useEffect(() => {
+    // Before the first beacon: works out which channel brought this session in
+    // and holds it for the rest of it. A no-op after the first page, which is
+    // the point — by the time someone reaches a subscribe form their referrer
+    // is our own site, so only the first observation is true.
+    captureArrival();
     trackPageView();
     let link = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
     if (!link) {
@@ -168,17 +180,17 @@ export default function App() {
     <ErrorBoundary>
       <ThemeProvider>
         <UserPrefsProvider>
-        <PersonaProvider>
-          <Toaster />
-          <AppLayout>
-            <KeyboardShortcuts />
-            <Routes />
-          </AppLayout>
-          <CommandPalette />
-          <BreakingSignalToast />
-          <OnboardingModal />
-          <SubscribeModal />
-        </PersonaProvider>
+          <PersonaProvider>
+            <Toaster />
+            <AppLayout>
+              <KeyboardShortcuts />
+              <Routes />
+            </AppLayout>
+            <CommandPalette />
+            <BreakingSignalToast />
+            <OnboardingModal />
+            <SubscribeModal />
+          </PersonaProvider>
         </UserPrefsProvider>
       </ThemeProvider>
     </ErrorBoundary>
