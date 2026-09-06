@@ -12,11 +12,11 @@ precise about this, because the wrong frame produces the wrong roadmap.
 
 |                | The Desk                                                | Glasshouse                                                        |
 | -------------- | ------------------------------------------------------- | ----------------------------------------------------------------- |
-| What it is     | Private intelligence briefing tool, single admin user    | Consumer/agent iPhone app                                          |
+| What it is     | A subscription media product on Australian property      | Consumer/agent iPhone app                                          |
 | Core asset     | Aggregated public news (RSS) + LLM editorial layer       | Proprietary property dataset (5M+ AU properties, Valuer General)   |
-| Who pays       | Nobody. Internal tool for partnerships                   | End users, 3-day free trial into subscription                      |
-| The job it does| Gives Ruben something to say to a partner                | Tells you what the house in front of you is worth                  |
-| Instagram is   | A byproduct of the briefing pipeline                     | The entire top of the acquisition funnel                           |
+| Who pays       | Nobody yet. Free list now, paid tier the goal            | End users, 3-day free trial into subscription                      |
+| The job it does| Tells you what moved in Australian property, and why     | Tells you what the house in front of you is worth                  |
+| Instagram is   | The top of the acquisition funnel                        | The entire top of the acquisition funnel                           |
 
 They are not taking our customers. **They are taking the same attention we are
 trying to build**, in the same category (Australian property), on the same
@@ -25,6 +25,15 @@ surface (Instagram), and they are doing it far more effectively.
 So the honest read is: they do not beat us at the thing The Desk is. They beat
 us badly at the thing The Desk's Instagram account is trying to be. That is the
 comparison worth acting on, and everything below is scoped to it.
+
+**Correction (6 Sep).** Earlier drafts of this document described The Desk as an
+internal briefing tool serving InvestorKit partnership work, and treated its
+audience as "partners". That is wrong: this is a standalone product whose goal
+is an audience that eventually pays for a subscription. The mistake came from
+the repo describing itself that way — the README opens with "Private
+intelligence briefing tool for Ruben Laubscher (Head of Partnerships,
+InvestorKit)" — and it matters beyond this document, because the same framing is
+baked into the content generators. See item 9.
 
 ---
 
@@ -159,10 +168,16 @@ waitlist → 3-day trial → subscription. The content and the product are the s
 argument. "You see a property. Why guess what it's worth?" is simultaneously the
 hook and the pitch.
 
-Ours ends at "the full daily briefing is in our bio," pointing at a site whose
-actual product is a private admin tool. There is no offer at the end of the
-funnel, so the follower has no reason to convert and — more importantly — no
-reason to follow in the first place.
+**Correction (6 Sep).** This section previously said we have no offer at the end
+of the funnel. That was wrong, and checking the repo before recommending
+anything is what caught it. The Desk has a real product: a double opt-in email
+newsletter (daily brief + weekly recap), with an `isPremium` flag already on the
+subscriber table for a paid tier. The funnel is post → bio → site → subscribe.
+
+The actual problem was narrower and more fixable: nothing measured whether it
+worked. `subscribers.source` recorded which *form* converted someone, never
+which *channel* brought them, so an Instagram subscriber and a Google one were
+indistinguishable. That is now closed — see 5a.
 
 ---
 
@@ -239,15 +254,25 @@ approvals by state — the exact well Glasshouse is drawing from.
 
 ### Tier 3 — the strategic question, not an engineering one
 
-**8. Decide what the Instagram account is for.**
-Glasshouse's content works partly because it sells something. Ours currently
-sells a private admin tool. Until there is a public offer at the end — the
-newsletter, a subscriber product, InvestorKit partnership enquiry, anything —
-follower growth is a vanity number and the effort is hard to justify against
-the alternative uses of the pipeline.
+**8. ~~Decide what the Instagram account is for.~~ Resolved.**
+The account is the top of the funnel for a subscription product: audience
+first, paid tier later. The offer already exists (the newsletter), and as of
+5a the conversion from channel to subscriber is measured. What was a strategic
+question is now a reading on a panel.
 
-This is Ruben's call, not a code change, but it should be made explicitly
-rather than by default.
+**9. Strip the partner framing out of the content generators.**
+The prompts still write for a persona this product does not have. Every feed
+item gets a `partnerTag` block addressed to
+`Institutional / Broker / Adviser / Buyers Agent`, and `sayThis` is generated
+as a line to open a *partner conversation* — the ingest brief literally asks
+for "why a partner would care". For an audience of property-interested readers
+being asked to subscribe, that is the wrong reader in the model's head on every
+generation, and it shapes the daily feed, the Instagram captions and the weekly
+edition alike.
+
+This is the highest-leverage content change left, and it is a prompt edit
+rather than new machinery. It should happen before any investment in video,
+because video would otherwise scale copy written for the wrong audience.
 
 ---
 
@@ -274,6 +299,13 @@ rather than by default.
   two formats have at least four measured posts each AND the gap between them
   is wide enough to survive a sample that small, because a confident league
   table built on five posts is worse than no table.
+
+- **Attribution (added 6 Sep, not originally in this plan).** Subscribers now
+  record the channel they arrived from, not just the form that converted them,
+  and the admin groups them by it. This was done before any Tier 2 work
+  deliberately: video is the most expensive item on the list and its value
+  depends entirely on whether this funnel converts, which nothing could
+  previously answer. A day spent deciding whether to spend weeks.
 
 **What Tier 1 has not changed.** Everything above makes the existing posts work
 harder. None of it puts us on Reels, gives the account a face, or produces a
