@@ -144,8 +144,13 @@ A viewer learns the format, then anticipates it. That is what converts a
 one-time viewer into a follower — following is a bet on *future* posts, so the
 account has to make the future legible.
 
-Our formats are named `daily`, `coverage`, `weekly`. Those are internal job
-names. Nothing on the card tells a viewer what they are subscribing to.
+**Correction (6 Sep, on implementation).** An earlier draft of this section
+said our formats carry only internal job names (`daily`, `coverage`, `weekly`)
+and needed audience-facing ones. That was wrong, and checking the renderers
+before acting on it is what caught it. The covers already carry proper titles:
+"Today's Briefing", "The Wider Lens", "This Week in Australian Property", and
+now "The Number". This gap was mostly already closed; what was missing was the
+open loop below, not the naming.
 
 ### 3.7 The content has somewhere to go
 
@@ -201,14 +206,14 @@ account. One strong post a day beats three weak ones on every ranking input
 that matters.
 
 **3. Name the franchises and put the name on the card.**
-Give each format an audience-facing name in the kicker slot the renderers
-already have. "THIS WEEK IN AUSTRALIAN PROPERTY", "THE NUMBER", "WHAT CHANGED".
-Zero new infrastructure — it is a string in the card header.
+~~Give each format an audience-facing name in the kicker slot.~~ **Already
+done** — see the correction in 3.6. The covers carry real titles; only the new
+stat format needed one ("The Number").
 
 **4. Add the open loop.**
-Slide 1 poses, slides 2–n answer, and the first card carries an explicit
-"→" affordance. Small change to the carousel builder, direct effect on
-completion rate.
+Slide 1 poses, slides 2–n answer, and the first card names what the swipe
+actually buys. Direct effect on completion rate, which is one of the strongest
+ranking inputs on a carousel.
 
 **5. Actually read the insights we are already collecting.**
 `instagram_posts` has reach, saves and shares per post, refreshed daily. Build
@@ -243,6 +248,30 @@ the alternative uses of the pipeline.
 
 This is Ruben's call, not a code change, but it should be made explicitly
 rather than by default.
+
+---
+
+## 5a. What has shipped against this (as at 6 Sep)
+
+- **Tier 1.1 — the stat card format.** Done. "The Number" posts one metric a
+  day at 16:41, chosen by `server/instagram/statPick.ts` from our own metric
+  history and rendered by `renderStatCard`. It publishes nothing on a day when
+  no metric clears the bar, which is the behaviour that keeps the format worth
+  following. The figure and the claim under it are computed, never generated,
+  and a model-written line that introduces a figure absent from the source
+  facts is discarded.
+- **Tier 1.2 — cut the posting volume.** Done. "The Wider Lens" is off the
+  schedule. The day's run is now the 07:13 briefing and 16:41 The Number, plus
+  the Sunday edition: two scheduled grid posts a day instead of three. The
+  endpoint and admin button survive for a hand-fired one.
+- **Tier 1.3 — name the franchises.** Was already done; see 3.6.
+- **Tier 1.4 — the open loop.** Done. The cover's swipe line names the payoff
+  it withholds rather than the headlines it just listed, and the caption opens
+  with the day's own hook instead of a sentence that never changed.
+- **Tier 1.5 — read the insights.** Not started. This is now the highest-value
+  remaining item: three formats are live, engagement data is being collected
+  per post, and nothing reads it. Until something does, the next decision about
+  what to post is another argument rather than a measurement.
 
 ---
 
