@@ -114,4 +114,18 @@ describe("jobState", () => {
     expect(jobState(null, true)).toBe("unknown");
     expect(jobState(null, false)).toBe("unknown");
   });
+
+  it("reports an optional job that published nothing as skipped, not missing", () => {
+    // The Number posts only when a metric has actually moved. A quiet day is
+    // the format working, and must not raise the panel's one alarm state.
+    expect(jobState(false, true, true)).toBe("skipped");
+  });
+
+  it("keeps an optional job pending before its slot", () => {
+    expect(jobState(false, false, true)).toBe("pending");
+  });
+
+  it("still reports an optional job that did post", () => {
+    expect(jobState(true, true, true)).toBe("posted");
+  });
 });

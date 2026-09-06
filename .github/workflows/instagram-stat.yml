@@ -1,0 +1,44 @@
+name: Instagram stat post
+
+# Least privilege: pure curl job, no GITHUB_TOKEN access needed.
+permissions: {}
+
+on:
+  # Timing is driven by the in-process scheduler (server/scheduler), reliable
+  # where GitHub cron ran late / dropped runs — see docs/reliable-scheduling.md.
+  # workflow_dispatch stays so the job can still be triggered by hand.
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Why are you running this manually?"
+        required: false
+        default: "manual test"
+      force:
+        description: "Post even if no metric cleared the bar today"
+        required: false
+        default: "false"
+
+concurrency:
+  group: instagram-stat
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Trigger Instagram stat post
+        env:
+          INGEST_BASE_URL: ${{ secrets.INGEST_BASE_URL }}
+          SCHEDULED_API_KEY: ${{ secrets.SCHEDULED_API_KEY }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          BASE="${INGEST_BASE_URL%/}"
+          # A day with no metric worth posting returns 200 with skipped:true,
+          # so the job stays green. Only a real failure turns it red.
+          curl -fsSL \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -H "x-scheduled-key: ${SCHEDULED_API_KEY}" \
+            "${BASE}/api/ingest/instagram-stat" \
+            -d "{\"force\": ${FORCE:-false}}"

@@ -62,7 +62,13 @@ export function sydneyClock(d: Date = new Date()): SchedulerClock {
   if (hour === 24) hour = 0; // some ICU builds emit "24" at midnight
   const minutes = hour * 60 + Number(get("minute"));
   const dowMap: Record<string, number> = {
-    Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
+    Sun: 0,
+    Mon: 1,
+    Tue: 2,
+    Wed: 3,
+    Thu: 4,
+    Fri: 5,
+    Sat: 6,
   };
   return {
     dateISO: `${get("year")}-${get("month")}-${get("day")}`,
@@ -137,11 +143,45 @@ async function postLocal(
 const JOBS: Job[] = [
   { key: "daily-metrics", at: "06:33", run: (b, k) => runDailyMetricsIngest(b, k) },
   { key: "daily-feed", at: "06:43", run: (b, k) => runDailyFeedIngest(b, k) },
-  { key: "instagram-daily", at: "07:13", maxAttempts: 2, run: (b, k, a) => postLocal(b, k, "/api/ingest/instagram-daily", a) },
-  { key: "instagram-insights", at: "07:17", run: (b, k) => postLocal(b, k, "/api/ingest/instagram-insights") },
-  { key: "instagram-coverage", at: "12:13", maxAttempts: 2, run: (b, k, a) => postLocal(b, k, "/api/ingest/instagram-coverage", a) },
-  { key: "weekly-edition", at: "07:17", dow: [0], run: (b, k) => postLocal(b, k, "/api/ingest/synthesize-edition") },
-  { key: "instagram-weekly", at: "09:19", dow: [0], maxAttempts: 2, run: (b, k, a) => postLocal(b, k, "/api/ingest/instagram-weekly", a) },
+  {
+    key: "instagram-daily",
+    at: "07:13",
+    maxAttempts: 2,
+    run: (b, k, a) => postLocal(b, k, "/api/ingest/instagram-daily", a),
+  },
+  {
+    key: "instagram-insights",
+    at: "07:17",
+    run: (b, k) => postLocal(b, k, "/api/ingest/instagram-insights"),
+  },
+  {
+    key: "instagram-coverage",
+    at: "12:13",
+    maxAttempts: 2,
+    run: (b, k, a) => postLocal(b, k, "/api/ingest/instagram-coverage", a),
+  },
+  // Mid-afternoon, well clear of the morning briefing and the midday lens, so
+  // the three grid posts don't stack. Also late enough that any metric the
+  // 06:33 ingest revised during the day has settled.
+  {
+    key: "instagram-stat",
+    at: "16:41",
+    maxAttempts: 2,
+    run: (b, k, a) => postLocal(b, k, "/api/ingest/instagram-stat", a),
+  },
+  {
+    key: "weekly-edition",
+    at: "07:17",
+    dow: [0],
+    run: (b, k) => postLocal(b, k, "/api/ingest/synthesize-edition"),
+  },
+  {
+    key: "instagram-weekly",
+    at: "09:19",
+    dow: [0],
+    maxAttempts: 2,
+    run: (b, k, a) => postLocal(b, k, "/api/ingest/instagram-weekly", a),
+  },
 ];
 
 /**
@@ -192,7 +232,9 @@ async function tick(baseUrl: string, apiKey: string): Promise<void> {
       const maxAttempts = job.maxAttempts ?? 3;
       const attempt = await claimJobRun(job.key, clock.dateISO, maxAttempts);
       if (!attempt) continue;
-      console.log(`[scheduler] running ${job.key} (${clock.dateISO}, attempt ${attempt}/${maxAttempts})`);
+      console.log(
+        `[scheduler] running ${job.key} (${clock.dateISO}, attempt ${attempt}/${maxAttempts})`
+      );
       try {
         await job.run(baseUrl, apiKey, attempt);
         await markJobRun(job.key, clock.dateISO, "success");
@@ -235,7 +277,9 @@ export function startScheduler(opts: { port: number }): void {
     return;
   }
   if (!env.scheduledApiKey) {
-    console.warn("[scheduler] SCHEDULED_API_KEY not set — cannot authenticate self-calls; not starting");
+    console.warn(
+      "[scheduler] SCHEDULED_API_KEY not set — cannot authenticate self-calls; not starting"
+    );
     return;
   }
   started = true;

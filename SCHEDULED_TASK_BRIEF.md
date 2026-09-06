@@ -114,6 +114,39 @@ Fires once a week, Sunday evening Sydney time. Body: a single edition object.
 
 ---
 
+## The Number — `POST /api/ingest/instagram-stat`
+
+Fires mid-afternoon Sydney time (16:41), well clear of the 07:13 briefing and
+the 12:13 wider lens. No body required; `{"force": true}` posts even on a quiet
+day and `{"attempt": n}` is the scheduler's retry counter.
+
+Unlike every other posting job, **this one is allowed to publish nothing.** It
+reads the day's `daily_metrics` against 180 days of `daily_metric_history` and
+scores each metric on four angles — a run of moves the same way, a high or low
+for the window, a move far beyond that metric's own typical daily step, or a
+round-number crossing. If nothing clears the bar it returns
+`{ success: true, skipped: true }` and the workflow stays green.
+
+That silence is the point. A card announcing that the cash rate did not move
+teaches the audience the format is filler, which is the failure mode the daily
+carousel already has. Selection lives in `server/instagram/statPick.ts` and is
+pure, so the editorial judgement is unit-tested without a database.
+
+### The factual contract
+
+The number and the claim beneath it are **computed, never generated**. The LLM
+gets one narrow job: turn the computed claim into a sentence. Its output is then
+checked against the facts it was given, and any figure that did not appear in
+them is treated as fabrication and discarded in favour of a deterministic
+fallback line.
+
+This is not defensive over-engineering. Aggregated news is commodity — the one
+durable position this account has is that every number on it traces back to a
+source row, and the card names that source and its as-of date. A single invented
+figure costs more than the format earns.
+
+---
+
 ## Failure modes
 
 - **Validation error → 400** with `issues` payload. The scheduler should log

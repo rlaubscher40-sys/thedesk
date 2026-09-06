@@ -2332,3 +2332,259 @@ export async function renderWeeklyTopicCard(
 
   return renderToJpeg(tree, 1080, 1350);
 }
+
+/**
+ * Stat card: 1080×1350 (4:5 portrait), a single-image post.
+ *
+ * The inverse of the daily cover's information hierarchy. The cover leads with
+ * a headline and demotes the figure to body text; this leads with the figure,
+ * set as large as it will go, and demotes everything else. One number, one
+ * sentence, one sourced claim, no swipe.
+ *
+ * `line` is the sentence from `generateStatLine` (already verified against the
+ * source facts) and `subtext` is the computed claim from `pickStatOfTheDay` —
+ * the only two pieces of prose on the card, and neither may say anything the
+ * metric history does not support.
+ */
+export async function renderStatCard(
+  stat: {
+    label: string;
+    value: string;
+    line: string;
+    subtext: string;
+    source?: string | null;
+    asOf?: Date | null;
+  },
+  variant: CardVariant = "navy",
+  opts: { kicker?: string } = {}
+): Promise<Buffer> {
+  const logo = await loadLogo(variant);
+  const c = colorScheme(variant);
+
+  // The value is the whole point of the card, so it is set as large as its own
+  // length allows rather than at a fixed size: "64.2%" earns 300px, "$815,439"
+  // has to come down to stay on one line inside the 64px gutters.
+  const valueSize = fitFontSize(
+    stat.value.length,
+    [
+      [5, "300px"],
+      [7, "240px"],
+      [9, "186px"],
+      [12, "146px"],
+    ],
+    "112px"
+  );
+  const lineSize = fitFontSize(
+    stat.line.length,
+    [
+      [48, "54px"],
+      [70, "47px"],
+      [92, "41px"],
+    ],
+    "36px"
+  );
+
+  const asOfLabel = stat.asOf
+    ? new Intl.DateTimeFormat("en-AU", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        timeZone: "Australia/Sydney",
+      }).format(stat.asOf)
+    : null;
+  const provenance = [stat.source, asOfLabel].filter(Boolean).join(" · ");
+
+  const tree = {
+    type: "div",
+    props: {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        width: "1080px",
+        height: "1350px",
+        backgroundColor: c.bg,
+        backgroundImage: c.bloom,
+        padding: "64px",
+        justifyContent: "flex-start",
+      },
+      children: [
+        // ── Top: branding + format name ──
+        {
+          type: "div",
+          props: {
+            style: { display: "flex", justifyContent: "space-between", alignItems: "center" },
+            children: [
+              brandHeader(logo, 56, { accent: c.amber }),
+              {
+                type: "div",
+                props: {
+                  style: {
+                    fontFamily: "JetBrains Mono",
+                    fontSize: "15px",
+                    letterSpacing: "0.22em",
+                    textTransform: "uppercase",
+                    color: c.amber,
+                  },
+                  children: opts.kicker ?? "The Number",
+                },
+              },
+            ],
+          },
+        },
+
+        // Spacers above and below settle the stat block into the lower third.
+        // Weighting the top one heavier reads better than dead-centring it: the
+        // number is visually top-heavy, so a centred block sits high.
+        { type: "div", props: { style: { display: "flex", flexGrow: 1.7 }, children: "" } },
+
+        {
+          type: "div",
+          props: {
+            style: { display: "flex", flexDirection: "column" },
+            children: [
+              // Metric name, small and quiet — the number below is the headline.
+              {
+                type: "div",
+                props: {
+                  style: {
+                    fontFamily: "JetBrains Mono",
+                    fontSize: "17px",
+                    letterSpacing: "0.28em",
+                    textTransform: "uppercase",
+                    color: c.fgMuted,
+                    marginBottom: "26px",
+                  },
+                  children: clamp(stat.label, 40),
+                },
+              },
+              // The hero.
+              {
+                type: "div",
+                props: {
+                  style: {
+                    fontFamily: "Playfair Display",
+                    fontWeight: 700,
+                    fontSize: valueSize,
+                    lineHeight: 1.0,
+                    // Only lightly tightened: at these sizes the usual display
+                    // tracking pulls a leading "$" into the first digit and
+                    // closes up the thousands comma.
+                    letterSpacing: "-0.018em",
+                    color: c.fg,
+                  },
+                  children: stat.value,
+                },
+              },
+              // The sentence.
+              {
+                type: "div",
+                props: {
+                  style: {
+                    fontFamily: "Playfair Display",
+                    fontWeight: 700,
+                    fontSize: lineSize,
+                    lineHeight: 1.28,
+                    letterSpacing: "-0.01em",
+                    color: c.fg,
+                    marginTop: "62px",
+                  },
+                  children: clampSentence(stat.line, 100),
+                },
+              },
+              // Short amber rule separating the sentence from the sourced claim,
+              // so the mono line below reads as evidence rather than more prose.
+              {
+                type: "div",
+                props: {
+                  style: {
+                    display: "flex",
+                    width: "132px",
+                    height: "2px",
+                    backgroundColor: c.amber,
+                    marginTop: "44px",
+                    marginBottom: "26px",
+                  },
+                  children: "",
+                },
+              },
+              {
+                type: "div",
+                props: {
+                  style: {
+                    fontFamily: "JetBrains Mono",
+                    fontSize: "19px",
+                    letterSpacing: "0.16em",
+                    lineHeight: 1.5,
+                    textTransform: "uppercase",
+                    color: c.amber,
+                  },
+                  children: clamp(stat.subtext, 92),
+                },
+              },
+            ],
+          },
+        },
+
+        { type: "div", props: { style: { display: "flex", flexGrow: 1 }, children: "" } },
+
+        // ── Bottom: rule + provenance + domain ──
+        {
+          type: "div",
+          props: {
+            style: { display: "flex", flexDirection: "column", gap: "18px" },
+            children: [
+              {
+                type: "div",
+                props: {
+                  style: { display: "flex", width: "100%", height: "1px", backgroundImage: c.rule },
+                  children: "",
+                },
+              },
+              {
+                type: "div",
+                props: {
+                  style: {
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  },
+                  children: [
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          fontFamily: "JetBrains Mono",
+                          fontSize: "15px",
+                          letterSpacing: "0.15em",
+                          textTransform: "uppercase",
+                          color: c.fgMuted,
+                        },
+                        // Naming the source on the card is the whole credibility
+                        // position for this format: our numbers are checkable.
+                        children: provenance || "The Desk",
+                      },
+                    },
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          fontFamily: "JetBrains Mono",
+                          fontSize: "15px",
+                          letterSpacing: "0.22em",
+                          color: c.amber,
+                        },
+                        children: "thedesk.au",
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      ],
+    },
+  };
+
+  return renderToJpeg(tree, 1080, 1350);
+}

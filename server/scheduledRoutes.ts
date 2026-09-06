@@ -1482,6 +1482,122 @@ function registerInstagramRoutes(app: Express): void {
   app.post("/api/scheduled/instagram-coverage", coverageHandler);
   app.post("/api/ingest/instagram-coverage", coverageHandler);
 
+  // POST /api/ingest/instagram-stat — "The Number": one metric, posted as a
+  // single image. The counterweight to the daily carousel, which leads with a
+  // headline and buries the figure; this leads with the figure and says one
+  // true thing about it. Selection and the claim are computed from our own
+  // metric history (server/instagram/statPick.ts), never asked for from a
+  // model, so the card can always be traced back to a source row.
+  const statHandler = async (req: Request, res: Response) => {
+    if (!(await authenticateScheduled(req))) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const { instagramAccessToken, instagramBusinessAccountId } = (await import("./core/env")).env;
+    if (!instagramAccessToken || !instagramBusinessAccountId) {
+      res.status(503).json({ error: "Instagram credentials not configured" });
+      return;
+    }
+    const parsed = z
+      .object({
+        attempt: z.number().int().min(1).optional(),
+        /** Post even when nothing clears MIN_SCORE. Hand re-runs only. */
+        force: z.boolean().optional(),
+      })
+      .safeParse(req.body ?? {});
+    const attempt = parsed.success ? (parsed.data.attempt ?? 1) : 1;
+    const force = parsed.success ? (parsed.data.force ?? false) : false;
+
+    try {
+      const { pickStatOfTheDay } = await import("./instagram/statPick");
+      const { generateStatLine } = await import("./prompts/statCard");
+      const { findAlreadyPublished, postStatCard } = await import("./instagram/post");
+
+      const [metrics, histories] = await Promise.all([
+        db.listDailyMetrics(),
+        db.listMetricHistories(180),
+      ]);
+      const pick = pickStatOfTheDay(metrics, histories);
+
+      // A quiet day is a legitimate outcome, not a failure. Posting "the cash
+      // rate did not move" would train the audience that the format is filler,
+      // which is exactly what makes the daily carousel ignorable. 200 so the
+      // workflow stays green: nothing went wrong, there was just no number.
+      if (!pick && !force) {
+        console.log("[instagram] no metric cleared the bar today; skipping the stat post");
+        res.json({ success: true, skipped: true, reason: "No metric movement worth posting" });
+        return;
+      }
+      if (!pick) {
+        res.status(422).json({ error: "Nothing to post, even forced (no usable metrics)" });
+        return;
+      }
+
+      const variant = await nextCoverVariant();
+
+      // Same recovery path the other posting jobs use: a retry must never
+      // double-post when the previous attempt published and failed to report it.
+      const alreadyPublished = await findAlreadyPublished(attempt);
+      if (alreadyPublished) {
+        const recoveredHeadline = `${pick.label}: ${pick.value}`;
+        await db.recordInstagramPost({
+          mediaId: alreadyPublished,
+          postType: "stat",
+          feedDate: null,
+          headline: recoveredHeadline,
+          coverVariant: variant,
+        });
+        console.log(`[instagram] stat post recovered from a prior attempt: ${alreadyPublished}`);
+        res.json({
+          success: true,
+          postId: alreadyPublished,
+          headline: recoveredHeadline,
+          recovered: true,
+        });
+        return;
+      }
+
+      const line = await generateStatLine(pick);
+      const { postId, headline } = await postStatCard(
+        {
+          label: pick.label,
+          value: pick.value,
+          line,
+          subtext: pick.subtext,
+          source: pick.source,
+          asOf: pick.asOf,
+        },
+        siteOrigin(),
+        { variant }
+      );
+      console.log(
+        `[instagram] stat post complete: ${postId} (${pick.angle}, score ${pick.score.toFixed(2)})`
+      );
+      await db.recordInstagramPost({
+        mediaId: postId,
+        postType: "stat",
+        feedDate: null,
+        headline,
+        coverVariant: variant,
+      });
+      res.json({ success: true, postId, headline, angle: pick.angle, score: pick.score });
+    } catch (err) {
+      const e = err as Error;
+      console.error("[instagram] stat post failed:", e.message);
+      await db
+        .recordServerError({
+          level: "error",
+          message: `Instagram stat post failed: ${e.message}`.slice(0, 512),
+          stack: e.stack ?? null,
+          route: "instagram/stat",
+        })
+        .catch(() => {});
+      res.status(502).json({ error: "Instagram stat post failed", message: e.message });
+    }
+  };
+  app.post("/api/scheduled/instagram-stat", statHandler);
+  app.post("/api/ingest/instagram-stat", statHandler);
+
   // POST /api/ingest/instagram-weekly  — posts the latest weekly edition as a carousel
   const weeklyHandler = async (req: Request, res: Response) => {
     if (!(await authenticateScheduled(req))) {
@@ -1702,7 +1818,7 @@ export function registerScheduledRoutes(app: Express): void {
   registerNudgeRespondRoute(app);
   registerInstagramRoutes(app);
   console.log(
-    "[scheduled] registered /api/{scheduled,ingest}/{daily-feed,weekly-edition,synthesize-edition,daily-metrics,extract-metrics,weekly-recap,nudge-check,instagram-daily,instagram-weekly,instagram-insights} + /api/nudge/respond + /instagram/temp/:uuid.jpg + /api/instagram/preview/:kind"
+    "[scheduled] registered /api/{scheduled,ingest}/{daily-feed,weekly-edition,synthesize-edition,daily-metrics,extract-metrics,weekly-recap,nudge-check,instagram-daily,instagram-stat,instagram-weekly,instagram-insights} + /api/nudge/respond + /instagram/temp/:uuid.jpg + /api/instagram/preview/:kind"
   );
 }
 

@@ -69,6 +69,18 @@ const RERUN_JOBS = [
     warning: "the midday carousel (Tech & Science, Business, Global)",
   },
   {
+    job: "stat" as const,
+    label: "The Number",
+    full: "The Number",
+    at: "16:41",
+    dow: null,
+    // The only job here that is allowed to post nothing. On a day when no
+    // metric has moved enough to be worth a card, it skips, and the panel
+    // reports that as "no number today" rather than as a missed post.
+    optional: true,
+    warning: "a single-image card for the day's most notable metric movement",
+  },
+  {
     job: "weekly" as const,
     // Shortened for the button; the full cover title is in the tooltip and the
     // confirmation prompt, where there's room for it.
@@ -84,6 +96,7 @@ const RERUN_JOBS = [
 const STATE_STYLE: Record<JobState, { text: (at: string) => string; alarm: boolean }> = {
   posted: { text: () => "posted today", alarm: false },
   missing: { text: () => "not posted", alarm: true },
+  skipped: { text: () => "no number today", alarm: false },
   pending: { text: (at) => at, alarm: false },
   unknown: { text: (at) => at, alarm: false },
 };
@@ -122,7 +135,11 @@ function RerunJobs({ posts, ready }: { posts: PostedRow[]; ready: boolean }) {
   });
 
   function stateOf(entry: (typeof RERUN_JOBS)[number]): JobState {
-    return jobState(done ? done.has(entry.job) : null, slotHasPassed(entry.at, entry.dow));
+    return jobState(
+      done ? done.has(entry.job) : null,
+      slotHasPassed(entry.at, entry.dow),
+      "optional" in entry && entry.optional === true
+    );
   }
 
   function handleRun(entry: (typeof RERUN_JOBS)[number]) {
@@ -171,7 +188,9 @@ function RerunJobs({ posts, ready }: { posts: PostedRow[]; ready: boolean }) {
                   ? `"${entry.full}" already posted today (runs ${schedule})`
                   : state === "missing"
                     ? `"${entry.full}" was due at ${schedule} and has nothing recorded today`
-                    : `"${entry.full}" — runs ${schedule}`
+                    : state === "skipped"
+                      ? `"${entry.full}" ran at ${schedule} and found no metric worth a card today`
+                      : `"${entry.full}" — runs ${schedule}`
               }
               className="inline-flex items-center gap-1.5 rounded px-3.5 py-2 text-[10px] font-mono uppercase tracking-[0.18em] transition-colors disabled:opacity-50 bg-white/[0.04] text-[var(--color-fg)] hover:bg-white/[0.08]"
               style={{ boxShadow: "inset 0 0 0 1px var(--color-border)" }}
@@ -236,10 +255,7 @@ function PublishingQuota() {
   return (
     <div className="rounded border border-[var(--color-border)] p-4 space-y-2">
       <div className="flex items-baseline justify-between gap-3">
-        <p
-          className="overline-amber"
-          style={{ letterSpacing: "0.18em", fontSize: "10px" }}
-        >
+        <p className="overline-amber" style={{ letterSpacing: "0.18em", fontSize: "10px" }}>
           Publishing quota
         </p>
         <p className="text-xs font-mono tabular-nums text-[var(--color-fg-muted)]">
@@ -248,10 +264,7 @@ function PublishingQuota() {
       </div>
       {pct != null && (
         <div className="h-1.5 w-full rounded-full bg-white/[0.06] overflow-hidden">
-          <div
-            className="h-full rounded-full bg-amber-400/70"
-            style={{ width: `${pct}%` }}
-          />
+          <div className="h-full rounded-full bg-amber-400/70" style={{ width: `${pct}%` }} />
         </div>
       )}
       <p className="text-xs text-[var(--color-fg-muted)]" title={data.error ?? undefined}>

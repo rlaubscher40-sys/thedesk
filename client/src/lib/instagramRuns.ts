@@ -48,11 +48,22 @@ export function slotHasPassed(atHHMM: string, dow: number | null, now: Date = ne
  * What to show against a job: it posted, it should have posted and didn't, or
  * its slot hasn't come round yet. `posted` is null while the log is still
  * loading — we don't guess, because a wrong "missing" is an alarm.
+ *
+ * "skipped" is the state for a job that is allowed to decide there was nothing
+ * worth posting. The Number does exactly that on a quiet day, by design, and
+ * flagging that as a failure would train the reader to ignore the one state on
+ * this panel that is meant to be alarming.
  */
-export type JobState = "posted" | "missing" | "pending" | "unknown";
+export type JobState = "posted" | "missing" | "skipped" | "pending" | "unknown";
 
-export function jobState(posted: boolean | null, slotPassed: boolean): JobState {
+export function jobState(
+  posted: boolean | null,
+  slotPassed: boolean,
+  /** True for jobs that may legitimately publish nothing on a given day. */
+  optional = false
+): JobState {
   if (posted == null) return "unknown";
   if (posted) return "posted";
-  return slotPassed ? "missing" : "pending";
+  if (!slotPassed) return "pending";
+  return optional ? "skipped" : "missing";
 }

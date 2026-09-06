@@ -531,7 +531,7 @@ export const instagramPosts = mysqlTable("instagram_posts", {
   id: int("id").autoincrement().primaryKey(),
   /** The published media id returned by the Graph API. */
   mediaId: varchar("mediaId", { length: 64 }).notNull().unique(),
-  /** "daily" | "weekly". */
+  /** "daily" | "coverage" | "stat" | "weekly". */
   postType: varchar("postType", { length: 16 }).notNull(),
   /** YYYY-MM-DD for daily posts; null for weekly. */
   feedDate: varchar("feedDate", { length: 10 }),
