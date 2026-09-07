@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import * as db from "../db";
 import { invokeLLMJson } from "../core/llm";
+import { renderIntelligenceCard } from "../og/intelligenceCard";
 import { protectedProcedure, router } from "../core/trpc";
 import {
   askDeskResponseFormat,
@@ -9,21 +10,19 @@ import {
   type AskContextSource,
 } from "../prompts/ask";
 
+const signalSchema = z.object({
+  label: z.string().min(1).max(80),
+  value: z.string().min(1).max(80),
+  context: z.string().min(1).max(220),
+});
+
 const askAnswerSchema = z.object({
   headline: z.string().min(1).max(220),
   answer: z.string().min(1).max(2600),
   whyItMatters: z.string().min(1).max(1800),
   deskTake: z.string().min(1).max(1800),
   whatWouldChangeOurMind: z.string().min(1).max(1800),
-  signals: z
-    .array(
-      z.object({
-        label: z.string().min(1).max(80),
-        value: z.string().min(1).max(80),
-        context: z.string().min(1).max(220),
-      })
-    )
-    .max(4),
+  signals: z.array(signalSchema).max(4),
   sourceRefs: z.array(z.number().int().positive()).min(1).max(8),
   confidence: z.enum(["high", "medium", "low"]),
 });
@@ -254,5 +253,47 @@ export const askRouter = router({
         sources: sourceMeta.filter((source) => selected.has(source.ref)),
         searchedRecords: evidence.length,
       };
+    }),
+
+  /**
+   * Turn an already-grounded Ask answer into a native 4:5 distribution asset.
+   * The server validates and clamps every supplied field before rendering so a
+   * malformed client cannot push arbitrary huge strings through satori.
+   */
+  shareCard: protectedProcedure
+    .input(
+      z.object({
+        question: z.string().trim().min(3).max(240),
+        headline: z.string().trim().min(1).max(220),
+        answer: z.string().trim().min(1).max(1200),
+        deskTake: z.string().trim().min(1).max(900),
+        confidence: z.enum(["high", "medium", "low"]),
+        sourceCount: z.number().int().min(1).max(20),
+        signal: signalSchema.nullable().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      try {
+        const png = await renderIntelligenceCard({
+          question: input.question,
+          headline: input.headline,
+          answer: input.answer,
+          deskTake: input.deskTake,
+          confidence: input.confidence,
+          sourceCount: input.sourceCount,
+          signal: input.signal ?? null,
+        });
+        return {
+          mimeType: "image/png" as const,
+          filename: "the-desk-intelligence.png",
+          base64: png.toString("base64"),
+        };
+      } catch (error) {
+        console.error("[ask] intelligence card render failed", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "The Desk could not render the share card.",
+        });
+      }
     }),
 });
