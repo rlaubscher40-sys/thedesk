@@ -2,7 +2,7 @@ import type { LlmMessage, LlmResponseFormat } from "../core/llm";
 
 export type AskContextSource = {
   ref: number;
-  kind: "feed" | "edition";
+  kind: "feed" | "edition" | "metric";
   title: string;
   date: string;
   category?: string | null;
@@ -73,7 +73,7 @@ export function buildAskDeskMessages(
   return [
     {
       role: "system",
-      content: `You are The Desk, an Australian property intelligence analyst. Your job is to answer one question using ONLY the evidence supplied from The Desk archive.
+      content: `You are The Desk, an Australian property intelligence analyst. Your job is to answer one question using ONLY the evidence supplied from The Desk reporting, editions and current market metrics.
 
 This is an intelligence product, not a generic chatbot. Be concise, commercially useful and explicit about uncertainty. Australian English. No hype, no emojis, no exclamation marks, no em dashes.
 
@@ -83,6 +83,7 @@ GROUNDING RULES:
 - sourceRefs may contain only source numbers that appear in the evidence.
 - If the evidence is mixed, say so.
 - If a numeric signal is not explicitly present in the evidence, do not create one.
+- Current metric rows are authoritative only for the value and context explicitly shown. Do not infer a percentage change from current versus previous values unless that change itself is supplied in the evidence.
 - Signals are optional analytical anchors. Return an empty array rather than manufacture metrics.
 - "The Desk Take" may interpret the evidence, but clearly separate interpretation from fact.
 - "What would change our mind" must identify the observable evidence that would weaken the current conclusion.
@@ -96,7 +97,7 @@ Write the answer as short editorial paragraphs, not bullet-point prose.`,
 
 Question: ${question}
 
-Archive evidence:\n${evidence}`,
+The Desk evidence:\n${evidence}`,
     },
   ];
 }
