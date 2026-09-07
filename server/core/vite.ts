@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Server } from "node:http";
 import { createServer as createViteServer } from "vite";
+import { isKnownRoute, isNoindexRoute, withNoindex } from "./spaShell";
 
 export async function setupVite(app: Express, server: Server): Promise<void> {
   // Lazy import the config so production bundles don't pull in vite at runtime.
@@ -52,9 +53,32 @@ export function serveStatic(app: Express): void {
       },
     })
   );
+  const indexPath = path.resolve(distPath, "index.html");
+
   // Path-less catch-all (was app.use("*", ...)) — see setupVite for why.
-  app.use((_req, res) => {
-    res.setHeader("Cache-Control", "no-store");
-    res.sendFile(path.resolve(distPath, "index.html"));
+  //
+  // This used to answer every unmatched URL with a 200 and the app shell,
+  // which made every typo, dead inbound link and probe look like a real
+  // page to a crawler (see spaShell.ts). Now the path is checked against
+  // the route table: a real route gets its 200, anything else gets an
+  // honest 404 with the same shell, so the reader still sees the styled
+  // "Transmission lost" page. Dev keeps the blanket 200 — Vite's own
+  // module and HMR requests fall through here and a 404 would break them.
+  app.use(async (req, res, next) => {
+    try {
+      const known = isKnownRoute(req.path);
+      res.setHeader("Cache-Control", "no-store");
+      // A 404 must never be indexed, and neither must the private routes.
+      if (known && !isNoindexRoute(req.path)) {
+        res.sendFile(indexPath);
+        return;
+      }
+      const html = await fs.promises.readFile(indexPath, "utf-8");
+      res.status(known ? 200 : 404);
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.send(withNoindex(html));
+    } catch (err) {
+      next(err);
+    }
   });
 }

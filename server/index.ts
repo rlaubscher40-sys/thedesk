@@ -10,8 +10,7 @@ import rateLimit from "express-rate-limit";
 import { createServer } from "node:http";
 import net from "node:net";
 import { registerAnalyticsRoutes } from "./core/analyticsRoutes";
-import { registerDistributionSeoRoutes } from "./core/distributionSeo";
-import { registerProductSeoRoutes } from "./core/productSeo";
+import { registerCanonicalRedirects } from "./core/canonicalHost";
 import { registerUnsubscribeRoute } from "./core/unsubscribeRoute";
 import { createContext } from "./core/context";
 import { registerHealthRoutes, recordExpressError } from "./core/healthRoutes";
@@ -110,6 +109,10 @@ async function startServer() {
   // production so Vite/HMR is untouched.
   registerSecurityHeaders(app);
 
+  // Fold www / http / trailing-slash variants onto the one canonical URL
+  // with a 301, before anything can answer 200 on a duplicate address.
+  registerCanonicalRedirects(app);
+
   // 4MB body ceiling: the largest real payload is the weekly-edition
   // synthesis result (under 1MB), so this is ~4x headroom while still
   // protecting every endpoint from memory-bomb spam. 50MB was inherited
@@ -149,8 +152,6 @@ async function startServer() {
 
   registerOAuthRoutes(app);
   registerSeoRoutes(app);
-  registerDistributionSeoRoutes(app);
-  registerProductSeoRoutes(app);
   registerHealthRoutes(app);
   registerAnalyticsRoutes(app);
   registerUnsubscribeRoute(app);
