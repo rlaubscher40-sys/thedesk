@@ -54,15 +54,13 @@ function Wordmark({ size }: { size: number }) {
 
 function SubscribeCta({ className }: { className?: string }) {
   return (
-    <a
-      href="https://rubenlaubscher.substack.com/"
-      target="_blank"
-      rel="noopener noreferrer"
+    <Link
+      href="/subscribe"
       className={cn("bs-btn bs-btn-solid inline-block", className)}
       style={{ padding: "11px 18px" }}
     >
       Get the 7am brief
-    </a>
+    </Link>
   );
 }
 
@@ -173,6 +171,9 @@ export function MobilePageNav() {
   return (
     <div className={cn(GUTTER, "no-scrollbar rule-hair-b lg:hidden overflow-x-auto py-3")}>
       <PageNav className="w-max" />
+      <Link href="/subscribe" className="bs-label-accent inline-block pt-4 pb-1 sm:hidden">
+        Get the free daily brief →
+      </Link>
     </div>
   );
 }

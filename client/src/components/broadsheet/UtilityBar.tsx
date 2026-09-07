@@ -78,15 +78,13 @@ export function UtilityBar({
             Sign in
           </a>
         ) : null}
-        <a
-          href="https://rubenlaubscher.substack.com/"
-          target="_blank"
-          rel="noopener noreferrer"
+        <Link
+          href="/subscribe"
           className="bs-label bs-link"
           style={{ color: "var(--color-accent-text)" }}
         >
           Subscribe free
-        </a>
+        </Link>
       </div>
     </div>
   );
