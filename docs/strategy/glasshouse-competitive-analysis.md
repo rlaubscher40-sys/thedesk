@@ -256,11 +256,23 @@ immediately reorders the obvious reading: a 2.9% ASX month ranks below a 0.22
 point CPI month, because the first is ordinary for the ASX and the second is
 twice normal for CPI.
 
-Still to do on this item: it is a page, not yet a post. The franchise only
-starts paying when it publishes — as a card on the 1st of the month, in the
-email, and on the grid. And longer term the ABS SDMX client can be pointed at
-interstate migration and dwelling approvals by state, which is the exact well
-Glasshouse draws from for its best-performing post.
+**It now publishes** on the 1st of each month, as a carousel that leads with
+the biggest move rather than a contents page, and skips a month where nothing
+cleared its own range.
+
+**Interstate migration is started, not finished.** A correction to an earlier
+claim in this document: `scripts/ingest/lib/abs.ts` is not an SDMX client, it
+is a regex scraper against ABS release pages shaped for one headline number per
+page. A per-jurisdiction extractor now exists and is tested
+(`scripts/ingest/lib/absStates.ts`), including the check that makes this series
+attractive — interstate migration must sum to about zero across the eight
+jurisdictions, so a bad extraction is detectable rather than publishable. It is
+deliberately not wired into the daily ingest, because ABS is unreachable from
+the environment this was built in and only the live page can prove the
+patterns. `pnpm probe:abs` is the one command that closes that.
+
+Remaining on this item: run the probe with network access, wire the series in,
+then it is a card in the same shape as The Number.
 
 ### Tier 3 — the strategic question, not an engineering one
 
