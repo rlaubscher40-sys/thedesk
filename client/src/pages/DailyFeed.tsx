@@ -1,9 +1,9 @@
 /**
  * Today — the broadsheet front page.
  *
- * Order, top to bottom: utility bar, masthead, lane nav, index strip,
- * lead, Say This, Where things stand, More from today, Also on the wire,
- * subscribe band. (The footer is rendered by the shell.)
+ * Order, top to bottom: utility bar, masthead, lane nav, Ask The Desk,
+ * index strip, lead, Say This, Where things stand, More from today,
+ * Also on the wire, subscribe band. (The footer is rendered by the shell.)
  *
  * Wired to the database when there are real feed items, falling back to
  * the curated seed Story array only in demo mode, exactly as before. What
@@ -33,6 +33,7 @@ import { SayThis } from "@/components/broadsheet/SayThis";
 import { SubscribeBand } from "@/components/broadsheet/SubscribeBand";
 import { WhereThingsStand } from "@/components/broadsheet/MetricBlocks";
 import { GUTTER_X } from "@/components/broadsheet/tokens";
+import { AskDeskBand } from "@/components/broadsheet/today/AskDeskBand";
 import { IndexStrip } from "@/components/broadsheet/today/IndexStrip";
 import { Lead } from "@/components/broadsheet/today/Lead";
 import { StoryColumns } from "@/components/broadsheet/today/StoryColumns";
@@ -214,6 +215,12 @@ export default function DailyFeed() {
         <LaneNav channel={channel} onChannelChange={setChannel} />
         {enriched && <AngledForChips />}
       </SectionErrorBoundary>
+
+      {isToday && (
+        <SectionErrorBoundary section="Ask The Desk">
+          <AskDeskBand />
+        </SectionErrorBoundary>
+      )}
 
       {feedQuery.isLoading && !isDemo && <FeedSkeleton />}
 
