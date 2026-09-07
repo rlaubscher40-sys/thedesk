@@ -135,6 +135,7 @@ export const INSTAGRAM_POST_TYPES = [
   "weekly",
   "monthly",
   "coverage",
+  "launch",
 ] as const;
 export type InstagramPostType = (typeof INSTAGRAM_POST_TYPES)[number];
 
@@ -148,4 +149,5 @@ export const INSTAGRAM_POST_TYPE_LABELS: Record<InstagramPostType, string> = {
   weekly: "This Week",
   monthly: "The Month in Numbers",
   coverage: "The Wider Lens",
+  launch: "Profile launch",
 };
