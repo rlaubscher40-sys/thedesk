@@ -103,6 +103,25 @@ export default function SharedBriefPage() {
           </div>
 
           <div className="rule-major mt-8 pt-5">
+            <p className="bs-label-accent">Evidence used · {data.sources.length}</p>
+            <div className="mt-3 rule-hair-b">
+              {data.sources.map((source, index) => (
+                <Link
+                  key={`${source.href}-${index}`}
+                  href={source.href}
+                  className="rule-hair bs-row block py-3.5"
+                >
+                  <p className="font-serif text-[17px] leading-6 bs-link">{source.title}</p>
+                  <p className="bs-label mt-2" style={{ fontSize: 9 }}>
+                    {source.date}
+                    {source.publisher ? ` · ${source.publisher}` : ""}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          <div className="rule-major mt-8 pt-5">
             <p className="bs-label-accent">Go deeper</p>
             <p className="font-serif mt-2 text-2xl leading-8">
               Ask the archive your own property question.
