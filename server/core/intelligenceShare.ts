@@ -2,6 +2,13 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { deflateRawSync, inflateRawSync } from "node:zlib";
 import { signingSecret } from "./env";
 
+export type SharedIntelligenceSource = {
+  title: string;
+  date: string;
+  publisher: string | null;
+  href: string;
+};
+
 export type SharedIntelligenceBrief = {
   question: string;
   headline: string;
@@ -9,18 +16,19 @@ export type SharedIntelligenceBrief = {
   deskTake: string;
   confidence: "high" | "medium" | "low";
   sourceCount: number;
+  sources: SharedIntelligenceSource[];
   signal: { label: string; value: string; context: string } | null;
 };
 
 type Envelope = SharedIntelligenceBrief & {
-  version: 1;
+  version: 2;
   createdAt: number;
   expiresAt: number;
 };
 
 const TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
-const MAX_TOKEN_CHARS = 12_000;
-const MAX_INFLATED_BYTES = 12_000;
+const MAX_TOKEN_CHARS = 16_000;
+const MAX_INFLATED_BYTES = 18_000;
 
 function sign(payload: string): string {
   return createHmac("sha256", signingSecret()).update(payload).digest("base64url");
@@ -36,10 +44,22 @@ function safeSignatureEqual(left: string, right: string): boolean {
   }
 }
 
+function validSource(value: unknown): value is SharedIntelligenceSource {
+  if (!value || typeof value !== "object") return false;
+  const source = value as Partial<SharedIntelligenceSource>;
+  return (
+    typeof source.title === "string" &&
+    typeof source.date === "string" &&
+    (typeof source.publisher === "string" || source.publisher === null) &&
+    typeof source.href === "string" &&
+    source.href.startsWith("/")
+  );
+}
+
 /**
- * Create a compact, tamper-evident public-share token without introducing a
- * persistence table. The payload is compressed before HMAC signing so normal
- * Ask answers stay within shareable URL lengths. Tokens expire after 30 days.
+ * Create a compact, tamper-evident public-share token from a brief that has
+ * already passed Ask The Desk's retrieval + source-validation path. Callers
+ * should never build this from arbitrary browser-provided prose.
  */
 export function createIntelligenceShareToken(
   brief: SharedIntelligenceBrief,
@@ -47,7 +67,9 @@ export function createIntelligenceShareToken(
 ): string {
   const envelope: Envelope = {
     ...brief,
-    version: 1,
+    sourceCount: brief.sources.length,
+    sources: brief.sources.slice(0, 8),
+    version: 2,
     createdAt: now,
     expiresAt: now + TOKEN_TTL_MS,
   };
@@ -57,7 +79,7 @@ export function createIntelligenceShareToken(
   return `${compressed}.${sign(compressed)}`;
 }
 
-/** Verify signature, expiry and basic envelope shape before returning a brief. */
+/** Verify signature, expiry and the complete frozen evidence snapshot. */
 export function readIntelligenceShareToken(
   token: string,
   now = Date.now()
@@ -75,7 +97,7 @@ export function readIntelligenceShareToken(
     });
     const parsed = JSON.parse(inflated.toString("utf8")) as Partial<Envelope>;
     if (
-      parsed.version !== 1 ||
+      parsed.version !== 2 ||
       typeof parsed.createdAt !== "number" ||
       typeof parsed.expiresAt !== "number" ||
       parsed.expiresAt < now ||
@@ -84,7 +106,10 @@ export function readIntelligenceShareToken(
       typeof parsed.answer !== "string" ||
       typeof parsed.deskTake !== "string" ||
       (parsed.confidence !== "high" && parsed.confidence !== "medium" && parsed.confidence !== "low") ||
-      typeof parsed.sourceCount !== "number"
+      !Array.isArray(parsed.sources) ||
+      parsed.sources.length < 1 ||
+      parsed.sources.length > 8 ||
+      !parsed.sources.every(validSource)
     ) {
       return null;
     }
@@ -100,13 +125,15 @@ export function readIntelligenceShareToken(
       return null;
     }
 
+    const sources = parsed.sources.slice(0, 8);
     return {
       question: parsed.question,
       headline: parsed.headline,
       answer: parsed.answer,
       deskTake: parsed.deskTake,
       confidence: parsed.confidence,
-      sourceCount: Math.max(1, Math.min(20, Math.trunc(parsed.sourceCount))),
+      sourceCount: sources.length,
+      sources,
       signal: signal ?? null,
     };
   } catch {
