@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { displayMetricValue, rankAskMetrics } from "../ask/metricRetrieval";
 import * as db from "../db";
 import { consumeAnonymousAsk, consumeAnonymousCard } from "../core/askQuota";
 import { invokeLLMJson } from "../core/llm";
@@ -31,6 +32,7 @@ const askAnswerSchema = z.object({
 type SearchBundle = Awaited<ReturnType<typeof db.searchAllContent>>;
 type FeedSearchRow = SearchBundle["feedItems"][number];
 type EditionSearchRow = SearchBundle["editions"][number];
+type MetricRow = Awaited<ReturnType<typeof db.listDailyMetrics>>[number];
 
 const STOP_WORDS = new Set([
   "about",
@@ -100,10 +102,14 @@ function sourceDate(value: Date | string | null | undefined, fallback: string): 
 async function retrieve(question: string): Promise<{
   feed: FeedSearchRow[];
   editions: EditionSearchRow[];
+  metrics: MetricRow[];
 }> {
   const terms = searchTerms(question);
   const queries = [...new Set([question.trim(), ...terms])].slice(0, 8);
-  const bundles = await Promise.all(queries.map((query) => db.searchAllContent(query)));
+  const [bundles, allMetrics] = await Promise.all([
+    Promise.all(queries.map((query) => db.searchAllContent(query))),
+    db.listDailyMetrics(),
+  ]);
 
   const feed = new Map<number, FeedSearchRow>();
   const editions = new Map<number, EditionSearchRow>();
@@ -120,6 +126,7 @@ async function retrieve(question: string): Promise<{
   return {
     feed: [...feed.values()].slice(0, 10),
     editions: [...editions.values()].slice(0, 5),
+    metrics: rankAskMetrics(question, allMetrics, 6),
   };
 }
 
@@ -148,12 +155,16 @@ export const askRouter = router({
     .mutation(async ({ input, ctx }) => {
       const matches = await retrieve(input.question);
 
-      if (matches.feed.length === 0 && matches.editions.length === 0) {
+      if (
+        matches.feed.length === 0 &&
+        matches.editions.length === 0 &&
+        matches.metrics.length === 0
+      ) {
         return {
           status: "insufficient" as const,
           question: input.question,
           message:
-            "The Desk does not have enough archive evidence to answer that yet. Try a market, policy, lender, migration, supply or lending question already covered in the brief.",
+            "The Desk does not have enough evidence to answer that yet. Try a market, policy, lender, migration, supply or lending question already covered in the brief.",
           sources: [],
           anonymousRemaining: null,
         };
@@ -162,7 +173,7 @@ export const askRouter = router({
       const evidence: AskContextSource[] = [];
       const sourceMeta: Array<{
         ref: number;
-        kind: "feed" | "edition";
+        kind: "feed" | "edition" | "metric";
         title: string;
         date: string;
         category: string | null;
@@ -170,6 +181,43 @@ export const askRouter = router({
         publisher: string | null;
         externalUrl: string | null;
       }> = [];
+
+      // Put current metrics first. The model receives source numbers in this
+      // order, making explicit live data easy to cite before narrative context.
+      for (const metric of matches.metrics) {
+        const ref = evidence.length + 1;
+        const currentValue = displayMetricValue(metric.value, metric.unit);
+        const previousValue = metric.previousValue
+          ? displayMetricValue(metric.previousValue, metric.unit)
+          : null;
+        const date = sourceDate(metric.asOf, "Current");
+        const text = compactText([
+          `Current value: ${currentValue}`,
+          previousValue ? `Previous recorded value: ${previousValue}` : null,
+          metric.context ? `Context: ${metric.context}` : null,
+          metric.source ? `Source: ${metric.source}` : null,
+          metric.groupKey ? `Metric group: ${metric.groupKey}` : null,
+          `As of: ${date}`,
+        ]);
+        evidence.push({
+          ref,
+          kind: "metric",
+          title: `${metric.label}: ${currentValue}`,
+          date,
+          category: metric.groupKey,
+          text,
+        });
+        sourceMeta.push({
+          ref,
+          kind: "metric",
+          title: `${metric.label}: ${currentValue}`,
+          date,
+          category: metric.groupKey,
+          href: "/trends",
+          publisher: metric.source ?? "The Desk metrics",
+          externalUrl: metric.sourceUrl ?? null,
+        });
+      }
 
       for (const item of matches.feed) {
         const ref = evidence.length + 1;
