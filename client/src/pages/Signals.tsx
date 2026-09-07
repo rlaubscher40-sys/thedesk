@@ -1,8 +1,9 @@
-import { Bookmark, BookmarkCheck, MoveDownRight, MoveUpRight, Radio } from "lucide-react";
+import { Bookmark, BookmarkCheck, LineChart, MoveDownRight, MoveUpRight, Radio } from "lucide-react";
 import { Link, useSearch } from "wouter";
 import { useEffect, useMemo, useState } from "react";
 import { GUTTER_X } from "@/components/broadsheet/tokens";
 import { ShareSignalCardButton } from "@/components/signals/ShareSignalCardButton";
+import { ShareMetricCardButton } from "@/components/trends/ShareMetricCardButton";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { trpc } from "@/lib/trpc";
 
@@ -79,7 +80,9 @@ function askHref(metric: { label: string; value: string; unit?: string | null })
 
 export default function SignalsPage() {
   const search = useSearch();
-  const requestedMetricKey = new URLSearchParams(search).get("metric");
+  const params = new URLSearchParams(search);
+  const requestedMetricKey = params.get("metric");
+  const requestedView = params.get("view") === "chart" ? "chart" : "number";
   const metrics = trpc.metrics.list.useQuery(undefined, { staleTime: 5 * 60_000 });
   const histories = trpc.metrics.histories.useQuery(undefined, { staleTime: 30 * 60_000 });
   const editions = trpc.editions.list.useQuery(undefined, { staleTime: 10 * 60_000 });
@@ -109,6 +112,7 @@ export default function SignalsPage() {
     : null;
   const hero = requestedHero ?? ranked.find((row) => row.move != null) ?? rows[0] ?? null;
   const latestEdition = editions.data?.[0] ?? null;
+  const chartView = requestedView === "chart" && Boolean(requestedHero?.series.length && requestedHero.series.length >= 2);
 
   function toggleWatch(row: (typeof rows)[number]) {
     const exists = watchlist.some((watch) => watch.metricKey === row.metric.metricKey);
@@ -169,7 +173,9 @@ export default function SignalsPage() {
       {hero && (
         <section className="grid lg:grid-cols-[minmax(0,1.35fr)_1px_minmax(280px,0.65fr)] mt-10">
           <div className="lg:pr-12 min-w-0">
-            <p className="bs-label-accent">{requestedHero ? "Shared signal · The Number" : "The Number"}</p>
+            <p className="bs-label-accent">
+              {requestedHero ? `Shared signal · ${chartView ? "The Chart" : "The Number"}` : "The Number"}
+            </p>
             <div className="flex flex-wrap items-end gap-x-5 gap-y-2 mt-3">
               <p
                 className="font-serif font-bold tabular-nums"
@@ -191,8 +197,24 @@ export default function SignalsPage() {
                 {hero.metric.context}
               </p>
             )}
-            <div className="flex flex-wrap gap-3 mt-6">
+
+            {chartView && (
+              <SignalTrendFigure
+                label={hero.metric.label}
+                series={hero.series}
+                move={hero.move}
+              />
+            )}
+
+            <div className="flex flex-wrap items-center gap-3 mt-6">
               <ShareSignalCardButton metricKey={hero.metric.metricKey} />
+              {hero.series.length >= 2 && (
+                <ShareMetricCardButton
+                  metricKey={hero.metric.metricKey}
+                  label={hero.metric.label}
+                  canChart
+                />
+              )}
               <WatchButton
                 watched={watchlist.some((watch) => watch.metricKey === hero.metric.metricKey)}
                 onClick={() => toggleWatch(hero)}
@@ -200,6 +222,15 @@ export default function SignalsPage() {
               <Link href={askHref(hero.metric)} className="bs-btn bs-btn-outline">
                 Ask what it means
               </Link>
+              {requestedHero && hero.series.length >= 2 && (
+                <Link
+                  href={`/signals?metric=${encodeURIComponent(hero.metric.metricKey)}${chartView ? "" : "&view=chart"}`}
+                  className="bs-btn bs-btn-outline inline-flex items-center gap-2"
+                >
+                  <LineChart className="h-3.5 w-3.5" />
+                  {chartView ? "The Number" : "Open The Chart"}
+                </Link>
+              )}
             </div>
           </div>
 
@@ -340,6 +371,69 @@ export default function SignalsPage() {
         )}
       </section>
     </div>
+  );
+}
+
+function SignalTrendFigure({
+  label,
+  series,
+  move,
+}: {
+  label: string;
+  series: Array<{ value: number; recordedAt: Date }>;
+  move: number | null;
+}) {
+  const values = series.map((point) => point.value);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = Math.max(max - min, Math.abs(max) * 0.01, 1e-9);
+  const width = 900;
+  const height = 220;
+  const pad = 8;
+  const points = values
+    .map((value, index) => {
+      const x = pad + (values.length === 1 ? (width - pad * 2) / 2 : (index / (values.length - 1)) * (width - pad * 2));
+      const y = pad + (1 - (value - min) / span) * (height - pad * 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+  const firstDate = series[0]?.recordedAt
+    ? new Date(series[0].recordedAt).toLocaleDateString("en-AU", { day: "numeric", month: "short" })
+    : "Start";
+  const lastDate = series[series.length - 1]?.recordedAt
+    ? new Date(series[series.length - 1].recordedAt).toLocaleDateString("en-AU", { day: "numeric", month: "short" })
+    : "Now";
+
+  return (
+    <figure className="rule-hair rule-hair-b mt-7 py-5" aria-label={`${label}, recorded trend`}>
+      <div className="flex items-center justify-between gap-4 mb-3">
+        <p className="bs-label-accent">The Chart · 30-day direction</p>
+        <p className="bs-label">{moveLabel(move)} · {series.length} points</p>
+      </div>
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto" role="img" aria-label={`${label} trend line`}>
+        <line
+          x1={pad}
+          y1={height - pad}
+          x2={width - pad}
+          y2={height - pad}
+          stroke="var(--color-border)"
+          strokeWidth="2"
+        />
+        <polyline
+          points={points}
+          fill="none"
+          stroke="var(--color-accent-text)"
+          strokeWidth="5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+      <figcaption className="flex justify-between bs-label mt-2">
+        <span>{firstDate}</span>
+        <span>{lastDate}</span>
+      </figcaption>
+    </figure>
   );
 }
 
