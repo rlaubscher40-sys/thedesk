@@ -96,6 +96,7 @@ export const metricsRouter = router({
           mimeType: "image/png" as const,
           filename: safeFilename(metric.label),
           base64: png.toString("base64"),
+          sharePath: `/signals?metric=${encodeURIComponent(metric.metricKey)}`,
         };
       } catch (error) {
         console.error("[metrics] number card render failed", error);
@@ -146,7 +147,7 @@ export const metricsRouter = router({
           mimeType: "image/png" as const,
           filename: safeFilename(metric.label, "the-chart"),
           base64: png.toString("base64"),
-          sharePath: `/signals?metric=${encodeURIComponent(metric.metricKey)}`,
+          sharePath: `/signals?metric=${encodeURIComponent(metric.metricKey)}&view=chart`,
         };
       } catch (error) {
         console.error("[metrics] trend card render failed", error);
