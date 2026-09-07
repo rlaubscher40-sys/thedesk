@@ -5,6 +5,7 @@ import { GUTTER_X } from "@/components/broadsheet/tokens";
 import { ShareSignalCardButton } from "@/components/signals/ShareSignalCardButton";
 import { ShareMetricCardButton } from "@/components/trends/ShareMetricCardButton";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { trackEvent } from "@/lib/analytics";
 import { trpc } from "@/lib/trpc";
 
 const WATCH_KEY = "thedesk:signal-watchlist:v1";
@@ -129,6 +130,7 @@ export default function SignalsPage() {
         ];
     setWatchlist(next);
     writeWatchlist(next);
+    if (!exists) trackEvent("signal_watch", "signals");
   }
 
   const watchedRows = watchlist
