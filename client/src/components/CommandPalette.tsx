@@ -30,6 +30,7 @@ import { trpc } from "@/lib/trpc";
 type Item = {
   id: string;
   label: string;
+  href: string;
   hint?: string;
   icon?: typeof Newspaper;
   group: "nav" | "edition" | "feed";
