@@ -6,6 +6,7 @@ import * as db from "../db";
 import { renderDailyHookCoverCard } from "../og/dailyHookCover";
 import { renderIntelligenceCard } from "../og/intelligenceCard";
 import { renderSignalCard } from "../og/signalCard";
+import { renderTrendCard } from "../og/trendCard";
 import { readIntelligenceShareToken } from "./intelligenceShare";
 
 function siteUrl(): string {
@@ -147,10 +148,12 @@ async function getMetricPresentation(metricKey: string) {
   ]);
   const metric = metrics.find((row) => row.metricKey === metricKey);
   if (!metric) return null;
+  const series = histories[metric.metricKey] ?? [];
   return {
     metric,
+    series,
     value: displayValue(metric.value, metric.unit),
-    move: formatMove(histories[metric.metricKey] ?? []),
+    move: formatMove(series),
     deskTake: editions.find((edition) => edition.rubensTake?.trim())?.rubensTake ?? null,
   };
 }
@@ -202,14 +205,25 @@ async function handleSignalMeta(req: Request, res: Response, next: NextFunction)
   try {
     const presented = await getMetricPresentation(metricKey);
     if (!presented) return next();
-    const { metric, value, move } = presented;
-    const canonical = `${siteUrl()}/signals?metric=${encodeURIComponent(metric.metricKey)}`;
+    const { metric, value, move, series } = presented;
+    const wantsChart = firstQuery(req.query.view).toLowerCase() === "chart" && series.length >= 2;
+    const basePath = `/signals?metric=${encodeURIComponent(metric.metricKey)}`;
+    const canonical = `${siteUrl()}${basePath}${wantsChart ? "&view=chart" : ""}`;
     const movement = move ? ` ${move}.` : "";
     await sendSocialShell(req, res, next, {
-      title: `${value} · ${clean(metric.label, 80)} | The Number`,
-      description: clean(`${metric.context ?? "Live Australian property signal."}${movement}`, 220),
+      title: wantsChart
+        ? `${clean(metric.label, 90)} | The Chart · The Desk`
+        : `${value} · ${clean(metric.label, 80)} | The Number`,
+      description: clean(
+        wantsChart
+          ? `${metric.context ?? "Thirty-day Australian property signal."}${movement}`
+          : `${metric.context ?? "Live Australian property signal."}${movement}`,
+        220
+      ),
       canonical,
-      image: `${siteUrl()}/og/signals/${encodeURIComponent(metric.metricKey)}.png`,
+      image: wantsChart
+        ? `${siteUrl()}/og/charts/${encodeURIComponent(metric.metricKey)}.png`
+        : `${siteUrl()}/og/signals/${encodeURIComponent(metric.metricKey)}.png`,
       imageWidth: 1080,
       imageHeight: 1350,
       type: "website",
@@ -243,6 +257,33 @@ async function handleSignalOg(req: Request, res: Response): Promise<void> {
     res.send(png);
   } catch (error) {
     console.warn("[distribution-seo] signal OG failed:", (error as Error).message);
+    res.redirect(302, "/og-card.png");
+  }
+}
+
+async function handleChartOg(req: Request, res: Response): Promise<void> {
+  try {
+    const metricKey = decodeURIComponent(String(req.params.metricKey ?? "")).slice(0, 64);
+    const presented = await getMetricPresentation(metricKey);
+    if (!presented || presented.series.length < 2) {
+      res.redirect(302, "/og-card.png");
+      return;
+    }
+    const { metric, value, series } = presented;
+    const png = await renderTrendCard({
+      label: metric.label,
+      value,
+      unit: null,
+      context: metric.context ?? null,
+      source: metric.source ?? null,
+      asOf: formatAsOf(metric.asOf),
+      series,
+    });
+    res.set("Content-Type", "image/png");
+    res.set("Cache-Control", "public, max-age=1800");
+    res.send(png);
+  } catch (error) {
+    console.warn("[distribution-seo] chart OG failed:", (error as Error).message);
     res.redirect(302, "/og-card.png");
   }
 }
@@ -307,6 +348,7 @@ async function handleStoryOg(req: Request, res: Response): Promise<void> {
 export function registerDistributionSeoRoutes(app: Express): void {
   app.get("/og/brief.png", handleBriefOg);
   app.get("/og/signals/:metricKey.png", handleSignalOg);
+  app.get("/og/charts/:metricKey.png", handleChartOg);
   app.get("/og/story/:id.jpg", handleStoryOg);
   app.get("/brief", handleBriefMeta);
   app.get("/signals", handleSignalMeta);
