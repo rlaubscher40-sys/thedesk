@@ -16,6 +16,7 @@ import { readingQueueRouter } from "./readingQueue";
 import { linkedInRouter } from "./linkedIn";
 import { metricsRouter } from "./metrics";
 import { searchRouter } from "./search";
+import { shareRouter } from "./share";
 import { signalsRouter } from "./signals";
 import { subscribersRouter } from "./subscribers";
 import { systemRouter } from "./system";
@@ -35,6 +36,7 @@ export const appRouter = router({
   readingQueue: readingQueueRouter,
   trends: trendsRouter,
   search: searchRouter,
+  share: shareRouter,
   signals: signalsRouter,
   subscribers: subscribersRouter,
   instagram: instagramRouter,
