@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { ShareIntelligenceCardButton } from "@/components/ask/ShareIntelligenceCardButton";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { trackEvent } from "@/lib/analytics";
 import { trpc } from "@/lib/trpc";
 
 const WATCH_KEY = "thedesk:market-watchlist:v1";
@@ -110,6 +111,7 @@ export default function MarketsPage() {
       : [market, ...watchlist.filter((item) => item.toLowerCase() !== market.toLowerCase())];
     setWatchlist(next);
     writeWatchlist(next);
+    if (!exists) trackEvent("market_watch", "markets");
   }
 
   function buildBrief() {
