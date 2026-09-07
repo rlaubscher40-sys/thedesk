@@ -19,6 +19,7 @@ const pageViewSchema = z.object({
 
 const engagementEventSchema = z.object({
   event: z.enum([
+    "ask_query",
     "ask_share",
     "market_watch",
     "signal_watch",
