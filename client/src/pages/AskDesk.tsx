@@ -328,13 +328,8 @@ export default function AskDeskPage() {
                 Share text
               </button>
               <ShareIntelligenceCardButton
-                question={result.question}
+                shareToken={result.shareToken}
                 headline={result.answer.headline}
-                answer={result.answer.answer}
-                deskTake={result.answer.deskTake}
-                confidence={result.answer.confidence}
-                sourceCount={result.sources.length}
-                signal={result.answer.signals[0] ?? null}
               />
             </div>
           </div>
