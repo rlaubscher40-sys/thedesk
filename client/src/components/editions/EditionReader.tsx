@@ -176,7 +176,7 @@ export function EditionReader({
                       <span className="font-semibold">Ruben Laubscher</span>
                     </p>
                     <p className="bs-label mt-1" style={{ letterSpacing: "0.14em" }}>
-                      Head of Partnerships, InvestorKit
+                      The Desk
                     </p>
                   </div>
                 </div>
@@ -196,7 +196,10 @@ export function EditionReader({
                 </p>
                 <ol className="list-none m-0 p-0 mt-4 flex flex-col gap-3">
                   {signals.slice(0, 6).map((s, i) => (
-                    <li key={i} className="grid grid-cols-[24px_minmax(0,1fr)] gap-2 items-baseline">
+                    <li
+                      key={i}
+                      className="grid grid-cols-[24px_minmax(0,1fr)] gap-2 items-baseline"
+                    >
                       <span
                         className="font-mono tabular-nums"
                         style={{ fontSize: 11, color: "var(--color-accent-text)" }}
@@ -312,10 +315,7 @@ function Folio({
               )}
             </span>
           )}
-          <span
-            className="font-serif font-bold"
-            style={{ fontSize: 15, letterSpacing: "-0.02em" }}
-          >
+          <span className="font-serif font-bold" style={{ fontSize: 15, letterSpacing: "-0.02em" }}>
             The Desk
           </span>
         </div>
@@ -474,7 +474,10 @@ function LeadTopic({ topic }: { topic: EditionTopic }) {
           >
             Why this matters
           </p>
-          <p className="mt-2" style={{ fontSize: 16, lineHeight: 1.6, color: "var(--color-fg-body)" }}>
+          <p
+            className="mt-2"
+            style={{ fontSize: 16, lineHeight: 1.6, color: "var(--color-fg-body)" }}
+          >
             {dedash(topic.whyItMatters)}
           </p>
         </div>
@@ -563,10 +566,7 @@ function TopicDeck({ topics }: { topics: EditionTopic[] }) {
             key={`${topic.title || "topic"}-${idx}`}
             topic={topic}
             index={idx + 1}
-            className={cn(
-              idx % 3 !== 0 && "lg:rule-hair-l lg:pl-8",
-              idx % 3 !== 2 && "lg:pr-8"
-            )}
+            className={cn(idx % 3 !== 0 && "lg:rule-hair-l lg:pl-8", idx % 3 !== 2 && "lg:pr-8")}
           />
         ))}
       </div>
@@ -614,7 +614,10 @@ function DeckColumn({
         </p>
       )}
       {topic.whyItMatters && (
-        <p className="mt-3.5" style={{ fontSize: 16, lineHeight: 1.62, color: "var(--color-fg-body)" }}>
+        <p
+          className="mt-3.5"
+          style={{ fontSize: 16, lineHeight: 1.62, color: "var(--color-fg-body)" }}
+        >
           {dedash(topic.whyItMatters)}
         </p>
       )}

@@ -20,6 +20,7 @@ import { sentimentStroke } from "@/components/charts/BroadsheetCharts";
 import { useCategoryColour } from "@/lib/category";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { MetricGroupGrid } from "@/components/trends/MetricGroupGrid";
+import { MonthInNumbers } from "@/components/trends/MonthInNumbers";
 import { ThisWeekInMotion } from "@/components/trends/ThisWeekInMotion";
 import { PageTitle, SectionHead } from "@/components/broadsheet/PageTitle";
 import { GUTTER_X } from "@/components/broadsheet/tokens";
@@ -58,6 +59,10 @@ export default function TrendsPage() {
           { label: "History", value: "30 days" },
         ]}
       />
+
+      <SectionErrorBoundary section="The Month in Numbers">
+        <MonthInNumbers />
+      </SectionErrorBoundary>
 
       <SectionErrorBoundary section="In motion">
         <ThisWeekInMotion

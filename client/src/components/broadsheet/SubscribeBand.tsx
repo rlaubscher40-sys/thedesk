@@ -20,7 +20,7 @@ export function SubscribeBand({
   source,
   kicker = "The Daily Brief · free",
   headline = "Five stories and three ready-made lines, in your inbox at 7am.",
-  blurb = "Written each morning by Ruben Laubscher, Head of Partnerships at InvestorKit. No tracking pixels, one email a day, unsubscribe in a click.",
+  blurb = "Written each morning by Ruben Laubscher. No tracking pixels, one email a day, unsubscribe in a click.",
   showHeadshot = true,
 }: {
   /** Attribution source persisted with the subscriber row. */

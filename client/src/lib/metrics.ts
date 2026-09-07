@@ -3,7 +3,7 @@
  *
  * Every metric tile on the site interprets a current/prior pair into a
  * direction (up/down/flat) and then into a sentiment (good/bad/neutral)
- * based on which direction is favourable for the partner channel. The
+ * based on which direction is favourable for the reader. The
  * tone is rendered as an arrow icon + delta in green / red / amber.
  */
 
@@ -20,21 +20,15 @@ export type Sentiment = "good" | "bad" | "neutral";
  */
 export function directionOfGood(label: string): "up" | "down" | "neutral" {
   const k = label.toLowerCase();
-  if (/(cash rate|rate|inflation|cpi|unemploy|oil|brent|vix|spread)/.test(k))
-    return "down";
+  if (/(cash rate|rate|inflation|cpi|unemploy|oil|brent|vix|spread)/.test(k)) return "down";
   if (
-    /(clearance|asx|index|channel|broker|wage|income|gdp|production|housing|listings|prod)/.test(
-      k
-    )
+    /(clearance|asx|index|channel|broker|wage|income|gdp|production|housing|listings|prod)/.test(k)
   )
     return "up";
   return "neutral";
 }
 
-export function computeSentiment(
-  trend: Trend,
-  dog: "up" | "down" | "neutral"
-): Sentiment {
+export function computeSentiment(trend: Trend, dog: "up" | "down" | "neutral"): Sentiment {
   if (trend === "flat" || dog === "neutral") return "neutral";
   if (trend === dog) return "good";
   return "bad";
@@ -73,11 +67,7 @@ export function resolveMetricTrend(
   const priN = prior != null ? toMetricNumber(prior) : NaN;
   const hasDelta = Number.isFinite(curN) && Number.isFinite(priN);
   const delta = hasDelta ? curN - priN : 0;
-  const trend: Trend = !hasDelta || Math.abs(delta) < 0.0001
-    ? "flat"
-    : delta > 0
-      ? "up"
-      : "down";
+  const trend: Trend = !hasDelta || Math.abs(delta) < 0.0001 ? "flat" : delta > 0 ? "up" : "down";
   const dog = directionOfGood(label);
   const sentiment = computeSentiment(trend, dog);
   return {

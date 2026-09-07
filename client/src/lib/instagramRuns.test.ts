@@ -66,14 +66,14 @@ describe("postedToday", () => {
 });
 
 // An indicator that flags every job outside its slot is noise, not a signal:
-// the Sunday-only weekly would read as missing all week and the midday coverage
-// post all morning, burying the one case worth showing.
+// the Sunday-only weekly would read as missing all week and The Number all
+// morning, burying the one case worth showing.
 describe("slotHasPassed", () => {
   const sunday9am = new Date(2026, 7, 23, 9, 0); // 23 Aug 2026 is a Sunday
   const thursday9am = new Date(2026, 7, 20, 9, 0);
 
   it("is false before the job's time on the day", () => {
-    expect(slotHasPassed("12:13", null, thursday9am)).toBe(false);
+    expect(slotHasPassed("16:41", null, thursday9am)).toBe(false);
   });
 
   it("is true once the time has passed", () => {
@@ -113,5 +113,42 @@ describe("jobState", () => {
     // A wrong "missing" is a false alarm, so unknown must not collapse to it.
     expect(jobState(null, true)).toBe("unknown");
     expect(jobState(null, false)).toBe("unknown");
+  });
+
+  it("reports an optional job that published nothing as skipped, not missing", () => {
+    // The Number posts only when a metric has actually moved. A quiet day is
+    // the format working, and must not raise the panel's one alarm state.
+    expect(jobState(false, true, { optional: true })).toBe("skipped");
+  });
+
+  it("keeps an optional job pending before its slot", () => {
+    expect(jobState(false, false, { optional: true })).toBe("pending");
+  });
+
+  it("still reports an optional job that did post", () => {
+    expect(jobState(true, true, { optional: true })).toBe("posted");
+  });
+
+  it("never flags an unscheduled job as missing, whatever the clock says", () => {
+    // The Wider Lens came off the schedule. It has no slot to miss, so it must
+    // never sit red on the panel just because the day went by without it.
+    expect(jobState(false, true, { manual: true })).toBe("manual");
+    expect(jobState(false, false, { manual: true })).toBe("manual");
+  });
+
+  it("still reports an unscheduled job that was fired by hand", () => {
+    expect(jobState(true, false, { manual: true })).toBe("posted");
+  });
+
+  it("gives a monthly job no slot on the other days of the month", () => {
+    // Without this it would read as overdue from the 2nd onwards, every month.
+    const second = new Date(2026, 8, 2, 12, 0); // 2 Sep 2026, midday
+    expect(slotHasPassed("10:07", null, second, 1)).toBe(false);
+  });
+
+  it("gives a monthly job its slot on the day, once the time has passed", () => {
+    const first = new Date(2026, 8, 1, 12, 0);
+    expect(slotHasPassed("10:07", null, first, 1)).toBe(true);
+    expect(slotHasPassed("10:07", null, new Date(2026, 8, 1, 9, 0), 1)).toBe(false);
   });
 });

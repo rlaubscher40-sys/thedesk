@@ -2,11 +2,7 @@ import { z } from "zod";
 import * as db from "../db";
 import { cached, cacheKey, invalidate } from "../core/cache";
 import { adminProcedure, publicProcedure, router } from "../core/trpc";
-import {
-  generatePartnerTag,
-  generateSayThis,
-  generateWhyItMatters,
-} from "../prompts";
+import { generatePartnerTag, generateSayThis, generateWhyItMatters } from "../prompts";
 
 /**
  * Public feed reads are cached for a short window: every anonymous
@@ -45,7 +41,7 @@ function weekMondayOf(isoDate: string): string {
  * Only gaps are touched — existing enrichment is left alone, since the
  * callers (enrichItem, enrichTopCandidates) are meant to close gaps
  * rather than freshen content. SKIP responses are dropped silently:
- * that's the right signal that the story has no genuine partner-channel
+ * that's the right signal that the story has no genuine property-market
  * angle and should be deprioritised or deleted, not rewritten.
  *
  * The three generators fan out in parallel — they're independent prompts.
@@ -156,9 +152,7 @@ export const feedRouter = router({
    * skipped. Returns counts so the Admin console can show the result.
    */
   backfillSayThis: adminProcedure
-    .input(
-      z.object({ limit: z.number().int().min(1).max(100).default(20) }).optional()
-    )
+    .input(z.object({ limit: z.number().int().min(1).max(100).default(20) }).optional())
     .mutation(async ({ input }) => {
       const limit = input?.limit ?? 20;
       const items = await db.listFeedItemsMissingSayThis(limit);
@@ -187,9 +181,7 @@ export const feedRouter = router({
    * backfillSayThis: scan recent items, generate, persist, skip SKIPs.
    */
   backfillWhyItMatters: adminProcedure
-    .input(
-      z.object({ limit: z.number().int().min(1).max(100).default(20) }).optional()
-    )
+    .input(z.object({ limit: z.number().int().min(1).max(100).default(20) }).optional())
     .mutation(async ({ input }) => {
       const limit = input?.limit ?? 20;
       const items = await db.listFeedItemsMissingWhyItMatters(limit);

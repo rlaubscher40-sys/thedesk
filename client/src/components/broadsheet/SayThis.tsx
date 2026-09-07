@@ -1,5 +1,5 @@
 /**
- * "Say this on your next call" — full measure, never collapsed.
+ * The hook line — full measure, never collapsed.
  *
  * The redesign's central move: this line and the partner angles are the
  * product, and they used to sit behind a "Ruben's read" toggle on every
@@ -54,7 +54,7 @@ export function SayThis({
       style={{ borderLeft: "4px solid var(--color-accent-text)" }}
     >
       <p className="bs-label-accent" style={{ letterSpacing: "0.22em" }}>
-        Say this on your next call
+        The line worth remembering
         {showPersona && ` — ${personaDisplayLabel(persona)}`}
       </p>
       <p

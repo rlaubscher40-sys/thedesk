@@ -3,6 +3,7 @@ import type { DailyFeedItem } from "../db/schema";
 import {
   buildCoverageCaption,
   buildDailyCaption,
+  sanitizeDashes,
   findAlreadyPublished,
   pickDailyTopStories,
 } from "./post";
@@ -35,10 +36,22 @@ function fakeStory(o: Partial<DailyFeedItem> = {}): DailyFeedItem {
   } as DailyFeedItem;
 }
 
+// Distinct say-this lines per story on purpose: real stories never share one,
+// and a fixture that repeats a line hides duplication bugs in caption assembly.
 const trio: DailyFeedItem[] = [
   fakeStory({ id: 1, category: "MACRO" }),
-  fakeStory({ id: 2, category: "PROPERTY", title: "Sydney auction clearance hits 74%" }),
-  fakeStory({ id: 3, category: "MARKETS", title: "ASX 200 rises on a tech-led rally" }),
+  fakeStory({
+    id: 2,
+    category: "PROPERTY",
+    title: "Sydney auction clearance hits 74%",
+    sayThis: "Clearance is running hot again, so expect competition at the top end.",
+  }),
+  fakeStory({
+    id: 3,
+    category: "MARKETS",
+    title: "ASX 200 rises on a tech-led rally",
+    sayThis: "Equities are pricing in the cut the bond market still doubts.",
+  }),
 ];
 
 // Guardrail: every carousel (daily AND coverage) targets three story slides.
@@ -68,14 +81,46 @@ describe("pickDailyTopStories — slide-count guardrail", () => {
 
 // Guardrail: the morning post stays the partner briefing.
 describe("buildDailyCaption — partner briefing", () => {
-  it("leads with the AU markets framing and carries the say-this hooks", () => {
+  it("opens with the lead story's own hook, not a fixed line", () => {
+    // Instagram shows ~125 characters before "…more". Spending them on the
+    // same sentence every day gives a scroller no reason to stop, so the
+    // opener has to be specific to the day.
     const caption = buildDailyCaption(trio);
-    expect(caption).toContain("Australian markets");
-    expect(caption).toContain(trio[0]!.sayThis!);
+    const hook = sanitizeDashes(trio[0]!.sayThis!);
+    expect(caption.startsWith(hook)).toBe(true);
+  });
+
+  it("says the lead hook once, not twice", () => {
+    // It was promoted out of the rundown, not copied above it.
+    const caption = buildDailyCaption(trio);
+    const hook = sanitizeDashes(trio[0]!.sayThis!);
+    expect(caption.split(hook)).toHaveLength(2);
+  });
+
+  it("still carries the say-this hook for the other slides", () => {
+    const caption = buildDailyCaption(trio);
+    expect(caption).toContain(sanitizeDashes(trio[1]!.sayThis!));
+  });
+
+  it("lists every story headline", () => {
+    const caption = buildDailyCaption(trio);
+    for (const s of trio) expect(caption).toContain(sanitizeDashes(s.title));
+  });
+
+  it("falls back to the AU markets framing when the lead has no hook", () => {
+    const noHook = [{ ...trio[0]!, sayThis: null }, ...trio.slice(1)];
+    expect(buildDailyCaption(noHook)).toContain("Australian markets");
+  });
+
+  it("does not drop a lead headline when the fallback opener is used", () => {
+    // The rundown skips slide 1's say-this only because it became the opener.
+    // With the fallback in play there is nothing to skip, so nothing is lost.
+    const noHook = [{ ...trio[0]!, sayThis: null }, ...trio.slice(1)];
+    expect(buildDailyCaption(noHook)).toContain(sanitizeDashes(trio[0]!.title));
   });
 });
 
-// Guardrail: the midday post stays the broader, angle-free coverage briefing.
+// Guardrail: the coverage post stays the broader, angle-free briefing.
 describe("buildCoverageCaption — wider lens", () => {
   it("uses the wider-lens framing, not the AU markets one", () => {
     const caption = buildCoverageCaption(trio);

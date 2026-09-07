@@ -1273,6 +1273,39 @@ function registerInstagramRoutes(app: Express): void {
     res.send(entry.buffer);
   });
 
+  // The video Instagram fetches to build the Reel container. Unlike the images,
+  // this one honours Range: video fetchers routinely read the container header
+  // first and then the body, and answering a range request with the whole file
+  // and a 200 is a server that cannot serve what was asked for.
+  app.get("/instagram/temp/:uuid.mp4", async (req: Request, res: Response) => {
+    const { getTempImage } = await import("./instagram/tempStore");
+    const { parseByteRange } = await import("./instagram/byteRange");
+    const entry = getTempImage(routeParam(req.params.uuid));
+    if (!entry) {
+      res.status(404).json({ error: "Not found or expired" });
+      return;
+    }
+    const size = entry.buffer.length;
+    res.setHeader("Content-Type", entry.contentType);
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Accept-Ranges", "bytes");
+
+    const range = parseByteRange(req.headers.range, size);
+    if (range === "unsatisfiable") {
+      res.setHeader("Content-Range", `bytes */${size}`);
+      res.status(416).end();
+      return;
+    }
+    if (!range) {
+      res.setHeader("Content-Length", String(size));
+      res.send(entry.buffer);
+      return;
+    }
+    res.setHeader("Content-Range", `bytes ${range.start}-${range.end}/${size}`);
+    res.setHeader("Content-Length", String(range.end - range.start + 1));
+    res.status(206).end(entry.buffer.subarray(range.start, range.end + 1));
+  });
+
   // POST /api/ingest/instagram-daily  — posts today's top-3 stories as a carousel
   const dailyHandler = async (req: Request, res: Response) => {
     if (!(await authenticateScheduled(req))) {
@@ -1392,7 +1425,8 @@ function registerInstagramRoutes(app: Express): void {
   app.post("/api/scheduled/instagram-daily", dailyHandler);
   app.post("/api/ingest/instagram-daily", dailyHandler);
 
-  // POST /api/ingest/instagram-coverage — the midday "Wider lens" carousel
+  // POST /api/ingest/instagram-coverage — the "Wider Lens" carousel. No longer
+  // on the scheduler (see server/scheduler/index.ts); reachable by hand only.
   // across the coverage lanes (Tech & Science, Business, Global). Same card
   // format as the daily post, but the mirror-image channel filter, no market
   // metrics strip, and no partner say-this lines (coverage carries no angle).
@@ -1482,6 +1516,418 @@ function registerInstagramRoutes(app: Express): void {
   app.post("/api/scheduled/instagram-coverage", coverageHandler);
   app.post("/api/ingest/instagram-coverage", coverageHandler);
 
+  // POST /api/ingest/instagram-stat — "The Number": one metric, posted as a
+  // single image. The counterweight to the daily carousel, which leads with a
+  // headline and buries the figure; this leads with the figure and says one
+  // true thing about it. Selection and the claim are computed from our own
+  // metric history (server/instagram/statPick.ts), never asked for from a
+  // model, so the card can always be traced back to a source row.
+  const statHandler = async (req: Request, res: Response) => {
+    if (!(await authenticateScheduled(req))) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const { instagramAccessToken, instagramBusinessAccountId } = (await import("./core/env")).env;
+    if (!instagramAccessToken || !instagramBusinessAccountId) {
+      res.status(503).json({ error: "Instagram credentials not configured" });
+      return;
+    }
+    const parsed = z
+      .object({
+        attempt: z.number().int().min(1).optional(),
+        /** Post even when nothing clears MIN_SCORE. Hand re-runs only. */
+        force: z.boolean().optional(),
+      })
+      .safeParse(req.body ?? {});
+    const attempt = parsed.success ? (parsed.data.attempt ?? 1) : 1;
+    const force = parsed.success ? (parsed.data.force ?? false) : false;
+
+    try {
+      const { pickStatOfTheDay } = await import("./instagram/statPick");
+      const { generateStatLine } = await import("./prompts/statCard");
+      const { findAlreadyPublished, postStatCard } = await import("./instagram/post");
+
+      const [metrics, histories] = await Promise.all([
+        db.listDailyMetrics(),
+        db.listMetricHistories(180),
+      ]);
+      const pick = pickStatOfTheDay(metrics, histories);
+
+      // A quiet day is a legitimate outcome, not a failure. Posting "the cash
+      // rate did not move" would train the audience that the format is filler,
+      // which is exactly what makes the daily carousel ignorable. 200 so the
+      // workflow stays green: nothing went wrong, there was just no number.
+      if (!pick && !force) {
+        console.log("[instagram] no metric cleared the bar today; skipping the stat post");
+        res.json({ success: true, skipped: true, reason: "No metric movement worth posting" });
+        return;
+      }
+      if (!pick) {
+        res.status(422).json({ error: "Nothing to post, even forced (no usable metrics)" });
+        return;
+      }
+
+      const variant = await nextCoverVariant();
+
+      // Same recovery path the other posting jobs use: a retry must never
+      // double-post when the previous attempt published and failed to report it.
+      const alreadyPublished = await findAlreadyPublished(attempt);
+      if (alreadyPublished) {
+        const recoveredHeadline = `${pick.label}: ${pick.value}`;
+        await db.recordInstagramPost({
+          mediaId: alreadyPublished,
+          postType: "stat",
+          feedDate: null,
+          headline: recoveredHeadline,
+          coverVariant: variant,
+        });
+        console.log(`[instagram] stat post recovered from a prior attempt: ${alreadyPublished}`);
+        res.json({
+          success: true,
+          postId: alreadyPublished,
+          headline: recoveredHeadline,
+          recovered: true,
+        });
+        return;
+      }
+
+      const line = await generateStatLine(pick);
+      const { postId, headline } = await postStatCard(
+        {
+          label: pick.label,
+          value: pick.value,
+          line,
+          subtext: pick.subtext,
+          source: pick.source,
+          asOf: pick.asOf,
+        },
+        siteOrigin(),
+        { variant }
+      );
+      console.log(
+        `[instagram] stat post complete: ${postId} (${pick.angle}, score ${pick.score.toFixed(2)})`
+      );
+      await db.recordInstagramPost({
+        mediaId: postId,
+        postType: "stat",
+        feedDate: null,
+        headline,
+        coverVariant: variant,
+      });
+      res.json({ success: true, postId, headline, angle: pick.angle, score: pick.score });
+    } catch (err) {
+      const e = err as Error;
+      console.error("[instagram] stat post failed:", e.message);
+      await db
+        .recordServerError({
+          level: "error",
+          message: `Instagram stat post failed: ${e.message}`.slice(0, 512),
+          stack: e.stack ?? null,
+          route: "instagram/stat",
+        })
+        .catch(() => {});
+      res.status(502).json({ error: "Instagram stat post failed", message: e.message });
+    }
+  };
+  app.post("/api/scheduled/instagram-stat", statHandler);
+  app.post("/api/ingest/instagram-stat", statHandler);
+
+  /**
+   * How long the Reel job may take before it must answer.
+   *
+   * Node's fetch — which is what the scheduler calls this with — gives up on a
+   * request whose headers have not arrived in 300 seconds; that figure is
+   * measured, not assumed. Thirty seconds of headroom under it, so the response
+   * is always the job's own verdict rather than a timeout.
+   */
+  const REEL_HTTP_BUDGET_MS = 270_000;
+
+  // POST /api/ingest/instagram-reel — the same number, as video.
+  //
+  // Reels are the only Instagram surface that reliably reaches people who do
+  // not already follow the account, so this is the one posting job aimed at
+  // growth rather than at existing readers. Same selection as The Number, same
+  // refusal to post on a quiet day: a Reel about nothing is worse than silence,
+  // because it costs reach on the next one.
+  /**
+   * The Reel's voice-over: written by a model from the computed facts, checked
+   * against them, and mapped onto the beats. Returns undefined when the script
+   * was rejected or unavailable, which makes `renderStatReel` fall back to
+   * reading the card aloud rather than failing the post.
+   */
+  const reelScript = async (
+    stat: {
+      label: string;
+      value: string;
+      line: string;
+      subtext: string;
+      context: string | null;
+      source: string | null;
+      direction: "up" | "down" | "flat";
+    },
+    facts: Array<{ figure: string; caption: string }>
+  ) => {
+    const { generateReelScript } = await import("./prompts/reelScript");
+    const { scriptFromLines } = await import("./video/narration");
+    const lines = await generateReelScript(stat, facts);
+    if (!lines) return undefined;
+    return scriptFromLines(lines, {
+      line: stat.line.trim().length > 0,
+      claim: stat.subtext.trim().length > 0,
+      facts: facts.length > 0,
+    });
+  };
+
+  const reelHandler = async (req: Request, res: Response) => {
+    const startedAt = Date.now();
+    if (!(await authenticateScheduled(req))) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const { instagramAccessToken, instagramBusinessAccountId } = (await import("./core/env")).env;
+    if (!instagramAccessToken || !instagramBusinessAccountId) {
+      res.status(503).json({ error: "Instagram credentials not configured" });
+      return;
+    }
+    const parsed = z
+      .object({ attempt: z.number().int().min(1).optional() })
+      .safeParse(req.body ?? {});
+    const attempt = parsed.success ? (parsed.data.attempt ?? 1) : 1;
+
+    // Before anything expensive. A missing ffmpeg binary otherwise surfaces as
+    // an ENOENT from execFile ninety seconds into a render, after the
+    // metric has been picked and the card has been written.
+    const { checkReelReadiness } = await import("./video/preflight");
+    const readiness = await checkReelReadiness();
+    if (!readiness.ok) {
+      console.error(`[instagram] reel skipped, cannot render: ${readiness.detail}`);
+      res.status(503).json({ error: "Reel rendering unavailable", detail: readiness.detail });
+      return;
+    }
+    if (!readiness.voice) {
+      console.warn(`[instagram] ${readiness.detail}`);
+    }
+
+    try {
+      const { pickStatOfTheDay } = await import("./instagram/statPick");
+      const { generateStatLine } = await import("./prompts/statCard");
+      const { findAlreadyPublished, postStatReel } = await import("./instagram/post");
+
+      const [metrics, histories] = await Promise.all([
+        db.listDailyMetrics(),
+        db.listMetricHistories(180),
+      ]);
+      const pick = pickStatOfTheDay(metrics, histories);
+      if (!pick) {
+        console.log("[instagram] no metric cleared the bar; skipping the reel");
+        res.json({ success: true, skipped: true, reason: "No metric movement worth posting" });
+        return;
+      }
+
+      const variant = await nextCoverVariant();
+      const alreadyPublished = await findAlreadyPublished(attempt);
+      if (alreadyPublished) {
+        const recoveredHeadline = `${pick.label}: ${pick.value}`;
+        await db.recordInstagramPost({
+          mediaId: alreadyPublished,
+          postType: "reel",
+          feedDate: null,
+          headline: recoveredHeadline,
+          coverVariant: variant,
+        });
+        res.json({
+          success: true,
+          postId: alreadyPublished,
+          headline: recoveredHeadline,
+          recovered: true,
+        });
+        return;
+      }
+
+      const { buildStatFacts } = await import("./metrics/statFacts");
+      const reelSeries = (histories[pick.metricKey] ?? [])
+        .map((h) => ({ value: h.value, at: h.recordedAt }))
+        .sort((a, b) => a.at.getTime() - b.at.getTime());
+
+      const line = await generateStatLine(pick);
+      const reelFacts = buildStatFacts(pick.value, reelSeries, pick.delta, 3);
+      const { postId, headline } = await postStatReel(
+        {
+          label: pick.label,
+          value: pick.value,
+          line,
+          subtext: pick.subtext,
+          source: pick.source,
+          asOf: pick.asOf,
+          // The same history the pick was made from, drawn under the claim.
+          // Oldest first: the chart reads left to right.
+          series: reelSeries,
+          facts: reelFacts,
+        },
+        siteOrigin(),
+        {
+          variant,
+          script: await reelScript({ ...pick, line }, reelFacts),
+          // The scheduler drives this over fetch, which Node aborts after 300
+          // seconds. Answer inside that with headroom, so a slow transcode
+          // fails cleanly here rather than as a timeout the caller reads as a
+          // failure on a post that actually went out.
+          deadlineAt: startedAt + REEL_HTTP_BUDGET_MS,
+        }
+      );
+      console.log(`[instagram] reel complete: ${postId}`);
+      await db.recordInstagramPost({
+        mediaId: postId,
+        postType: "reel",
+        feedDate: null,
+        headline,
+        coverVariant: variant,
+      });
+      res.json({ success: true, postId, headline });
+    } catch (err) {
+      const e = err as Error;
+      console.error("[instagram] reel failed:", e.message);
+      await db
+        .recordServerError({
+          level: "error",
+          message: `Instagram reel failed: ${e.message}`.slice(0, 512),
+          stack: e.stack ?? null,
+          route: "instagram/reel",
+        })
+        .catch(() => {});
+      res.status(502).json({ error: "Instagram reel failed", message: e.message });
+    }
+  };
+  app.post("/api/scheduled/instagram-reel", reelHandler);
+  app.post("/api/ingest/instagram-reel", reelHandler);
+
+  // POST /api/ingest/instagram-monthly — "The Month in Numbers". The one series
+  // built entirely from our own metric history, so it is the one a competitor
+  // cannot copy. Runs on the 1st and covers the month that just finished.
+  const monthlyHandler = async (req: Request, res: Response) => {
+    if (!(await authenticateScheduled(req))) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const { instagramAccessToken, instagramBusinessAccountId } = (await import("./core/env")).env;
+    if (!instagramAccessToken || !instagramBusinessAccountId) {
+      res.status(503).json({ error: "Instagram credentials not configured" });
+      return;
+    }
+    const parsed = z
+      .object({
+        attempt: z.number().int().min(1).optional(),
+        /** Post a specific month instead of the one that just finished. */
+        month: z
+          .string()
+          .regex(/^\d{4}-\d{2}$/)
+          .optional(),
+      })
+      .safeParse(req.body ?? {});
+    const attempt = parsed.success ? (parsed.data.attempt ?? 1) : 1;
+    const month = parsed.success ? parsed.data.month : undefined;
+
+    try {
+      const { buildMonthlyReview, describeMove, readMonth } =
+        await import("./metrics/monthlyReview");
+      const { generateMonthLine, moveClaim } = await import("./prompts/monthCard");
+      const { findAlreadyPublished, postMonthlyReview } = await import("./instagram/post");
+
+      const [metrics, histories] = await Promise.all([
+        db.listDailyMetrics(),
+        db.listMetricHistories(400),
+      ]);
+      const review = buildMonthlyReview(
+        metrics.map((m) => ({
+          metricKey: m.metricKey,
+          label: m.label,
+          unit: m.unit,
+          groupKey: m.groupKey,
+        })),
+        histories,
+        month
+      );
+
+      // A month where nothing cleared its own normal range is a real finding,
+      // and it belongs on the page rather than on the grid. Posting "nothing
+      // much happened" as a carousel is the filler this format exists to avoid.
+      if (review.movers.length === 0) {
+        console.log(
+          `[instagram] ${review.label} had no rankable movers; skipping the monthly post`
+        );
+        res.json({
+          success: true,
+          skipped: true,
+          reason: `Nothing in ${review.label} moved far enough outside its own range to post`,
+        });
+        return;
+      }
+
+      const variant = await nextCoverVariant();
+
+      const alreadyPublished = await findAlreadyPublished(attempt);
+      if (alreadyPublished) {
+        const recoveredHeadline = `The Month in Numbers: ${review.label}`;
+        await db.recordInstagramPost({
+          mediaId: alreadyPublished,
+          postType: "monthly",
+          feedDate: null,
+          headline: recoveredHeadline,
+          coverVariant: variant,
+        });
+        console.log(`[instagram] monthly post recovered from a prior attempt: ${alreadyPublished}`);
+        res.json({
+          success: true,
+          postId: alreadyPublished,
+          headline: recoveredHeadline,
+          recovered: true,
+        });
+        return;
+      }
+
+      const top = review.movers.slice(0, 4);
+      const lines = await Promise.all(top.map((m) => generateMonthLine(m, review)));
+      const cards = top.map((m, i) => ({
+        label: `${m.label}, ${review.label}`,
+        value: describeMove(m),
+        line: lines[i]!,
+        subtext: moveClaim(m),
+        source: "The Desk",
+        asOf: null,
+      }));
+
+      const { postId, headline } = await postMonthlyReview(
+        cards,
+        { label: review.label, reading: readMonth(review) },
+        siteOrigin(),
+        { variant }
+      );
+      console.log(`[instagram] monthly post complete: ${postId}`);
+      await db.recordInstagramPost({
+        mediaId: postId,
+        postType: "monthly",
+        feedDate: null,
+        headline,
+        coverVariant: variant,
+      });
+      res.json({ success: true, postId, headline, month: review.month });
+    } catch (err) {
+      const e = err as Error;
+      console.error("[instagram] monthly post failed:", e.message);
+      await db
+        .recordServerError({
+          level: "error",
+          message: `Instagram monthly post failed: ${e.message}`.slice(0, 512),
+          stack: e.stack ?? null,
+          route: "instagram/monthly",
+        })
+        .catch(() => {});
+      res.status(502).json({ error: "Instagram monthly post failed", message: e.message });
+    }
+  };
+  app.post("/api/scheduled/instagram-monthly", monthlyHandler);
+  app.post("/api/ingest/instagram-monthly", monthlyHandler);
+
   // POST /api/ingest/instagram-weekly  — posts the latest weekly edition as a carousel
   const weeklyHandler = async (req: Request, res: Response) => {
     if (!(await authenticateScheduled(req))) {
@@ -1570,9 +2016,11 @@ function registerInstagramRoutes(app: Express): void {
   // what posts. Daily uses the raw feed titles (it skips the LLM headline
   // punch-up the live post applies) but is otherwise the production path.
   //   kind: weekly-cover | weekly-story | weekly-topic | daily-cover
-  //       | daily-slide | daily-story
+  //       | daily-slide | daily-story | stat | reel
   //   query: ?editionNumber=N (weekly) · ?date=YYYY-MM-DD&variant=navy|light
   //          (daily) · ?i=N (topic/slide index)
+  //          · ?shape=vertical (stat) — `reel` returns video/mp4, with the
+  //            narrated flag in the X-Reel-Narrated response header
   app.get("/api/instagram/preview/:kind", async (req: Request, res: Response) => {
     if (!(await authenticateScheduled(req))) {
       res.status(401).json({ error: "Unauthorized" });
@@ -1639,6 +2087,60 @@ function registerInstagramRoutes(app: Express): void {
         }
       }
 
+      // The Number, and the Reel made from it. Both run the real selection —
+      // the same `pickStatOfTheDay` and `generateStatLine` the posting job uses
+      // — so a preview that looks right is the post that will go out.
+      //
+      // The Reel is the one preview worth having: it is the only format with a
+      // voice track, and the voice cannot be checked by reading the code. It
+      // renders in about forty seconds, which is why it is behind a URL you
+      // ask for rather than anything that runs on its own.
+      if (kind === "stat" || kind === "reel") {
+        const { pickStatOfTheDay } = await import("./instagram/statPick");
+        const { generateStatLine } = await import("./prompts/statCard");
+        const [metrics, histories] = await Promise.all([
+          db.listDailyMetrics(),
+          db.listMetricHistories(180),
+        ]);
+        const pick = pickStatOfTheDay(metrics, histories);
+        if (!pick) {
+          res.status(422).json({ error: "No metric cleared the bar today" });
+          return;
+        }
+        const variant = req.query.variant === "light" ? "light" : "navy";
+        const { buildStatFacts } = await import("./metrics/statFacts");
+        const previewSeries = (histories[pick.metricKey] ?? [])
+          .map((h) => ({ value: h.value, at: h.recordedAt }))
+          .sort((a, b) => a.at.getTime() - b.at.getTime());
+        const stat = {
+          ...pick,
+          line: sanitizeDashes(await generateStatLine(pick)),
+          series: previewSeries,
+          facts: buildStatFacts(pick.value, previewSeries, pick.delta, 3),
+        };
+        if (kind === "stat") {
+          buf = await cards.renderStatCard(stat, variant, {
+            shape: req.query.shape === "vertical" ? "vertical" : "feed",
+            kicker: "The Number",
+            facts: stat.facts,
+          });
+        } else {
+          const { renderStatReel } = await import("./video/statReel");
+          const reel = await renderStatReel(stat, variant, {
+            script: await reelScript(stat, stat.facts),
+          });
+          res.setHeader("Content-Type", "video/mp4");
+          res.setHeader("Cache-Control", "no-store");
+          res.setHeader("X-Reel-Seconds", reel.seconds.toFixed(2));
+          // Says out loud whether the voice made it in. A silent Reel renders
+          // successfully and looks fine in a browser, so without this the only
+          // way to notice a missing OPENAI_API_KEY is to have the sound up.
+          res.setHeader("X-Reel-Narrated", String(reel.narrated));
+          res.send(reel.bytes);
+          return;
+        }
+      }
+
       if (!buf) {
         res.status(400).json({ error: `Unknown preview kind: ${kind}` });
         return;
@@ -1702,7 +2204,7 @@ export function registerScheduledRoutes(app: Express): void {
   registerNudgeRespondRoute(app);
   registerInstagramRoutes(app);
   console.log(
-    "[scheduled] registered /api/{scheduled,ingest}/{daily-feed,weekly-edition,synthesize-edition,daily-metrics,extract-metrics,weekly-recap,nudge-check,instagram-daily,instagram-weekly,instagram-insights} + /api/nudge/respond + /instagram/temp/:uuid.jpg + /api/instagram/preview/:kind"
+    "[scheduled] registered /api/{scheduled,ingest}/{daily-feed,weekly-edition,synthesize-edition,daily-metrics,extract-metrics,weekly-recap,nudge-check,instagram-daily,instagram-stat,instagram-reel,instagram-monthly,instagram-weekly,instagram-insights} + /api/nudge/respond + /instagram/temp/:uuid.{jpg,mp4} + /api/instagram/preview/:kind"
   );
 }
 

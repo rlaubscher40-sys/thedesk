@@ -1,6 +1,6 @@
 /**
  * Second-pass editor for the per-item daily feed lines. The first pass
- * generates "say this", the four partner angles and "why it matters" in
+ * generates the hook, the three reader angles and "why it matters" in
  * isolation; this pass reads them together against the story and sharpens
  * what's flat, culls what's contrived, and catches voice tells the
  * generators missed. It's the daily-feed analogue of runEditorQc, which
@@ -8,12 +8,12 @@
  *
  * Two hard rules keep it safe:
  *   - It NEVER invents a line that the generator left null. A story that
- *     SKIPped say-this (no partner-channel angle) must not grow one here.
+ *     SKIPped hook (no bearing on the market) must not grow one here.
  *   - On any malformed or implausible output it falls back to the ORIGINAL
  *     value, never to null. QC is polish, a bad QC pass must not delete good
  *     content. The function never throws.
  */
-import { PARTNER_TAG_LABELS, parsePartnerTag } from "../../shared/schemas";
+import { READER_ANGLE_LABELS, parseReaderAngles } from "../../shared/schemas";
 import { invokeLLM } from "../core/llm";
 import { rubenSystemPrompt, stripBannedChars, voiceRules } from "./voice";
 
@@ -74,11 +74,11 @@ ${voiceRules}
 
 Audit each line that is on file:
 
-sayThis, the universal one-line conversation opener Ruben pastes into a client message.
-- One sentence, max 28 words. Opens a conversation, does not recap the news. Lands a sharp commercial insight or implied action. Sounds like a sharp operator, not a press release.
+sayThis, the hook. The sharpest line on the story, written to the reader.
+- One sentence, max 28 words. Says what the story means, does not recap the news. Lands the non-obvious read or the consequence. Sounds like a sharp person making the point, not a headline and not a pitch. Never instructs the reader, and never addresses them as a professional with clients.
 
-partnerTag, four persona angles, EXACTLY these four labels in this order: ${PARTNER_TAG_LABELS.join(", ")}.
-- Format every line as "Label: angle". One sentence each, max 20 words. Each must hook a specific, commercial conversation for that persona. Cut any line that is generic or contrived.
+partnerTag, three reader angles, EXACTLY these three labels in this order: ${READER_ANGLE_LABELS.join(", ")}.
+- Format every line as "Label: angle". One sentence each, max 20 words. Buying is someone trying to buy, Holding is someone who already owns, Watching is someone timing a move. Each must say what the story changes for that reader. Cut any line that is generic, contrived, or that could be swapped with another position without anyone noticing.
 
 whyItMatters, the analytical so-what.
 - One sentence, max 30 words. The consequence, signal, or thing to watch, NOT a recap. Concrete, no "this could have implications" filler.
@@ -86,7 +86,7 @@ whyItMatters, the analytical so-what.
 counterpoint, the calm contrarian read.
 - One sentence, max 28 words. The non-obvious tension, bear case, or assumption the consensus might have wrong. It must genuinely complicate the obvious read, not restate it. Cull it if it is contrived.
 
-CULLING: if a line is genuinely contrived or off-topic for the partner channel, set it to null rather than polishing weak content into existence. Note that sayThis and partnerTag travel together downstream, cull both or keep both, never split the pair. NEVER write a line for a field that is "(none)" on file, return null for it.
+CULLING: if a line is genuinely contrived, or the story has no real bearing on Australian property or the money around it, set it to null rather than polishing weak content into existence. Note that sayThis and partnerTag travel together downstream, cull both or keep both, never split the pair. NEVER write a line for a field that is "(none)" on file, return null for it.
 
 Output a SINGLE JSON object, NOTHING ELSE, no markdown fences, no preamble:
 
@@ -94,7 +94,7 @@ Output a SINGLE JSON object, NOTHING ELSE, no markdown fences, no preamble:
   "approved": true | false,
   "notes": ["one short note per edit, empty array if nothing changed"],
   "sayThis": "polished line, or null to cull, or the unchanged line",
-  "partnerTag": "the four labelled lines separated by newlines, or null",
+  "partnerTag": "the three labelled lines separated by newlines, or null",
   "whyItMatters": "polished line, or null to cull, or the unchanged line",
   "counterpoint": "polished line, or null to cull, or the unchanged line"
 }
@@ -107,11 +107,7 @@ const WHY_MAX_CHARS = 320;
 
 /** Polish-or-keep a single short line. A null revision culls it; an empty or
  *  implausibly long revision is rejected in favour of the original. */
-function reconcileLine(
-  original: string | null,
-  revised: unknown,
-  maxChars: number
-): string | null {
+function reconcileLine(original: string | null, revised: unknown, maxChars: number): string | null {
   if (original == null) return null; // never resurrect a skipped line
   if (revised === null) return null; // editor culled it
   if (typeof revised !== "string") return original; // missing/odd, keep original
@@ -120,14 +116,14 @@ function reconcileLine(
   return t;
 }
 
-/** Same idea for the four-line partner block, but the revision must still
+/** Same idea for the three-line reader-angles block, but the revision must still
  *  parse to all four personas or we keep the original. */
 function reconcileTag(original: string | null, revised: unknown): string | null {
   if (original == null) return null;
   if (revised === null) return null;
   if (typeof revised !== "string") return original;
   const cleaned = stripBannedChars(revised.trim());
-  return parsePartnerTag(cleaned) ? cleaned : original;
+  return parseReaderAngles(cleaned) ? cleaned : original;
 }
 
 function fallback(input: DailyItemQcInput): DailyItemQcResult {
@@ -146,9 +142,7 @@ function fallback(input: DailyItemQcInput): DailyItemQcResult {
  * originals on any failure. Never throws, never nulls a line except when the
  * editor explicitly culls one.
  */
-export async function runDailyItemQc(
-  input: DailyItemQcInput
-): Promise<DailyItemQcResult> {
+export async function runDailyItemQc(input: DailyItemQcInput): Promise<DailyItemQcResult> {
   // Nothing to review.
   if (
     input.sayThis == null &&
@@ -194,7 +188,9 @@ export async function runDailyItemQc(
 
   return {
     approved: parsed.approved === true,
-    notes: Array.isArray(parsed.notes) ? parsed.notes.filter((n): n is string => typeof n === "string") : [],
+    notes: Array.isArray(parsed.notes)
+      ? parsed.notes.filter((n): n is string => typeof n === "string")
+      : [],
     sayThis: reconcileLine(input.sayThis, parsed.sayThis, SAY_THIS_MAX_CHARS),
     partnerTag: reconcileTag(input.partnerTag, parsed.partnerTag),
     whyItMatters: reconcileLine(input.whyItMatters, parsed.whyItMatters, WHY_MAX_CHARS),

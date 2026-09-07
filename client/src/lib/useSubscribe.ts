@@ -14,6 +14,7 @@
  */
 import { useState } from "react";
 import { toast } from "sonner";
+import { getArrival } from "@/lib/attribution";
 import { trpc } from "@/lib/trpc";
 
 const SUBSCRIBED_KEY = "thedesk:subscribed";
@@ -77,7 +78,19 @@ export function useSubscribe({
       return;
     }
     setSubmittedEmail(email);
-    mutation.mutate({ email, source, _hp: hp });
+    // Two different facts, both worth keeping. `source` is which form
+    // converted them; the arrival is which channel brought them to the site in
+    // the first place, read from the session because by now the referrer is
+    // our own page. Undefined when storage was blocked — the subscribe must
+    // still go through, unattributed.
+    const arrival = getArrival();
+    mutation.mutate({
+      email,
+      source,
+      arrivalSource: arrival?.source,
+      arrivalCampaign: arrival?.campaign ?? undefined,
+      _hp: hp,
+    });
   }
 
   return {

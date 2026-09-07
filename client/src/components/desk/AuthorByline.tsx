@@ -31,7 +31,7 @@ type Props = {
 export function AuthorByline({
   src = "/ruben.jpg",
   name = "Ruben Laubscher",
-  role = "Head of Partnerships",
+  role = "The Desk",
   linkedin = "https://www.linkedin.com/in/ruben-laubscher/",
   substack = "https://rubenlaubscher.substack.com/",
   instagram = "https://www.instagram.com/thedesk.au/",
@@ -66,15 +66,7 @@ export function AuthorByline({
 
 // ─── Shared headshot helper ────────────────────────────────────────────────
 
-function Headshot({
-  src,
-  name,
-  size,
-}: {
-  src: string;
-  name: string;
-  size: number;
-}) {
+function Headshot({ src, name, size }: { src: string; name: string; size: number }) {
   const [failed, setFailed] = useState(false);
   return (
     <div className="relative shrink-0">
@@ -83,8 +75,7 @@ function Headshot({
         style={{
           width: size,
           height: size,
-          boxShadow:
-            "inset 0 0 0 1px oklch(1 0 0 / 12%), 0 4px 16px oklch(0 0 0 / 35%)",
+          boxShadow: "inset 0 0 0 1px oklch(1 0 0 / 12%), 0 4px 16px oklch(0 0 0 / 35%)",
         }}
       >
         {!failed ? (
@@ -108,8 +99,7 @@ function Headshot({
       <span
         className="absolute inset-0 rounded-full pointer-events-none"
         style={{
-          boxShadow:
-            "0 0 0 1px oklch(0.75 0.18 70 / 28%), 0 0 14px oklch(0.75 0.18 70 / 14%)",
+          boxShadow: "0 0 0 1px oklch(0.75 0.18 70 / 28%), 0 0 14px oklch(0.75 0.18 70 / 14%)",
         }}
         aria-hidden="true"
       />
@@ -129,48 +119,22 @@ type BylineImpl = {
   className?: string;
 };
 
-function BylineCompact({
-  src,
-  name,
-  role,
-  linkedin,
-  substack,
-  instagram,
-  className,
-}: BylineImpl) {
+function BylineCompact({ src, name, role, linkedin, substack, instagram, className }: BylineImpl) {
   return (
-    <div
-      className={cn(
-        "flex items-center gap-4 flex-wrap",
-        className
-      )}
-    >
+    <div className={cn("flex items-center gap-4 flex-wrap", className)}>
       <Headshot src={src} name={name} size={48} />
       <div className="min-w-0 flex-1">
-        <p
-          className="overline text-[var(--color-fg-subtle)]"
-          style={{ letterSpacing: "0.22em" }}
-        >
+        <p className="overline text-[var(--color-fg-subtle)]" style={{ letterSpacing: "0.22em" }}>
           By
         </p>
-        <p className="font-serif text-base font-semibold leading-tight">
-          {name}
-        </p>
+        <p className="font-serif text-base font-semibold leading-tight">{name}</p>
         <p className="text-xs text-[var(--color-fg-muted)] mt-0.5">{role}</p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <ActionChip
-          href={linkedin}
-          ariaLabel={`${name} on LinkedIn`}
-          icon={Linkedin}
-        >
+        <ActionChip href={linkedin} ariaLabel={`${name} on LinkedIn`} icon={Linkedin}>
           LinkedIn
         </ActionChip>
-        <ActionChip
-          href={instagram}
-          ariaLabel="The Desk on Instagram"
-          icon={Instagram}
-        >
+        <ActionChip href={instagram} ariaLabel="The Desk on Instagram" icon={Instagram}>
           Instagram
         </ActionChip>
         <ActionChip
@@ -188,43 +152,20 @@ function BylineCompact({
 
 // ─── Card byline, larger stacked block ────────────────────────────────────
 
-function BylineCard({
-  src,
-  name,
-  role,
-  linkedin,
-  substack,
-  instagram,
-  className,
-}: BylineImpl) {
+function BylineCard({ src, name, role, linkedin, substack, instagram, className }: BylineImpl) {
   return (
-    <div
-      className={cn("flex items-start gap-4", className)}
-    >
+    <div className={cn("flex items-start gap-4", className)}>
       <Headshot src={src} name={name} size={64} />
       <div className="min-w-0">
-        <p className="font-serif text-base font-semibold leading-tight">
-          {name}
-        </p>
-        <p
-          className="overline mt-1"
-          style={{ letterSpacing: "0.16em" }}
-        >
+        <p className="font-serif text-base font-semibold leading-tight">{name}</p>
+        <p className="overline mt-1" style={{ letterSpacing: "0.16em" }}>
           {role}
         </p>
         <div className="flex items-center gap-2 mt-3 flex-wrap">
-          <ActionChip
-            href={linkedin}
-            ariaLabel={`${name} on LinkedIn`}
-            icon={Linkedin}
-          >
+          <ActionChip href={linkedin} ariaLabel={`${name} on LinkedIn`} icon={Linkedin}>
             LinkedIn
           </ActionChip>
-          <ActionChip
-            href={instagram}
-            ariaLabel="The Desk on Instagram"
-            icon={Instagram}
-          >
+          <ActionChip href={instagram} ariaLabel="The Desk on Instagram" icon={Instagram}>
             Instagram
           </ActionChip>
           <ActionChip
@@ -265,11 +206,9 @@ function ActionChip({
         aria-label={ariaLabel}
         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-[10px] font-mono uppercase tracking-[0.16em] transition-all active:scale-[0.98]"
         style={{
-          background:
-            "var(--grad-cta-amber)",
+          background: "var(--grad-cta-amber)",
           color: "var(--color-on-amber)",
-          boxShadow:
-            "0 1px 0 oklch(1 0 0 / 18%) inset, 0 4px 14px oklch(0.75 0.18 70 / 25%)",
+          boxShadow: "0 1px 0 oklch(1 0 0 / 18%) inset, 0 4px 14px oklch(0.75 0.18 70 / 25%)",
         }}
       >
         <Icon className="h-3 w-3" />

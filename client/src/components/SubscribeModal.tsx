@@ -238,7 +238,7 @@ export function SubscribeModal() {
               </h2>
               <p className="text-base text-[var(--color-fg-muted)] leading-relaxed mb-6">
                 One long-form essay on Sundays. The Daily Brief on weekdays. No spam, no broadcast,
-                just the stories I think a partner conversation should know about.
+                just the stories I think are worth your five minutes.
               </p>
 
               <form onSubmit={submit} className="space-y-2.5">
@@ -302,7 +302,7 @@ export function SubscribeModal() {
                 className="overline mt-6 text-[var(--color-fg-subtle)]"
                 style={{ letterSpacing: "0.18em" }}
               >
-                By Ruben Laubscher · Head of Partnerships
+                By Ruben Laubscher
               </p>
             </>
           )}

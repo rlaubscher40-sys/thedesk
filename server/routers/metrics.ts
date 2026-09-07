@@ -158,6 +158,46 @@ export const metricsRouter = router({
       }
     }),
 
+  /**
+   * The month, told through our own numbers.
+   *
+   * Public because it is the franchise, not an internal report: the whole point
+   * of this series is that it is ours to publish. Defaults to the last complete
+   * month, since a review of a month still running would report a partial month
+   * as a finished one.
+   */
+  monthlyReview: publicProcedure
+    .input(
+      z
+        .object({
+          month: z
+            .string()
+            .regex(/^\d{4}-\d{2}$/)
+            .optional(),
+        })
+        .optional()
+    )
+    .query(async ({ input }) => {
+      const { buildMonthlyReview, readMonth } = await import("../metrics/monthlyReview");
+      // 400 days: enough for a full year of prior months plus the month being
+      // reviewed, which is what the ranking needs to know what ordinary is.
+      const [metrics, histories] = await Promise.all([
+        db.listDailyMetrics(),
+        db.listMetricHistories(400),
+      ]);
+      const review = buildMonthlyReview(
+        metrics.map((m) => ({
+          metricKey: m.metricKey,
+          label: m.label,
+          unit: m.unit,
+          groupKey: m.groupKey,
+        })),
+        histories,
+        input?.month
+      );
+      return { ...review, reading: readMonth(review) };
+    }),
+
   listAll: adminProcedure.query(async () => {
     return db.listDailyMetrics();
   }),

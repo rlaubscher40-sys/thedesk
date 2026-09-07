@@ -15,7 +15,7 @@
  *   · The channel tabs moved into <LaneNav> and are no longer sticky; the
  *     category sub-filter moved to the Archive, so `filter` state and its
  *     localStorage key are gone from this page.
- *   · The `Ruben's read` collapse is gone: Say This and the partner angles
+ *   · The `Ruben's read` collapse is gone: the hook and the reader angles
  *     render inline. With hairline columns instead of floating cards,
  *     ragged column heights aren't a defect, so the `estimatedCardHeight`
  *     sort that used to pre-order the grid went with it.
@@ -126,8 +126,7 @@ export default function DailyFeed() {
   const allFeedItems = useFilteredFeed(feedQuery.data ?? []);
   const enriched = isEnrichedChannel(channel);
 
-  const channelOf = (it: { channel?: string | null }): string =>
-    (it.channel ?? "AU").toUpperCase();
+  const channelOf = (it: { channel?: string | null }): string => (it.channel ?? "AU").toUpperCase();
 
   // Items in the active lane. Partitioned client-side so switching lanes is
   // instant — the query already returned every channel for the day.
@@ -151,9 +150,7 @@ export default function DailyFeed() {
     return hasContext && hasTake && hasAnglesBlock;
   };
   const pinned = feedItems.find((it) => (it.priority ?? 50) >= 100);
-  const lead = enriched
-    ? (pinned ?? feedItems.find(isLeadWorthy) ?? feedItems[0])
-    : feedItems[0];
+  const lead = enriched ? (pinned ?? feedItems.find(isLeadWorthy) ?? feedItems[0]) : feedItems[0];
   const rest = feedItems.filter((it) => it.id !== lead?.id);
   const leadIsFallback = enriched && !pinned && !!lead && !isLeadWorthy(lead);
 
@@ -201,10 +198,7 @@ export default function DailyFeed() {
           </span>
         )}
         {isToday && streakDays >= 2 && (
-          <span
-            className="bs-label hidden md:inline"
-            style={{ color: "var(--color-accent-text)" }}
-          >
+          <span className="bs-label hidden md:inline" style={{ color: "var(--color-accent-text)" }}>
             · {streakDays}-day streak
           </span>
         )}
@@ -350,7 +344,7 @@ function DatePagerInline({
   );
 }
 
-/** Bulk copy of the day's talking points. Moved from beside the date pager
+/** Bulk copy of the day's lines. Moved from beside the date pager
  *  into the utility bar; the payload format is unchanged. */
 function CopyTalkingPoints({
   items,
@@ -368,7 +362,7 @@ function CopyTalkingPoints({
       month: "long",
       timeZone: "UTC",
     });
-    const lines: string[] = [`Talking points · The Desk · ${dateLabel}`, ""];
+    const lines: string[] = [`The Desk · ${dateLabel}`, ""];
     items.forEach((item, i) => {
       lines.push(`${i + 1}. ${item.title}`);
       if (item.whyItMatters) lines.push(`   Why it matters: ${item.whyItMatters}`);
@@ -386,7 +380,7 @@ function CopyTalkingPoints({
 
   return (
     <button type="button" onClick={copy} className="bs-label bs-link ml-2">
-      {copied ? "Copied" : `Copy ${items.length} talking point${items.length === 1 ? "" : "s"}`}
+      {copied ? "Copied" : `Copy ${items.length} line${items.length === 1 ? "" : "s"}`}
     </button>
   );
 }
@@ -405,7 +399,9 @@ function FeedSkeleton() {
           </div>
         ))}
       </div>
-      <div className={cn(GUTTER_X, "grid lg:grid-cols-[minmax(0,1.68fr)_minmax(0,1fr)] gap-11 pt-8")}>
+      <div
+        className={cn(GUTTER_X, "grid lg:grid-cols-[minmax(0,1.68fr)_minmax(0,1fr)] gap-11 pt-8")}
+      >
         <div className="space-y-4">
           <Skeleton className="h-3 w-40" />
           <Skeleton className="h-14 w-full" />

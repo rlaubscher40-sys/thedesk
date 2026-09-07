@@ -25,7 +25,7 @@ const LINKEDIN_URL = "https://www.linkedin.com/in/ruben-laubscher/";
 const INSTAGRAM_URL = "https://www.instagram.com/thedesk.au/";
 
 const HOW_TO_USE = [
-  "Open Today first thing. Copy a Say This line into a partner conversation.",
+  "Open Today first thing. Five stories, each one already read for you.",
   "Save what you can't read now. The queue keeps it, and syncs when you sign in.",
   "Open the edition on Sunday for the deep dive, the signals and the dates to watch.",
   "Press / to search from anywhere. ⌘K opens the command palette.",
@@ -55,7 +55,7 @@ export default function About() {
             textWrap: "pretty",
           }}
         >
-          A daily desk for partner conversations.
+          A daily read on Australian property.
         </h1>
         <p
           className="font-serif mt-6 max-w-[58ch]"
@@ -65,18 +65,13 @@ export default function About() {
             color: "var(--color-fg-muted)",
           }}
         >
-          Five stories every weekday morning, each one already angled for the three roles
-          this business works with. One long read on Sunday. Nothing else.
+          Five stories every weekday morning, each one already angled for where you stand: buying,
+          holding, or watching. One long read on Sunday. Nothing else.
         </p>
       </section>
 
       {/* Facts strip */}
-      <div
-        className={cn(
-          GUTTER_X,
-          "rule-major rule-band-b mt-9 grid grid-cols-2 lg:grid-cols-4"
-        )}
-      >
+      <div className={cn(GUTTER_X, "rule-major rule-band-b mt-9 grid grid-cols-2 lg:grid-cols-4")}>
         <Fact label="Daily brief" value="7am AEST" sub="Weekdays" first />
         <Fact
           label="Weekly edition"
@@ -103,27 +98,24 @@ export default function About() {
                 textWrap: "pretty",
               }}
             >
-              &ldquo;The first thing that goes when you get busy is not the important
-              work. It is the work that feels optional. The check-in call you meant to
-              make. The article you bookmarked. The follow-up you drafted but never
-              sent.&rdquo;
+              &ldquo;The first thing that goes when you get busy is not the important work. It is
+              the work that feels optional. The check-in call you meant to make. The article you
+              bookmarked. The follow-up you drafted but never sent.&rdquo;
             </p>
           </blockquote>
 
           <div className="mt-8 max-w-[66ch]">
             <p style={{ fontSize: 18, lineHeight: 1.7, color: "var(--color-fg-body)" }}>
-              The Desk runs two scans. The daily one lands at seven in the morning Sydney
-              time with five stories the partner channel should know about, each angled
-              for the three partner roles Ruben works with: brokers, advisers and
-              accountants, and buyer&apos;s agents.
+              The Desk runs two scans. The daily one lands at seven in the morning Sydney time with
+              five stories worth knowing about, each angled for the three positions a reader can be
+              in: trying to buy, already holding property, or watching to time a move.
             </p>
             <p
               className="mt-5"
               style={{ fontSize: 18, lineHeight: 1.7, color: "var(--color-fg-body)" }}
             >
-              Sundays the weekly edition lands. Long-form pieces, market metrics, signals
-              worth tracking, and Ruben&apos;s Take, a short editorial opinion that opens
-              the issue.
+              Sundays the weekly edition lands. Long-form pieces, market metrics, signals worth
+              tracking, and Ruben&apos;s Take, a short editorial opinion that opens the issue.
             </p>
           </div>
 
@@ -132,10 +124,7 @@ export default function About() {
             {HOW_TO_USE.map((line, i) => (
               <div
                 key={i}
-                className={cn(
-                  "rule-hair py-4",
-                  i % 2 === 0 ? "sm:pr-6 sm:rule-hair-r" : "sm:pl-6"
-                )}
+                className={cn("rule-hair py-4", i % 2 === 0 ? "sm:pr-6 sm:rule-hair-r" : "sm:pl-6")}
               >
                 <p
                   className="font-mono tabular-nums"
@@ -156,10 +145,9 @@ export default function About() {
           <SectionHead>How we use AI</SectionHead>
           <div className="mt-5 max-w-[66ch]">
             <p style={{ fontSize: 18, lineHeight: 1.7, color: "var(--color-fg-body)" }}>
-              One specific job: drafting the per-role angles after a story has been
-              selected and summarised. The editor picks the story, frames it and writes
-              the take. The model helps phrase the three lines so each role gets language
-              tuned to their conversation.
+              One specific job: drafting the per-role angles after a story has been selected and
+              summarised. The editor picks the story, frames it and writes the take. The model helps
+              phrase the three lines so each role gets language tuned to their conversation.
             </p>
             <p
               className="mt-5"
@@ -179,14 +167,14 @@ export default function About() {
             </p>
           </div>
 
-          <SectionHead>Built for the partner channel</SectionHead>
+          <SectionHead>Built to be read in five minutes</SectionHead>
           <p
             className="mt-5 max-w-[66ch]"
             style={{ fontSize: 18, lineHeight: 1.7, color: "var(--color-fg-body)" }}
           >
-            Information density is the point. The Desk should make a partner conversation
-            measurably sharper. If a page is making you scroll past whitespace, the page
-            is wrong.
+            Information density is the point. You should close The Desk knowing more than when you
+            opened it, in about the time it takes to make coffee. If a page is making you scroll
+            past whitespace, the page is wrong.
           </p>
         </div>
 
@@ -210,19 +198,16 @@ export default function About() {
             <div className="flex items-center gap-4 mt-4">
               <Headshot />
               <div className="min-w-0">
-                <h2
-                  className="font-serif font-bold"
-                  style={{ fontSize: 26, lineHeight: 1.1 }}
-                >
+                <h2 className="font-serif font-bold" style={{ fontSize: 26, lineHeight: 1.1 }}>
                   Ruben Laubscher
                 </h2>
                 <p
                   className="mt-2 text-[var(--color-fg-muted)]"
                   style={{ fontSize: 13.5, lineHeight: 1.45 }}
                 >
-                  Head of Partnerships,
+                  Writes The Desk
                   <br />
-                  InvestorKit · Sydney
+                  Sydney
                 </p>
               </div>
             </div>
@@ -230,8 +215,8 @@ export default function About() {
               className="mt-4"
               style={{ fontSize: 15, lineHeight: 1.6, color: "var(--color-fg-body)" }}
             >
-              Spends his week talking to brokers, advisers and buyer&apos;s agents. The
-              Desk is the reading he was already doing, written down.
+              Reads the Australian property market for a living. The Desk is the reading he was
+              already doing, written down.
             </p>
             <div className="flex gap-2 mt-4 flex-wrap">
               <LinkChip href={LINKEDIN_URL} icon={<Linkedin className="h-3 w-3" />}>
@@ -388,7 +373,10 @@ function LinkChip({
 function Headshot() {
   const [failed, setFailed] = useState(false);
   return (
-    <div className="h-21 w-21 shrink-0 rounded-full overflow-hidden" style={{ width: 84, height: 84 }}>
+    <div
+      className="h-21 w-21 shrink-0 rounded-full overflow-hidden"
+      style={{ width: 84, height: 84 }}
+    >
       {!failed ? (
         <img
           src="/ruben.jpg"

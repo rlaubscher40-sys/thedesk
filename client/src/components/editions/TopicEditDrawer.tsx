@@ -93,10 +93,7 @@ export function TopicEditDrawer({
       >
         <header className="flex items-center justify-between gap-3 px-6 py-4 border-b border-[var(--color-border)]">
           <div>
-            <p
-              className="overline-amber"
-              style={{ letterSpacing: "0.22em", fontSize: "10px" }}
-            >
+            <p className="overline-amber" style={{ letterSpacing: "0.22em", fontSize: "10px" }}>
               Admin · Edit topic
             </p>
             <p className="text-sm font-serif italic text-[var(--color-fg-muted)] mt-0.5 truncate">
@@ -112,10 +109,7 @@ export function TopicEditDrawer({
           </button>
         </header>
 
-        <form
-          onSubmit={submit}
-          className="flex-1 overflow-y-auto px-6 py-5 space-y-4"
-        >
+        <form onSubmit={submit} className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
           <Field label="Title">
             <input
               type="text"
@@ -142,7 +136,7 @@ export function TopicEditDrawer({
               onChange={(e) => setWhyItMatters(e.target.value)}
               rows={2}
               maxLength={2000}
-              placeholder="One sentence answering: why does the partner channel care about this specifically, right now?"
+              placeholder="One sentence answering: why does a reader with money or a home in the market care about this, right now?"
               className="w-full px-3 py-2 rounded text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors leading-relaxed"
             />
           </Field>
@@ -195,8 +189,7 @@ export function TopicEditDrawer({
             disabled={update.isPending}
             className="inline-flex items-center gap-1.5 rounded px-4 py-2 text-[10px] font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.98] disabled:opacity-50"
             style={{
-              background:
-                "var(--grad-cta-amber)",
+              background: "var(--grad-cta-amber)",
               color: "var(--color-on-amber)",
             }}
           >

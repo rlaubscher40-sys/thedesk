@@ -183,6 +183,39 @@ export async function createImageContainer(opts: {
  * IMAGE and carousel-item media). Sending it makes the API reject the whole
  * container, which is what silently killed the daily/weekly Story posts.
  */
+/**
+ * Create a Reel container.
+ *
+ * Reels are asynchronous in a way images are not: Instagram downloads and
+ * transcodes the file, so the container is not publishable the moment this
+ * returns. The caller must wait on `waitForContainerReady` before publishing,
+ * and should allow considerably longer than an image needs.
+ *
+ * `share_to_feed` puts the Reel on the profile grid as well as in the Reels
+ * tab. For an account whose grid is its shopfront that is the point: a Reel
+ * that reaches non-followers should also be there when one of them looks.
+ */
+export async function createReelContainer(opts: {
+  igUserId: string;
+  accessToken: string;
+  videoUrl: string;
+  caption?: string;
+  coverUrl?: string;
+}): Promise<string> {
+  const params: Record<string, string> = {
+    media_type: "REELS",
+    video_url: opts.videoUrl,
+    share_to_feed: "true",
+    access_token: opts.accessToken,
+  };
+  if (opts.caption) params.caption = opts.caption;
+  if (opts.coverUrl) params.cover_url = opts.coverUrl;
+  const data = await withIgRetry("createReelContainer", () =>
+    igPost<{ id: string }>(`/${opts.igUserId}/media`, params)
+  );
+  return data.id;
+}
+
 export async function createStoryContainer(opts: {
   igUserId: string;
   accessToken: string;
@@ -271,15 +304,12 @@ export async function createCarouselContainer(opts: {
   caption: string;
 }): Promise<string> {
   const data = await withIgRetry("createCarouselContainer", () =>
-    igPost<{ id: string }>(
-      `/${opts.igUserId}/media`,
-      {
-        media_type: "CAROUSEL",
-        children: opts.childrenIds.join(","),
-        caption: opts.caption,
-        access_token: opts.accessToken,
-      }
-    )
+    igPost<{ id: string }>(`/${opts.igUserId}/media`, {
+      media_type: "CAROUSEL",
+      children: opts.childrenIds.join(","),
+      caption: opts.caption,
+      access_token: opts.accessToken,
+    })
   );
   return data.id;
 }
@@ -416,13 +446,10 @@ export async function publishContainer(opts: {
   accessToken: string;
   creationId: string;
 }): Promise<string> {
-  const data = await igPost<{ id: string }>(
-    `/${opts.igUserId}/media_publish`,
-    {
-      creation_id: opts.creationId,
-      access_token: opts.accessToken,
-    }
-  );
+  const data = await igPost<{ id: string }>(`/${opts.igUserId}/media_publish`, {
+    creation_id: opts.creationId,
+    access_token: opts.accessToken,
+  });
   return data.id;
 }
 

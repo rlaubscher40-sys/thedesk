@@ -26,6 +26,7 @@ import {
   renderDailyCoverCard,
   renderDailyStoryCard,
   renderDailyStoryVertical,
+  renderStatCard,
   renderWeeklyCoverCard,
   renderWeeklyStoryVertical,
   renderWeeklyTopicCard,
@@ -33,6 +34,7 @@ import {
 import {
   createCarouselContainer,
   createImageContainer,
+  createReelContainer,
   createStoryContainer,
   findRecentMedia,
   isRateLimitError,
@@ -40,6 +42,8 @@ import {
   waitForContainerReady,
 } from "./api";
 import { removeTempImage, storeTempImage } from "./tempStore";
+import type { ScriptLine } from "../video/narration";
+import { renderStatReel } from "../video/statReel";
 
 /** Single source of truth for dash sanitization in Instagram content. */
 export function sanitizeDashes(text: string): string {
@@ -49,9 +53,9 @@ export function sanitizeDashes(text: string): string {
 /**
  * Instagram integrity cooldown — applies to 24h Stories only.
  *
- * Both carousels (morning briefing + midday "Wider Lens") publish fine and stay
- * on. Stories are the part that (a) doesn't reliably land and (b) adds extra
- * publish actions on top of the carousels, which is what pushes the account's
+ * The feed posts (the morning briefing carousel and The Number) publish fine
+ * and stay on. Stories are the part that (a) doesn't reliably land and (b) adds
+ * extra publish actions on top of them, which is what pushes the account's
  * "Application request limit reached" response on the carousel publish. So while
  * the account is flagged we skip Stories to lighten the daily load, and let the
  * flag age out. Carousels are unaffected (and guarded separately by
@@ -107,8 +111,8 @@ async function publishCarouselConfirmed(opts: {
 /**
  * How recently a post must have landed for a RETRY to treat it as "this run
  * already went out". The scheduler re-attempts a failed job on its next tick
- * (5 minutes), so ~25 minutes covers a couple of ticks. The three posting
- * streams sit hours apart (07:13 daily, 09:19 Sunday weekly, 12:13 coverage),
+ * (5 minutes), so ~25 minutes covers a couple of ticks. The scheduled posting
+ * streams sit hours apart (07:13 daily, 16:41 The Number, 09:19 Sunday weekly),
  * so a window this tight can never mistake one stream's post for another's.
  */
 const RETRY_DUPLICATE_WINDOW_MS = 25 * 60 * 1000;
@@ -182,19 +186,36 @@ function categoryHashtag(category: string | null | undefined): string {
   return CATEGORY_HASHTAG[(category ?? "").toUpperCase()] ?? "#Markets";
 }
 
+/** Shown when the lead story has no say-this to open with. Generic by
+ *  necessity, so it is a fallback rather than the default. */
+const DAILY_CAPTION_FALLBACK_HOOK =
+  "The stories moving Australian markets today, and what each one means for your money.";
+
 /**
- * The caption leads with a hook + benefit (the first ~125 chars are all
- * Instagram shows before "…more"), carries the conversational "say this" hook
- * for each slide in swipe order, then asks for a comment and a save — for
- * evergreen brief content, saves are the strongest ranking signal. The
- * analytical why-it-matters stays on the cards so the caption doesn't repeat
- * them.
+ * The caption opens with the day's own hook, carries the conversational "say
+ * this" line for each remaining slide in swipe order, then asks for a comment
+ * and a save — for evergreen brief content, saves are the strongest ranking
+ * signal. The analytical why-it-matters stays on the cards so the caption
+ * doesn't repeat them.
+ *
+ * The opening line matters more than its length suggests: the first ~125
+ * characters are all Instagram shows before "…more", so they are the entire
+ * pitch to someone deciding whether to stop. A fixed sentence spends that
+ * budget saying the same thing every day, which is the same weakness a
+ * contents-page cover has — nothing about it is specific to today. So the lead
+ * story's say-this is promoted to the top and dropped from the rundown below,
+ * said once, where it does the most work.
  */
 export function buildDailyCaption(stories: DailyFeedItem[]): string {
+  const leadHook = stories[0]?.sayThis?.trim()
+    ? sanitizeDashes(stories[0]!.sayThis!.trim()).slice(0, 200)
+    : DAILY_CAPTION_FALLBACK_HOOK;
+
   const rundown = stories.flatMap((s, i) => {
     const headline = sanitizeDashes(s.title).slice(0, 120);
     const lines = [`${i + 1}. ${headline}`];
-    if (s.sayThis) {
+    // Slide 1's say-this is already the opening hook, so it is not repeated.
+    if (s.sayThis && !(i === 0 && leadHook !== DAILY_CAPTION_FALLBACK_HOOK)) {
       lines.push(sanitizeDashes(s.sayThis).slice(0, 220));
     }
     lines.push("");
@@ -204,7 +225,7 @@ export function buildDailyCaption(stories: DailyFeedItem[]): string {
   const tags = `${CORE_HASHTAGS} ${categoryHashtag(stories[0]?.category)}`;
 
   return [
-    "The stories moving Australian markets today, and what each one means for your money.",
+    leadHook,
     "",
     ...rundown,
     "Which one are you watching this week? Tell us below.",
@@ -217,8 +238,9 @@ export function buildDailyCaption(stories: DailyFeedItem[]): string {
 }
 
 /**
- * Caption for the midday "Wider lens" coverage carousel (Tech & Science,
- * Business, Global). Same shape as the daily caption, but no per-story say-this
+ * Caption for the "Wider Lens" coverage carousel (Tech & Science, Business,
+ * Global), now a hand-fired post rather than a scheduled one. Same shape as the
+ * daily caption, but no per-story say-this
  * hook (coverage carries no partner angle) and a broader, non-AU-markets intro.
  */
 export function buildCoverageCaption(stories: DailyFeedItem[]): string {
@@ -470,7 +492,11 @@ async function postStoryFrames(opts: {
       );
       await recordServerError({
         level: "warn",
-        message: `Instagram story ${i + 1} ${blocked ? "rate-limited" : "failed"}: ${message}`.slice(0, 512),
+        message:
+          `Instagram story ${i + 1} ${blocked ? "rate-limited" : "failed"}: ${message}`.slice(
+            0,
+            512
+          ),
         route: "instagram/story",
       }).catch(() => {});
       // A rate-limit/integrity block won't clear within this run — stop here
@@ -492,8 +518,8 @@ export async function postDailyCarousel(
     metrics?: Array<{ label: string; value: string }>;
     /**
      * "daily" = the AU/Property partner briefing (default): say-this hooks,
-     * lines persisted to the feed item. "coverage" = the midday Tech/Business/
-     * Global carousel: same card format, but no say-this and nothing persisted
+     * lines persisted to the feed item. "coverage" = the hand-fired Tech/
+     * Business/Global carousel: same card format, but no say-this and nothing persisted
      * (coverage stories stay headline + summary on the website).
      */
     mode?: "daily" | "coverage";
@@ -507,13 +533,13 @@ export async function postDailyCarousel(
 
   // Coverage carousel gets its own cover title + card labels so it reads as a
   // distinct series on the grid, not another "Today's Briefing".
+  // Coverage slides carry an "In Brief" paraphrase rather than a partner
+  // why-it-matters, so its swipe promise has to name that instead.
   const coverOpts = isCoverage
-    ? { title: "The Wider Lens", kicker: "Wider Lens" }
+    ? { title: "The Wider Lens", kicker: "Wider Lens", swipe: "Swipe for the full rundown »" }
     : {};
   const cardOpts = isCoverage ? { subtextLabel: "In Brief" } : {};
-  const verticalOpts = isCoverage
-    ? { subtextLabel: "In Brief", header: "Wider Lens" }
-    : {};
+  const verticalOpts = isCoverage ? { subtextLabel: "In Brief", header: "Wider Lens" } : {};
 
   // Over-select a candidate pool, then generate slide content across it so we
   // can exclude any story the model declines to write a why-it-matters for. A
@@ -616,9 +642,7 @@ export async function postDailyCarousel(
       altTexts.push(sanitized[i]?.title);
     }
 
-    const caption = isCoverage
-      ? buildCoverageCaption(sanitized)
-      : buildDailyCaption(sanitized);
+    const caption = isCoverage ? buildCoverageCaption(sanitized) : buildDailyCaption(sanitized);
 
     // Create child containers in parallel — Instagram fetches each image URL.
     // alt_text per slide is the cover/story headline (accessibility + ranking).
@@ -645,7 +669,11 @@ export async function postDailyCarousel(
     // ("media not ready"), so wait for readiness first — a multi-image carousel
     // can take longer to process than a single image.
     await waitForContainerReady({ containerId: carouselId, accessToken, timeoutMs: 90000 });
-    const postId = await publishCarouselConfirmed({ igUserId, accessToken, creationId: carouselId });
+    const postId = await publishCarouselConfirmed({
+      igUserId,
+      accessToken,
+      creationId: carouselId,
+    });
 
     console.log(`[instagram] daily carousel posted: ${postId}`);
 
@@ -736,41 +764,432 @@ export async function postWeeklyEdition(
     // Wait until the carousel parent is FINISHED before publishing; otherwise
     // Instagram returns code 9007 ("media not ready"). See the daily path.
     await waitForContainerReady({ containerId: carouselId, accessToken, timeoutMs: 90000 });
-    const postId = await publishCarouselConfirmed({ igUserId, accessToken, creationId: carouselId });
+    const postId = await publishCarouselConfirmed({
+      igUserId,
+      accessToken,
+      creationId: carouselId,
+    });
 
     console.log(`[instagram] weekly edition ${edition.editionNumber} posted: ${postId}`);
 
     // Share the edition to the 24h Story. Best-effort: a Story failure must
     // never fail the feed post that has already gone live. Skipped entirely
     // while Stories are paused for the integrity cooldown.
-    if (!instagramCooldownActive()) try {
-      const storyBuf = await renderWeeklyStoryVertical(sanitizedEdition, heroDataUri, variant);
-      const storyUuid = storeTempImage(storyBuf);
-      uuids.push(storyUuid);
-      const storyContainerId = await createStoryContainer({
-        igUserId,
-        accessToken,
-        imageUrl: `${siteUrl}/instagram/temp/${storyUuid}.jpg`,
-      });
-      await waitForContainerReady({ containerId: storyContainerId, accessToken });
-      const storyId = await publishContainer({
-        igUserId,
-        accessToken,
-        creationId: storyContainerId,
-      });
-      console.log(`[instagram] weekly story posted: ${storyId}`);
-    } catch (err) {
-      const message = (err as Error).message;
-      console.error("[instagram] weekly story failed (feed post still live):", message);
-      await recordServerError({
-        level: "warn",
-        message: `Instagram weekly story failed: ${message}`.slice(0, 512),
-        route: "instagram/weekly-story",
-      }).catch(() => {});
-    }
+    if (!instagramCooldownActive())
+      try {
+        const storyBuf = await renderWeeklyStoryVertical(sanitizedEdition, heroDataUri, variant);
+        const storyUuid = storeTempImage(storyBuf);
+        uuids.push(storyUuid);
+        const storyContainerId = await createStoryContainer({
+          igUserId,
+          accessToken,
+          imageUrl: `${siteUrl}/instagram/temp/${storyUuid}.jpg`,
+        });
+        await waitForContainerReady({ containerId: storyContainerId, accessToken });
+        const storyId = await publishContainer({
+          igUserId,
+          accessToken,
+          creationId: storyContainerId,
+        });
+        console.log(`[instagram] weekly story posted: ${storyId}`);
+      } catch (err) {
+        const message = (err as Error).message;
+        console.error("[instagram] weekly story failed (feed post still live):", message);
+        await recordServerError({
+          level: "warn",
+          message: `Instagram weekly story failed: ${message}`.slice(0, 512),
+          route: "instagram/weekly-story",
+        }).catch(() => {});
+      }
 
     return { postId, headline: editionAlt };
   } finally {
     uuids.forEach(removeTempImage);
+  }
+}
+
+/**
+ * Caption for the stat post.
+ *
+ * The first ~125 characters are all Instagram shows before "…more", so the
+ * sentence leads and the sourced claim follows immediately — a reader who never
+ * expands still gets the whole point. Asks for a save, which is the strongest
+ * ranking signal available to an evergreen data post, and names the source,
+ * because a number nobody can check is worth nothing on this format.
+ */
+export function buildStatCaption(stat: {
+  label: string;
+  value: string;
+  line: string;
+  subtext: string;
+  source?: string | null;
+}): string {
+  const claim = sanitizeDashes(stat.subtext);
+  // The subtext renders uppercase on the card for the typography; in the
+  // caption that would read as shouting, so sentence-case it here.
+  const claimSentence = claim.charAt(0) + claim.slice(1).toLowerCase();
+
+  return [
+    `${sanitizeDashes(stat.label)}: ${sanitizeDashes(stat.value)}.`,
+    "",
+    sanitizeDashes(stat.line),
+    "",
+    `${claimSentence}.`,
+    stat.source ? `Source: ${sanitizeDashes(stat.source)}.` : "",
+    "",
+    "Does this match what you are seeing on the ground? Tell us below.",
+    "Save this one, it is the number worth remembering this week.",
+    "",
+    "The numbers behind it are in our bio.",
+    "",
+    `${CORE_HASHTAGS} #PropertyData`,
+  ]
+    .filter((l, i, arr) => !(l === "" && arr[i - 1] === ""))
+    .join("\n");
+}
+
+/**
+ * Publish one stat card as a single-image post.
+ *
+ * Single image rather than a carousel on purpose: the format's whole argument
+ * is that one number, stated plainly, travels further than a contents page of
+ * three. There is nothing to swipe to, and adding filler slides to fill a
+ * carousel would undo the point.
+ *
+ * Returns the media id and the value posted, for the caller to record.
+ */
+export async function postStatCard(
+  stat: {
+    label: string;
+    value: string;
+    line: string;
+    subtext: string;
+    source?: string | null;
+    asOf?: Date | null;
+  },
+  siteUrl: string,
+  opts: { variant?: CardVariant } = {}
+): Promise<{ postId: string; headline: string }> {
+  const { instagramAccessToken: accessToken, instagramBusinessAccountId: igUserId } = env;
+  if (!accessToken || !igUserId) {
+    throw new Error("INSTAGRAM_ACCESS_TOKEN and INSTAGRAM_BUSINESS_ACCOUNT_ID must be set");
+  }
+
+  const sanitized = {
+    ...stat,
+    label: sanitizeDashes(stat.label),
+    value: sanitizeDashes(stat.value),
+    line: sanitizeDashes(stat.line),
+    subtext: sanitizeDashes(stat.subtext),
+  };
+
+  let uuid: string | null = null;
+  try {
+    const buf = await renderStatCard(sanitized, opts.variant ?? "navy");
+    uuid = storeTempImage(buf);
+
+    const containerId = await createImageContainer({
+      igUserId,
+      accessToken,
+      imageUrl: `${siteUrl}/instagram/temp/${uuid}.jpg`,
+      caption: buildStatCaption(sanitized),
+      altText: `${sanitized.label}: ${sanitized.value}. ${sanitized.line}`,
+    });
+    await waitForContainerReady({ containerId, accessToken, timeoutMs: 60000 });
+    const postId = await publishCarouselConfirmed({
+      igUserId,
+      accessToken,
+      creationId: containerId,
+    });
+
+    console.log(`[instagram] stat card posted: ${postId} (${sanitized.label} ${sanitized.value})`);
+    return { postId, headline: `${sanitized.label}: ${sanitized.value}` };
+  } finally {
+    if (uuid) removeTempImage(uuid);
+  }
+}
+
+/** Slides in the monthly carousel: the lead number plus the next few movers.
+ *  Four keeps it swipeable without padding it out with ordinary months. */
+const MONTHLY_SLIDE_COUNT = 4;
+
+/**
+ * Caption for the monthly review.
+ *
+ * Leads with the reading, which is already the sharpest sentence available and
+ * is specific to this month rather than a fixed opener. Names what the series
+ * is, because the whole point of a franchise is that a reader learns to expect
+ * it, and says where the numbers come from, because "our own history" is the
+ * claim that makes this series worth following rather than another recap.
+ */
+export function buildMonthlyCaption(
+  review: { label: string; reading: string },
+  movers: Array<{ label: string; move: string; claim: string }>
+): string {
+  const rundown = movers.flatMap((m) => [
+    `${sanitizeDashes(m.label)}: ${sanitizeDashes(m.move)} (${sanitizeDashes(m.claim.toLowerCase())})`,
+  ]);
+
+  return [
+    sanitizeDashes(review.reading),
+    "",
+    `The Month in Numbers, ${sanitizeDashes(review.label)}.`,
+    "",
+    ...rundown,
+    "",
+    // The honest description of the method, and the reason to follow: we are
+    // the only ones who can rank these against each other.
+    "Every move is measured against what that number normally does in a month, from our own daily records. A big percentage in a jumpy series is not news; a small one in a still series is.",
+    "",
+    "Which of these actually changed your thinking? Tell us below.",
+    "Save this, it is the month in one place.",
+    "",
+    "The full month, every number, is in our bio.",
+    "",
+    `${CORE_HASHTAGS} #PropertyData`,
+  ]
+    .filter((l, i, arr) => !(l === "" && arr[i - 1] === ""))
+    .join("\n");
+}
+
+/**
+ * Publish the monthly review as a carousel.
+ *
+ * A carousel rather than a single image because a month genuinely has several
+ * numbers in it, and slide 1 leads with the biggest one rather than a contents
+ * page — the grid thumbnail is a number, which is the whole argument of this
+ * account's better format. The swipe prompt names what the later slides hold
+ * so the loop is real rather than decorative.
+ */
+export async function postMonthlyReview(
+  cards: Array<{
+    label: string;
+    value: string;
+    line: string;
+    subtext: string;
+    source?: string | null;
+    asOf?: Date | null;
+  }>,
+  review: { label: string; reading: string },
+  siteUrl: string,
+  opts: { variant?: CardVariant } = {}
+): Promise<{ postId: string; headline: string }> {
+  const { instagramAccessToken: accessToken, instagramBusinessAccountId: igUserId } = env;
+  if (!accessToken || !igUserId) {
+    throw new Error("INSTAGRAM_ACCESS_TOKEN and INSTAGRAM_BUSINESS_ACCOUNT_ID must be set");
+  }
+  if (cards.length === 0) throw new Error("No movers to post for the monthly review");
+
+  const slides = cards.slice(0, MONTHLY_SLIDE_COUNT).map((c) => ({
+    ...c,
+    label: sanitizeDashes(c.label),
+    value: sanitizeDashes(c.value),
+    line: sanitizeDashes(c.line),
+    subtext: sanitizeDashes(c.subtext),
+  }));
+
+  const uuids: string[] = [];
+  try {
+    for (let i = 0; i < slides.length; i++) {
+      const buf = await renderStatCard(slides[i]!, opts.variant ?? "navy", {
+        // Slide 1 names the series; the rest count so a swiper knows where
+        // they are in it.
+        kicker: i === 0 ? `The Month in Numbers` : `${i + 1} / ${slides.length}`,
+      });
+      uuids.push(storeTempImage(buf));
+    }
+
+    const childIds = await Promise.all(
+      uuids.map((uuid, i) =>
+        createImageContainer({
+          igUserId,
+          accessToken,
+          imageUrl: `${siteUrl}/instagram/temp/${uuid}.jpg`,
+          altText: `${slides[i]!.label}: ${slides[i]!.value}. ${slides[i]!.line}`,
+          isCarouselItem: true,
+        })
+      )
+    );
+
+    const carouselId = await createCarouselContainer({
+      igUserId,
+      accessToken,
+      childrenIds: childIds,
+      caption: buildMonthlyCaption(
+        review,
+        slides.map((s) => ({ label: s.label, move: s.value, claim: s.subtext }))
+      ),
+    });
+    await waitForContainerReady({ containerId: carouselId, accessToken, timeoutMs: 90000 });
+    const postId = await publishCarouselConfirmed({
+      igUserId,
+      accessToken,
+      creationId: carouselId,
+    });
+
+    console.log(`[instagram] monthly review posted: ${postId} (${review.label})`);
+    return { postId, headline: `The Month in Numbers: ${review.label}` };
+  } finally {
+    uuids.forEach(removeTempImage);
+  }
+}
+
+/**
+ * Caption for a Reel.
+ *
+ * Shorter than a feed caption on purpose. Reels are watched, not read: the clip
+ * carries the number, the sentence and the claim, so repeating them here wastes
+ * the one line that shows before "…more". It names the series, asks for the
+ * save, and gets out of the way.
+ */
+export function buildReelCaption(stat: {
+  label: string;
+  value: string;
+  line: string;
+  subtext: string;
+}): string {
+  return [
+    sanitizeDashes(stat.line),
+    "",
+    `${sanitizeDashes(stat.label)}: ${sanitizeDashes(stat.value)}.`,
+    `${sanitizeDashes(stat.subtext.charAt(0) + stat.subtext.slice(1).toLowerCase())}.`,
+    "",
+    "Measured against what that number normally does, from our own daily records.",
+    "",
+    "Save this one. The full brief is in our bio.",
+    "",
+    `${CORE_HASHTAGS} #PropertyData`,
+  ].join("\n");
+}
+
+/**
+ * How long the Reel's container may be waited on, given when this call has to
+ * be finished.
+ *
+ * Reels are transcoded server-side and that genuinely can take minutes, which
+ * is why the wait was a flat five. But the scheduler drives this over
+ * `fetch`, and Node aborts a request whose headers have not arrived in 300
+ * seconds — measured, not assumed. Rendering takes seventy to ninety of those,
+ * so a flat five-minute wait on top could put the response past the point the
+ * scheduler is still listening: the post lands, the run is recorded as failed,
+ * an alert goes out, and the retry has to be caught by `findAlreadyPublished`.
+ * No double post, but a false alarm and a confusing log every time.
+ *
+ * So the wait gets the time that is actually left. The floor exists because a
+ * wait of a few seconds is not worth attempting at all — better to fail
+ * cleanly and let the retry, which starts with a fresh budget, have a real go.
+ */
+export const MIN_CONTAINER_WAIT_MS = 60_000;
+export const MAX_CONTAINER_WAIT_MS = 300_000;
+
+export function containerWaitBudgetMs(deadlineAt: number | undefined, now = Date.now()): number {
+  if (!deadlineAt) return MAX_CONTAINER_WAIT_MS;
+  const left = deadlineAt - now;
+  return Math.min(MAX_CONTAINER_WAIT_MS, Math.max(MIN_CONTAINER_WAIT_MS, left));
+}
+
+/**
+ * Publish a stat card as a Reel.
+ *
+ * Reels are the only surface on Instagram that reliably reaches people who do
+ * not already follow the account, so this is the first thing here aimed at
+ * growth rather than at the people already reading.
+ *
+ * The video and its cover are both served from the temp store while Instagram
+ * fetches them. The cover is the fully-revealed frame rather than the opening
+ * one: the grid thumbnail should show the finished card, not an empty stage.
+ */
+export async function postStatReel(
+  stat: {
+    label: string;
+    value: string;
+    line: string;
+    subtext: string;
+    source?: string | null;
+    asOf?: Date | null;
+    /** The metric's own readings, oldest first. Drawn as a line under the
+     *  claim, and animated across the clip. Omitted, the Reel is the card
+     *  without its history — which still posts, just with less behind it. */
+    series?: { value: number; at: Date }[];
+    /** Supporting figures, printed under the claim and revealed one at a time.
+     *  This is the density lever; see `buildStatFacts`. */
+    facts?: { figure: string; caption: string }[];
+  },
+  siteUrl: string,
+  opts: {
+    variant?: CardVariant;
+    script?: ScriptLine[];
+    /**
+     * Epoch ms by which this call must have returned. The caller is answering
+     * an HTTP request with a hard ceiling on it, and the render is the variable
+     * part, so the wait for Instagram's transcode is given whatever is left
+     * rather than a fixed five minutes on top of an unknown.
+     */
+    deadlineAt?: number;
+  } = {}
+): Promise<{ postId: string; headline: string }> {
+  const { instagramAccessToken: accessToken, instagramBusinessAccountId: igUserId } = env;
+  if (!accessToken || !igUserId) {
+    throw new Error("INSTAGRAM_ACCESS_TOKEN and INSTAGRAM_BUSINESS_ACCOUNT_ID must be set");
+  }
+
+  const sanitized = {
+    ...stat,
+    label: sanitizeDashes(stat.label),
+    value: sanitizeDashes(stat.value),
+    line: sanitizeDashes(stat.line),
+    subtext: sanitizeDashes(stat.subtext),
+  };
+  const variant = opts.variant ?? "navy";
+
+  let videoUuid: string | null = null;
+  let coverUuid: string | null = null;
+  const renderStartedAt = Date.now();
+  try {
+    const [video, cover] = await Promise.all([
+      renderStatReel(sanitized, variant, { script: opts.script }),
+      renderStatCard(sanitized, variant, {
+        shape: "vertical",
+        kicker: "The Number",
+        facts: sanitized.facts,
+      }),
+    ]);
+    console.log(
+      `[instagram] reel rendered in ${((Date.now() - renderStartedAt) / 1000).toFixed(1)}s ` +
+        `(${(video.bytes.length / 1e6).toFixed(2)}MB, ${video.seconds.toFixed(1)}s, ` +
+        `${video.narrated ? "narrated" : "SILENT"})`
+    );
+    videoUuid = storeTempImage(video.bytes, "video/mp4");
+    coverUuid = storeTempImage(cover);
+
+    const containerId = await createReelContainer({
+      igUserId,
+      accessToken,
+      videoUrl: `${siteUrl}/instagram/temp/${videoUuid}.mp4`,
+      coverUrl: `${siteUrl}/instagram/temp/${coverUuid}.jpg`,
+      caption: buildReelCaption(sanitized),
+    });
+    // Reels are transcoded server-side, so readiness takes far longer than an
+    // image container. Publishing early returns "media not ready" and burns the
+    // container.
+    await waitForContainerReady({
+      containerId,
+      accessToken,
+      timeoutMs: containerWaitBudgetMs(opts.deadlineAt),
+    });
+    const postId = await publishCarouselConfirmed({
+      igUserId,
+      accessToken,
+      creationId: containerId,
+    });
+
+    console.log(
+      `[instagram] reel posted: ${postId} (${sanitized.label} ${sanitized.value}, ` +
+        `${video.seconds.toFixed(1)}s, ${video.narrated ? "narrated" : "SILENT — tts unavailable"})`
+    );
+    return { postId, headline: `${sanitized.label}: ${sanitized.value}` };
+  } finally {
+    if (videoUuid) removeTempImage(videoUuid);
+    if (coverUuid) removeTempImage(coverUuid);
   }
 }

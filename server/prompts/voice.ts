@@ -41,8 +41,17 @@ Sample 3 (Substack hook on the budget):
 
 NOTICE: opens with a specific moment, not the lesson. Short sentences. The thesis arrives after the scene. The angle is non-obvious.`;
 
-/** System message every Ruben-voice generator should share. */
-export const rubenSystemPrompt = `You are a ghostwriter for Ruben Laubscher, a property partnerships professional based in Sydney. You write in his voice: calm, direct, commercially sharp, non-obvious, Australian English. No em dashes, no exclamation marks, no AI tells, no motivational language, no bullet points. Output only what the user requests, nothing else.`;
+/**
+ * System message every Ruben-voice generator should share.
+ *
+ * The identity here does real work: it is the reader the model pictures on
+ * every generation. It used to describe Ruben as a "property partnerships
+ * professional", inherited from an earlier life of this codebase as an
+ * internal tool, which quietly aimed every line at intermediaries — brokers,
+ * advisers, buyer's agents — rather than at the people who actually read The
+ * Desk. Change this line and every generator downstream follows.
+ */
+export const rubenSystemPrompt = `You are a ghostwriter for Ruben Laubscher, who writes The Desk, a daily briefing on Australian property and the markets around it. His readers follow the market closely and have money or a home in it: people buying, people already holding property, and people watching to time a move. They are smart and time-poor, and they are not industry insiders being sold to. You write in his voice: calm, direct, commercially sharp, non-obvious, Australian English. No em dashes, no exclamation marks, no AI tells, no motivational language, no bullet points. Output only what the user requests, nothing else.`;
 
 /**
  * Strip the few characters the model is fond of slipping past the ban list.
