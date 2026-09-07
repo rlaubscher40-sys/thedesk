@@ -28,6 +28,21 @@ const SUBSTACK_DRAFT_JSON = JSON.stringify({
   ].join("\n\n"),
 });
 
+const ASK_DESK_JSON = JSON.stringify({
+  headline: "Credit capacity is doing more of the work than sentiment.",
+  answer:
+    "The archive points to borrowing capacity and lender competition as the more useful near-term signal. The rate headline matters, but the transmission into approvals, refinancing and investor activity is where the practical change shows up.",
+  whyItMatters:
+    "A market can look unchanged at the headline level while finance conditions underneath it are already improving. That gap is where buyer behaviour can move before listings and prices make the shift obvious.",
+  deskTake:
+    "The better question is not whether confidence has returned. It is whether more borrowers can transact at today's prices. If capacity keeps improving, demand can strengthen without a dramatic change in the public narrative.",
+  whatWouldChangeOurMind:
+    "A sustained deterioration in approvals, a reversal in lender pricing, or evidence that improved borrowing capacity is not translating into transactions would weaken that view.",
+  signals: [],
+  sourceRefs: [1],
+  confidence: "medium",
+});
+
 const PARTNER_TAG_BLOCK = [
   "Broker: Conversation pivots to fixed-rate roll-offs landing in mid-June.",
   "Adviser: Refresh the 'rates higher for longer' framing, patience gives clients permission to plan.",
@@ -45,9 +60,15 @@ export async function demoLlm(params: InvokeLlmParams): Promise<string> {
   const text = params.messages.map((m) => m.content).join("\n").toLowerCase();
   const isJson = params.responseFormat?.type === "json_schema";
 
+  // Ask also uses a strict JSON schema, so identify it before the generic
+  // JSON branch used by the Substack demo stub.
+  if (text.includes("ask the desk intelligence answer") || text.includes("property intelligence analyst")) {
+    return ASK_DESK_JSON;
+  }
+
   // Order matters: the Take prompt mentions "Substack essay" in its style
-  // guide, so dispatch on the JSON format flag (only Substack uses it)
-  // before any text-content matching.
+  // guide, so dispatch on the JSON format flag (only Substack uses it after
+  // the Ask branch above) before any text-content matching.
   if (isJson) return SUBSTACK_DRAFT_JSON;
 
   // 3-role partner-tag block, easy to fingerprint by its labels.
