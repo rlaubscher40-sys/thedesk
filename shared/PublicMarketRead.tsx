@@ -197,8 +197,10 @@ export function PublicMarketRead({
       <details className="rule-hair mt-8 pt-4 text-sm text-[var(--color-fg-muted)]">
         <summary className="cursor-pointer">How this file is assembled</summary>
         <p className="mt-3 leading-6">
-          Exact city-name mentions in the title or summary of Australian and property-lane
-          reporting, across property, macro, markets, policy and economics. The sample covers up to{" "}
+          City-name mentions with nearby housing terms in Australian and property-lane reporting,
+          across property, macro, markets, policy and economics. General city news and non-housing
+          construction do not qualify on location alone. This conservative text filter can miss
+          relevant reporting; it does not verify the underlying claims. The sample covers up to{" "}
           {directory.sampleLimit} recent records over 90 days
           {directory.sampleCapped ? " and currently reaches that limit" : ""}. Weekly editions and
           licensed local datasets are not counted here. Duplicate source URLs and identical

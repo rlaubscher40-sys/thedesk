@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import { coverageLabel, marketPath } from "@shared/marketDirectory";
 import { trpc } from "@/lib/trpc";
 import { trackEvent } from "@/lib/analytics";
+import { FEATURED_COMPARISON_PATH } from "@shared/featuredComparison";
 
 export function MarketDiscovery({ compact = false }: { compact?: boolean }) {
   const query = trpc.markets.discovery.useQuery(undefined, { staleTime: 60_000 });
@@ -26,9 +27,20 @@ export function MarketDiscovery({ compact = false }: { compact?: boolean }) {
     );
   const markets = query.data?.markets ?? [];
   const shown = compact ? markets.filter((file) => file.referenceCount > 0).slice(0, 3) : markets;
-  if (compact && !shown.length) return null;
   return (
     <section className="mt-8 rule-major pt-5" aria-label="Discover market intelligence">
+      <Link
+        href={FEATURED_COMPARISON_PATH}
+        className="block rule-hair-b pb-5 mb-5 bs-row"
+        onClick={() => trackEvent("market_discover", compact ? "today" : "markets")}
+      >
+        <p className="bs-label-accent">Start with a comparison · free to read</p>
+        <h2 className="font-serif text-3xl sm:text-4xl mt-3">Brisbane vs Perth →</h2>
+        <p className="text-sm leading-6 mt-3 text-[var(--color-fg-muted)]">
+          Where did rents grow faster? See the official figures, then test what is missing from the
+          wider market call.
+        </p>
+      </Link>
       <p className="bs-label-accent">Start with a place</p>
       <div className="flex flex-wrap items-end justify-between gap-3 mt-3">
         <h2 className="font-serif text-3xl sm:text-4xl">Markets in the reporting.</h2>

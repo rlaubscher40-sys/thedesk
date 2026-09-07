@@ -31,6 +31,7 @@ const STATIC_ROUTES = new Set([
   "/brief",
   "/signals",
   "/markets",
+  "/markets/compare/brisbane-vs-perth",
   "/editions",
   "/queue",
   "/trends",

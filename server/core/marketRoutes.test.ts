@@ -75,6 +75,38 @@ beforeEach(() => {
 });
 
 describe("market page HTTP contracts", () => {
+  it("keeps the free comparison readable without data and ignores client copy", async () => {
+    const res = response();
+    await handlers.get("/markets/compare/brisbane-vs-perth")!(
+      request(),
+      res as unknown as Response,
+      vi.fn()
+    );
+    expect(res.send.mock.calls[0]?.[0]).toContain("evidence gap");
+    expect(res.send.mock.calls[0]?.[0]).not.toContain("Injected client headline");
+  });
+  it("withholds comparison cards without matching evidence", async () => {
+    const res = response();
+    await handlers.get("/og/markets/compare/brisbane-vs-perth.png")!(
+      request(),
+      res as unknown as Response,
+      vi.fn()
+    );
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(renderDeskTakeCard).not.toHaveBeenCalled();
+  });
+  it("returns retryable errors for comparison page and image outages", async () => {
+    vi.mocked(getMarketDirectory).mockRejectedValue(new Error("database unavailable"));
+    for (const path of [
+      "/markets/compare/brisbane-vs-perth",
+      "/og/markets/compare/brisbane-vs-perth.png",
+    ]) {
+      const res = response();
+      await handlers.get(path)!(request(), res as unknown as Response, vi.fn());
+      expect(res.status).toHaveBeenCalledWith(503);
+      expect(res.set).toHaveBeenCalledWith("Cache-Control", "no-store");
+    }
+  });
   it("renders a supported page and does not accept client-authored trusted copy", async () => {
     const res = response();
     await handlers.get("/markets/:slug")!(request(), res as unknown as Response, vi.fn());

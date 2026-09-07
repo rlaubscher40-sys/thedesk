@@ -1,5 +1,6 @@
 import type { ComparisonSource, MarketSide } from "../../shared/marketComparison";
 import * as db from "../db";
+import { hasHousingEvidence } from "../../shared/marketRelevance";
 
 export type MarketEvidence = ComparisonSource & { text: string };
 export function normaliseText(value: string): string {
@@ -21,12 +22,33 @@ export function marketPassage(text: string, market: string): string | null {
   return clean.slice(start, index + market.length + 1500);
 }
 
+/** Search every literal mention: an edition can mention football first and
+ * housing later. Only a nearby housing passage can consume a source slot. */
+export function marketHousingPassage(text: string, market: string): string | null {
+  const clean = normaliseText(text);
+  const escaped = normaliseText(market).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  if (!escaped) return null;
+  const matches = clean.matchAll(
+    new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, "giu")
+  );
+  for (const match of matches) {
+    const index = match.index;
+    const start = Math.max(0, index - 200);
+    const nearby = clean.slice(start, index + market.length + 300);
+    if (hasHousingEvidence(nearby)) return clean.slice(start, index + market.length + 1200);
+  }
+  return null;
+}
+
 export async function retrieveMarketEvidence(
   marketA: string,
   marketB: string
 ): Promise<MarketEvidence[]> {
   // Exact full-name queries keep "Port Macquarie" separate from national Macquarie lending.
-  const bundles = await Promise.all([db.searchAllContent(marketA), db.searchAllContent(marketB)]);
+  const bundles = await Promise.all([
+    db.searchMarketContent(marketA),
+    db.searchMarketContent(marketB),
+  ]);
   const evidence = new Map<string, MarketEvidence>();
   for (const [index, bundle] of bundles.entries()) {
     const side: MarketSide = index === 0 ? "a" : "b";
@@ -51,7 +73,7 @@ export async function retrieveMarketEvidence(
     ].sort((a, b) => b.date.localeCompare(a.date));
     let count = 0;
     for (const item of candidates) {
-      const passage = marketPassage(item.text, market);
+      const passage = marketHousingPassage(item.text, market);
       if (!passage) continue;
       const existing = evidence.get(item.identity);
       if (existing?.markets.includes(side)) continue;
