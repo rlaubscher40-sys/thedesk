@@ -15,10 +15,10 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import {
-  BookOpen,
   Bookmark,
   ChevronUp,
   LogIn,
+  MapPin,
   Newspaper,
   Radio,
   Search,
@@ -43,14 +43,15 @@ type NavItem = {
   icon: typeof Newspaper;
 };
 
-// Five primary destinations. Ask and Signals are the product loops we want
-// one tap away: interrogate the intelligence, then watch what changes. Archive
-// and Saved remain utilities; Trends is still reachable from the masthead.
+// The phone bar carries the five product loops, not the full information
+// architecture: know what changed, interrogate it, inspect a place, watch the
+// live signals, and keep the things worth returning to. Archive/editions/trends
+// stay in the masthead nav rather than competing for one of five thumb targets.
 const MOBILE_TABS: NavItem[] = [
   { path: "/", label: "Today", icon: Newspaper },
   { path: "/ask", label: "Ask", icon: Search },
+  { path: "/markets", label: "Markets", icon: MapPin },
   { path: "/signals", label: "Signals", icon: Radio },
-  { path: "/archive", label: "Archive", icon: BookOpen },
   { path: "/queue", label: "Saved", icon: Bookmark },
 ];
 
