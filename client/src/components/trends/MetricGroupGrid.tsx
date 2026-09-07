@@ -160,7 +160,11 @@ function MetricRow({
             {metric.source}
           </span>
         )}
-        <ShareMetricCardButton metricKey={metric.metricKey} label={metric.label} />
+        <ShareMetricCardButton
+          metricKey={metric.metricKey}
+          label={metric.label}
+          canChart={values.length >= 2}
+        />
       </div>
     </div>
   );
