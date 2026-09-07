@@ -22,10 +22,10 @@ function base64ToFile(base64: string, mimeType: string, filename: string): File 
 }
 
 /**
- * Builds the 4:5 distribution card only when the reader asks for it, then
- * uses the native share sheet on phones where file-sharing is supported.
- * Desktop falls back to saving the PNG locally so it can be dropped straight
- * into Instagram, LinkedIn or a message.
+ * Builds the 4:5 distribution card and a signed 30-day public brief URL in one
+ * action. Phones get the native share sheet; desktop saves the asset and copies
+ * the public brief link so distribution always has a destination, not just an
+ * image with nowhere to continue the intelligence loop.
  */
 export function ShareIntelligenceCardButton(props: Props) {
   const [complete, setComplete] = useState(false);
@@ -44,17 +44,32 @@ export function ShareIntelligenceCardButton(props: Props) {
     });
 
     const file = base64ToFile(rendered.base64, rendered.mimeType, rendered.filename);
-    const sharePayload = { files: [file], title: props.headline };
+    const publicUrl = new URL(rendered.sharePath, window.location.origin).toString();
+    const shareText = `The Desk intelligence brief: ${props.headline}`;
 
-    if (navigator.share && navigator.canShare?.(sharePayload)) {
+    if (navigator.share) {
+      const canShareFile = navigator.canShare?.({ files: [file] }) ?? false;
       try {
-        await navigator.share(sharePayload);
+        if (canShareFile) {
+          await navigator.share({
+            files: [file],
+            title: props.headline,
+            text: shareText,
+            url: publicUrl,
+          });
+        } else {
+          await navigator.share({
+            title: props.headline,
+            text: shareText,
+            url: publicUrl,
+          });
+        }
         setComplete(true);
         window.setTimeout(() => setComplete(false), 2200);
         return;
       } catch {
-        // Cancelling the share sheet should still leave the asset available
-        // through the normal browser fallback below.
+        // Cancellation or a platform-specific share failure falls through to
+        // the deterministic desktop-style asset + clipboard path below.
       }
     }
 
@@ -66,6 +81,14 @@ export function ShareIntelligenceCardButton(props: Props) {
     anchor.click();
     anchor.remove();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+    try {
+      await navigator.clipboard.writeText(publicUrl);
+    } catch {
+      // The image export is still useful in a non-secure/local browser where
+      // Clipboard API permission is unavailable.
+    }
+
     setComplete(true);
     window.setTimeout(() => setComplete(false), 2200);
   }
@@ -85,7 +108,7 @@ export function ShareIntelligenceCardButton(props: Props) {
       ) : (
         <ImageIcon className="h-3.5 w-3.5" />
       )}
-      {card.isPending ? "Building card" : complete ? "Card ready" : "Share card"}
+      {card.isPending ? "Building share" : complete ? "Share ready" : "Share intelligence"}
     </button>
   );
 }
