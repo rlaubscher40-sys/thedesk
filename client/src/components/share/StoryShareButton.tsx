@@ -1,5 +1,6 @@
 import { Check, LoaderCircle, Share2 } from "lucide-react";
 import { useState } from "react";
+import { trackEvent } from "@/lib/analytics";
 import { trpc } from "@/lib/trpc";
 
 function base64ToFile(base64: string, mimeType: string, filename: string): File {
@@ -31,6 +32,7 @@ export function StoryShareButton({ id, title }: { id: number; title: string }) {
         } else {
           await navigator.share({ title, text: rendered.caption, url: publicUrl });
         }
+        trackEvent("story_share", "story");
         setComplete(true);
         window.setTimeout(() => setComplete(false), 2000);
         return;
@@ -55,6 +57,7 @@ export function StoryShareButton({ id, title }: { id: number; title: string }) {
       // The image is still exported if clipboard access is unavailable.
     }
 
+    trackEvent("story_share", "story");
     setComplete(true);
     window.setTimeout(() => setComplete(false), 2000);
   }
