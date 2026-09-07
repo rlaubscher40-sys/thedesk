@@ -98,11 +98,59 @@ function clamp(value: string | null | undefined, max: number): string {
   return `${(at > max * 0.62 ? cut.slice(0, at) : cut).trimEnd()}…`;
 }
 
-function headlineSize(length: number): string {
+/**
+ * Pull the first source-backed numeric hook out of a headline without doing any
+ * maths. The social headline stage already rejects rewritten numbers that are
+ * absent from the source title/summary; this only changes typography.
+ *
+ * Bare four-digit calendar years are deliberately skipped. A grid tile saying
+ * "2026" almost never communicates the story, while a percentage, dollar
+ * figure, count or ordinary non-year number often does.
+ */
+export function extractHookStat(title: string): string | null {
+  const text = clean(title);
+  const pattern = /(?:[$£€]\s*)?\d+(?:,\d{3})*(?:\.\d+)?(?:\s?(?:%|bn|billion|million|m|b|k))?/gi;
+  for (const match of text.matchAll(pattern)) {
+    const raw = clean(match[0]);
+    if (!raw) continue;
+    const numeric = Number(
+      raw
+        .replace(/[$£€,%\s]/g, "")
+        .replace(/(?:bn|billion|million|m|b|k)$/i, "")
+    );
+    const hasQualifier = /[$£€,%]|(?:bn|billion|million|m|b|k)$/i.test(raw);
+    if (
+      !hasQualifier &&
+      Number.isFinite(numeric) &&
+      numeric >= 1900 &&
+      numeric <= 2100 &&
+      /^\d{4}$/.test(raw)
+    ) {
+      continue;
+    }
+    return raw.toUpperCase();
+  }
+  return null;
+}
+
+function headlineSize(length: number, hasStat: boolean): string {
+  if (hasStat) {
+    if (length > 115) return "54px";
+    if (length > 90) return "59px";
+    if (length > 68) return "64px";
+    return "70px";
+  }
   if (length > 115) return "66px";
   if (length > 90) return "74px";
   if (length > 68) return "84px";
   return "96px";
+}
+
+function statSize(length: number): string {
+  if (length >= 12) return "150px";
+  if (length >= 9) return "174px";
+  if (length >= 6) return "198px";
+  return "228px";
 }
 
 function formatDate(value?: string | null): string {
@@ -119,8 +167,16 @@ function formatDate(value?: string | null): string {
 
 function buildTree(input: DailyHookCoverInput) {
   const c = palette(input.variant ?? "navy");
-  const title = clamp(input.lead.title, 150);
-  const why = clamp(input.lead.whyItMatters, 230);
+  const fullTitle = clamp(input.lead.title, 150);
+  const hookStat = extractHookStat(fullTitle);
+  const statStartsTitle = hookStat
+    ? fullTitle.toUpperCase().startsWith(hookStat.toUpperCase())
+    : false;
+  const withoutLeadingStat = statStartsTitle && hookStat
+    ? fullTitle.slice(hookStat.length).replace(/^[\s:;,.-]+/, "").trim()
+    : fullTitle;
+  const title = withoutLeadingStat.length >= 14 ? withoutLeadingStat : fullTitle;
+  const why = clamp(input.lead.whyItMatters, hookStat ? 190 : 230);
   const supporting = (input.supporting ?? []).slice(0, 2);
   const metrics = (input.metrics ?? []).slice(0, 4);
   const category = clean(input.lead.category).toUpperCase() || "NEWS";
@@ -194,9 +250,29 @@ function buildTree(input: DailyHookCoverInput) {
                     textTransform: "uppercase",
                     color: c.amber,
                   },
-                  children: `THE LEAD · ${category}`,
+                  children: `${hookStat ? "THE NUMBER" : "THE LEAD"} · ${category}`,
                 },
               },
+              ...(hookStat
+                ? [
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          display: "flex",
+                          fontFamily: "Playfair Display",
+                          fontWeight: 700,
+                          fontSize: statSize(hookStat.length),
+                          lineHeight: 0.78,
+                          letterSpacing: "-0.055em",
+                          color: c.ink,
+                          marginTop: "34px",
+                        },
+                        children: hookStat,
+                      },
+                    },
+                  ]
+                : []),
               {
                 type: "div",
                 props: {
@@ -204,11 +280,11 @@ function buildTree(input: DailyHookCoverInput) {
                     display: "flex",
                     fontFamily: "Playfair Display",
                     fontWeight: 700,
-                    fontSize: headlineSize(title.length),
-                    lineHeight: 0.99,
+                    fontSize: headlineSize(title.length, Boolean(hookStat)),
+                    lineHeight: hookStat ? 1.04 : 0.99,
                     letterSpacing: "-0.035em",
-                    color: c.ink,
-                    marginTop: "30px",
+                    color: hookStat ? c.body : c.ink,
+                    marginTop: hookStat ? "28px" : "30px",
                   },
                   children: title,
                 },
@@ -221,10 +297,10 @@ function buildTree(input: DailyHookCoverInput) {
                         style: {
                           display: "flex",
                           fontFamily: "Playfair Display",
-                          fontSize: "30px",
+                          fontSize: hookStat ? "26px" : "30px",
                           lineHeight: 1.42,
                           color: c.body,
-                          marginTop: "28px",
+                          marginTop: hookStat ? "22px" : "28px",
                           maxWidth: "900px",
                         },
                         children: why,
@@ -244,7 +320,7 @@ function buildTree(input: DailyHookCoverInput) {
                           letterSpacing: "0.16em",
                           color: c.muted,
                           textTransform: "uppercase",
-                          marginTop: "24px",
+                          marginTop: hookStat ? "18px" : "24px",
                         },
                         children: `Source · ${source}`,
                       },
