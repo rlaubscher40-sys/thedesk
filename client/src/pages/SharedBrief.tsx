@@ -1,4 +1,5 @@
-import { ArrowRight, ShieldCheck } from "lucide-react";
+import { ArrowRight, Check, Share2, ShieldCheck } from "lucide-react";
+import { useState } from "react";
 import { Link, useSearch } from "wouter";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { trpc } from "@/lib/trpc";
@@ -7,6 +8,7 @@ export default function SharedBriefPage() {
   const search = useSearch();
   const params = new URLSearchParams(search);
   const token = params.get("t") ?? params.get("token") ?? "";
+  const [shared, setShared] = useState(false);
   const brief = trpc.ask.shared.useQuery(
     { token },
     { enabled: token.length >= 20, retry: false, staleTime: 30 * 60_000 }
@@ -18,6 +20,28 @@ export default function SharedBriefPage() {
 
   const data = brief.data;
 
+  async function shareBrief() {
+    const url = new URL(`/brief?t=${encodeURIComponent(token)}`, window.location.origin).toString();
+    const text = `${data.headline}\n\n${data.answer}\n\nThe Desk · Australian property intelligence`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: data.headline, text, url });
+        setShared(true);
+        window.setTimeout(() => setShared(false), 2200);
+        return;
+      } catch {
+        // Cancellation or platform-specific failure falls through to copy.
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(`${text}\n\n${url}`);
+      setShared(true);
+      window.setTimeout(() => setShared(false), 2200);
+    } catch {
+      // Keep the page usable where Clipboard API is unavailable.
+    }
+  }
+
   return (
     <div className="pt-2 pb-8">
       <header className="rule-major pt-4 max-w-[1180px]">
@@ -26,9 +50,19 @@ export default function SharedBriefPage() {
             <ShieldCheck className="h-4 w-4 text-[var(--color-accent-text)]" strokeWidth={1.7} />
             <p className="bs-label-accent">The Desk · Shared intelligence</p>
           </div>
-          <p className="bs-label">
-            {data.sourceCount} source{data.sourceCount === 1 ? "" : "s"} · {data.confidence} confidence
-          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="bs-label">
+              {data.sourceCount} source{data.sourceCount === 1 ? "" : "s"} · {data.confidence} confidence
+            </p>
+            <button
+              type="button"
+              onClick={() => void shareBrief()}
+              className="bs-btn bs-btn-outline inline-flex items-center gap-2"
+            >
+              {shared ? <Check className="h-3.5 w-3.5" /> : <Share2 className="h-3.5 w-3.5" />}
+              {shared ? "Share ready" : "Share brief"}
+            </button>
+          </div>
         </div>
 
         <p className="bs-label mt-8">Question</p>
