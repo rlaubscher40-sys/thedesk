@@ -9,6 +9,8 @@ import {
   renderWeeklyStoryVertical,
   renderStatCard,
   renderWeeklyTopicCard,
+  estimateValueEms,
+  fitValueSize,
 } from "./instagramCards";
 
 function fakeStory(overrides: Partial<DailyFeedItem> = {}): DailyFeedItem {
@@ -406,5 +408,46 @@ describe("renderStatCard", () => {
         subtext: "A COMPUTED CLAIM THAT IS ITSELF FAR TOO LONG FOR THE MONO LINE ".repeat(2),
       })
     );
+  });
+});
+
+describe("fitValueSize", () => {
+  const box = { availablePx: 952, maxPx: 400, minPx: 120 };
+  const px = (v: string) => Number(fitValueSize(v, box).replace("px", ""));
+
+  it("keeps the figure inside the gutters, rounding included", () => {
+    // The size it returns, put back through its own width estimate, must still
+    // fit. The margin is easy to give back by rounding the size up, which is
+    // the mistake this is here to catch.
+    for (const value of [
+      "4%",
+      "4.3%",
+      "12,480",
+      "$815,439",
+      "$1,234,567",
+      "-12.4pp",
+      "1,234,567,890",
+    ]) {
+      expect(px(value) * estimateValueEms(value)).toBeLessThanOrEqual(box.availablePx);
+    }
+  });
+
+  it("never sets a longer figure larger than a shorter one", () => {
+    const sizes = ["4.3%", "12,480", "$815,439", "$1,234,567"].map(px);
+    for (let i = 1; i < sizes.length; i++) expect(sizes[i]!).toBeLessThanOrEqual(sizes[i - 1]!);
+  });
+
+  it("sizes by width, not by character count", () => {
+    // "12,480" and "-12.4pp" are both seven characters. Sized by count they
+    // get the same type size and the second one runs off the frame.
+    expect(px("-12.4pp")).toBeLessThan(px("12,480"));
+  });
+
+  it("does not blow a short figure up past the ceiling", () => {
+    expect(px("4%")).toBe(box.maxPx);
+  });
+
+  it("stops shrinking at the floor rather than becoming unreadable", () => {
+    expect(px("$1,234,567,890,123,456")).toBe(box.minPx);
   });
 });

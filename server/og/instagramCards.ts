@@ -226,6 +226,73 @@ function fitFontSize(len: number, tiers: Array<[number, string]>, fallback: stri
   return fallback;
 }
 
+/**
+ * Roughly how wide each character is in Playfair Display Bold, as a fraction of
+ * the font size. Only the characters a figure can contain are listed; anything
+ * else falls back to a digit's width.
+ *
+ * These are eyeballed from rendered output rather than read out of the font,
+ * which is enough: the number they feed into is a *ceiling*, applied with a
+ * safety margin, and the consequence of being slightly pessimistic is a figure
+ * a few pixels smaller than it could have been.
+ */
+const GLYPH_EM: Record<string, number> = {
+  "0": 0.56,
+  "1": 0.42,
+  "2": 0.56,
+  "3": 0.56,
+  "4": 0.56,
+  "5": 0.56,
+  "6": 0.56,
+  "7": 0.56,
+  "8": 0.56,
+  "9": 0.56,
+  ".": 0.28,
+  ",": 0.28,
+  " ": 0.26,
+  $: 0.56,
+  "%": 0.9,
+  "-": 0.36,
+  "\u2212": 0.36,
+  "+": 0.6,
+  b: 0.55,
+  k: 0.55,
+  m: 0.85,
+  p: 0.55,
+  s: 0.44,
+};
+
+/**
+ * The largest size a figure can be set at and still fit on one line.
+ *
+ * Counting characters — which is what the rest of this file does, and what this
+ * replaced for the 9:16 frame — is fine while the type is small enough that
+ * even a pessimistic guess fits. It stops being fine once the figure is set as
+ * large as a Reel needs: "12,480" and "-12.4pp" are both seven characters, and
+ * the second is nearly a third wider, because a comma is a quarter of the width
+ * of a "p". Sized by character count, one of them runs off the edge of the
+ * frame — which is exactly what happened.
+ *
+ * So the width is estimated per glyph and the size falls out of the space
+ * available. The 4 per cent margin is for the difference between these
+ * approximations and the real font metrics.
+ */
+export function estimateValueEms(value: string): number {
+  return [...value].reduce((n, ch) => n + (GLYPH_EM[ch] ?? GLYPH_EM["0"]!), 0);
+}
+
+export function fitValueSize(
+  value: string,
+  opts: { availablePx: number; maxPx: number; minPx: number }
+): string {
+  const ems = estimateValueEms(value);
+  if (ems <= 0) return `${opts.maxPx}px`;
+  const fits = (opts.availablePx * 0.96) / ems;
+  // Floor rather than round: rounding up can put the line back over the width
+  // the margin was there to protect.
+  return `${Math.floor(Math.max(opts.minPx, Math.min(opts.maxPx, fits)))}px`;
+}
+
 async function renderToJpeg(tree: object, width: number, height: number): Promise<Buffer> {
   const fonts = await loadFonts();
   const svg = await satori(tree as never, {
@@ -2374,6 +2441,13 @@ export async function renderStatCard(
      * is whole, which is what every still rendering wants.
      */
     reveal?: number;
+    /**
+     * Show this in place of the real figure. Used only by the count-up in a
+     * Reel, where the number climbs to itself. The type size is still chosen
+     * from the *real* value's length, so an intermediate tick cannot resize the
+     * hero and make the card jump under it.
+     */
+    valueText?: string;
   } = {}
 ): Promise<Buffer> {
   const logo = await loadLogo(variant);
@@ -2390,24 +2464,44 @@ export async function renderStatCard(
   // The value is the whole point of the card, so it is set as large as its own
   // length allows rather than at a fixed size: "64.2%" earns 300px, "$815,439"
   // has to come down to stay on one line inside the 64px gutters.
-  const valueSize = fitFontSize(
-    stat.value.length,
-    [
-      [5, "300px"],
-      [7, "240px"],
-      [9, "186px"],
-      [12, "146px"],
-    ],
-    "112px"
-  );
+  //
+  // The 9:16 frame gets its own, larger scale. It is not a taller version of
+  // the grid card: it is watched at arm's length in a feed of full-screen
+  // video, against a competitor whose clips fill the frame. Type set for a
+  // thumbnail reads as an empty poster at that size. Both tables are tuned to
+  // the same constraint — the longest value at each step still clears the 64px
+  // gutters on one line — so nothing here can wrap.
+  //
+  // Only the 9:16 frame is measured. The grid card's table is left alone: its
+  // sizes are conservative enough that even the widest realistic figure clears
+  // the gutters, and changing them would restyle every stat post already
+  // published to fix a problem the grid card does not have.
+  const valueSize = vertical
+    ? fitValueSize(stat.value, { availablePx: width - 128, maxPx: 400, minPx: 120 })
+    : fitFontSize(
+        stat.value.length,
+        [
+          [5, "300px"],
+          [7, "240px"],
+          [9, "186px"],
+          [12, "146px"],
+        ],
+        "112px"
+      );
   const lineSize = fitFontSize(
     stat.line.length,
-    [
-      [48, "54px"],
-      [70, "47px"],
-      [92, "41px"],
-    ],
-    "36px"
+    vertical
+      ? [
+          [48, "68px"],
+          [70, "59px"],
+          [92, "51px"],
+        ]
+      : [
+          [48, "54px"],
+          [70, "47px"],
+          [92, "41px"],
+        ],
+    vertical ? "45px" : "36px"
   );
 
   const asOfLabel = stat.asOf
@@ -2431,6 +2525,11 @@ export async function renderStatCard(
         backgroundColor: c.bg,
         backgroundImage: c.bloom,
         padding: "64px",
+        // Instagram lays its caption, handle and buttons over roughly the
+        // bottom fifth of a Reel. Reserving that as padding — rather than as a
+        // heavier spacer — keeps the *whole* card, provenance line included,
+        // above the chrome instead of only the headline.
+        paddingBottom: vertical ? "320px" : "64px",
         justifyContent: "flex-start",
       },
       children: [
@@ -2464,13 +2563,14 @@ export async function renderStatCard(
         // into the lower third: the number is visually top-heavy, so
         // dead-centring it reads as sitting high.
         //
-        // The 9:16 frame inverts that. Instagram lays its own caption, handle
-        // and buttons over roughly the bottom fifth of a Reel, so a block
-        // placed low is a block partly covered. Here the weight goes to the
-        // bottom spacer and the content sits above the chrome.
+        // The 9:16 frame is near-balanced, weighted a touch upwards for the
+        // same top-heaviness. An earlier version pushed the block right up
+        // against the header to clear Instagram's chrome, which left almost
+        // half the frame empty below it — the chrome is handled by the padding
+        // above, so this only has to place the block.
         {
           type: "div",
-          props: { style: { display: "flex", flexGrow: vertical ? 0.7 : 1.7 }, children: "" },
+          props: { style: { display: "flex", flexGrow: vertical ? 1 : 1.7 }, children: "" },
         },
 
         {
@@ -2509,7 +2609,7 @@ export async function renderStatCard(
                     color: c.fg,
                     opacity: showValue ? 1 : 0,
                   },
-                  children: stat.value,
+                  children: opts.valueText ?? stat.value,
                 },
               },
               // The sentence.
@@ -2567,7 +2667,7 @@ export async function renderStatCard(
 
         {
           type: "div",
-          props: { style: { display: "flex", flexGrow: vertical ? 1.9 : 1 }, children: "" },
+          props: { style: { display: "flex", flexGrow: vertical ? 0.95 : 1 }, children: "" },
         },
 
         // ── Bottom: rule + provenance + domain ──

@@ -1923,9 +1923,11 @@ function registerInstagramRoutes(app: Express): void {
   // what posts. Daily uses the raw feed titles (it skips the LLM headline
   // punch-up the live post applies) but is otherwise the production path.
   //   kind: weekly-cover | weekly-story | weekly-topic | daily-cover
-  //       | daily-slide | daily-story
+  //       | daily-slide | daily-story | stat | reel
   //   query: ?editionNumber=N (weekly) · ?date=YYYY-MM-DD&variant=navy|light
   //          (daily) · ?i=N (topic/slide index)
+  //          · ?shape=vertical (stat) — `reel` returns video/mp4, with the
+  //            narrated flag in the X-Reel-Narrated response header
   app.get("/api/instagram/preview/:kind", async (req: Request, res: Response) => {
     if (!(await authenticateScheduled(req))) {
       res.status(401).json({ error: "Unauthorized" });
@@ -1989,6 +1991,48 @@ function registerInstagramRoutes(app: Express): void {
           buf = await cards.renderDailyStoryCard(story, idx, stories.length, variant);
         } else if (kind === "daily-story") {
           buf = await cards.renderDailyStoryVertical(stories[0]!, variant);
+        }
+      }
+
+      // The Number, and the Reel made from it. Both run the real selection —
+      // the same `pickStatOfTheDay` and `generateStatLine` the posting job uses
+      // — so a preview that looks right is the post that will go out.
+      //
+      // The Reel is the one preview worth having: it is the only format with a
+      // voice track, and the voice cannot be checked by reading the code. It
+      // renders in about forty seconds, which is why it is behind a URL you
+      // ask for rather than anything that runs on its own.
+      if (kind === "stat" || kind === "reel") {
+        const { pickStatOfTheDay } = await import("./instagram/statPick");
+        const { generateStatLine } = await import("./prompts/statCard");
+        const [metrics, histories] = await Promise.all([
+          db.listDailyMetrics(),
+          db.listMetricHistories(180),
+        ]);
+        const pick = pickStatOfTheDay(metrics, histories);
+        if (!pick) {
+          res.status(422).json({ error: "No metric cleared the bar today" });
+          return;
+        }
+        const variant = req.query.variant === "light" ? "light" : "navy";
+        const stat = { ...pick, line: sanitizeDashes(await generateStatLine(pick)) };
+        if (kind === "stat") {
+          buf = await cards.renderStatCard(stat, variant, {
+            shape: req.query.shape === "vertical" ? "vertical" : "feed",
+            kicker: "The Number",
+          });
+        } else {
+          const { renderStatReel } = await import("./video/statReel");
+          const reel = await renderStatReel(stat, variant);
+          res.setHeader("Content-Type", "video/mp4");
+          res.setHeader("Cache-Control", "no-store");
+          res.setHeader("X-Reel-Seconds", reel.seconds.toFixed(2));
+          // Says out loud whether the voice made it in. A silent Reel renders
+          // successfully and looks fine in a browser, so without this the only
+          // way to notice a missing OPENAI_API_KEY is to have the sound up.
+          res.setHeader("X-Reel-Narrated", String(reel.narrated));
+          res.send(reel.bytes);
+          return;
         }
       }
 

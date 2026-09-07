@@ -123,6 +123,26 @@ how often we post.
 The talking-head piece matters for a second reason: it puts a human on the
 account. Ours is anonymous and visibly automated.
 
+> **Correction, and what shipped.** The first Reel built off this section was
+> silent, on my argument that feed video is watched muted and that licensed
+> music is a rights problem. Ruben's verdict on the output was blunt and
+> correct: next to theirs it was a slideshow. Two things were wrong in that
+> argument. Muted viewing is an average across all video, not a description of
+> the people who actually follow an account off a Reel. And "everything it says,
+> it says on screen" is only true if the screen is worth watching — ours was
+> four stills with a zoom that, because `zoompan` anchors its crop top-left by
+> default, was not even pushing into the number.
+>
+> `server/video/statReel.ts` now narrates (`server/video/narration.ts`, OpenAI
+> TTS), counts the figure up to itself, cross-dissolves its beats, and cuts the
+> pictures to the *measured* length of each spoken passage rather than to a
+> fixed table. The script is assembled from the card's own already-verified
+> strings — nothing is written for the audio — so the factual-integrity contract
+> is unchanged. Preview it at `/api/instagram/preview/reel`.
+>
+> What is still not fixed is the second half of this section: there is no face.
+> A synthetic voice is not a person, and nothing here closes that gap.
+
 ### 3.5 Proprietary data versus aggregated news
 
 This is the deepest advantage and the hardest to copy.

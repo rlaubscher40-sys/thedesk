@@ -1088,7 +1088,7 @@ export async function postStatReel(
       renderStatReel(sanitized, variant),
       renderStatCard(sanitized, variant, { shape: "vertical", kicker: "The Number" }),
     ]);
-    videoUuid = storeTempImage(video, "video/mp4");
+    videoUuid = storeTempImage(video.bytes, "video/mp4");
     coverUuid = storeTempImage(cover);
 
     const containerId = await createReelContainer({
@@ -1108,7 +1108,10 @@ export async function postStatReel(
       creationId: containerId,
     });
 
-    console.log(`[instagram] reel posted: ${postId} (${sanitized.label} ${sanitized.value})`);
+    console.log(
+      `[instagram] reel posted: ${postId} (${sanitized.label} ${sanitized.value}, ` +
+        `${video.seconds.toFixed(1)}s, ${video.narrated ? "narrated" : "SILENT — tts unavailable"})`
+    );
     return { postId, headline: `${sanitized.label}: ${sanitized.value}` };
   } finally {
     if (videoUuid) removeTempImage(videoUuid);
