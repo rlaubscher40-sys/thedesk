@@ -19,3 +19,4 @@ export * from "./editorQc";
 export * from "./dailyItemQc";
 export * from "./headlineOptimiser";
 export * from "./metricExtraction";
+export * from "./ask";
