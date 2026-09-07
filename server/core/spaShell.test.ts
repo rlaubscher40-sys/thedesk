@@ -49,8 +49,8 @@ describe("isKnownRoute", () => {
     expect(declared.length).toBeGreaterThan(10);
 
     for (const route of declared) {
-      // Substitute a value for each :param to get a concrete URL.
-      const concrete = route.replace(/:[^/]+/g, "1");
+      // Public markets use an allow-listed slug; numeric IDs belong to the other routes.
+      const concrete = route.replace(":slug", "perth").replace(/:[^/]+/g, "1");
       expect(isKnownRoute(concrete), `${route} is missing from spaShell.ts`).toBe(true);
     }
   });

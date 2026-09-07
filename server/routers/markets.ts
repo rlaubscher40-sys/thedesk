@@ -1,4 +1,7 @@
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
+import { publicMarket } from "../../shared/marketDirectory";
+import { getMarketDirectory } from "../markets/discovery";
 import { comparisonInputSchema } from "../../shared/marketComparison";
 import { consumeAnonymousAsk } from "../core/askQuota";
 import {
@@ -12,6 +15,17 @@ import { groundComparison } from "../markets/grounding";
 import { buildComparisonMessages, comparisonResponseFormat } from "../prompts/marketComparison";
 
 export const marketsRouter = router({
+  discovery: publicProcedure.query(() => getMarketDirectory()),
+  publicFile: publicProcedure
+    .input(z.object({ slug: z.string().max(40) }))
+    .query(async ({ input }) => {
+      if (!publicMarket(input.slug)) throw new TRPCError({ code: "NOT_FOUND" });
+      const directory = await getMarketDirectory();
+      return {
+        directory,
+        file: directory.markets.find((item) => item.market.slug === input.slug)!,
+      };
+    }),
   compare: publicProcedure.input(comparisonInputSchema).mutation(async ({ input, ctx }) => {
     // Share Ask's allowance, consumed before retrieval/model work to bound anonymous cost.
     const quota = ctx.user ? null : consumeAnonymousAsk(ctx.req);

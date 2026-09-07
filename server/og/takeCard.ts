@@ -40,6 +40,7 @@ async function loadFonts(): Promise<LoadedFonts> {
 }
 
 export type DeskTakeCardInput = {
+  format?: "take" | "market";
   take: string;
   storyTitle: string;
   category: string;
@@ -114,7 +115,7 @@ function buildTree(input: DeskTakeCardInput) {
                     textTransform: "uppercase",
                     color: MUTED,
                   },
-                  children: "The Desk Take",
+                  children: input.format === "market" ? "The Market File" : "The Desk Take",
                 },
               },
             ],
@@ -136,7 +137,10 @@ function buildTree(input: DeskTakeCardInput) {
                     textTransform: "uppercase",
                     color: AMBER,
                   },
-                  children: `${input.category} · Our read`,
+                  children:
+                    input.format === "market"
+                      ? `${input.category} · In the reporting`
+                      : `${input.category} · Our read`,
                 },
               },
               {
@@ -180,7 +184,7 @@ function buildTree(input: DeskTakeCardInput) {
                     textTransform: "uppercase",
                     color: MUTED,
                   },
-                  children: "Reacting to",
+                  children: input.format === "market" ? "Open the file" : "Reacting to",
                 },
               },
               {

@@ -23,7 +23,11 @@ export function AskDeskBand() {
         <div className="min-w-0">
           <p
             className="font-serif font-bold group-hover:text-[var(--color-accent-text)] transition-colors"
-            style={{ fontSize: "clamp(22px, 3vw, 36px)", lineHeight: 1.06, letterSpacing: "-0.025em" }}
+            style={{
+              fontSize: "clamp(22px, 3vw, 36px)",
+              lineHeight: 1.06,
+              letterSpacing: "-0.025em",
+            }}
           >
             What do you need to know about Australian property?
           </p>
@@ -33,8 +37,11 @@ export function AskDeskBand() {
         </div>
 
         <span className="hidden sm:inline-flex items-center gap-2 bs-label bs-link justify-self-end">
-          Open terminal <ArrowRight className="h-4 w-4" />
+          Get a sourced answer <ArrowRight className="h-4 w-4" />
         </span>
+      </Link>
+      <Link href="/markets" className="bs-label bs-link inline-block mt-3">
+        Not sure what to ask? Start with a market →
       </Link>
     </section>
   );

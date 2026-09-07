@@ -8,12 +8,20 @@
  * raw IP persistence or third-party scripts.
  */
 
+import { analyticsPath } from "@shared/analyticsPath";
+
 const SESSION_KEY = "thedesk:session";
 
 export type EngagementEvent =
   | "ask_query"
   | "ask_share"
   | "market_watch"
+  | "market_discover"
+  | "market_file_ask"
+  | "market_file_compare"
+  | "market_file_source"
+  | "market_file_share"
+  | "market_file_export"
   | "market_compare"
   | "market_compare_share"
   | "comparison_watch"
@@ -84,7 +92,7 @@ export function trackPageView(): void {
   const id = sessionId();
   if (!id) return;
 
-  const path = window.location.pathname || "/";
+  const path = analyticsPath(window.location.pathname);
   if (path === lastPath) return;
   lastPath = path;
 
@@ -108,7 +116,7 @@ export function trackEvent(event: EngagementEvent, surface?: string): void {
   send("/api/analytics/event", {
     event,
     surface: surface?.slice(0, 32),
-    path: window.location.pathname || "/",
+    path: analyticsPath(window.location.pathname),
     sessionId: id,
   });
 }

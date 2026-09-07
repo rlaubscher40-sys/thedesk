@@ -22,6 +22,8 @@
  * added there and forgotten here 404s in production while working in dev.
  */
 
+import { publicMarket } from "../../shared/marketDirectory";
+
 /** Exact-match public routes. */
 const STATIC_ROUTES = new Set([
   "/",
@@ -74,6 +76,8 @@ const NOINDEX_ROUTES = new Set([
 
 export function isKnownRoute(pathname: string): boolean {
   if (STATIC_ROUTES.has(pathname)) return true;
+  if (pathname.startsWith("/markets/"))
+    return Boolean(publicMarket(pathname.slice("/markets/".length)));
   return DYNAMIC_ROUTES.some((re) => re.test(pathname));
 }
 

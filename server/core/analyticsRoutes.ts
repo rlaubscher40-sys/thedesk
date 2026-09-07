@@ -10,6 +10,7 @@ import type { Express, Request, Response } from "express";
 import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import * as db from "../db";
+import { analyticsPath } from "../../shared/analyticsPath";
 
 const pageViewSchema = z.object({
   path: z.string().min(1).max(256),
@@ -22,6 +23,12 @@ const engagementEventSchema = z.object({
     "ask_query",
     "ask_share",
     "market_watch",
+    "market_discover",
+    "market_file_ask",
+    "market_file_compare",
+    "market_file_source",
+    "market_file_share",
+    "market_file_export",
     "market_compare",
     "market_compare_share",
     "comparison_watch",
@@ -33,7 +40,7 @@ const engagementEventSchema = z.object({
     "take_share",
     "brief_reshare",
   ]),
-  surface: z.enum(["ask", "markets", "signals", "trends", "story", "brief"]).optional(),
+  surface: z.enum(["ask", "markets", "signals", "trends", "story", "brief", "today"]).optional(),
   sessionId: z.string().min(8).max(64),
 });
 
@@ -61,11 +68,6 @@ function reduceReferrer(raw: string | undefined): string | null {
   }
 }
 
-/** Trim path: drop query string and fragment defensively. */
-function reducePath(raw: string): string {
-  return raw.split(/[?#]/, 1)[0]?.slice(0, 256) ?? "/";
-}
-
 /** Hostname from a Host header, dropping the port. Handles bracketed IPv6. */
 function hostnameOnly(host: string | undefined): string | null {
   if (!host) return null;
@@ -89,7 +91,7 @@ async function handlePageView(req: Request, res: Response): Promise<void> {
   const referrer = refHost && refHost !== ownHost ? refHost : null;
 
   await db.recordPageView({
-    path: reducePath(parsed.data.path),
+    path: analyticsPath(parsed.data.path),
     referrer,
     sessionId: parsed.data.sessionId,
   });

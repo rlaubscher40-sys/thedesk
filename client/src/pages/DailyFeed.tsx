@@ -34,6 +34,7 @@ import { SubscribeBand } from "@/components/broadsheet/SubscribeBand";
 import { WhereThingsStand } from "@/components/broadsheet/MetricBlocks";
 import { GUTTER_X } from "@/components/broadsheet/tokens";
 import { AskDeskBand } from "@/components/broadsheet/today/AskDeskBand";
+import { MarketDiscovery } from "@/components/markets/MarketDiscovery";
 import { IndexStrip } from "@/components/broadsheet/today/IndexStrip";
 import { Lead } from "@/components/broadsheet/today/Lead";
 import { MorningSignals } from "@/components/broadsheet/today/MorningSignals";
@@ -126,8 +127,7 @@ export default function DailyFeed() {
   const allFeedItems = useFilteredFeed(feedQuery.data ?? []);
   const enriched = isEnrichedChannel(channel);
 
-  const channelOf = (it: { channel?: string | null }): string =>
-    (it.channel ?? "AU").toUpperCase();
+  const channelOf = (it: { channel?: string | null }): string => (it.channel ?? "AU").toUpperCase();
 
   // Items in the active lane. Partitioned client-side so switching lanes is
   // instant — the query already returned every channel for the day.
@@ -151,9 +151,7 @@ export default function DailyFeed() {
     return hasContext && hasTake && hasAnglesBlock;
   };
   const pinned = feedItems.find((it) => (it.priority ?? 50) >= 100);
-  const lead = enriched
-    ? (pinned ?? feedItems.find(isLeadWorthy) ?? feedItems[0])
-    : feedItems[0];
+  const lead = enriched ? (pinned ?? feedItems.find(isLeadWorthy) ?? feedItems[0]) : feedItems[0];
   const rest = feedItems.filter((it) => it.id !== lead?.id);
   const leadIsFallback = enriched && !pinned && !!lead && !isLeadWorthy(lead);
 
@@ -201,10 +199,7 @@ export default function DailyFeed() {
           </span>
         )}
         {isToday && streakDays >= 2 && (
-          <span
-            className="bs-label hidden md:inline"
-            style={{ color: "var(--color-accent-text)" }}
-          >
+          <span className="bs-label hidden md:inline" style={{ color: "var(--color-accent-text)" }}>
             · {streakDays}-day streak
           </span>
         )}
@@ -292,6 +287,13 @@ export default function DailyFeed() {
           columns so the layout is honest about what it is. */}
       {!hasLiveData && isDemo && <SeedFallback />}
 
+      {isToday && channel === "AU" && (
+        <SectionErrorBoundary section="Market discovery">
+          <div className={GUTTER_X}>
+            <MarketDiscovery compact />
+          </div>
+        </SectionErrorBoundary>
+      )}
       <SubscribeBand source="today-band" />
     </>
   );
@@ -405,7 +407,9 @@ function FeedSkeleton() {
           </div>
         ))}
       </div>
-      <div className={cn(GUTTER_X, "grid lg:grid-cols-[minmax(0,1.68fr)_minmax(0,1fr)] gap-11 pt-8")}>
+      <div
+        className={cn(GUTTER_X, "grid lg:grid-cols-[minmax(0,1.68fr)_minmax(0,1fr)] gap-11 pt-8")}
+      >
         <div className="space-y-4">
           <Skeleton className="h-3 w-40" />
           <Skeleton className="h-14 w-full" />
