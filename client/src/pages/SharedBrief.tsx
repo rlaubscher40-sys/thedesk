@@ -2,6 +2,7 @@ import { ArrowRight, Check, Share2, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { Link, useSearch } from "wouter";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { trackEvent } from "@/lib/analytics";
 import { trpc } from "@/lib/trpc";
 
 export default function SharedBriefPage() {
@@ -26,6 +27,7 @@ export default function SharedBriefPage() {
     if (navigator.share) {
       try {
         await navigator.share({ title: data.headline, text, url });
+        trackEvent("brief_reshare", "brief");
         setShared(true);
         window.setTimeout(() => setShared(false), 2200);
         return;
@@ -35,6 +37,7 @@ export default function SharedBriefPage() {
     }
     try {
       await navigator.clipboard.writeText(`${text}\n\n${url}`);
+      trackEvent("brief_reshare", "brief");
       setShared(true);
       window.setTimeout(() => setShared(false), 2200);
     } catch {
