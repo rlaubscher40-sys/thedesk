@@ -1,8 +1,6 @@
 import { ArrowRight, ShieldCheck } from "lucide-react";
 import { Link, useSearch } from "wouter";
-import { GUTTER_X } from "@/components/broadsheet/tokens";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { cn } from "@/lib/cn";
 import { trpc } from "@/lib/trpc";
 
 export default function SharedBriefPage() {
@@ -20,7 +18,7 @@ export default function SharedBriefPage() {
   const data = brief.data;
 
   return (
-    <div className={cn(GUTTER_X, "pt-10 pb-16")}>
+    <div className="pt-2 pb-8">
       <header className="rule-major pt-4 max-w-[1180px]">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
@@ -54,7 +52,7 @@ export default function SharedBriefPage() {
       </header>
 
       <div className="grid lg:grid-cols-[minmax(0,1fr)_1px_340px] mt-9">
-        <main className="lg:pr-14 min-w-0">
+        <div className="lg:pr-14 min-w-0">
           <section>
             <p className="bs-label">The answer</p>
             <p
@@ -91,7 +89,7 @@ export default function SharedBriefPage() {
               </div>
             </section>
           )}
-        </main>
+        </div>
 
         <div className="hidden lg:block bg-[var(--color-border)]" aria-hidden="true" />
 
@@ -128,7 +126,7 @@ export default function SharedBriefPage() {
 
 function InvalidBrief() {
   return (
-    <div className={cn(GUTTER_X, "py-16")}>
+    <div className="py-8">
       <div className="rule-major pt-6 max-w-3xl">
         <p className="bs-label-accent">Shared intelligence</p>
         <h1 className="font-serif font-bold mt-3" style={{ fontSize: 46, lineHeight: 1 }}>
@@ -147,7 +145,7 @@ function InvalidBrief() {
 
 function BriefSkeleton() {
   return (
-    <div className={cn(GUTTER_X, "py-12")} aria-busy="true">
+    <div className="py-4" aria-busy="true">
       <div className="rule-major pt-5 max-w-5xl space-y-4">
         <Skeleton className="h-3 w-48" />
         <Skeleton className="h-6 w-3/5" />
