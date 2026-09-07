@@ -15,6 +15,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
+    "probe:abs": "tsx scripts/ingest/probe-abs.ts",
     "ingest:daily": "INGEST_CLI=1 tsx scripts/ingest/dailyFeed.ts",
     "ingest:weekly": "INGEST_CLI=1 tsx scripts/ingest/weeklyEdition.ts",
     "ingest:metrics": "INGEST_CLI=1 tsx scripts/ingest/dailyMetrics.ts"
