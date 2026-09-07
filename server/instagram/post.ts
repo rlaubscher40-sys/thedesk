@@ -20,6 +20,7 @@ import { generateCoverageBrief } from "../prompts/coverageBrief";
 import { generateInstagramHeadline } from "../prompts/instagramHeadline";
 import { generateSayThis } from "../prompts/sayThis";
 import { generateWhyItMatters } from "../prompts/whyItMatters";
+import { renderDailyHookCoverCard } from "../og/dailyHookCover";
 import {
   type CardVariant,
   renderDailyCoverCard,
@@ -572,18 +573,34 @@ export async function postDailyCarousel(
   // alt_text per slide, kept in lockstep with the carousel images (cover + one per story).
   const altTexts: (string | undefined)[] = [];
   try {
-    // Slide 1 is a branded cover (date + numbered contents). Instagram shows
-    // slide 1 as the grid thumbnail, so leading with this makes the profile
-    // read as a cohesive column of covers rather than dense, unrelated tiles.
-    const coverBuf = await renderDailyCoverCard(
-      sanitized,
-      sanitized[0]?.feedDate,
-      opts.variant ?? "navy",
-      opts.metrics,
-      coverOpts
-    );
+    // Coverage keeps its branded series cover. The morning briefing earns the
+    // grid tile with the actual lead hook: the source-backed claim is the first
+    // thing a scroller sees, while supporting stories and live metrics remain
+    // visible as proof/context lower on the card.
+    const coverBuf = isCoverage
+      ? await renderDailyCoverCard(
+          sanitized,
+          sanitized[0]?.feedDate,
+          opts.variant ?? "navy",
+          opts.metrics,
+          coverOpts
+        )
+      : await renderDailyHookCoverCard({
+          feedDate: sanitized[0]?.feedDate,
+          lead: {
+            title: sanitized[0]!.title,
+            category: sanitized[0]!.category,
+            source: sanitized[0]!.source,
+            whyItMatters: sanitized[0]!.whyItMatters,
+          },
+          supporting: sanitized.slice(1, 3).map((story) => ({
+            title: story.title,
+            category: story.category,
+          })),
+          metrics: opts.metrics,
+        });
     carouselUuids.push(storeTempImage(coverBuf));
-    altTexts.push(isCoverage ? "The Desk wider lens cover" : "The Desk daily briefing cover");
+    altTexts.push(isCoverage ? "The Desk wider lens cover" : sanitized[0]!.title);
 
     for (let i = 0; i < sanitized.length; i++) {
       // Whole carousel shares the cover's variant so a light post reads as
