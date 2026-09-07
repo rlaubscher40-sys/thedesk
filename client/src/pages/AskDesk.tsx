@@ -13,6 +13,7 @@ import {
 import { ShareIntelligenceCardButton } from "@/components/ask/ShareIntelligenceCardButton";
 import { GUTTER_X } from "@/components/broadsheet/tokens";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { trackEvent } from "@/lib/analytics";
 import { getLoginUrl } from "@/lib/auth";
 import { cn } from "@/lib/cn";
 import { trpc } from "@/lib/trpc";
@@ -67,6 +68,7 @@ export default function AskDeskPage() {
       setCopied(false);
       rememberQuestion(linkedQuestion);
       setHistory(readHistory());
+      trackEvent("ask_query", "ask");
       mutation.mutate({ question: linkedQuestion });
       return;
     }
@@ -80,6 +82,7 @@ export default function AskDeskPage() {
     setCopied(false);
     rememberQuestion(value);
     setHistory(readHistory());
+    trackEvent("ask_query", "ask");
     mutation.mutate({ question: value });
   }
 
@@ -88,6 +91,7 @@ export default function AskDeskPage() {
     setCopied(false);
     rememberQuestion(value);
     setHistory(readHistory());
+    trackEvent("ask_query", "ask");
     mutation.mutate({ question: value });
   }
 
@@ -130,6 +134,7 @@ export default function AskDeskPage() {
     if (navigator.share) {
       try {
         await navigator.share({ title: result.answer.headline, text, url: publicUrl });
+        trackEvent("ask_share", "ask");
         return;
       } catch {
         // User cancelled or Web Share is unavailable for this payload.
@@ -137,6 +142,7 @@ export default function AskDeskPage() {
     }
     try {
       await navigator.clipboard.writeText(`${text}\n\n${publicUrl}`);
+      trackEvent("ask_share", "ask");
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2200);
     } catch {
