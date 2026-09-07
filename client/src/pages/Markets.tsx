@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
+import { ShareIntelligenceCardButton } from "@/components/ask/ShareIntelligenceCardButton";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { trpc } from "@/lib/trpc";
 
@@ -342,10 +343,16 @@ export default function MarketsPage() {
             <section className="rule-major mt-10 pt-7">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="bs-label-accent">The Desk Read</p>
-                <span className="bs-label inline-flex items-center gap-1.5">
-                  <ShieldCheck className="h-3.5 w-3.5 text-[var(--color-accent-text)]" />
-                  {answer.answer.confidence} confidence · {answer.sources.length} sources
-                </span>
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="bs-label inline-flex items-center gap-1.5">
+                    <ShieldCheck className="h-3.5 w-3.5 text-[var(--color-accent-text)]" />
+                    {answer.answer.confidence} confidence · {answer.sources.length} sources
+                  </span>
+                  <ShareIntelligenceCardButton
+                    shareToken={answer.shareToken}
+                    headline={answer.answer.headline}
+                  />
+                </div>
               </div>
               <h2
                 className="font-serif font-bold mt-4 max-w-[18ch]"
