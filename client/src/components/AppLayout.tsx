@@ -43,12 +43,13 @@ type NavItem = {
   icon: typeof Newspaper;
 };
 
-// Five primary destinations — a phone tab row gets cramped past that, and
-// the labels are already at 9px. Admin is appended at runtime for admins.
+// Five primary destinations. Ask is deliberately in the tab bar rather than
+// buried under Archive: the intelligence loop should be one tap away from
+// every screen. Editions remain reachable from the masthead/page nav.
 const MOBILE_TABS: NavItem[] = [
   { path: "/", label: "Today", icon: Newspaper },
-  { path: "/editions", label: "Editions", icon: BookOpen },
-  { path: "/archive", label: "Archive", icon: Search },
+  { path: "/ask", label: "Ask", icon: Search },
+  { path: "/archive", label: "Archive", icon: BookOpen },
   { path: "/trends", label: "Trends", icon: BarChart3 },
   { path: "/queue", label: "Saved", icon: Bookmark },
 ];
@@ -64,6 +65,7 @@ const OWNS_CHROME = ["/"];
 function ownsGutter(location: string): boolean {
   return (
     location === "/" ||
+    location === "/ask" ||
     location === "/about" ||
     location === "/archive" ||
     location === "/editions" ||
