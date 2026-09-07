@@ -36,6 +36,7 @@ describe("summariseFormats", () => {
     expect(summaries.map((s) => s.postType)).toEqual([
       "daily",
       "stat",
+      "reel",
       "weekly",
       "monthly",
       "coverage",

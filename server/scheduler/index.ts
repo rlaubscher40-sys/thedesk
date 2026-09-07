@@ -182,6 +182,16 @@ const JOBS: Job[] = [
     maxAttempts: 2,
     run: (b, k, a) => postLocal(b, k, "/api/ingest/instagram-stat", a),
   },
+  // Twice a week rather than daily: a Reel is the reach play, and the same
+  // animated card every day would wear out fast. Tuesday and Thursday sit
+  // clear of the Sunday edition and of the 1st-of-month review.
+  {
+    key: "instagram-reel",
+    at: "18:22",
+    dow: [2, 4],
+    maxAttempts: 2,
+    run: (b, k, a) => postLocal(b, k, "/api/ingest/instagram-reel", a),
+  },
   // The 1st of the month, covering the month that just finished. Sits after the
   // morning briefing so the two do not publish within minutes of each other.
   {

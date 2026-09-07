@@ -33,6 +33,7 @@ import {
 import {
   createCarouselContainer,
   createImageContainer,
+  createReelContainer,
   createStoryContainer,
   findRecentMedia,
   isRateLimitError,
@@ -40,6 +41,7 @@ import {
   waitForContainerReady,
 } from "./api";
 import { removeTempImage, storeTempImage } from "./tempStore";
+import { renderStatReel } from "../video/statReel";
 
 /** Single source of truth for dash sanitization in Instagram content. */
 export function sanitizeDashes(text: string): string {
@@ -1011,5 +1013,105 @@ export async function postMonthlyReview(
     return { postId, headline: `The Month in Numbers: ${review.label}` };
   } finally {
     uuids.forEach(removeTempImage);
+  }
+}
+
+/**
+ * Caption for a Reel.
+ *
+ * Shorter than a feed caption on purpose. Reels are watched, not read: the clip
+ * carries the number, the sentence and the claim, so repeating them here wastes
+ * the one line that shows before "…more". It names the series, asks for the
+ * save, and gets out of the way.
+ */
+export function buildReelCaption(stat: {
+  label: string;
+  value: string;
+  line: string;
+  subtext: string;
+}): string {
+  return [
+    sanitizeDashes(stat.line),
+    "",
+    `${sanitizeDashes(stat.label)}: ${sanitizeDashes(stat.value)}.`,
+    `${sanitizeDashes(stat.subtext.charAt(0) + stat.subtext.slice(1).toLowerCase())}.`,
+    "",
+    "Measured against what that number normally does, from our own daily records.",
+    "",
+    "Save this one. The full brief is in our bio.",
+    "",
+    `${CORE_HASHTAGS} #PropertyData`,
+  ].join("\n");
+}
+
+/**
+ * Publish a stat card as a Reel.
+ *
+ * Reels are the only surface on Instagram that reliably reaches people who do
+ * not already follow the account, so this is the first thing here aimed at
+ * growth rather than at the people already reading.
+ *
+ * The video and its cover are both served from the temp store while Instagram
+ * fetches them. The cover is the fully-revealed frame rather than the opening
+ * one: the grid thumbnail should show the finished card, not an empty stage.
+ */
+export async function postStatReel(
+  stat: {
+    label: string;
+    value: string;
+    line: string;
+    subtext: string;
+    source?: string | null;
+    asOf?: Date | null;
+  },
+  siteUrl: string,
+  opts: { variant?: CardVariant } = {}
+): Promise<{ postId: string; headline: string }> {
+  const { instagramAccessToken: accessToken, instagramBusinessAccountId: igUserId } = env;
+  if (!accessToken || !igUserId) {
+    throw new Error("INSTAGRAM_ACCESS_TOKEN and INSTAGRAM_BUSINESS_ACCOUNT_ID must be set");
+  }
+
+  const sanitized = {
+    ...stat,
+    label: sanitizeDashes(stat.label),
+    value: sanitizeDashes(stat.value),
+    line: sanitizeDashes(stat.line),
+    subtext: sanitizeDashes(stat.subtext),
+  };
+  const variant = opts.variant ?? "navy";
+
+  let videoUuid: string | null = null;
+  let coverUuid: string | null = null;
+  try {
+    const [video, cover] = await Promise.all([
+      renderStatReel(sanitized, variant),
+      renderStatCard(sanitized, variant, { shape: "vertical", kicker: "The Number" }),
+    ]);
+    videoUuid = storeTempImage(video, "video/mp4");
+    coverUuid = storeTempImage(cover);
+
+    const containerId = await createReelContainer({
+      igUserId,
+      accessToken,
+      videoUrl: `${siteUrl}/instagram/temp/${videoUuid}.mp4`,
+      coverUrl: `${siteUrl}/instagram/temp/${coverUuid}.jpg`,
+      caption: buildReelCaption(sanitized),
+    });
+    // Reels are transcoded server-side, so readiness takes far longer than an
+    // image container. Publishing early returns "media not ready" and burns the
+    // container.
+    await waitForContainerReady({ containerId, accessToken, timeoutMs: 300_000 });
+    const postId = await publishCarouselConfirmed({
+      igUserId,
+      accessToken,
+      creationId: containerId,
+    });
+
+    console.log(`[instagram] reel posted: ${postId} (${sanitized.label} ${sanitized.value})`);
+    return { postId, headline: `${sanitized.label}: ${sanitized.value}` };
+  } finally {
+    if (videoUuid) removeTempImage(videoUuid);
+    if (coverUuid) removeTempImage(coverUuid);
   }
 }

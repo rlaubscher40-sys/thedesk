@@ -128,7 +128,14 @@ export const LINKEDIN_LIMITS = {
  *
  * Order is the day's running order, which is also how the admin panel reads.
  */
-export const INSTAGRAM_POST_TYPES = ["daily", "stat", "weekly", "monthly", "coverage"] as const;
+export const INSTAGRAM_POST_TYPES = [
+  "daily",
+  "stat",
+  "reel",
+  "weekly",
+  "monthly",
+  "coverage",
+] as const;
 export type InstagramPostType = (typeof INSTAGRAM_POST_TYPES)[number];
 
 /** Audience-facing name of each post type — the title it wears on the grid.
@@ -137,6 +144,7 @@ export type InstagramPostType = (typeof INSTAGRAM_POST_TYPES)[number];
 export const INSTAGRAM_POST_TYPE_LABELS: Record<InstagramPostType, string> = {
   daily: "Today's Briefing",
   stat: "The Number",
+  reel: "The Number, on video",
   weekly: "This Week",
   monthly: "The Month in Numbers",
   coverage: "The Wider Lens",

@@ -90,6 +90,17 @@ const RERUN_JOBS = [
     warning: "the latest weekly edition carousel",
   },
   {
+    job: "reel" as const,
+    label: "The Number, video",
+    full: "The Number, on video",
+    at: "18:22",
+    dow: null,
+    // Tuesdays and Thursdays, and skips a quiet day like The Number does, so
+    // "not posted" is the normal state most days rather than an alarm.
+    optional: true,
+    warning: "a Reel of the day's most notable metric movement",
+  },
+  {
     job: "monthly" as const,
     label: "The Month",
     full: "The Month in Numbers",

@@ -1273,6 +1273,18 @@ function registerInstagramRoutes(app: Express): void {
     res.send(entry.buffer);
   });
 
+  app.get("/instagram/temp/:uuid.mp4", async (req: Request, res: Response) => {
+    const { getTempImage } = await import("./instagram/tempStore");
+    const entry = getTempImage(routeParam(req.params.uuid));
+    if (!entry) {
+      res.status(404).json({ error: "Not found or expired" });
+      return;
+    }
+    res.setHeader("Content-Type", entry.contentType);
+    res.setHeader("Cache-Control", "no-store");
+    res.send(entry.buffer);
+  });
+
   // POST /api/ingest/instagram-daily  — posts today's top-3 stories as a carousel
   const dailyHandler = async (req: Request, res: Response) => {
     if (!(await authenticateScheduled(req))) {
@@ -1598,6 +1610,103 @@ function registerInstagramRoutes(app: Express): void {
   };
   app.post("/api/scheduled/instagram-stat", statHandler);
   app.post("/api/ingest/instagram-stat", statHandler);
+
+  // POST /api/ingest/instagram-reel — the same number, as video.
+  //
+  // Reels are the only Instagram surface that reliably reaches people who do
+  // not already follow the account, so this is the one posting job aimed at
+  // growth rather than at existing readers. Same selection as The Number, same
+  // refusal to post on a quiet day: a Reel about nothing is worse than silence,
+  // because it costs reach on the next one.
+  const reelHandler = async (req: Request, res: Response) => {
+    if (!(await authenticateScheduled(req))) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const { instagramAccessToken, instagramBusinessAccountId } = (await import("./core/env")).env;
+    if (!instagramAccessToken || !instagramBusinessAccountId) {
+      res.status(503).json({ error: "Instagram credentials not configured" });
+      return;
+    }
+    const parsed = z
+      .object({ attempt: z.number().int().min(1).optional() })
+      .safeParse(req.body ?? {});
+    const attempt = parsed.success ? (parsed.data.attempt ?? 1) : 1;
+
+    try {
+      const { pickStatOfTheDay } = await import("./instagram/statPick");
+      const { generateStatLine } = await import("./prompts/statCard");
+      const { findAlreadyPublished, postStatReel } = await import("./instagram/post");
+
+      const [metrics, histories] = await Promise.all([
+        db.listDailyMetrics(),
+        db.listMetricHistories(180),
+      ]);
+      const pick = pickStatOfTheDay(metrics, histories);
+      if (!pick) {
+        console.log("[instagram] no metric cleared the bar; skipping the reel");
+        res.json({ success: true, skipped: true, reason: "No metric movement worth posting" });
+        return;
+      }
+
+      const variant = await nextCoverVariant();
+      const alreadyPublished = await findAlreadyPublished(attempt);
+      if (alreadyPublished) {
+        const recoveredHeadline = `${pick.label}: ${pick.value}`;
+        await db.recordInstagramPost({
+          mediaId: alreadyPublished,
+          postType: "reel",
+          feedDate: null,
+          headline: recoveredHeadline,
+          coverVariant: variant,
+        });
+        res.json({
+          success: true,
+          postId: alreadyPublished,
+          headline: recoveredHeadline,
+          recovered: true,
+        });
+        return;
+      }
+
+      const line = await generateStatLine(pick);
+      const { postId, headline } = await postStatReel(
+        {
+          label: pick.label,
+          value: pick.value,
+          line,
+          subtext: pick.subtext,
+          source: pick.source,
+          asOf: pick.asOf,
+        },
+        siteOrigin(),
+        { variant }
+      );
+      console.log(`[instagram] reel complete: ${postId}`);
+      await db.recordInstagramPost({
+        mediaId: postId,
+        postType: "reel",
+        feedDate: null,
+        headline,
+        coverVariant: variant,
+      });
+      res.json({ success: true, postId, headline });
+    } catch (err) {
+      const e = err as Error;
+      console.error("[instagram] reel failed:", e.message);
+      await db
+        .recordServerError({
+          level: "error",
+          message: `Instagram reel failed: ${e.message}`.slice(0, 512),
+          stack: e.stack ?? null,
+          route: "instagram/reel",
+        })
+        .catch(() => {});
+      res.status(502).json({ error: "Instagram reel failed", message: e.message });
+    }
+  };
+  app.post("/api/scheduled/instagram-reel", reelHandler);
+  app.post("/api/ingest/instagram-reel", reelHandler);
 
   // POST /api/ingest/instagram-monthly — "The Month in Numbers". The one series
   // built entirely from our own metric history, so it is the one a competitor
@@ -1946,7 +2055,7 @@ export function registerScheduledRoutes(app: Express): void {
   registerNudgeRespondRoute(app);
   registerInstagramRoutes(app);
   console.log(
-    "[scheduled] registered /api/{scheduled,ingest}/{daily-feed,weekly-edition,synthesize-edition,daily-metrics,extract-metrics,weekly-recap,nudge-check,instagram-daily,instagram-stat,instagram-monthly,instagram-weekly,instagram-insights} + /api/nudge/respond + /instagram/temp/:uuid.jpg + /api/instagram/preview/:kind"
+    "[scheduled] registered /api/{scheduled,ingest}/{daily-feed,weekly-edition,synthesize-edition,daily-metrics,extract-metrics,weekly-recap,nudge-check,instagram-daily,instagram-stat,instagram-reel,instagram-monthly,instagram-weekly,instagram-insights} + /api/nudge/respond + /instagram/temp/:uuid.{jpg,mp4} + /api/instagram/preview/:kind"
   );
 }
 

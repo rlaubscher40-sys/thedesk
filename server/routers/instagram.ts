@@ -19,6 +19,7 @@ const RERUN_PATHS = {
   daily: "/api/ingest/instagram-daily",
   coverage: "/api/ingest/instagram-coverage",
   stat: "/api/ingest/instagram-stat",
+  reel: "/api/ingest/instagram-reel",
   monthly: "/api/ingest/instagram-monthly",
   weekly: "/api/ingest/instagram-weekly",
 } as const;
@@ -113,7 +114,7 @@ export const instagramRouter = router({
   rerun: adminProcedure
     .input(
       z.object({
-        job: z.enum(["daily", "coverage", "stat", "monthly", "weekly"]),
+        job: z.enum(["daily", "coverage", "stat", "reel", "monthly", "weekly"]),
         /** Daily/coverage only: post a specific feed date instead of today's. */
         feedDate: z
           .string()

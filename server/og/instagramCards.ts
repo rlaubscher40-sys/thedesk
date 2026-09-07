@@ -2363,10 +2363,29 @@ export async function renderStatCard(
     asOf?: Date | null;
   },
   variant: CardVariant = "navy",
-  opts: { kicker?: string } = {}
+  opts: {
+    kicker?: string;
+    /** 4:5 grid card (default) or 9:16 for a Story or a Reel frame. */
+    shape?: "feed" | "vertical";
+    /**
+     * How much of the card has arrived, 0..1. Used to render the frames of a
+     * Reel from this same design rather than a second one: the number lands
+     * first, the sentence follows, the claim last. At 1 (the default) the card
+     * is whole, which is what every still rendering wants.
+     */
+    reveal?: number;
+  } = {}
 ): Promise<Buffer> {
   const logo = await loadLogo(variant);
   const c = colorScheme(variant);
+  const vertical = opts.shape === "vertical";
+  const width = 1080;
+  const height = vertical ? 1920 : 1350;
+  const reveal = opts.reveal ?? 1;
+  // Each element appears at its own point in the reveal, in reading order.
+  const showValue = reveal >= 0.15;
+  const showLine = reveal >= 0.45;
+  const showClaim = reveal >= 0.75;
 
   // The value is the whole point of the card, so it is set as large as its own
   // length allows rather than at a fixed size: "64.2%" earns 300px, "$815,439"
@@ -2407,8 +2426,8 @@ export async function renderStatCard(
       style: {
         display: "flex",
         flexDirection: "column",
-        width: "1080px",
-        height: "1350px",
+        width: `${width}px`,
+        height: `${height}px`,
         backgroundColor: c.bg,
         backgroundImage: c.bloom,
         padding: "64px",
@@ -2439,10 +2458,20 @@ export async function renderStatCard(
           },
         },
 
-        // Spacers above and below settle the stat block into the lower third.
-        // Weighting the top one heavier reads better than dead-centring it: the
-        // number is visually top-heavy, so a centred block sits high.
-        { type: "div", props: { style: { display: "flex", flexGrow: 1.7 }, children: "" } },
+        // Spacers above and below place the stat block.
+        //
+        // On the 4:5 grid card the top one is heavier, which settles the block
+        // into the lower third: the number is visually top-heavy, so
+        // dead-centring it reads as sitting high.
+        //
+        // The 9:16 frame inverts that. Instagram lays its own caption, handle
+        // and buttons over roughly the bottom fifth of a Reel, so a block
+        // placed low is a block partly covered. Here the weight goes to the
+        // bottom spacer and the content sits above the chrome.
+        {
+          type: "div",
+          props: { style: { display: "flex", flexGrow: vertical ? 0.7 : 1.7 }, children: "" },
+        },
 
         {
           type: "div",
@@ -2478,6 +2507,7 @@ export async function renderStatCard(
                     // closes up the thousands comma.
                     letterSpacing: "-0.018em",
                     color: c.fg,
+                    opacity: showValue ? 1 : 0,
                   },
                   children: stat.value,
                 },
@@ -2494,6 +2524,7 @@ export async function renderStatCard(
                     letterSpacing: "-0.01em",
                     color: c.fg,
                     marginTop: "62px",
+                    opacity: showLine ? 1 : 0,
                   },
                   children: clampSentence(stat.line, 100),
                 },
@@ -2510,6 +2541,7 @@ export async function renderStatCard(
                     backgroundColor: c.amber,
                     marginTop: "44px",
                     marginBottom: "26px",
+                    opacity: showClaim ? 1 : 0,
                   },
                   children: "",
                 },
@@ -2524,6 +2556,7 @@ export async function renderStatCard(
                     lineHeight: 1.5,
                     textTransform: "uppercase",
                     color: c.amber,
+                    opacity: showClaim ? 1 : 0,
                   },
                   children: clamp(stat.subtext, 92),
                 },
@@ -2532,7 +2565,10 @@ export async function renderStatCard(
           },
         },
 
-        { type: "div", props: { style: { display: "flex", flexGrow: 1 }, children: "" } },
+        {
+          type: "div",
+          props: { style: { display: "flex", flexGrow: vertical ? 1.9 : 1 }, children: "" },
+        },
 
         // ── Bottom: rule + provenance + domain ──
         {
@@ -2593,5 +2629,5 @@ export async function renderStatCard(
     },
   };
 
-  return renderToJpeg(tree, 1080, 1350);
+  return renderToJpeg(tree, width, height);
 }
