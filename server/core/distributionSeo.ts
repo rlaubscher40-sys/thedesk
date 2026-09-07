@@ -34,6 +34,10 @@ function firstQuery(value: unknown): string {
   return "";
 }
 
+function briefToken(req: Request): string {
+  return firstQuery(req.query.t) || firstQuery(req.query.token);
+}
+
 function replaceMeta(
   html: string,
   attribute: "name" | "property",
@@ -152,17 +156,17 @@ async function getMetricPresentation(metricKey: string) {
 }
 
 async function handleBriefMeta(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const token = firstQuery(req.query.token);
+  const token = briefToken(req);
   if (!token) return next();
   try {
     const brief = readIntelligenceShareToken(token);
     if (!brief) return next();
-    const canonical = `${siteUrl()}/brief?token=${encodeURIComponent(token)}`;
+    const canonical = `${siteUrl()}/brief?t=${encodeURIComponent(token)}`;
     await sendSocialShell(req, res, next, {
       title: `${clean(brief.headline, 110)} | The Desk`,
       description: clean(brief.answer, 220),
       canonical,
-      image: `${siteUrl()}/og/brief.png?token=${encodeURIComponent(token)}`,
+      image: `${siteUrl()}/og/brief.png?t=${encodeURIComponent(token)}`,
       imageWidth: 1080,
       imageHeight: 1350,
       type: "article",
@@ -176,7 +180,7 @@ async function handleBriefMeta(req: Request, res: Response, next: NextFunction):
 
 async function handleBriefOg(req: Request, res: Response): Promise<void> {
   try {
-    const token = firstQuery(req.query.token);
+    const token = briefToken(req);
     const brief = token ? readIntelligenceShareToken(token) : null;
     if (!brief) {
       res.redirect(302, "/og-card.png");
