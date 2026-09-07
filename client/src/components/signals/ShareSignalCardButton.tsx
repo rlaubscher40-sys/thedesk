@@ -3,7 +3,16 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 
 type Props = {
-  metricKey: string;
+  /** Preferred path for new callers. */
+  metricKey?: string;
+  /** Legacy display props kept while Signals moves to metricKey-only calls. */
+  label?: string;
+  value?: string;
+  context?: string | null;
+  move?: string | null;
+  deskTake?: string | null;
+  source?: string | null;
+  asOf?: string | null;
 };
 
 function base64ToFile(base64: string, mimeType: string, filename: string): File {
@@ -13,13 +22,23 @@ function base64ToFile(base64: string, mimeType: string, filename: string): File 
   return new File([bytes], filename, { type: mimeType });
 }
 
-export function ShareSignalCardButton({ metricKey }: Props) {
+export function ShareSignalCardButton(props: Props) {
   const [complete, setComplete] = useState(false);
   const card = trpc.signals.shareCard.useMutation();
+  const metrics = trpc.metrics.list.useQuery(undefined, {
+    enabled: !props.metricKey,
+    staleTime: 5 * 60_000,
+  });
+
+  const resolvedMetricKey =
+    props.metricKey ??
+    metrics.data?.find((metric) => metric.label === props.label)?.metricKey ??
+    null;
 
   async function share() {
+    if (!resolvedMetricKey) return;
     setComplete(false);
-    const rendered = await card.mutateAsync({ metricKey });
+    const rendered = await card.mutateAsync({ metricKey: resolvedMetricKey });
     const file = base64ToFile(rendered.base64, rendered.mimeType, rendered.filename);
     const publicUrl = new URL(rendered.sharePath, window.location.origin).toString();
 
@@ -66,22 +85,29 @@ export function ShareSignalCardButton({ metricKey }: Props) {
     window.setTimeout(() => setComplete(false), 2200);
   }
 
+  const pendingMetric = !props.metricKey && metrics.isLoading;
+  const unavailable = !pendingMetric && !resolvedMetricKey;
+
   return (
     <button
       type="button"
       onClick={() => void share()}
-      disabled={card.isPending}
-      title={card.error?.message}
+      disabled={card.isPending || pendingMetric || unavailable}
+      title={card.error?.message ?? (unavailable ? "This live metric is no longer available." : undefined)}
       className="bs-btn bs-btn-solid inline-flex items-center gap-2 disabled:opacity-50"
     >
-      {card.isPending ? (
+      {card.isPending || pendingMetric ? (
         <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
       ) : complete ? (
         <Check className="h-3.5 w-3.5" />
       ) : (
         <Share2 className="h-3.5 w-3.5" />
       )}
-      {card.isPending ? "Building The Number" : complete ? "Share ready" : "Share The Number"}
+      {card.isPending || pendingMetric
+        ? "Building The Number"
+        : complete
+          ? "Share ready"
+          : "Share The Number"}
     </button>
   );
 }
