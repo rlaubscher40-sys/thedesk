@@ -8,6 +8,7 @@ import {
 import { Link } from "wouter";
 import { MARKET_DIMENSIONS, type MarketComparison } from "@shared/marketComparison";
 import { ShareIntelligenceCardButton } from "@/components/ask/ShareIntelligenceCardButton";
+import { ComparisonWatchButton } from "./ComparisonWatchButton";
 
 /** The same evidence object appears in Markets and its signed public destination. */
 export function ComparisonRead({
@@ -50,6 +51,9 @@ export function ComparisonRead({
       <p className="bs-label mt-5">
         {c.confidence} evidence confidence · {c.sources.length} Desk sources
       </p>
+      <div className="mt-4">
+        <ComparisonWatchButton comparison={c} token={shareToken} />
+      </div>
       <p className="text-sm leading-6 text-[var(--color-fg-muted)] mt-2 max-w-[80ch]">
         Confidence reflects the available evidence, not future returns. Desk coverage is not an
         independent audit; a missing observation does not make a market weaker. Dates below identify

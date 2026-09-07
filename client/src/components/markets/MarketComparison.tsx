@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { comparisonInputSchema } from "@shared/marketComparison";
+import { comparisonPairKey } from "@shared/comparisonChanges";
 import { trpc } from "@/lib/trpc";
 import { trackEvent } from "@/lib/analytics";
 import { getLoginUrl } from "@/lib/auth";
 import { ComparisonRead } from "./ComparisonRead";
+import { ComparisonChangeSummary } from "./ComparisonChangeSummary";
+import { useComparisonWatches } from "@/lib/useComparisonWatches";
 
 export function MarketComparison({
   marketA,
@@ -19,6 +22,21 @@ export function MarketComparison({
   const [b, setB] = useState(marketB);
   const [validation, setValidation] = useState("");
   const compare = trpc.markets.compare.useMutation();
+  const { watches } = useComparisonWatches();
+  const watch = watches.find(
+    (item) => comparisonPairKey(item.marketA, item.marketB) === comparisonPairKey(marketA, marketB)
+  );
+  const baseline = trpc.ask.shared.useQuery(
+    { token: watch?.baselineToken ?? "" },
+    { enabled: Boolean(watch), retry: false, staleTime: 60_000 }
+  );
+  const verifiedBaseline =
+    !baseline.isError &&
+    baseline.data?.comparison &&
+    comparisonPairKey(baseline.data.comparison.marketA, baseline.data.comparison.marketB) ===
+      comparisonPairKey(marketA, marketB)
+      ? baseline.data.comparison
+      : null;
   useEffect(() => {
     setA(marketA);
     setB(marketB);
@@ -38,6 +56,14 @@ export function MarketComparison({
     setValidation("");
     onCompare(parsed.data.marketA, parsed.data.marketB);
     trackEvent("market_compare", "markets");
+    if (
+      watches.some(
+        (item) =>
+          comparisonPairKey(item.marketA, item.marketB) ===
+          comparisonPairKey(parsed.data.marketA, parsed.data.marketB)
+      )
+    )
+      trackEvent("comparison_refresh", "markets");
     compare.mutate(parsed.data);
   }
   // Result identity, not editable inputs, determines what can be shown or shared.
@@ -89,10 +115,16 @@ export function MarketComparison({
             disabled={compare.isPending}
             className="bs-btn bs-btn-solid disabled:opacity-50"
           >
-            {compare.isPending ? "Reading the evidence…" : "Compare markets"}
+            {compare.isPending
+              ? "Reading the evidence…"
+              : watch
+                ? "Refresh comparison"
+                : "Compare markets"}
           </button>
           <p className="text-sm text-[var(--color-fg-muted)]">
-            Only supported dimensions. No manufactured scores.
+            {watch
+              ? "Refresh uses the same intelligence allowance as a new question."
+              : "Only supported dimensions. No manufactured scores."}
           </p>
         </div>
       </form>
@@ -100,6 +132,40 @@ export function MarketComparison({
         <p role="alert" className="mt-4">
           {validation}
         </p>
+      )}
+      {watch && baseline.isLoading && (
+        <p role="status" className="mt-4">
+          Verifying your saved baseline…
+        </p>
+      )}
+      {watch && baseline.isError && (
+        <div role="status" className="rule-hair py-4 mt-4">
+          <p>
+            {baseline.error.data?.code === "NOT_FOUND"
+              ? "Your saved baseline has expired or is no longer valid. Refresh to build a new read; the old baseline will not be used to claim changes."
+              : "Your saved baseline could not be verified right now. A refresh will not claim changes until the baseline is available."}
+          </p>
+          {baseline.error.data?.code !== "NOT_FOUND" && (
+            <button
+              type="button"
+              onClick={() => void baseline.refetch()}
+              className="bs-btn bs-btn-outline mt-3"
+            >
+              Retry saved baseline
+            </button>
+          )}
+        </div>
+      )}
+      {watch && baseline.data && !baseline.isError && !verifiedBaseline && (
+        <p role="alert" className="mt-4">
+          The saved brief does not match this market pair. Refresh to create a verified comparison.
+        </p>
+      )}
+      {watch && verifiedBaseline && !compare.isPending && !compare.data && !compare.error && (
+        <>
+          <p className="bs-label mt-7">Saved baseline · not a live market update</p>
+          <ComparisonRead comparison={verifiedBaseline} shareToken={watch.baselineToken} />
+        </>
       )}
       {compare.isPending && (
         <p role="status" className="font-serif text-xl rule-hair-b py-8">
@@ -109,6 +175,15 @@ export function MarketComparison({
       {compare.error && (
         <div role="alert" className="rule-hair-b py-5">
           <p>{compare.error.message}</p>
+          {verifiedBaseline && (
+            <button
+              type="button"
+              onClick={() => compare.reset()}
+              className="bs-btn bs-btn-outline mt-3"
+            >
+              View saved baseline
+            </button>
+          )}
           {compare.error.data?.code === "TOO_MANY_REQUESTS" && (
             <a href={getLoginUrl()} className="bs-btn bs-btn-outline mt-3">
               Sign in
@@ -120,6 +195,15 @@ export function MarketComparison({
         <section className="rule-major mt-8 pt-6" role="status">
           <h3 className="font-serif text-3xl">Not enough evidence to make the call.</h3>
           <p className="mt-3 text-[var(--color-fg-muted)]">{result.message}</p>
+          {verifiedBaseline && (
+            <button
+              type="button"
+              onClick={() => compare.reset()}
+              className="bs-btn bs-btn-outline mt-3"
+            >
+              View saved baseline
+            </button>
+          )}
           <p className="bs-label mt-4">
             Retrieved local records · {compare.variables?.marketA}: {result.coverage.a} ·{" "}
             {compare.variables?.marketB}: {result.coverage.b}
@@ -136,7 +220,22 @@ export function MarketComparison({
         </section>
       )}
       {!compare.isPending && !compare.error && result?.status === "compared" && (
-        <ComparisonRead comparison={result.comparison} shareToken={result.shareToken} />
+        <>
+          {verifiedBaseline && watch?.baselineToken !== result.shareToken && (
+            <>
+              <ComparisonChangeSummary baseline={verifiedBaseline} current={result.comparison} />
+              {watch && (
+                <Link
+                  href={`/brief?t=${encodeURIComponent(watch.baselineToken)}`}
+                  className="bs-btn bs-btn-outline mt-3"
+                >
+                  Open the saved source trail
+                </Link>
+              )}
+            </>
+          )}
+          <ComparisonRead comparison={result.comparison} shareToken={result.shareToken} />
+        </>
       )}
       {result && !compare.isPending && result.anonymousRemaining != null && (
         <p className="bs-label mt-5">
