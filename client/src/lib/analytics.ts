@@ -11,6 +11,7 @@
 const SESSION_KEY = "thedesk:session";
 
 export type EngagementEvent =
+  | "ask_query"
   | "ask_share"
   | "market_watch"
   | "signal_watch"
