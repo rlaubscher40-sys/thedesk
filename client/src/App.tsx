@@ -26,6 +26,7 @@ import { UserPrefsProvider } from "./lib/userPrefs";
 // page whose chunk hash has since changed.
 const DailyFeed = lazyWithReload(() => import("./pages/DailyFeed"), "DailyFeed");
 const AskDesk = lazyWithReload(() => import("./pages/AskDesk"), "AskDesk");
+const SharedBrief = lazyWithReload(() => import("./pages/SharedBrief"), "SharedBrief");
 const Editions = lazyWithReload(() => import("./pages/Editions"), "Editions");
 const ReadingQueue = lazyWithReload(() => import("./pages/ReadingQueue"), "ReadingQueue");
 const TopicThreads = lazyWithReload(() => import("./pages/TopicThreads"), "TopicThreads");
@@ -114,6 +115,7 @@ function Routes() {
       <Switch>
         <Route path="/" component={DailyFeed} />
         <Route path="/ask" component={AskDesk} />
+        <Route path="/brief" component={SharedBrief} />
         <Route path="/editions" component={Editions} />
         <Route path="/editions/:editionNumber" component={Editions} />
         <Route path="/queue" component={ReadingQueue} />
