@@ -23,7 +23,7 @@ function articleBlock(articleText: string | null | undefined): string {
 }
 
 function buildPrompt(input: CounterpointInput): string {
-  return `You are writing the "Counterpoint" line for a daily intelligence feed read by property and finance professionals (brokers, advisers, accountants, buyer's agents) in Australia.
+  return `You are writing the "Counterpoint" line for The Desk, a daily briefing on Australian property and the markets around it, read by people who follow the market closely and have money or a home in it: buying, already holding, or watching to time a move.
 
 Story: ${input.title}
 Category: ${input.category}
@@ -48,9 +48,7 @@ Output ONLY the single line, OR the literal token SKIP. No preamble, no quotes, 
  * malformed, or on any error. The caller treats null as "no counterpoint
  * line", and the card simply omits it.
  */
-export async function generateCounterpoint(
-  input: CounterpointInput
-): Promise<string | null> {
+export async function generateCounterpoint(input: CounterpointInput): Promise<string | null> {
   try {
     const content = await invokeLLM({
       messages: [

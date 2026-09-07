@@ -9,19 +9,22 @@ import { runDailyItemQc } from "../dailyItemQc";
 
 const mockedInvoke = vi.mocked(invokeLLM);
 
-// A valid 3-line partner block (labels must match PARTNER_TAG_LABELS).
-const VALID_TAG = `Broker: Tell clients the hold steadies serviceability, lock applications before the next CPI print.
-Adviser: Position the pause as a moment to revisit gearing structures, not chase yield.
-Buyers Agent: Use the stable rate to push buyers off the fence before listings tighten.`;
+// A valid 3-line partner block (labels must match READER_ANGLE_LABELS).
+const VALID_TAG = `Buying: The hold steadies what you can borrow, but competition builds before listings do.
+Holding: Nothing changes on your repayments until the fixed-rate roll-off lands in June.
+Watching: The next CPI print is the test, not the decision itself.`;
 
 const input = {
   title: "RBA holds cash rate at 4.35%",
   summary: "The Reserve Bank kept rates on hold.",
   category: "MACRO",
-  sayThis: "The hold is the story everyone expected, the timing of the first cut is the one that pays.",
+  sayThis:
+    "The hold is the story everyone expected, the timing of the first cut is the one that pays.",
   partnerTag: VALID_TAG,
-  whyItMatters: "A third straight hold signals the tightening cycle is done; watch refinancing demand lift.",
-  counterpoint: "A hold this long can mask the next move being a hike if services inflation stays sticky.",
+  whyItMatters:
+    "A third straight hold signals the tightening cycle is done; watch refinancing demand lift.",
+  counterpoint:
+    "A hold this long can mask the next move being a hike if services inflation stays sticky.",
 };
 
 describe("runDailyItemQc", () => {
@@ -34,7 +37,8 @@ describe("runDailyItemQc", () => {
         notes: ["sharpened sayThis"],
         sayThis: "Everyone called the hold, the money is in calling the first cut.",
         partnerTag: VALID_TAG,
-        whyItMatters: "Third straight hold marks the cycle top, refinancing demand is the next move to watch.",
+        whyItMatters:
+          "Third straight hold marks the cycle top, refinancing demand is the next move to watch.",
       })
     );
     const out = await runDailyItemQc(input);
@@ -105,7 +109,7 @@ describe("runDailyItemQc", () => {
         approved: false,
         notes: [],
         sayThis: input.sayThis,
-        partnerTag: "Broker: only one line survived",
+        partnerTag: "Buying: only one line survived",
         whyItMatters: input.whyItMatters,
       })
     );

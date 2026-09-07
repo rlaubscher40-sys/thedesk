@@ -56,10 +56,7 @@ export default function EditionsPage() {
   // the list query (already cached) so we don't fire a second round-trip.
   const prior = useMemo(() => {
     if (selectedNumber == null) return null;
-    return (
-      listQuery.data?.find((ed) => ed.editionNumber === selectedNumber - 1) ??
-      null
-    );
+    return listQuery.data?.find((ed) => ed.editionNumber === selectedNumber - 1) ?? null;
   }, [listQuery.data, selectedNumber]);
   const priorMetrics = prior?.keyMetrics ?? null;
   const priorMarketStress = prior?.marketStress ?? null;
@@ -71,22 +68,17 @@ export default function EditionsPage() {
   useEditionMeta(
     edition
       ? {
-          title:
-            edition.metaTitle ??
-            `Edition ${edition.editionNumber} · ${edition.weekRange}`,
+          title: edition.metaTitle ?? `Edition ${edition.editionNumber} · ${edition.weekRange}`,
           description:
             edition.metaDescription ??
             edition.rubensTake ??
-            `Weekly intelligence for property partnerships, Edition ${edition.editionNumber}.`,
+            `The week in Australian property, Edition ${edition.editionNumber}.`,
           ogTitle:
             edition.socialTitle ??
             edition.metaTitle ??
             `Edition ${edition.editionNumber} · ${edition.weekRange}`,
           ogDescription:
-            edition.socialDescription ??
-            edition.metaDescription ??
-            edition.rubensTake ??
-            undefined,
+            edition.socialDescription ?? edition.metaDescription ?? edition.rubensTake ?? undefined,
           // Branded per-edition card (server-rendered) rather than the
           // hero illustration so share previews carry the masthead.
           ogImage: `/og/editions/${edition.editionNumber}.png`,
@@ -106,7 +98,7 @@ export default function EditionsPage() {
       <PageTitle
         kicker="The Desk · Editions"
         title="Weekly deep dives"
-        standfirst="Editorial intelligence for partner conversations. New edition each Sunday."
+        standfirst="The week in Australian property, read and argued. New edition each Sunday."
         stats={editionStats(listQuery.data ?? [])}
         actions={user?.role === "admin" ? <BackfillRubensTakeButton /> : undefined}
       />
@@ -165,9 +157,9 @@ function EmptyEditions() {
         The first Weekly Edition lands soon.
       </h2>
       <p className="mx-auto mt-4 max-w-[52ch] text-[var(--color-fg-muted)]">
-        Sundays 7am AEST. A long-form read on what shifted in Australian property
-        partnerships that week, written for brokers, advisers, accountants and
-        buyer&apos;s agents. The Daily Brief ships every weekday in the meantime.
+        Sundays 7am AEST. A long-form read on what shifted in Australian property that week, and
+        what it changes for anyone with money or a home in the market. The Daily Brief ships every
+        weekday in the meantime.
       </p>
     </div>
   );
@@ -178,9 +170,7 @@ function EmptyEditions() {
  * lands, how many have shipped, and the average read time. Rows that have
  * no data are omitted rather than rendered as empty zeroes.
  */
-function editionStats(
-  editions: Array<{ readingTime?: string | null }>
-): TitleStat[] {
+function editionStats(editions: Array<{ readingTime?: string | null }>): TitleStat[] {
   const stats: TitleStat[] = [{ label: "Next edition", value: getNextEditionLabel() }];
   if (editions.length > 0) {
     stats.push({ label: "Published", value: String(editions.length) });
@@ -202,11 +192,7 @@ function SelectorSkeleton() {
   return (
     <div className="flex gap-3 overflow-hidden">
       {Array.from({ length: 4 }).map((_, i) => (
-        <div
-          key={i}
-          className="shrink-0 overflow-hidden rule-hair-b"
-          style={{ width: 240 }}
-        >
+        <div key={i} className="shrink-0 overflow-hidden rule-hair-b" style={{ width: 240 }}>
           <Skeleton className="w-full" style={{ aspectRatio: "16/5" }} />
           <div className="p-3.5 space-y-2">
             <Skeleton className="h-3 w-20" />

@@ -1,6 +1,10 @@
 # The Desk
 
-Private intelligence briefing tool for Ruben Laubscher (Head of Partnerships, InvestorKit). This is the rebuild of [`rlaubscher40-sys/thesignal`](https://github.com/rlaubscher40-sys/thesignal) — same product, same routes, same design system, but cleaner.
+A daily briefing on Australian property and the markets around it, written by Ruben Laubscher. Free email list today, a paid tier the goal; the site and the Instagram account are the top of that funnel.
+
+Readers follow the market closely and have money or a home in it. Every generated line is written for one of three reader positions — buying, holding, watching — and never for an industry professional with a client book. That distinction lives in `server/prompts/voice.ts` and flows to every generator, so change it there rather than per prompt.
+
+This is the rebuild of [`rlaubscher40-sys/thesignal`](https://github.com/rlaubscher40-sys/thesignal) — same routes, same design system, but cleaner.
 
 ## What's different from the original
 
@@ -81,7 +85,7 @@ SITE_URL              Canonical origin used in emails / sitemap / OG tags
 ```
 shared/              Zod schemas + constants the client and server both import
   const.ts           Cookie name, persona list, LinkedIn limits, category enum
-  schemas.ts         Zod for topics, key metrics, ingestion payloads, partner tags
+  schemas.ts         Zod for topics, key metrics, ingestion payloads, reader angles
   errors.ts          HttpError helpers
   types.ts           Re-exports everything for one-line imports
 
@@ -108,8 +112,10 @@ client/
       BreakingSignalToast.tsx
       PageHeader.tsx
       ui/                    Button, Dialog, Skeleton, Toaster (sonner)
-      feed/                  FeedItemCard, FeedDatePicker, FeedSkeleton,
-                             SayThisLine, PartnerTagBlock
+      feed/                  SayThisLine, WhyItMattersLine, CounterpointLine,
+                             CorroborationBadge, RubensNoteBlock
+      broadsheet/            ReaderAngles (the Buying/Holding/Watching block),
+                             LaneNav, SubscribeBand, Masthead
       editions/              EditionReader, EditionHero, LeadStory, TopicCard,
                              SignalsBriefs, TalkingPointsBlock,
                              EditionAdminPanel, EditionListItem,

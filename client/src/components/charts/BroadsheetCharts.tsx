@@ -142,7 +142,7 @@ export function StepChart({
 
 /**
  * Metric sparkline. 200×40 viewBox, 2px polyline coloured by the metric's
- * sentiment (is this number moving in the direction the partner channel
+ * sentiment (is this number moving in the direction the reader
  * wants?) rather than by raw direction.
  */
 export function MetricSparkline({

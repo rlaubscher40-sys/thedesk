@@ -5,7 +5,7 @@
  *
  *   summary       , the lede, what happened
  *   whyItMatters  , the so-what, the implication or thing to watch for
- *   sayThis       , the client-facing conversation opener (a script)
+ *   sayThis       , the hook, the sharpest line, written to the reader
  *
  * The goal is full context in a single scan: a reader skimming the Today
  * feed should grasp the stakes of a story without clicking through or
@@ -30,7 +30,7 @@ function articleBlock(articleText: string | null | undefined): string {
 }
 
 function buildPrompt(input: WhyItMattersInput): string {
-  return `You are writing the "Why it matters" line for a daily intelligence feed read by property and finance professionals (brokers, advisers, accountants, buyer's agents) in Australia.
+  return `You are writing the "Why it matters" line for The Desk, a daily briefing on Australian property and the markets around it. Its readers follow the market closely and have money or a home in it: buying, already holding, or watching to time a move. They are not industry professionals working a client book.
 
 Story: ${input.title}
 Category: ${input.category}
@@ -43,7 +43,7 @@ Rules:
 - Where the full article text is provided, anchor your line in a specific detail from it, not the generic headline takeaway
 - Be concrete and specific; avoid vague phrasing like "this could have implications"
 - Australian English, no em dashes, no question marks, no hashtags
-- Neutral analytical register, not a sales pitch
+- Neutral analytical register, not a sales pitch, and never an instruction to the reader
 
 If the story is genuinely trivial with no broader significance (pure celebrity gossip, sport scores, weather): respond with exactly the literal token SKIP and nothing else.
 
@@ -56,9 +56,7 @@ Output ONLY the single line, OR the literal token SKIP. No preamble, no quotes, 
  * any error. The caller treats null as "this story doesn't get a context
  * note", which is fine — the card simply omits the line.
  */
-export async function generateWhyItMatters(
-  input: WhyItMattersInput
-): Promise<string | null> {
+export async function generateWhyItMatters(input: WhyItMattersInput): Promise<string | null> {
   try {
     const content = await invokeLLM({
       messages: [

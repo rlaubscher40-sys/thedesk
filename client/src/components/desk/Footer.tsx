@@ -34,7 +34,7 @@ const LINKS = [
 
 const DISCLAIMER =
   "The Desk publishes editorial commentary on macro, property and policy " +
-  "developments relevant to the partner channel. Nothing on this site " +
+  "developments in Australian property. Nothing on this site " +
   "constitutes personal financial, tax, legal or property advice. Before " +
   "acting on anything you read here, consider whether it's appropriate to " +
   "your circumstances and seek qualified advice.";

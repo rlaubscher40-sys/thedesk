@@ -17,6 +17,7 @@ import type {
   InsertServerError,
   InsertSubscriber,
   InsertUptimePing,
+  InstagramPost,
   PageView,
   ReadingQueueItem,
   ServerError,
@@ -575,6 +576,8 @@ export function createSubscriber(data: InsertSubscriber): Subscriber {
     confirmTokenSentAt: data.confirmTokenSentAt ?? new Date(),
     confirmedAt: data.confirmedAt ?? null,
     unsubscribedAt: null,
+    arrivalSource: data.arrivalSource ?? null,
+    arrivalCampaign: data.arrivalCampaign ?? null,
     source: data.source ?? null,
     isPremium: data.isPremium ?? false,
     lastDailyBriefDate: null,
@@ -882,6 +885,7 @@ export function recordPageView(data: InsertPageView): void {
     viewedAt: new Date(),
     path: data.path,
     referrer: data.referrer ?? null,
+    campaign: data.campaign ?? null,
     sessionId: data.sessionId,
   };
   demo.pageViews = trimRing([...demo.pageViews, row], PAGEVIEW_CAP);
@@ -940,4 +944,11 @@ export function pageViewsByDay(since: Date): Array<{ day: string; views: number 
   return [...buckets.entries()]
     .map(([day, views]) => ({ day, views }))
     .sort((a, b) => (b.day > a.day ? 1 : -1));
+}
+
+/** Recent Instagram posts from the demo seed, newest first. */
+export function listInstagramPosts(limit = 30): InstagramPost[] {
+  return [...demo.instagramPosts]
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .slice(0, limit);
 }

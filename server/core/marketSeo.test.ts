@@ -69,4 +69,30 @@ describe("public market HTML and cards", () => {
       format: "png",
     });
   });
+  it("renders dated official rent evidence in visible HTML and the server-generated card", async () => {
+    const withRents = {
+      ...file,
+      rents: {
+        status: "available" as const,
+        retrievedAt: "2026-09-07T12:00:00Z",
+        observations: [
+          { city: "Perth", period: "2026-07", annualPercent: 5.3, status: "p" as const },
+        ],
+      },
+    };
+    const html = marketShell(shell, withRents, directory, "https://thedesk.au");
+    expect(html).toContain("The pace of rent growth");
+    expect(html).toContain("Year to July 2026");
+    expect(html).toContain("Preliminary");
+    expect(html).toContain("Source observations (CSV)");
+    const input = marketCardInput(withRents);
+    expect(input.take).toBe("Perth. Annual rent growth.");
+    expect(input.figure).toBe("5.3%");
+    expect(input.feedDate).toBe("2026-07");
+    expect(input.context).toContain("Preliminary");
+    expect(await sharp(await renderDeskTakeCard(input)).metadata()).toMatchObject({
+      width: 1080,
+      height: 1350,
+    });
+  });
 });

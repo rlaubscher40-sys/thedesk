@@ -4,7 +4,7 @@
  *
  * The reader's active persona (from PersonaSwitcher / localStorage) is
  * surfaced first and visually highlighted, the others sit below at reduced
- * opacity. Matches the daily-feed PartnerAngles behaviour so the persona
+ * opacity. Matches the daily-feed ReaderAngles behaviour so the persona
  * choice is honoured across the whole product.
  */
 import { useState } from "react";
@@ -14,7 +14,7 @@ import type { TalkingPoints } from "@shared/schemas";
 import { personaDisplayLabel, usePersona } from "@/lib/persona";
 
 /**
- * Loose string-match between an active persona ("Broker", "Adviser", etc.)
+ * Loose string-match between an active reader position ("Buying", "Holding", etc.)
  * and an LLM-generated talkingPoints key ("Brokers", "Financial advisers",
  * etc.). Tolerates plural / "Financial " prefixes / case differences.
  */

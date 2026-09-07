@@ -71,9 +71,14 @@ Optional:
 
    **Optional:**
    ```
-   OPENAI_API_KEY        sk-...                                   (for AI image gen)
+   OPENAI_API_KEY        sk-...                        (hero image gen, and the Reel voice-over)
    SCHEDULED_API_KEY     <openssl rand -hex 32>                   (for GitHub Actions ingest)
    ```
+
+   `OPENAI_API_KEY` is what makes Reels narrated. Without it a Reel still
+   renders and still posts — silently, with no error anywhere — so the only
+   way to notice is with the sound up. The boot log and the admin panel both
+   say which it will be.
 
    Generate strong secrets:
    ```sh
@@ -87,7 +92,21 @@ Optional:
    ```
    Or from Railway's Settings → Service → "Run command" with the same.
 
-6. **Verify it's live.** Visit `https://<your-railway-domain>.up.railway.app` — the site loads with empty feed/edition lists until the first ingest populates them. (Demo seed data is dev-only: it never engages under `NODE_ENV=production`, and a production boot with `DATABASE_URL` unset now refuses to start rather than silently serving the demo UI.)
+6. **Check the boot log for the Reel line.** Reels need an ffmpeg binary, and
+   `ffmpeg-static` ships a downloader rather than the binary: it arrives in a
+   postinstall script, which pnpm 10 only runs for packages listed in
+   `pnpm.onlyBuiltDependencies`. It is listed, but that only helps if the
+   install ran after that config landed. On boot the server prints either
+
+   ```
+   [reel] ffmpeg 7.0.2-static. Narration is on.
+   ```
+
+   or `[reel] NOT READY.` with the reason. If it is not ready, re-run the
+   install; nothing else in the app is affected, but the Tuesday and Thursday
+   Reel jobs will fail until it is. The same check is on the admin panel.
+
+7. **Verify it's live.** Visit `https://<your-railway-domain>.up.railway.app` — the site loads with empty feed/edition lists until the first ingest populates them. (Demo seed data is dev-only: it never engages under `NODE_ENV=production`, and a production boot with `DATABASE_URL` unset now refuses to start rather than silently serving the demo UI.)
 
 ---
 

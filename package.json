@@ -15,6 +15,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
+    "probe:abs": "tsx scripts/ingest/probe-abs.ts",
     "ingest:daily": "INGEST_CLI=1 tsx scripts/ingest/dailyFeed.ts",
     "ingest:weekly": "INGEST_CLI=1 tsx scripts/ingest/weeklyEdition.ts",
     "ingest:metrics": "INGEST_CLI=1 tsx scripts/ingest/dailyMetrics.ts"
@@ -41,6 +42,7 @@
     "drizzle-orm": "^0.45.2",
     "express": "^5.1.0",
     "express-rate-limit": "^8.5.2",
+    "ffmpeg-static": "^5.3.0",
     "framer-motion": "^12.40.0",
     "jose": "6.2.3",
     "lucide-react": "^1.21.0",
@@ -76,7 +78,9 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild",
-      "sharp"
+      "sharp",
+      "ffmpeg-static",
+      "@resvg/resvg-js"
     ]
   }
 }

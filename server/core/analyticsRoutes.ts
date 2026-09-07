@@ -15,6 +15,15 @@ import { analyticsPath } from "../../shared/analyticsPath";
 const pageViewSchema = z.object({
   path: z.string().min(1).max(256),
   referrer: z.string().max(2_048).optional(),
+  /** Campaign slug for this session, already whitelisted and slugged by
+   *  client/src/lib/attribution. Constrained to a slug here too rather than
+   *  trusted: this is a public, unauthenticated endpoint, so the shape has to
+   *  be enforced server-side or a crafted body reaches the column. */
+  campaign: z
+    .string()
+    .max(64)
+    .regex(/^[a-z0-9._-]*$/)
+    .optional(),
   sessionId: z.string().min(8).max(64),
 });
 
@@ -93,6 +102,13 @@ async function handlePageView(req: Request, res: Response): Promise<void> {
   await db.recordPageView({
     path: analyticsPath(parsed.data.path),
     referrer,
+    // "internal" and "direct" are the absence of a campaign, not campaigns.
+    // Storing them would put the two largest buckets on the site into a column
+    // that exists to surface the small tagged ones.
+    campaign:
+      parsed.data.campaign && !["internal", "direct"].includes(parsed.data.campaign)
+        ? parsed.data.campaign
+        : null,
     sessionId: parsed.data.sessionId,
   });
   res.status(204).end();

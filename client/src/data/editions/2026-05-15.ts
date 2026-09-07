@@ -1,7 +1,7 @@
 /**
  * Edition for 15 May 2026.
  *
- * Drives the Today page end-to-end, stories, partner angles per persona,
+ * Drives the Today page end-to-end, stories, reader angles per position,
  * right-rail metrics + topics + ticker. Adjust freely; the UI walks these
  * arrays without any further JSX changes.
  */
@@ -9,16 +9,14 @@
 // ─── Shared types ───────────────────────────────────────────────────────────
 
 /**
- * Partner roles Ruben actually speaks with. "Adviser" is the canonical key
- * for the financial-adviser / accountant slot — `personaDisplayLabel`
- * expands it to "Adviser / Accountant" on the surface. The earlier
- * "Institutional" slot was dropped: the partner-channel conversation never
- * landed there, and the codebase's own About / prompt copy already wavered
- * on whether it should be Accountant in its place.
+ * Where a reader stands in relation to the market, which is what changes
+ * what a story means to them. Canonical keys are single bare words because
+ * they are line prefixes in stored text; `personaDisplayLabel` expands them
+ * to "If you're buying" and so on for the reader.
  */
-export type Persona = "Broker" | "Adviser" | "Buyers Agent";
+export type Persona = "Buying" | "Holding" | "Watching";
 
-export const PERSONAS: Persona[] = ["Broker", "Adviser", "Buyers Agent"];
+export const PERSONAS: Persona[] = ["Buying", "Holding", "Watching"];
 
 export type Category =
   | "MACRO"
@@ -125,28 +123,27 @@ export const stories: Story[] = [
     readingTime: "3 min",
     dek: "The Reserve Bank held the cash rate, with the post-meeting statement removing the 'further tightening cannot be ruled out' line. Markets read a dovish shift, swaps repricing for a first cut in November. Governor's press conference repeated 'patient transmission' three times, the Bank is signalling that the lag from prior tightening is still working.",
     context:
-      "Two readings of the statement matter: (1) the dropped sentence on further tightening is the dovish read the bond market has run with; (2) the 'patient transmission' line is the new conditional for a November cut. Watch the next monthly CPI on May 28, if services inflation prints below 4.5% YoY, swaps will price in a cut at the next meeting, not November. The conversation to lead with brokers this week is not about the hold itself; it's about what happens to fixed-rate roll-off volumes in mid-June.",
+      "Two readings of the statement matter: (1) the dropped sentence on further tightening is the dovish read the bond market has run with; (2) the 'patient transmission' line is the new conditional for a November cut. Watch the next monthly CPI on May 28, if services inflation prints below 4.5% YoY, swaps will price in a cut at the next meeting, not November. The story this week is not the hold itself; it's what happens to fixed-rate roll-off volumes in mid-June.",
     partnerAngles: [
       {
-        persona: "Broker",
-        angle:
-          "Pivot client conversations to fixed-rate roll-offs landing in mid-June, not the cash rate itself.",
+        persona: "Buying",
+        angle: "Your borrowing capacity is unchanged, but competition rises before listings do.",
         sayThis:
-          "The decision was the easy part. Watch what your broker channel does in the four weeks after a hold, that's where the real action is.",
+          "A hold does not move auctions on the weekend. It moves the offers people make on Wednesday afternoon.",
       },
       {
-        persona: "Adviser",
+        persona: "Holding",
         angle:
-          "Refresh the 'rates higher for longer' framing, patient transmission gives clients permission to plan.",
+          "The fixed-rate roll-offs landing in mid-June matter more to you than the decision did.",
         sayThis:
-          "If your clients have been waiting for clarity on rates, this is the closest thing they're going to get. The path is patience.",
+          "The decision was the easy part. What happens to fixed-rate roll-offs in four weeks is the real story.",
       },
       {
-        persona: "Buyers Agent",
+        persona: "Watching",
         angle:
-          "Sentiment shifts before listings do. Expect more pre-auction offers in the next four weeks.",
+          "Patient transmission is the condition for a November cut. The next CPI is the test.",
         sayThis:
-          "Hold decisions don't move auctions on the weekend. They move the offers buyers make on Wednesday afternoon.",
+          "If you have been waiting for clarity on rates, this is the closest thing to it. The path is patience.",
       },
     ],
   },
@@ -165,19 +162,23 @@ export const stories: Story[] = [
       "Don't sell timing you can't deliver. The earliest a revised regime could land is late Q3. The signal in the paper is direction, not timing, APRA wants the option to ease without committing to it.",
     partnerAngles: [
       {
-        persona: "Broker",
-        angle: "Anyone selling 'serviceability is loosening' today is selling timing they can't deliver.",
-        sayThis: "Read the paper, not the headlines about the paper. November is the earliest.",
+        persona: "Buying",
+        angle:
+          "Nothing you can borrow today changes. Anyone telling you otherwise is selling timing.",
+        sayThis: "Today's deal does not move on this. November's might.",
       },
       {
-        persona: "Adviser",
-        angle: "Direction softer, but client borrowing capacity won't change until late Q3 at earliest.",
-        sayThis: "Borrowing capacity won't move until Q4. Plan around the buffer as it stands.",
+        persona: "Holding",
+        angle:
+          "No effect on an existing loan. It matters if you plan to borrow again late this year.",
+        sayThis:
+          "Read the consultation, not the headlines about it. November is the earliest anything shifts.",
       },
       {
-        persona: "Buyers Agent",
-        angle: "The paper does not change today's deal. It changes the framing of conversations in November.",
-        sayThis: "Today's deal won't move on this. November's deal might.",
+        persona: "Watching",
+        angle: "Direction is softer, but capacity will not move until Q4 at the earliest.",
+        sayThis:
+          "The buffer stands as it is. Plan around that, not around the direction of travel.",
       },
     ],
   },
@@ -194,19 +195,23 @@ export const stories: Story[] = [
       "The headline number matters less than the spread. Inner-ring clearance is at 71%, outer-ring is at 58%. The gap is the widest it's been since early 2024. Buyers are paying for geography again.",
     partnerAngles: [
       {
-        persona: "Broker",
-        angle: "Pre-approval lead time is the new constraint. Tighten your pipeline.",
-        sayThis: "Approvals are taking longer than auction calendars. Your clients need to be pre-approved.",
+        persona: "Buying",
+        angle:
+          "Approval lead times are now running longer than auction calendars. Get pre-approved first.",
+        sayThis:
+          "The constraint is not finding a property. It is being ready to bid on the one you find.",
       },
       {
-        persona: "Adviser",
-        angle: "Investor activity is ticking up. Re-engage clients sitting on deposit cash.",
-        sayThis: "Cash sitting on the sidelines costs more this month than it did last month.",
+        persona: "Holding",
+        angle:
+          "Listings up 18% with clearance holding is a market absorbing supply, not one turning.",
+        sayThis:
+          "Rising listings and steady clearance is strength, not weakness. Read them together.",
       },
       {
-        persona: "Buyers Agent",
-        angle: "Capacity at mid-tier BAs is the constraint, not demand.",
-        sayThis: "Three Melbourne BAs paused intake this week. Those referrals are sitting somewhere.",
+        persona: "Watching",
+        angle: "Six weeks above 65% is a trend. One weekend is not.",
+        sayThis: "Cash on the sidelines cost more this month than it did last month.",
       },
     ],
   },
@@ -223,19 +228,21 @@ export const stories: Story[] = [
       "The energy reset rolls off the year-on-year base in October. Watch the Q3 monthly CPI, if the underlying trend has held, headline drops sharply and the RBA's path looks clearer.",
     partnerAngles: [
       {
-        persona: "Broker",
-        angle: "Rent inflation cooling helps the serviceability narrative without the regulator moving.",
-        sayThis: "Rents are softer than the headline suggests. That helps borrowing capacity quietly.",
+        persona: "Buying",
+        angle:
+          "Rents are softer than the headline suggests, which quietly helps what you can borrow.",
+        sayThis: "The headline number is energy. The part that affects your borrowing is cooling.",
       },
       {
-        persona: "Adviser",
-        angle: "Use the composition, not the headline, when framing the rates outlook.",
-        sayThis: "It's the composition of CPI that matters now, not the headline number.",
+        persona: "Holding",
+        angle: "Where rents have plateaued, bargaining power swings back towards the landlord.",
+        sayThis:
+          "Rent inflation cooling is not the same as rents falling. Check which one your market is doing.",
       },
       {
-        persona: "Buyers Agent",
-        angle: "Tenant negotiation power tilts slightly back to landlords in markets where rents have plateaued.",
-        sayThis: "Where rents have plateaued, the bargaining power swings back to the landlord. Negotiate accordingly.",
+        persona: "Watching",
+        angle: "It is the composition of this print that matters now, not the headline.",
+        sayThis: "Energy lifted the number. Strip it out and the trend is the other way.",
       },
     ],
   },
@@ -252,19 +259,21 @@ export const stories: Story[] = [
       "The IMF rarely commits a probability to a geopolitical scenario. When they do, central banks read it carefully. A 100bp move in the oil curve translates roughly to 30bp on Australian headline CPI within two quarters.",
     partnerAngles: [
       {
-        persona: "Broker",
-        angle: "Fuel costs feed into living-expense schedules. Sensitivity matters for marginal applicants.",
-        sayThis: "Living-expense schedules are about to look different. Plan applications around it.",
+        persona: "Buying",
+        angle:
+          "Fuel feeds living-expense schedules, which is where a sustained oil move reaches your application.",
+        sayThis:
+          "Living-expense assumptions are about to look different. Time an application around it.",
       },
       {
-        persona: "Adviser",
-        angle: "Defensive allocation conversation. Energy exposure earns its keep when the curve steepens.",
-        sayThis: "Energy exposure is a hedge again. The IMF doesn't put a number on a tail risk lightly.",
+        persona: "Holding",
+        angle: "Outer-ring commuter suburbs are the most fuel-sensitive holdings you can own.",
+        sayThis: "Commuter postcodes feel a sustained oil move before anywhere else does.",
       },
       {
-        persona: "Buyers Agent",
-        angle: "Outer-ring commuter postcodes are most fuel-sensitive. Read demand there carefully.",
-        sayThis: "Fuel-sensitive commuter postcodes will feel a sustained oil move before anyone else does.",
+        persona: "Watching",
+        angle: "The IMF does not put a number on a tail risk lightly.",
+        sayThis: "This is a tail risk with a figure attached now. That is the part worth noticing.",
       },
     ],
   },
@@ -281,19 +290,20 @@ export const stories: Story[] = [
       "Reopening the working group is procedure, not breakthrough. The signal is in what the joint statement chooses to omit, not what it includes. Look for whether 'national security' caveats remain or are softened.",
     partnerAngles: [
       {
-        persona: "Broker",
-        angle: "Tech-sector clients reading this as a sentiment positive. Refi conversations may pick up.",
-        sayThis: "Tech clients watch this closely. Refi appetite tends to follow sentiment by two weeks.",
-      },
-      {
-        persona: "Adviser",
-        angle: "Diversification narrative gets harder when geopolitics drives the correlation.",
-        sayThis: "Geopolitics has been the correlation driver this year. Diversification needs a rethink.",
-      },
-      {
-        persona: "Buyers Agent",
-        angle: "Indirect, but Sydney's tech-corridor postcodes are inversely correlated with chip news.",
+        persona: "Buying",
+        angle:
+          "Indirect, but Sydney's tech-corridor postcodes track this more closely than you would expect.",
         sayThis: "Sydney's tech-corridor markets are tied to this. Quietly.",
+      },
+      {
+        persona: "Holding",
+        angle: "Sentiment in tech employment reaches those same suburbs about two weeks later.",
+        sayThis: "Employment sentiment leads housing demand in the corridors that depend on it.",
+      },
+      {
+        persona: "Watching",
+        angle: "The signal is in what the joint statement omits, not what it includes.",
+        sayThis: "Geopolitics has driven the correlation all year. Read the omissions.",
       },
     ],
   },
@@ -310,19 +320,19 @@ export const stories: Story[] = [
     dek: "Two paragraphs on page 147 adjust the discount rate for properties held over 8 years. The IRR maths shifts at year eight. Morning coverage missed it entirely.",
     partnerAngles: [
       {
-        persona: "Broker",
-        angle: "Investor borrowers holding 8+ years need to know. Lead the conversation.",
-        sayThis: "If a client is in year seven of an investment property, this conversation lands today.",
+        persona: "Buying",
+        angle: "Nothing changes in year one. It changes the maths on how long you intend to hold.",
+        sayThis: "Buy for a decade and this is your story. Buy for three years and it is not.",
       },
       {
-        persona: "Adviser",
-        angle: "Refresh held-property IRR models. The change matters at year eight, not year one.",
-        sayThis: "It's an 8-year IRR story. Year one doesn't move.",
+        persona: "Holding",
+        angle: "If you are in year seven of an investment property, this lands on you today.",
+        sayThis: "Year seven is the one to check. The maths shifts at year eight.",
       },
       {
-        persona: "Buyers Agent",
-        angle: "Long-hold investors are the most affected. Open the conversation before they ask.",
-        sayThis: "Long-hold investors are the ones affected. Open the conversation, don't wait for it.",
+        persona: "Watching",
+        angle: "Two paragraphs on page 147, and the morning coverage missed them entirely.",
+        sayThis: "The change that matters was on page 147, not in the speech.",
       },
     ],
   },
@@ -337,26 +347,27 @@ export const stories: Story[] = [
     dek: "Onshoring acceleration: $4B incremental capex, first wafers Q4 2027 instead of Q3 2028. Reaction in TWD muted; reaction in AUD-AUD swap spreads telling.",
     partnerAngles: [
       {
-        persona: "Broker",
-        angle: "Semiconductor exposure is positive for long-dated industrial clients.",
-        sayThis: "Industrial clients with chip exposure read this as a yes.",
+        persona: "Buying",
+        angle: "No direct read for a purchase. Worth knowing as background on the rates path.",
+        sayThis: "Not a property story. It is a rates story wearing a semiconductor costume.",
       },
       {
-        persona: "Adviser",
-        angle: "Concentration risk in the equity-only sleeve gets a tail-risk discount.",
-        sayThis: "Equity concentration in chip names just got more defensible.",
+        persona: "Holding",
+        angle: "A quiet positive for anyone whose income depends on the tech sector.",
+        sayThis: "Onshoring news like this is a slow tailwind, not an event.",
       },
       {
-        persona: "Buyers Agent",
-        angle: "Indirect, but a hedge against the geopolitics-and-tech narrative for property allocators.",
-        sayThis: "Property allocators sleep better on news like this. It's a quiet positive.",
+        persona: "Watching",
+        angle:
+          "The muted reaction in TWD and the move in AUD swap spreads is the interesting part.",
+        sayThis: "The currency barely moved. The swap spreads did. That is the tell.",
       },
     ],
   },
 
   // ── Trending / Culture, broadly relevant items that DON'T deserve
-  // a forced partner angle for every persona. These demonstrate the
-  // smart Say This filtering: if the active persona has no angle, the
+  // a forced angle for every reader position. These demonstrate the
+  // filtering: if the reader's own position has no angle, the
   // card shows a quiet "Not relevant to X this week" note instead of
   // a fabricated talking point.
   {
@@ -389,10 +400,11 @@ export const stories: Story[] = [
     dek: "Sentiment shift on the largest Australian finance subreddit, top-three threads this week are now about fixed-rate roll-off strategy, not the cash rate path. Anecdotal but directional.",
     partnerAngles: [
       {
-        persona: "Broker",
-        angle: "Reddit sentiment leads broker channel volume by ~two weeks. Worth a check-in call this week.",
+        persona: "Holding",
+        angle:
+          "The sub has moved from the cash rate to fixed-rate roll-off strategy. So should you.",
         sayThis:
-          "AusFinance is now talking fixed-rate roll-off, not the cash rate. Your June refi book might land sooner than you think.",
+          "AusFinance stopped arguing about the cash rate and started planning roll-offs. That shift usually leads the market by a fortnight.",
       },
     ],
   },

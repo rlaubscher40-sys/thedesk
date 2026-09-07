@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { publicMarket } from "../../shared/marketDirectory";
 import { getMarketDirectory } from "../markets/discovery";
+import { getCityRents } from "../markets/absRents";
 import { comparisonInputSchema } from "../../shared/marketComparison";
 import { consumeAnonymousAsk } from "../core/askQuota";
 import {
@@ -15,6 +16,7 @@ import { groundComparison } from "../markets/grounding";
 import { buildComparisonMessages, comparisonResponseFormat } from "../prompts/marketComparison";
 
 export const marketsRouter = router({
+  rentalConditions: publicProcedure.query(() => getCityRents()),
   discovery: publicProcedure.query(() => getMarketDirectory()),
   publicFile: publicProcedure
     .input(z.object({ slug: z.string().max(40) }))

@@ -49,10 +49,11 @@ const validResponse = JSON.stringify({
       category: "MACRO",
       body: "What happened. The RBA held. Why it matters. Brokers can plan around stability. What to watch. Next month's CPI. What it means for you. Lock the conversation on serviceability.",
       keyTakeaway: "The hold gives brokers a clear runway.",
-      whyItMatters: "Brokers and BAs now have a stable rate to price serviceability conversations around.",
+      whyItMatters: "Anyone borrowing now has a stable rate to plan the next twelve months around.",
       whatToWatch: ["Next CPI release on May 28"],
       talkingPoints: {
-        Broker: "Lock in the conversation on serviceability while the rate is stable.",
+        Buying:
+          "Your borrowing capacity holds steady, so the constraint is competition, not credit.",
       },
     },
     {
@@ -76,7 +77,7 @@ const validResponse = JSON.stringify({
       whyItMatters: "Buyer's agents can frame this as a sustained trend, not a blip.",
       whatToWatch: ["June listings"],
       talkingPoints: {
-        "Buyers Agent": "Six weeks above 65 is a trend, not a print.",
+        Watching: "Six weeks above 65 is a trend, not a print.",
       },
     },
     {
@@ -85,10 +86,11 @@ const validResponse = JSON.stringify({
       category: "GEOPOLITICS",
       body: "What happened. US production behind. Why it matters. Capital allocation shifts. What to watch. Defence DOC release. What it means for you. Watch regional industrial property.",
       keyTakeaway: "Defence spend is a property catalyst no one is pricing.",
-      whyItMatters: "BAs covering regional industrial corridors should monitor defence-zone announcements.",
+      whyItMatters:
+        "BAs covering regional industrial corridors should monitor defence-zone announcements.",
       whatToWatch: ["Q3 defence procurement update"],
       talkingPoints: {
-        "Buyers Agent": "Defence pipeline still anchors industrial corridors.",
+        Watching: "Defence pipeline still anchors industrial corridors.",
       },
     },
     {
@@ -100,7 +102,7 @@ const validResponse = JSON.stringify({
       whyItMatters: "Mortgage brokers can pilot document-handling agents without bespoke ML cost.",
       whatToWatch: ["Adoption benchmarks Q3"],
       talkingPoints: {
-        Broker: "Pilot doc-handling automation on a low-risk workflow first.",
+        Buying: "Nothing here changes what you can borrow this month.",
       },
     },
   ],
@@ -135,10 +137,8 @@ describe("synthesizeWeeklyEdition", () => {
     });
 
     expect(out.topics).toHaveLength(5);
-    expect(out.topics[0]?.title).toBe(
-      "Cash rate holds, broker channel keeps pricing"
-    );
-    expect(out.topics[0]?.whyItMatters).toContain("Brokers and BAs");
+    expect(out.topics[0]?.title).toBe("Cash rate holds, broker channel keeps pricing");
+    expect(out.topics[0]?.whyItMatters).toContain("stable rate");
     expect(out.signals.length).toBeGreaterThanOrEqual(6);
     expect(out.marketStress).toBe("low");
     expect(out.datesToWatch).toHaveLength(2);
@@ -200,8 +200,24 @@ describe("synthesizeWeeklyEdition", () => {
 
     const verifiedMetrics: VerifiedMetric[] = [
       // Model said "4.35%"; verified store says the rate has moved to 3.85%.
-      { metricKey: "cash_rate", label: "RBA cash rate", value: "3.85", unit: "%", context: null, source: "RBA", asOf: new Date("2026-05-06") },
-      { metricKey: "asx200", label: "ASX 200", value: "8,415.20", unit: null, context: null, source: "Yahoo Finance", asOf: new Date("2026-05-12") },
+      {
+        metricKey: "cash_rate",
+        label: "RBA cash rate",
+        value: "3.85",
+        unit: "%",
+        context: null,
+        source: "RBA",
+        asOf: new Date("2026-05-06"),
+      },
+      {
+        metricKey: "asx200",
+        label: "ASX 200",
+        value: "8,415.20",
+        unit: null,
+        context: null,
+        source: "Yahoo Finance",
+        asOf: new Date("2026-05-12"),
+      },
     ];
 
     const out = await synthesizeWeeklyEdition({
@@ -221,8 +237,24 @@ describe("synthesizeWeeklyEdition", () => {
 
 describe("groundKeyMetrics", () => {
   const verified: VerifiedMetric[] = [
-    { metricKey: "cash_rate", label: "RBA cash rate", value: "4.35", unit: "%", context: null, source: "RBA", asOf: null },
-    { metricKey: "asx200", label: "ASX 200", value: "8,210.43", unit: null, context: null, source: "Yahoo", asOf: null },
+    {
+      metricKey: "cash_rate",
+      label: "RBA cash rate",
+      value: "4.35",
+      unit: "%",
+      context: null,
+      source: "RBA",
+      asOf: null,
+    },
+    {
+      metricKey: "asx200",
+      label: "ASX 200",
+      value: "8,210.43",
+      unit: null,
+      context: null,
+      source: "Yahoo",
+      asOf: null,
+    },
   ];
 
   it("returns the model metrics untouched when no verified data exists", () => {

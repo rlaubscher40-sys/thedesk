@@ -41,6 +41,8 @@ async function loadFonts(): Promise<LoadedFonts> {
 
 export type DeskTakeCardInput = {
   format?: "take" | "market";
+  /** Optional server-selected official figure; never extracted from arbitrary copy. */
+  figure?: string;
   take: string;
   storyTitle: string;
   category: string;
@@ -139,7 +141,7 @@ function buildTree(input: DeskTakeCardInput) {
                   },
                   children:
                     input.format === "market"
-                      ? `${input.category} · In the reporting`
+                      ? `${input.category} · ${input.figure ? "Official rental conditions" : "In the reporting"}`
                       : `${input.category} · Our read`,
                 },
               },
@@ -150,7 +152,7 @@ function buildTree(input: DeskTakeCardInput) {
                     display: "flex",
                     fontFamily: "Playfair Display",
                     fontWeight: 700,
-                    fontSize: takeSize(take.length),
+                    fontSize: input.figure ? "56px" : takeSize(take.length),
                     lineHeight: 1.08,
                     letterSpacing: "-0.035em",
                     maxWidth: "910px",
@@ -158,6 +160,24 @@ function buildTree(input: DeskTakeCardInput) {
                   children: take,
                 },
               },
+              ...(input.figure
+                ? [
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          display: "flex",
+                          fontFamily: "JetBrains Mono",
+                          fontSize: "200px",
+                          lineHeight: 1,
+                          letterSpacing: "-0.06em",
+                          color: INK,
+                        },
+                        children: clampTakeText(input.figure, 16),
+                      },
+                    },
+                  ]
+                : []),
             ],
           },
         },

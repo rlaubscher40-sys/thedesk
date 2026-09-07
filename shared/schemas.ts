@@ -8,7 +8,7 @@
  * from here, never re-declare these shapes.
  */
 import { z } from "zod";
-import { CATEGORIES, PARTNER_PERSONAS } from "./const";
+import { CATEGORIES, READER_POSITIONS } from "./const";
 import { MAX_HELPER_INPUT } from "./headline";
 
 // ─── Edition topics ─────────────────────────────────────────────────────────
@@ -121,29 +121,32 @@ export type Lookback = z.infer<typeof lookbackSchema>;
  * (PersonaSwitcher) and the canonical roles are the three Ruben actually
  * speaks to: brokers, advisers / accountants, and buyer's agents.
  */
-export const PARTNER_TAG_LABELS = ["Broker", "Adviser", "Buyers Agent"] as const;
-export type PartnerTagLabel = (typeof PARTNER_TAG_LABELS)[number];
+/** Line prefixes in a stored angles block. Same values as READER_POSITIONS in
+ *  shared/const.ts — duplicated rather than imported to keep this module free
+ *  of cross-imports, and asserted equal in schemas.test.ts. */
+export const READER_ANGLE_LABELS = ["Buying", "Holding", "Watching"] as const;
+export type ReaderAngleLabel = (typeof READER_ANGLE_LABELS)[number];
 
-export type PartnerTag = Record<PartnerTagLabel, string>;
+export type ReaderAngles = Record<ReaderAngleLabel, string>;
 
 /**
  * Parse a raw partnerTag string into a typed record. Returns null if the
  * required labels are not all present so callers can fall back to the legacy
  * single-persona display.
  */
-export function parsePartnerTag(raw: string | null | undefined): PartnerTag | null {
+export function parseReaderAngles(raw: string | null | undefined): ReaderAngles | null {
   if (!raw) return null;
   // A real partnerTag is four short labelled lines. Anything wildly longer is
   // malformed/garbage data — bail before the per-label regexes so a
   // pathological value can't burn CPU (or hang a mobile render) here.
   if (raw.length > MAX_HELPER_INPUT) return null;
-  const result: Partial<PartnerTag> = {};
-  for (const label of PARTNER_TAG_LABELS) {
+  const result: Partial<ReaderAngles> = {};
+  for (const label of READER_ANGLE_LABELS) {
     const re = new RegExp(`^\\s*${label}\\s*:\\s*(.+)$`, "im");
     const m = raw.match(re);
     if (m && m[1]) result[label] = m[1].trim();
   }
-  if (PARTNER_TAG_LABELS.every((l) => result[l])) return result as PartnerTag;
+  if (READER_ANGLE_LABELS.every((l) => result[l])) return result as ReaderAngles;
   return null;
 }
 
@@ -155,7 +158,11 @@ export const dailyFeedIngestItemSchema = z.object({
   source: z.string().min(1).max(256),
   sourceUrl: z.string().url().optional().nullable(),
   summary: z.string().min(1),
-  category: z.string().min(1).max(64).transform((c) => c.toUpperCase()),
+  category: z
+    .string()
+    .min(1)
+    .max(64)
+    .transform((c) => c.toUpperCase()),
   /** Discover content lane (AU / PROPERTY / BUSINESS / TECH / GLOBAL).
    *  Separate axis from `category`. Optional on the wire; the ingest handler
    *  defaults a missing value to AU. Normalised to upper case so the
@@ -213,4 +220,4 @@ export type SubstackDraft = z.infer<typeof substackDraftSchema>;
 
 // ─── Re-exports for convenience ─────────────────────────────────────────────
 
-export { PARTNER_PERSONAS };
+export { READER_POSITIONS };

@@ -9,16 +9,17 @@ import { generateDailyAngles } from "../dailyAngles";
 
 const mockedInvoke = vi.mocked(invokeLLM);
 
-// A valid 3-line partner block (labels must match PARTNER_TAG_LABELS).
-const VALID_TAG = `Broker: Tell clients the hold steadies serviceability, lock applications before the next CPI print.
-Adviser: Position the pause as a moment to revisit gearing structures, not chase yield.
-Buyers Agent: Use the stable rate to push buyers off the fence before listings tighten.`;
+// A valid 3-line partner block (labels must match READER_ANGLE_LABELS).
+const VALID_TAG = `Buying: The hold steadies what you can borrow, but competition builds before listings do.
+Holding: Nothing changes on your repayments until the fixed-rate roll-off lands in June.
+Watching: The next CPI print is the test, not the decision itself.`;
 
 const input = {
   title: "RBA holds cash rate at 4.35%",
   summary: "The Reserve Bank kept rates on hold.",
   category: "MACRO",
-  articleText: "The Reserve Bank of Australia left the cash rate at 4.35% for a third straight meeting.",
+  articleText:
+    "The Reserve Bank of Australia left the cash rate at 4.35% for a third straight meeting.",
 };
 
 describe("generateDailyAngles", () => {
@@ -29,7 +30,8 @@ describe("generateDailyAngles", () => {
       JSON.stringify({
         sayThis: "Everyone called the hold, the money is in calling the first cut.",
         partnerTag: VALID_TAG,
-        whyItMatters: "Third straight hold marks the cycle top, refinancing demand is the next move to watch.",
+        whyItMatters:
+          "Third straight hold marks the cycle top, refinancing demand is the next move to watch.",
         counterpoint: "A long hold can mask a hike if services inflation stays sticky.",
       })
     );
@@ -74,14 +76,19 @@ describe("generateDailyAngles", () => {
       })
     );
     const out = await generateDailyAngles(input);
-    expect(out).toEqual({ sayThis: null, partnerTag: null, whyItMatters: null, counterpoint: null });
+    expect(out).toEqual({
+      sayThis: null,
+      partnerTag: null,
+      whyItMatters: null,
+      counterpoint: null,
+    });
   });
 
   it("drops a partner block that does not parse to all three roles", async () => {
     mockedInvoke.mockResolvedValue(
       JSON.stringify({
         sayThis: "A valid opener about the rates hold and what it means for serviceability.",
-        partnerTag: "Broker: only one role here, missing the other two",
+        partnerTag: "Buying: only one position here, missing the other two",
         whyItMatters: null,
         counterpoint: null,
       })
@@ -123,13 +130,23 @@ describe("generateDailyAngles", () => {
   it("returns all-null on malformed JSON rather than throwing", async () => {
     mockedInvoke.mockResolvedValue("not json at all");
     const out = await generateDailyAngles(input);
-    expect(out).toEqual({ sayThis: null, partnerTag: null, whyItMatters: null, counterpoint: null });
+    expect(out).toEqual({
+      sayThis: null,
+      partnerTag: null,
+      whyItMatters: null,
+      counterpoint: null,
+    });
   });
 
   it("returns all-null when the LLM call throws", async () => {
     mockedInvoke.mockRejectedValueOnce(new Error("network down"));
     const out = await generateDailyAngles(input);
-    expect(out).toEqual({ sayThis: null, partnerTag: null, whyItMatters: null, counterpoint: null });
+    expect(out).toEqual({
+      sayThis: null,
+      partnerTag: null,
+      whyItMatters: null,
+      counterpoint: null,
+    });
   });
 
   it("rejects an over-long line in favour of null", async () => {

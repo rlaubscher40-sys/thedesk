@@ -19,7 +19,7 @@ import { FeaturedPill } from "./CategoryPill";
 import { CuratorByline } from "./CuratorByline";
 import { NoAngleNote } from "./NoAngleNote";
 import { PaywallHint } from "./PaywallHint";
-import { PartnerAngles } from "./PartnerAngles";
+import { ReaderAngles } from "./ReaderAngles";
 import { SayThis } from "./SayThis";
 import { SourceFooter } from "./SourceFooter";
 
@@ -49,9 +49,7 @@ export function FeaturedCard({ story }: { story: Story }) {
                   className="block h-3 w-px bg-[var(--color-border-strong)]"
                   aria-hidden="true"
                 />
-                <span className="overline text-[var(--color-fg-subtle)]">
-                  {story.readingTime}
-                </span>
+                <span className="overline text-[var(--color-fg-subtle)]">{story.readingTime}</span>
               </>
             )}
           </div>
@@ -83,9 +81,7 @@ export function FeaturedCard({ story }: { story: Story }) {
 
         {story.context && <ContextExpander note={story.context} />}
 
-        {story.partnerAngles.length > 0 && (
-          <PartnerAngles angles={story.partnerAngles} />
-        )}
+        {story.partnerAngles.length > 0 && <ReaderAngles angles={story.partnerAngles} />}
 
         {story.tier === "paid" && <PaywallHint />}
 
@@ -93,11 +89,7 @@ export function FeaturedCard({ story }: { story: Story }) {
           <CuratorByline />
         </div>
 
-        <SourceFooter
-          source={story.source}
-          sourceUrl={story.sourceUrl}
-          category={story.category}
-        />
+        <SourceFooter source={story.source} sourceUrl={story.sourceUrl} category={story.category} />
 
         {linkedInOpen && (
           <p

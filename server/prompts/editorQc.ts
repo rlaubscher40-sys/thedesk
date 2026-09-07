@@ -87,7 +87,7 @@ Audit on these specific axes:
    - Australian English throughout (colour, behaviour, organisation, realise).
 
 5. AUDIENCE HOOK, every topic MUST have a whyItMatters field that is:
-   - Specific to brokers / advisers / buyer's agents / SMSF specialists in Australia
+   - Specific to someone with money or a home in the Australian property market
    - One sentence
    - Not a paraphrase of keyTakeaway or summary
    - Not generic ("this matters for the property market"), concrete
@@ -113,7 +113,7 @@ Output a SINGLE JSON object matching this exact shape, and NOTHING ELSE:
 {
   "approved": true | false,
   "notes": [
-    "Topic 2 (PROPERTY): rewrote whyItMatters from generic to broker-specific",
+    "Topic 2 (PROPERTY): rewrote whyItMatters from generic to specific",
     "Topic 4 (MACRO): removed em dash in body para 3",
     // ... one short note per edit. Empty array if approved with no changes.
   ],
@@ -134,9 +134,7 @@ Rules for the revised output:
  * Run the QC pass. Throws if the model returns invalid JSON or shape, the
  * caller (pipeline) should catch and fall back to the original synthesis.
  */
-export async function runEditorQc(
-  input: SynthesisShape
-): Promise<EditorQcReport> {
+export async function runEditorQc(input: SynthesisShape): Promise<EditorQcReport> {
   const content = await invokeLLM({
     messages: [
       { role: "system", content: rubenSystemPrompt },
@@ -159,9 +157,7 @@ export async function runEditorQc(
 
   const validated = qcSchema.safeParse(parsed);
   if (!validated.success) {
-    throw new Error(
-      `editorQc: output failed schema: ${JSON.stringify(validated.error.flatten())}`
-    );
+    throw new Error(`editorQc: output failed schema: ${JSON.stringify(validated.error.flatten())}`);
   }
 
   const r = validated.data.revised;
@@ -184,9 +180,7 @@ export async function runEditorQc(
           : undefined,
       })),
       signals: r.signals.map((s) =>
-        typeof s === "string"
-          ? stripBannedChars(s)
-          : { ...s, text: stripBannedChars(s.text) }
+        typeof s === "string" ? stripBannedChars(s) : { ...s, text: stripBannedChars(s.text) }
       ),
       keyMetrics: r.keyMetrics,
       readingTime: r.readingTime ?? input.readingTime,

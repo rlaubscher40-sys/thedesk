@@ -10,6 +10,12 @@ import {
   type JobState,
   type PostedRow,
 } from "@/lib/instagramRuns";
+import {
+  MIN_POSTS_FOR_SIGNAL,
+  readFormats,
+  summariseFormats,
+  type InsightRow,
+} from "@/lib/instagramInsights";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 function fmt(n: number | null | undefined) {
@@ -38,17 +44,18 @@ function postRowDate(p: {
 }
 
 /**
- * The three posting jobs, in the order they run through the day.
+ * The posting jobs, in the order they run through the day.
  *
  * `label` is the cover title each one actually carries on the grid — "Today's
- * Briefing" for the morning post, "The Wider Lens" for the midday one — not the
+ * Briefing" for the morning post, "The Number" for the afternoon one — not the
  * internal job key. The point of this panel is to answer "did the thing I can
  * see on my profile go out?", so it should use the names on the profile and
  * leave the reader no translation to do.
  *
  * Times and `dow` mirror the scheduler's own job table (server/scheduler) so
- * the "should this have posted by now?" read matches what actually runs.
- * `warning` is the second sentence of the confirmation prompt — what
+ * the "should this have posted by now?" read matches what actually runs. A job
+ * with `manual` has no row there at all and only runs when its button is
+ * pressed. `warning` is the second sentence of the confirmation prompt — what
  * specifically goes out if the click is a mistake.
  */
 const RERUN_JOBS = [
@@ -61,12 +68,16 @@ const RERUN_JOBS = [
     warning: "the morning carousel (top 3 AU/Property stories) plus its 24h Story frames",
   },
   {
-    job: "coverage" as const,
-    label: "The Wider Lens",
-    full: "The Wider Lens",
-    at: "12:13",
+    job: "stat" as const,
+    label: "The Number",
+    full: "The Number",
+    at: "16:41",
     dow: null,
-    warning: "the midday carousel (Tech & Science, Business, Global)",
+    // The only scheduled job here that is allowed to post nothing. On a day
+    // when no metric has moved enough to be worth a card, it skips, and the
+    // panel reports that as "no number today" rather than as a missed post.
+    optional: true,
+    warning: "a single-image card for the day's most notable metric movement",
   },
   {
     job: "weekly" as const,
@@ -78,12 +89,50 @@ const RERUN_JOBS = [
     dow: 0, // Sunday
     warning: "the latest weekly edition carousel",
   },
+  {
+    job: "reel" as const,
+    label: "The Number, video",
+    full: "The Number, on video",
+    at: "18:22",
+    dow: null,
+    // Tuesdays and Thursdays, and skips a quiet day like The Number does, so
+    // "not posted" is the normal state most days rather than an alarm.
+    optional: true,
+    warning: "a Reel of the day's most notable metric movement",
+  },
+  {
+    job: "monthly" as const,
+    label: "The Month",
+    full: "The Month in Numbers",
+    at: "10:07",
+    dow: null,
+    // Runs on the 1st only, and skips a month where nothing cleared its own
+    // normal range — so like The Number it must never read as a missed post.
+    optional: true,
+    monthlyOn: 1,
+    warning: "the monthly carousel built from our own metric history",
+  },
+  {
+    job: "coverage" as const,
+    label: "The Wider Lens",
+    full: "The Wider Lens",
+    // Off the schedule since it was daily commodity news with no partner angle,
+    // and a third daily post cost reach on the two that earn it. Kept as a
+    // button because the machinery still works and a coverage story might one
+    // day warrant one. Listed last: it is no longer part of the day's run.
+    manual: true,
+    at: "on request",
+    dow: null,
+    warning: "a one-off carousel of general coverage (Tech & Science, Business, Global)",
+  },
 ];
 
 /** Label and colour for each job's state. "missing" is the only alarm. */
 const STATE_STYLE: Record<JobState, { text: (at: string) => string; alarm: boolean }> = {
   posted: { text: () => "posted today", alarm: false },
   missing: { text: () => "not posted", alarm: true },
+  skipped: { text: () => "no number today", alarm: false },
+  manual: { text: () => "on request", alarm: false },
   pending: { text: (at) => at, alarm: false },
   unknown: { text: (at) => at, alarm: false },
 };
@@ -113,6 +162,10 @@ function RerunJobs({ posts, ready }: { posts: PostedRow[]; ready: boolean }) {
       utils.instagram.publishingStatus.invalidate();
       if (res.recovered) {
         toast.success("Already live — recorded the existing post, nothing reposted");
+      } else if (res.skipped) {
+        // Ran fine, published nothing on purpose. Saying "Posted" here would
+        // send someone hunting the grid for a card that does not exist.
+        toast.success(res.reason ?? "Nothing worth posting today — no card went out");
       } else {
         toast.success(res.headline ? `Posted: ${res.headline}` : "Posted");
       }
@@ -122,7 +175,16 @@ function RerunJobs({ posts, ready }: { posts: PostedRow[]; ready: boolean }) {
   });
 
   function stateOf(entry: (typeof RERUN_JOBS)[number]): JobState {
-    return jobState(done ? done.has(entry.job) : null, slotHasPassed(entry.at, entry.dow));
+    const manual = "manual" in entry && entry.manual === true;
+    const monthlyOn = "monthlyOn" in entry ? (entry.monthlyOn as number) : null;
+    return jobState(
+      done ? done.has(entry.job) : null,
+      manual ? false : slotHasPassed(entry.at, entry.dow, new Date(), monthlyOn),
+      {
+        optional: "optional" in entry && entry.optional === true,
+        manual,
+      }
+    );
   }
 
   function handleRun(entry: (typeof RERUN_JOBS)[number]) {
@@ -160,7 +222,9 @@ function RerunJobs({ posts, ready }: { posts: PostedRow[]; ready: boolean }) {
           const isRunning = rerun.isPending && running === entry.job;
           const state = stateOf(entry);
           const style = STATE_STYLE[state];
-          const schedule = entry.dow === 0 ? `Sun ${entry.at}` : entry.at;
+          const monthlyOn = "monthlyOn" in entry ? (entry.monthlyOn as number) : null;
+          const schedule =
+            monthlyOn != null ? `1st ${entry.at}` : entry.dow === 0 ? `Sun ${entry.at}` : entry.at;
           return (
             <button
               key={entry.job}
@@ -171,7 +235,11 @@ function RerunJobs({ posts, ready }: { posts: PostedRow[]; ready: boolean }) {
                   ? `"${entry.full}" already posted today (runs ${schedule})`
                   : state === "missing"
                     ? `"${entry.full}" was due at ${schedule} and has nothing recorded today`
-                    : `"${entry.full}" — runs ${schedule}`
+                    : state === "skipped"
+                      ? `"${entry.full}" ran at ${schedule} and found no metric worth a card today`
+                      : state === "manual"
+                        ? `"${entry.full}" is off the schedule and only posts when you press this`
+                        : `"${entry.full}" — runs ${schedule}`
               }
               className="inline-flex items-center gap-1.5 rounded px-3.5 py-2 text-[10px] font-mono uppercase tracking-[0.18em] transition-colors disabled:opacity-50 bg-white/[0.04] text-[var(--color-fg)] hover:bg-white/[0.08]"
               style={{ boxShadow: "inset 0 0 0 1px var(--color-border)" }}
@@ -236,10 +304,7 @@ function PublishingQuota() {
   return (
     <div className="rounded border border-[var(--color-border)] p-4 space-y-2">
       <div className="flex items-baseline justify-between gap-3">
-        <p
-          className="overline-amber"
-          style={{ letterSpacing: "0.18em", fontSize: "10px" }}
-        >
+        <p className="overline-amber" style={{ letterSpacing: "0.18em", fontSize: "10px" }}>
           Publishing quota
         </p>
         <p className="text-xs font-mono tabular-nums text-[var(--color-fg-muted)]">
@@ -248,10 +313,7 @@ function PublishingQuota() {
       </div>
       {pct != null && (
         <div className="h-1.5 w-full rounded-full bg-white/[0.06] overflow-hidden">
-          <div
-            className="h-full rounded-full bg-amber-400/70"
-            style={{ width: `${pct}%` }}
-          />
+          <div className="h-full rounded-full bg-amber-400/70" style={{ width: `${pct}%` }} />
         </div>
       )}
       <p className="text-xs text-[var(--color-fg-muted)]" title={data.error ?? undefined}>
@@ -261,8 +323,120 @@ function PublishingQuota() {
   );
 }
 
+/** One rate, or an em dash when there is nothing to show. */
+function rate(n: number | null): string {
+  return n == null ? "—" : n.toFixed(1);
+}
+
+/**
+ * Which format is earning its slot.
+ *
+ * The account has collected reach, saves and shares per post for months and
+ * nothing ever read them, so "should we keep posting X" has always been settled
+ * by argument. This is the table that settles it by measurement instead.
+ *
+ * Saves lead because for reference content a save is the strongest ranking
+ * signal Instagram takes, and it is the one the captions actually ask for. Every
+ * figure is per 1,000 reach and taken as a median — see lib/instagramInsights
+ * for why both of those matter more than they look.
+ *
+ * The reading above the table is the point of the whole thing: four rows of
+ * rates still need interpreting, and the interpretation is where someone
+ * reaches a confident conclusion off five posts. So the summary line does the
+ * refusing, out loud, rather than leaving it to whoever is looking.
+ */
+function FormatPerformance({ posts, ready }: { posts: InsightRow[]; ready: boolean }) {
+  if (!ready) return <Skeleton className="h-32 w-full rounded" />;
+
+  const summaries = summariseFormats(posts);
+  const reading = readFormats(summaries);
+
+  return (
+    <div className="rounded border border-[var(--color-border)] p-4 space-y-3">
+      <div>
+        <p className="overline-amber" style={{ letterSpacing: "0.18em", fontSize: "10px" }}>
+          Which format is working
+        </p>
+        <p className="text-xs text-[var(--color-fg-muted)] mt-1.5 max-w-[68ch] leading-relaxed">
+          Median saves, shares and engagement per 1,000 reach, so a post that simply travelled
+          further does not read as a post that landed harder. Posts still waiting on the insights
+          job are excluded rather than counted as zeroes.
+        </p>
+      </div>
+
+      <p className="text-sm text-[var(--color-fg)] leading-relaxed border-l-2 border-[var(--color-accent)] pl-3">
+        {reading}
+      </p>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs border-collapse min-w-[520px]">
+          <thead>
+            <tr className="border-b border-[var(--color-border)]">
+              {["Format", "Posts", "Reach", "Saves /1k", "Shares /1k", "Eng. /1k"].map((h, i) => (
+                <th
+                  key={h}
+                  className={`pb-2 font-mono uppercase tracking-[0.16em] text-[var(--color-fg-subtle)] pr-4 whitespace-nowrap ${
+                    i === 0 ? "text-left" : "text-right"
+                  }`}
+                >
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {summaries.map((s) => (
+              <tr
+                key={s.postType}
+                className="border-b border-[var(--color-border)] last:border-b-0"
+                // Dim a format we cannot yet read, so the eye goes to the rows
+                // that mean something instead of treating all four as equal.
+                style={{ opacity: s.conclusive ? 1 : 0.55 }}
+              >
+                <td className="py-2.5 pr-4 text-[var(--color-fg)] whitespace-nowrap">
+                  {s.label}
+                  {!s.conclusive && (
+                    <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-fg-subtle)]">
+                      too few
+                    </span>
+                  )}
+                </td>
+                <td className="py-2.5 pr-4 tabular-nums text-right text-[var(--color-fg-muted)] whitespace-nowrap">
+                  {s.measured}
+                  {s.awaiting > 0 && (
+                    <span className="text-[var(--color-fg-subtle)]"> +{s.awaiting}</span>
+                  )}
+                </td>
+                <td className="py-2.5 pr-4 tabular-nums text-right text-[var(--color-fg-muted)]">
+                  {s.medianReach == null ? "—" : Math.round(s.medianReach).toLocaleString()}
+                </td>
+                <td className="py-2.5 pr-4 tabular-nums text-right text-[var(--color-fg)]">
+                  {rate(s.savesPer1k)}
+                </td>
+                <td className="py-2.5 pr-4 tabular-nums text-right text-[var(--color-fg-muted)]">
+                  {rate(s.sharesPer1k)}
+                </td>
+                <td className="py-2.5 tabular-nums text-right text-[var(--color-fg-muted)]">
+                  {rate(s.engagementPer1k)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <p className="text-[11px] text-[var(--color-fg-subtle)] leading-relaxed">
+        A format is read as inconclusive under {MIN_POSTS_FOR_SIGNAL} measured posts. "Posts" counts
+        those with metrics in; a "+n" is published but still waiting on the insights job.
+      </p>
+    </div>
+  );
+}
+
 export function InstagramAdminPanel() {
-  const { data, isLoading } = trpc.instagram.listAll.useQuery();
+  // 100 rather than the default 30: the format comparison below needs enough
+  // history to have anything to say, and 30 rows is barely a fortnight.
+  const { data, isLoading } = trpc.instagram.listAll.useQuery({ limit: 100 });
   const posts = data ?? [];
 
   return (
@@ -281,6 +455,8 @@ export function InstagramAdminPanel() {
       <PublishingQuota />
 
       <RerunJobs posts={posts} ready={!isLoading} />
+
+      <FormatPerformance posts={posts} ready={!isLoading} />
 
       {isLoading ? (
         <Skeleton className="h-40 w-full rounded" />

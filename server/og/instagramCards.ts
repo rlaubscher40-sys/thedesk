@@ -16,6 +16,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import satori from "satori";
+import { seriesRange, sparklineDataUri, thin, type SparkPoint } from "./sparkline";
+import type { StatFact } from "../metrics/statFacts";
 import sharp from "sharp";
 import type { DailyFeedItem, Edition } from "../db/schema";
 import type { EditionTopic } from "../../shared/schemas";
@@ -224,6 +226,73 @@ function fitFontSize(len: number, tiers: Array<[number, string]>, fallback: stri
     if (len <= max) return size;
   }
   return fallback;
+}
+
+/**
+ * Roughly how wide each character is in Playfair Display Bold, as a fraction of
+ * the font size. Only the characters a figure can contain are listed; anything
+ * else falls back to a digit's width.
+ *
+ * These are eyeballed from rendered output rather than read out of the font,
+ * which is enough: the number they feed into is a *ceiling*, applied with a
+ * safety margin, and the consequence of being slightly pessimistic is a figure
+ * a few pixels smaller than it could have been.
+ */
+const GLYPH_EM: Record<string, number> = {
+  "0": 0.56,
+  "1": 0.42,
+  "2": 0.56,
+  "3": 0.56,
+  "4": 0.56,
+  "5": 0.56,
+  "6": 0.56,
+  "7": 0.56,
+  "8": 0.56,
+  "9": 0.56,
+  ".": 0.28,
+  ",": 0.28,
+  " ": 0.26,
+  $: 0.56,
+  "%": 0.9,
+  "-": 0.36,
+  "\u2212": 0.36,
+  "+": 0.6,
+  b: 0.55,
+  k: 0.55,
+  m: 0.85,
+  p: 0.55,
+  s: 0.44,
+};
+
+/**
+ * The largest size a figure can be set at and still fit on one line.
+ *
+ * Counting characters — which is what the rest of this file does, and what this
+ * replaced for the 9:16 frame — is fine while the type is small enough that
+ * even a pessimistic guess fits. It stops being fine once the figure is set as
+ * large as a Reel needs: "12,480" and "-12.4pp" are both seven characters, and
+ * the second is nearly a third wider, because a comma is a quarter of the width
+ * of a "p". Sized by character count, one of them runs off the edge of the
+ * frame — which is exactly what happened.
+ *
+ * So the width is estimated per glyph and the size falls out of the space
+ * available. The 4 per cent margin is for the difference between these
+ * approximations and the real font metrics.
+ */
+export function estimateValueEms(value: string): number {
+  return [...value].reduce((n, ch) => n + (GLYPH_EM[ch] ?? GLYPH_EM["0"]!), 0);
+}
+
+export function fitValueSize(
+  value: string,
+  opts: { availablePx: number; maxPx: number; minPx: number }
+): string {
+  const ems = estimateValueEms(value);
+  if (ems <= 0) return `${opts.maxPx}px`;
+  const fits = (opts.availablePx * 0.96) / ems;
+  // Floor rather than round: rounding up can put the line back over the width
+  // the margin was there to protect.
+  return `${Math.floor(Math.max(opts.minPx, Math.min(opts.maxPx, fits)))}px`;
 }
 
 async function renderToJpeg(tree: object, width: number, height: number): Promise<Buffer> {
@@ -541,7 +610,7 @@ export async function renderDailyCoverCard(
   feedDate?: string | null,
   variant: CardVariant = "navy",
   metrics?: Array<{ label: string; value: string }>,
-  opts: { title?: string; kicker?: string } = {}
+  opts: { title?: string; kicker?: string; swipe?: string } = {}
 ): Promise<Buffer> {
   const logo = await loadLogo(variant);
   const c = colorScheme(variant);
@@ -759,7 +828,7 @@ export async function renderDailyCoverCard(
                     },
                   ]
                 : [
-                    // No metric strip (e.g. the midday coverage carousel):
+                    // No metric strip (e.g. the coverage carousel):
                     // reserve the strip's vertical footprint so the briefing
                     // block keeps the same height and the title/contents line up
                     // with the cover that does carry a strip. marginTop (44) +
@@ -816,7 +885,14 @@ export async function renderDailyCoverCard(
                           textTransform: "uppercase",
                           color: c.fgMuted,
                         },
-                        children: "Swipe for today's stories »",
+                        /**
+                         * Name what the swipe actually buys. "Swipe for today's
+                         * stories" promised the headlines this cover has already
+                         * listed, so it asked for the swipe having spent the
+                         * reason for it. The slides carry the analysis the cover
+                         * withholds, and saying so is the open loop.
+                         */
+                        children: opts.swipe ?? "Swipe for why each one matters »",
                       },
                     },
                     {
@@ -2331,4 +2407,536 @@ export async function renderWeeklyTopicCard(
   };
 
   return renderToJpeg(tree, 1080, 1350);
+}
+
+/**
+ * Stat card: 1080×1350 (4:5 portrait), a single-image post.
+ *
+ * The inverse of the daily cover's information hierarchy. The cover leads with
+ * a headline and demotes the figure to body text; this leads with the figure,
+ * set as large as it will go, and demotes everything else. One number, one
+ * sentence, one sourced claim, no swipe.
+ *
+ * `line` is the sentence from `generateStatLine` (already verified against the
+ * source facts) and `subtext` is the computed claim from `pickStatOfTheDay` —
+ * the only two pieces of prose on the card, and neither may say anything the
+ * metric history does not support.
+ */
+export async function renderStatCard(
+  stat: {
+    label: string;
+    value: string;
+    line: string;
+    subtext: string;
+    source?: string | null;
+    asOf?: Date | null;
+    /**
+     * The metric's own readings, oldest first. Drawn as a spare line under the
+     * claim — the one thing on this card a competitor aggregating today's
+     * headlines cannot print, because it is months of readings rather than a
+     * figure. 9:16 only: the grid card has no room for it, and restyling every
+     * stat post already published to add one is not worth it.
+     */
+    series?: SparkPoint[];
+  },
+  variant: CardVariant = "navy",
+  opts: {
+    kicker?: string;
+    /** 4:5 grid card (default) or 9:16 for a Story or a Reel frame. */
+    shape?: "feed" | "vertical";
+    /**
+     * How much of the card has arrived, 0..1. Used to render the frames of a
+     * Reel from this same design rather than a second one: the number lands
+     * first, the sentence follows, the claim last. At 1 (the default) the card
+     * is whole, which is what every still rendering wants.
+     */
+    reveal?: number;
+    /**
+     * Show this in place of the real figure. Used only by the count-up in a
+     * Reel, where the number climbs to itself. The type size is still chosen
+     * from the *real* value's length, so an intermediate tick cannot resize the
+     * hero and make the card jump under it.
+     */
+    valueText?: string;
+    /** 0..1, how much of `stat.series` has been drawn. Animated by the Reel. */
+    seriesProgress?: number;
+    /**
+     * Supporting figures from `buildStatFacts`, printed under the claim. This
+     * is the density lever: their best-performing Reel puts seven specific
+     * numbers on screen and ours put one. 9:16 only — there is no room on the
+     * grid card and no reason to restyle posts already published.
+     */
+    facts?: StatFact[];
+    /** How many of those have arrived. They appear one at a time, which is
+     *  what makes the middle of the clip move without anything sliding. */
+    factsShown?: number;
+  } = {}
+): Promise<Buffer> {
+  const logo = await loadLogo(variant);
+  const c = colorScheme(variant);
+  const vertical = opts.shape === "vertical";
+  const width = 1080;
+  const height = vertical ? 1920 : 1350;
+  const reveal = opts.reveal ?? 1;
+  // Each element appears at its own point in the reveal, in reading order.
+  const showValue = reveal >= 0.15;
+  const showLine = reveal >= 0.45;
+  const showClaim = reveal >= 0.75;
+
+  // The value is the whole point of the card, so it is set as large as its own
+  // length allows rather than at a fixed size: "64.2%" earns 300px, "$815,439"
+  // has to come down to stay on one line inside the 64px gutters.
+  //
+  // The 9:16 frame gets its own, larger scale. It is not a taller version of
+  // the grid card: it is watched at arm's length in a feed of full-screen
+  // video, against a competitor whose clips fill the frame. Type set for a
+  // thumbnail reads as an empty poster at that size. Both tables are tuned to
+  // the same constraint — the longest value at each step still clears the 64px
+  // gutters on one line — so nothing here can wrap.
+  //
+  // Only the 9:16 frame is measured. The grid card's table is left alone: its
+  // sizes are conservative enough that even the widest realistic figure clears
+  // the gutters, and changing them would restyle every stat post already
+  // published to fix a problem the grid card does not have.
+  const valueSize = vertical
+    ? fitValueSize(stat.value, { availablePx: width - 128, maxPx: 400, minPx: 120 })
+    : fitFontSize(
+        stat.value.length,
+        [
+          [5, "300px"],
+          [7, "240px"],
+          [9, "186px"],
+          [12, "146px"],
+        ],
+        "112px"
+      );
+  const lineSize = fitFontSize(
+    stat.line.length,
+    vertical
+      ? [
+          [48, "68px"],
+          [70, "59px"],
+          [92, "51px"],
+        ]
+      : [
+          [48, "54px"],
+          [70, "47px"],
+          [92, "41px"],
+        ],
+    vertical ? "45px" : "36px"
+  );
+
+  const asOfLabel = stat.asOf
+    ? new Intl.DateTimeFormat("en-AU", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        timeZone: "Australia/Sydney",
+      }).format(stat.asOf)
+    : null;
+  const provenance = [stat.source, asOfLabel].filter(Boolean).join(" · ");
+
+  // A line needs a shape to be worth drawing. Two readings is a slope, not a
+  // history, and drawing one would claim an archive that is not there.
+  const points = vertical ? thin(stat.series ?? [], 60) : [];
+  const chart =
+    points.length >= 6
+      ? {
+          uri: sparklineDataUri(
+            points.map((p) => p.value),
+            {
+              width: width - 128,
+              height: 215,
+              progress: opts.seriesProgress ?? 1,
+              stroke: c.fg,
+              accent: c.amber,
+            }
+          ),
+          width: width - 128,
+          height: 215,
+          caption: `${points.length} readings`.toUpperCase(),
+        }
+      : null;
+
+  // The slug: format, source, and how far back the readings go. The shape
+  // Glasshouse puts at the top of every frame of theirs, because it establishes
+  // in one line that there is an archive behind the number. Ours can only claim
+  // it when it is true, so it appears only when a history is actually drawn and
+  // states exactly the range of what is drawn.
+  const slug =
+    vertical && chart
+      ? [opts.kicker ?? "The Number", stat.source, seriesRange(points)]
+          .filter(Boolean)
+          .join("  ·  ")
+          .toUpperCase()
+      : null;
+
+  const facts = vertical ? (opts.facts ?? []) : [];
+  const factsShown = opts.factsShown ?? facts.length;
+
+  const tree = {
+    type: "div",
+    props: {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        width: `${width}px`,
+        height: `${height}px`,
+        backgroundColor: c.bg,
+        backgroundImage: c.bloom,
+        padding: "64px",
+        // Instagram lays its caption, handle and buttons over roughly the
+        // bottom fifth of a Reel. Reserving that as padding — rather than as a
+        // heavier spacer — keeps the *whole* card, provenance line included,
+        // above the chrome instead of only the headline.
+        paddingBottom: vertical ? "268px" : "64px",
+        justifyContent: "flex-start",
+      },
+      children: [
+        // ── Top: branding + format name ──
+        {
+          type: "div",
+          props: {
+            style: { display: "flex", justifyContent: "space-between", alignItems: "center" },
+            children: [
+              brandHeader(logo, 56, { accent: c.amber }),
+              // On the 9:16 frame the slug below already names the format, and
+              // printing it twice in two weights reads as a mistake.
+              ...(slug
+                ? []
+                : [
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          fontFamily: "JetBrains Mono",
+                          fontSize: "15px",
+                          letterSpacing: "0.22em",
+                          textTransform: "uppercase",
+                          color: c.amber,
+                        },
+                        children: opts.kicker ?? "The Number",
+                      },
+                    },
+                  ]),
+            ],
+          },
+        },
+
+        ...(slug
+          ? [
+              {
+                type: "div",
+                props: {
+                  style: {
+                    display: "flex",
+                    fontFamily: "JetBrains Mono",
+                    fontSize: "16px",
+                    letterSpacing: "0.2em",
+                    textTransform: "uppercase",
+                    color: c.fgMuted,
+                    marginTop: "30px",
+                    // The block below it starts here now that the card is full
+                    // enough to have collapsed its spacers, so the separation
+                    // has to be explicit rather than left to the layout.
+                    marginBottom: "30px",
+                  },
+                  children: slug,
+                },
+              },
+            ]
+          : []),
+
+        // Spacers above and below place the stat block.
+        //
+        // On the 4:5 grid card the top one is heavier, which settles the block
+        // into the lower third: the number is visually top-heavy, so
+        // dead-centring it reads as sitting high.
+        //
+        // The 9:16 frame is near-balanced, weighted a touch upwards for the
+        // same top-heaviness. An earlier version pushed the block right up
+        // against the header to clear Instagram's chrome, which left almost
+        // half the frame empty below it — the chrome is handled by the padding
+        // above, so this only has to place the block.
+        {
+          type: "div",
+          props: { style: { display: "flex", flexGrow: vertical ? 1 : 1.7 }, children: "" },
+        },
+
+        {
+          type: "div",
+          props: {
+            style: { display: "flex", flexDirection: "column" },
+            children: [
+              // Metric name, small and quiet — the number below is the headline.
+              {
+                type: "div",
+                props: {
+                  style: {
+                    fontFamily: "JetBrains Mono",
+                    fontSize: "17px",
+                    letterSpacing: "0.28em",
+                    textTransform: "uppercase",
+                    color: c.fgMuted,
+                    marginBottom: "26px",
+                  },
+                  children: clamp(stat.label, 40),
+                },
+              },
+              // The hero.
+              {
+                type: "div",
+                props: {
+                  style: {
+                    fontFamily: "Playfair Display",
+                    fontWeight: 700,
+                    fontSize: valueSize,
+                    lineHeight: 1.0,
+                    // Only lightly tightened: at these sizes the usual display
+                    // tracking pulls a leading "$" into the first digit and
+                    // closes up the thousands comma.
+                    letterSpacing: "-0.018em",
+                    color: c.fg,
+                    opacity: showValue ? 1 : 0,
+                  },
+                  children: opts.valueText ?? stat.value,
+                },
+              },
+              // The sentence.
+              {
+                type: "div",
+                props: {
+                  style: {
+                    fontFamily: "Playfair Display",
+                    fontWeight: 700,
+                    fontSize: lineSize,
+                    lineHeight: 1.28,
+                    letterSpacing: "-0.01em",
+                    color: c.fg,
+                    marginTop: "62px",
+                    opacity: showLine ? 1 : 0,
+                  },
+                  children: clampSentence(stat.line, 100),
+                },
+              },
+              // Short amber rule separating the sentence from the sourced claim,
+              // so the mono line below reads as evidence rather than more prose.
+              {
+                type: "div",
+                props: {
+                  style: {
+                    display: "flex",
+                    width: "132px",
+                    height: "2px",
+                    backgroundColor: c.amber,
+                    marginTop: "44px",
+                    marginBottom: "26px",
+                    opacity: showClaim ? 1 : 0,
+                  },
+                  children: "",
+                },
+              },
+              {
+                type: "div",
+                props: {
+                  style: {
+                    fontFamily: "JetBrains Mono",
+                    fontSize: "19px",
+                    letterSpacing: "0.16em",
+                    lineHeight: 1.5,
+                    textTransform: "uppercase",
+                    color: c.amber,
+                    opacity: showClaim ? 1 : 0,
+                  },
+                  children: clamp(stat.subtext, 92),
+                },
+              },
+            ],
+          },
+        },
+
+        // The supporting figures, one at a time. A mono figure over a small
+        // caption, with a marker: the pattern their scan uses, and the reason
+        // four numbers read as a reference rather than as a wall.
+        ...(facts.length
+          ? [
+              {
+                type: "div",
+                props: {
+                  style: {
+                    display: "flex",
+                    flexDirection: "column",
+                    marginTop: "42px",
+                    gap: "20px",
+                  },
+                  children: facts.map((fact, i) => ({
+                    type: "div",
+                    props: {
+                      style: {
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: "20px",
+                        opacity: i < factsShown ? 1 : 0,
+                      },
+                      children: [
+                        {
+                          type: "div",
+                          props: {
+                            style: {
+                              display: "flex",
+                              width: "10px",
+                              height: "10px",
+                              borderRadius: "5px",
+                              backgroundColor: c.amber,
+                              marginTop: "18px",
+                            },
+                            children: "",
+                          },
+                        },
+                        {
+                          type: "div",
+                          props: {
+                            style: { display: "flex", flexDirection: "column" },
+                            children: [
+                              {
+                                type: "div",
+                                props: {
+                                  style: {
+                                    fontFamily: "JetBrains Mono",
+                                    fontSize: "42px",
+                                    color: c.fg,
+                                  },
+                                  children: clamp(fact.figure, 26),
+                                },
+                              },
+                              {
+                                type: "div",
+                                props: {
+                                  style: {
+                                    fontFamily: "JetBrains Mono",
+                                    fontSize: "16px",
+                                    letterSpacing: "0.16em",
+                                    textTransform: "uppercase",
+                                    color: c.fgMuted,
+                                    marginTop: "10px",
+                                  },
+                                  children: clamp(fact.caption, 44),
+                                },
+                              },
+                            ],
+                          },
+                        },
+                      ],
+                    },
+                  })),
+                },
+              },
+            ]
+          : []),
+
+        // The history, under the claim. It appears with the sentence rather than
+        // with the figure: the number is the news, the line is the argument for
+        // why it is news, and showing both at once gives the eye nowhere to go.
+        ...(chart
+          ? [
+              {
+                type: "div",
+                props: {
+                  style: {
+                    display: "flex",
+                    flexDirection: "column",
+                    marginTop: "54px",
+                    marginBottom: "26px",
+                    opacity: showLine ? 1 : 0,
+                  },
+                  children: [
+                    {
+                      type: "img",
+                      props: { src: chart.uri, width: chart.width, height: chart.height },
+                    },
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          fontFamily: "JetBrains Mono",
+                          fontSize: "17px",
+                          letterSpacing: "0.2em",
+                          textTransform: "uppercase",
+                          color: c.fgMuted,
+                          marginTop: "18px",
+                        },
+                        children: chart.caption,
+                      },
+                    },
+                  ],
+                },
+              },
+            ]
+          : []),
+
+        {
+          type: "div",
+          props: { style: { display: "flex", flexGrow: vertical ? 0.95 : 1 }, children: "" },
+        },
+
+        // ── Bottom: rule + provenance + domain ──
+        {
+          type: "div",
+          props: {
+            style: { display: "flex", flexDirection: "column", gap: "18px" },
+            children: [
+              {
+                type: "div",
+                props: {
+                  style: { display: "flex", width: "100%", height: "1px", backgroundImage: c.rule },
+                  children: "",
+                },
+              },
+              {
+                type: "div",
+                props: {
+                  style: {
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  },
+                  children: [
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          fontFamily: "JetBrains Mono",
+                          fontSize: "15px",
+                          letterSpacing: "0.15em",
+                          textTransform: "uppercase",
+                          color: c.fgMuted,
+                        },
+                        // Naming the source on the card is the whole credibility
+                        // position for this format: our numbers are checkable.
+                        children: provenance || "The Desk",
+                      },
+                    },
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          fontFamily: "JetBrains Mono",
+                          fontSize: "15px",
+                          letterSpacing: "0.22em",
+                          color: c.amber,
+                        },
+                        children: "thedesk.au",
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      ],
+    },
+  };
+
+  return renderToJpeg(tree, width, height);
 }

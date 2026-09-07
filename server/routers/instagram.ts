@@ -18,6 +18,9 @@ import { adminProcedure, router } from "../core/trpc";
 const RERUN_PATHS = {
   daily: "/api/ingest/instagram-daily",
   coverage: "/api/ingest/instagram-coverage",
+  stat: "/api/ingest/instagram-stat",
+  reel: "/api/ingest/instagram-reel",
+  monthly: "/api/ingest/instagram-monthly",
   weekly: "/api/ingest/instagram-weekly",
 } as const;
 
@@ -27,6 +30,9 @@ type RerunResponse = {
   headline?: string;
   recovered?: boolean;
   editionNumber?: number;
+  /** The Number returns this on a day when no metric was worth a card. */
+  skipped?: boolean;
+  reason?: string;
   error?: string;
   message?: string;
 };
@@ -56,6 +62,16 @@ export const instagramRouter = router({
    * how much of the daily allowance a run used. Degrades gracefully: not
    * configured → flagged; a failed live call → error string, never a throw.
    */
+  /**
+   * Whether a Reel could be made right now. Surfaced next to the publishing
+   * quota because the two questions an admin has before a posting window are
+   * "am I allowed to post" and "will the post render".
+   */
+  reelReadiness: adminProcedure.query(async () => {
+    const { checkReelReadiness } = await import("../video/preflight");
+    return checkReelReadiness();
+  }),
+
   publishingStatus: adminProcedure.query(async () => {
     const { instagramAccessToken: accessToken, instagramBusinessAccountId: igUserId } = env;
     if (!accessToken || !igUserId) {
@@ -108,7 +124,7 @@ export const instagramRouter = router({
   rerun: adminProcedure
     .input(
       z.object({
-        job: z.enum(["daily", "coverage", "weekly"]),
+        job: z.enum(["daily", "coverage", "stat", "reel", "monthly", "weekly"]),
         /** Daily/coverage only: post a specific feed date instead of today's. */
         feedDate: z
           .string()
@@ -169,6 +185,19 @@ export const instagramRouter = router({
         editionNumber: parsed.editionNumber ?? null,
         /** True when the post was already live and we recorded it rather than reposting. */
         recovered: parsed.recovered === true,
+        /**
+         * True when the job ran fine and deliberately published nothing — only
+         * The Number does this, on a day when no metric cleared the bar. A 200
+         * with no postId is a success, but reporting it as "Posted" would send
+         * the admin looking for a card that was never meant to exist.
+         *
+         * A hand press does NOT force past this. If the day's numbers are dull,
+         * the honest outcome is no post: forcing one would put exactly the kind
+         * of filler on the grid that taking the format seriously is meant to
+         * avoid.
+         */
+        skipped: parsed.skipped === true,
+        reason: parsed.reason ?? null,
       };
     }),
 });

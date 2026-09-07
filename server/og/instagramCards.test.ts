@@ -7,7 +7,10 @@ import {
   renderDailyStoryVertical,
   renderWeeklyCoverCard,
   renderWeeklyStoryVertical,
+  renderStatCard,
   renderWeeklyTopicCard,
+  estimateValueEms,
+  fitValueSize,
 } from "./instagramCards";
 
 function fakeStory(overrides: Partial<DailyFeedItem> = {}): DailyFeedItem {
@@ -128,9 +131,7 @@ describe("coverage carousel — branding + alignment guardrails", () => {
   });
 
   it("renders a story card with the 'In Brief' subtext label", async () => {
-    expectJpeg(
-      await renderDailyStoryCard(stories[0]!, 0, 3, "navy", { subtextLabel: "In Brief" })
-    );
+    expectJpeg(await renderDailyStoryCard(stories[0]!, 0, 3, "navy", { subtextLabel: "In Brief" }));
   });
 
   it("renders a long publisher summary as 'In Brief' subtext without chopping off", async () => {
@@ -146,9 +147,7 @@ describe("coverage carousel — branding + alignment guardrails", () => {
         "scramble could push component prices higher into next year, with knock-on " +
         "effects for everything from electric vehicles to defence electronics.",
     });
-    expectJpeg(
-      await renderDailyStoryCard(longSummary, 1, 3, "navy", { subtextLabel: "In Brief" })
-    );
+    expectJpeg(await renderDailyStoryCard(longSummary, 1, 3, "navy", { subtextLabel: "In Brief" }));
     expectJpeg(
       await renderDailyStoryCard(longSummary, 1, 3, "light", { subtextLabel: "In Brief" })
     );
@@ -258,7 +257,8 @@ describe("renderWeeklyCoverCard", () => {
           title: "The downturn nobody is allowed to call a crash is doing the damage anyway",
         }),
         fakeTopic({
-          title: "The negative gearing redirect is colliding with the supply crunch it was meant to fix",
+          title:
+            "The negative gearing redirect is colliding with the supply crunch it was meant to fix",
         }),
         fakeTopic({ title: "The RBA is waiting while the Fed argues with itself in public" }),
         fakeTopic({
@@ -287,7 +287,8 @@ describe("renderWeeklyStoryVertical", () => {
           title: "The downturn nobody is allowed to call a crash is doing the damage anyway",
         }),
         fakeTopic({
-          title: "The negative gearing redirect is colliding with the supply crunch it was meant to fix",
+          title:
+            "The negative gearing redirect is colliding with the supply crunch it was meant to fix",
         }),
         fakeTopic({ title: "The RBA is waiting while the Fed argues with itself in public" }),
         fakeTopic({
@@ -362,5 +363,91 @@ describe("renderWeeklyTopicCard", () => {
         "A key takeaway that goes on and on well past what the box should ever hold ".repeat(2),
     });
     expectJpeg(await renderWeeklyTopicCard(huge, 3, 5));
+  });
+});
+
+describe("renderStatCard", () => {
+  const stat = {
+    label: "Auction clearance",
+    value: "58.4%",
+    line: "Clearance rates have been sliding for six weeks straight.",
+    subtext: "SIX STRAIGHT FALLS IN AUCTION CLEARANCE",
+    source: "CoreLogic",
+    asOf: new Date("2026-09-05T00:00:00Z"),
+  };
+
+  it("renders both grid variants", async () => {
+    expectJpeg(await renderStatCard(stat, "navy"));
+    expectJpeg(await renderStatCard(stat, "light"));
+  });
+
+  it("renders a long currency value without falling over", async () => {
+    expectJpeg(
+      await renderStatCard({
+        ...stat,
+        label: "Nat'l dwelling value",
+        value: "$1,815,439",
+        line: "The national median has given back a year of gains.",
+        subtext: "LOWEST NATIONAL DWELLING VALUE IN 14 MONTHS",
+      })
+    );
+  });
+
+  it("renders when there is no source or as-of to show", async () => {
+    expectJpeg(await renderStatCard({ ...stat, source: null, asOf: null }));
+  });
+
+  it("survives an overlong sentence, label and claim", async () => {
+    expectJpeg(
+      await renderStatCard({
+        ...stat,
+        label: "An absurdly long metric label that nobody would ever actually configure",
+        line: "A sentence that runs on well past anything the card should ever be asked to set ".repeat(
+          2
+        ),
+        subtext: "A COMPUTED CLAIM THAT IS ITSELF FAR TOO LONG FOR THE MONO LINE ".repeat(2),
+      })
+    );
+  });
+});
+
+describe("fitValueSize", () => {
+  const box = { availablePx: 952, maxPx: 400, minPx: 120 };
+  const px = (v: string) => Number(fitValueSize(v, box).replace("px", ""));
+
+  it("keeps the figure inside the gutters, rounding included", () => {
+    // The size it returns, put back through its own width estimate, must still
+    // fit. The margin is easy to give back by rounding the size up, which is
+    // the mistake this is here to catch.
+    for (const value of [
+      "4%",
+      "4.3%",
+      "12,480",
+      "$815,439",
+      "$1,234,567",
+      "-12.4pp",
+      "1,234,567,890",
+    ]) {
+      expect(px(value) * estimateValueEms(value)).toBeLessThanOrEqual(box.availablePx);
+    }
+  });
+
+  it("never sets a longer figure larger than a shorter one", () => {
+    const sizes = ["4.3%", "12,480", "$815,439", "$1,234,567"].map(px);
+    for (let i = 1; i < sizes.length; i++) expect(sizes[i]!).toBeLessThanOrEqual(sizes[i - 1]!);
+  });
+
+  it("sizes by width, not by character count", () => {
+    // "12,480" and "-12.4pp" are both seven characters. Sized by count they
+    // get the same type size and the second one runs off the frame.
+    expect(px("-12.4pp")).toBeLessThan(px("12,480"));
+  });
+
+  it("does not blow a short figure up past the ceiling", () => {
+    expect(px("4%")).toBe(box.maxPx);
+  });
+
+  it("stops shrinking at the floor rather than becoming unreadable", () => {
+    expect(px("$1,234,567,890,123,456")).toBe(box.minPx);
   });
 });

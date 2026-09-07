@@ -53,8 +53,23 @@ export const subscribersRouter = router({
         email: emailSchema,
         name: z.string().min(1).max(128).optional(),
         /** Touchpoint identifier, "sidebar", "modal", "hero",
-         *  "edition-footer", etc. */
+         *  "edition-footer", etc. Which form converted them. */
         source: z.string().min(1).max(64).optional(),
+        /** Channel they arrived from at the start of the session, captured by
+         *  client/src/lib/attribution.ts. Distinct from `source`: that says
+         *  which form, this says which channel. Client-supplied and therefore
+         *  not trusted for anything but reporting — the regex keeps a hostile
+         *  value from reaching the column as anything but a slug. */
+        arrivalSource: z
+          .string()
+          .max(64)
+          .regex(/^[a-z0-9._-]*$/)
+          .optional(),
+        arrivalCampaign: z
+          .string()
+          .max(64)
+          .regex(/^[a-z0-9._-]*$/)
+          .optional(),
         // Honeypot, must be empty. Form-filler bots flood every field;
         // a truthy value here means it's a bot and the row is rejected
         // before it ever touches the subscribers table.
@@ -88,6 +103,11 @@ export const subscribersRouter = router({
         name: input.name ?? null,
         confirmToken: token,
         source: input.source ?? null,
+        // Empty string means the client had the field but nothing to put in
+        // it (storage blocked, say). Store null rather than "" so a missing
+        // arrival never reads as a channel named "".
+        arrivalSource: input.arrivalSource || null,
+        arrivalCampaign: input.arrivalCampaign || null,
       });
 
       // Fire-and-forget confirm email. mailer.send is a no-op when

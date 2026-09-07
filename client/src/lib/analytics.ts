@@ -9,6 +9,7 @@
  */
 
 import { analyticsPath } from "@shared/analyticsPath";
+import { getArrival } from "@/lib/attribution";
 
 const SESSION_KEY = "thedesk:session";
 
@@ -101,6 +102,13 @@ export function trackPageView(): void {
   send("/api/analytics/pageview", {
     path: analyticsPath(route),
     referrer: document.referrer || "",
+    // The path deliberately drops the query string (it can carry identifiers),
+    // but that also discarded the campaign tag on an inbound link. Instagram's
+    // in-app browser frequently sends no Referer, so without the tag its
+    // traffic is indistinguishable from direct. Only the arrival's campaign
+    // slug goes — already whitelisted and slugged in lib/attribution — never
+    // the raw query.
+    campaign: getArrival()?.source,
     sessionId: id,
   });
 }

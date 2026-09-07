@@ -17,7 +17,7 @@ import { cardDek } from "@/lib/cardDek";
 import { cleanHeadline } from "@/lib/headline";
 import { dedash } from "@/lib/dedash";
 import { CashRatePanel } from "../MetricBlocks";
-import { PartnerAngleRows } from "../PartnerAngles";
+import { ReaderAngleRows } from "../ReaderAngles";
 import { StoryImage } from "../StoryImage";
 import { GUTTER_X } from "../tokens";
 
@@ -30,12 +30,7 @@ export function Lead({ item }: { item: DailyFeedItem }) {
       : "";
 
   return (
-    <div
-      className={cn(
-        GUTTER_X,
-        "grid lg:grid-cols-[minmax(0,1.68fr)_1px_minmax(0,1fr)]"
-      )}
-    >
+    <div className={cn(GUTTER_X, "grid lg:grid-cols-[minmax(0,1.68fr)_1px_minmax(0,1fr)]")}>
       <div className="pt-8 lg:pr-11 min-w-0">
         <p className="bs-label-accent" style={{ letterSpacing: "0.24em" }}>
           The lead · {item.category}
@@ -122,7 +117,7 @@ export function Lead({ item }: { item: DailyFeedItem }) {
       />
 
       <div className="pt-8 lg:pl-11 min-w-0">
-        <PartnerAngleRows raw={item.partnerTag} />
+        <ReaderAngleRows raw={item.partnerTag} />
         <div className="rule-major mt-8 pt-6">
           <CashRatePanel />
         </div>

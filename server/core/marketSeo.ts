@@ -4,6 +4,7 @@ import path from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { PublicMarketRead } from "../../shared/PublicMarketRead";
+import { latestRent, rentIsOlder, rentPeriod } from "../../shared/cityRents";
 import {
   marketPath,
   publicMarket,
@@ -20,6 +21,18 @@ import { withNoindex } from "./spaShell";
 
 export function marketCardInput(file: PublicMarketFile): DeskTakeCardInput {
   const lead = file.references[0];
+  const rent = latestRent(file.rents, file.market.name);
+  if (rent)
+    return {
+      format: "market",
+      category: file.market.state,
+      take: `${file.market.name}. Annual rent growth.`,
+      figure: `${rent.annualPercent.toFixed(1)}%`,
+      storyTitle: `Rents actually paid · Year to ${rentPeriod(rent.period)}`,
+      context: `${rentIsOlder(rent, file.asOf) ? "Older observation. " : ""}${rent.status === "p" ? "Preliminary. " : rent.status === "r" ? "Revised. " : ""}ABS CPI capital-city series, original. Not asking rents, yields or an investment ranking. Inspect the source at thedesk.au${marketPath(file.market.slug)}.`,
+      source: "Australian Bureau of Statistics",
+      feedDate: rent.period,
+    };
   return {
     format: "market",
     category: file.market.state,
@@ -49,7 +62,7 @@ export function marketShell(
     ogDescription: description.slice(0, 300),
     canonical,
     ogImage:
-      file.referenceCount && !directory.demo
+      (file.referenceCount || latestRent(file.rents, file.market.name)) && !directory.demo
         ? `${base}/og/markets/${file.market.slug}.png`
         : `${base}/og-card.png`,
     jsonLd: {
@@ -70,7 +83,7 @@ export function marketShell(
     '<meta property="og:type" content="article"',
     '<meta property="og:type" content="website"'
   );
-  if (file.referenceCount && !directory.demo) {
+  if ((file.referenceCount || latestRent(file.rents, file.market.name)) && !directory.demo) {
     for (const [property, value] of [
       ["og:image:width", "1080"],
       ["og:image:height", "1350"],
@@ -138,7 +151,11 @@ export function registerMarketSeoRoutes(app: Express): void {
     try {
       const directory = await getMarketDirectory();
       const file = directory.markets.find((item) => item.market.slug === slug);
-      if (!file?.referenceCount || directory.demo) {
+      if (
+        !file ||
+        (!file.referenceCount && !latestRent(file.rents, file.market.name)) ||
+        directory.demo
+      ) {
         res.status(404).end();
         return;
       }

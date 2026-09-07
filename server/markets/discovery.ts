@@ -7,6 +7,7 @@ import { cached } from "../core/cache";
 import * as db from "../db";
 import { isDemoMode } from "../demo/store";
 import { mentionsMarket, normaliseText } from "./evidence";
+import { getCityRents } from "./absRents";
 
 export const MARKET_SAMPLE_LIMIT = 1000;
 type DiscoveryItem = Pick<
@@ -156,11 +157,13 @@ export async function getMarketDirectory(): Promise<MarketDirectory> {
     month: "2-digit",
     day: "2-digit",
   }).format(new Date());
-  return cached(`feed:market-directory:${asOf}`, 60_000, async () =>
-    buildMarketDirectory(
-      await db.listMarketDiscoveryItems(daysBefore(asOf, 89), asOf, MARKET_SAMPLE_LIMIT + 1),
-      asOf,
-      isDemoMode()
-    )
-  );
+  return cached(`feed:market-directory:${asOf}`, 60_000, async () => {
+    const demo = isDemoMode();
+    const [items, rents] = await Promise.all([
+      db.listMarketDiscoveryItems(daysBefore(asOf, 89), asOf, MARKET_SAMPLE_LIMIT + 1),
+      demo ? undefined : getCityRents(),
+    ]);
+    const directory = buildMarketDirectory(items, asOf, demo);
+    return { ...directory, markets: directory.markets.map((file) => ({ ...file, rents })) };
+  });
 }

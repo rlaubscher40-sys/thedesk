@@ -19,15 +19,11 @@ function isoDate(offset: number): string {
   return `${y}-${m}-${day}`;
 }
 
-function partnerTag(parts: {
-  broker: string;
-  adviser: string;
-  ba: string;
-}): string {
+function partnerTag(parts: { buying: string; holding: string; watching: string }): string {
   return [
-    `Broker: ${parts.broker}`,
-    `Adviser: ${parts.adviser}`,
-    `Buyers Agent: ${parts.ba}`,
+    `Buying: ${parts.buying}`,
+    `Holding: ${parts.holding}`,
+    `Watching: ${parts.watching}`,
   ].join("\n");
 }
 
@@ -97,11 +93,13 @@ export function feedSeed(): DailyFeedItem[] {
       whyItMatters:
         "Dropping the tightening-bias line is the clearest signal yet that the cash rate has peaked, watch swaps pricing and fixed-rate roll-offs over June for the first real demand response.",
       sayThis:
-        "The decision was the easy part. Watch broker channel share through June, that's where the real action is.",
+        "The decision was the easy part. What happens to fixed-rate roll-offs in June is the real story.",
       partnerTag: partnerTag({
-        broker: "Conversation pivots to fixed-rate roll-offs landing in mid-June, not the cash rate itself.",
-        adviser: "Refresh the 'rates higher for longer' framing, the patient line gives clients permission to plan.",
-        ba: "Sentiment shifts before listings do. Expect more pre-auction offers in the next four weeks.",
+        buying: "What you can borrow holds steady, but competition builds before listings do.",
+        holding:
+          "Nothing moves on your repayments until the fixed-rate roll-offs land in mid-June.",
+        watching:
+          "Patient transmission is the condition for a November cut. The next CPI is the test.",
       }),
     }),
     make({
@@ -115,9 +113,10 @@ export function feedSeed(): DailyFeedItem[] {
       sayThis:
         "Read the paper, not the headlines about it. The buffer review is a Q4 story at the earliest.",
       partnerTag: partnerTag({
-        broker: "Anyone selling 'serviceability is loosening' to clients today is selling timing they can't deliver.",
-        adviser: "Direction softer, but client borrowing capacity won't change until late Q3 at earliest.",
-        ba: "The paper does not change today's deal. It changes the framing of conversations in November.",
+        buying: "Nothing you can borrow today changes. Anyone saying otherwise is selling timing.",
+        holding:
+          "No effect on an existing loan. It matters only if you borrow again late this year.",
+        watching: "Direction is softer, but capacity will not move until Q4 at the earliest.",
       }),
     }),
     make({
@@ -130,11 +129,12 @@ export function feedSeed(): DailyFeedItem[] {
       category: "PROPERTY",
       channel: "PROPERTY",
       sayThis:
-        "Capacity at mid-tier BAs is the constraint, not demand. Three Melbourne agencies paused intake this week.",
+        "Three Melbourne buyer agencies closed intake this week. Agencies do that when demand outruns them.",
       partnerTag: partnerTag({
-        broker: "Pre-approval lead time is the new constraint. Tighten your pipeline.",
-        adviser: "Investor activity ticking up, re-engage clients sitting on deposit cash.",
-        ba: "Capacity is the bigger conversation than price. If a mid-tier paused intake, that's where their referrals sit.",
+        buying: "Approval lead times now run longer than auction calendars. Be pre-approved first.",
+        holding:
+          "Listings up 18% with clearance holding is a market absorbing supply, not turning.",
+        watching: "Six weeks above 65% is a trend. One weekend is not.",
       }),
     }),
     make({
@@ -148,9 +148,10 @@ export function feedSeed(): DailyFeedItem[] {
       sayThis:
         "The composition matters more than the headline. Energy resets, not rents, are the story.",
       partnerTag: partnerTag({
-        broker: "Rent inflation cooling helps serviceability narrative without the regulator moving.",
-        adviser: "Use the composition, not the headline, when framing rates outlook for clients.",
-        ba: "Tenant negotiation leverage tilts slightly back to landlords in markets where rents have plateaued.",
+        buying:
+          "Rents are softer than the headline suggests, which quietly helps what you can borrow.",
+        holding: "Where rents have plateaued, bargaining power tilts back towards the landlord.",
+        watching: "It is the composition of this print that matters now, not the headline number.",
       }),
     }),
 
@@ -280,12 +281,11 @@ export function feedSeed(): DailyFeedItem[] {
       summary:
         "First major to move on SMSF-specific lending in over a year. Likely defensive against rising NAB activity in the segment.",
       category: "MARKETS",
-      sayThis:
-        "If a client is in the SMSF property pipeline, lock the indicative this fortnight.",
+      sayThis: "One lender moving on SMSF rates usually means three more within a month.",
       partnerTag: partnerTag({
-        broker: "SMSF-specialist accreditation just got more valuable. Check your aggregator's training.",
-        adviser: "Material change for clients running property SMSFs. Worth a proactive call.",
-        ba: "Reach out to your SMSF-specialist referrers, pipelines reopen on rate moves.",
+        buying: "If you are buying inside super, the cost of that structure just fell.",
+        holding: "Worth repricing an existing SMSF loan before the rest of the market follows.",
+        watching: "One lender moving on SMSF rates usually means three more within a month.",
       }),
     }),
     make({
@@ -296,12 +296,12 @@ export function feedSeed(): DailyFeedItem[] {
       summary:
         "3.8% YoY beat consensus 3.6%. Private-sector services up the most, the segment the RBA wants softer.",
       category: "ECONOMICS",
-      sayThis:
-        "Composition matters. The beat came from where the RBA wants cooling.",
+      sayThis: "Composition matters. The beat came from where the RBA wants cooling.",
       partnerTag: partnerTag({
-        broker: "Borrowing capacity narrative holds; nominal incomes still trending up.",
-        adviser: "The 'patience' line gets tested. Don't promise client outlooks the RBA hasn't committed to.",
-        ba: "Buyer income growth in services-heavy postcodes still firm, keep them in the pipeline.",
+        buying: "Nominal incomes still rising, which holds up what banks will lend you.",
+        holding:
+          "Firmer wages make an early cut less likely, so plan repayments on the rate you have.",
+        watching: "This is the print that tests the RBA's patience line. Watch services wages.",
       }),
     }),
     make({
@@ -313,12 +313,12 @@ export function feedSeed(): DailyFeedItem[] {
         "None of them announced; one website now reads 'currently servicing existing clients only'. Capacity, not demand.",
       category: "PROPERTY",
       channel: "PROPERTY",
-      sayThis:
-        "Demand is fine. Capacity at the mid-tier is the constraint.",
+      sayThis: "Demand is fine. Finding someone with capacity to help you buy is the constraint.",
       partnerTag: partnerTag({
-        broker: "Refer clients to BAs with structured intake, pause patterns are spreading.",
-        adviser: "If your preferred BA paused intake, line up a backup before client requests stack.",
-        ba: "If a competitor just paused, that's where referrals are sitting. Pick up the phone.",
+        buying:
+          "If you were planning to hire help searching, availability just tightened in Melbourne.",
+        holding: "Little direct read, though intake pauses tend to track a busier buy side.",
+        watching: "Agencies close intake when demand outruns capacity. That is a demand signal.",
       }),
     }),
 
@@ -331,12 +331,11 @@ export function feedSeed(): DailyFeedItem[] {
       summary:
         "Two paragraphs adjust the discount rate on properties held over 8 years. IRR maths shifts; morning coverage missed it.",
       category: "POLICY",
-      sayThis:
-        "The change is small but shows up in 8-year IRRs. Model it for clients who hold long.",
+      sayThis: "Small on paper, and it lands squarely on anyone planning to hold past year eight.",
       partnerTag: partnerTag({
-        broker: "Investor borrowers holding 8+ years need to know. Lead the conversation.",
-        adviser: "Refresh held-property IRR models. The change matters at year eight, not year one.",
-        ba: "Long-hold investors are the most affected. Open with this before they ask.",
+        buying: "Nothing changes in year one. It changes the maths on how long you intend to hold.",
+        holding: "If you are in year seven of an investment property, this lands on you today.",
+        watching: "Two paragraphs on page 147, and the morning coverage missed them entirely.",
       }),
     }),
     make({
@@ -344,15 +343,13 @@ export function feedSeed(): DailyFeedItem[] {
       title: "Major bank pilots AI underwriting on broker submissions",
       source: "Banking Day",
       sourceUrl: "https://example.com/ai-underwriting",
-      summary:
-        "Second cohort widens the pilot. Brokers report faster turnarounds on edge cases.",
+      summary: "Second cohort widens the pilot. Brokers report faster turnarounds on edge cases.",
       category: "AI",
-      sayThis:
-        "Speed gains are real. Edge cases now get AI-first review, human second.",
+      sayThis: "An awkward application now gets a faster answer. Not always a kinder one.",
       partnerTag: partnerTag({
-        broker: "Edge-case files get a faster yes (or no). Adjust your pipeline assumptions.",
-        adviser: "Bank decisioning is changing. The 'always a queue' framing is out of date.",
-        ba: "Pre-approval velocity is the new battleground. Brokers with this lender are quicker.",
+        buying: "An awkward application may now get a faster answer, in either direction.",
+        holding: "No effect on a loan you already hold, but refinancing may move quicker.",
+        watching: "Decision speed is becoming a lender differentiator. Watch who follows.",
       }),
     }),
   ];

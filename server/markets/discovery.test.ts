@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("../db", () => ({ listMarketDiscoveryItems: vi.fn() }));
 vi.mock("../demo/store", () => ({ isDemoMode: () => false }));
+vi.mock("./absRents", () => ({
+  getCityRents: vi.fn(async () => ({ status: "unavailable", retrievedAt: null, observations: [] })),
+}));
 import { listMarketDiscoveryItems } from "../db";
 import { invalidate } from "../core/cache";
 import { buildMarketDirectory, getMarketDirectory, MARKET_SAMPLE_LIMIT } from "./discovery";

@@ -28,6 +28,24 @@ const SUBSTACK_DRAFT_JSON = JSON.stringify({
   ].join("\n\n"),
 });
 
+/**
+ * A Reel voice-over, for demo mode.
+ *
+ * Deliberately contains no digits. `rejectScript` checks every figure a script
+ * states against the facts it was given, and those facts differ per metric, so
+ * a stub with numbers in it would be rejected on every run — which would show a
+ * developer the fallback path forever and teach them the feature is broken.
+ * With no figures to check it passes, and the preview endpoint shows the real
+ * pacing of a written script rather than the plain read.
+ */
+const REEL_SCRIPT_JSON = JSON.stringify({
+  open: "This series has just done something it has not done in years.",
+  number: "Here is where it landed.",
+  meaning: "That is a clear move, and the direction is what matters here.",
+  context: "It is the first time the series has reached this point.",
+  detail: "It sits well away from the typical reading, and near the edge of the range.",
+});
+
 const ASK_DESK_JSON = JSON.stringify({
   headline: "Credit capacity is doing more of the work than sentiment.",
   answer:
@@ -62,6 +80,10 @@ export async function demoLlm(params: InvokeLlmParams): Promise<string> {
     .join("\n")
     .toLowerCase();
   const isJson = params.responseFormat?.type === "json_schema";
+
+  // Before the generic JSON branch, because this one also asks for JSON and
+  // would otherwise be answered with a Substack draft.
+  if (text.includes("voice-over for a 20-second instagram reel")) return REEL_SCRIPT_JSON;
 
   if (text.includes("market comparison")) {
     // Demo responses extract the supplied local sentences; they never invent a

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useParams } from "wouter";
 import { PublicMarketRead } from "@shared/PublicMarketRead";
+import { latestRent } from "@shared/cityRents";
 import { marketPath, publicMarket } from "@shared/marketDirectory";
 import { SubscribeBand } from "@/components/broadsheet/SubscribeBand";
 import { trpc } from "@/lib/trpc";
@@ -70,16 +71,18 @@ export default function PublicMarketPage() {
         <button type="button" onClick={() => void share()} className="bs-btn bs-btn-solid">
           Share {market.name}'s file
         </button>
-        {!query.data.directory.demo && query.data.file.referenceCount > 0 && (
-          <a
-            href={`/og/markets/${slug}.png`}
-            download={`thedesk-${slug}.png`}
-            className="bs-btn bs-btn-outline"
-            onClick={() => trackEvent("market_file_export", "markets")}
-          >
-            Download 4:5 market card
-          </a>
-        )}
+        {!query.data.directory.demo &&
+          (query.data.file.referenceCount > 0 ||
+            latestRent(query.data.file.rents, market.name)) && (
+            <a
+              href={`/og/markets/${slug}.png`}
+              download={`thedesk-${slug}.png`}
+              className="bs-btn bs-btn-outline"
+              onClick={() => trackEvent("market_file_export", "markets")}
+            >
+              Download 4:5 market card
+            </a>
+          )}
         {shareMessage && (
           <p role="status" className="text-sm">
             {shareMessage}

@@ -44,8 +44,8 @@ export type SynthesisInput = {
   verifiedMetrics?: VerifiedMetric[];
 };
 
-// Editorial priority for the weekly keyMetrics widget — the numbers brokers
-// and advisers scrutinise most, in the order they should appear. Verified
+// Editorial priority for the weekly keyMetrics widget — the numbers a reader
+// with money in the market watches most, in the order they should appear. Verified
 // values for these anchor the widget; the model's own picks fill any
 // remaining slots. Keys match metricKey in the daily_metrics store.
 const WEEKLY_METRIC_PRIORITY = [
@@ -64,15 +64,35 @@ const MAX_KEY_METRICS = 6;
 // the verified "RBA cash rate" and isn't duplicated into the widget.
 const METRIC_ALIASES: Record<string, string[]> = {
   cash_rate: ["cashrate", "rbacashrate", "cashratetarget", "officialcashrate"],
-  cpi_trimmed: ["cpi", "inflation", "trimmedmeancpi", "trimmedmean", "headlineinflation", "coreinflation"],
+  cpi_trimmed: [
+    "cpi",
+    "inflation",
+    "trimmedmeancpi",
+    "trimmedmean",
+    "headlineinflation",
+    "coreinflation",
+  ],
   unemployment: ["unemployment", "unemploymentrate", "joblessrate"],
   asx200: ["asx", "asx200", "spasx200", "asx200index"],
   audusd: ["audusd", "aud", "australiandollar"],
   audgbp: ["audgbp"],
   audeur: ["audeur"],
   us10y: ["us10y", "us10yyield", "ustreasury10y"],
-  dwelling_value: ["dwellingvalue", "dwellingvalues", "medianvalue", "homevalue", "nataldwellingvalue", "natldwellingvalue"],
-  auction_clearance: ["auctionclearance", "clearancerate", "auctionclearancerate", "sydneyclearance", "melbourneclearance"],
+  dwelling_value: [
+    "dwellingvalue",
+    "dwellingvalues",
+    "medianvalue",
+    "homevalue",
+    "nataldwellingvalue",
+    "natldwellingvalue",
+  ],
+  auction_clearance: [
+    "auctionclearance",
+    "clearancerate",
+    "auctionclearancerate",
+    "sydneyclearance",
+    "melbourneclearance",
+  ],
   consumer_confidence: ["consumerconfidence", "consumersentiment"],
   mortgage_arrears: ["mortgagearrears", "arrears", "arrearsrate"],
   wage_growth: ["wagegrowth", "wpi", "wageprice"],
@@ -188,8 +208,7 @@ function formatItems(items: DailyFeedItem[]): string {
   return items
     .slice(0, 80)
     .map(
-      (it, i) =>
-        `${i + 1}. [${it.category}] ${it.title}\n   Source: ${it.source}\n   ${it.summary}`
+      (it, i) => `${i + 1}. [${it.category}] ${it.title}\n   Source: ${it.source}\n   ${it.summary}`
     )
     .join("\n\n");
 }
@@ -199,13 +218,13 @@ function buildPrompt(input: SynthesisInput): string {
 
 This is the long-form companion to the daily feed. Readers come here to UNDERSTAND, not skim. Each topic gets a full analytical treatment, context, argument, evidence, implication, what to do about it. Think Bloomberg Opinion, FT Lex, or Stratechery, not a press release recap.
 
-Audience: brokers, financial advisers, accountants, buyer's agents, SMSF specialists. They read 40 sources a week and walk into client meetings sounding sharper than the headlines. Your job is to tell them what it MEANS and what to SAY.
+Audience: people who follow Australian property closely and have money or a home in it. Some are trying to buy, some already own, some are watching to time a move. They are smart and time-poor, and they are NOT industry professionals working a client book. Your job is to tell them what it MEANS for them.
 
 This week's range: ${input.weekRange} (week of ${input.weekOf})
 
 COVERAGE MANDATE, non-negotiable. The edition MUST include at least one topic from EACH of these five beats. Repeating a beat is allowed, missing a beat is not unless the week's source material genuinely contained nothing in that lane.
 
-  1. Property, Australian housing, prices, listings, auctions, broker channel.
+  1. Property, Australian housing, prices, listings, auctions, rents, supply.
   2. Macro / Policy, rates, RBA, APRA, ASIC, federal budget, regulatory change.
   3. Geopolitics, international events that move capital, trade, currencies, or the rules of business in Australia. AUKUS, China, US politics, Middle East, Europe.
   4. Tech / AI, only when it materially moves money or workflows in Australia or is a global pivot point partners need to understand.
@@ -234,18 +253,18 @@ Output a SINGLE JSON object matching this exact shape, and NOTHING ELSE, no prea
       "title": "Headline (max 14 words). States the argument, not the news.",
       "summary": "2-3 sentence editorial lede. The setup, not the recap. Reads like the opening of a Stratechery or FT Lex column.",
       "category": "MACRO | PROPERTY | POLICY | MARKETS | AI | TECH | GEOPOLITICS | SCIENCE | ECONOMICS | OTHER",
-      "body": "600-800 word analytical deep-dive. Plain prose, multiple paragraphs separated by blank lines. NO bullet points, NO markdown, NO subheadings.\\n\\nStructure each body around four implicit beats:\\n  1. WHAT HAPPENED, one tight paragraph grounding the reader in the week's facts. Concrete numbers, dates, named entities.\\n  2. WHY IT MATTERS, two or three paragraphs of analysis. What does this change for the partner channel? What's the second-order effect? What did the consensus get wrong?\\n  3. WHAT TO WATCH, a paragraph on the next 1-4 weeks. Specific data releases, decisions, or signals.\\n  4. WHAT IT MEANS FOR YOU, a closing paragraph that lands the partner-channel implication. Not advice, framing.\\n\\nWrite like an editor who has sat with the week's stories for an hour and is now telling a sharp broker what they need to know. The lead topic (first in the array) gets the most substantive treatment.",
+      "body": "600-800 word analytical deep-dive. Plain prose, multiple paragraphs separated by blank lines. NO bullet points, NO markdown, NO subheadings.\\n\\nStructure each body around four implicit beats:\\n  1. WHAT HAPPENED, one tight paragraph grounding the reader in the week's facts. Concrete numbers, dates, named entities.\\n  2. WHY IT MATTERS, two or three paragraphs of analysis. What does this change for someone with money or a home in the market? What's the second-order effect? What did the consensus get wrong?\\n  3. WHAT TO WATCH, a paragraph on the next 1-4 weeks. Specific data releases, decisions, or signals.\\n  4. WHAT IT MEANS FOR YOU, a closing paragraph that lands the implication for the reader. Not advice, framing.\\n\\nWrite like an editor who has sat with the week's stories for an hour and is now telling one sharp reader what they need to know. The lead topic (first in the array) gets the most substantive treatment.",
       "keyTakeaway": "One sentence Ruben could repeat verbatim to a client over coffee. The compressed version of the whole argument. This is the line.",
-      "whyItMatters": "One explicit sentence answering 'why does the partner channel care about this specifically, right now'. Not the takeaway, not the headline, the audience-relevance hook. Specific to brokers/advisers/buyer's agents in Australia this week, not generic.",
+      "whyItMatters": "One explicit sentence answering 'why does a reader with money or a home in the Australian market care about this specifically, right now'. Not the takeaway, not the headline, the relevance hook. Specific to this week, not generic.",
       "whatToWatch": [
         "Specific forward-looking item, a data release, decision, or event in the next 1-4 weeks",
         "Second watch item",
         "Optional third"
       ],
       "talkingPoints": {
-        "Broker": "One sentence, what a mortgage broker says to a client tomorrow about this. Specific. Action-oriented. Not 'rates are uncertain', but 'lock in if the fixed-rate roll-off lands in June'.",
-        "Adviser": "One sentence, what a financial adviser or accountant says about the wealth-strategy, tax structure, or SMSF implication. The second-order read.",
-        "Buyers Agent": "One sentence, what a buyer's agent says about deal flow, suburb-level shifts, listings velocity, or market timing."
+        "Buying": "One sentence for someone actively trying to buy: what this changes about price, competition, borrowing power or timing. Specific. Not 'rates are uncertain', but 'the June fixed-rate roll-off moves listings, not the decision itself'.",
+        "Holding": "One sentence for someone who already owns: what this changes about repayments, rent, equity, or the value of what they hold. The second-order read.",
+        "Watching": "One sentence for someone watching to time a move: what signal this is, and what would confirm it."
       }
     }
     // ... 5 to 7 topics total spanning the five-beat coverage mandate above. The FIRST topic is the lead, most consequential of the week, longest body, drives the whole edition.
@@ -328,7 +347,9 @@ export async function synthesizeWeeklyEdition(input: SynthesisInput): Promise<Sy
   try {
     parsed = JSON.parse(json);
   } catch (err) {
-    throw new Error(`synthesizeWeeklyEdition: model returned invalid JSON: ${(err as Error).message}`);
+    throw new Error(
+      `synthesizeWeeklyEdition: model returned invalid JSON: ${(err as Error).message}`
+    );
   }
 
   const validated = synthesisSchema.safeParse(parsed);
@@ -355,9 +376,7 @@ export async function synthesizeWeeklyEdition(input: SynthesisInput): Promise<Sy
         : undefined,
     })),
     signals: validated.data.signals.map((s) =>
-      typeof s === "string"
-        ? stripBannedChars(s)
-        : { ...s, text: stripBannedChars(s.text) }
+      typeof s === "string" ? stripBannedChars(s) : { ...s, text: stripBannedChars(s.text) }
     ),
     // Override the model's figures with verified ones where we have them, so
     // the displayed widget can never ship a number the model misremembered.

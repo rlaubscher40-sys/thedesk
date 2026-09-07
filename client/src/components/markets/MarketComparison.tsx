@@ -6,6 +6,7 @@ import { trpc } from "@/lib/trpc";
 import { trackEvent } from "@/lib/analytics";
 import { getLoginUrl } from "@/lib/auth";
 import { ComparisonRead } from "./ComparisonRead";
+import { MarketRentConditions } from "./MarketRentConditions";
 import { ComparisonChangeSummary } from "./ComparisonChangeSummary";
 import { useComparisonWatches } from "@/lib/useComparisonWatches";
 
@@ -133,6 +134,7 @@ export function MarketComparison({
           {validation}
         </p>
       )}
+      <MarketRentConditions marketA={marketA} marketB={marketB} />
       {watch && baseline.isLoading && (
         <p role="status" className="mt-4">
           Verifying your saved baseline…

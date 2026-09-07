@@ -28,8 +28,13 @@ How jobs run (all against the server's own loopback):
   on loopback (authenticated with `SCHEDULED_API_KEY`).
 
 Jobs + Sydney times: `daily-metrics` 06:33, `daily-feed` 06:43,
-`instagram-daily` 07:13, `instagram-insights` 07:17, `instagram-coverage` 12:13,
+`instagram-daily` 07:13, `instagram-insights` 07:17, `instagram-stat` 16:41,
+`instagram-monthly` 10:07 on the 1st,
 `weekly-edition` Sun 07:17, `instagram-weekly` Sun 09:19.
+
+`instagram-coverage` ("The Wider Lens") is deliberately absent: it came off the
+schedule because a third daily post of commodity news cost reach on the two that
+earn it. Its endpoint and admin button still work, by hand.
 
 ## Rollout (deliberate, safe)
 It ships **off by default** (`env.enableScheduler`), so merging changes nothing
