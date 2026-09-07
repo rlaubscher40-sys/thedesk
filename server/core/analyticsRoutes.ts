@@ -24,6 +24,7 @@ const engagementEventSchema = z.object({
     "signal_watch",
     "signal_share",
     "story_share",
+    "take_share",
     "brief_reshare",
   ]),
   surface: z.enum(["ask", "markets", "signals", "trends", "story", "brief"]).optional(),
