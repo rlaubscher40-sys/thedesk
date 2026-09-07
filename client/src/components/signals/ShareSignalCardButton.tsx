@@ -1,5 +1,6 @@
 import { Check, LoaderCircle, Share2 } from "lucide-react";
 import { useState } from "react";
+import { trackEvent } from "@/lib/analytics";
 import { trpc } from "@/lib/trpc";
 
 type Props = {
@@ -20,6 +21,11 @@ function base64ToFile(base64: string, mimeType: string, filename: string): File 
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   return new File([bytes], filename, { type: mimeType });
+}
+
+function signalSurface(): "signals" | "trends" {
+  if (typeof window !== "undefined" && window.location.pathname.startsWith("/trends")) return "trends";
+  return "signals";
 }
 
 export function ShareSignalCardButton(props: Props) {
@@ -58,6 +64,7 @@ export function ShareSignalCardButton(props: Props) {
             url: publicUrl,
           });
         }
+        trackEvent("signal_share", signalSurface());
         setComplete(true);
         window.setTimeout(() => setComplete(false), 2200);
         return;
@@ -81,6 +88,7 @@ export function ShareSignalCardButton(props: Props) {
       // Image export still succeeds if Clipboard API is unavailable.
     }
 
+    trackEvent("signal_share", signalSurface());
     setComplete(true);
     window.setTimeout(() => setComplete(false), 2200);
   }
