@@ -114,4 +114,57 @@ describe("fetchAbsMetric", () => {
     });
     expect(result?.value).toBe("4.2");
   });
+
+  it("scrapes when discovery is configured but the catalogue is unreachable", async () => {
+    // Every metric ships in this state, and the catalogue is exactly the sort
+    // of thing that is briefly unavailable. It must cost a log line, not a
+    // metric.
+    vi.stubGlobal("fetch", mockFetch({ apiStatus: 503 }));
+    const result = await fetchAbsMetric({
+      api: { discover: { terms: ["labour force"], expectRange: [2, 15] } },
+      scrape,
+    });
+    expect(result?.value).toBe("4.3");
+  });
+
+  it("refuses a discovered flow whose latest value cannot be this metric", async () => {
+    // The guard that makes automatic discovery safe. A flow can match a name
+    // well and return perfectly good numbers for the wrong series; publishing
+    // those under a right-looking label is worse than having no metric.
+    const catalogue = {
+      data: {
+        dataflows: [{ id: "WRONG", agencyID: "ABS", version: "1.0.0", name: "Labour Force Index" }],
+      },
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        const u = String(url);
+        if (u.includes("/dataflow/")) {
+          return { ok: true, status: 200, json: async () => catalogue } as unknown as Response;
+        }
+        if (u.includes("data.api.abs.gov.au")) {
+          // An index level, not a rate — plausible data, wrong series.
+          return {
+            ok: true,
+            status: 200,
+            statusText: "OK",
+            text: async () => "REGION,TIME_PERIOD,OBS_VALUE\nAUS,2026-06,137.2",
+          } as unknown as Response;
+        }
+        return {
+          ok: true,
+          status: 200,
+          statusText: "OK",
+          text: async () => HTML,
+        } as unknown as Response;
+      })
+    );
+    const result = await fetchAbsMetric({
+      api: { discover: { terms: ["labour force"], expectRange: [2, 15] } },
+      scrape,
+    });
+    // Fell back to the scrape rather than publishing 137.2 as a rate.
+    expect(result?.value).toBe("4.3");
+  });
 });

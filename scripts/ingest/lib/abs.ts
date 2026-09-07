@@ -14,26 +14,30 @@
  *   api    optional. `scripts/ingest/lib/absApi.ts`, preferred when present.
  *   scrape the existing regex path, kept as the fallback.
  *
- * ## Why every `api` block below is still empty
+ * ## Nobody pastes an identifier in
  *
- * A dataflow identifier cannot be written from memory. A wrong one fails
- * exactly like a wrong regex, and the environment this was built in cannot
- * reach ABS to check. So the plumbing is here and tested, and the identifiers
- * are the one thing that needs a network round-trip:
+ * A dataflow identifier cannot be written from memory, and requiring a human to
+ * look one up is a manual step on a pipeline that is supposed to run itself. So
+ * no identifier is hardcoded: each metric declares what to search for and what
+ * range its value must fall in, and `absDiscover.ts` finds the flow at run time
+ * and proves it before using it.
  *
- *   pnpm probe:abs migration          find the flow
- *   pnpm probe:abs --flow "ABS,..."   confirm its dimensions and history
+ * The range is what makes that safe. A flow that matches a name well and
+ * returns perfectly good numbers for the WRONG series would publish
+ * right-looking wrong figures, which is worse than having no metric at all.
+ * "Unemployment is between 2 and 15 per cent" is known independently of the
+ * API, so a 137 is caught as an index level and the metric scrapes instead.
  *
- * Paste the result into the `api` block for that metric and it switches over.
- * Until then every metric runs exactly as it does today, so nothing that
- * currently works can break on the way.
+ * `pnpm probe:abs` still exists for looking at a flow by hand, and pinning a
+ * `flowRef` explicitly still overrides discovery. Neither is required.
  *
  * Each fetched value is paired with its `asOf` timestamp. From the API that is
  * the observation's own period; from a scrape it is a best-effort read of the
  * page's released date, falling back to the run timestamp.
  */
 
-import { fetchAbsSeries, latestObservation } from "./absApi";
+import { absDataflowUrl, fetchAbsSeries, latestObservation } from "./absApi";
+import { resolveFlow, type Dataflow, type DiscoverSpec } from "./absDiscover";
 
 const UA = "Mozilla/5.0 (compatible; TheDeskBot/1.0; +https://thedesk.au)";
 
@@ -125,8 +129,13 @@ async function scrapeAbs(args: {
  * type, so "the latest observation" is meaningless without it.
  */
 export type AbsApiSpec = {
-  /** e.g. "ABS,BUILDING_APPROVALS,1.0.0". From `pnpm probe:abs`. */
-  flowRef: string;
+  /**
+   * e.g. "ABS,BUILDING_APPROVALS,1.0.0". Optional: when absent, `discover`
+   * finds it from the catalogue at run time so nobody has to paste one in.
+   */
+  flowRef?: string;
+  /** How to find the flow when no `flowRef` is pinned. */
+  discover?: DiscoverSpec;
   /** Dot-separated dimension key, or omitted for the whole flow. */
   dataKey?: string;
   /** Keep only observations whose dimensions match all of these. */
@@ -161,6 +170,68 @@ function periodToDate(period: string): Date {
 }
 
 /**
+ * The dataflow catalogue, fetched once per process.
+ *
+ * Five metrics resolving independently would otherwise pull the same catalogue
+ * five times per run. Cached as the promise rather than the result so
+ * concurrent callers share one request instead of racing.
+ */
+let cataloguePromise: Promise<Dataflow[]> | null = null;
+
+function collectDataflows(node: unknown, out: Dataflow[] = []): Dataflow[] {
+  if (Array.isArray(node)) {
+    for (const child of node) collectDataflows(child, out);
+    return out;
+  }
+  if (node && typeof node === "object") {
+    const o = node as Record<string, unknown>;
+    if (typeof o.id === "string" && (typeof o.name === "string" || typeof o.names === "object")) {
+      const name =
+        typeof o.name === "string"
+          ? o.name
+          : ((o.names as Record<string, string> | undefined)?.en ?? "");
+      if (name) {
+        out.push({
+          id: o.id,
+          agency: typeof o.agencyID === "string" ? o.agencyID : "ABS",
+          version: typeof o.version === "string" ? o.version : "1.0.0",
+          name,
+        });
+      }
+    }
+    for (const child of Object.values(o)) collectDataflows(child, out);
+  }
+  return out;
+}
+
+async function loadCatalogue(): Promise<Dataflow[]> {
+  cataloguePromise ??= (async () => {
+    try {
+      const res = await fetch(absDataflowUrl(), {
+        headers: { "User-Agent": UA, Accept: "application/json" },
+      });
+      if (!res.ok) {
+        console.warn(`[abs] catalogue unavailable (${res.status}); metrics will scrape.`);
+        return [];
+      }
+      const flows = collectDataflows(await res.json());
+      console.log(`[abs] catalogue: ${flows.length} dataflows`);
+      return flows;
+    } catch (err) {
+      console.warn(
+        `[abs] catalogue fetch failed (${(err as Error).message}); metrics will scrape.`
+      );
+      return [];
+    }
+  })();
+  return cataloguePromise;
+}
+
+/** Resolved flow references, so a second run in the same process does not
+ *  re-search for something it already found. */
+const resolved = new Map<string, string>();
+
+/**
  * Fetch one metric, preferring the API and falling back to the scrape.
  *
  * The fallback is what makes switching a metric over safe: a flow reference
@@ -173,8 +244,29 @@ export async function fetchAbsMetric(spec: {
   scrape: ScrapeSpec;
 }): Promise<AbsResult> {
   if (spec.api) {
+    const key = spec.scrape.metricKey;
+    let flowRef = spec.api.flowRef ?? resolved.get(key) ?? null;
+
+    // No pinned reference: search the catalogue and prove the candidate before
+    // trusting it. A wrong-but-valid flow would publish right-looking wrong
+    // numbers, so resolveFlow only accepts one whose latest value is plausible.
+    if (!flowRef && spec.api.discover) {
+      const catalogue = await loadCatalogue();
+      if (catalogue.length > 0) {
+        const found = await resolveFlow(catalogue, spec.api.discover);
+        if (found) {
+          flowRef = found.flowRef;
+          resolved.set(key, found.flowRef);
+        } else {
+          console.warn(`[abs] ${key}: no dataflow matched and passed its range check; scraping.`);
+        }
+      }
+    }
+
+    if (!flowRef) return scrapeAbs(spec.scrape);
+
     const result = await fetchAbsSeries({
-      flowRef: spec.api.flowRef,
+      flowRef,
       dataKey: spec.api.dataKey,
       startPeriod: spec.api.startPeriod,
     });
@@ -213,10 +305,16 @@ export async function fetchAbsMetric(spec: {
 
 export async function fetchCpiTrimmedMean(): Promise<AbsResult> {
   return fetchAbsMetric({
-    // Switch this metric to the API by filling this in:
-    //   pnpm probe:abs consumer price
-    //   pnpm probe:abs --flow "<id from above>"
-    // api: { flowRef: "ABS,...,1.0.0", dimensionFilter: { ... } },
+    api: {
+      discover: {
+        terms: ["consumer price index", "cpi"],
+        exclude: ["capital cities", "international"],
+        // Annual trimmed mean CPI. Australia has not seen sustained deflation
+        // or double-digit inflation in decades; outside this it is an index
+        // level, not a rate.
+        expectRange: [-2, 20],
+      },
+    },
     scrape: {
       url: "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/latest-release",
       metricKey: "cpi_trimmed",
@@ -235,10 +333,15 @@ export async function fetchCpiTrimmedMean(): Promise<AbsResult> {
 
 export async function fetchUnemploymentRate(): Promise<AbsResult> {
   return fetchAbsMetric({
-    // Switch this metric to the API by filling this in:
-    //   pnpm probe:abs labour force
-    //   pnpm probe:abs --flow "<id from above>"
-    // api: { flowRef: "ABS,...,1.0.0", dimensionFilter: { ... } },
+    api: {
+      discover: {
+        terms: ["labour force", "unemployment"],
+        exclude: ["detailed", "regional"],
+        // A national unemployment rate. A reading of 137 is an index, not a
+        // rate, and that is exactly the mistake this catches.
+        expectRange: [2, 15],
+      },
+    },
     scrape: {
       url: "https://www.abs.gov.au/statistics/labour/employment-and-unemployment/labour-force-australia/latest-release",
       metricKey: "unemployment",
@@ -257,10 +360,14 @@ export async function fetchUnemploymentRate(): Promise<AbsResult> {
 
 export async function fetchWageGrowth(): Promise<AbsResult> {
   return fetchAbsMetric({
-    // Switch this metric to the API by filling this in:
-    //   pnpm probe:abs wage price
-    //   pnpm probe:abs --flow "<id from above>"
-    // api: { flowRef: "ABS,...,1.0.0", dimensionFilter: { ... } },
+    api: {
+      discover: {
+        terms: ["wage price index", "wage"],
+        exclude: ["industry", "detailed"],
+        // Annual WPI growth.
+        expectRange: [-2, 15],
+      },
+    },
     scrape: {
       url: "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/wage-price-index-australia/latest-release",
       metricKey: "wage_growth",
@@ -279,10 +386,15 @@ export async function fetchWageGrowth(): Promise<AbsResult> {
 
 export async function fetchBuildingApprovals(): Promise<AbsResult> {
   return fetchAbsMetric({
-    // Switch this metric to the API by filling this in:
-    //   pnpm probe:abs building approvals
-    //   pnpm probe:abs --flow "<id from above>"
-    // api: { flowRef: "ABS,...,1.0.0", dimensionFilter: { ... } },
+    api: {
+      discover: {
+        terms: ["building approvals", "dwelling"],
+        exclude: ["value", "alterations"],
+        // Total dwelling units approved in a month, nationally. Thousands, not
+        // a rate and not a dollar value.
+        expectRange: [3_000, 40_000],
+      },
+    },
     scrape: {
       url: "https://www.abs.gov.au/statistics/industry/building-and-construction/building-approvals-australia/latest-release",
       metricKey: "building_approvals",
@@ -301,10 +413,14 @@ export async function fetchBuildingApprovals(): Promise<AbsResult> {
 
 export async function fetchNetMigration(): Promise<AbsResult> {
   return fetchAbsMetric({
-    // Switch this metric to the API by filling this in:
-    //   pnpm probe:abs migration
-    //   pnpm probe:abs --flow "<id from above>"
-    // api: { flowRef: "ABS,...,1.0.0", dimensionFilter: { ... } },
+    api: {
+      discover: {
+        terms: ["net overseas migration", "migration", "population"],
+        exclude: ["interstate", "regional"],
+        // Annual net overseas migration. Tens to hundreds of thousands.
+        expectRange: [-100_000, 800_000],
+      },
+    },
     scrape: {
       url: "https://www.abs.gov.au/statistics/people/population/national-state-and-territory-population/latest-release",
       metricKey: "net_migration",
