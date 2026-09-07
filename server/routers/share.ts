@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { consumeAnonymousCard } from "../core/askQuota";
 import * as db from "../db";
-import { renderDailyStoryCard } from "../og/instagramCards";
+import { renderDailyHookCoverCard } from "../og/dailyHookCover";
 import { publicProcedure, router } from "../core/trpc";
 
 function enforceRenderQuota(authenticated: boolean, req: Parameters<typeof consumeAnonymousCard>[0]) {
@@ -16,10 +16,29 @@ function enforceRenderQuota(authenticated: boolean, req: Parameters<typeof consu
   }
 }
 
+function clean(value: string | null | undefined): string {
+  return (value ?? "").replace(/\s+/g, " ").trim();
+}
+
+export function buildStoryShareCaption(item: {
+  title: string;
+  whyItMatters?: string | null;
+  sayThis?: string | null;
+  source?: string | null;
+}): string {
+  const line = clean(item.sayThis) || clean(item.whyItMatters);
+  const source = clean(item.source);
+  return [item.title.trim(), line, source ? `Source: ${source}` : "", "The Desk · Australian property intelligence"]
+    .filter(Boolean)
+    .join("\n\n");
+}
+
 /**
- * Distribution assets that are generated from trusted Desk records rather than
- * arbitrary client-provided copy. Keeping the renderer behind an id lookup
- * means a share card can never drift away from the story actually published.
+ * Distribution assets generated from trusted Desk records rather than
+ * arbitrary client-provided copy. The story itself becomes the social hook:
+ * large headline first, evidence/context second, brand last. Keeping the
+ * renderer behind an id lookup means the card cannot drift from the story live
+ * on The Desk.
  */
 export const shareRouter = router({
   storyCard: publicProcedure
@@ -33,22 +52,20 @@ export const shareRouter = router({
       enforceRenderQuota(Boolean(ctx.user), ctx.req);
 
       try {
-        const jpeg = await renderDailyStoryCard(item, 0, 1, "navy");
-        const caption = [
-          item.title,
-          item.whyItMatters ? `Why it matters: ${item.whyItMatters}` : null,
-          item.sayThis ? `The line: ${item.sayThis}` : null,
-          item.source ? `Source: ${item.source}` : null,
-          "The Desk · Australian property intelligence",
-        ]
-          .filter((line): line is string => Boolean(line))
-          .join("\n\n");
-
+        const jpeg = await renderDailyHookCoverCard({
+          feedDate: item.feedDate,
+          lead: {
+            title: item.title,
+            category: item.category,
+            source: item.source,
+            whyItMatters: item.whyItMatters || item.summary,
+          },
+        });
         return {
           mimeType: "image/jpeg" as const,
           filename: `the-desk-story-${item.id}.jpg`,
           base64: jpeg.toString("base64"),
-          caption,
+          caption: buildStoryShareCaption(item),
           sharePath: `/story/${item.id}`,
         };
       } catch (error) {
