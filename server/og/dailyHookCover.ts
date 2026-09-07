@@ -16,11 +16,43 @@ import sharp from "sharp";
 const WIDTH = 1080;
 const HEIGHT = 1350;
 const FONT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "fonts");
-const NAVY = "#0C1220";
-const INK = "#F0EDE8";
-const MUTED = "#929CAD";
-const AMBER = "#D4A853";
-const RULE = "rgba(240,237,232,0.16)";
+
+type CoverVariant = "navy" | "light";
+type Palette = {
+  bg: string;
+  ink: string;
+  body: string;
+  muted: string;
+  amber: string;
+  rule: string;
+  bloom: string;
+  fadeAmber: string;
+};
+
+function palette(variant: CoverVariant): Palette {
+  if (variant === "light") {
+    return {
+      bg: "#F4F1EA",
+      ink: "#14171F",
+      body: "#343946",
+      muted: "#5A6072",
+      amber: "#9A6B12",
+      rule: "rgba(20,23,31,0.16)",
+      bloom: "radial-gradient(circle at 88% 8%, rgba(154,107,18,0.12) 0%, rgba(244,241,234,0) 40%)",
+      fadeAmber: "rgba(154,107,18,0)",
+    };
+  }
+  return {
+    bg: "#0C1220",
+    ink: "#F0EDE8",
+    body: "#C9CED7",
+    muted: "#929CAD",
+    amber: "#D4A853",
+    rule: "rgba(240,237,232,0.16)",
+    bloom: "radial-gradient(circle at 88% 8%, rgba(212,168,83,0.19) 0%, rgba(12,18,32,0) 40%)",
+    fadeAmber: "rgba(212,168,83,0)",
+  };
+}
 
 type LoadedFonts = { playfair: ArrayBuffer; mono: ArrayBuffer };
 let cachedFonts: LoadedFonts | null = null;
@@ -43,6 +75,7 @@ async function loadFonts(): Promise<LoadedFonts> {
 
 export type DailyHookCoverInput = {
   feedDate?: string | null;
+  variant?: CoverVariant;
   lead: {
     title: string;
     category: string;
@@ -85,6 +118,7 @@ function formatDate(value?: string | null): string {
 }
 
 function buildTree(input: DailyHookCoverInput) {
+  const c = palette(input.variant ?? "navy");
   const title = clamp(input.lead.title, 150);
   const why = clamp(input.lead.whyItMatters, 230);
   const supporting = (input.supporting ?? []).slice(0, 2);
@@ -101,10 +135,9 @@ function buildTree(input: DailyHookCoverInput) {
         width: `${WIDTH}px`,
         height: `${HEIGHT}px`,
         padding: "66px 70px 60px",
-        backgroundColor: NAVY,
-        backgroundImage:
-          "radial-gradient(circle at 88% 8%, rgba(212,168,83,0.19) 0%, rgba(12,18,32,0) 40%)",
-        color: INK,
+        backgroundColor: c.bg,
+        backgroundImage: c.bloom,
+        color: c.ink,
         justifyContent: "space-between",
       },
       children: [
@@ -122,7 +155,7 @@ function buildTree(input: DailyHookCoverInput) {
                     fontSize: "17px",
                     letterSpacing: "0.27em",
                     textTransform: "uppercase",
-                    color: AMBER,
+                    color: c.amber,
                   },
                   children: "The Desk",
                 },
@@ -136,7 +169,7 @@ function buildTree(input: DailyHookCoverInput) {
                     fontSize: "13px",
                     letterSpacing: "0.18em",
                     textTransform: "uppercase",
-                    color: MUTED,
+                    color: c.muted,
                   },
                   children: formatDate(input.feedDate),
                 },
@@ -159,7 +192,7 @@ function buildTree(input: DailyHookCoverInput) {
                     fontSize: "15px",
                     letterSpacing: "0.24em",
                     textTransform: "uppercase",
-                    color: AMBER,
+                    color: c.amber,
                   },
                   children: `THE LEAD · ${category}`,
                 },
@@ -174,7 +207,7 @@ function buildTree(input: DailyHookCoverInput) {
                     fontSize: headlineSize(title.length),
                     lineHeight: 0.99,
                     letterSpacing: "-0.035em",
-                    color: INK,
+                    color: c.ink,
                     marginTop: "30px",
                   },
                   children: title,
@@ -190,7 +223,7 @@ function buildTree(input: DailyHookCoverInput) {
                           fontFamily: "Playfair Display",
                           fontSize: "30px",
                           lineHeight: 1.42,
-                          color: "#C9CED7",
+                          color: c.body,
                           marginTop: "28px",
                           maxWidth: "900px",
                         },
@@ -209,7 +242,7 @@ function buildTree(input: DailyHookCoverInput) {
                           fontFamily: "JetBrains Mono",
                           fontSize: "12px",
                           letterSpacing: "0.16em",
-                          color: MUTED,
+                          color: c.muted,
                           textTransform: "uppercase",
                           marginTop: "24px",
                         },
@@ -228,7 +261,7 @@ function buildTree(input: DailyHookCoverInput) {
             style: {
               display: "flex",
               flexDirection: "column",
-              borderTop: `1px solid ${RULE}`,
+              borderTop: `1px solid ${c.rule}`,
               paddingTop: "26px",
               gap: "24px",
             },
@@ -247,7 +280,7 @@ function buildTree(input: DailyHookCoverInput) {
                               flexDirection: "column",
                               flex: 1,
                               paddingLeft: index > 0 ? "28px" : "0",
-                              borderLeft: index > 0 ? `1px solid ${RULE}` : "0",
+                              borderLeft: index > 0 ? `1px solid ${c.rule}` : "0",
                             },
                             children: [
                               {
@@ -259,7 +292,7 @@ function buildTree(input: DailyHookCoverInput) {
                                     fontSize: "11px",
                                     letterSpacing: "0.18em",
                                     textTransform: "uppercase",
-                                    color: AMBER,
+                                    color: c.amber,
                                   },
                                   children: `ALSO · ${clean(story.category).toUpperCase()}`,
                                 },
@@ -273,7 +306,7 @@ function buildTree(input: DailyHookCoverInput) {
                                     fontWeight: 700,
                                     fontSize: "25px",
                                     lineHeight: 1.23,
-                                    color: INK,
+                                    color: c.ink,
                                     marginTop: "10px",
                                   },
                                   children: clamp(story.title, 86),
@@ -294,7 +327,7 @@ function buildTree(input: DailyHookCoverInput) {
                         style: {
                           display: "flex",
                           gap: "34px",
-                          borderTop: `1px solid ${RULE}`,
+                          borderTop: `1px solid ${c.rule}`,
                           paddingTop: "22px",
                         },
                         children: metrics.map((metric) => ({
@@ -310,7 +343,7 @@ function buildTree(input: DailyHookCoverInput) {
                                     fontFamily: "Playfair Display",
                                     fontWeight: 700,
                                     fontSize: "31px",
-                                    color: INK,
+                                    color: c.ink,
                                     lineHeight: 1,
                                   },
                                   children: clamp(metric.value, 18),
@@ -325,7 +358,7 @@ function buildTree(input: DailyHookCoverInput) {
                                     fontSize: "10px",
                                     letterSpacing: "0.14em",
                                     textTransform: "uppercase",
-                                    color: MUTED,
+                                    color: c.muted,
                                     marginTop: "8px",
                                   },
                                   children: clamp(metric.label, 28),
@@ -354,7 +387,7 @@ function buildTree(input: DailyHookCoverInput) {
                     display: "flex",
                     height: "2px",
                     width: "100%",
-                    backgroundImage: `linear-gradient(90deg, ${AMBER}, rgba(212,168,83,0))`,
+                    backgroundImage: `linear-gradient(90deg, ${c.amber}, ${c.fadeAmber})`,
                   },
                   children: "",
                 },
@@ -370,13 +403,13 @@ function buildTree(input: DailyHookCoverInput) {
                     fontSize: "12px",
                     letterSpacing: "0.17em",
                     textTransform: "uppercase",
-                    color: MUTED,
+                    color: c.muted,
                   },
                   children: [
                     { type: "span", props: { children: "Australian property intelligence" } },
                     {
                       type: "span",
-                      props: { style: { color: AMBER }, children: "thedesk.au" },
+                      props: { style: { color: c.amber }, children: "thedesk.au" },
                     },
                   ],
                 },
