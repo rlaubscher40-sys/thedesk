@@ -1,27 +1,29 @@
 /**
- * Browser-side page-view tracker. Replaces the Plausible script.
+ * Browser-side privacy-preserving analytics.
  *
- * Allocates an ephemeral session token in sessionStorage (cleared
- * when the tab closes) so the server can count distinct sessions
- * within a window without persistent identification — no cookies, no
- * fingerprint. Fires a beacon to /api/analytics/pageview on each
- * route change.
- *
- * Skips reporting when:
- *   · sessionStorage isn't available (no-op gracefully).
- *   · The user has DNT enabled in their browser — the server also
- *     enforces this, but bailing early saves a network call.
+ * Allocates an ephemeral session token in sessionStorage (cleared when the tab
+ * closes) so the server can count distinct sessions without a persistent
+ * identifier. Page views and a deliberately tiny allow-list of product events
+ * are sent to the self-hosted analytics endpoint. No cookies, fingerprinting,
+ * raw IP persistence or third-party scripts.
  */
 
 const SESSION_KEY = "thedesk:session";
+
+export type EngagementEvent =
+  | "ask_share"
+  | "market_watch"
+  | "signal_watch"
+  | "signal_share"
+  | "story_share"
+  | "brief_reshare";
 
 function sessionId(): string | null {
   try {
     let id = window.sessionStorage.getItem(SESSION_KEY);
     if (!id) {
-      // 24 hex chars from crypto.getRandomValues. Short enough to
-      // fit in the schema's 64-char column, long enough that
-      // collisions are negligible across a day's traffic.
+      // 24 hex chars from crypto.getRandomValues. Short enough to fit in the
+      // schema's 64-char column, long enough that collisions are negligible.
       const bytes = new Uint8Array(12);
       window.crypto.getRandomValues(bytes);
       id = Array.from(bytes)
@@ -37,8 +39,6 @@ function sessionId(): string | null {
 
 function dntEnabled(): boolean {
   if (typeof navigator === "undefined") return false;
-  // navigator.doNotTrack returns "1" on Chrome/Firefox/Edge,
-  // window.doNotTrack on older Safari.
   const nav = navigator as Navigator & { doNotTrack?: string | null };
   return (
     nav.doNotTrack === "1" ||
@@ -47,13 +47,33 @@ function dntEnabled(): boolean {
   );
 }
 
+function send(path: "/api/analytics/pageview" | "/api/analytics/event", body: object): void {
+  const payload = JSON.stringify(body);
+  try {
+    if (typeof navigator !== "undefined" && navigator.sendBeacon) {
+      const blob = new Blob([payload], { type: "application/json" });
+      navigator.sendBeacon(path, blob);
+      return;
+    }
+  } catch {
+    // Older browsers can reject Beacon payloads. Fall through to fetch.
+  }
+  void fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    keepalive: true,
+    body: payload,
+  }).catch(() => {
+    // Analytics must never leak into product behaviour.
+  });
+}
+
 let lastPath: string | null = null;
 
-/** Fire a page-view beacon for the current location. Debounced against
- *  the previous fired path so duplicate-route renders don't double-count. */
+/** Fire a page-view beacon for the current location. Debounced against the
+ * previous fired path so duplicate-route renders don't double-count. */
 export function trackPageView(): void {
-  if (typeof window === "undefined") return;
-  if (dntEnabled()) return;
+  if (typeof window === "undefined" || dntEnabled()) return;
   const id = sessionId();
   if (!id) return;
 
@@ -61,28 +81,27 @@ export function trackPageView(): void {
   if (path === lastPath) return;
   lastPath = path;
 
-  const referrer = document.referrer || "";
-  const body = JSON.stringify({ path, referrer, sessionId: id });
+  send("/api/analytics/pageview", {
+    path,
+    referrer: document.referrer || "",
+    sessionId: id,
+  });
+}
 
-  // Prefer sendBeacon — fires reliably even when the user is
-  // navigating away. Fallback to fetch with keepalive so the
-  // tracker still works in environments without Beacon support.
-  try {
-    if (typeof navigator !== "undefined" && navigator.sendBeacon) {
-      const blob = new Blob([body], { type: "application/json" });
-      navigator.sendBeacon("/api/analytics/pageview", blob);
-      return;
-    }
-  } catch {
-    // sendBeacon can throw on some payloads in older browsers; fall
-    // through to fetch.
-  }
-  void fetch("/api/analytics/pageview", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    keepalive: true,
-    body,
-  }).catch(() => {
-    // Best-effort. Tracking never throws into product code.
+/**
+ * Record a high-value product action. The event name is compile-time bounded
+ * and server allow-listed; no question text, market name, metric value or other
+ * user-entered content is sent. `surface` is an optional fixed product label,
+ * not arbitrary metadata.
+ */
+export function trackEvent(event: EngagementEvent, surface?: string): void {
+  if (typeof window === "undefined" || dntEnabled()) return;
+  const id = sessionId();
+  if (!id) return;
+  send("/api/analytics/event", {
+    event,
+    surface: surface?.slice(0, 32),
+    path: window.location.pathname || "/",
+    sessionId: id,
   });
 }
