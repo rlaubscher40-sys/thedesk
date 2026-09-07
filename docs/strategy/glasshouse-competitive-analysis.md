@@ -260,19 +260,26 @@ twice normal for CPI.
 the biggest move rather than a contents page, and skips a month where nothing
 cleared its own range.
 
-**Interstate migration is started, not finished.** A correction to an earlier
-claim in this document: `scripts/ingest/lib/abs.ts` is not an SDMX client, it
-is a regex scraper against ABS release pages shaped for one headline number per
-page. A per-jurisdiction extractor now exists and is tested
-(`scripts/ingest/lib/absStates.ts`), including the check that makes this series
-attractive — interstate migration must sum to about zero across the eight
-jurisdictions, so a bad extraction is detectable rather than publishable. It is
-deliberately not wired into the daily ingest, because ABS is unreachable from
-the environment this was built in and only the live page can prove the
-patterns. `pnpm probe:abs` is the one command that closes that.
+**The data path changed, for the better.** Two corrections to earlier drafts:
+`abs.ts` was never an SDMX client, it was a regex scraper; and scraping was
+never the constraint. The ABS publishes all of it through a **free, keyless
+official API**, which the ingest now prefers, with the proven scrape kept as a
+fallback so no working metric can break during the switch.
 
-Remaining on this item: run the probe with network access, wire the series in,
-then it is a card in the same shape as The Number.
+This matters beyond tidiness. The API returns **whole time series**, so the
+monthly review can rank a month against decades rather than against the year of
+readings we have happened to collect. That turns "2.3 times its usual month"
+into "the biggest monthly fall since 2011" — the Glasshouse-shaped claim, from
+free data, computed by us.
+
+**Also free and currently done the hard way:** `mortgage_arrears` is obtained by
+having an LLM read news articles. APRA publishes it. The other three
+LLM-extracted metrics (auction clearance, dwelling values, consumer sentiment)
+are genuinely paid data, so the workaround is reasonable there; this one is not.
+
+Remaining on this item: run `pnpm probe:abs` with network access to read the
+dataflow ids off the catalogue, paste them into the `api` blocks, and the
+interstate-migration series becomes a card in the same shape as The Number.
 
 ### Tier 3 — the strategic question, not an engineering one
 
