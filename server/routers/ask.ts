@@ -1,9 +1,10 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import * as db from "../db";
+import { consumeAnonymousAsk, consumeAnonymousCard } from "../core/askQuota";
 import { invokeLLMJson } from "../core/llm";
 import { renderIntelligenceCard } from "../og/intelligenceCard";
-import { protectedProcedure, router } from "../core/trpc";
+import { publicProcedure, router } from "../core/trpc";
 import {
   askDeskResponseFormat,
   buildAskDeskMessages,
@@ -122,14 +123,29 @@ async function retrieve(question: string): Promise<{
   };
 }
 
+function enforceAnonymousQuota(
+  authenticated: boolean,
+  consume: () => { allowed: boolean; remaining: number; limit: number }
+): number | null {
+  if (authenticated) return null;
+  const quota = consume();
+  if (!quota.allowed) {
+    throw new TRPCError({
+      code: "TOO_MANY_REQUESTS",
+      message: `You've used today's ${quota.limit} free Ask The Desk questions. Sign in to keep going.`,
+    });
+  }
+  return quota.remaining;
+}
+
 export const askRouter = router({
-  answer: protectedProcedure
+  answer: publicProcedure
     .input(
       z.object({
         question: z.string().trim().min(3).max(240),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const matches = await retrieve(input.question);
 
       if (matches.feed.length === 0 && matches.editions.length === 0) {
@@ -139,6 +155,7 @@ export const askRouter = router({
           message:
             "The Desk does not have enough archive evidence to answer that yet. Try a market, policy, lender, migration, supply or lending question already covered in the brief.",
           sources: [],
+          anonymousRemaining: null,
         };
       }
 
@@ -215,8 +232,16 @@ export const askRouter = router({
           question: input.question,
           message: "The Desk found related records, but not enough usable evidence to answer reliably.",
           sources: [],
+          anonymousRemaining: null,
         };
       }
+
+      // Retrieval is cheap; only consume a public allowance once we are about
+      // to spend an LLM call. Signed-in readers are not metered here.
+      const anonymousRemaining = enforceAnonymousQuota(
+        Boolean(ctx.user),
+        () => consumeAnonymousAsk(ctx.req)
+      );
 
       let parsed: z.infer<typeof askAnswerSchema>;
       try {
@@ -252,15 +277,15 @@ export const askRouter = router({
         answer: { ...parsed, sourceRefs: selectedRefs },
         sources: sourceMeta.filter((source) => selected.has(source.ref)),
         searchedRecords: evidence.length,
+        anonymousRemaining,
       };
     }),
 
   /**
    * Turn an already-grounded Ask answer into a native 4:5 distribution asset.
-   * The server validates and clamps every supplied field before rendering so a
-   * malformed client cannot push arbitrary huge strings through satori.
+   * Anonymous rendering has its own CPU quota; signed-in readers are unlimited.
    */
-  shareCard: protectedProcedure
+  shareCard: publicProcedure
     .input(
       z.object({
         question: z.string().trim().min(3).max(240),
@@ -272,7 +297,8 @@ export const askRouter = router({
         signal: signalSchema.nullable().optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      enforceAnonymousQuota(Boolean(ctx.user), () => consumeAnonymousCard(ctx.req));
       try {
         const png = await renderIntelligenceCard({
           question: input.question,
