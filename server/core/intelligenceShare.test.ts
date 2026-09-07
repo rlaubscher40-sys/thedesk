@@ -11,7 +11,21 @@ const brief: SharedIntelligenceBrief = {
   answer: "The archive points to a clear shift in the direction of investor lending.",
   deskTake: "The important signal is the change in momentum, not one isolated monthly print.",
   confidence: "high",
-  sourceCount: 4,
+  sourceCount: 2,
+  sources: [
+    {
+      title: "Investor lending reaches a new cycle high",
+      date: "2026-09-05",
+      publisher: "ABS",
+      href: "/story/42",
+    },
+    {
+      title: "Investor finance · 8.4%",
+      date: "2026-09-07",
+      publisher: "The Desk metrics",
+      href: "/trends",
+    },
+  ],
   signal: {
     label: "Investor lending",
     value: "+8.4%",
@@ -20,10 +34,15 @@ const brief: SharedIntelligenceBrief = {
 };
 
 describe("intelligence share tokens", () => {
-  it("round-trips a signed brief", () => {
+  it("round-trips a signed brief with its frozen evidence list", () => {
     const now = Date.UTC(2026, 8, 7, 10, 0, 0);
     const token = createIntelligenceShareToken(brief, now);
     expect(readIntelligenceShareToken(token, now + 60_000)).toEqual(brief);
+  });
+
+  it("derives sourceCount from the signed source list", () => {
+    const token = createIntelligenceShareToken({ ...brief, sourceCount: 99 });
+    expect(readIntelligenceShareToken(token)?.sourceCount).toBe(2);
   });
 
   it("rejects a tampered payload", () => {
