@@ -139,4 +139,16 @@ describe("jobState", () => {
   it("still reports an unscheduled job that was fired by hand", () => {
     expect(jobState(true, false, { manual: true })).toBe("posted");
   });
+
+  it("gives a monthly job no slot on the other days of the month", () => {
+    // Without this it would read as overdue from the 2nd onwards, every month.
+    const second = new Date(2026, 8, 2, 12, 0); // 2 Sep 2026, midday
+    expect(slotHasPassed("10:07", null, second, 1)).toBe(false);
+  });
+
+  it("gives a monthly job its slot on the day, once the time has passed", () => {
+    const first = new Date(2026, 8, 1, 12, 0);
+    expect(slotHasPassed("10:07", null, first, 1)).toBe(true);
+    expect(slotHasPassed("10:07", null, new Date(2026, 8, 1, 9, 0), 1)).toBe(false);
+  });
 });

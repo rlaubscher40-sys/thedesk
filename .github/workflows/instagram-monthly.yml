@@ -1,0 +1,45 @@
+name: Instagram monthly post
+
+# Least privilege: pure curl job, no GITHUB_TOKEN access needed.
+permissions: {}
+
+on:
+  # Timing is driven by the in-process scheduler (server/scheduler), reliable
+  # where GitHub cron ran late / dropped runs — see docs/reliable-scheduling.md.
+  # workflow_dispatch stays so the job can still be triggered by hand.
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Why are you running this manually?"
+        required: false
+        default: "manual test"
+      month:
+        description: "Month to post, YYYY-MM. Blank = the month that just finished."
+        required: false
+        default: ""
+
+concurrency:
+  group: instagram-monthly
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Trigger Instagram monthly post
+        env:
+          INGEST_BASE_URL: ${{ secrets.INGEST_BASE_URL }}
+          SCHEDULED_API_KEY: ${{ secrets.SCHEDULED_API_KEY }}
+          MONTH: ${{ inputs.month }}
+        run: |
+          BASE="${INGEST_BASE_URL%/}"
+          if [ -n "${MONTH}" ]; then BODY="{\"month\": \"${MONTH}\"}"; else BODY='{}'; fi
+          # A month with no rankable movers returns 200 with skipped:true, so the
+          # job stays green. Only a real failure turns it red.
+          curl -fsSL \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -H "x-scheduled-key: ${SCHEDULED_API_KEY}" \
+            "${BASE}/api/ingest/instagram-monthly" \
+            -d "${BODY}"

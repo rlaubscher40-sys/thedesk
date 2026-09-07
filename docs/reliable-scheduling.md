@@ -29,6 +29,7 @@ How jobs run (all against the server's own loopback):
 
 Jobs + Sydney times: `daily-metrics` 06:33, `daily-feed` 06:43,
 `instagram-daily` 07:13, `instagram-insights` 07:17, `instagram-stat` 16:41,
+`instagram-monthly` 10:07 on the 1st,
 `weekly-edition` Sun 07:17, `instagram-weekly` Sun 09:19.
 
 `instagram-coverage` ("The Wider Lens") is deliberately absent: it came off the

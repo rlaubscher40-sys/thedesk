@@ -888,3 +888,128 @@ export async function postStatCard(
     if (uuid) removeTempImage(uuid);
   }
 }
+
+/** Slides in the monthly carousel: the lead number plus the next few movers.
+ *  Four keeps it swipeable without padding it out with ordinary months. */
+const MONTHLY_SLIDE_COUNT = 4;
+
+/**
+ * Caption for the monthly review.
+ *
+ * Leads with the reading, which is already the sharpest sentence available and
+ * is specific to this month rather than a fixed opener. Names what the series
+ * is, because the whole point of a franchise is that a reader learns to expect
+ * it, and says where the numbers come from, because "our own history" is the
+ * claim that makes this series worth following rather than another recap.
+ */
+export function buildMonthlyCaption(
+  review: { label: string; reading: string },
+  movers: Array<{ label: string; move: string; claim: string }>
+): string {
+  const rundown = movers.flatMap((m) => [
+    `${sanitizeDashes(m.label)}: ${sanitizeDashes(m.move)} (${sanitizeDashes(m.claim.toLowerCase())})`,
+  ]);
+
+  return [
+    sanitizeDashes(review.reading),
+    "",
+    `The Month in Numbers, ${sanitizeDashes(review.label)}.`,
+    "",
+    ...rundown,
+    "",
+    // The honest description of the method, and the reason to follow: we are
+    // the only ones who can rank these against each other.
+    "Every move is measured against what that number normally does in a month, from our own daily records. A big percentage in a jumpy series is not news; a small one in a still series is.",
+    "",
+    "Which of these actually changed your thinking? Tell us below.",
+    "Save this, it is the month in one place.",
+    "",
+    "The full month, every number, is in our bio.",
+    "",
+    `${CORE_HASHTAGS} #PropertyData`,
+  ]
+    .filter((l, i, arr) => !(l === "" && arr[i - 1] === ""))
+    .join("\n");
+}
+
+/**
+ * Publish the monthly review as a carousel.
+ *
+ * A carousel rather than a single image because a month genuinely has several
+ * numbers in it, and slide 1 leads with the biggest one rather than a contents
+ * page — the grid thumbnail is a number, which is the whole argument of this
+ * account's better format. The swipe prompt names what the later slides hold
+ * so the loop is real rather than decorative.
+ */
+export async function postMonthlyReview(
+  cards: Array<{
+    label: string;
+    value: string;
+    line: string;
+    subtext: string;
+    source?: string | null;
+    asOf?: Date | null;
+  }>,
+  review: { label: string; reading: string },
+  siteUrl: string,
+  opts: { variant?: CardVariant } = {}
+): Promise<{ postId: string; headline: string }> {
+  const { instagramAccessToken: accessToken, instagramBusinessAccountId: igUserId } = env;
+  if (!accessToken || !igUserId) {
+    throw new Error("INSTAGRAM_ACCESS_TOKEN and INSTAGRAM_BUSINESS_ACCOUNT_ID must be set");
+  }
+  if (cards.length === 0) throw new Error("No movers to post for the monthly review");
+
+  const slides = cards.slice(0, MONTHLY_SLIDE_COUNT).map((c) => ({
+    ...c,
+    label: sanitizeDashes(c.label),
+    value: sanitizeDashes(c.value),
+    line: sanitizeDashes(c.line),
+    subtext: sanitizeDashes(c.subtext),
+  }));
+
+  const uuids: string[] = [];
+  try {
+    for (let i = 0; i < slides.length; i++) {
+      const buf = await renderStatCard(slides[i]!, opts.variant ?? "navy", {
+        // Slide 1 names the series; the rest count so a swiper knows where
+        // they are in it.
+        kicker: i === 0 ? `The Month in Numbers` : `${i + 1} / ${slides.length}`,
+      });
+      uuids.push(storeTempImage(buf));
+    }
+
+    const childIds = await Promise.all(
+      uuids.map((uuid, i) =>
+        createImageContainer({
+          igUserId,
+          accessToken,
+          imageUrl: `${siteUrl}/instagram/temp/${uuid}.jpg`,
+          altText: `${slides[i]!.label}: ${slides[i]!.value}. ${slides[i]!.line}`,
+          isCarouselItem: true,
+        })
+      )
+    );
+
+    const carouselId = await createCarouselContainer({
+      igUserId,
+      accessToken,
+      childrenIds: childIds,
+      caption: buildMonthlyCaption(
+        review,
+        slides.map((s) => ({ label: s.label, move: s.value, claim: s.subtext }))
+      ),
+    });
+    await waitForContainerReady({ containerId: carouselId, accessToken, timeoutMs: 90000 });
+    const postId = await publishCarouselConfirmed({
+      igUserId,
+      accessToken,
+      creationId: carouselId,
+    });
+
+    console.log(`[instagram] monthly review posted: ${postId} (${review.label})`);
+    return { postId, headline: `The Month in Numbers: ${review.label}` };
+  } finally {
+    uuids.forEach(removeTempImage);
+  }
+}

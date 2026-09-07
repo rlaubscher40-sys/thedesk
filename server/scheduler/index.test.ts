@@ -5,6 +5,7 @@ const baseClock = (over: Partial<SchedulerClock> = {}): SchedulerClock => ({
   dateISO: "2026-06-04",
   minutes: 0,
   dow: 4, // Thursday
+  dom: 4,
   ...over,
 });
 
@@ -15,6 +16,7 @@ describe("sydneyClock", () => {
     expect(c.dateISO).toBe("2026-06-04");
     expect(c.minutes).toBe(10 * 60);
     expect(c.dow).toBe(4); // Thursday
+    expect(c.dom).toBe(4);
   });
 
   it("honours daylight saving (AEDT, summer = UTC+11)", () => {
@@ -60,5 +62,25 @@ describe("isJobDue", () => {
 
   it("a weekly job is still gated by time on its day", () => {
     expect(isJobDue(weekly, baseClock({ minutes: 9 * 60, dow: 0 }))).toBe(false); // before 09:19
+  });
+
+  it("runs a monthly job only on its day of the month", () => {
+    const monthly = { key: "m", at: "08:00", dom: [1], run: async () => {} };
+    expect(isJobDue(monthly, baseClock({ minutes: 8 * 60, dom: 1 }))).toBe(true);
+    expect(isJobDue(monthly, baseClock({ minutes: 8 * 60, dom: 2 }))).toBe(false);
+  });
+
+  it("still honours the time window on a monthly job", () => {
+    // Being the right day is not enough; a long-overdue monthly job is skipped
+    // rather than fired retroactively, same as every other job.
+    const monthly = { key: "m", at: "08:00", dom: [1], run: async () => {} };
+    expect(isJobDue(monthly, baseClock({ minutes: 7 * 60 + 59, dom: 1 }))).toBe(false);
+  });
+
+  it("treats dow and dom as both having to hold", () => {
+    const both = { key: "m", at: "08:00", dow: [1], dom: [1], run: async () => {} };
+    expect(isJobDue(both, baseClock({ minutes: 8 * 60, dow: 1, dom: 1 }))).toBe(true);
+    expect(isJobDue(both, baseClock({ minutes: 8 * 60, dow: 2, dom: 1 }))).toBe(false);
+    expect(isJobDue(both, baseClock({ minutes: 8 * 60, dow: 1, dom: 2 }))).toBe(false);
   });
 });

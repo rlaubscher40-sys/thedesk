@@ -33,11 +33,20 @@ export function postedToday(posts: PostedRow[], now: Date = new Date()): Set<str
  * before 07:13, so the one case that matters — a job that should have posted
  * and didn't — would be lost in permanent noise.
  *
- * `dow` restricts the job to one weekday (0 = Sunday), matching the scheduler's
- * own `dow` field; null means every day. Local clock, same as postedToday.
+ * `dow` restricts the job to one weekday (0 = Sunday) and `dom` to one day of
+ * the month, both matching the scheduler's own fields; null means every day.
+ * Local clock, same as postedToday.
  */
-export function slotHasPassed(atHHMM: string, dow: number | null, now: Date = new Date()): boolean {
+export function slotHasPassed(
+  atHHMM: string,
+  dow: number | null,
+  now: Date = new Date(),
+  dom: number | null = null
+): boolean {
   if (dow != null && now.getDay() !== dow) return false;
+  // A monthly job has no slot on the other 30 days of the month. Without this
+  // it would read as overdue from the 2nd onwards, every month.
+  if (dom != null && now.getDate() !== dom) return false;
   const [h, m] = atHHMM.split(":");
   const at = Number(h) * 60 + Number(m);
   if (!Number.isFinite(at)) return false;

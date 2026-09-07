@@ -43,6 +43,8 @@ export type SchedulerClock = {
   minutes: number;
   /** Day of week, 0 = Sunday … 6 = Saturday (Sydney). */
   dow: number;
+  /** Day of the month, 1-31 (Sydney). */
+  dom: number;
 };
 
 /** Current wall-clock in Australia/Sydney (DST-correct via the platform tz db). */
@@ -74,6 +76,7 @@ export function sydneyClock(d: Date = new Date()): SchedulerClock {
     dateISO: `${get("year")}-${get("month")}-${get("day")}`,
     minutes,
     dow: dowMap[get("weekday")] ?? 0,
+    dom: Number(get("day")),
   };
 }
 
@@ -88,6 +91,14 @@ type Job = {
   at: string;
   /** Restrict to these days (0=Sun…6=Sat). Omitted = every day. */
   dow?: number[];
+  /**
+   * Restrict to these days of the month (1-31). Omitted = every day.
+   *
+   * Combines with `dow` as AND, not OR, though nothing currently sets both.
+   * Note that a job pinned to 29, 30 or 31 will not run in months that lack
+   * the date; the monthly review uses 1 for that reason.
+   */
+  dom?: number[];
   /**
    * Max attempts per day. The Instagram posting jobs sit at 2 rather than the
    * ingest default of 3: the risk they used to guard against with 1 — a
@@ -108,6 +119,7 @@ type Job = {
  */
 export function isJobDue(job: Job, clock: SchedulerClock): boolean {
   if (job.dow && !job.dow.includes(clock.dow)) return false;
+  if (job.dom && !job.dom.includes(clock.dom)) return false;
   const at = hhmmToMinutes(job.at);
   return clock.minutes >= at && clock.minutes <= at + GRACE_MINUTES;
 }
@@ -169,6 +181,15 @@ const JOBS: Job[] = [
     at: "16:41",
     maxAttempts: 2,
     run: (b, k, a) => postLocal(b, k, "/api/ingest/instagram-stat", a),
+  },
+  // The 1st of the month, covering the month that just finished. Sits after the
+  // morning briefing so the two do not publish within minutes of each other.
+  {
+    key: "instagram-monthly",
+    at: "10:07",
+    dom: [1],
+    maxAttempts: 2,
+    run: (b, k, a) => postLocal(b, k, "/api/ingest/instagram-monthly", a),
   },
   {
     key: "weekly-edition",

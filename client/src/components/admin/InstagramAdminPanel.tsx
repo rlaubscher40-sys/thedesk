@@ -90,6 +90,18 @@ const RERUN_JOBS = [
     warning: "the latest weekly edition carousel",
   },
   {
+    job: "monthly" as const,
+    label: "The Month",
+    full: "The Month in Numbers",
+    at: "10:07",
+    dow: null,
+    // Runs on the 1st only, and skips a month where nothing cleared its own
+    // normal range — so like The Number it must never read as a missed post.
+    optional: true,
+    monthlyOn: 1,
+    warning: "the monthly carousel built from our own metric history",
+  },
+  {
     job: "coverage" as const,
     label: "The Wider Lens",
     full: "The Wider Lens",
@@ -153,9 +165,10 @@ function RerunJobs({ posts, ready }: { posts: PostedRow[]; ready: boolean }) {
 
   function stateOf(entry: (typeof RERUN_JOBS)[number]): JobState {
     const manual = "manual" in entry && entry.manual === true;
+    const monthlyOn = "monthlyOn" in entry ? (entry.monthlyOn as number) : null;
     return jobState(
       done ? done.has(entry.job) : null,
-      manual ? false : slotHasPassed(entry.at, entry.dow),
+      manual ? false : slotHasPassed(entry.at, entry.dow, new Date(), monthlyOn),
       {
         optional: "optional" in entry && entry.optional === true,
         manual,
@@ -198,7 +211,9 @@ function RerunJobs({ posts, ready }: { posts: PostedRow[]; ready: boolean }) {
           const isRunning = rerun.isPending && running === entry.job;
           const state = stateOf(entry);
           const style = STATE_STYLE[state];
-          const schedule = entry.dow === 0 ? `Sun ${entry.at}` : entry.at;
+          const monthlyOn = "monthlyOn" in entry ? (entry.monthlyOn as number) : null;
+          const schedule =
+            monthlyOn != null ? `1st ${entry.at}` : entry.dow === 0 ? `Sun ${entry.at}` : entry.at;
           return (
             <button
               key={entry.job}

@@ -1599,6 +1599,133 @@ function registerInstagramRoutes(app: Express): void {
   app.post("/api/scheduled/instagram-stat", statHandler);
   app.post("/api/ingest/instagram-stat", statHandler);
 
+  // POST /api/ingest/instagram-monthly — "The Month in Numbers". The one series
+  // built entirely from our own metric history, so it is the one a competitor
+  // cannot copy. Runs on the 1st and covers the month that just finished.
+  const monthlyHandler = async (req: Request, res: Response) => {
+    if (!(await authenticateScheduled(req))) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const { instagramAccessToken, instagramBusinessAccountId } = (await import("./core/env")).env;
+    if (!instagramAccessToken || !instagramBusinessAccountId) {
+      res.status(503).json({ error: "Instagram credentials not configured" });
+      return;
+    }
+    const parsed = z
+      .object({
+        attempt: z.number().int().min(1).optional(),
+        /** Post a specific month instead of the one that just finished. */
+        month: z
+          .string()
+          .regex(/^\d{4}-\d{2}$/)
+          .optional(),
+      })
+      .safeParse(req.body ?? {});
+    const attempt = parsed.success ? (parsed.data.attempt ?? 1) : 1;
+    const month = parsed.success ? parsed.data.month : undefined;
+
+    try {
+      const { buildMonthlyReview, describeMove, readMonth } =
+        await import("./metrics/monthlyReview");
+      const { generateMonthLine, moveClaim } = await import("./prompts/monthCard");
+      const { findAlreadyPublished, postMonthlyReview } = await import("./instagram/post");
+
+      const [metrics, histories] = await Promise.all([
+        db.listDailyMetrics(),
+        db.listMetricHistories(400),
+      ]);
+      const review = buildMonthlyReview(
+        metrics.map((m) => ({
+          metricKey: m.metricKey,
+          label: m.label,
+          unit: m.unit,
+          groupKey: m.groupKey,
+        })),
+        histories,
+        month
+      );
+
+      // A month where nothing cleared its own normal range is a real finding,
+      // and it belongs on the page rather than on the grid. Posting "nothing
+      // much happened" as a carousel is the filler this format exists to avoid.
+      if (review.movers.length === 0) {
+        console.log(
+          `[instagram] ${review.label} had no rankable movers; skipping the monthly post`
+        );
+        res.json({
+          success: true,
+          skipped: true,
+          reason: `Nothing in ${review.label} moved far enough outside its own range to post`,
+        });
+        return;
+      }
+
+      const variant = await nextCoverVariant();
+
+      const alreadyPublished = await findAlreadyPublished(attempt);
+      if (alreadyPublished) {
+        const recoveredHeadline = `The Month in Numbers: ${review.label}`;
+        await db.recordInstagramPost({
+          mediaId: alreadyPublished,
+          postType: "monthly",
+          feedDate: null,
+          headline: recoveredHeadline,
+          coverVariant: variant,
+        });
+        console.log(`[instagram] monthly post recovered from a prior attempt: ${alreadyPublished}`);
+        res.json({
+          success: true,
+          postId: alreadyPublished,
+          headline: recoveredHeadline,
+          recovered: true,
+        });
+        return;
+      }
+
+      const top = review.movers.slice(0, 4);
+      const lines = await Promise.all(top.map((m) => generateMonthLine(m, review)));
+      const cards = top.map((m, i) => ({
+        label: `${m.label}, ${review.label}`,
+        value: describeMove(m),
+        line: lines[i]!,
+        subtext: moveClaim(m),
+        source: "The Desk",
+        asOf: null,
+      }));
+
+      const { postId, headline } = await postMonthlyReview(
+        cards,
+        { label: review.label, reading: readMonth(review) },
+        siteOrigin(),
+        { variant }
+      );
+      console.log(`[instagram] monthly post complete: ${postId}`);
+      await db.recordInstagramPost({
+        mediaId: postId,
+        postType: "monthly",
+        feedDate: null,
+        headline,
+        coverVariant: variant,
+      });
+      res.json({ success: true, postId, headline, month: review.month });
+    } catch (err) {
+      const e = err as Error;
+      console.error("[instagram] monthly post failed:", e.message);
+      await db
+        .recordServerError({
+          level: "error",
+          message: `Instagram monthly post failed: ${e.message}`.slice(0, 512),
+          stack: e.stack ?? null,
+          route: "instagram/monthly",
+        })
+        .catch(() => {});
+      res.status(502).json({ error: "Instagram monthly post failed", message: e.message });
+    }
+  };
+  app.post("/api/scheduled/instagram-monthly", monthlyHandler);
+  app.post("/api/ingest/instagram-monthly", monthlyHandler);
+
   // POST /api/ingest/instagram-weekly  — posts the latest weekly edition as a carousel
   const weeklyHandler = async (req: Request, res: Response) => {
     if (!(await authenticateScheduled(req))) {
@@ -1819,7 +1946,7 @@ export function registerScheduledRoutes(app: Express): void {
   registerNudgeRespondRoute(app);
   registerInstagramRoutes(app);
   console.log(
-    "[scheduled] registered /api/{scheduled,ingest}/{daily-feed,weekly-edition,synthesize-edition,daily-metrics,extract-metrics,weekly-recap,nudge-check,instagram-daily,instagram-stat,instagram-weekly,instagram-insights} + /api/nudge/respond + /instagram/temp/:uuid.jpg + /api/instagram/preview/:kind"
+    "[scheduled] registered /api/{scheduled,ingest}/{daily-feed,weekly-edition,synthesize-edition,daily-metrics,extract-metrics,weekly-recap,nudge-check,instagram-daily,instagram-stat,instagram-monthly,instagram-weekly,instagram-insights} + /api/nudge/respond + /instagram/temp/:uuid.jpg + /api/instagram/preview/:kind"
   );
 }
 

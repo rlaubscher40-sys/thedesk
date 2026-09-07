@@ -33,7 +33,13 @@ describe("summariseFormats", () => {
     // "The Number published nothing" is an answer, not an absence. Dropping the
     // row would make a broken job look like a format that isn't configured.
     const summaries = summariseFormats([]);
-    expect(summaries.map((s) => s.postType)).toEqual(["daily", "stat", "weekly", "coverage"]);
+    expect(summaries.map((s) => s.postType)).toEqual([
+      "daily",
+      "stat",
+      "weekly",
+      "monthly",
+      "coverage",
+    ]);
     for (const s of summaries) {
       expect(s.measured).toBe(0);
       expect(s.savesPer1k).toBeNull();
