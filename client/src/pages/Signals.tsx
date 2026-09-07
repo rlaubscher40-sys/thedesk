@@ -1,5 +1,5 @@
 import { Bookmark, BookmarkCheck, MoveDownRight, MoveUpRight, Radio } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useSearch } from "wouter";
 import { useEffect, useMemo, useState } from "react";
 import { GUTTER_X } from "@/components/broadsheet/tokens";
 import { ShareSignalCardButton } from "@/components/signals/ShareSignalCardButton";
@@ -72,14 +72,14 @@ function moveMagnitude(move: number | null): number {
   return move == null || !Number.isFinite(move) ? -1 : Math.abs(move);
 }
 
-function formatAsOf(value: Date | string | null | undefined): string | null {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
+function askHref(metric: { label: string; value: string; unit?: string | null }): string {
+  const question = `What does ${metric.label} at ${displayValue(metric)} mean for Australian property right now?`;
+  return `/ask?q=${encodeURIComponent(question)}`;
 }
 
 export default function SignalsPage() {
+  const search = useSearch();
+  const requestedMetricKey = new URLSearchParams(search).get("metric");
   const metrics = trpc.metrics.list.useQuery(undefined, { staleTime: 5 * 60_000 });
   const histories = trpc.metrics.histories.useQuery(undefined, { staleTime: 30 * 60_000 });
   const editions = trpc.editions.list.useQuery(undefined, { staleTime: 10 * 60_000 });
@@ -104,7 +104,10 @@ export default function SignalsPage() {
     () => [...rows].sort((a, b) => moveMagnitude(b.move) - moveMagnitude(a.move)),
     [rows]
   );
-  const hero = ranked.find((row) => row.move != null) ?? rows[0] ?? null;
+  const requestedHero = requestedMetricKey
+    ? rows.find((row) => row.metric.metricKey === requestedMetricKey) ?? null
+    : null;
+  const hero = requestedHero ?? ranked.find((row) => row.move != null) ?? rows[0] ?? null;
   const latestEdition = editions.data?.[0] ?? null;
 
   function toggleWatch(row: (typeof rows)[number]) {
@@ -157,10 +160,16 @@ export default function SignalsPage() {
         </div>
       </header>
 
+      {requestedMetricKey && !requestedHero && rows.length > 0 && (
+        <div className="rule-hair rule-hair-b py-3 mt-5 text-sm text-[var(--color-fg-muted)]">
+          That shared signal is no longer live. Showing the strongest current move instead.
+        </div>
+      )}
+
       {hero && (
         <section className="grid lg:grid-cols-[minmax(0,1.35fr)_1px_minmax(280px,0.65fr)] mt-10">
           <div className="lg:pr-12 min-w-0">
-            <p className="bs-label-accent">The Number</p>
+            <p className="bs-label-accent">{requestedHero ? "Shared signal · The Number" : "The Number"}</p>
             <div className="flex flex-wrap items-end gap-x-5 gap-y-2 mt-3">
               <p
                 className="font-serif font-bold tabular-nums"
@@ -183,20 +192,12 @@ export default function SignalsPage() {
               </p>
             )}
             <div className="flex flex-wrap gap-3 mt-6">
-              <ShareSignalCardButton
-                label={hero.metric.label}
-                value={displayValue(hero.metric)}
-                context={hero.metric.context ?? null}
-                move={hero.move != null ? `${moveLabel(hero.move)} across recorded history` : null}
-                deskTake={latestEdition?.rubensTake ?? null}
-                source={hero.metric.source ?? null}
-                asOf={formatAsOf(hero.metric.asOf)}
-              />
+              <ShareSignalCardButton metricKey={hero.metric.metricKey} />
               <WatchButton
                 watched={watchlist.some((watch) => watch.metricKey === hero.metric.metricKey)}
                 onClick={() => toggleWatch(hero)}
               />
-              <Link href="/ask" className="bs-btn bs-btn-outline">
+              <Link href={askHref(hero.metric)} className="bs-btn bs-btn-outline">
                 Ask what it means
               </Link>
             </div>
@@ -251,7 +252,12 @@ export default function SignalsPage() {
                 className="rule-hair py-4 grid sm:grid-cols-[minmax(0,1fr)_140px_120px_auto] gap-3 sm:gap-5 items-center"
               >
                 <div className="min-w-0">
-                  <p className="font-serif text-xl leading-6">{row.metric.label}</p>
+                  <Link
+                    href={`/signals?metric=${encodeURIComponent(row.metric.metricKey)}`}
+                    className="font-serif text-xl leading-6 bs-link"
+                  >
+                    {row.metric.label}
+                  </Link>
                   <p className="bs-label mt-1.5 truncate">
                     {row.metric.groupKey ?? "Market"}
                     {row.metric.source ? ` · ${row.metric.source}` : ""}
@@ -311,7 +317,12 @@ export default function SignalsPage() {
                       Remove
                     </button>
                   </div>
-                  <p className="font-serif text-2xl mt-3">{row.metric.label}</p>
+                  <Link
+                    href={`/signals?metric=${encodeURIComponent(row.metric.metricKey)}`}
+                    className="font-serif text-2xl mt-3 bs-link block"
+                  >
+                    {row.metric.label}
+                  </Link>
                   <p className="font-serif font-bold tabular-nums mt-2" style={{ fontSize: 42, lineHeight: 1 }}>
                     {displayValue(row.metric)}
                   </p>
