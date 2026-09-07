@@ -25,6 +25,7 @@ import { UserPrefsProvider } from "./lib/userPrefs";
 // failures (see lib/chunkReload) so a redeploy can't strand a user on a
 // page whose chunk hash has since changed.
 const DailyFeed = lazyWithReload(() => import("./pages/DailyFeed"), "DailyFeed");
+const AskDesk = lazyWithReload(() => import("./pages/AskDesk"), "AskDesk");
 const Editions = lazyWithReload(() => import("./pages/Editions"), "Editions");
 const ReadingQueue = lazyWithReload(() => import("./pages/ReadingQueue"), "ReadingQueue");
 const TopicThreads = lazyWithReload(() => import("./pages/TopicThreads"), "TopicThreads");
@@ -51,7 +52,7 @@ function KeyboardShortcuts() {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.key === "/") {
         e.preventDefault();
-        navigate("/archive");
+        navigate("/ask");
       }
     };
     window.addEventListener("keydown", handler);
@@ -112,6 +113,7 @@ function Routes() {
     <Suspense fallback={<PageFallback />}>
       <Switch>
         <Route path="/" component={DailyFeed} />
+        <Route path="/ask" component={AskDesk} />
         <Route path="/editions" component={Editions} />
         <Route path="/editions/:editionNumber" component={Editions} />
         <Route path="/queue" component={ReadingQueue} />
