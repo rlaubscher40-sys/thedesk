@@ -62,6 +62,16 @@ export const instagramRouter = router({
    * how much of the daily allowance a run used. Degrades gracefully: not
    * configured → flagged; a failed live call → error string, never a throw.
    */
+  /**
+   * Whether a Reel could be made right now. Surfaced next to the publishing
+   * quota because the two questions an admin has before a posting window are
+   * "am I allowed to post" and "will the post render".
+   */
+  reelReadiness: adminProcedure.query(async () => {
+    const { checkReelReadiness } = await import("../video/preflight");
+    return checkReelReadiness();
+  }),
+
   publishingStatus: adminProcedure.query(async () => {
     const { instagramAccessToken: accessToken, instagramBusinessAccountId: igUserId } = env;
     if (!accessToken || !igUserId) {

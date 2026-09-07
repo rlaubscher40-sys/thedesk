@@ -1046,6 +1046,32 @@ export function buildReelCaption(stat: {
 }
 
 /**
+ * How long the Reel's container may be waited on, given when this call has to
+ * be finished.
+ *
+ * Reels are transcoded server-side and that genuinely can take minutes, which
+ * is why the wait was a flat five. But the scheduler drives this over
+ * `fetch`, and Node aborts a request whose headers have not arrived in 300
+ * seconds — measured, not assumed. Rendering takes seventy to ninety of those,
+ * so a flat five-minute wait on top could put the response past the point the
+ * scheduler is still listening: the post lands, the run is recorded as failed,
+ * an alert goes out, and the retry has to be caught by `findAlreadyPublished`.
+ * No double post, but a false alarm and a confusing log every time.
+ *
+ * So the wait gets the time that is actually left. The floor exists because a
+ * wait of a few seconds is not worth attempting at all — better to fail
+ * cleanly and let the retry, which starts with a fresh budget, have a real go.
+ */
+export const MIN_CONTAINER_WAIT_MS = 60_000;
+export const MAX_CONTAINER_WAIT_MS = 300_000;
+
+export function containerWaitBudgetMs(deadlineAt: number | undefined, now = Date.now()): number {
+  if (!deadlineAt) return MAX_CONTAINER_WAIT_MS;
+  const left = deadlineAt - now;
+  return Math.min(MAX_CONTAINER_WAIT_MS, Math.max(MIN_CONTAINER_WAIT_MS, left));
+}
+
+/**
  * Publish a stat card as a Reel.
  *
  * Reels are the only surface on Instagram that reliably reaches people who do
@@ -1073,7 +1099,17 @@ export async function postStatReel(
     facts?: { figure: string; caption: string }[];
   },
   siteUrl: string,
-  opts: { variant?: CardVariant; script?: ScriptLine[] } = {}
+  opts: {
+    variant?: CardVariant;
+    script?: ScriptLine[];
+    /**
+     * Epoch ms by which this call must have returned. The caller is answering
+     * an HTTP request with a hard ceiling on it, and the render is the variable
+     * part, so the wait for Instagram's transcode is given whatever is left
+     * rather than a fixed five minutes on top of an unknown.
+     */
+    deadlineAt?: number;
+  } = {}
 ): Promise<{ postId: string; headline: string }> {
   const { instagramAccessToken: accessToken, instagramBusinessAccountId: igUserId } = env;
   if (!accessToken || !igUserId) {
@@ -1091,6 +1127,7 @@ export async function postStatReel(
 
   let videoUuid: string | null = null;
   let coverUuid: string | null = null;
+  const renderStartedAt = Date.now();
   try {
     const [video, cover] = await Promise.all([
       renderStatReel(sanitized, variant, { script: opts.script }),
@@ -1100,6 +1137,11 @@ export async function postStatReel(
         facts: sanitized.facts,
       }),
     ]);
+    console.log(
+      `[instagram] reel rendered in ${((Date.now() - renderStartedAt) / 1000).toFixed(1)}s ` +
+        `(${(video.bytes.length / 1e6).toFixed(2)}MB, ${video.seconds.toFixed(1)}s, ` +
+        `${video.narrated ? "narrated" : "SILENT"})`
+    );
     videoUuid = storeTempImage(video.bytes, "video/mp4");
     coverUuid = storeTempImage(cover);
 
@@ -1113,7 +1155,11 @@ export async function postStatReel(
     // Reels are transcoded server-side, so readiness takes far longer than an
     // image container. Publishing early returns "media not ready" and burns the
     // container.
-    await waitForContainerReady({ containerId, accessToken, timeoutMs: 300_000 });
+    await waitForContainerReady({
+      containerId,
+      accessToken,
+      timeoutMs: containerWaitBudgetMs(opts.deadlineAt),
+    });
     const postId = await publishCarouselConfirmed({
       igUserId,
       accessToken,

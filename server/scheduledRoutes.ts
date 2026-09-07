@@ -1273,16 +1273,37 @@ function registerInstagramRoutes(app: Express): void {
     res.send(entry.buffer);
   });
 
+  // The video Instagram fetches to build the Reel container. Unlike the images,
+  // this one honours Range: video fetchers routinely read the container header
+  // first and then the body, and answering a range request with the whole file
+  // and a 200 is a server that cannot serve what was asked for.
   app.get("/instagram/temp/:uuid.mp4", async (req: Request, res: Response) => {
     const { getTempImage } = await import("./instagram/tempStore");
+    const { parseByteRange } = await import("./instagram/byteRange");
     const entry = getTempImage(routeParam(req.params.uuid));
     if (!entry) {
       res.status(404).json({ error: "Not found or expired" });
       return;
     }
+    const size = entry.buffer.length;
     res.setHeader("Content-Type", entry.contentType);
     res.setHeader("Cache-Control", "no-store");
-    res.send(entry.buffer);
+    res.setHeader("Accept-Ranges", "bytes");
+
+    const range = parseByteRange(req.headers.range, size);
+    if (range === "unsatisfiable") {
+      res.setHeader("Content-Range", `bytes */${size}`);
+      res.status(416).end();
+      return;
+    }
+    if (!range) {
+      res.setHeader("Content-Length", String(size));
+      res.send(entry.buffer);
+      return;
+    }
+    res.setHeader("Content-Range", `bytes ${range.start}-${range.end}/${size}`);
+    res.setHeader("Content-Length", String(range.end - range.start + 1));
+    res.status(206).end(entry.buffer.subarray(range.start, range.end + 1));
   });
 
   // POST /api/ingest/instagram-daily  — posts today's top-3 stories as a carousel
@@ -1611,6 +1632,16 @@ function registerInstagramRoutes(app: Express): void {
   app.post("/api/scheduled/instagram-stat", statHandler);
   app.post("/api/ingest/instagram-stat", statHandler);
 
+  /**
+   * How long the Reel job may take before it must answer.
+   *
+   * Node's fetch — which is what the scheduler calls this with — gives up on a
+   * request whose headers have not arrived in 300 seconds; that figure is
+   * measured, not assumed. Thirty seconds of headroom under it, so the response
+   * is always the job's own verdict rather than a timeout.
+   */
+  const REEL_HTTP_BUDGET_MS = 270_000;
+
   // POST /api/ingest/instagram-reel — the same number, as video.
   //
   // Reels are the only Instagram surface that reliably reaches people who do
@@ -1648,6 +1679,7 @@ function registerInstagramRoutes(app: Express): void {
   };
 
   const reelHandler = async (req: Request, res: Response) => {
+    const startedAt = Date.now();
     if (!(await authenticateScheduled(req))) {
       res.status(401).json({ error: "Unauthorized" });
       return;
@@ -1661,6 +1693,20 @@ function registerInstagramRoutes(app: Express): void {
       .object({ attempt: z.number().int().min(1).optional() })
       .safeParse(req.body ?? {});
     const attempt = parsed.success ? (parsed.data.attempt ?? 1) : 1;
+
+    // Before anything expensive. A missing ffmpeg binary otherwise surfaces as
+    // an ENOENT from execFile ninety seconds into a render, after the
+    // metric has been picked and the card has been written.
+    const { checkReelReadiness } = await import("./video/preflight");
+    const readiness = await checkReelReadiness();
+    if (!readiness.ok) {
+      console.error(`[instagram] reel skipped, cannot render: ${readiness.detail}`);
+      res.status(503).json({ error: "Reel rendering unavailable", detail: readiness.detail });
+      return;
+    }
+    if (!readiness.voice) {
+      console.warn(`[instagram] ${readiness.detail}`);
+    }
 
     try {
       const { pickStatOfTheDay } = await import("./instagram/statPick");
@@ -1719,7 +1765,15 @@ function registerInstagramRoutes(app: Express): void {
           facts: reelFacts,
         },
         siteOrigin(),
-        { variant, script: await reelScript({ ...pick, line }, reelFacts) }
+        {
+          variant,
+          script: await reelScript({ ...pick, line }, reelFacts),
+          // The scheduler drives this over fetch, which Node aborts after 300
+          // seconds. Answer inside that with headroom, so a slow transcode
+          // fails cleanly here rather than as a timeout the caller reads as a
+          // failure on a post that actually went out.
+          deadlineAt: startedAt + REEL_HTTP_BUDGET_MS,
+        }
       );
       console.log(`[instagram] reel complete: ${postId}`);
       await db.recordInstagramPost({

@@ -210,6 +210,9 @@ async function startServer() {
     // Self-healing in-process scheduler (replaces GitHub cron when enabled).
     // Bound to the actual listening port so its loopback self-calls hit us.
     startScheduler({ port });
+    // Say now whether Tuesday's Reel can be made. Both of its dependencies are
+    // invisible until the job runs, and a deploy log is where somebody looks.
+    void import("./video/preflight").then((m) => m.logReelReadiness());
   });
 }
 
