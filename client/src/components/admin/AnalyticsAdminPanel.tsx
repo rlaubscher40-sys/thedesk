@@ -128,6 +128,7 @@ function eventLabel(value: string): string {
     signal_watch: "Signal watched",
     signal_share: "Signal shared",
     story_share: "Story shared",
+    take_share: "Desk Take shared",
     brief_reshare: "Brief re-shared",
   };
   return labels[value] ?? value.replace(/_/g, " ");
