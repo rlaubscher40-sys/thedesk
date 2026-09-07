@@ -1067,6 +1067,9 @@ export async function postStatReel(
      *  claim, and animated across the clip. Omitted, the Reel is the card
      *  without its history — which still posts, just with less behind it. */
     series?: { value: number; at: Date }[];
+    /** Supporting figures, printed under the claim and revealed one at a time.
+     *  This is the density lever; see `buildStatFacts`. */
+    facts?: { figure: string; caption: string }[];
   },
   siteUrl: string,
   opts: { variant?: CardVariant } = {}
@@ -1090,7 +1093,11 @@ export async function postStatReel(
   try {
     const [video, cover] = await Promise.all([
       renderStatReel(sanitized, variant),
-      renderStatCard(sanitized, variant, { shape: "vertical", kicker: "The Number" }),
+      renderStatCard(sanitized, variant, {
+        shape: "vertical",
+        kicker: "The Number",
+        facts: sanitized.facts,
+      }),
     ]);
     videoUuid = storeTempImage(video.bytes, "video/mp4");
     coverUuid = storeTempImage(cover);

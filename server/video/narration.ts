@@ -144,11 +144,15 @@ export type ScriptLine = { key: string; text: string };
 
 /**
  * The closing line. The point of the Reel is not the number; it is that there
- * is another one tomorrow. This is the only sentence in the clip that is not
- * derived from the data, and it makes no claim about it.
+ * is another one. This is the only sentence in the clip that is not derived
+ * from the data, and it makes no claim about it — not even about how often,
+ * because the posting schedule is not a promise anybody has made.
+ *
+ * Short on purpose. Every word is a word of dead air over a frame that has
+ * stopped changing: the first version ran five words longer and held a static
+ * card for nearly six seconds at the end of the clip.
  */
-export const REEL_SIGN_OFF =
-  "The Desk. Australian property, one number at a time. Follow for tomorrow's.";
+export const REEL_SIGN_OFF = "The Desk. Follow for the next number.";
 
 /**
  * The whole script, in order, each passage keyed to the beat it plays over.

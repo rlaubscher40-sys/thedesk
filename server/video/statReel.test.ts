@@ -86,9 +86,10 @@ describe("layout", () => {
       { key: "a", frames: [{ reveal: 0 }], seconds: 2 },
       { key: "b", frames: [{ reveal: 1 }], seconds: 2 },
     ]);
+    const fade = 10 / 30; // SECTION_FADE, in frames because everything is
     expect(starts[0]).toBe(0);
-    expect(starts[1]).toBeCloseTo(2 - 0.34, 5); // the dissolve begins early
-    expect(total).toBeCloseTo(4 - 0.34, 5);
+    expect(starts[1]).toBeCloseTo(2 - fade, 5); // the dissolve begins early
+    expect(total).toBeCloseTo(4 - fade, 5);
   });
 
   it("gives the last frame of a section whatever the fixed frames leave", () => {
@@ -356,5 +357,81 @@ describe("composeSections, with a history line", () => {
     const thin = series.slice(0, 3);
     const sections = composeSections({ ...stat, series: thin }, durations);
     expect(sections.find((s) => s.key === "line")!.frames).toHaveLength(1);
+  });
+});
+
+describe("composeSections, with supporting figures", () => {
+  const durations = { label: 1.2, value: 1.4, line: 3.4, claim: 2.6, signOff: 2.9 };
+  const facts = [
+    { figure: "+410", caption: "Up on the previous reading" },
+    { figure: "8,495 — 13,250", caption: "Range across every reading we hold" },
+    { figure: "10,715", caption: "Typical reading over the period" },
+  ];
+
+  it("brings the figures in one at a time", () => {
+    const section = composeSections({ ...stat, facts }, durations).find((s) => s.key === "facts")!;
+    expect(section.frames.map((f) => f.factsShown)).toEqual([1, 2, 3]);
+  });
+
+  it("holds all of them through the sign-off", () => {
+    const sections = composeSections({ ...stat, facts }, durations);
+    expect(sections[sections.length - 1]!.frames[0]!.factsShown).toBe(facts.length);
+  });
+
+  it("gives each figure the same time on screen", () => {
+    // They are not narrated, so a constant is the only thing pacing them.
+    const { beats } = layout(composeSections({ ...stat, facts }, durations));
+    const factBeats = beats.filter((b) => b.frame.factsShown !== undefined && b.frame.reveal === 1);
+    const held = new Set(factBeats.slice(0, facts.length).map((b) => b.seconds.toFixed(3)));
+    expect(held.size).toBe(1);
+  });
+
+  it("skips the beat entirely when there are no figures to show", () => {
+    const keys = composeSections(stat, durations).map((s) => s.key);
+    expect(keys).not.toContain("facts");
+  });
+
+  it("keeps the clip inside the length a Reel is watched at", () => {
+    const { total } = layout(composeSections({ ...stat, facts }, durations));
+    expect(total).toBeGreaterThan(12);
+    expect(total).toBeLessThan(35);
+  });
+});
+
+describe("the frame grid", () => {
+  // zoompan emits whole frames, so a beat asked for 0.075s becomes 0.0667s.
+  // Offsets computed from the requested figures then sit past where the stream
+  // actually ends, xfade silently emits almost nothing, and a clip that should
+  // run 18.6 seconds comes out at 5.9 with no error from ffmpeg.
+  const frames = (seconds: number) => seconds * 30;
+
+  it("snaps every beat to a whole number of frames", () => {
+    const { beats } = layout([
+      { key: "a", frames: [{ reveal: 0, seconds: 0.075 }, { reveal: 1 }], seconds: 1.31 },
+      { key: "b", frames: [{ reveal: 1 }], seconds: 2.77 },
+    ]);
+    for (const beat of beats) {
+      expect(frames(beat.seconds) % 1).toBeCloseTo(0, 9);
+      expect(frames(beat.fade) % 1).toBeCloseTo(0, 9);
+    }
+  });
+
+  it("reports a total that is what ffmpeg will actually produce", () => {
+    const { beats, total } = layout([
+      { key: "a", frames: [{ reveal: 0, seconds: 0.075 }, { reveal: 1 }], seconds: 1.31 },
+      { key: "b", frames: [{ reveal: 1 }], seconds: 2.77 },
+    ]);
+    const fromFrames =
+      beats.reduce((n, b, i) => n + frames(b.seconds) - (i === 0 ? 0 : frames(b.fade)), 0) / 30;
+    expect(total).toBeCloseTo(fromFrames, 9);
+  });
+
+  it("never lets a dissolve be as long as the beat it arrives into", () => {
+    // xfade rejects a duration that is not shorter than both its inputs.
+    const { beats } = layout([
+      { key: "a", frames: [{ reveal: 0 }], seconds: 1 },
+      { key: "b", frames: [{ reveal: 1, seconds: 0.04 }, { reveal: 1 }], seconds: 1 },
+    ]);
+    for (const beat of beats.slice(1)) expect(beat.fade).toBeLessThan(beat.seconds);
   });
 });

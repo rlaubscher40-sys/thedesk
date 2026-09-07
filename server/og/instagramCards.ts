@@ -17,6 +17,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import satori from "satori";
 import { seriesRange, sparklineDataUri, thin, type SparkPoint } from "./sparkline";
+import type { StatFact } from "../metrics/statFacts";
 import sharp from "sharp";
 import type { DailyFeedItem, Edition } from "../db/schema";
 import type { EditionTopic } from "../../shared/schemas";
@@ -2459,6 +2460,16 @@ export async function renderStatCard(
     valueText?: string;
     /** 0..1, how much of `stat.series` has been drawn. Animated by the Reel. */
     seriesProgress?: number;
+    /**
+     * Supporting figures from `buildStatFacts`, printed under the claim. This
+     * is the density lever: their best-performing Reel puts seven specific
+     * numbers on screen and ours put one. 9:16 only — there is no room on the
+     * grid card and no reason to restyle posts already published.
+     */
+    facts?: StatFact[];
+    /** How many of those have arrived. They appear one at a time, which is
+     *  what makes the middle of the clip move without anything sliding. */
+    factsShown?: number;
   } = {}
 ): Promise<Buffer> {
   const logo = await loadLogo(variant);
@@ -2535,19 +2546,33 @@ export async function renderStatCard(
             points.map((p) => p.value),
             {
               width: width - 128,
-              height: 260,
+              height: 215,
               progress: opts.seriesProgress ?? 1,
               stroke: c.fg,
               accent: c.amber,
             }
           ),
           width: width - 128,
-          height: 260,
-          caption: [seriesRange(points), `${points.length} readings`.toUpperCase()]
-            .filter(Boolean)
-            .join("  ·  "),
+          height: 215,
+          caption: `${points.length} readings`.toUpperCase(),
         }
       : null;
+
+  // The slug: format, source, and how far back the readings go. The shape
+  // Glasshouse puts at the top of every frame of theirs, because it establishes
+  // in one line that there is an archive behind the number. Ours can only claim
+  // it when it is true, so it appears only when a history is actually drawn and
+  // states exactly the range of what is drawn.
+  const slug =
+    vertical && chart
+      ? [opts.kicker ?? "The Number", stat.source, seriesRange(points)]
+          .filter(Boolean)
+          .join("  ·  ")
+          .toUpperCase()
+      : null;
+
+  const facts = vertical ? (opts.facts ?? []) : [];
+  const factsShown = opts.factsShown ?? facts.length;
 
   const tree = {
     type: "div",
@@ -2564,7 +2589,7 @@ export async function renderStatCard(
         // bottom fifth of a Reel. Reserving that as padding — rather than as a
         // heavier spacer — keeps the *whole* card, provenance line included,
         // above the chrome instead of only the headline.
-        paddingBottom: vertical ? "320px" : "64px",
+        paddingBottom: vertical ? "268px" : "64px",
         justifyContent: "flex-start",
       },
       children: [
@@ -2575,22 +2600,52 @@ export async function renderStatCard(
             style: { display: "flex", justifyContent: "space-between", alignItems: "center" },
             children: [
               brandHeader(logo, 56, { accent: c.amber }),
+              // On the 9:16 frame the slug below already names the format, and
+              // printing it twice in two weights reads as a mistake.
+              ...(slug
+                ? []
+                : [
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          fontFamily: "JetBrains Mono",
+                          fontSize: "15px",
+                          letterSpacing: "0.22em",
+                          textTransform: "uppercase",
+                          color: c.amber,
+                        },
+                        children: opts.kicker ?? "The Number",
+                      },
+                    },
+                  ]),
+            ],
+          },
+        },
+
+        ...(slug
+          ? [
               {
                 type: "div",
                 props: {
                   style: {
+                    display: "flex",
                     fontFamily: "JetBrains Mono",
-                    fontSize: "15px",
-                    letterSpacing: "0.22em",
+                    fontSize: "16px",
+                    letterSpacing: "0.2em",
                     textTransform: "uppercase",
-                    color: c.amber,
+                    color: c.fgMuted,
+                    marginTop: "30px",
+                    // The block below it starts here now that the card is full
+                    // enough to have collapsed its spacers, so the separation
+                    // has to be explicit rather than left to the layout.
+                    marginBottom: "30px",
                   },
-                  children: opts.kicker ?? "The Number",
+                  children: slug,
                 },
               },
-            ],
-          },
-        },
+            ]
+          : []),
 
         // Spacers above and below place the stat block.
         //
@@ -2700,6 +2755,85 @@ export async function renderStatCard(
           },
         },
 
+        // The supporting figures, one at a time. A mono figure over a small
+        // caption, with a marker: the pattern their scan uses, and the reason
+        // four numbers read as a reference rather than as a wall.
+        ...(facts.length
+          ? [
+              {
+                type: "div",
+                props: {
+                  style: {
+                    display: "flex",
+                    flexDirection: "column",
+                    marginTop: "42px",
+                    gap: "20px",
+                  },
+                  children: facts.map((fact, i) => ({
+                    type: "div",
+                    props: {
+                      style: {
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: "20px",
+                        opacity: i < factsShown ? 1 : 0,
+                      },
+                      children: [
+                        {
+                          type: "div",
+                          props: {
+                            style: {
+                              display: "flex",
+                              width: "10px",
+                              height: "10px",
+                              borderRadius: "5px",
+                              backgroundColor: c.amber,
+                              marginTop: "18px",
+                            },
+                            children: "",
+                          },
+                        },
+                        {
+                          type: "div",
+                          props: {
+                            style: { display: "flex", flexDirection: "column" },
+                            children: [
+                              {
+                                type: "div",
+                                props: {
+                                  style: {
+                                    fontFamily: "JetBrains Mono",
+                                    fontSize: "42px",
+                                    color: c.fg,
+                                  },
+                                  children: clamp(fact.figure, 26),
+                                },
+                              },
+                              {
+                                type: "div",
+                                props: {
+                                  style: {
+                                    fontFamily: "JetBrains Mono",
+                                    fontSize: "16px",
+                                    letterSpacing: "0.16em",
+                                    textTransform: "uppercase",
+                                    color: c.fgMuted,
+                                    marginTop: "10px",
+                                  },
+                                  children: clamp(fact.caption, 44),
+                                },
+                              },
+                            ],
+                          },
+                        },
+                      ],
+                    },
+                  })),
+                },
+              },
+            ]
+          : []),
+
         // The history, under the claim. It appears with the sentence rather than
         // with the figure: the number is the news, the line is the argument for
         // why it is news, and showing both at once gives the eye nowhere to go.
@@ -2711,7 +2845,8 @@ export async function renderStatCard(
                   style: {
                     display: "flex",
                     flexDirection: "column",
-                    marginTop: "62px",
+                    marginTop: "54px",
+                    marginBottom: "26px",
                     opacity: showLine ? 1 : 0,
                   },
                   children: [

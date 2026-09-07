@@ -1669,6 +1669,11 @@ function registerInstagramRoutes(app: Express): void {
         return;
       }
 
+      const { buildStatFacts } = await import("./metrics/statFacts");
+      const reelSeries = (histories[pick.metricKey] ?? [])
+        .map((h) => ({ value: h.value, at: h.recordedAt }))
+        .sort((a, b) => a.at.getTime() - b.at.getTime());
+
       const line = await generateStatLine(pick);
       const { postId, headline } = await postStatReel(
         {
@@ -1680,9 +1685,8 @@ function registerInstagramRoutes(app: Express): void {
           asOf: pick.asOf,
           // The same history the pick was made from, drawn under the claim.
           // Oldest first: the chart reads left to right.
-          series: (histories[pick.metricKey] ?? [])
-            .map((h) => ({ value: h.value, at: h.recordedAt }))
-            .sort((a, b) => a.at.getTime() - b.at.getTime()),
+          series: reelSeries,
+          facts: buildStatFacts(pick.value, reelSeries, pick.delta, 3),
         },
         siteOrigin(),
         { variant }
@@ -2020,17 +2024,21 @@ function registerInstagramRoutes(app: Express): void {
           return;
         }
         const variant = req.query.variant === "light" ? "light" : "navy";
+        const { buildStatFacts } = await import("./metrics/statFacts");
+        const previewSeries = (histories[pick.metricKey] ?? [])
+          .map((h) => ({ value: h.value, at: h.recordedAt }))
+          .sort((a, b) => a.at.getTime() - b.at.getTime());
         const stat = {
           ...pick,
           line: sanitizeDashes(await generateStatLine(pick)),
-          series: (histories[pick.metricKey] ?? [])
-            .map((h) => ({ value: h.value, at: h.recordedAt }))
-            .sort((a, b) => a.at.getTime() - b.at.getTime()),
+          series: previewSeries,
+          facts: buildStatFacts(pick.value, previewSeries, pick.delta, 3),
         };
         if (kind === "stat") {
           buf = await cards.renderStatCard(stat, variant, {
             shape: req.query.shape === "vertical" ? "vertical" : "feed",
             kicker: "The Number",
+            facts: stat.facts,
           });
         } else {
           const { renderStatReel } = await import("./video/statReel");

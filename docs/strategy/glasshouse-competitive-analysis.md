@@ -196,6 +196,61 @@ claim, captioned with its true range and reading count, and animates it across
 the Reel. A news aggregator cannot print that line, because it is months of
 readings nobody else assembled rather than a figure.
 
+### 3.4b The second Reel, which inverts the conclusion above
+
+A second recording arrived, of a different post. It is the more important of
+the two, and it contradicts the thing I had just spent a day building for.
+
+**The engagement is not close.**
+
+| | Frank Lowy (documentary, voice-over) | Crown Sydney (data scan, no voice) |
+|---|---|---|
+| Likes | 566 | 1,319 |
+| Comments | 19 | 11 |
+| Reposts | 16 | 17 |
+| Shares | 293 | **996** |
+
+Their dense data piece beats their narrated documentary 2.3× on likes and
+3.4× on shares. **Its audio is Nicholas Britell's Succession main title theme.
+There is no voice on it at all.**
+
+So the brief I was working to — "theirs had voice over" — was drawn from their
+weaker format. The voice is not what is working. This does not mean ripping it
+out: it is built, it costs a third of a cent a post, it is a real point of
+difference against an account using a TV theme, and it is one of their two
+formats. But it is not the lever, and the next thing to measure is a narrated
+Reel against a silent one.
+
+**What the winning post actually does.** A green mono status slug
+(`SCANNING · CROWN SYDNEY, ONE BARANGAROO · GLASSHOUSE`). A two-line serif
+headline with its numbers spelled out in words — "Eighty-two homes. One point
+two billion dollars." A live counter in green climbing 28 → 61 → 87 SALES
+FOUND. Four data points arriving one at a time, each a mono figure over a tiny
+uppercase caption with a dot marker: `271.3m` tallest building in Sydney, `75`
+floors, `$2.2B` to build, `146,500m²`. And a wireframe model of the tower
+filling with green dots from the bottom up as the "scan" finds each sale, with
+a slow dolly in at the end.
+
+**The lever is density.** Seven specific numbers about one subject, against the
+one number our Reel had. One number is a claim and people scroll past claims;
+seven is a reference, and a reference gets shared 996 times. The wireframe is
+not what is being shared — the wireframe is how they made a database query
+watchable, and a database query is a thing we also have.
+
+`server/metrics/statFacts.ts` is the response: the move on the previous
+reading, the range across every reading held, the typical reading, and the
+count of readings and how far back they go. All arithmetic on the same series
+the chart draws, none of it written by a model, and each one omitted when the
+readings do not support it — a four-reading series gets no "typical value",
+because that would be a statement about noise.
+
+**What is still not copied, and why.** No status slug in green (green is
+theirs; ours is amber). No live "records scanned" counter — the honest version
+of that is the metric count, and it is a smaller, less interesting number than
+theirs. And no licensed music: a recognisable prestige theme is doing real work
+for them and is the one part of that post that carries a rights question
+somebody should answer before we imitate it.
+
 ### 3.5 Proprietary data versus aggregated news
 
 This is the deepest advantage and the hardest to copy.

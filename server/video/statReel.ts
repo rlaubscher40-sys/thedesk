@@ -57,7 +57,9 @@ import path from "node:path";
 import { promisify } from "node:util";
 import ffmpegPath from "ffmpeg-static";
 import { type CardVariant, renderStatCard } from "../og/instagramCards";
+import { formatLike, parseFigure } from "../og/figureFormat";
 import type { SparkPoint } from "../og/sparkline";
+import type { StatFact } from "../metrics/statFacts";
 import {
   buildScript,
   estimateSpeechSeconds,
@@ -75,6 +77,26 @@ export const REEL_HEIGHT = 1920;
 /** 30fps is plenty for a slow push over static type, and halves the encode
  *  against 60 for no visible difference on this material. */
 const FPS = 30;
+
+/**
+ * Round a duration to whole frames.
+ *
+ * Every beat has to be snapped to the frame grid before any of the timeline
+ * arithmetic runs, and the reason is not tidiness. `zoompan` emits a whole
+ * number of frames, so a beat asked for 0.075s becomes two frames — 0.0667s.
+ * Compute the cross-dissolve offsets from the requested figures and each one
+ * sits slightly past where the stream it is cutting from actually ends. The
+ * error compounds down the chain, and `xfade` given an offset beyond its first
+ * input does not fail: it silently emits almost nothing. A thirty-four beat
+ * clip that should have run 18.6 seconds came out at 5.9, with no warning from
+ * ffmpeg at all.
+ *
+ * So durations are frames from here on, and seconds only where ffmpeg needs a
+ * number.
+ */
+export function snapToFrame(seconds: number): number {
+  return Math.max(1, Math.round(seconds * FPS)) / FPS;
+}
 
 /**
  * The frames are rendered at 1080 wide and then zoomed into, which would
@@ -96,20 +118,23 @@ const ZOOM_END = 1.032;
 
 /** Cross-dissolve between passages, and the much faster one between the ticks
  *  of the count-up, where a dissolve is what stops the digits from strobing. */
-const SECTION_FADE = 0.34;
+/** Ten frames. Written in frames because everything downstream is: a fade the
+ *  grid has to round is a fade whose real length is not the one in the file. */
+const SECTION_FADE = 10 / FPS;
 /**
- * About one frame at 30fps, which is deliberate: this reads as a cut with the
- * hard edge taken off it. At the 0.05 it started at, more than half of each
- * tick was dissolve, and because Playfair's "1" is a third narrower than its
- * other digits the two figures do not sit on top of each other — they smear
- * sideways. A counter that smears looks broken, not fast.
+ * One frame, which is deliberate: this reads as a cut with the hard edge taken
+ * off it. At the 0.05s it started at, more than half of each tick was dissolve,
+ * and because Playfair's "1" is a third narrower than its other digits the two
+ * figures do not sit on top of each other — they smear sideways. A counter that
+ * smears looks broken, not fast.
  */
-const TICK_FADE = 0.034;
+const TICK_FADE = 1 / FPS;
 
 /** Ticks in the count-up. Each one is a full card render, so this is the knob
  *  that trades render time against how smooth the counter looks. */
 const COUNT_TICKS = 12;
-const TICK_SECONDS = 0.075;
+/** Two frames each. */
+const TICK_SECONDS = 2 / FPS;
 
 /** Silence after each passage, so the voice does not run into itself. The last
  *  one is longer because the clip loops, and looping straight out of a word is
@@ -121,7 +146,22 @@ const FINAL_TAIL_SECONDS = 0.85;
  *  short passage never leaves a frame on screen too briefly to read. */
 const MIN_HOLD = 0.55;
 
-export type ReelStat = ReelStatText & { asOf?: Date | null; series?: SparkPoint[] };
+export type ReelStat = ReelStatText & {
+  asOf?: Date | null;
+  series?: SparkPoint[];
+  facts?: StatFact[];
+};
+
+/**
+ * How long each supporting figure holds before the next arrives.
+ *
+ * These are not narrated, deliberately. Their dense Reel — the one with three
+ * times the shares — has no voice on it at all; the numbers arriving one after
+ * another is the pacing. Narrating a list of figures would also mean writing
+ * sentences for the audio, which is the one thing the script is not allowed to
+ * do.
+ */
+const FACT_SECONDS = 1.25;
 
 /** How many stills the history line is drawn across. Eight is the point where
  *  the line stops reading as steps; past it, each extra frame is another second
@@ -133,6 +173,8 @@ export type Frame = {
   valueText?: string;
   /** 0..1, how much of the history line is drawn on this frame. */
   seriesProgress?: number;
+  /** How many supporting figures have arrived on this frame. */
+  factsShown?: number;
   seconds?: number;
 };
 export type Beat = { frame: Frame; seconds: number; fade: number };
@@ -152,29 +194,16 @@ export type Beat = { frame: Frame; seconds: number; fade: number };
  * chose to display it, so no tick can show a shape the card would not.
  */
 export function countUpFrames(value: string, ticks = COUNT_TICKS): string[] {
-  const match = value.match(/-?\d[\d,]*(?:\.\d+)?/);
-  if (!match) return [];
-  const raw = match[0];
-  const prefix = value.slice(0, match.index ?? 0);
-  const suffix = value.slice((match.index ?? 0) + raw.length);
-  const target = Number(raw.replace(/,/g, ""));
-  if (!Number.isFinite(target) || target === 0) return [];
+  const shape = parseFigure(value);
+  if (!shape) return [];
+  const target = shape.value;
+  if (target === 0) return [];
 
-  const decimals = raw.split(".")[1]?.length ?? 0;
-  const grouped = raw.includes(",");
-  const magnitude = Math.abs(target);
-  const digits = Math.floor(Math.abs(magnitude)).toString().length;
+  const digits = Math.floor(Math.abs(target)).toString().length;
   // Smallest number with the same integer width: 4.3 starts at 1.0, 815,439
   // starts at 100,000. Same character count, so nothing reflows.
   const start = Math.sign(target) * Math.pow(10, digits - 1);
-
-  const format = (n: number) => {
-    const fixed = Math.abs(n).toFixed(decimals);
-    const [whole, frac] = fixed.split(".");
-    const body = grouped ? Number(whole).toLocaleString("en-AU") : whole;
-    const sign = n < 0 ? "-" : "";
-    return `${prefix}${sign}${body}${frac ? `.${frac}` : ""}${suffix}`;
-  };
+  const format = (n: number) => formatLike(shape, n);
 
   const out: string[] = [];
   for (let i = 0; i < ticks; i++) {
@@ -231,12 +260,16 @@ export function layout(sections: Section[]): {
     const share = elastic > 0 ? Math.max(MIN_HOLD, section.seconds - fixedTotal) / elastic : 0;
 
     section.frames.forEach((frame, i) => {
+      const fade = beats.length === 0 ? 0 : i === 0 ? SECTION_FADE : TICK_FADE;
+      const seconds = snapToFrame(frame.seconds ?? share);
       beats.push({
         frame,
-        seconds: frame.seconds ?? share,
+        seconds,
         // The first beat of a section dissolves from the previous section; the
-        // frames within it dissolve from each other, much faster.
-        fade: beats.length === 0 ? 0 : i === 0 ? SECTION_FADE : TICK_FADE,
+        // frames within it dissolve from each other, much faster. A dissolve
+        // can never be as long as the beat it is arriving into — xfade rejects
+        // that outright — so a very short beat gets a shorter dissolve.
+        fade: fade === 0 ? 0 : Math.min(snapToFrame(fade), seconds - 1 / FPS),
       });
     });
   }
@@ -428,9 +461,30 @@ export function composeSections(stat: ReelStat, durations: Record<string, number
   if (stat.subtext.trim()) {
     sections.push({ key: "claim", frames: drawFrames(1, 0.55, 1), seconds: withTail("claim") });
   }
+  // The supporting figures, one at a time over the finished chart. This is the
+  // density beat, and the only one paced by a constant rather than by a voice.
+  const facts = stat.facts ?? [];
+  if (facts.length > 0) {
+    sections.push({
+      key: "facts",
+      frames: facts.map((_, i) => ({
+        reveal: 1,
+        seriesProgress: drawing ? 1 : undefined,
+        factsShown: i + 1,
+      })),
+      seconds: facts.length * FACT_SECONDS,
+    });
+  }
+
   sections.push({
     key: "signOff",
-    frames: [{ reveal: 1, seriesProgress: drawing ? 1 : undefined }],
+    frames: [
+      {
+        reveal: 1,
+        seriesProgress: drawing ? 1 : undefined,
+        factsShown: facts.length || undefined,
+      },
+    ],
     seconds: withTail("signOff", true),
   });
   return sections;
@@ -485,7 +539,12 @@ export async function renderStatReel(
     const cache = new Map<string, string>();
     const frameFiles: string[] = [];
     for (const beat of beats) {
-      const key = `${beat.frame.reveal}|${beat.frame.valueText ?? ""}|${beat.frame.seriesProgress ?? ""}`;
+      const key = [
+        beat.frame.reveal,
+        beat.frame.valueText ?? "",
+        beat.frame.seriesProgress ?? "",
+        beat.frame.factsShown ?? "",
+      ].join("|");
       let file = cache.get(key);
       if (!file) {
         const buf = await renderStatCard(stat, variant, {
@@ -493,6 +552,8 @@ export async function renderStatReel(
           reveal: beat.frame.reveal,
           valueText: beat.frame.valueText,
           seriesProgress: beat.frame.seriesProgress,
+          facts: stat.facts,
+          factsShown: beat.frame.factsShown ?? 0,
           kicker: "The Number",
         });
         file = path.join(dir, `frame-${cache.size}.jpg`);
