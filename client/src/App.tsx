@@ -9,8 +9,6 @@ import { AppLayout } from "./components/AppLayout";
 import { BreakingSignalToast } from "./components/BreakingSignalToast";
 import { CommandPalette } from "./components/CommandPalette";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import { OnboardingModal } from "./components/OnboardingModal";
-import { SubscribeModal } from "./components/SubscribeModal";
 import { Skeleton } from "./components/ui/Skeleton";
 import { Toaster } from "./components/ui/Toaster";
 import { trackPageView } from "./lib/analytics";
@@ -192,8 +190,6 @@ export default function App() {
             </AppLayout>
             <CommandPalette />
             <BreakingSignalToast />
-            <OnboardingModal />
-            <SubscribeModal />
           </PersonaProvider>
         </UserPrefsProvider>
       </ThemeProvider>

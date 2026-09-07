@@ -92,12 +92,14 @@ export function trackPageView(): void {
   const id = sessionId();
   if (!id) return;
 
-  const path = analyticsPath(window.location.pathname);
-  if (path === lastPath) return;
-  lastPath = path;
+  // Debounce the actual route in memory, then redact before transmission.
+  // Otherwise Perth → Sydney looks like a duplicate /markets/:market view.
+  const route = window.location.pathname || "/";
+  if (route === lastPath) return;
+  lastPath = route;
 
   send("/api/analytics/pageview", {
-    path,
+    path: analyticsPath(route),
     referrer: document.referrer || "",
     sessionId: id,
   });
