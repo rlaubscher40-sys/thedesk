@@ -5,7 +5,8 @@ import { trpc } from "@/lib/trpc";
 
 export default function SharedBriefPage() {
   const search = useSearch();
-  const token = new URLSearchParams(search).get("t") ?? "";
+  const params = new URLSearchParams(search);
+  const token = params.get("t") ?? params.get("token") ?? "";
   const brief = trpc.ask.shared.useQuery(
     { token },
     { enabled: token.length >= 20, retry: false, staleTime: 30 * 60_000 }
