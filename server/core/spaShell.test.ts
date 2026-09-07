@@ -5,7 +5,18 @@ import { isKnownRoute, isNoindexRoute, withNoindex } from "./spaShell";
 
 describe("isKnownRoute", () => {
   it("accepts the public pages", () => {
-    for (const route of ["/", "/editions", "/archive", "/trends", "/topics", "/about"]) {
+    for (const route of [
+      "/",
+      "/ask",
+      "/brief",
+      "/signals",
+      "/markets",
+      "/editions",
+      "/archive",
+      "/trends",
+      "/topics",
+      "/about",
+    ]) {
       expect(isKnownRoute(route), route).toBe(true);
     }
   });
@@ -52,8 +63,18 @@ describe("isNoindexRoute", () => {
     }
   });
 
-  it("leaves editorial pages indexable", () => {
-    for (const route of ["/", "/editions", "/editions/12", "/story/1", "/about", "/archive"]) {
+  it("leaves product and editorial pages indexable at the shell level", () => {
+    for (const route of [
+      "/",
+      "/ask",
+      "/markets",
+      "/signals",
+      "/editions",
+      "/editions/12",
+      "/story/1",
+      "/about",
+      "/archive",
+    ]) {
       expect(isNoindexRoute(route), route).toBe(false);
     }
   });
