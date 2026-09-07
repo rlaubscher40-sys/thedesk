@@ -16,11 +16,15 @@ export function CityRentRead({
   marketA,
   marketB,
   asOf,
+  standalone = false,
+  onSource,
 }: {
   data?: CityRents;
   marketA: string;
   marketB?: string;
   asOf: string;
+  standalone?: boolean;
+  onSource?: () => void;
 }) {
   if (!rentCity(marketA) && (!marketB || !rentCity(marketB))) return null;
   const a = latestRent(data, marketA),
@@ -80,17 +84,29 @@ export function CityRentRead({
         advertised asking rents, rental yields or vacancy. Faster rent growth alone does not
         establish the stronger investment setup.
       </p>
-      {marketB && (
+      {marketB && !standalone && (
         <p className="text-sm mt-3 text-[var(--color-fg-muted)]">
           This live data panel is separate from the dated intelligence brief and its saved or shared
           snapshot.
         </p>
       )}
       <div className="flex flex-wrap gap-4 mt-4 text-sm">
-        <a href={RENT_SOURCE} target="_blank" rel="noopener noreferrer" className="bs-link">
+        <a
+          href={RENT_SOURCE}
+          onClick={onSource}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bs-link"
+        >
           ABS release & methodology ↗
         </a>
-        <a href={RENT_DATA_URL} target="_blank" rel="noopener noreferrer" className="bs-link">
+        <a
+          href={RENT_DATA_URL}
+          onClick={onSource}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bs-link"
+        >
           Source observations (CSV) ↗
         </a>
       </div>

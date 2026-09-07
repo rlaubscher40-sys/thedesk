@@ -60,3 +60,24 @@ describe("markets.compare", () => {
     });
   });
 });
+
+it("does not charge a question when a market has no eligible local evidence", async () => {
+  vi.mocked(retrieveMarketEvidence).mockResolvedValue([]);
+  const caller = marketsRouter.createCaller(ctx);
+  for (let i = 0; i < 4; i++) {
+    const result = await caller.compare(input);
+    expect(result.status).toBe("insufficient");
+    expect(result.anonymousRemaining).toBe(3);
+  }
+  expect(invokeLLMJson).not.toHaveBeenCalled();
+});
+
+it("allows only three model calls when comparison preflights run concurrently", async () => {
+  const caller = marketsRouter.createCaller(ctx);
+  const results = await Promise.allSettled(Array.from({ length: 4 }, () => caller.compare(input)));
+  expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(3);
+  expect(results.find((result) => result.status === "rejected")).toMatchObject({
+    reason: { code: "TOO_MANY_REQUESTS" },
+  });
+  expect(invokeLLMJson).toHaveBeenCalledTimes(3);
+});

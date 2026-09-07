@@ -28,6 +28,10 @@ const AskDesk = lazyWithReload(() => import("./pages/AskDesk"), "AskDesk");
 const SharedBrief = lazyWithReload(() => import("./pages/SharedBrief"), "SharedBrief");
 const Signals = lazyWithReload(() => import("./pages/Signals"), "Signals");
 const Markets = lazyWithReload(() => import("./pages/Markets"), "Markets");
+const PublicComparison = lazyWithReload(
+  () => import("./pages/PublicComparison"),
+  "PublicComparison"
+);
 const PublicMarket = lazyWithReload(() => import("./pages/PublicMarket"), "PublicMarket");
 const Editions = lazyWithReload(() => import("./pages/Editions"), "Editions");
 const ReadingQueue = lazyWithReload(() => import("./pages/ReadingQueue"), "ReadingQueue");
@@ -131,6 +135,7 @@ function Routes() {
         <Route path="/brief" component={SharedBrief} />
         <Route path="/signals" component={Signals} />
         <Route path="/markets" component={Markets} />
+        <Route path="/markets/compare/brisbane-vs-perth" component={PublicComparison} />
         <Route path="/markets/:slug" component={PublicMarket} />
         <Route path="/editions" component={Editions} />
         <Route path="/editions/:editionNumber" component={Editions} />

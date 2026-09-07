@@ -1,3 +1,5 @@
+import { PUBLIC_COMPARISON_PATH } from "../../shared/PublicComparisonRead";
+import { latestRent, rentGap } from "../../shared/cityRents";
 import type { Express, NextFunction, Request, Response } from "express";
 import fs from "node:fs";
 import path from "node:path";
@@ -128,6 +130,14 @@ export function registerProductSeoRoutes(app: Express): void {
     });
     try {
       const directory = await getMarketDirectory();
+      const rents = directory.markets.find((file) => file.rents)?.rents;
+      if (
+        !directory.demo &&
+        rentGap(latestRent(rents, "Brisbane"), latestRent(rents, "Perth"), today) !== null
+      )
+        urls.push(
+          `<url><loc>${htmlEscape(base)}${PUBLIC_COMPARISON_PATH}</loc><changefreq>monthly</changefreq></url>`
+        );
       for (const file of directory.markets) {
         if (file.indexable && file.latestMention)
           urls.push(

@@ -71,6 +71,18 @@ export function MarketComparison({
   const result = compare.data;
   return (
     <section className="mt-8">
+      {[marketA.trim().toLowerCase(), marketB.trim().toLowerCase()].sort().join("|") ===
+        "brisbane|perth" && (
+        <a
+          href="/markets/compare/brisbane-vs-perth"
+          className="block rule-hair rule-hair-b py-5 mb-6 bs-link"
+        >
+          <span className="bs-label-accent">Read & share for free</span>
+          <span className="block font-serif text-2xl mt-2">
+            Brisbane vs Perth: start with the official rental evidence →
+          </span>
+        </a>
+      )}
       <h2 className="bs-label-accent">Market vs market</h2>
       <p className="font-serif text-2xl mt-3">
         Where is the setup stronger, and what could change the call?

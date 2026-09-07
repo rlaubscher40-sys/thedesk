@@ -1,3 +1,4 @@
+import { hasHousingEvidence } from "../../shared/housingEvidence";
 import type { ComparisonSource, MarketSide } from "../../shared/marketComparison";
 import * as db from "../db";
 
@@ -16,9 +17,28 @@ export function mentionsMarket(text: string, market: string): boolean {
 export function marketPassage(text: string, market: string): string | null {
   const clean = normaliseText(text);
   if (!mentionsMarket(clean, market)) return null;
-  const index = clean.toLowerCase().indexOf(market.toLowerCase());
-  const start = Math.max(0, index - 350);
-  return clean.slice(start, index + market.length + 1500);
+  // Check every local sentence: sport in an edition's opening must not hide
+  // housing later, or borrow housing context from a different city's paragraph.
+  const sentences = clean.split(/(?<=[.!?])\s+/);
+  const local = sentences.filter(
+    (sentence) => mentionsMarket(sentence, market) && hasHousingEvidence(sentence)
+  );
+  return local.length ? local.join(" ").slice(0, 2000) : null;
+}
+
+function sourceIdentity(sourceUrl: string | null, fallback: string): string {
+  try {
+    const url = new URL(sourceUrl ?? "");
+    if (!["http:", "https:"].includes(url.protocol) || url.username || url.password)
+      return fallback;
+    url.hash = "";
+    for (const key of [...url.searchParams.keys()]) {
+      if (/^(utm_|fbclid$|gclid$)/i.test(key)) url.searchParams.delete(key);
+    }
+    return url.toString();
+  } catch {
+    return fallback;
+  }
 }
 
 export async function retrieveMarketEvidence(
@@ -26,7 +46,10 @@ export async function retrieveMarketEvidence(
   marketB: string
 ): Promise<MarketEvidence[]> {
   // Exact full-name queries keep "Port Macquarie" separate from national Macquarie lending.
-  const bundles = await Promise.all([db.searchAllContent(marketA), db.searchAllContent(marketB)]);
+  const bundles = await Promise.all([
+    db.searchAllContent(marketA, { housingOnly: true }),
+    db.searchAllContent(marketB, { housingOnly: true }),
+  ]);
   const evidence = new Map<string, MarketEvidence>();
   for (const [index, bundle] of bundles.entries()) {
     const side: MarketSide = index === 0 ? "a" : "b";
@@ -34,11 +57,11 @@ export async function retrieveMarketEvidence(
     const candidates = [
       ...bundle.feedItems.map((item) => ({
         title: item.title,
-        text: `${item.title}\n${item.summary ?? ""}`,
+        text: `${item.title}. ${item.summary ?? ""}`,
         date: item.feedDate,
         publisher: item.source ?? null,
         href: `/story/${item.id}`,
-        identity: item.sourceUrl || `/story/${item.id}`,
+        identity: sourceIdentity(item.sourceUrl, `/story/${item.id}`),
       })),
       ...bundle.editions.map((item) => ({
         title: `Edition ${item.editionNumber}: ${item.weekRange}`,

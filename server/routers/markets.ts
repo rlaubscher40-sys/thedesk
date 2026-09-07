@@ -4,7 +4,7 @@ import { publicMarket } from "../../shared/marketDirectory";
 import { getMarketDirectory } from "../markets/discovery";
 import { getCityRents } from "../markets/absRents";
 import { comparisonInputSchema } from "../../shared/marketComparison";
-import { consumeAnonymousAsk } from "../core/askQuota";
+import { checkAnonymousAsk, consumeAnonymousAsk } from "../core/askQuota";
 import {
   createIntelligenceShareToken,
   readIntelligenceShareToken,
@@ -29,8 +29,8 @@ export const marketsRouter = router({
       };
     }),
   compare: publicProcedure.input(comparisonInputSchema).mutation(async ({ input, ctx }) => {
-    // Share Ask's allowance, consumed before retrieval/model work to bound anonymous cost.
-    const quota = ctx.user ? null : consumeAnonymousAsk(ctx.req);
+    // Reject exhausted readers before retrieval; charge only when both files have evidence.
+    const quota = ctx.user ? null : checkAnonymousAsk(ctx.req);
     if (quota && !quota.allowed)
       throw new TRPCError({
         code: "TOO_MANY_REQUESTS",
@@ -49,6 +49,15 @@ export const marketsRouter = router({
       anonymousRemaining: quota?.remaining ?? null,
     };
     if (!insufficient.coverage.a || !insufficient.coverage.b) return insufficient;
+    // Recheck atomically after the asynchronous read so concurrent requests cannot
+    // all spend the same remaining question. No model cost before this point.
+    const charged = ctx.user ? null : consumeAnonymousAsk(ctx.req);
+    if (charged && !charged.allowed)
+      throw new TRPCError({
+        code: "TOO_MANY_REQUESTS",
+        message: "You've used today's free intelligence questions. Sign in to keep comparing.",
+      });
+    insufficient.anonymousRemaining = charged?.remaining ?? null;
     try {
       const raw = await invokeLLMJson<unknown>({
         messages: buildComparisonMessages(
@@ -81,7 +90,7 @@ export const marketsRouter = router({
         status: "compared" as const,
         comparison,
         shareToken,
-        anonymousRemaining: quota?.remaining ?? null,
+        anonymousRemaining: charged?.remaining ?? null,
       };
     } catch (error) {
       // Do not log user-entered markets, prompts or generated intelligence.

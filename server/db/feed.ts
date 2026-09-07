@@ -1,3 +1,4 @@
+import { hasHousingEvidence, HOUSING_PATTERN } from "../../shared/housingEvidence";
 import { and, desc, eq, gte, isNotNull, like, or, sql } from "drizzle-orm";
 import * as demoQueries from "../demo/queries";
 import { isDemoMode } from "../demo/store";
@@ -281,6 +282,7 @@ export async function listMarketDiscoveryItems(startDate: string, endDate: strin
           item.category.toUpperCase()
         )
       )
+      .filter((item) => hasHousingEvidence(`${item.title} ${item.summary ?? ""}`))
       .sort((a, b) => b.feedDate.localeCompare(a.feedDate) || b.id - a.id)
       .slice(0, limit);
   }
@@ -299,7 +301,7 @@ export async function listMarketDiscoveryItems(startDate: string, endDate: strin
     })
     .from(dailyFeedItems)
     .where(
-      sql`${dailyFeedItems.feedDate} >= ${startDate} AND ${dailyFeedItems.feedDate} <= ${endDate} AND (${dailyFeedItems.channel} IN ('AU', 'PROPERTY') OR ${dailyFeedItems.channel} IS NULL) AND ${dailyFeedItems.category} IN ('PROPERTY', 'MACRO', 'MARKETS', 'POLICY', 'ECONOMICS')`
+      sql`${dailyFeedItems.feedDate} >= ${startDate} AND ${dailyFeedItems.feedDate} <= ${endDate} AND (${dailyFeedItems.channel} IN ('AU', 'PROPERTY') OR ${dailyFeedItems.channel} IS NULL) AND ${dailyFeedItems.category} IN ('PROPERTY', 'MACRO', 'MARKETS', 'POLICY', 'ECONOMICS') AND LOWER(CONCAT(${dailyFeedItems.title}, ' ', COALESCE(${dailyFeedItems.summary}, ''))) REGEXP ${HOUSING_PATTERN}`
     )
     .orderBy(desc(dailyFeedItems.feedDate), desc(dailyFeedItems.id))
     .limit(limit);
@@ -408,8 +410,17 @@ export async function getCategoryHeat(days: number) {
     .sort((a, b) => b.total - a.total);
 }
 
-export async function searchAllContent(query: string) {
-  if (isDemoMode()) return demoQueries.searchAllContent(query);
+export async function searchAllContent(query: string, options: { housingOnly?: boolean } = {}) {
+  if (isDemoMode()) {
+    const result = demoQueries.searchAllContent(query);
+    if (!options.housingOnly) return result;
+    return {
+      editions: result.editions.filter((item) => hasHousingEvidence(item.fullText ?? "")),
+      feedItems: result.feedItems.filter((item) =>
+        hasHousingEvidence(`${item.title} ${item.summary ?? ""}`)
+      ),
+    };
+  }
   const db = getDb();
   if (!db) return { editions: [], feedItems: [] };
   const pattern = `%${escapeLike(query)}%`;
@@ -421,7 +432,15 @@ export async function searchAllContent(query: string) {
   const feedResults = await db
     .select()
     .from(dailyFeedItems)
-    .where(or(like(dailyFeedItems.title, pattern), like(dailyFeedItems.summary, pattern)))
+    .where(
+      and(
+        or(like(dailyFeedItems.title, pattern), like(dailyFeedItems.summary, pattern)),
+        // Filter before LIMIT: a busy sports day must not hide older housing reports.
+        options.housingOnly
+          ? sql`LOWER(CONCAT(${dailyFeedItems.title}, ' ', COALESCE(${dailyFeedItems.summary}, ''))) REGEXP ${HOUSING_PATTERN}`
+          : undefined
+      )
+    )
     .orderBy(desc(dailyFeedItems.createdAt))
     .limit(50);
   // Re-rank by relevance (title hits above body-only hits, recency as the

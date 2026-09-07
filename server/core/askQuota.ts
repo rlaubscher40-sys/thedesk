@@ -52,6 +52,18 @@ function consume(req: Request, namespace: string, limit: number): QuotaResult {
   return { allowed: true, remaining: Math.max(0, limit - next), limit };
 }
 
+/** Read the allowance without charging for an evidence preflight. */
+export function checkAnonymousAsk(req: Request): QuotaResult {
+  const day = utcDay();
+  const bucket = buckets.get(anonymousKey(req, "ask", day));
+  const count = bucket?.day === day ? bucket.count : 0;
+  return {
+    allowed: count < ANONYMOUS_ASK_LIMIT,
+    remaining: Math.max(0, ANONYMOUS_ASK_LIMIT - count),
+    limit: ANONYMOUS_ASK_LIMIT,
+  };
+}
+
 export function consumeAnonymousAsk(req: Request): QuotaResult {
   return consume(req, "ask", ANONYMOUS_ASK_LIMIT);
 }
