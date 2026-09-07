@@ -316,19 +316,41 @@ export const askRouter = router({
       }
 
       const selected = new Set(selectedRefs);
+      const selectedSources = sourceMeta.filter((source) => selected.has(source.ref));
+      // Mint the public-share token here, after retrieval + source validation.
+      // The later image-render endpoint accepts this token rather than browser
+      // supplied prose, so nobody can ask our server to sign an arbitrary claim
+      // as a Desk intelligence brief.
+      const shareToken = createIntelligenceShareToken({
+        question: input.question,
+        headline: parsed.headline,
+        answer: parsed.answer,
+        deskTake: parsed.deskTake,
+        confidence: parsed.confidence,
+        sourceCount: selectedSources.length,
+        sources: selectedSources.map((source) => ({
+          title: source.title,
+          date: source.date,
+          publisher: source.publisher,
+          href: source.href,
+        })),
+        signal: parsed.signals[0] ?? null,
+      });
+
       return {
         status: "answered" as const,
         question: input.question,
         answer: { ...parsed, sourceRefs: selectedRefs },
-        sources: sourceMeta.filter((source) => selected.has(source.ref)),
+        sources: selectedSources,
         searchedRecords: evidence.length,
         anonymousRemaining,
+        shareToken,
       };
     }),
 
-  /** Public read endpoint for a signed, expiring intelligence share URL. */
+  /** Public read endpoint for a server-issued, signed intelligence snapshot. */
   shared: publicProcedure
-    .input(z.object({ token: z.string().min(20).max(12_000) }))
+    .input(z.object({ token: z.string().min(20).max(16_000) }))
     .query(({ input }) => {
       const brief = readIntelligenceShareToken(input.token);
       if (!brief) {
@@ -341,53 +363,37 @@ export const askRouter = router({
     }),
 
   /**
-   * Turn an already-grounded Ask answer into a native 4:5 distribution asset.
-   * Anonymous rendering has its own CPU quota; signed-in readers are unlimited.
-   * The same payload is signed into a 30-day public brief URL so the social
-   * asset has somewhere useful to send the next reader.
+   * Render a native 4:5 distribution asset from a server-issued Ask token.
+   * Crucially, no answer/headline/source fields are accepted from the browser:
+   * the signed token freezes the already-grounded answer and evidence list.
    */
   shareCard: publicProcedure
-    .input(
-      z.object({
-        question: z.string().trim().min(3).max(240),
-        headline: z.string().trim().min(1).max(220),
-        answer: z.string().trim().min(1).max(1200),
-        deskTake: z.string().trim().min(1).max(900),
-        confidence: z.enum(["high", "medium", "low"]),
-        sourceCount: z.number().int().min(1).max(20),
-        signal: signalSchema.nullable().optional(),
-      })
-    )
+    .input(z.object({ token: z.string().min(20).max(16_000) }))
     .mutation(async ({ input, ctx }) => {
       enforceAnonymousQuota(Boolean(ctx.user), () => consumeAnonymousCard(ctx.req));
+      const brief = readIntelligenceShareToken(input.token);
+      if (!brief) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "This intelligence share is invalid or has expired.",
+        });
+      }
+
       try {
-        const [png, token] = await Promise.all([
-          renderIntelligenceCard({
-            question: input.question,
-            headline: input.headline,
-            answer: input.answer,
-            deskTake: input.deskTake,
-            confidence: input.confidence,
-            sourceCount: input.sourceCount,
-            signal: input.signal ?? null,
-          }),
-          Promise.resolve(
-            createIntelligenceShareToken({
-              question: input.question,
-              headline: input.headline,
-              answer: input.answer,
-              deskTake: input.deskTake,
-              confidence: input.confidence,
-              sourceCount: input.sourceCount,
-              signal: input.signal ?? null,
-            })
-          ),
-        ]);
+        const png = await renderIntelligenceCard({
+          question: brief.question,
+          headline: brief.headline,
+          answer: brief.answer,
+          deskTake: brief.deskTake,
+          confidence: brief.confidence,
+          sourceCount: brief.sourceCount,
+          signal: brief.signal,
+        });
         return {
           mimeType: "image/png" as const,
           filename: "the-desk-intelligence.png",
           base64: png.toString("base64"),
-          sharePath: `/brief?t=${encodeURIComponent(token)}`,
+          sharePath: `/brief?t=${encodeURIComponent(input.token)}`,
         };
       } catch (error) {
         console.error("[ask] intelligence card render failed", error);
