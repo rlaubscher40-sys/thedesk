@@ -28,10 +28,23 @@ export const comparisonInputSchema = z
     path: ["marketB"],
   });
 
+export const comparisonBasisSchema = z
+  .object({
+    measure: z.string().trim().min(1).max(100).nullable(),
+    period: z.string().trim().min(1).max(100).nullable(),
+    segment: z.string().trim().min(1).max(80).nullable(),
+    geography: z.string().trim().min(1).max(80).nullable(),
+    unit: z.string().trim().min(1).max(40).nullable(),
+  })
+  .strict();
+
 const observationSchema = z
   .object({
     sourceRef: z.number().int().positive().max(8),
     quote: z.string().min(12).max(360),
+    // Optional only so existing signed snapshots remain readable. New answers
+    // explicitly record a basis, using null for each unsupported criterion.
+    basis: comparisonBasisSchema.nullable().optional(),
   })
   .strict();
 export const comparisonRowSchema = z

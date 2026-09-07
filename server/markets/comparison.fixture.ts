@@ -12,7 +12,7 @@ export const comparisonEvidence: MarketEvidence[] = [
     publisher: "Fixture publisher A",
     href: "/story/101",
     markets: ["a"],
-    text: "Brisbane house rents rose 4% over the year to August. Brisbane housing supply remains constrained.",
+    text: "Brisbane city house rents rose 4% over the year to August 2026. Brisbane housing supply remains constrained.",
   },
   {
     ref: 2,
@@ -21,7 +21,7 @@ export const comparisonEvidence: MarketEvidence[] = [
     publisher: "Fixture publisher B",
     href: "/story/102",
     markets: ["b"],
-    text: "Perth house rents rose 3% over the year to August. Perth housing supply remains constrained.",
+    text: "Perth city house rents rose 3% over the year to August 2026. Perth housing supply remains constrained.",
   },
 ];
 export const comparisonAnswer: z.infer<typeof comparisonAnswerSchema> = {
@@ -34,8 +34,28 @@ export const comparisonAnswer: z.infer<typeof comparisonAnswerSchema> = {
   rows: [
     {
       dimension: "rents",
-      marketA: { sourceRef: 1, quote: "Brisbane house rents rose 4% over the year to August." },
-      marketB: { sourceRef: 2, quote: "Perth house rents rose 3% over the year to August." },
+      marketA: {
+        sourceRef: 1,
+        quote: "Brisbane city house rents rose 4% over the year to August 2026.",
+        basis: {
+          measure: "rents",
+          period: "year to August 2026",
+          segment: "house",
+          geography: "city",
+          unit: "%",
+        },
+      },
+      marketB: {
+        sourceRef: 2,
+        quote: "Perth city house rents rose 3% over the year to August 2026.",
+        basis: {
+          measure: "rents",
+          period: "year to August 2026",
+          segment: "house",
+          geography: "city",
+          unit: "%",
+        },
+      },
       read: "Brisbane has the firmer recorded rental growth in this comparable period.",
       edge: "a",
     },
