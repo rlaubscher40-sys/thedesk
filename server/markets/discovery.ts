@@ -1,3 +1,4 @@
+import { hasHousingEvidence } from "../../shared/housingEvidence";
 import {
   PUBLIC_MARKETS,
   type MarketDirectory,
@@ -6,7 +7,7 @@ import {
 import { cached } from "../core/cache";
 import * as db from "../db";
 import { isDemoMode } from "../demo/store";
-import { mentionsMarket, normaliseText } from "./evidence";
+import { marketPassage, normaliseText } from "./evidence";
 import { getCityRents } from "./absRents";
 
 export const MARKET_SAMPLE_LIMIT = 1000;
@@ -62,6 +63,7 @@ export function buildMarketDirectory(
         ["PROPERTY", "MACRO", "MARKETS", "POLICY", "ECONOMICS"].includes(
           item.category.toUpperCase()
         ) &&
+        hasHousingEvidence(`${item.title} ${item.summary ?? ""}`) &&
         validDate(item.feedDate) &&
         item.feedDate >= since &&
         item.feedDate <= asOf
@@ -71,13 +73,15 @@ export function buildMarketDirectory(
   const markets = PUBLIC_MARKETS.map((market): PublicMarketFile => {
     const publishers = new Set<string>();
     const candidates = sample.flatMap((item) => {
-      if (!mentionsMarket(`${item.title} ${item.summary ?? ""}`, market.name)) return [];
+      const passage =
+        marketPassage(item.summary ?? "", market.name) ?? marketPassage(item.title, market.name);
+      if (!passage) return [];
       const sourceUrl = safeSource(item.sourceUrl);
       return [
         {
           id: item.id,
           title: item.title,
-          excerpt: excerpt(item.summary || item.title, market.name),
+          excerpt: excerpt(passage, market.name),
           date: item.feedDate,
           publisher: item.source?.trim() || null,
           sourceUrl,

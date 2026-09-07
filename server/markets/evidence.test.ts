@@ -26,8 +26,8 @@ describe("balanced local market retrieval", () => {
           : [feed(3, "Perth rents firm", "https://source.test/perth")],
     }));
     const sources = await retrieveMarketEvidence("Brisbane", "Perth");
-    expect(searchAllContent).toHaveBeenCalledWith("Brisbane");
-    expect(searchAllContent).toHaveBeenCalledWith("Perth");
+    expect(searchAllContent).toHaveBeenCalledWith("Brisbane", { housingOnly: true });
+    expect(searchAllContent).toHaveBeenCalledWith("Perth", { housingOnly: true });
     expect(sources).toHaveLength(2);
     expect(sources.map((source) => source.markets)).toEqual([["a"], ["b"]]);
   });
@@ -55,5 +55,36 @@ describe("balanced local market retrieval", () => {
     expect(sources[0]?.markets).toEqual(["a", "b"]);
     expect(sources[0]?.text).toContain("Brisbane house rents rise.");
     expect(sources[0]?.text).toContain("Perth housing supply tightens.");
+  });
+});
+
+describe("housing evidence regressions", () => {
+  it("does not let newer football, weather or crime mentions use the four-source budget", async () => {
+    vi.mocked(searchAllContent).mockImplementation(async (city) => ({
+      editions: [],
+      feedItems: [
+        ...Array.from({ length: 55 }, (_, i) =>
+          feed(
+            i + 10,
+            `${city} ${["football team wins at home", "weather forecast brings rain", "police investigate property crime"][i % 3]}`,
+            `https://news.test/${city}/${i}`
+          )
+        ),
+        feed(1, `${city} rents rise as housing supply tightens`, `https://housing.test/${city}`),
+      ],
+    }));
+    const sources = await retrieveMarketEvidence("Brisbane", "Perth");
+    expect(sources).toHaveLength(2);
+    expect(sources.every((source) => source.title.includes("rents rise"))).toBe(true);
+  });
+  it("finds later local housing coverage without borrowing another city's evidence", async () => {
+    const { marketPassage } = await import("./evidence");
+    expect(marketPassage("Perth won at home. Sydney rents rose 5%.", "Perth")).toBeNull();
+    expect(
+      marketPassage(
+        "Perth won at home. Sydney rents rose 5%. Perth housing completions fell.",
+        "Perth"
+      )
+    ).toBe("Perth housing completions fell.");
   });
 });

@@ -29,6 +29,12 @@ export function MarketDiscovery({ compact = false }: { compact?: boolean }) {
   if (compact && !shown.length) return null;
   return (
     <section className="mt-8 rule-major pt-5" aria-label="Discover market intelligence">
+      <a href="/markets/compare/brisbane-vs-perth" className="block rule-hair-b pb-5 mb-5 bs-link">
+        <span className="bs-label-accent">Free comparison · Brisbane vs Perth</span>
+        <span className="block font-serif text-2xl mt-2">
+          What the rent evidence says—and what is still missing →
+        </span>
+      </a>
       <p className="bs-label-accent">Start with a place</p>
       <div className="flex flex-wrap items-end justify-between gap-3 mt-3">
         <h2 className="font-serif text-3xl sm:text-4xl">Markets in the reporting.</h2>

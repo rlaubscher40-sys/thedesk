@@ -4,6 +4,9 @@ import { analyticsPath } from "./analyticsPath";
 describe("content-free market analytics", () => {
   it("redacts public place paths and drops query/fragment content", () => {
     expect(analyticsPath("/markets/perth?q=private#value")).toBe("/markets/:market");
+    expect(analyticsPath("/markets/compare/brisbane-vs-perth?campaign=test")).toBe(
+      "/markets/compare/:pair"
+    );
     expect(analyticsPath("/markets/sydney")).toBe("/markets/:market");
     expect(analyticsPath("/markets?q=secret&vs=private")).toBe("/markets");
     expect(analyticsPath("/ask?q=private")).toBe("/ask");

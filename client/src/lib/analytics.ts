@@ -25,6 +25,8 @@ export type EngagementEvent =
   | "market_file_export"
   | "market_compare"
   | "market_compare_share"
+  | "public_comparison_share"
+  | "public_comparison_source"
   | "comparison_watch"
   | "comparison_refresh"
   | "comparison_baseline_reset"

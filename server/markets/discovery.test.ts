@@ -140,3 +140,16 @@ describe("public market discovery", () => {
     expect(vi.mocked(listMarketDiscoveryItems).mock.calls[0]?.[2]).toBe(MARKET_SAMPLE_LIMIT + 1);
   });
 });
+
+it("filters miscategorised general news before the discovery sample cap", () => {
+  const noise = Array.from({ length: MARKET_SAMPLE_LIMIT + 1 }, (_, i) =>
+    item(i + 100, {
+      title: "Perth football team wins at home",
+      summary: "Perth fans celebrate the game.",
+      category: "PROPERTY",
+    })
+  );
+  const file = perth([...noise, item(1)]);
+  expect(file.referenceCount).toBe(1);
+  expect(file.references[0]?.id).toBe(1);
+});

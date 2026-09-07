@@ -1,3 +1,11 @@
+import {
+  PublicComparisonRead,
+  PUBLIC_COMPARISON_PATH,
+  PUBLIC_COMPARISON_TITLE,
+  comparisonRentSummary,
+} from "../../shared/PublicComparisonRead";
+import { getCityRents } from "../markets/absRents";
+import { rentGap, type CityRents } from "../../shared/cityRents";
 import type { Express } from "express";
 import fs from "node:fs";
 import path from "node:path";
@@ -106,8 +114,121 @@ export function marketShell(
   return file.indexable ? html : withNoindex(html);
 }
 
+export const PUBLIC_COMPARISON_IMAGE = "/og/markets/compare/brisbane-vs-perth.png";
+export function publicComparisonCard(data: CityRents, asOf: string): DeskTakeCardInput | null {
+  const a = latestRent(data, "Brisbane"),
+    b = latestRent(data, "Perth");
+  const gap = rentGap(a, b, asOf);
+  if (gap === null || !a || !b) return null;
+  const qualifiers = [a, b]
+    .filter((row) => row.status)
+    .map((row) => `${row.city}: ${row.status === "p" ? "preliminary" : "revised"}.`)
+    .join(" ");
+  return {
+    format: "market",
+    category: "Brisbane vs Perth",
+    take:
+      gap === 0
+        ? "Same rent growth. An open investment question."
+        : `${gap > 0 ? "Brisbane" : "Perth"} rents grew faster. That is only part of the case.`,
+    figure: `${Math.abs(gap).toFixed(1)}pp`,
+    storyTitle: `Annual rent growth: Brisbane ${a.annualPercent.toFixed(1)}% · Perth ${b.annualPercent.toFixed(1)}%`,
+    context: `Year to ${rentPeriod(a.period)}. ${qualifiers} ABS CPI rents actually paid, original. Not asking rents, yields or an investment ranking. Read the evidence gaps at thedesk.au${PUBLIC_COMPARISON_PATH}.`,
+    source: "Australian Bureau of Statistics",
+    feedDate: a.period,
+  };
+}
+
+export function publicComparisonShell(
+  shell: string,
+  data: CityRents,
+  asOf: string,
+  base: string
+): string {
+  const canonical = `${base}${PUBLIC_COMPARISON_PATH}`;
+  const description = comparisonRentSummary(data, asOf);
+  const content = renderToStaticMarkup(createElement(PublicComparisonRead, { data, asOf }));
+  let html = injectMeta(shell, {
+    title: PUBLIC_COMPARISON_TITLE,
+    description,
+    ogTitle: "Brisbane vs Perth | The Desk",
+    ogDescription: description,
+    canonical,
+    ogImage: `${base}${publicComparisonCard(data, asOf) ? PUBLIC_COMPARISON_IMAGE : "/og-card.png"}`,
+    jsonLd: {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      name: PUBLIC_COMPARISON_TITLE,
+      url: canonical,
+      description,
+    },
+  }).replace(
+    '<div id="root"></div>',
+    `<div id="root"><main class="max-w-6xl mx-auto px-5 py-8">${content}</main></div>`
+  );
+  html = html.replace(
+    '<meta property="og:type" content="article"',
+    '<meta property="og:type" content="website"'
+  );
+  if (publicComparisonCard(data, asOf)) {
+    for (const [property, value] of [
+      ["og:image:width", "1080"],
+      ["og:image:height", "1350"],
+    ]) {
+      html = html
+        .replace(new RegExp(`<meta\\s+property="${property}"[^>]*>`, "i"), "")
+        .replace("</head>", `<meta property="${property}" content="${value}" /></head>`);
+    }
+  }
+  return rentGap(latestRent(data, "Brisbane"), latestRent(data, "Perth"), asOf) === null
+    ? withNoindex(html)
+    : html;
+}
+
 /** Same content for humans and crawlers. No model calls on public page/image reads. */
 export function registerMarketSeoRoutes(app: Express): void {
+  app.get(PUBLIC_COMPARISON_IMAGE, async (_req, res) => {
+    try {
+      const data = await getCityRents();
+      const asOf = new Date().toISOString().slice(0, 10);
+      const input = publicComparisonCard(data, asOf);
+      if (!input) {
+        res.set("Cache-Control", "no-store").status(404).end();
+        return;
+      }
+      const png = await cached(`public-comparison-card:${JSON.stringify(input)}`, 60_000, () =>
+        renderDeskTakeCard(input)
+      );
+      res.set("Cache-Control", "public, max-age=60").type("png").send(png);
+    } catch {
+      res.set("Cache-Control", "no-store").status(503).end();
+    }
+  });
+  app.get(PUBLIC_COMPARISON_PATH, async (req, res, next) => {
+    const accept = req.headers.accept ?? "*/*";
+    if (!accept.includes("text/html") && !accept.includes("*/*")) return next();
+    const shellPath = path.resolve(process.cwd(), "dist/public/index.html");
+    if (!fs.existsSync(shellPath)) return next();
+    try {
+      const [shell, rents] = await Promise.all([
+        fs.promises.readFile(shellPath, "utf8"),
+        getCityRents(),
+      ]);
+      res.set("Cache-Control", rents.status === "available" ? "public, max-age=60" : "no-store");
+      res
+        .type("html")
+        .send(
+          publicComparisonShell(shell, rents, new Date().toISOString().slice(0, 10), siteUrl())
+        );
+    } catch {
+      res
+        .set("Cache-Control", "no-store")
+        .set("Retry-After", "60")
+        .status(503)
+        .type("html")
+        .send("<h1>Comparison temporarily unavailable</h1><p>Please try again shortly.</p>");
+    }
+  });
   app.get("/markets/:slug", async (req, res, next) => {
     const accept = req.headers.accept ?? "*/*";
     if (!accept.includes("text/html") && !accept.includes("*/*")) return next();
