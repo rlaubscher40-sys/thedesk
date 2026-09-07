@@ -103,13 +103,31 @@ const PRODUCT_META: ProductMeta[] = [
   },
 ];
 
+const PRODUCT_SITEMAP_PATHS = ["/ask", "/markets", "/signals"] as const;
+
 /**
  * Product pages deserve their own search/social proposition instead of all
  * inheriting the old "60-second briefing" homepage metadata. Dynamic shared
  * signal links are handled earlier by distributionSeo; this route owns the
  * generic product landing pages that fall through.
+ *
+ * The editorial sitemap lives in seo.ts and is intentionally conservative.
+ * Product surfaces are published separately so Ask / Markets / Signals can
+ * evolve without coupling the editorial crawl contract to the app roadmap.
  */
 export function registerProductSeoRoutes(app: Express): void {
+  app.get("/product-sitemap.xml", (_req, res) => {
+    const base = siteUrl();
+    const today = new Date().toISOString().slice(0, 10);
+    const urls = PRODUCT_SITEMAP_PATHS.map((productPath) => {
+      const frequency = productPath === "/signals" ? "daily" : "weekly";
+      return `<url><loc>${base}${productPath}</loc><lastmod>${today}</lastmod><changefreq>${frequency}</changefreq></url>`;
+    }).join("\n");
+    res.set("Content-Type", "application/xml; charset=utf-8");
+    res.set("Cache-Control", "public, max-age=3600");
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>`);
+  });
+
   for (const meta of PRODUCT_META) {
     app.get(meta.path, (req, res, next) => {
       void sendProductShell(req, res, next, meta).catch((error) => {
