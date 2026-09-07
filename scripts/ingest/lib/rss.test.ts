@@ -1,5 +1,25 @@
 import { describe, it, expect } from "vitest";
-import { pickRssImage } from "./rss";
+import { pickRssImage, publisherName } from "./rss";
+import type { Source } from "../sources";
+
+describe("publisher provenance", () => {
+  const source: Source = {
+    name: "Property investment query",
+    url: "https://news.google.com/rss/search?q=property",
+    category: "PROPERTY",
+    channel: "PROPERTY",
+  };
+  it("records the publisher rather than counting each Google topic as an outlet", () => {
+    expect(publisherName(source, { _: "ABC News" })).toBe("ABC News");
+    expect(publisherName({ ...source, name: "Housing supply query" }, "ABC News")).toBe("ABC News");
+    expect(publisherName(source, undefined)).toBe("Google News");
+  });
+  it("retains the configured identity for a direct publisher feed", () => {
+    expect(
+      publisherName({ ...source, name: "RBA", url: "https://www.rba.gov.au/rss.xml" }, "unrelated")
+    ).toBe("RBA");
+  });
+});
 
 describe("pickRssImage", () => {
   it("returns the media:content image url", () => {

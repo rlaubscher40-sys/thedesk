@@ -23,16 +23,25 @@ const parser = new Parser<unknown, RssItemExtras>({
     item: [
       ["media:content", "mediaContent", { keepArray: true }],
       ["media:thumbnail", "mediaThumbnail", { keepArray: true }],
+      ["source", "publisherSource"],
     ],
   },
 });
 
 type MediaNode = { $?: { url?: string; medium?: string; type?: string } };
 type RssItemExtras = {
+  publisherSource?: string | { _?: string };
   mediaContent?: MediaNode | MediaNode[];
   mediaThumbnail?: MediaNode | MediaNode[];
   enclosure?: { url?: string; type?: string };
 };
+
+/** Google queries are discovery channels, not independent publishers. */
+export function publisherName(src: Source, source: RssItemExtras["publisherSource"]): string {
+  if (new URL(src.url).hostname !== "news.google.com") return src.name;
+  const name = plainText(typeof source === "string" ? source : (source?._ ?? ""), 120).trim();
+  return name || "Google News";
+}
 
 /** Best image URL carried in the RSS item's media extensions, or null. */
 export function pickRssImage(it: RssItemExtras): string | null {
@@ -93,7 +102,7 @@ export async function fetchSource(src: Source): Promise<FetchedItem[]> {
         const summary = plainText(it.contentSnippet || it.content || it.summary || "", 480);
         if (!title || !summary) return null;
         return {
-          source: src.name,
+          source: publisherName(src, it.publisherSource),
           category: src.category,
           channel: src.channel,
           title,
