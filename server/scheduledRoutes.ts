@@ -1618,6 +1618,35 @@ function registerInstagramRoutes(app: Express): void {
   // growth rather than at existing readers. Same selection as The Number, same
   // refusal to post on a quiet day: a Reel about nothing is worse than silence,
   // because it costs reach on the next one.
+  /**
+   * The Reel's voice-over: written by a model from the computed facts, checked
+   * against them, and mapped onto the beats. Returns undefined when the script
+   * was rejected or unavailable, which makes `renderStatReel` fall back to
+   * reading the card aloud rather than failing the post.
+   */
+  const reelScript = async (
+    stat: {
+      label: string;
+      value: string;
+      line: string;
+      subtext: string;
+      context: string | null;
+      source: string | null;
+      direction: "up" | "down" | "flat";
+    },
+    facts: Array<{ figure: string; caption: string }>
+  ) => {
+    const { generateReelScript } = await import("./prompts/reelScript");
+    const { scriptFromLines } = await import("./video/narration");
+    const lines = await generateReelScript(stat, facts);
+    if (!lines) return undefined;
+    return scriptFromLines(lines, {
+      line: stat.line.trim().length > 0,
+      claim: stat.subtext.trim().length > 0,
+      facts: facts.length > 0,
+    });
+  };
+
   const reelHandler = async (req: Request, res: Response) => {
     if (!(await authenticateScheduled(req))) {
       res.status(401).json({ error: "Unauthorized" });
@@ -1675,6 +1704,7 @@ function registerInstagramRoutes(app: Express): void {
         .sort((a, b) => a.at.getTime() - b.at.getTime());
 
       const line = await generateStatLine(pick);
+      const reelFacts = buildStatFacts(pick.value, reelSeries, pick.delta, 3);
       const { postId, headline } = await postStatReel(
         {
           label: pick.label,
@@ -1686,10 +1716,10 @@ function registerInstagramRoutes(app: Express): void {
           // The same history the pick was made from, drawn under the claim.
           // Oldest first: the chart reads left to right.
           series: reelSeries,
-          facts: buildStatFacts(pick.value, reelSeries, pick.delta, 3),
+          facts: reelFacts,
         },
         siteOrigin(),
-        { variant }
+        { variant, script: await reelScript({ ...pick, line }, reelFacts) }
       );
       console.log(`[instagram] reel complete: ${postId}`);
       await db.recordInstagramPost({
@@ -2042,7 +2072,9 @@ function registerInstagramRoutes(app: Express): void {
           });
         } else {
           const { renderStatReel } = await import("./video/statReel");
-          const reel = await renderStatReel(stat, variant);
+          const reel = await renderStatReel(stat, variant, {
+            script: await reelScript(stat, stat.facts),
+          });
           res.setHeader("Content-Type", "video/mp4");
           res.setHeader("Cache-Control", "no-store");
           res.setHeader("X-Reel-Seconds", reel.seconds.toFixed(2));

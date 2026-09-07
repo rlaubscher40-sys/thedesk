@@ -4,6 +4,7 @@ import {
   deshout,
   estimateSpeechSeconds,
   REEL_SIGN_OFF,
+  scriptFromLines,
   speakValue,
 } from "./narration";
 
@@ -103,5 +104,33 @@ describe("estimateSpeechSeconds", () => {
     expect(estimateSpeechSeconds("one two three four")).toBeGreaterThan(
       estimateSpeechSeconds("one two")
     );
+  });
+});
+
+describe("scriptFromLines", () => {
+  const lines = {
+    open: "Approvals just did something they have not done in four years.",
+    number: "Twelve thousand, four hundred and eighty.",
+    meaning: "A fourth straight month of increases.",
+    context: "The highest reading since March 2022.",
+    detail: "Well above the typical reading over the period.",
+  };
+
+  it("anchors every passage to the beat it plays over", () => {
+    const keys = scriptFromLines(lines, { line: true, claim: true, facts: true }).map((l) => l.key);
+    expect(keys).toEqual(["label", "value", "line", "claim", "facts", "signOff"]);
+  });
+
+  it("drops a passage whose beat will not exist", () => {
+    // Otherwise it is synthesised, paid for, and thrown away.
+    const keys = scriptFromLines(lines, { line: true, claim: false, facts: false }).map(
+      (l) => l.key
+    );
+    expect(keys).toEqual(["label", "value", "line", "signOff"]);
+  });
+
+  it("always closes on the sign-off, which no model writes", () => {
+    const script = scriptFromLines(lines, { line: false, claim: false, facts: false });
+    expect(script[script.length - 1]!.text).toBe(REEL_SIGN_OFF);
   });
 });

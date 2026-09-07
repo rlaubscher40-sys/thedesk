@@ -65,6 +65,7 @@ import {
   estimateSpeechSeconds,
   synthesiseScript,
   type ReelStatText,
+  type ScriptLine,
 } from "./narration";
 
 const run = promisify(execFile);
@@ -146,6 +147,21 @@ const FINAL_TAIL_SECONDS = 0.85;
  *  short passage never leaves a frame on screen too briefly to read. */
 const MIN_HOLD = 0.55;
 
+/**
+ * The longest a Reel may run.
+ *
+ * Every beat holds for as long as its passage takes to say, so the clip's
+ * length is whatever the script's length is — and the script is written by a
+ * model. Per-passage caps bound it in the normal case; this bounds it in the
+ * case where they were set wrong, which has already happened once. Over this,
+ * the written script is dropped for the deterministic read, which is short by
+ * construction.
+ *
+ * Thirty-two seconds: long enough for a narrated explainer, short enough that
+ * someone finishes it.
+ */
+export const MAX_REEL_SECONDS = 32;
+
 export type ReelStat = ReelStatText & {
   asOf?: Date | null;
   series?: SparkPoint[];
@@ -153,13 +169,11 @@ export type ReelStat = ReelStatText & {
 };
 
 /**
- * How long each supporting figure holds before the next arrives.
+ * The floor on how long each supporting figure holds before the next arrives.
  *
- * These are not narrated, deliberately. Their dense Reel — the one with three
- * times the shares — has no voice on it at all; the numbers arriving one after
- * another is the pacing. Narrating a list of figures would also mean writing
- * sentences for the audio, which is the one thing the script is not allowed to
- * do.
+ * A floor rather than a fixed length: the passage explaining these figures is
+ * the one that has to teach the viewer something, so when the voice runs longer
+ * than the figures need, the figures wait for it.
  */
 const FACT_SECONDS = 1.25;
 
@@ -416,6 +430,24 @@ async function probeSeconds(file: string): Promise<number | null> {
 }
 
 /**
+ * Roughly how long a script's clip will run, before anything is synthesised.
+ *
+ * The tails and the count-up are the fixed overhead every clip carries on top
+ * of the speech itself; they are what makes a twenty-two second script a
+ * twenty-seven second Reel.
+ */
+export function estimateScriptSeconds(script: ScriptLine[]): number {
+  const speech = script.reduce((n, line) => n + estimateSpeechSeconds(line.text), 0);
+  const tails = TAIL_SECONDS * Math.max(0, script.length - 1) + FINAL_TAIL_SECONDS;
+  return speech + tails + COUNT_TICKS * TICK_SECONDS;
+}
+
+/** Will this script produce a Reel anyone finishes? */
+export function scriptFitsClip(script: ScriptLine[]): boolean {
+  return estimateScriptSeconds(script) <= MAX_REEL_SECONDS;
+}
+
+/**
  * Compose the sections: what is on screen while each passage is spoken.
  *
  * The count-up sits under the passage that says the figure, so the number is
@@ -472,7 +504,9 @@ export function composeSections(stat: ReelStat, durations: Record<string, number
         seriesProgress: drawing ? 1 : undefined,
         factsShown: i + 1,
       })),
-      seconds: facts.length * FACT_SECONDS,
+      // Long enough for every figure to be read, and longer still if the
+      // narration explaining them runs past that.
+      seconds: Math.max(facts.length * FACT_SECONDS, withTail("facts")),
     });
   }
 
@@ -505,13 +539,27 @@ export function composeSections(stat: ReelStat, durations: Record<string, number
 export async function renderStatReel(
   stat: ReelStat,
   variant: CardVariant = "navy",
-  opts: { narrate?: boolean } = {}
+  opts: { narrate?: boolean; script?: ScriptLine[] } = {}
 ): Promise<{ bytes: Buffer; seconds: number; narrated: boolean }> {
   if (!ffmpegPath) throw new Error("ffmpeg binary unavailable");
 
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "desk-reel-"));
   try {
-    const script = buildScript(stat);
+    // A written script when the caller generated one, the deterministic read
+    // otherwise. Rendering stays a pure function of the script it is handed,
+    // which is what keeps the model call out of the video path and testable
+    // separately from it.
+    //
+    // The length check runs on the estimate, before synthesis, so an overlong
+    // script costs nothing rather than five TTS calls that are then discarded.
+    let script = opts.script ?? buildScript(stat);
+    if (opts.script && !scriptFitsClip(opts.script)) {
+      console.warn(
+        `[reel] written script would run ${estimateScriptSeconds(opts.script).toFixed(1)}s; ` +
+          `using the plain read instead.`
+      );
+      script = buildScript(stat);
+    }
     const spoken = opts.narrate === false ? null : await synthesiseScript(script);
 
     // Measure the voice when we have it; fall back to a news-read estimate.

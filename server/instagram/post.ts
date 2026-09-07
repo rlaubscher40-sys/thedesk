@@ -41,6 +41,7 @@ import {
   waitForContainerReady,
 } from "./api";
 import { removeTempImage, storeTempImage } from "./tempStore";
+import type { ScriptLine } from "../video/narration";
 import { renderStatReel } from "../video/statReel";
 
 /** Single source of truth for dash sanitization in Instagram content. */
@@ -1072,7 +1073,7 @@ export async function postStatReel(
     facts?: { figure: string; caption: string }[];
   },
   siteUrl: string,
-  opts: { variant?: CardVariant } = {}
+  opts: { variant?: CardVariant; script?: ScriptLine[] } = {}
 ): Promise<{ postId: string; headline: string }> {
   const { instagramAccessToken: accessToken, instagramBusinessAccountId: igUserId } = env;
   if (!accessToken || !igUserId) {
@@ -1092,7 +1093,7 @@ export async function postStatReel(
   let coverUuid: string | null = null;
   try {
     const [video, cover] = await Promise.all([
-      renderStatReel(sanitized, variant),
+      renderStatReel(sanitized, variant, { script: opts.script }),
       renderStatCard(sanitized, variant, {
         shape: "vertical",
         kicker: "The Number",

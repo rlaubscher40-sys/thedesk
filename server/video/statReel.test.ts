@@ -4,12 +4,16 @@ import {
   buildVideoGraph,
   composeSections,
   countUpFrames,
+  estimateScriptSeconds,
   layout,
+  MAX_REEL_SECONDS,
   parseDuration,
+  scriptFitsClip,
   REEL_HEIGHT,
   REEL_WIDTH,
   type Beat,
 } from "./statReel";
+import { estimateSpeechSeconds } from "./narration";
 
 function beat(seconds: number, fade = 0): Beat {
   return { frame: { reveal: 1 }, seconds, fade };
@@ -433,5 +437,37 @@ describe("the frame grid", () => {
       { key: "b", frames: [{ reveal: 1, seconds: 0.04 }, { reveal: 1 }], seconds: 1 },
     ]);
     for (const beat of beats.slice(1)) expect(beat.fade).toBeLessThan(beat.seconds);
+  });
+});
+
+describe("clip length", () => {
+  const line = (key: string, words: number) => ({ key, text: "word ".repeat(words).trim() });
+
+  it("accepts a script that runs the length of a Reel someone finishes", () => {
+    const script = [
+      line("label", 11),
+      line("value", 7),
+      line("line", 13),
+      line("claim", 11),
+      line("facts", 16),
+      line("signOff", 7),
+    ];
+    expect(estimateScriptSeconds(script)).toBeLessThan(MAX_REEL_SECONDS);
+    expect(scriptFitsClip(script)).toBe(true);
+  });
+
+  it("rejects one that would run past it", () => {
+    // A model writes to its cap, so a cap set too loosely is a long clip every
+    // time rather than occasionally. The first set of caps allowed sixty
+    // seconds — this is the backstop underneath them.
+    expect(scriptFitsClip([line("label", 60), line("value", 60), line("facts", 60)])).toBe(false);
+  });
+
+  it("counts the overhead a clip carries on top of the speech", () => {
+    // Tails and the count-up are what make a twenty-two second script a
+    // twenty-seven second Reel; ignoring them is how the cap gets set wrong.
+    const script = [line("label", 10), line("signOff", 6)];
+    const speech = script.reduce((n, l) => n + estimateSpeechSeconds(l.text), 0);
+    expect(estimateScriptSeconds(script)).toBeGreaterThan(speech);
   });
 });

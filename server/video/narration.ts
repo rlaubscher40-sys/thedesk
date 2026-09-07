@@ -27,6 +27,7 @@
  * leaves ABS and RBA alone, because those genuinely are letters.
  */
 import { env } from "../core/env";
+import type { ReelScriptLines } from "../prompts/reelScript";
 
 /** OpenAI's speech model. `gpt-4o-mini-tts` is the one that takes a delivery
  *  instruction, which is what keeps this from sounding like a lift announcement. */
@@ -155,10 +156,17 @@ export type ScriptLine = { key: string; text: string };
 export const REEL_SIGN_OFF = "The Desk. Follow for the next number.";
 
 /**
- * The whole script, in order, each passage keyed to the beat it plays over.
+ * The deterministic read: the card's own strings, only respelled for the ear.
  *
- * Nothing is invented and nothing is paraphrased: `label`, `value`, `line` and
- * `subtext` are the card's own strings, only respelled for the ear.
+ * This is the fallback now rather than the main path. It is never wrong and
+ * never interesting, which is the right thing to be when the alternative is a
+ * script nobody verified — but a voice that recites what is already on screen
+ * adds nothing, so `generateReelScript` writes the real one and this covers the
+ * cases where it cannot: no key, a bad response, a fabricated figure.
+ *
+ * It has no passage for the supporting figures. Reading a list of numbers aloud
+ * without explaining them is worse than letting them land in silence, and
+ * explaining them is exactly the job that needs a model.
  */
 export function buildScript(stat: ReelStatText): ScriptLine[] {
   const lines: ScriptLine[] = [
@@ -169,6 +177,30 @@ export function buildScript(stat: ReelStatText): ScriptLine[] {
   if (stat.subtext.trim()) lines.push({ key: "claim", text: deshout(stat.subtext.trim()) });
   lines.push({ key: "signOff", text: REEL_SIGN_OFF });
   return lines;
+}
+
+/**
+ * Lay a generated script onto the beats.
+ *
+ * The keys have to match the section keys in `composeSections`, because that is
+ * what anchors each passage to the moment its pictures arrive. A passage whose
+ * section will not exist — the claim on a metric with no computed claim, the
+ * detail on a card with no supporting figures — is dropped here rather than
+ * synthesised and thrown away, which would be a wasted API call per Reel.
+ */
+export function scriptFromLines(
+  lines: ReelScriptLines,
+  present: { line: boolean; claim: boolean; facts: boolean }
+): ScriptLine[] {
+  const script: ScriptLine[] = [
+    { key: "label", text: lines.open },
+    { key: "value", text: lines.number },
+  ];
+  if (present.line) script.push({ key: "line", text: lines.meaning });
+  if (present.claim) script.push({ key: "claim", text: lines.context });
+  if (present.facts) script.push({ key: "facts", text: lines.detail });
+  script.push({ key: "signOff", text: REEL_SIGN_OFF });
+  return script;
 }
 
 /**
