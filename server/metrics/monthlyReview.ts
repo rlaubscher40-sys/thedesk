@@ -78,6 +78,25 @@ export type MetricMove = {
   brokeStillness: boolean;
   /** Complete prior months backing `unusualness` or `brokeStillness`. */
   monthsOfHistory: number;
+  /**
+   * The most recent earlier month that moved further in the same direction,
+   * as "2011-06". Null when nothing in the history we hold moved further.
+   *
+   * This is the claim the series exists to make: "the biggest monthly fall
+   * since 2011" is worth reading, and "down 6.9%" on its own is not. It also
+   * costs nothing to compute once the history is there.
+   */
+  biggestSince: string | null;
+  /**
+   * The earliest month we hold for this metric, as "2025-03".
+   *
+   * Carried so the copy can never overstate its reach. With `biggestSince`
+   * null and a year of history, the true statement is "the biggest since we
+   * started tracking in March 2025", not "the biggest on record". The
+   * difference is the whole credibility of the series, and the temptation to
+   * collapse it is exactly why the window travels with the claim.
+   */
+  historyStart: string | null;
 };
 
 export type MonthlyReview = {
@@ -191,11 +210,26 @@ function moveFor(
   // Typical monthly move, from complete prior months only. The target month is
   // excluded so a metric cannot be measured against itself, and the current
   // month is excluded from other metrics' baselines for the same reason.
-  const priorMoves: number[] = [];
+  // Keep the month against each prior move: the magnitudes give "how unusual",
+  // and the months give "since when", which is the more quotable of the two.
+  const prior: Array<{ month: string; move: number }> = [];
   for (const [month, vals] of months) {
     if (month >= targetMonth || vals.length < 2) continue;
-    priorMoves.push(Math.abs(vals[vals.length - 1]! - vals[0]!));
+    prior.push({ month, move: vals[vals.length - 1]! - vals[0]! });
   }
+  prior.sort((a, b) => a.month.localeCompare(b.month));
+  const priorMoves = prior.map((p) => Math.abs(p.move));
+
+  // Same direction only. "The biggest fall since 2011" is a claim about falls;
+  // comparing a fall against an earlier rise of similar size would answer a
+  // question nobody asked.
+  const sameDirection = (m: number) => (change > 0 ? m > 0 : m < 0);
+  const exceeded = prior.filter(
+    (p) => sameDirection(p.move) && Math.abs(p.move) >= Math.abs(change)
+  );
+  const biggestSince = change === 0 ? null : (exceeded[exceeded.length - 1]?.month ?? null);
+  const historyStart = prior[0]?.month ?? null;
+
   const typical = median(priorMoves);
   const enoughHistory = priorMoves.length >= MIN_MONTHS_FOR_RANK;
   // A metric whose every prior month was flat has no scale to be measured
@@ -219,6 +253,8 @@ function moveFor(
     unusualness,
     brokeStillness,
     monthsOfHistory: priorMoves.length,
+    biggestSince,
+    historyStart,
   };
 }
 
@@ -287,6 +323,33 @@ export function describeMove(move: MetricMove): string {
 }
 
 /**
+ * How far back you have to go to find a bigger move in the same direction.
+ *
+ * Returns null when there is nothing worth saying. The two cases that matter:
+ *
+ *   · A bigger move exists in our window, so we can name its month, and the
+ *     claim is unimpeachable because we hold the data behind it.
+ *   · Nothing bigger exists. The honest statement is then bounded by when we
+ *     started, NOT "the biggest ever". A year of history cannot support a
+ *     record claim, and a series whose selling point is that its numbers are
+ *     real cannot be the one that overstates its own reach.
+ *
+ * `minMonths` stops the bounded version firing on a window too short to be
+ * interesting: "the biggest since we started tracking four months ago" is not
+ * a fact anyone needs.
+ */
+export function describeReach(move: MetricMove, minMonths = 12): string | null {
+  const direction = move.direction === "up" ? "rise" : "fall";
+  if (move.biggestSince) {
+    return `biggest ${direction} since ${monthLabel(move.biggestSince)}`;
+  }
+  if (move.historyStart && move.monthsOfHistory >= minMonths) {
+    return `biggest ${direction} since we started tracking in ${monthLabel(move.historyStart)}`;
+  }
+  return null;
+}
+
+/**
  * The line the review leads with.
  *
  * Holds to the same rule as the other summaries on this site: it will not read
@@ -306,6 +369,12 @@ export function readMonth(review: MonthlyReview): string {
   const lead = movers[0]!;
   if (lead.brokeStillness) {
     return `${label}: ${lead.label} moved ${describeMove(lead)}, after ${lead.monthsOfHistory} months unchanged.`;
+  }
+  // A reach claim beats a ratio when we have one: "the biggest fall since 2011"
+  // travels, "2.3 times its usual month" explains.
+  const reach = describeReach(lead);
+  if (reach) {
+    return `${label}: ${lead.label} moved ${describeMove(lead)}, the ${reach}.`;
   }
   // Under about 1.5x its own normal swing, the biggest mover of the month is
   // just the biggest of a set of ordinary moves, which is not a story.

@@ -3,6 +3,7 @@ import {
   MIN_MONTHS_FOR_RANK,
   buildMonthlyReview,
   describeMove,
+  describeReach,
   monthLabel,
   previousMonth,
   readMonth,
@@ -156,7 +157,9 @@ describe("buildMonthlyReview", () => {
 
   it("holds back a metric without enough months behind it", () => {
     // One prior month cannot establish what a normal month looks like.
-    const histories = { asx200: [...month("2026-07", 8000, 8100), ...month("2026-08", 8100, 9000)] };
+    const histories = {
+      asx200: [...month("2026-07", 8000, 8100), ...month("2026-08", 8100, 9000)],
+    };
     const review = buildMonthlyReview([meta()], histories, "2026-08", NOW);
     expect(review.movers).toHaveLength(0);
     expect(review.unranked).toHaveLength(1);
@@ -261,5 +264,107 @@ describe("readMonth", () => {
     const read = readMonth(buildMonthlyReview([meta()], histories, "2026-08", NOW));
     expect(read).toContain("ASX 200 moved +6.0%");
     expect(read).toContain("times its usual month");
+  });
+});
+
+describe("biggestSince / describeReach", () => {
+  /** Months of falls of a given size, oldest first, ending before the target. */
+  function falls(sizes: Array<[string, number]>): HistoryPoint[] {
+    let v = 100;
+    return sizes.flatMap(([m, drop]) => {
+      const pts = month(m, v, v - drop);
+      v -= drop;
+      return pts;
+    });
+  }
+
+  it("names the last month that fell further", () => {
+    // A big fall in May, small ones after, then a bigger one in the target
+    // month: the claim is "biggest since" the last month that beat it.
+    const histories = {
+      asx200: falls([
+        ["2026-04", 1],
+        ["2026-05", 9],
+        ["2026-06", 1],
+        ["2026-07", 1],
+        ["2026-08", 5],
+      ]),
+    };
+    const move = buildMonthlyReview([meta()], histories, "2026-08", NOW).movers[0]!;
+    expect(move.biggestSince).toBe("2026-05");
+    expect(describeReach(move)).toBe("biggest fall since May 2026");
+  });
+
+  it("ignores an earlier move in the other direction", () => {
+    // "The biggest fall since" is a claim about falls. An earlier rise of
+    // similar size answers a question nobody asked.
+    const histories = {
+      asx200: [
+        ...month("2026-04", 100, 130), // a big RISE
+        ...month("2026-05", 130, 129),
+        ...month("2026-06", 129, 128),
+        ...month("2026-07", 128, 127),
+        ...month("2026-08", 127, 107), // a big fall
+      ],
+    };
+    const move = buildMonthlyReview([meta()], histories, "2026-08", NOW).movers[0]!;
+    expect(move.direction).toBe("down");
+    expect(move.biggestSince).toBeNull();
+  });
+
+  it("will not claim a record from a window too short to support one", () => {
+    // Four months of history cannot carry "the biggest since we started".
+    const histories = {
+      asx200: falls([
+        ["2026-05", 1],
+        ["2026-06", 1],
+        ["2026-07", 1],
+        ["2026-08", 20],
+      ]),
+    };
+    const move = buildMonthlyReview([meta()], histories, "2026-08", NOW).movers[0]!;
+    expect(move.biggestSince).toBeNull();
+    expect(describeReach(move)).toBeNull();
+  });
+
+  it("bounds the claim by when tracking started, never calling it a record", () => {
+    // With enough history and nothing bigger in it, the true statement names
+    // the window. A series whose selling point is that its numbers are real
+    // cannot be the one that overstates its own reach.
+    const months: Array<[string, number]> = [];
+    for (let m = 1; m <= 12; m++) months.push([`2025-${String(m).padStart(2, "0")}`, 1]);
+    months.push(["2026-08", 30]);
+    const move = buildMonthlyReview([meta()], { asx200: falls(months) }, "2026-08", NOW).movers[0]!;
+    expect(move.biggestSince).toBeNull();
+    const reach = describeReach(move)!;
+    expect(reach).toContain("since we started tracking in January 2025");
+    expect(reach).not.toContain("record");
+  });
+
+  it("leads the monthly reading with the reach claim when there is one", () => {
+    const histories = {
+      asx200: falls([
+        ["2026-04", 1],
+        ["2026-05", 9],
+        ["2026-06", 1],
+        ["2026-07", 1],
+        ["2026-08", 5],
+      ]),
+    };
+    const read = readMonth(buildMonthlyReview([meta()], histories, "2026-08", NOW));
+    expect(read).toContain("biggest fall since May 2026");
+  });
+
+  it("reports the earliest month held, so a claim can be bounded", () => {
+    const histories = {
+      asx200: falls([
+        ["2026-04", 1],
+        ["2026-05", 2],
+        ["2026-06", 1],
+        ["2026-08", 3],
+      ]),
+    };
+    const move = buildMonthlyReview([meta()], histories, "2026-08", NOW).movers[0]!;
+    expect(move.historyStart).toBe("2026-04");
   });
 });

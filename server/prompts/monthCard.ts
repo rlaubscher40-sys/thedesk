@@ -13,18 +13,27 @@
  */
 import { invokeLLM } from "../core/llm";
 import type { MetricMove, MonthlyReview } from "../metrics/monthlyReview";
-import { describeMove } from "../metrics/monthlyReview";
+import { describeMove, describeReach } from "../metrics/monthlyReview";
 import { inventsFigures } from "./statCard";
 import { rubenSystemPrompt, stripBannedChars } from "./voice";
 
 /** Above this the line stops fitting the card's serif block at a readable size. */
 const MAX_LINE_CHARS = 96;
 
-/** How a move's notability should be stated, in the card's mono subtext slot. */
+/**
+ * How a move's notability should be stated, in the card's mono subtext slot.
+ *
+ * Ordered by how much a reader gets from it. "The biggest fall since 2011"
+ * travels and needs no explaining; "2.3x its usual month" is precise but asks
+ * the reader to do a little work. So a reach claim wins when the history
+ * supports one, and the ratio is the fallback rather than the default.
+ */
 export function moveClaim(move: MetricMove): string {
   if (move.brokeStillness) {
     return `FIRST MOVE IN ${move.monthsOfHistory} MONTHS`;
   }
+  const reach = describeReach(move);
+  if (reach) return reach.toUpperCase();
   if (move.unusualness !== null) {
     return `${move.unusualness.toFixed(1)}x ITS USUAL MONTH`;
   }
@@ -52,11 +61,14 @@ export function fallbackMonthLine(move: MetricMove, review: MonthlyReview): stri
 }
 
 function buildPrompt(move: MetricMove, review: MonthlyReview): string {
+  const reach = describeReach(move);
   const notable = move.brokeStillness
     ? `It had not moved at all in the ${move.monthsOfHistory} months before this.`
-    : move.unusualness !== null
-      ? `That is ${move.unusualness.toFixed(1)} times this metric's own usual monthly move.`
-      : "";
+    : reach
+      ? `It is the ${reach}.`
+      : move.unusualness !== null
+        ? `That is ${move.unusualness.toFixed(1)} times this metric's own usual monthly move.`
+        : "";
   return `You are writing the single sentence beneath a large number on The Desk's monthly card, in a series called The Month in Numbers. It is read by people who follow Australian property closely and have money or a home in it.
 
 THESE ARE THE ONLY FACTS YOU HAVE:

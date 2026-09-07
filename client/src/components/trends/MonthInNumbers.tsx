@@ -2,8 +2,9 @@
  * "The Month in Numbers" — the one series nobody else can run.
  *
  * Every individual figure here is public. What is not public is this basket,
- * sampled daily and kept for a year in one place, which is what makes it
- * possible to say how unusual a month was *for each metric on its own terms*.
+ * sampled daily and kept in one place, which is what makes it possible to say
+ * how unusual a month was *for each metric on its own terms*, and how far back
+ * you have to go to find a bigger move.
  * A 3% move in the ASX is a quiet fortnight; a 3% move in the cash rate would
  * be the monetary event of the decade. Ranking them together requires knowing
  * what normal looks like for each, and that requires the history.
@@ -16,6 +17,19 @@
 import { TrendingDown, TrendingUp } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Skeleton } from "@/components/ui/Skeleton";
+
+/** "2026-05" as "May 2026". The API returns the machine form so the client can
+ *  present it; showing the raw key would leak an internal format at the reader. */
+function monthLabel(month: string): string {
+  const [y, m] = month.split("-");
+  const d = new Date(Date.UTC(Number(y), Number(m) - 1, 1));
+  if (Number.isNaN(d.getTime())) return month;
+  return new Intl.DateTimeFormat("en-AU", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(d);
+}
 
 /** State it the way it should be said: points for rate metrics, percent for
  *  levels. Mirrors describeMove on the server so the page and any generated
@@ -47,6 +61,8 @@ function Row({
     unusualness: number | null;
     brokeStillness: boolean;
     monthsOfHistory: number;
+    biggestSince: string | null;
+    historyStart: string | null;
   };
 }) {
   const Icon = move.direction === "up" ? TrendingUp : TrendingDown;
@@ -62,9 +78,11 @@ function Row({
       <td className="py-3 text-right text-[var(--color-fg-muted)] whitespace-nowrap">
         {move.brokeStillness
           ? `first move in ${move.monthsOfHistory} months`
-          : move.unusualness !== null
-            ? `${move.unusualness.toFixed(1)}× its usual month`
-            : "—"}
+          : move.biggestSince
+            ? `biggest since ${monthLabel(move.biggestSince)}`
+            : move.unusualness !== null
+              ? `${move.unusualness.toFixed(1)}× its usual month`
+              : "—"}
       </td>
     </tr>
   );
@@ -96,7 +114,7 @@ export function MonthInNumbers() {
           <table className="w-full text-sm border-collapse min-w-[460px]">
             <thead>
               <tr className="border-b border-[var(--color-border)]">
-                {["Metric", "Move", "Against its own normal"].map((h, i) => (
+                {["Metric", "Move", "How notable"].map((h, i) => (
                   <th
                     key={h}
                     className={`pb-2 font-mono uppercase tracking-[0.16em] text-[11px] text-[var(--color-fg-subtle)] pr-4 whitespace-nowrap ${
