@@ -3,6 +3,10 @@ import { z } from "zod";
 import { displayMetricValue, rankAskMetrics } from "../ask/metricRetrieval";
 import * as db from "../db";
 import { consumeAnonymousAsk, consumeAnonymousCard } from "../core/askQuota";
+import {
+  createIntelligenceShareToken,
+  readIntelligenceShareToken,
+} from "../core/intelligenceShare";
 import { invokeLLMJson } from "../core/llm";
 import { renderIntelligenceCard } from "../og/intelligenceCard";
 import { publicProcedure, router } from "../core/trpc";
@@ -76,9 +80,6 @@ function searchTerms(question: string): string[] {
     .filter((word) => word.length >= 3 && !STOP_WORDS.has(word));
 
   const unique = [...new Set(words)];
-  // Longer terms tend to carry more retrieval meaning (Townsville, migration,
-  // approvals) than short glue words. Keep the request bounded because each
-  // term is one indexed archive lookup.
   unique.sort((a, b) => b.length - a.length);
   return unique.slice(0, 7);
 }
@@ -182,8 +183,6 @@ export const askRouter = router({
         externalUrl: string | null;
       }> = [];
 
-      // Put current metrics first. The model receives source numbers in this
-      // order, making explicit live data easy to cite before narrative context.
       for (const metric of matches.metrics) {
         const ref = evidence.length + 1;
         const currentValue = displayMetricValue(metric.value, metric.unit);
@@ -284,8 +283,6 @@ export const askRouter = router({
         };
       }
 
-      // Retrieval is cheap; only consume a public allowance once we are about
-      // to spend an LLM call. Signed-in readers are not metered here.
       const anonymousRemaining = enforceAnonymousQuota(
         Boolean(ctx.user),
         () => consumeAnonymousAsk(ctx.req)
@@ -329,9 +326,25 @@ export const askRouter = router({
       };
     }),
 
+  /** Public read endpoint for a signed, expiring intelligence share URL. */
+  shared: publicProcedure
+    .input(z.object({ token: z.string().min(20).max(12_000) }))
+    .query(({ input }) => {
+      const brief = readIntelligenceShareToken(input.token);
+      if (!brief) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "This intelligence brief is invalid or has expired.",
+        });
+      }
+      return brief;
+    }),
+
   /**
    * Turn an already-grounded Ask answer into a native 4:5 distribution asset.
    * Anonymous rendering has its own CPU quota; signed-in readers are unlimited.
+   * The same payload is signed into a 30-day public brief URL so the social
+   * asset has somewhere useful to send the next reader.
    */
   shareCard: publicProcedure
     .input(
@@ -348,19 +361,33 @@ export const askRouter = router({
     .mutation(async ({ input, ctx }) => {
       enforceAnonymousQuota(Boolean(ctx.user), () => consumeAnonymousCard(ctx.req));
       try {
-        const png = await renderIntelligenceCard({
-          question: input.question,
-          headline: input.headline,
-          answer: input.answer,
-          deskTake: input.deskTake,
-          confidence: input.confidence,
-          sourceCount: input.sourceCount,
-          signal: input.signal ?? null,
-        });
+        const [png, token] = await Promise.all([
+          renderIntelligenceCard({
+            question: input.question,
+            headline: input.headline,
+            answer: input.answer,
+            deskTake: input.deskTake,
+            confidence: input.confidence,
+            sourceCount: input.sourceCount,
+            signal: input.signal ?? null,
+          }),
+          Promise.resolve(
+            createIntelligenceShareToken({
+              question: input.question,
+              headline: input.headline,
+              answer: input.answer,
+              deskTake: input.deskTake,
+              confidence: input.confidence,
+              sourceCount: input.sourceCount,
+              signal: input.signal ?? null,
+            })
+          ),
+        ]);
         return {
           mimeType: "image/png" as const,
           filename: "the-desk-intelligence.png",
           base64: png.toString("base64"),
+          sharePath: `/brief?t=${encodeURIComponent(token)}`,
         };
       } catch (error) {
         console.error("[ask] intelligence card render failed", error);
