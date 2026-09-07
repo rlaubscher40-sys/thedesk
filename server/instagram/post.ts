@@ -1063,6 +1063,10 @@ export async function postStatReel(
     subtext: string;
     source?: string | null;
     asOf?: Date | null;
+    /** The metric's own readings, oldest first. Drawn as a line under the
+     *  claim, and animated across the clip. Omitted, the Reel is the card
+     *  without its history — which still posts, just with less behind it. */
+    series?: { value: number; at: Date }[];
   },
   siteUrl: string,
   opts: { variant?: CardVariant } = {}

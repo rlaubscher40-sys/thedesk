@@ -143,6 +143,59 @@ account. Ours is anonymous and visibly automated.
 > What is still not fixed is the second half of this section: there is no face.
 > A synthetic voice is not a person, and nothing here closes that gap.
 
+### 3.4a One of their Reels, frame by frame
+
+Ruben screen-recorded ten seconds of one. It is worth reading closely, because
+most of what I had assumed about it from the grid thumbnails was wrong.
+
+**It is not a data post. It is a documentary.** The caption reads "Frank Lowy
+arrived in Sydney in 1952 with nothing. He'd survived the Holocaust, his father
+was killed at Auschwitz, fought in Israel's war of independence at 17, and
+landed in…". The subject is the founder of Westfield. The numbers are beats in
+a story about a person, not the story.
+
+**The format has a name and a slug.** A dim, letterspaced mono line sits at the
+top of every frame: `, THE FILE · WESTFIELD · 1952 TO 2018`. Format, subject,
+time range. It does in seven words what a masthead does.
+
+**It opens on a count-up.** $3,575,021,484 → $20,712,729,352 → $29,431,589,748
+→ $32,580,777,778 → $33,000,000,000, over roughly a second and a half, easing
+hard into a round final figure. Same device I had already built, executed
+better in three ways: monospaced numerals so nothing shifts, full precision on
+every intermediate value, and a smooth 60fps count rather than discrete ticks.
+
+**Elements accumulate; nothing is replaced.** A slug, then a label, then the
+figure, then an archival photograph in a red-ruled plate captioned FRANK LOWY,
+then a wireframe globe with a route drawing itself across it — Filakovo 1930,
+Budapest the ghetto, Israel 1948, Sydney 1952. By the end the screen is a dense
+dossier. Each beat adds an object of a *different kind* in a *different region*
+of the frame. Ours stacks four text elements in one column.
+
+**The frame never moves.** No push, no drift, no parallax. It reads as more
+confident for it, not less. I had added a continuous zoom; it is now cut to a
+third of what it was, and only to stop a four-second hold feeling frozen.
+
+**Their route also draws in discrete steps** — one labelled dot at a time,
+about a second apart. This is worth recording because it settled a question I
+was about to spend a lot of render budget on: a stepped reveal of a data
+element is not a defect, it is the convention.
+
+**Two things I could not check.** iOS screen recording does not capture app
+audio, so the track is silent at −91dB — the voice-over is still unheard, and
+"Original audio" in the header is all we know about it. And ten seconds is
+plainly the opening of a much longer piece.
+
+**What this changes.** The visual craft is copyable and mostly now copied. What
+is not copyable in an automated post is the archival research, the photograph,
+and a script about a person. That is a produced piece, not a template — which
+is the same conclusion section 8 reached about their product, arriving from the
+other direction: their reach comes from things that do not scale, ours has to
+come from something that does. The answer to their globe is not a globe. It is
+the series: `server/og/sparkline.ts` draws the metric's own history under the
+claim, captioned with its true range and reading count, and animates it across
+the Reel. A news aggregator cannot print that line, because it is months of
+readings nobody else assembled rather than a figure.
+
 ### 3.5 Proprietary data versus aggregated news
 
 This is the deepest advantage and the hardest to copy.

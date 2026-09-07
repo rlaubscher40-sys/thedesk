@@ -57,6 +57,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 import ffmpegPath from "ffmpeg-static";
 import { type CardVariant, renderStatCard } from "../og/instagramCards";
+import type { SparkPoint } from "../og/sparkline";
 import {
   buildScript,
   estimateSpeechSeconds,
@@ -87,17 +88,28 @@ const SUPERSAMPLE = 2;
 /** The whole clip is one slow push, from here to here. Small on purpose: the
  *  motion should be felt rather than noticed. */
 const ZOOM_START = 1.0;
-const ZOOM_END = 1.085;
+// Small. Glasshouse's clip is completely still and reads as more confident for
+// it, not less; a push big enough to notice also drags the history line across
+// the frame while it is trying to be read. This is here to keep the frame from
+// feeling frozen during a four-second hold, and for nothing else.
+const ZOOM_END = 1.032;
 
 /** Cross-dissolve between passages, and the much faster one between the ticks
  *  of the count-up, where a dissolve is what stops the digits from strobing. */
 const SECTION_FADE = 0.34;
-const TICK_FADE = 0.05;
+/**
+ * About one frame at 30fps, which is deliberate: this reads as a cut with the
+ * hard edge taken off it. At the 0.05 it started at, more than half of each
+ * tick was dissolve, and because Playfair's "1" is a third narrower than its
+ * other digits the two figures do not sit on top of each other — they smear
+ * sideways. A counter that smears looks broken, not fast.
+ */
+const TICK_FADE = 0.034;
 
-/** Ticks in the count-up. Ten is enough to read as motion and cheap enough that
- *  it does not dominate the render time. */
-const COUNT_TICKS = 10;
-const TICK_SECONDS = 0.09;
+/** Ticks in the count-up. Each one is a full card render, so this is the knob
+ *  that trades render time against how smooth the counter looks. */
+const COUNT_TICKS = 12;
+const TICK_SECONDS = 0.075;
 
 /** Silence after each passage, so the voice does not run into itself. The last
  *  one is longer because the clip loops, and looping straight out of a word is
@@ -109,9 +121,20 @@ const FINAL_TAIL_SECONDS = 0.85;
  *  short passage never leaves a frame on screen too briefly to read. */
 const MIN_HOLD = 0.55;
 
-export type ReelStat = ReelStatText & { asOf?: Date | null };
+export type ReelStat = ReelStatText & { asOf?: Date | null; series?: SparkPoint[] };
 
-export type Frame = { reveal: number; valueText?: string; seconds?: number };
+/** How many stills the history line is drawn across. Eight is the point where
+ *  the line stops reading as steps; past it, each extra frame is another second
+ *  of satori for motion nobody can see. */
+const DRAW_STEPS = 8;
+
+export type Frame = {
+  reveal: number;
+  valueText?: string;
+  /** 0..1, how much of the history line is drawn on this frame. */
+  seriesProgress?: number;
+  seconds?: number;
+};
 export type Beat = { frame: Frame; seconds: number; fade: number };
 
 /**
@@ -193,24 +216,28 @@ export function layout(sections: Section[]): {
   const firstBeatOfSection: number[] = [];
 
   for (const section of sections) {
+    if (section.frames.length === 0) continue;
     firstBeatOfSection.push(beats.length);
-    const fixed = section.frames.slice(0, -1);
-    const last = section.frames[section.frames.length - 1];
-    if (!last) continue;
-    const fixedTotal = fixed.reduce((n, f) => n + (f.seconds ?? TICK_SECONDS), 0);
-    fixed.forEach((frame, i) => {
+
+    // A frame with its own `seconds` is fixed — the count-up ticks, which have
+    // to be fast whatever else is happening. Everything else shares what is
+    // left of the section equally, which is what spreads the history line's
+    // eight drawing frames evenly across a passage instead of running them off
+    // in half a second and then holding.
+    const fixedTotal = section.frames.reduce((n, f) => n + (f.seconds ?? 0), 0);
+    const elastic = section.frames.filter((f) => f.seconds === undefined).length;
+    // The floor is on the shared total, not on each frame: a drawing frame is
+    // animation and does not need to be readable on its own.
+    const share = elastic > 0 ? Math.max(MIN_HOLD, section.seconds - fixedTotal) / elastic : 0;
+
+    section.frames.forEach((frame, i) => {
       beats.push({
         frame,
-        seconds: frame.seconds ?? TICK_SECONDS,
+        seconds: frame.seconds ?? share,
         // The first beat of a section dissolves from the previous section; the
-        // ticks within it dissolve from each other, much faster.
+        // frames within it dissolve from each other, much faster.
         fade: beats.length === 0 ? 0 : i === 0 ? SECTION_FADE : TICK_FADE,
       });
-    });
-    beats.push({
-      frame: last,
-      seconds: Math.max(MIN_HOLD, section.seconds - fixedTotal),
-      fade: beats.length === 0 ? 0 : fixed.length === 0 ? SECTION_FADE : TICK_FADE,
     });
   }
 
@@ -368,6 +395,18 @@ export function composeSections(stat: ReelStat, durations: Record<string, number
   const withTail = (key: string, last = false) =>
     (durations[key] ?? 0) + (last ? FINAL_TAIL_SECONDS : TAIL_SECONDS);
 
+  // The history line draws across the two passages that argue from it — the
+  // sentence and the claim — reaching the live reading exactly as the claim
+  // about it lands. Without a series those are one still each.
+  const drawing = (stat.series?.length ?? 0) >= 6;
+  const drawFrames = (reveal: number, from: number, to: number): Frame[] =>
+    drawing
+      ? Array.from({ length: DRAW_STEPS }, (_, i) => ({
+          reveal,
+          seriesProgress: from + ((to - from) * (i + 1)) / DRAW_STEPS,
+        }))
+      : [{ reveal }];
+
   const sections: Section[] = [
     { key: "label", frames: [{ reveal: 0 }], seconds: withTail("label") },
     {
@@ -380,14 +419,18 @@ export function composeSections(stat: ReelStat, durations: Record<string, number
     },
   ];
   if (stat.line.trim()) {
-    sections.push({ key: "line", frames: [{ reveal: 0.6 }], seconds: withTail("line") });
+    sections.push({
+      key: "line",
+      frames: drawFrames(0.6, 0, 0.55),
+      seconds: withTail("line"),
+    });
   }
   if (stat.subtext.trim()) {
-    sections.push({ key: "claim", frames: [{ reveal: 1 }], seconds: withTail("claim") });
+    sections.push({ key: "claim", frames: drawFrames(1, 0.55, 1), seconds: withTail("claim") });
   }
   sections.push({
     key: "signOff",
-    frames: [{ reveal: 1 }],
+    frames: [{ reveal: 1, seriesProgress: drawing ? 1 : undefined }],
     seconds: withTail("signOff", true),
   });
   return sections;
@@ -442,13 +485,14 @@ export async function renderStatReel(
     const cache = new Map<string, string>();
     const frameFiles: string[] = [];
     for (const beat of beats) {
-      const key = `${beat.frame.reveal}|${beat.frame.valueText ?? ""}`;
+      const key = `${beat.frame.reveal}|${beat.frame.valueText ?? ""}|${beat.frame.seriesProgress ?? ""}`;
       let file = cache.get(key);
       if (!file) {
         const buf = await renderStatCard(stat, variant, {
           shape: "vertical",
           reveal: beat.frame.reveal,
           valueText: beat.frame.valueText,
+          seriesProgress: beat.frame.seriesProgress,
           kicker: "The Number",
         });
         file = path.join(dir, `frame-${cache.size}.jpg`);

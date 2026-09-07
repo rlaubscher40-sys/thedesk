@@ -16,6 +16,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import satori from "satori";
+import { seriesRange, sparklineDataUri, thin, type SparkPoint } from "./sparkline";
 import sharp from "sharp";
 import type { DailyFeedItem, Edition } from "../db/schema";
 import type { EditionTopic } from "../../shared/schemas";
@@ -2428,6 +2429,14 @@ export async function renderStatCard(
     subtext: string;
     source?: string | null;
     asOf?: Date | null;
+    /**
+     * The metric's own readings, oldest first. Drawn as a spare line under the
+     * claim — the one thing on this card a competitor aggregating today's
+     * headlines cannot print, because it is months of readings rather than a
+     * figure. 9:16 only: the grid card has no room for it, and restyling every
+     * stat post already published to add one is not worth it.
+     */
+    series?: SparkPoint[];
   },
   variant: CardVariant = "navy",
   opts: {
@@ -2448,6 +2457,8 @@ export async function renderStatCard(
      * hero and make the card jump under it.
      */
     valueText?: string;
+    /** 0..1, how much of `stat.series` has been drawn. Animated by the Reel. */
+    seriesProgress?: number;
   } = {}
 ): Promise<Buffer> {
   const logo = await loadLogo(variant);
@@ -2513,6 +2524,30 @@ export async function renderStatCard(
       }).format(stat.asOf)
     : null;
   const provenance = [stat.source, asOfLabel].filter(Boolean).join(" · ");
+
+  // A line needs a shape to be worth drawing. Two readings is a slope, not a
+  // history, and drawing one would claim an archive that is not there.
+  const points = vertical ? thin(stat.series ?? [], 60) : [];
+  const chart =
+    points.length >= 6
+      ? {
+          uri: sparklineDataUri(
+            points.map((p) => p.value),
+            {
+              width: width - 128,
+              height: 260,
+              progress: opts.seriesProgress ?? 1,
+              stroke: c.fg,
+              accent: c.amber,
+            }
+          ),
+          width: width - 128,
+          height: 260,
+          caption: [seriesRange(points), `${points.length} readings`.toUpperCase()]
+            .filter(Boolean)
+            .join("  ·  "),
+        }
+      : null;
 
   const tree = {
     type: "div",
@@ -2664,6 +2699,45 @@ export async function renderStatCard(
             ],
           },
         },
+
+        // The history, under the claim. It appears with the sentence rather than
+        // with the figure: the number is the news, the line is the argument for
+        // why it is news, and showing both at once gives the eye nowhere to go.
+        ...(chart
+          ? [
+              {
+                type: "div",
+                props: {
+                  style: {
+                    display: "flex",
+                    flexDirection: "column",
+                    marginTop: "62px",
+                    opacity: showLine ? 1 : 0,
+                  },
+                  children: [
+                    {
+                      type: "img",
+                      props: { src: chart.uri, width: chart.width, height: chart.height },
+                    },
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          fontFamily: "JetBrains Mono",
+                          fontSize: "17px",
+                          letterSpacing: "0.2em",
+                          textTransform: "uppercase",
+                          color: c.fgMuted,
+                          marginTop: "18px",
+                        },
+                        children: chart.caption,
+                      },
+                    },
+                  ],
+                },
+              },
+            ]
+          : []),
 
         {
           type: "div",

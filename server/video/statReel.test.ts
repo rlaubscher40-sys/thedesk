@@ -287,3 +287,74 @@ describe("parseDuration", () => {
     expect(parseDuration("Output file is empty")).toBeNull();
   });
 });
+
+describe("layout, with a history line to draw", () => {
+  it("spreads the drawing frames evenly across the passage", () => {
+    // Left to the fixed-frame default they would run off in half a second and
+    // then hold, which is a line that snaps rather than draws.
+    const { beats } = layout([
+      {
+        key: "line",
+        frames: [
+          { reveal: 0.6, seriesProgress: 0.2 },
+          { reveal: 0.6, seriesProgress: 0.4 },
+          { reveal: 0.6, seriesProgress: 0.6 },
+          { reveal: 0.6, seriesProgress: 0.8 },
+        ],
+        seconds: 4,
+      },
+    ]);
+    expect(beats.map((b) => b.seconds)).toEqual([1, 1, 1, 1]);
+  });
+
+  it("still lets the count-up ticks keep their own timing", () => {
+    const { beats } = layout([
+      {
+        key: "value",
+        frames: [
+          { reveal: 0.3, valueText: "1.0%", seconds: 0.1 },
+          { reveal: 0.3, valueText: "4.3%", seconds: 0.1 },
+          { reveal: 0.3 },
+        ],
+        seconds: 3,
+      },
+    ]);
+    expect(beats.map((b) => b.seconds)).toEqual([0.1, 0.1, 2.8]);
+  });
+});
+
+describe("composeSections, with a history line", () => {
+  const durations = { label: 1.2, value: 1.4, line: 3.4, claim: 2.6, signOff: 2.9 };
+  const series = Array.from({ length: 24 }, (_, i) => ({
+    value: 100 + i,
+    at: new Date(Date.UTC(2024, i, 1)),
+  }));
+
+  it("draws the line across the sentence and the claim, ending on the live reading", () => {
+    const sections = composeSections({ ...stat, series }, durations);
+    const line = sections.find((s) => s.key === "line")!;
+    const claim = sections.find((s) => s.key === "claim")!;
+    expect(line.frames.length).toBeGreaterThan(1);
+    expect(line.frames[0]!.seriesProgress).toBeGreaterThan(0);
+    // The head of the line reaches today exactly as the claim about it lands.
+    expect(claim.frames[claim.frames.length - 1]!.seriesProgress).toBe(1);
+  });
+
+  it("never draws backwards", () => {
+    const progress = composeSections({ ...stat, series }, durations)
+      .flatMap((s) => s.frames)
+      .map((f) => f.seriesProgress)
+      .filter((p): p is number => p !== undefined);
+    for (let i = 1; i < progress.length; i++) {
+      expect(progress[i]!).toBeGreaterThanOrEqual(progress[i - 1]!);
+    }
+  });
+
+  it("holds a single still per passage when there is no history to draw", () => {
+    // Two readings is a slope, not an archive. Animating one would claim a
+    // history that is not there.
+    const thin = series.slice(0, 3);
+    const sections = composeSections({ ...stat, series: thin }, durations);
+    expect(sections.find((s) => s.key === "line")!.frames).toHaveLength(1);
+  });
+});

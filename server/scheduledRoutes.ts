@@ -1678,6 +1678,11 @@ function registerInstagramRoutes(app: Express): void {
           subtext: pick.subtext,
           source: pick.source,
           asOf: pick.asOf,
+          // The same history the pick was made from, drawn under the claim.
+          // Oldest first: the chart reads left to right.
+          series: (histories[pick.metricKey] ?? [])
+            .map((h) => ({ value: h.value, at: h.recordedAt }))
+            .sort((a, b) => a.at.getTime() - b.at.getTime()),
         },
         siteOrigin(),
         { variant }
@@ -2015,7 +2020,13 @@ function registerInstagramRoutes(app: Express): void {
           return;
         }
         const variant = req.query.variant === "light" ? "light" : "navy";
-        const stat = { ...pick, line: sanitizeDashes(await generateStatLine(pick)) };
+        const stat = {
+          ...pick,
+          line: sanitizeDashes(await generateStatLine(pick)),
+          series: (histories[pick.metricKey] ?? [])
+            .map((h) => ({ value: h.value, at: h.recordedAt }))
+            .sort((a, b) => a.at.getTime() - b.at.getTime()),
+        };
         if (kind === "stat") {
           buf = await cards.renderStatCard(stat, variant, {
             shape: req.query.shape === "vertical" ? "vertical" : "feed",
