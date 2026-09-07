@@ -268,14 +268,27 @@ fallback so no working metric can break during the switch.
 
 This matters beyond tidiness. The API returns **whole time series**, so the
 monthly review can rank a month against decades rather than against the year of
-readings we have happened to collect. That turns "2.3 times its usual month"
-into "the biggest monthly fall since 2011" — the Glasshouse-shaped claim, from
-free data, computed by us.
+readings we have happened to collect.
 
-**Also free and currently done the hard way:** `mortgage_arrears` is obtained by
-having an LLM read news articles. APRA publishes it. The other three
-LLM-extracted metrics (auction clearance, dwelling values, consumer sentiment)
-are genuinely paid data, so the workaround is reasonable there; this one is not.
+**The consuming half is built.** Each move now carries how far back you have to
+go to find a bigger one in the same direction, the card leads with that ahead of
+the ratio, and a backfill converts an API series into the history the review
+reads. That turns "2.3 times its usual month" into "the biggest fall since June
+2022" — the Glasshouse-shaped claim, from free data, computed by us. It works on
+the history we hold today and gets better the moment a flow is wired up.
+
+It will not overstate itself: with nothing bigger behind a move the claim is
+bounded by when tracking started, and under a year it says nothing at all.
+
+**On mortgage arrears, a correction to my own suggestion.** I called swapping it
+off LLM-news-extraction onto APRA a free win. It is free, but it is not the
+small job I implied: APRA publishes it as a spreadsheet, this repo has no
+spreadsheet parser, and there is no catalogue endpoint to probe the way ABS has
+one. So it means a new runtime dependency plus guessing at sheet names and
+column positions in a workbook nobody here has opened. That is the same mistake
+as guessing a dataflow id, and it should be done probe-first or not at all. The
+other three LLM-extracted metrics (auction clearance, dwelling values, consumer
+sentiment) are genuinely paid data, so the workaround is right for them.
 
 Remaining on this item: run `pnpm probe:abs` with network access to read the
 dataflow ids off the catalogue, paste them into the `api` blocks, and the
