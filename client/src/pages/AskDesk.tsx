@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
-import { Link } from "wouter";
+import { Link, useSearch } from "wouter";
 import {
   ArrowUp,
   Check,
@@ -45,17 +45,33 @@ function rememberQuestion(question: string): void {
 }
 
 export default function AskDeskPage() {
+  const search = useSearch();
   const [question, setQuestion] = useState("");
   const [history, setHistory] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const handledDeepLink = useRef<string | null>(null);
   const mutation = trpc.ask.answer.useMutation();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
 
   useEffect(() => {
     setHistory(readHistory());
+    const linkedQuestion = (new URLSearchParams(search).get("q") ?? "").trim().slice(0, 240);
+    if (
+      linkedQuestion.length >= 3 &&
+      linkedQuestion !== handledDeepLink.current &&
+      !mutation.isPending
+    ) {
+      handledDeepLink.current = linkedQuestion;
+      setQuestion(linkedQuestion);
+      setCopied(false);
+      rememberQuestion(linkedQuestion);
+      setHistory(readHistory());
+      mutation.mutate({ question: linkedQuestion });
+      return;
+    }
     if (typeof window !== "undefined" && window.innerWidth >= 768) inputRef.current?.focus();
-  }, []);
+  }, [search]);
 
   function submit(event?: FormEvent) {
     event?.preventDefault();
@@ -107,15 +123,25 @@ export default function AskDeskPage() {
   async function shareBrief() {
     if (!result || result.status !== "answered") return;
     const text = `${result.answer.headline}\n\n${result.answer.answer}\n\nThe Desk`;
+    const publicUrl = new URL(
+      `/brief?token=${encodeURIComponent(result.shareToken)}`,
+      window.location.origin
+    ).toString();
     if (navigator.share) {
       try {
-        await navigator.share({ title: result.answer.headline, text, url: window.location.href });
+        await navigator.share({ title: result.answer.headline, text, url: publicUrl });
         return;
       } catch {
         // User cancelled or Web Share is unavailable for this payload.
       }
     }
-    await copyBrief();
+    try {
+      await navigator.clipboard.writeText(`${text}\n\n${publicUrl}`);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2200);
+    } catch {
+      // Clipboard is unavailable on some non-secure local previews.
+    }
   }
 
   return (
