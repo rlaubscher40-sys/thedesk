@@ -3,6 +3,7 @@ import { z } from "zod";
 import { consumeAnonymousCard } from "../core/askQuota";
 import * as db from "../db";
 import { renderDailyHookCoverCard } from "../og/dailyHookCover";
+import { renderDeskTakeCard } from "../og/takeCard";
 import { publicProcedure, router } from "../core/trpc";
 
 function enforceRenderQuota(authenticated: boolean, req: Parameters<typeof consumeAnonymousCard>[0]) {
@@ -33,12 +34,19 @@ export function buildStoryShareCaption(item: {
     .join("\n\n");
 }
 
+export function storyDeskTake(item: {
+  rubensNote?: string | null;
+  sayThis?: string | null;
+  counterpoint?: string | null;
+}): string | null {
+  return clean(item.rubensNote) || clean(item.sayThis) || clean(item.counterpoint) || null;
+}
+
 /**
  * Distribution assets generated from trusted Desk records rather than
- * arbitrary client-provided copy. The story itself becomes the social hook:
- * large headline first, evidence/context second, brand last. Keeping the
- * renderer behind an id lookup means the card cannot drift from the story live
- * on The Desk.
+ * arbitrary client-provided copy. Keeping both renderers behind an id lookup
+ * means neither the headline card nor The Desk Take can drift from the story
+ * currently live on The Desk.
  */
 export const shareRouter = router({
   storyCard: publicProcedure
@@ -73,6 +81,63 @@ export const shareRouter = router({
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "The Desk could not render this story card.",
+        });
+      }
+    }),
+
+  /**
+   * Render the story's editorial interpretation as its own social object. The
+   * take is selected server-side in order of authorship strength: Ruben note,
+   * Say This, then counterpoint. If the story has no editorial layer, fail
+   * closed instead of inventing one for the card.
+   */
+  takeCard: publicProcedure
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      const item = await db.getFeedItemById(input.id);
+      if (!item) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Story not found." });
+      }
+      const take = storyDeskTake(item);
+      if (!take) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "This story does not have a Desk Take to share yet.",
+        });
+      }
+
+      enforceRenderQuota(Boolean(ctx.user), ctx.req);
+
+      try {
+        const png = await renderDeskTakeCard({
+          take,
+          storyTitle: item.title,
+          category: item.category,
+          source: item.source ?? null,
+          context: item.whyItMatters || item.summary || null,
+          feedDate: item.feedDate,
+        });
+        const caption = [
+          "THE DESK TAKE",
+          take,
+          clean(item.whyItMatters),
+          item.source ? `Source: ${clean(item.source)}` : "",
+          "The Desk · Australian property intelligence",
+        ]
+          .filter(Boolean)
+          .join("\n\n");
+        return {
+          mimeType: "image/png" as const,
+          filename: `the-desk-take-${item.id}.png`,
+          base64: png.toString("base64"),
+          caption,
+          sharePath: `/story/${item.id}`,
+        };
+      } catch (error) {
+        console.error("[share] Desk Take card render failed", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "The Desk could not render this take card.",
         });
       }
     }),
