@@ -4,6 +4,12 @@ import path from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { PublicMarketRead } from "../../shared/PublicMarketRead";
+import { FeaturedComparisonRead } from "../../shared/FeaturedComparisonRead";
+import {
+  featuredComparison,
+  FEATURED_COMPARISON_PATH,
+  FEATURED_COMPARISON_CARD,
+} from "../../shared/featuredComparison";
 import { latestRent, rentIsOlder, rentPeriod } from "../../shared/cityRents";
 import {
   marketPath,
@@ -108,6 +114,43 @@ export function marketShell(
 
 /** Same content for humans and crawlers. No model calls on public page/image reads. */
 export function registerMarketSeoRoutes(app: Express): void {
+  app.get(FEATURED_COMPARISON_PATH, async (_req, res, next) => {
+    const shellPath = path.resolve(process.cwd(), "dist/public/index.html");
+    if (!fs.existsSync(shellPath)) return next();
+    try {
+      const [shell, directory] = await Promise.all([
+        fs.promises.readFile(shellPath, "utf8"),
+        getMarketDirectory(),
+      ]);
+      res
+        .set("Cache-Control", "public, max-age=60")
+        .type("html")
+        .send(featuredComparisonShell(shell, directory, siteUrl()));
+    } catch {
+      res
+        .set("Cache-Control", "no-store")
+        .set("Retry-After", "60")
+        .status(503)
+        .type("html")
+        .send('<h1>Comparison temporarily unavailable</h1><a href="/markets">Back to Markets</a>');
+    }
+  });
+  app.get(FEATURED_COMPARISON_CARD, async (_req, res) => {
+    try {
+      const directory = await getMarketDirectory();
+      const input = featuredComparisonCardInput(directory);
+      if (!input) {
+        res.set("Cache-Control", "no-store").status(404).end();
+        return;
+      }
+      const png = await cached(`market-card:featured:${JSON.stringify(input)}`, 60_000, () =>
+        renderDeskTakeCard(input)
+      );
+      res.set("Cache-Control", "public, max-age=60").type("png").send(png);
+    } catch {
+      res.set("Cache-Control", "no-store").status(503).end();
+    }
+  });
   app.get("/markets/:slug", async (req, res, next) => {
     const accept = req.headers.accept ?? "*/*";
     if (!accept.includes("text/html") && !accept.includes("*/*")) return next();
@@ -167,4 +210,69 @@ export function registerMarketSeoRoutes(app: Express): void {
       res.set("Cache-Control", "no-store").status(503).end();
     }
   });
+}
+
+export function featuredComparisonCardInput(directory: MarketDirectory): DeskTakeCardInput | null {
+  const read = featuredComparison(directory);
+  if (read.gap === null) return null;
+  return {
+    format: "market",
+    category: "Brisbane vs Perth",
+    take:
+      read.gap === 0
+        ? "Annual rent growth is level."
+        : `${read.gap > 0 ? "Brisbane" : "Perth"}'s annual rent growth is higher.`,
+    figure: `${Math.abs(read.gap).toFixed(1)}pp`,
+    storyTitle: `Brisbane ${read.rentA!.annualPercent.toFixed(1)}% · Perth ${read.rentB!.annualPercent.toFixed(1)}% · Year to ${rentPeriod(read.rentA!.period)}`,
+    context: `Gap in percentage points. ABS rents actually paid, original series. ${read.rentA!.status === "p" || read.rentB!.status === "p" ? "Includes preliminary data. " : ""}${read.rentA!.status === "r" || read.rentB!.status === "r" ? "Includes revised data. " : ""}No overall investment winner. Read the sources and gaps at thedesk.au${FEATURED_COMPARISON_PATH}.`,
+    source: "Australian Bureau of Statistics",
+    feedDate: read.rentA!.period,
+  };
+}
+
+export function featuredComparisonShell(
+  shell: string,
+  directory: MarketDirectory,
+  base: string
+): string {
+  const read = featuredComparison(directory);
+  const title = `Brisbane vs Perth: ${read.headline}`;
+  let html = injectMeta(shell, {
+    title,
+    description: read.summary,
+    canonical: `${base}${FEATURED_COMPARISON_PATH}`,
+    ogTitle: title,
+    ogDescription: read.summary,
+    ogImage: `${base}${read.gap === null ? "/og-card.png" : FEATURED_COMPARISON_CARD}`,
+    jsonLd: {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      name: title,
+      description: read.summary,
+      url: `${base}${FEATURED_COMPARISON_PATH}`,
+    },
+  });
+  if (read.gap !== null) {
+    for (const [property, value] of [
+      ["og:image:width", "1080"],
+      ["og:image:height", "1350"],
+    ]) {
+      const tag = `<meta property="${property}" content="${value}" />`;
+      const pattern = new RegExp(
+        `<meta\\s+property="${property}"\\s+content="[^"]*"\\s*\\/?>`,
+        "i"
+      );
+      html = pattern.test(html)
+        ? html.replace(pattern, tag)
+        : html.replace("</head>", `${tag}</head>`);
+    }
+  }
+  const content = renderToStaticMarkup(createElement(FeaturedComparisonRead, { directory }));
+  // Pilot stays noindex until there is a fuller market comparison; sharing still works.
+  return withNoindex(
+    html.replace(
+      '<div id="root"></div>',
+      `<div id="root"><main class="max-w-6xl mx-auto px-5 py-8">${content}</main></div>`
+    )
+  );
 }

@@ -29,6 +29,10 @@ const SharedBrief = lazyWithReload(() => import("./pages/SharedBrief"), "SharedB
 const Signals = lazyWithReload(() => import("./pages/Signals"), "Signals");
 const Markets = lazyWithReload(() => import("./pages/Markets"), "Markets");
 const PublicMarket = lazyWithReload(() => import("./pages/PublicMarket"), "PublicMarket");
+const FeaturedComparison = lazyWithReload(
+  () => import("./pages/FeaturedComparison"),
+  "FeaturedComparison"
+);
 const Editions = lazyWithReload(() => import("./pages/Editions"), "Editions");
 const ReadingQueue = lazyWithReload(() => import("./pages/ReadingQueue"), "ReadingQueue");
 const TopicThreads = lazyWithReload(() => import("./pages/TopicThreads"), "TopicThreads");
@@ -131,6 +135,7 @@ function Routes() {
         <Route path="/brief" component={SharedBrief} />
         <Route path="/signals" component={Signals} />
         <Route path="/markets" component={Markets} />
+        <Route path="/markets/compare/brisbane-vs-perth" component={FeaturedComparison} />
         <Route path="/markets/:slug" component={PublicMarket} />
         <Route path="/editions" component={Editions} />
         <Route path="/editions/:editionNumber" component={Editions} />

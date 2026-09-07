@@ -4,6 +4,7 @@ import { isDemoMode } from "../demo/store";
 import { getDb } from "./client";
 import { escapeLike } from "./like";
 import { rankResults } from "./searchRank";
+import { hasHousingEvidence, HOUSING_TOPIC_PATTERN } from "../../shared/marketRelevance";
 import { dailyFeedItems, editions, type DailyFeedItem, type InsertDailyFeedItem } from "./schema";
 
 /** Most recent 30 items if no date specified, otherwise everything for that day. */
@@ -281,6 +282,7 @@ export async function listMarketDiscoveryItems(startDate: string, endDate: strin
           item.category.toUpperCase()
         )
       )
+      .filter((item) => hasHousingEvidence(`${item.title} ${item.summary ?? ""}`))
       .sort((a, b) => b.feedDate.localeCompare(a.feedDate) || b.id - a.id)
       .slice(0, limit);
   }
@@ -299,7 +301,7 @@ export async function listMarketDiscoveryItems(startDate: string, endDate: strin
     })
     .from(dailyFeedItems)
     .where(
-      sql`${dailyFeedItems.feedDate} >= ${startDate} AND ${dailyFeedItems.feedDate} <= ${endDate} AND (${dailyFeedItems.channel} IN ('AU', 'PROPERTY') OR ${dailyFeedItems.channel} IS NULL) AND ${dailyFeedItems.category} IN ('PROPERTY', 'MACRO', 'MARKETS', 'POLICY', 'ECONOMICS')`
+      sql`${dailyFeedItems.feedDate} >= ${startDate} AND ${dailyFeedItems.feedDate} <= ${endDate} AND (${dailyFeedItems.channel} IN ('AU', 'PROPERTY') OR ${dailyFeedItems.channel} IS NULL) AND ${dailyFeedItems.category} IN ('PROPERTY', 'MACRO', 'MARKETS', 'POLICY', 'ECONOMICS') AND LOWER(CONCAT(${dailyFeedItems.title}, ' ', COALESCE(${dailyFeedItems.summary}, ''))) REGEXP ${HOUSING_TOPIC_PATTERN}`
     )
     .orderBy(desc(dailyFeedItems.feedDate), desc(dailyFeedItems.id))
     .limit(limit);
@@ -441,4 +443,66 @@ export async function searchAllContent(query: string) {
       (f) => f.summary ?? ""
     ),
   };
+}
+
+/** Housing candidates are filtered BEFORE the cap; generic city search can be
+ * filled entirely by sport/weather/crime before it reaches an older housing report.
+ * Literal locality and passage checks are applied again by market retrieval.
+ */
+export async function searchMarketContent(query: string) {
+  const asOf = sydneyToday();
+  const since = new Date(Date.parse(`${asOf}T00:00:00Z`) - 179 * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  if (isDemoMode()) {
+    const bundle = demoQueries.searchAllContent(query);
+    return {
+      feedItems: bundle.feedItems
+        .filter(
+          (item) =>
+            ["AU", "PROPERTY"].includes(item.channel ?? "AU") &&
+            item.feedDate >= since &&
+            item.feedDate <= asOf &&
+            hasHousingEvidence(`${item.title} ${item.summary ?? ""}`)
+        )
+        .slice(0, 50),
+      editions: bundle.editions
+        .filter(
+          (item) =>
+            item.weekOf >= since && item.weekOf <= asOf && hasHousingEvidence(item.fullText ?? "")
+        )
+        .slice(0, 12),
+    };
+  }
+  const db = getDb();
+  if (!db) return { editions: [], feedItems: [] };
+  const pattern = `%${escapeLike(query)}%`;
+  const [feedItems, editionRows] = await Promise.all([
+    db
+      .select()
+      .from(dailyFeedItems)
+      .where(
+        and(
+          or(like(dailyFeedItems.title, pattern), like(dailyFeedItems.summary, pattern)),
+          sql`(${dailyFeedItems.channel} IN ('AU', 'PROPERTY') OR ${dailyFeedItems.channel} IS NULL)`,
+          sql`${dailyFeedItems.feedDate} >= ${since} AND ${dailyFeedItems.feedDate} <= ${asOf}`,
+          sql`LOWER(CONCAT(${dailyFeedItems.title}, ' ', COALESCE(${dailyFeedItems.summary}, ''))) REGEXP ${HOUSING_TOPIC_PATTERN}`
+        )
+      )
+      .orderBy(desc(dailyFeedItems.feedDate), desc(dailyFeedItems.id))
+      .limit(50),
+    db
+      .select()
+      .from(editions)
+      .where(
+        and(
+          like(editions.fullText, pattern),
+          sql`${editions.weekOf} >= ${since} AND ${editions.weekOf} <= ${asOf}`,
+          sql`LOWER(${editions.fullText}) REGEXP ${HOUSING_TOPIC_PATTERN}`
+        )
+      )
+      .orderBy(desc(editions.weekOf))
+      .limit(12),
+  ]);
+  return { feedItems, editions: editionRows };
 }
