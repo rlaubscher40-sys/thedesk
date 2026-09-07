@@ -121,7 +121,7 @@ export function BreakingSignalToast() {
       <div
         role="status"
         aria-label="A watched signal moved materially"
-        className="hidden md:flex fixed bottom-6 right-6 z-40 max-w-sm panel p-4 rounded shadow-xl items-start gap-3"
+        className="flex fixed bottom-20 md:bottom-6 left-3 right-3 md:left-auto md:right-6 z-40 md:max-w-sm panel p-4 rounded shadow-xl items-start gap-3"
       >
         <div className="h-7 w-7 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0">
           <Icon className="h-3.5 w-3.5 text-amber-400" />
