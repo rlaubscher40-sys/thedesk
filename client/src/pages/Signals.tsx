@@ -403,7 +403,7 @@ function SignalTrendFigure({
     ? new Date(series[0].recordedAt).toLocaleDateString("en-AU", { day: "numeric", month: "short" })
     : "Start";
   const lastDate = series[series.length - 1]?.recordedAt
-    ? new Date(series[series.length - 1].recordedAt).toLocaleDateString("en-AU", { day: "numeric", month: "short" })
+    ? new Date(series[series.length - 1]!.recordedAt).toLocaleDateString("en-AU", { day: "numeric", month: "short" })
     : "Now";
 
   return (
