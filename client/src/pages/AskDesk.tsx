@@ -60,7 +60,7 @@ export default function AskDeskPage() {
   function submit(event?: FormEvent) {
     event?.preventDefault();
     const value = question.trim();
-    if (value.length < 3 || mutation.isPending || !isAuthenticated) return;
+    if (value.length < 3 || mutation.isPending) return;
     setCopied(false);
     rememberQuestion(value);
     setHistory(readHistory());
@@ -69,7 +69,6 @@ export default function AskDeskPage() {
 
   function ask(value: string) {
     setQuestion(value);
-    if (!isAuthenticated) return;
     setCopied(false);
     rememberQuestion(value);
     setHistory(readHistory());
@@ -175,7 +174,6 @@ export default function AskDeskPage() {
             rows={1}
             value={question}
             maxLength={240}
-            disabled={!isAuthenticated && !authLoading}
             onChange={(event) => {
               setQuestion(event.target.value);
               event.currentTarget.style.height = "auto";
@@ -188,7 +186,7 @@ export default function AskDeskPage() {
               }
             }}
             placeholder="What do you need to know about Australian property?"
-            className="flex-1 min-w-0 resize-none overflow-hidden bg-transparent border-0 outline-none font-serif disabled:opacity-60"
+            className="flex-1 min-w-0 resize-none overflow-hidden bg-transparent border-0 outline-none font-serif"
             style={{
               minHeight: 48,
               fontSize: "clamp(24px, 3.8vw, 44px)",
@@ -199,7 +197,7 @@ export default function AskDeskPage() {
           />
           <button
             type="submit"
-            disabled={question.trim().length < 3 || mutation.isPending || !isAuthenticated}
+            disabled={question.trim().length < 3 || mutation.isPending}
             aria-label="Ask The Desk"
             className="h-12 w-12 lg:h-14 lg:w-14 shrink-0 flex items-center justify-center bs-btn-solid disabled:opacity-30"
             style={{ borderRadius: 2 }}
@@ -210,12 +208,12 @@ export default function AskDeskPage() {
       </form>
 
       {!authLoading && !isAuthenticated && (
-        <div className="rule-hair-b py-5 flex flex-wrap items-center justify-between gap-4">
-          <p className="text-[15px] text-[var(--color-fg-body)]">
-            Ask The Desk is currently available to signed-in readers.
+        <div className="rule-hair-b py-4 flex flex-wrap items-center justify-between gap-4">
+          <p className="text-[14px] text-[var(--color-fg-muted)]">
+            No account required · 3 grounded intelligence questions free each day.
           </p>
-          <a href={getLoginUrl()} className="bs-btn bs-btn-solid">
-            Sign in to ask
+          <a href={getLoginUrl()} className="bs-label bs-link">
+            Sign in for unlimited Ask →
           </a>
         </div>
       )}
@@ -279,9 +277,16 @@ export default function AskDeskPage() {
           <p className="bs-label-accent">Intelligence request failed</p>
           <h2 className="font-serif text-3xl mt-2">The Desk could not finish that answer.</h2>
           <p className="mt-3 text-[var(--color-fg-body)]">{mutation.error.message}</p>
-          <button type="button" onClick={() => mutation.reset()} className="bs-btn bs-btn-outline mt-5">
-            Try another question
-          </button>
+          <div className="flex flex-wrap gap-2 mt-5">
+            <button type="button" onClick={() => mutation.reset()} className="bs-btn bs-btn-outline">
+              Try another question
+            </button>
+            {!isAuthenticated && (
+              <a href={getLoginUrl()} className="bs-btn bs-btn-solid">
+                Sign in
+              </a>
+            )}
+          </div>
         </div>
       )}
 
@@ -306,9 +311,12 @@ export default function AskDeskPage() {
       {result?.status === "answered" && (
         <article className="mt-10 lg:mt-12 animate-fade-in">
           <div className="rule-major pt-4 flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <ShieldCheck className="h-4 w-4 text-[var(--color-accent-text)]" />
               <p className="bs-label-accent">Grounded intelligence · {result.searchedRecords} records checked</p>
+              {result.anonymousRemaining !== null && (
+                <p className="bs-label">· {result.anonymousRemaining} free {result.anonymousRemaining === 1 ? "question" : "questions"} left today</p>
+              )}
             </div>
             <div className="flex flex-wrap gap-2">
               <button type="button" onClick={copyBrief} className="bs-btn bs-btn-outline inline-flex items-center gap-2">
