@@ -3,13 +3,7 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 
 type Props = {
-  label: string;
-  value: string;
-  context: string | null;
-  move: string | null;
-  deskTake: string | null;
-  source: string | null;
-  asOf: string | null;
+  metricKey: string;
 };
 
 function base64ToFile(base64: string, mimeType: string, filename: string): File {
@@ -19,13 +13,13 @@ function base64ToFile(base64: string, mimeType: string, filename: string): File 
   return new File([bytes], filename, { type: mimeType });
 }
 
-export function ShareSignalCardButton(props: Props) {
+export function ShareSignalCardButton({ metricKey }: Props) {
   const [complete, setComplete] = useState(false);
   const card = trpc.signals.shareCard.useMutation();
 
   async function share() {
     setComplete(false);
-    const rendered = await card.mutateAsync(props);
+    const rendered = await card.mutateAsync({ metricKey });
     const file = base64ToFile(rendered.base64, rendered.mimeType, rendered.filename);
     const publicUrl = new URL(rendered.sharePath, window.location.origin).toString();
 
@@ -34,13 +28,13 @@ export function ShareSignalCardButton(props: Props) {
         if (navigator.canShare?.({ files: [file] })) {
           await navigator.share({
             files: [file],
-            title: `${props.value} · ${props.label}`,
+            title: `${rendered.value} · ${rendered.label}`,
             text: "The Number from The Desk",
             url: publicUrl,
           });
         } else {
           await navigator.share({
-            title: `${props.value} · ${props.label}`,
+            title: `${rendered.value} · ${rendered.label}`,
             text: "The Number from The Desk",
             url: publicUrl,
           });
