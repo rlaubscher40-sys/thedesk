@@ -15,12 +15,12 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import {
-  BarChart3,
   BookOpen,
   Bookmark,
   ChevronUp,
   LogIn,
   Newspaper,
+  Radio,
   Search,
   Settings,
 } from "lucide-react";
@@ -43,14 +43,14 @@ type NavItem = {
   icon: typeof Newspaper;
 };
 
-// Five primary destinations. Ask is deliberately in the tab bar rather than
-// buried under Archive: the intelligence loop should be one tap away from
-// every screen. Editions remain reachable from the masthead/page nav.
+// Five primary destinations. Ask and Signals are the product loops we want
+// one tap away: interrogate the intelligence, then watch what changes. Archive
+// and Saved remain utilities; Trends is still reachable from the masthead.
 const MOBILE_TABS: NavItem[] = [
   { path: "/", label: "Today", icon: Newspaper },
   { path: "/ask", label: "Ask", icon: Search },
+  { path: "/signals", label: "Signals", icon: Radio },
   { path: "/archive", label: "Archive", icon: BookOpen },
-  { path: "/trends", label: "Trends", icon: BarChart3 },
   { path: "/queue", label: "Saved", icon: Bookmark },
 ];
 
@@ -66,6 +66,7 @@ function ownsGutter(location: string): boolean {
   return (
     location === "/" ||
     location === "/ask" ||
+    location === "/signals" ||
     location === "/about" ||
     location === "/archive" ||
     location === "/editions" ||
