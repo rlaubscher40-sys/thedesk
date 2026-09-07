@@ -26,6 +26,10 @@ function moveLabel(value: number | null): string {
   return `${sign}${value.toFixed(Math.abs(value) >= 10 ? 1 : 2)}% · 30d`;
 }
 
+function moveMagnitude(value: number | null): number {
+  return value == null || !Number.isFinite(value) ? -1 : Math.abs(value);
+}
+
 /**
  * The three biggest live moves, deliberately separate from the full metric
  * dashboard lower on Today. This is the 5-second answer to "what changed?"
@@ -47,7 +51,7 @@ export function MorningSignals() {
             : null;
         return { metric, move };
       })
-      .sort((a, b) => Math.abs(b.move ?? -1) - Math.abs(a.move ?? -1))
+      .sort((a, b) => moveMagnitude(b.move) - moveMagnitude(a.move))
       .slice(0, 3);
   }, [metrics.data, histories.data]);
 
