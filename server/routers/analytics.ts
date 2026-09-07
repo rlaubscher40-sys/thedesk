@@ -1,11 +1,9 @@
 /**
  * Admin-only analytics router.
  *
- * Reads aggregates off the `page_views` table. The browser-side
- * tracker (client/src/lib/analytics.ts) writes via the public
- * /api/analytics/pageview Express route; this router is read-only and
- * gated behind adminProcedure so only the curator can see the
- * numbers.
+ * Reads privacy-preserving aggregates off the self-hosted analytics store.
+ * Page-view and engagement writes arrive through Express endpoints; this
+ * router is read-only and curator-gated.
  */
 import { z } from "zod";
 import * as db from "../db";
@@ -16,7 +14,6 @@ const windowSchema = z
   .optional();
 
 export const analyticsRouter = router({
-  /** Headline counts over a rolling window (default 24h). */
   summary: adminProcedure.input(windowSchema).query(async ({ input }) => {
     const hours = input?.hours ?? 24;
     const [now, week, month] = await Promise.all([
@@ -31,7 +28,6 @@ export const analyticsRouter = router({
     };
   }),
 
-  /** Top paths and top referrers over a rolling window. */
   breakdown: adminProcedure.input(windowSchema).query(async ({ input }) => {
     const hours = input?.hours ?? 24;
     const [paths, referrers] = await Promise.all([
@@ -41,10 +37,15 @@ export const analyticsRouter = router({
     return { paths, referrers };
   }),
 
-  /** Per-day view counts across the last N days for a sparkline. */
   byDay: adminProcedure
     .input(z.object({ days: z.number().int().min(1).max(90).default(30) }).optional())
     .query(async ({ input }) => {
       return db.pageViewsByDay(input?.days ?? 30);
     }),
+
+  /** Product actions are kept separate from page-view totals. */
+  engagement: adminProcedure.input(windowSchema).query(async ({ input }) => {
+    const hours = input?.hours ?? 24 * 7;
+    return db.engagementSummary(hours, 20);
+  }),
 });

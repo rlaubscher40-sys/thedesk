@@ -1,13 +1,34 @@
 {
   "name": "The Desk",
   "short_name": "The Desk",
-  "description": "Daily intelligence for the property industry.",
+  "description": "Australian property intelligence before it becomes consensus.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#f5f0e8",
   "theme_color": "#f5f0e8",
+  "categories": ["business", "finance", "news"],
+  "shortcuts": [
+    {
+      "name": "Ask The Desk",
+      "short_name": "Ask",
+      "description": "Ask a grounded Australian property question",
+      "url": "/ask"
+    },
+    {
+      "name": "Markets",
+      "short_name": "Markets",
+      "description": "Open Australian market intelligence",
+      "url": "/markets"
+    },
+    {
+      "name": "Signals",
+      "short_name": "Signals",
+      "description": "See what is moving now",
+      "url": "/signals"
+    }
+  ],
   "icons": [
     {
       "src": "/favicon-32x32.png",

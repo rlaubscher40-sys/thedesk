@@ -1,16 +1,12 @@
 /**
- * Self-hosted readership analytics. Replaces the Plausible tile.
+ * Self-hosted readership + product-loop analytics.
  *
- * Reads aggregates from trpc.analytics.* — all admin-gated. Three
- * blocks of information:
- *   1. Stat tiles: views & sessions over 24h / 7d / 30d.
- *   2. Top paths and top referrers over the same window.
- *   3. Per-day sparkline across 30 days.
- *
- * No third-party JS, no cookies; the underlying page_views table
- * stores path + ephemeral session token + hostname-only referrer.
+ * Page views remain cookieless and fingerprint-free. High-value intelligence
+ * actions are reported through a fixed event allow-list so we can measure the
+ * loop we are trying to grow (watch → ask → share) without collecting question
+ * text, market names or other user-entered content.
  */
-import { BarChart3 } from "lucide-react";
+import { BarChart3, Share2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 
 export function AnalyticsAdminPanel() {
@@ -23,10 +19,15 @@ export function AnalyticsAdminPanel() {
   const byDayQuery = trpc.analytics.byDay.useQuery(undefined, {
     refetchInterval: 5 * 60_000,
   });
+  const engagementQuery = trpc.analytics.engagement.useQuery(
+    { hours: 24 * 7 },
+    { refetchInterval: 60_000 }
+  );
 
   const summary = summaryQuery.data;
   const breakdown = breakdownQuery.data;
   const byDay = byDayQuery.data ?? [];
+  const engagement = engagementQuery.data ?? [];
 
   return (
     <section className="panel rounded p-6 sm:p-8 space-y-7">
@@ -38,12 +39,11 @@ export function AnalyticsAdminPanel() {
           <BarChart3 className="inline h-3 w-3 mr-1.5 align-[-2px]" />
           Analytics
         </p>
-        <h2 className="font-serif text-2xl font-bold leading-tight">
-          Readers
-        </h2>
-        <p className="text-sm text-[var(--color-fg-muted)] mt-1.5 max-w-[60ch]">
-          Self-hosted page-view counts. Cookieless, no third-party
-          script, no IP storage. Sessions reset when the tab closes.
+        <h2 className="font-serif text-2xl font-bold leading-tight">Readers + product loop</h2>
+        <p className="text-sm text-[var(--color-fg-muted)] mt-1.5 max-w-[68ch]">
+          Self-hosted page views and a small allow-list of product actions. No cookies, third-party
+          scripts or IP storage. Sessions reset when the tab closes; event rows contain no question
+          text, market names or metric values.
         </p>
       </header>
 
@@ -64,6 +64,37 @@ export function AnalyticsAdminPanel() {
             value={summary.last30d.views.toLocaleString("en-AU")}
             hint={`${summary.last30d.sessions} sessions`}
           />
+        </div>
+      )}
+
+      {engagement.length > 0 && (
+        <div className="rule-hair rule-hair-b py-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Share2 className="h-3.5 w-3.5 text-[var(--color-accent-text)]" />
+            <h3
+              className="font-mono uppercase text-[var(--color-fg-muted)]"
+              style={{ fontSize: "11px", letterSpacing: "0.22em" }}
+            >
+              Intelligence actions · 7d
+            </h3>
+          </div>
+          <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-px bg-[var(--color-border)]">
+            {engagement.map((row) => (
+              <div key={`${row.event}-${row.surface ?? "all"}`} className="bg-[var(--color-bg-elevated)] p-4">
+                <p className="font-mono uppercase text-[10px] tracking-[0.16em] text-[var(--color-fg-subtle)]">
+                  {eventLabel(row.event)}{row.surface ? ` · ${row.surface}` : ""}
+                </p>
+                <div className="flex items-end gap-3 mt-2">
+                  <p className="font-serif text-3xl font-bold tabular-nums leading-none">
+                    {row.count.toLocaleString("en-AU")}
+                  </p>
+                  <p className="font-mono text-[10px] text-[var(--color-fg-subtle)] pb-0.5">
+                    {row.sessions} session{row.sessions === 1 ? "" : "s"}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -88,6 +119,22 @@ export function AnalyticsAdminPanel() {
       )}
     </section>
   );
+}
+
+function eventLabel(value: string): string {
+  const labels: Record<string, string> = {
+    ask_query: "Ask query",
+    ask_share: "Ask shared",
+    market_watch: "Market watched",
+    market_compare: "Markets compared",
+    market_compare_share: "Comparison shared",
+    signal_watch: "Signal watched",
+    signal_share: "Signal shared",
+    story_share: "Story shared",
+    take_share: "Desk Take shared",
+    brief_reshare: "Brief re-shared",
+  };
+  return labels[value] ?? value.replace(/_/g, " ");
 }
 
 function Tile({
@@ -175,7 +222,6 @@ function BreakdownList({
 }
 
 function DailySparkline({ rows }: { rows: Array<{ day: string; views: number }> }) {
-  // Server returns newest-first; reverse for left-to-right rendering.
   const ordered = [...rows].reverse();
   const max = Math.max(1, ...ordered.map((r) => r.views));
   return (

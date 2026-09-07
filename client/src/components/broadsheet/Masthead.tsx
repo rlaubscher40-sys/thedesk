@@ -21,6 +21,9 @@ import { GUTTER } from "./tokens";
 
 const NAV = [
   { href: "/", label: "Today" },
+  { href: "/ask", label: "Ask" },
+  { href: "/markets", label: "Markets" },
+  { href: "/signals", label: "Signals" },
   { href: "/editions", label: "Editions" },
   { href: "/archive", label: "Archive" },
   { href: "/trends", label: "Trends" },
@@ -116,7 +119,7 @@ export function Masthead({ dateLabel, shapeLine }: { dateLabel: string; shapeLin
               className="bs-label mt-3 lg:mt-4 hidden sm:block"
               style={{ fontSize: 11, letterSpacing: "0.3em" }}
             >
-              The Australian property market, read every morning
+              Australian property intelligence before it becomes consensus
             </p>
           </div>
         </div>

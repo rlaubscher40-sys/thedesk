@@ -15,12 +15,12 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import {
-  BarChart3,
-  BookOpen,
   Bookmark,
   ChevronUp,
   LogIn,
+  MapPin,
   Newspaper,
+  Radio,
   Search,
   Settings,
 } from "lucide-react";
@@ -43,13 +43,15 @@ type NavItem = {
   icon: typeof Newspaper;
 };
 
-// Five primary destinations — a phone tab row gets cramped past that, and
-// the labels are already at 9px. Admin is appended at runtime for admins.
+// The phone bar carries the five product loops, not the full information
+// architecture: know what changed, interrogate it, inspect a place, watch the
+// live signals, and keep the things worth returning to. Archive/editions/trends
+// stay in the masthead nav rather than competing for one of five thumb targets.
 const MOBILE_TABS: NavItem[] = [
   { path: "/", label: "Today", icon: Newspaper },
-  { path: "/editions", label: "Editions", icon: BookOpen },
-  { path: "/archive", label: "Archive", icon: Search },
-  { path: "/trends", label: "Trends", icon: BarChart3 },
+  { path: "/ask", label: "Ask", icon: Search },
+  { path: "/markets", label: "Markets", icon: MapPin },
+  { path: "/signals", label: "Signals", icon: Radio },
   { path: "/queue", label: "Saved", icon: Bookmark },
 ];
 
@@ -64,6 +66,8 @@ const OWNS_CHROME = ["/"];
 function ownsGutter(location: string): boolean {
   return (
     location === "/" ||
+    location === "/ask" ||
+    location === "/signals" ||
     location === "/about" ||
     location === "/archive" ||
     location === "/editions" ||

@@ -7,9 +7,9 @@
  * card, where the headline is the only thing that earns the scroll-stop.
  *
  * This runs just-in-time on the 3 stories selected for the daily carousel
- * (not at ingest), so it never touches the website or email copy, and costs
- * ~3 short LLM calls per day. On SKIP or any failure the caller falls back to
- * the original title, so a bad rewrite can never block a post.
+ * (not at ingest), so it never touches the website or email copy. On SKIP or
+ * any failure the caller falls back to the original title, so a bad rewrite
+ * can never block a post.
  */
 import { invokeLLM } from "../core/llm";
 import { rubenSystemPrompt, stripBannedChars } from "./voice";
@@ -20,36 +20,65 @@ export type InstagramHeadlineInput = {
   category: string;
 };
 
-/** Hard cap: above this the rewrite is rejected and the original title used. */
-const MAX_HEADLINE_CHARS = 90;
+/** The grid has to read in a glance. Longer outputs fall back to source copy. */
+const MAX_HEADLINE_CHARS = 82;
+
+function numericClaims(value: string): string[] {
+  return [...value.matchAll(/\d[\d,.]*(?:\.\d+)?%?/g)].map((match) =>
+    match[0].replace(/,/g, "").toLowerCase()
+  );
+}
+
+/**
+ * A social rewrite is allowed to compress language, never invent a number.
+ * This deterministic check sits after the model so the highest-attention
+ * surface in the product cannot create a fabricated price, percentage or count.
+ */
+export function instagramHeadlineNumbersAreGrounded(
+  headline: string,
+  input: InstagramHeadlineInput
+): boolean {
+  const outputNumbers = numericClaims(headline);
+  if (outputNumbers.length === 0) return true;
+  const sourceNumbers = new Set(numericClaims(`${input.title} ${input.summary ?? ""}`));
+  return outputNumbers.every((value) => sourceNumbers.has(value));
+}
 
 function buildPrompt(input: InstagramHeadlineInput): string {
-  return `You are writing the headline for a single Instagram card in The Desk's daily intelligence carousel, read by Australian property and finance professionals.
+  return `You are writing the scroll-stopping first line for one card in The Desk, an Australian property intelligence publication.
 
 Raw source title: ${input.title}
 Category: ${input.category}
 Summary: ${input.summary || "(no summary)"}
 
-Rewrite the raw title into ONE punchy editorial headline that makes someone stop scrolling. The raw title is often a dataset name or a bureaucratic label; your job is to surface the actual story, the implication, or the tension inside it.
+The job is not to summarise the article. Find the SINGLE concrete thing someone would repeat to another person: the number, reversal, record, gap, constraint or consequence. Make that the headline.
 
 Rules:
-- 6 to 12 words. Around 70 characters, never more than 90.
-- Front-load the hook: the number, the shift, or the "so what". Never lead with the institution's name.
-- Stay factually faithful to the summary. Do not invent figures, claims, or causation that is not supported.
-- Ruben's voice: calm, commercially sharp, non-obvious. Australian English.
-- No em dashes, no question marks, no hype words, no emoji, no trailing punctuation, no quotation marks.
-- A headline, not a sentence with a full stop. Title-case or sentence-case, your call, whichever lands harder.
+- 4 to 10 words. Aim for 45 to 72 characters, never more than 82.
+- If the source contains a genuinely striking number that carries the story, lead with that exact number.
+- Preserve every figure exactly. Never calculate, round, extrapolate or invent a figure.
+- Prefer a concrete claim over generic words like "outlook", "update", "trend", "market" or "report".
+- Never lead with the institution, publisher, survey or dataset name unless that institution itself is the story.
+- Stay factually faithful to the supplied title and summary. Do not add causation that is not explicit.
+- Calm, commercially sharp, specific. Australian English.
+- No clickbait, em dashes, question marks, emoji, quotation marks, hashtags or trailing full stop.
+- It should look good alone on a dark card in very large type.
 
-If the raw title is already a sharp, human headline that cannot be meaningfully improved, respond with exactly the literal token SKIP and nothing else.
+Good shape: "21,465 people left NSW"
+Good shape: "$1.66B wiped from asking prices"
+Weak shape: "Property market faces another major shift"
+Weak shape: "New report reveals surprising housing trend"
 
-Output ONLY the rewritten headline, OR the literal token SKIP. No preamble, no quotes, no label.`;
+If the source is too vague to improve safely, respond with exactly SKIP.
+
+Output ONLY the rewritten headline or SKIP.`;
 }
 
 /**
  * Rewrite a feed title into an Instagram-card headline. Returns null when the
- * LLM emits SKIP (original is already good), when the output is malformed or
- * too long, or on any error. The caller treats null as "keep the original
- * title", so the post always renders.
+ * LLM emits SKIP, the output is malformed/too long, a numeric claim cannot be
+ * traced back to the source text, or on any error. The caller treats null as
+ * "keep the original title", so social generation fails closed.
  */
 export async function generateInstagramHeadline(
   input: InstagramHeadlineInput
@@ -60,7 +89,7 @@ export async function generateInstagramHeadline(
         { role: "system", content: rubenSystemPrompt },
         { role: "user", content: buildPrompt(input) },
       ],
-      maxTokens: 200,
+      maxTokens: 160,
     });
     const cleaned = stripBannedChars(content.trim())
       .replace(/^["']|["']$/g, "")
@@ -75,6 +104,10 @@ export async function generateInstagramHeadline(
       console.log(
         `[instagramHeadline] rejected (too long, ${cleaned.length} chars): ${cleaned.slice(0, 80)}`
       );
+      return null;
+    }
+    if (!instagramHeadlineNumbersAreGrounded(cleaned, input)) {
+      console.warn(`[instagramHeadline] rejected ungrounded numeric rewrite: ${cleaned}`);
       return null;
     }
     return cleaned;

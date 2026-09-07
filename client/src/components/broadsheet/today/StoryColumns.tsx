@@ -6,10 +6,15 @@
  * "Ruben's read" toggle: the take is the point of the card, so it renders
  * inline.
  *
+ * Before the story grid, genuinely available counterpoints are compressed into
+ * a small "What people are missing" plate. That makes the second-order read a
+ * first-class product object rather than burying it inside individual stories.
+ *
  * Ragged column heights are not a defect here — with hairline columns
  * instead of floating cards there is nothing to line up, which is why the
  * `estimatedCardHeight` sort that used to pre-order the grid is gone.
  */
+import { ArrowRight } from "lucide-react";
 import { Link } from "wouter";
 import type { DailyFeedItem } from "@shared/types";
 import { cn } from "@/lib/cn";
@@ -21,11 +26,78 @@ import { readingMinutes } from "@/lib/readingTime";
 import { GUTTER_X } from "../tokens";
 import { StoryImage } from "../StoryImage";
 
+function askCounterpointHref(item: DailyFeedItem): string {
+  const counterpoint = dedash(item.counterpoint?.trim() ?? "").slice(0, 135);
+  const question = `What does this counterpoint change about the story "${cleanHeadline(item.title)}": ${counterpoint}`;
+  return `/ask?q=${encodeURIComponent(question.slice(0, 240))}`;
+}
+
 export function StoryColumns({ items }: { items: DailyFeedItem[] }) {
   if (items.length === 0) return null;
 
+  const counterpoints = [...items]
+    .filter((item) => Boolean(item.counterpoint?.trim()))
+    .sort((a, b) => (b.priority ?? 50) - (a.priority ?? 50))
+    .slice(0, 3);
+
   return (
     <section className={cn(GUTTER_X, "rule-major mt-11 pt-5")} aria-label="More from today">
+      {counterpoints.length > 0 && (
+        <div className="rule-hair-b pb-7 mb-7">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="bs-label-accent" style={{ letterSpacing: "0.22em" }}>
+                What people are missing
+              </p>
+              <h2
+                className="font-serif font-bold mt-2"
+                style={{
+                  fontSize: "clamp(30px, 4vw, 48px)",
+                  lineHeight: 0.98,
+                  letterSpacing: "-0.035em",
+                }}
+              >
+                The second-order read.
+              </h2>
+            </div>
+            <p className="bs-label max-w-[44ch] text-right">
+              Counterpoints only appear when the reporting supports a genuine second side.
+            </p>
+          </div>
+
+          <div className="grid lg:grid-cols-3 mt-6">
+            {counterpoints.map((item, index) => (
+              <article
+                key={`counterpoint-${item.id}`}
+                className={cn(
+                  "py-4 lg:py-2 lg:pr-7",
+                  index > 0 && "lg:rule-hair-l lg:pl-7"
+                )}
+              >
+                <p className="bs-label-accent">{item.category}</p>
+                <p
+                  className="font-serif mt-2.5 text-[var(--color-fg-body)]"
+                  style={{ fontSize: "clamp(20px, 2vw, 25px)", lineHeight: 1.32 }}
+                >
+                  {dedash(item.counterpoint?.trim() ?? "")}
+                </p>
+                <div className="flex flex-wrap gap-x-5 gap-y-2 mt-4">
+                  <Link href={`/story/${item.id}`} className="bs-label bs-link">
+                    Underlying story
+                  </Link>
+                  <Link
+                    href={askCounterpointHref(item)}
+                    className="bs-label bs-link inline-flex items-center gap-1.5"
+                  >
+                    Interrogate this angle <ArrowRight className="h-3 w-3" />
+                  </Link>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      )}
+
       <p className="bs-label mb-6" style={{ letterSpacing: "0.24em" }}>
         More from today
       </p>

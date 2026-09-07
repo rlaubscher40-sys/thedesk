@@ -17,10 +17,13 @@
       (function () {
         try {
           var stored = localStorage.getItem("thedesk:theme:v2");
-          var mode = stored === "light" || stored === "dark" || stored === "system" ? stored : "light";
+          var mode =
+            stored === "light" || stored === "dark" || stored === "system" ? stored : "light";
           var resolved =
             mode === "system"
-              ? window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+              ? window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light"
               : mode;
           if (resolved === "light") document.documentElement.classList.add("light");
           document.documentElement.style.colorScheme = resolved;
@@ -45,14 +48,20 @@
       property="og:description"
       content="A 60-second morning scan, weekly deep-dive editions, and ready-to-use talking points."
     />
-    <meta property="og:image" content="/og-card.png" />
+    <!-- Absolute, not "/og-card.png": Facebook, LinkedIn and Slack all
+         require an absolute og:image and silently drop a relative one,
+         which is why a share of the homepage rendered with no card. -->
+    <meta property="og:image" content="https://thedesk.au/og-card.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="The Desk: Daily intelligence for the property industry" />
-    <meta name="twitter:description" content="A 60-second morning scan, weekly deep-dive editions, and ready-to-use talking points." />
-    <meta name="twitter:image" content="/og-card.png" />
+    <meta
+      name="twitter:description"
+      content="A 60-second morning scan, weekly deep-dive editions, and ready-to-use talking points."
+    />
+    <meta name="twitter:image" content="https://thedesk.au/og-card.png" />
 
     <!--
       Homepage canonical. The SPA serves the same shell on a few URL
@@ -88,9 +97,7 @@
             "width": 512,
             "height": 512
           },
-          "sameAs": [
-            "https://www.instagram.com/thedesk.au/"
-          ],
+          "sameAs": ["https://www.instagram.com/thedesk.au/"],
           "founder": {
             "@type": "Person",
             "name": "Ruben Laubscher",
@@ -212,14 +219,24 @@
         color: rgba(0, 0, 0, 0.4);
       }
       @keyframes boot-mark-in {
-        from { opacity: 0; transform: translateY(6px); }
-        to { opacity: 1; transform: none; }
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
       }
       @media (prefers-reduced-motion: reduce) {
         #boot-splash svg,
         #boot-splash .boot-wordmark,
-        #boot-splash .boot-byline { animation: none; }
-        #boot-splash { transition: none; }
+        #boot-splash .boot-byline {
+          animation: none;
+        }
+        #boot-splash {
+          transition: none;
+        }
       }
     </style>
   </head>

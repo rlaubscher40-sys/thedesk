@@ -1,8 +1,21 @@
 User-agent: *
 Allow: /
-Disallow: /admin
-Disallow: /login
+
+# /admin, /login, /settings, /queue, /install and the confirm links are
+# deliberately NOT disallowed here. Blocking a URL in robots.txt doesn't
+# keep it out of the index — Google can still list a blocked URL it finds
+# a link to, and because it's forbidden from fetching the page it never
+# sees a reason to drop it ("Blocked by robots.txt" in Search Console).
+# Those routes serve `<meta name="robots" content="noindex, follow">`
+# instead (see server/core/spaShell.ts), which needs them crawlable to
+# work.
 Disallow: /api/
+
+# …except the image routes. Edition heroes and hero-library covers are
+# served from /api/images/, so a blanket /api/ block also hid every
+# article image from Google Images and from the crawler's read of the
+# page. These are public bytes with no side effects.
+Allow: /api/images/
 
 # AI training / answer-engine crawlers — blocked. The Desk's voice and
 # analysis are the product; we don't want them silently ingested into
@@ -73,3 +86,4 @@ User-agent: YouBot
 Disallow: /
 
 Sitemap: https://thedesk.au/sitemap.xml
+Sitemap: https://thedesk.au/product-sitemap.xml

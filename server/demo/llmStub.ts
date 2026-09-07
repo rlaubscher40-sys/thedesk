@@ -46,6 +46,21 @@ const REEL_SCRIPT_JSON = JSON.stringify({
   detail: "It sits well away from the typical reading, and near the edge of the range.",
 });
 
+const ASK_DESK_JSON = JSON.stringify({
+  headline: "Credit capacity is doing more of the work than sentiment.",
+  answer:
+    "The archive points to borrowing capacity and lender competition as the more useful near-term signal. The rate headline matters, but the transmission into approvals, refinancing and investor activity is where the practical change shows up.",
+  whyItMatters:
+    "A market can look unchanged at the headline level while finance conditions underneath it are already improving. That gap is where buyer behaviour can move before listings and prices make the shift obvious.",
+  deskTake:
+    "The better question is not whether confidence has returned. It is whether more borrowers can transact at today's prices. If capacity keeps improving, demand can strengthen without a dramatic change in the public narrative.",
+  whatWouldChangeOurMind:
+    "A sustained deterioration in approvals, a reversal in lender pricing, or evidence that improved borrowing capacity is not translating into transactions would weaken that view.",
+  signals: [],
+  sourceRefs: [1],
+  confidence: "medium",
+});
+
 const PARTNER_TAG_BLOCK = [
   "Broker: Conversation pivots to fixed-rate roll-offs landing in mid-June.",
   "Adviser: Refresh the 'rates higher for longer' framing, patience gives clients permission to plan.",
@@ -70,9 +85,68 @@ export async function demoLlm(params: InvokeLlmParams): Promise<string> {
   // would otherwise be answered with a Substack draft.
   if (text.includes("voice-over for a 20-second instagram reel")) return REEL_SCRIPT_JSON;
 
+  if (text.includes("market comparison")) {
+    // Demo responses extract the supplied local sentences; they never invent a
+    // market verdict or borrow the generic Ask canned answer.
+    const input = JSON.parse(params.messages.find((m) => m.role === "user")?.content ?? "{}");
+    const definitions = [
+      ["rents", /rents?|vacancy/i],
+      ["prices", /prices?|values?/i],
+      ["supply", /housing supply/i],
+    ] as const;
+    const rows = definitions.flatMap(([dimension, pattern]) => {
+      const observations = (["a", "b"] as const).map((side) => {
+        const market = side === "a" ? input.marketA : input.marketB;
+        for (const source of input.sources ?? []) {
+          if (!source.markets.includes(side)) continue;
+          const quote = source.text
+            .split(/(?<=[.!?])\s+|\n/)
+            .find(
+              (sentence: string) =>
+                sentence.toLowerCase().includes(market.toLowerCase()) &&
+                pattern.test(sentence) &&
+                sentence.length >= 12 &&
+                sentence.length <= 360
+            );
+          if (quote) return { sourceRef: source.ref, quote };
+        }
+        return null;
+      });
+      return observations.some(Boolean)
+        ? [
+            {
+              dimension,
+              marketA: observations[0] ?? null,
+              marketB: observations[1] ?? null,
+              read: "These local observations describe the available coverage. They do not establish a comparable market advantage.",
+              edge: "unclear",
+            },
+          ]
+        : [];
+    });
+    return JSON.stringify({
+      verdict: "No clear edge on the available evidence.",
+      deskTake:
+        "The demo illustrates the evidence trail. A stronger call requires comparable local observations across the same periods and dwelling types.",
+      whatWouldChangeTheCall:
+        "Comparable local supply and rental evidence would make the trade-off clearer.",
+      confidence: "low",
+      rows,
+    });
+  }
+
+  // Ask also uses a strict JSON schema, so identify it before the generic
+  // JSON branch used by the Substack demo stub.
+  if (
+    text.includes("ask the desk intelligence answer") ||
+    text.includes("property intelligence analyst")
+  ) {
+    return ASK_DESK_JSON;
+  }
+
   // Order matters: the Take prompt mentions "Substack essay" in its style
-  // guide, so dispatch on the JSON format flag (only Substack uses it)
-  // before any text-content matching.
+  // guide, so dispatch on the JSON format flag (only Substack uses it after
+  // the Ask branch above) before any text-content matching.
   if (isJson) return SUBSTACK_DRAFT_JSON;
 
   // 3-role partner-tag block, easy to fingerprint by its labels.
