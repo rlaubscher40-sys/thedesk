@@ -17,6 +17,7 @@ import { Link, useParams } from "wouter";
 import type { DailyFeedItem } from "@shared/types";
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
 import { LinkedInPostModal } from "@/components/LinkedInPostModal";
+import { StoryShareButton } from "@/components/share/StoryShareButton";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { CashRatePanel, MetricRows } from "@/components/broadsheet/MetricBlocks";
 import { PartnerAngleColumns } from "@/components/broadsheet/PartnerAngles";
@@ -183,12 +184,13 @@ export default function StoryPage() {
               <Link href="/ask" className="bs-btn bs-btn-solid">
                 Ask The Desk
               </Link>
+              <StoryShareButton id={story.id} title={cleanHeadline(story.title)} />
               <button
                 type="button"
                 onClick={() => setLinkedInOpen(true)}
                 className="bs-btn bs-btn-outline"
               >
-                Share
+                LinkedIn
               </button>
             </div>
           </div>
