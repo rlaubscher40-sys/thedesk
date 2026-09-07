@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { DailyMetric } from "../db/schema";
-import { MIN_SCORE, pickStatOfTheDay, type HistoryPoint } from "./statPick";
+import {
+  explainNoPick,
+  MIN_SCORE,
+  pickStatOfTheDay,
+  rehearsalStat,
+  type HistoryPoint,
+} from "./statPick";
 
 const NOW = new Date("2026-09-06T02:00:00Z");
 
@@ -224,5 +230,78 @@ describe("pickStatOfTheDay", () => {
     expect(pick!.source).toBe("CoreLogic");
     expect(pick!.sourceUrl).toBe("https://example.com/hvi");
     expect(pick!.asOf).toEqual(new Date("2026-09-05T00:00:00Z"));
+  });
+});
+
+/** A series that gives no angle at all: same reading every day. */
+function flat(n: number, value = 60): HistoryPoint[] {
+  return history(Array(n).fill(value));
+}
+
+describe("rehearsalStat", () => {
+  const quiet = metric({ value: "60", previousValue: "60" });
+
+  it("returns the real pick whenever there is one", () => {
+    // A rehearsal must never replace a genuine story with a placeholder.
+    const metrics = [metric()];
+    const histories = { auction_clearance: history([62, 61.4, 60.8, 60.1, 59.1]) };
+    const real = pickStatOfTheDay(metrics, histories, NOW);
+    expect(real).not.toBeNull();
+    expect(rehearsalStat(metrics, histories, NOW)).toEqual(real);
+  });
+
+  it("falls back to the longest series when nothing has an angle", () => {
+    // Lowering MIN_SCORE would achieve nothing here: every angle scores at
+    // least 0.45, so a null means no metric had an angle at all.
+    const metrics = [
+      metric({ metricKey: "flat_a", label: "Flat A", value: "60", previousValue: "60" }),
+      metric({ metricKey: "flat_b", label: "Flat B", value: "60", previousValue: "60" }),
+    ];
+    const histories = { flat_a: flat(4), flat_b: flat(12) };
+    expect(pickStatOfTheDay(metrics, histories, NOW)).toBeNull();
+    const pick = rehearsalStat(metrics, histories, NOW)!;
+    expect(pick.metricKey).toBe("flat_b");
+    expect(pick.sampleSize).toBe(12);
+  });
+
+  it("claims nothing it cannot support", () => {
+    // It is a card with nothing to report, and says so rather than borrowing
+    // the vocabulary of a card that has something.
+    const pick = rehearsalStat([quiet], { auction_clearance: flat(9) }, NOW)!;
+    expect(pick.angle).toBe("latest");
+    expect(pick.subtext).toBe("LATEST READING · 9 ON FILE");
+    expect(pick.score).toBe(0);
+    for (const word of ["HIGHEST", "LOWEST", "STRAIGHT", "FIRST TIME", "USUAL"]) {
+      expect(pick.subtext).not.toContain(word);
+    }
+  });
+
+  it("still refuses when every metric is stale", () => {
+    const stale = metric({ ...quiet, asOf: new Date("2026-01-01T00:00:00Z") });
+    expect(rehearsalStat([stale], { auction_clearance: flat(9) }, NOW)).toBeNull();
+  });
+
+  it("refuses an empty board rather than inventing one", () => {
+    expect(rehearsalStat([], {}, NOW)).toBeNull();
+  });
+});
+
+describe("explainNoPick", () => {
+  it("distinguishes a stopped ingest from a quiet day", () => {
+    // These need opposite responses, and "no metric cleared the bar" cannot
+    // tell them apart.
+    const stale = metric({ asOf: new Date("2026-01-01T00:00:00Z") });
+    expect(explainNoPick([stale], {}, NOW)).toContain("the ingest has stopped");
+
+    const quietDay = explainNoPick([metric()], { auction_clearance: flat(9) }, NOW);
+    expect(quietDay).toContain("none of them moved");
+  });
+
+  it("names an empty board", () => {
+    expect(explainNoPick([], {}, NOW)).toContain("no metrics on the board");
+  });
+
+  it("names metrics that are current but have nothing behind them", () => {
+    expect(explainNoPick([metric()], {}, NOW)).toContain("none has history");
   });
 });

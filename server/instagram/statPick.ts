@@ -26,7 +26,7 @@
  */
 import type { DailyMetric } from "../db/schema";
 
-export type StatAngleKind = "streak" | "extreme" | "jump" | "threshold";
+export type StatAngleKind = "streak" | "extreme" | "jump" | "threshold" | "latest";
 
 export type StatPick = {
   metricKey: string;
@@ -314,4 +314,99 @@ export function pickStatOfTheDay(
   // Ties break towards the metric with more history behind it: the same score
   // means more when it is drawn from a longer series.
   return picks.sort((a, b) => b.score - a.score || b.sampleSize - a.sampleSize)[0]!;
+}
+
+/**
+ * A number to rehearse with, on a day that has no news in it.
+ *
+ * The preview endpoint exists so a person can check the rendering and hear the
+ * voice-over before either goes out unattended. On a quiet day
+ * `pickStatOfTheDay` correctly returns null — that is the whole point of it,
+ * and a Reel about nothing costs reach on the next one — but that also means
+ * the rehearsal is unavailable exactly when somebody wants to use it, which is
+ * usually right after a deploy.
+ *
+ * Note that lowering `MIN_SCORE` would achieve nothing: every angle scores at
+ * least 0.45, so anything that scores at all already clears the bar. A null
+ * means no metric had an *angle* — no streak, no extreme, no unusual jump, no
+ * threshold crossed — so a rehearsal needs a claim of its own.
+ *
+ * That claim states only what is on file. It does not say the reading is high,
+ * low, unusual or a first, because on a day like this it is none of those. The
+ * card is honest about being a card with nothing to report, which is also the
+ * most useful thing it can be while somebody is checking the typography.
+ *
+ * Only the preview calls this. The posting jobs call `pickStatOfTheDay` and
+ * still publish nothing on a quiet day.
+ */
+export function rehearsalStat(
+  metrics: DailyMetric[],
+  histories: Record<string, HistoryPoint[]>,
+  now: Date = new Date()
+): StatPick | null {
+  const real = pickStatOfTheDay(metrics, histories, now);
+  if (real) return real;
+
+  const candidates = metrics
+    .map((metric) => {
+      const current = parseNumeric(metric.value);
+      if (current === null) return null;
+      if (daysBetween(metric.asOf, now) > MAX_AGE_DAYS) return null;
+      const series = dedupeByDay(histories[metric.metricKey] ?? []);
+      return { metric, current, series };
+    })
+    .filter((c): c is NonNullable<typeof c> => c !== null)
+    // The longest series makes the best rehearsal: it exercises the history
+    // line and the supporting figures, which are the parts worth looking at.
+    .sort((a, b) => b.series.length - a.series.length);
+
+  const best = candidates[0];
+  if (!best) return null;
+
+  const prev = best.metric.previousValue ? parseNumeric(best.metric.previousValue) : null;
+  const delta = prev === null ? null : best.current - prev;
+  return {
+    metricKey: best.metric.metricKey,
+    label: best.metric.label,
+    value: best.metric.unit ? `${best.metric.value}${best.metric.unit}` : best.metric.value,
+    angle: "latest",
+    subtext: `LATEST READING · ${best.series.length} ON FILE`,
+    delta,
+    direction: delta === null || delta === 0 ? "flat" : delta > 0 ? "up" : "down",
+    context: best.metric.context,
+    source: best.metric.source,
+    sourceUrl: best.metric.sourceUrl,
+    asOf: best.metric.asOf,
+    score: 0,
+    sampleSize: best.series.length,
+  };
+}
+
+/**
+ * Why nothing was picked, in words a person can act on.
+ *
+ * "No metric cleared the bar" is true and unhelpful: it does not distinguish a
+ * genuinely quiet day from an ingest that has stopped, and those need opposite
+ * responses. This counts what was actually on the board.
+ */
+export function explainNoPick(
+  metrics: DailyMetric[],
+  histories: Record<string, HistoryPoint[]>,
+  now: Date = new Date()
+): string {
+  if (metrics.length === 0) return "There are no metrics on the board at all.";
+  const numeric = metrics.filter((m) => parseNumeric(m.value) !== null);
+  const fresh = numeric.filter((m) => daysBetween(m.asOf, now) <= MAX_AGE_DAYS);
+  const withHistory = fresh.filter((m) => (histories[m.metricKey] ?? []).length >= 2);
+
+  if (fresh.length === 0) {
+    return `All ${numeric.length} readable metrics are more than ${MAX_AGE_DAYS} days old — the ingest has stopped.`;
+  }
+  if (withHistory.length === 0) {
+    return `${fresh.length} metrics are current but none has history behind it, so nothing can be compared to anything.`;
+  }
+  return (
+    `${fresh.length} current metrics, ${withHistory.length} with history, and none of them moved ` +
+    `in a way worth posting: no streak, no high or low, no unusual jump, no threshold crossed.`
+  );
 }

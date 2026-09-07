@@ -1558,8 +1558,10 @@ function registerInstagramRoutes(app: Express): void {
       // which is exactly what makes the daily carousel ignorable. 200 so the
       // workflow stays green: nothing went wrong, there was just no number.
       if (!pick && !force) {
-        console.log("[instagram] no metric cleared the bar today; skipping the stat post");
-        res.json({ success: true, skipped: true, reason: "No metric movement worth posting" });
+        const { explainNoPick } = await import("./instagram/statPick");
+        const reason = explainNoPick(metrics, histories);
+        console.log(`[instagram] skipping the stat post. ${reason}`);
+        res.json({ success: true, skipped: true, reason });
         return;
       }
       if (!pick) {
@@ -1719,8 +1721,10 @@ function registerInstagramRoutes(app: Express): void {
       ]);
       const pick = pickStatOfTheDay(metrics, histories);
       if (!pick) {
-        console.log("[instagram] no metric cleared the bar; skipping the reel");
-        res.json({ success: true, skipped: true, reason: "No metric movement worth posting" });
+        const { explainNoPick } = await import("./instagram/statPick");
+        const reason = explainNoPick(metrics, histories);
+        console.log(`[instagram] skipping the reel. ${reason}`);
+        res.json({ success: true, skipped: true, reason });
         return;
       }
 
@@ -2096,16 +2100,25 @@ function registerInstagramRoutes(app: Express): void {
       // renders in about forty seconds, which is why it is behind a URL you
       // ask for rather than anything that runs on its own.
       if (kind === "stat" || kind === "reel") {
-        const { pickStatOfTheDay } = await import("./instagram/statPick");
+        const { explainNoPick, rehearsalStat } = await import("./instagram/statPick");
         const { generateStatLine } = await import("./prompts/statCard");
         const [metrics, histories] = await Promise.all([
           db.listDailyMetrics(),
           db.listMetricHistories(180),
         ]);
-        const pick = pickStatOfTheDay(metrics, histories);
+        // The preview is a rehearsal, so it falls back to the longest series on
+        // a day with no news in it. The posting jobs still publish nothing.
+        const pick = rehearsalStat(metrics, histories);
         if (!pick) {
-          res.status(422).json({ error: "No metric cleared the bar today" });
+          res.status(422).json({
+            error: "Nothing to preview",
+            detail: explainNoPick(metrics, histories),
+          });
           return;
+        }
+        if (pick.score === 0) {
+          console.log("[instagram] preview is a rehearsal: nothing cleared the bar today");
+          res.setHeader("X-Preview-Rehearsal", "true");
         }
         const variant = req.query.variant === "light" ? "light" : "navy";
         const { buildStatFacts } = await import("./metrics/statFacts");
