@@ -1,5 +1,6 @@
 import { Check, LineChart, LoaderCircle, Share2 } from "lucide-react";
 import { useState } from "react";
+import { trackEvent } from "@/lib/analytics";
 import { trpc } from "@/lib/trpc";
 
 function base64ToFile(base64: string, mimeType: string, filename: string): File {
@@ -7,6 +8,11 @@ function base64ToFile(base64: string, mimeType: string, filename: string): File 
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   return new File([bytes], filename, { type: mimeType });
+}
+
+function metricSurface(): "signals" | "trends" {
+  if (typeof window !== "undefined" && window.location.pathname.startsWith("/signals")) return "signals";
+  return "trends";
 }
 
 export function ShareMetricCardButton({
@@ -43,6 +49,7 @@ export function ShareMetricCardButton({
         } else {
           throw new Error("File sharing unavailable");
         }
+        trackEvent("signal_share", metricSurface());
         setComplete(kind);
         window.setTimeout(() => setComplete(null), 1800);
         return;
@@ -66,6 +73,7 @@ export function ShareMetricCardButton({
         // Asset export is still successful without clipboard permission.
       }
     }
+    trackEvent("signal_share", metricSurface());
     setComplete(kind);
     window.setTimeout(() => setComplete(null), 1800);
   }
