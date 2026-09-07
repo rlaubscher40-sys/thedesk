@@ -1,6 +1,7 @@
 import { ArrowRight, Check, Share2, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { Link, useSearch } from "wouter";
+import { ComparisonRead } from "@/components/markets/ComparisonRead";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { trackEvent } from "@/lib/analytics";
 import { trpc } from "@/lib/trpc";
@@ -47,6 +48,14 @@ export default function SharedBriefPage() {
     }
   }
 
+  if (data.comparison)
+    return (
+      <div className="pb-8">
+        <p className="bs-label mt-5">The Desk · Shared comparison · Frozen evidence snapshot</p>
+        <ComparisonRead comparison={data.comparison} shareToken={token} shared />
+      </div>
+    );
+
   return (
     <div className="pt-2 pb-8">
       <header className="rule-major pt-4 max-w-[1180px]">
@@ -57,7 +66,8 @@ export default function SharedBriefPage() {
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <p className="bs-label">
-              {data.sourceCount} source{data.sourceCount === 1 ? "" : "s"} · {data.confidence} confidence
+              {data.sourceCount} source{data.sourceCount === 1 ? "" : "s"} · {data.confidence}{" "}
+              confidence
             </p>
             <button
               type="button"
@@ -166,7 +176,10 @@ export default function SharedBriefPage() {
             <p className="font-serif mt-2 text-2xl leading-8">
               Do not just accept the shared view. Ask The Desk what evidence would break it.
             </p>
-            <Link href={challengeHref} className="bs-btn bs-btn-solid mt-5 inline-flex items-center gap-2">
+            <Link
+              href={challengeHref}
+              className="bs-btn bs-btn-solid mt-5 inline-flex items-center gap-2"
+            >
               Challenge the view <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
@@ -174,7 +187,8 @@ export default function SharedBriefPage() {
           <div className="rule-hair mt-8 pt-5">
             <p className="bs-label">Grounding note</p>
             <p className="mt-2 text-sm leading-5 text-[var(--color-fg-muted)]">
-              Confidence describes the supplied evidence, not certainty about future market outcomes.
+              Confidence describes the supplied evidence, not certainty about future market
+              outcomes.
             </p>
           </div>
         </aside>

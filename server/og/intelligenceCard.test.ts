@@ -43,3 +43,17 @@ describe("renderIntelligenceCard", () => {
     expect(png.byteLength).toBeGreaterThan(20_000);
   });
 });
+
+describe("market comparison cards", () => {
+  it("renders the comparison treatment with an explicit verdict", async () => {
+    const png = await renderIntelligenceCard({
+      ...base,
+      comparison: { marketA: "Brisbane", marketB: "Perth" },
+      headline: "Brisbane vs Perth",
+      answer: "No clear edge on the available evidence.",
+    });
+    expect(png.byteLength).toBeGreaterThan(20_000);
+    expect(png.readUInt32BE(16)).toBe(1080);
+    expect(png.readUInt32BE(20)).toBe(1350);
+  });
+});

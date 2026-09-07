@@ -44,6 +44,7 @@ async function loadFonts(): Promise<LoadedFonts> {
 }
 
 export type IntelligenceCardInput = {
+  comparison?: { marketA: string; marketB: string };
   question: string;
   headline: string;
   answer: string;
@@ -189,7 +190,7 @@ function buildTree(input: IntelligenceCardInput) {
                     textTransform: "uppercase",
                     color: MUTED,
                   },
-                  children: "Intelligence Brief",
+                  children: input.comparison ? "Market vs Market" : "Intelligence Brief",
                 },
               },
             ],
@@ -215,7 +216,7 @@ function buildTree(input: IntelligenceCardInput) {
                     color: AMBER,
                     maxWidth: "860px",
                   },
-                  children: `ASKED · ${question}`,
+                  children: input.comparison ? "THE CURRENT DESK READ" : `ASKED · ${question}`,
                 },
               },
               {
@@ -334,7 +335,7 @@ function buildTree(input: IntelligenceCardInput) {
                   style: {
                     display: "flex",
                     flexDirection: "column",
-                    flex: 1,
+                    ...(signal ? { flex: 1 } : { width: "100%" }),
                     justifyContent: "center",
                   },
                   children: [
@@ -413,7 +414,12 @@ function buildTree(input: IntelligenceCardInput) {
                           color: MUTED,
                         },
                         children: [
-                          { type: "span", props: { children: `${input.sourceCount} source${input.sourceCount === 1 ? "" : "s"}` } },
+                          {
+                            type: "span",
+                            props: {
+                              children: `${input.sourceCount} source${input.sourceCount === 1 ? "" : "s"}`,
+                            },
+                          },
                           { type: "span", props: { children: `Confidence · ${input.confidence}` } },
                         ],
                       },

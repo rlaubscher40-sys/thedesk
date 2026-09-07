@@ -57,12 +57,68 @@ export async function demoLlm(params: InvokeLlmParams): Promise<string> {
   // Light artificial latency, makes the UI's loading state visible.
   await new Promise((r) => setTimeout(r, 600));
 
-  const text = params.messages.map((m) => m.content).join("\n").toLowerCase();
+  const text = params.messages
+    .map((m) => m.content)
+    .join("\n")
+    .toLowerCase();
   const isJson = params.responseFormat?.type === "json_schema";
+
+  if (text.includes("market comparison")) {
+    // Demo responses extract the supplied local sentences; they never invent a
+    // market verdict or borrow the generic Ask canned answer.
+    const input = JSON.parse(params.messages.find((m) => m.role === "user")?.content ?? "{}");
+    const definitions = [
+      ["rents", /rents?|vacancy/i],
+      ["prices", /prices?|values?/i],
+      ["supply", /housing supply/i],
+    ] as const;
+    const rows = definitions.flatMap(([dimension, pattern]) => {
+      const observations = (["a", "b"] as const).map((side) => {
+        const market = side === "a" ? input.marketA : input.marketB;
+        for (const source of input.sources ?? []) {
+          if (!source.markets.includes(side)) continue;
+          const quote = source.text
+            .split(/(?<=[.!?])\s+|\n/)
+            .find(
+              (sentence: string) =>
+                sentence.toLowerCase().includes(market.toLowerCase()) &&
+                pattern.test(sentence) &&
+                sentence.length >= 12 &&
+                sentence.length <= 360
+            );
+          if (quote) return { sourceRef: source.ref, quote };
+        }
+        return null;
+      });
+      return observations.some(Boolean)
+        ? [
+            {
+              dimension,
+              marketA: observations[0] ?? null,
+              marketB: observations[1] ?? null,
+              read: "These local observations describe the available coverage. They do not establish a comparable market advantage.",
+              edge: "unclear",
+            },
+          ]
+        : [];
+    });
+    return JSON.stringify({
+      verdict: "No clear edge on the available evidence.",
+      deskTake:
+        "The demo illustrates the evidence trail. A stronger call requires comparable local observations across the same periods and dwelling types.",
+      whatWouldChangeTheCall:
+        "Comparable local supply and rental evidence would make the trade-off clearer.",
+      confidence: "low",
+      rows,
+    });
+  }
 
   // Ask also uses a strict JSON schema, so identify it before the generic
   // JSON branch used by the Substack demo stub.
-  if (text.includes("ask the desk intelligence answer") || text.includes("property intelligence analyst")) {
+  if (
+    text.includes("ask the desk intelligence answer") ||
+    text.includes("property intelligence analyst")
+  ) {
     return ASK_DESK_JSON;
   }
 

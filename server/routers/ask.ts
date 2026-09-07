@@ -388,6 +388,7 @@ export const askRouter = router({
           confidence: brief.confidence,
           sourceCount: brief.sourceCount,
           signal: brief.signal,
+          comparison: brief.comparison,
         });
         return {
           mimeType: "image/png" as const,

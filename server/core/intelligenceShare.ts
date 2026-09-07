@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { deflateRawSync, inflateRawSync } from "node:zlib";
+import { comparisonSnapshotSchema, type MarketComparison } from "../../shared/marketComparison";
 import { signingSecret } from "./env";
 
 export type SharedIntelligenceSource = {
@@ -10,6 +11,7 @@ export type SharedIntelligenceSource = {
 };
 
 export type SharedIntelligenceBrief = {
+  comparison?: MarketComparison;
   question: string;
   headline: string;
   answer: string;
@@ -28,7 +30,7 @@ type Envelope = SharedIntelligenceBrief & {
 
 const TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_TOKEN_CHARS = 16_000;
-const MAX_INFLATED_BYTES = 18_000;
+const MAX_INFLATED_BYTES = 48_000;
 
 function sign(payload: string): string {
   return createHmac("sha256", signingSecret()).update(payload).digest("base64url");
@@ -105,7 +107,9 @@ export function readIntelligenceShareToken(
       typeof parsed.headline !== "string" ||
       typeof parsed.answer !== "string" ||
       typeof parsed.deskTake !== "string" ||
-      (parsed.confidence !== "high" && parsed.confidence !== "medium" && parsed.confidence !== "low") ||
+      (parsed.confidence !== "high" &&
+        parsed.confidence !== "medium" &&
+        parsed.confidence !== "low") ||
       !Array.isArray(parsed.sources) ||
       parsed.sources.length < 1 ||
       parsed.sources.length > 8 ||
@@ -125,6 +129,9 @@ export function readIntelligenceShareToken(
       return null;
     }
 
+    const comparison =
+      parsed.comparison == null ? null : comparisonSnapshotSchema.safeParse(parsed.comparison);
+    if (comparison && !comparison.success) return null;
     const sources = parsed.sources.slice(0, 8);
     return {
       question: parsed.question,
@@ -135,6 +142,7 @@ export function readIntelligenceShareToken(
       sourceCount: sources.length,
       sources,
       signal: signal ?? null,
+      ...(comparison?.success ? { comparison: comparison.data } : {}),
     };
   } catch {
     return null;

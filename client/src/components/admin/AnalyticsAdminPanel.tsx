@@ -126,6 +126,8 @@ function eventLabel(value: string): string {
     ask_query: "Ask query",
     ask_share: "Ask shared",
     market_watch: "Market watched",
+    market_compare: "Markets compared",
+    market_compare_share: "Comparison shared",
     signal_watch: "Signal watched",
     signal_share: "Signal shared",
     story_share: "Story shared",

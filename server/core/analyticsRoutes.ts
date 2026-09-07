@@ -22,6 +22,8 @@ const engagementEventSchema = z.object({
     "ask_query",
     "ask_share",
     "market_watch",
+    "market_compare",
+    "market_compare_share",
     "signal_watch",
     "signal_share",
     "story_share",

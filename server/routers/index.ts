@@ -14,6 +14,7 @@ import { heroLibraryRouter } from "./heroLibrary";
 import { instagramRouter } from "./instagram";
 import { readingQueueRouter } from "./readingQueue";
 import { linkedInRouter } from "./linkedIn";
+import { marketsRouter } from "./markets";
 import { metricsRouter } from "./metrics";
 import { searchRouter } from "./search";
 import { shareRouter } from "./share";
@@ -42,6 +43,7 @@ export const appRouter = router({
   instagram: instagramRouter,
   linkedIn: linkedInRouter,
   metrics: metricsRouter,
+  markets: marketsRouter,
   heroLibrary: heroLibraryRouter,
 });
 

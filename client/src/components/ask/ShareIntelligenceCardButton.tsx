@@ -6,6 +6,7 @@ import { trpc } from "@/lib/trpc";
 type Props = {
   shareToken: string;
   headline: string;
+  comparison?: boolean;
 };
 
 function base64ToFile(base64: string, mimeType: string, filename: string): File {
@@ -28,13 +29,18 @@ function shareSurface(): "ask" | "markets" | "brief" {
  * signed, so a share badge can only represent intelligence The Desk actually
  * produced and source-checked.
  */
-export function ShareIntelligenceCardButton({ shareToken, headline }: Props) {
+export function ShareIntelligenceCardButton({ shareToken, headline, comparison = false }: Props) {
   const [complete, setComplete] = useState(false);
   const card = trpc.ask.shareCard.useMutation();
 
   async function createAndShare() {
     setComplete(false);
-    const rendered = await card.mutateAsync({ token: shareToken });
+    let rendered;
+    try {
+      rendered = await card.mutateAsync({ token: shareToken });
+    } catch {
+      return; // The mutation error is displayed beside the share action.
+    }
 
     const file = base64ToFile(rendered.base64, rendered.mimeType, rendered.filename);
     const publicUrl = new URL(rendered.sharePath, window.location.origin).toString();
@@ -44,11 +50,16 @@ export function ShareIntelligenceCardButton({ shareToken, headline }: Props) {
       const canShareFile = navigator.canShare?.({ files: [file] }) ?? false;
       try {
         if (canShareFile) {
-          await navigator.share({ files: [file], title: headline, text: shareText, url: publicUrl });
+          await navigator.share({
+            files: [file],
+            title: headline,
+            text: shareText,
+            url: publicUrl,
+          });
         } else {
           await navigator.share({ title: headline, text: shareText, url: publicUrl });
         }
-        trackEvent("ask_share", shareSurface());
+        trackEvent(comparison ? "market_compare_share" : "ask_share", shareSurface());
         setComplete(true);
         window.setTimeout(() => setComplete(false), 2200);
         return;
@@ -73,27 +84,40 @@ export function ShareIntelligenceCardButton({ shareToken, headline }: Props) {
       // The image remains useful when Clipboard API permission is unavailable.
     }
 
-    trackEvent("ask_share", shareSurface());
+    trackEvent(comparison ? "market_compare_share" : "ask_share", shareSurface());
     setComplete(true);
     window.setTimeout(() => setComplete(false), 2200);
   }
 
   return (
-    <button
-      type="button"
-      onClick={() => void createAndShare()}
-      disabled={card.isPending || !shareToken}
-      className="bs-btn bs-btn-solid inline-flex items-center gap-2 disabled:opacity-50"
-      title={card.error?.message}
-    >
-      {card.isPending ? (
-        <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
-      ) : complete ? (
-        <Check className="h-3.5 w-3.5" />
-      ) : (
-        <ImageIcon className="h-3.5 w-3.5" />
+    <span className="inline-flex flex-col items-start gap-2">
+      <button
+        type="button"
+        onClick={() => void createAndShare()}
+        disabled={card.isPending || !shareToken}
+        className="bs-btn bs-btn-solid inline-flex items-center gap-2 disabled:opacity-50"
+        title={card.error?.message}
+      >
+        {card.isPending ? (
+          <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+        ) : complete ? (
+          <Check className="h-3.5 w-3.5" />
+        ) : (
+          <ImageIcon className="h-3.5 w-3.5" />
+        )}
+        {card.isPending
+          ? "Building share"
+          : complete
+            ? "Share ready"
+            : comparison
+              ? "Share comparison"
+              : "Share intelligence"}
+      </button>
+      {card.error && (
+        <span role="alert" className="text-sm text-[var(--color-fg-muted)]">
+          {card.error.message}
+        </span>
       )}
-      {card.isPending ? "Building share" : complete ? "Share ready" : "Share intelligence"}
-    </button>
+    </span>
   );
 }
