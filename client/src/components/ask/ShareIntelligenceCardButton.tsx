@@ -1,5 +1,6 @@
 import { Check, Image as ImageIcon, LoaderCircle } from "lucide-react";
 import { useState } from "react";
+import { trackEvent } from "@/lib/analytics";
 import { trpc } from "@/lib/trpc";
 
 type Props = {
@@ -12,6 +13,13 @@ function base64ToFile(base64: string, mimeType: string, filename: string): File 
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   return new File([bytes], filename, { type: mimeType });
+}
+
+function shareSurface(): "ask" | "markets" | "brief" {
+  if (typeof window === "undefined") return "ask";
+  if (window.location.pathname.startsWith("/markets")) return "markets";
+  if (window.location.pathname.startsWith("/brief")) return "brief";
+  return "ask";
 }
 
 /**
@@ -40,6 +48,7 @@ export function ShareIntelligenceCardButton({ shareToken, headline }: Props) {
         } else {
           await navigator.share({ title: headline, text: shareText, url: publicUrl });
         }
+        trackEvent("ask_share", shareSurface());
         setComplete(true);
         window.setTimeout(() => setComplete(false), 2200);
         return;
@@ -64,6 +73,7 @@ export function ShareIntelligenceCardButton({ shareToken, headline }: Props) {
       // The image remains useful when Clipboard API permission is unavailable.
     }
 
+    trackEvent("ask_share", shareSurface());
     setComplete(true);
     window.setTimeout(() => setComplete(false), 2200);
   }
