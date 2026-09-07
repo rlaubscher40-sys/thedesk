@@ -1,4 +1,5 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { FormEvent } from "react";
 import { Link } from "wouter";
 import {
   ArrowUp,
@@ -9,6 +10,7 @@ import {
   Share2,
   ShieldCheck,
 } from "lucide-react";
+import { ShareIntelligenceCardButton } from "@/components/ask/ShareIntelligenceCardButton";
 import { GUTTER_X } from "@/components/broadsheet/tokens";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { getLoginUrl } from "@/lib/auth";
@@ -308,15 +310,24 @@ export default function AskDeskPage() {
               <ShieldCheck className="h-4 w-4 text-[var(--color-accent-text)]" />
               <p className="bs-label-accent">Grounded intelligence · {result.searchedRecords} records checked</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button type="button" onClick={copyBrief} className="bs-btn bs-btn-outline inline-flex items-center gap-2">
                 {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                 {copied ? "Copied" : "Copy brief"}
               </button>
-              <button type="button" onClick={shareBrief} className="bs-btn bs-btn-solid inline-flex items-center gap-2">
+              <button type="button" onClick={shareBrief} className="bs-btn bs-btn-outline inline-flex items-center gap-2">
                 <Share2 className="h-3.5 w-3.5" />
-                Share
+                Share text
               </button>
+              <ShareIntelligenceCardButton
+                question={result.question}
+                headline={result.answer.headline}
+                answer={result.answer.answer}
+                deskTake={result.answer.deskTake}
+                confidence={result.answer.confidence}
+                sourceCount={result.sources.length}
+                signal={result.answer.signals[0] ?? null}
+              />
             </div>
           </div>
 
