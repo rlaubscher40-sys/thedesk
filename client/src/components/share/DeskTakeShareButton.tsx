@@ -1,5 +1,6 @@
 import { Check, LoaderCircle, Quote, Share2 } from "lucide-react";
 import { useState } from "react";
+import { trackEvent } from "@/lib/analytics";
 import { trpc } from "@/lib/trpc";
 
 function base64ToFile(base64: string, mimeType: string, filename: string): File {
@@ -36,6 +37,7 @@ export function DeskTakeShareButton({ id, title }: { id: number; title: string }
               url: publicUrl,
             });
           }
+          trackEvent("take_share", "story");
           setComplete(true);
           window.setTimeout(() => setComplete(false), 2000);
           return;
@@ -57,6 +59,7 @@ export function DeskTakeShareButton({ id, title }: { id: number; title: string }
       } catch {
         // Export still succeeds if Clipboard API is unavailable.
       }
+      trackEvent("take_share", "story");
       setComplete(true);
       window.setTimeout(() => setComplete(false), 2000);
     } catch {
