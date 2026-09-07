@@ -282,6 +282,9 @@ export function registerSeoRoutes(app: Express): void {
 
     const staticPaths = [
       "/",
+      "/ask",
+      "/markets",
+      "/signals",
       "/editions",
       "/archive",
       "/trends",
@@ -290,11 +293,12 @@ export function registerSeoRoutes(app: Express): void {
       "/privacy",
       "/terms",
     ];
+    const dailyPaths = new Set(["/", "/markets", "/signals"]);
 
     const urls: string[] = [];
     for (const path of staticPaths) {
       urls.push(
-        `<url><loc>${base}${path}</loc><changefreq>${path === "/" ? "daily" : "weekly"}</changefreq></url>`
+        `<url><loc>${base}${path}</loc><changefreq>${dailyPaths.has(path) ? "daily" : "weekly"}</changefreq></url>`
       );
     }
     for (const edition of editions) {
@@ -342,7 +346,7 @@ ${urls.join("\n")}
   <channel>
     <title>The Desk</title>
     <link>${base}</link>
-    <description>Daily intelligence for the property industry, curated by Ruben Laubscher.</description>
+    <description>Australian property intelligence before it becomes consensus.</description>
     <language>en-AU</language>
 ${items}
   </channel>
