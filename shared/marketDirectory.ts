@@ -1,4 +1,5 @@
 import type { CityRents } from "./cityRents";
+import type { CityApprovals } from "./cityApprovals";
 /** A deliberately small public directory, not a claim of suburb-wide coverage. */
 export const PUBLIC_MARKETS = [
   { slug: "sydney", name: "Sydney", state: "NSW" },
@@ -43,6 +44,7 @@ export type PublicMarketFile = {
   indexable: boolean;
   references: MarketReference[];
   rents?: CityRents;
+  approvals?: CityApprovals;
 };
 export type MarketDirectory = {
   asOf: string;

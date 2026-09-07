@@ -15,6 +15,9 @@
  */
 import { fetchAllAbs } from "./lib/abs";
 import { postJSON } from "./lib/post";
+import { getCityApprovals } from "../../server/markets/absApprovals";
+import { annualApprovals, APPROVAL_REGIONS } from "../../shared/cityApprovals";
+import { rentPeriod } from "../../shared/cityRents";
 
 type MetricOut = {
   metricKey: string;
@@ -40,8 +43,7 @@ async function fetchYahooQuote(symbol: string): Promise<{
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=5d`;
     const res = await fetch(url, {
       headers: {
-        "User-Agent":
-          "Mozilla/5.0 (compatible; TheDeskBot/1.0; +https://thedesk.au)",
+        "User-Agent": "Mozilla/5.0 (compatible; TheDeskBot/1.0; +https://thedesk.au)",
       },
     });
     if (!res.ok) {
@@ -88,15 +90,11 @@ async function fetchYahooQuote(symbol: string): Promise<{
  */
 async function fetchCashRate(): Promise<{ rate: number; asOf: Date } | null> {
   try {
-    const res = await fetch(
-      "https://www.rba.gov.au/statistics/tables/csv/f1.1-data.csv",
-      {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (compatible; TheDeskBot/1.0; +https://thedesk.au)",
-        },
-      }
-    );
+    const res = await fetch("https://www.rba.gov.au/statistics/tables/csv/f1.1-data.csv", {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; TheDeskBot/1.0; +https://thedesk.au)",
+      },
+    });
     if (!res.ok) {
       console.warn(`[metrics] RBA CSV → ${res.status}`);
       return null;
@@ -118,8 +116,18 @@ async function fetchCashRate(): Promise<{ rate: number; asOf: Date } | null> {
       if (!Number.isFinite(rate)) continue;
       // Parse the date for asOf.
       const monthIdx = [
-        "jan", "feb", "mar", "apr", "may", "jun",
-        "jul", "aug", "sep", "oct", "nov", "dec",
+        "jan",
+        "feb",
+        "mar",
+        "apr",
+        "may",
+        "jun",
+        "jul",
+        "aug",
+        "sep",
+        "oct",
+        "nov",
+        "dec",
       ].indexOf(m[2]!.toLowerCase());
       const asOf = new Date(Date.UTC(Number(m[3]), monthIdx, Number(m[1])));
       return { rate, asOf };
@@ -255,9 +263,24 @@ export async function runDailyMetricsIngest(rawBaseUrl: string, apiKey: string):
       displayOrder: r.displayOrder,
     });
   }
-  console.log(
-    `[metrics] ABS yielded ${absResults.filter(Boolean).length}/${absResults.length}`
-  );
+  console.log(`[metrics] ABS yielded ${absResults.filter(Boolean).length}/${absResults.length}`);
+
+  const approvals = await getCityApprovals();
+  for (const [index, city] of Object.values(APPROVAL_REGIONS).entries()) {
+    const read = annualApprovals(approvals, city, new Date().toISOString());
+    if (!read) continue;
+    metrics.push({
+      metricKey: `${city.toLowerCase()}_approvals_12m`,
+      label: `${city} approvals (12m)`,
+      value: String(read.total),
+      unit: "",
+      source: "ABS BA_GCCSA · original series",
+      groupKey: "PROPERTY",
+      context: `Greater ${city} · year to ${rentPeriod(read.period)}. Approved dwelling units, not completions or available stock.${read.preliminary ? " Includes preliminary data." : ""}${read.revised ? " Includes revised data." : ""}`,
+      asOf: `${read.period}-01T00:00:00.000Z`,
+      displayOrder: 61 + index,
+    });
+  }
 
   if (metrics.length === 0) {
     throw new Error("[metrics] all sources failed; nothing to ship");
@@ -268,11 +291,7 @@ export async function runDailyMetricsIngest(rawBaseUrl: string, apiKey: string):
     console.log(`  - ${m.label}: ${m.value}${m.unit ?? ""} (${m.source})`);
   }
 
-  const result = await postJSON(
-    `${baseUrl}/api/ingest/daily-metrics`,
-    { metrics },
-    apiKey
-  );
+  const result = await postJSON(`${baseUrl}/api/ingest/daily-metrics`, { metrics }, apiKey);
   console.log("[metrics] server response:", result);
 
   // ── News-driven LLM extraction for proprietary metrics ──────────────────
@@ -314,8 +333,7 @@ export async function runDailyMetricsIngest(rawBaseUrl: string, apiKey: string):
             unit: null,
             groupKey: "MACRO",
             displayOrder: 30,
-            googleQuery:
-              "Westpac Melbourne Institute consumer sentiment index Australia monthly",
+            googleQuery: "Westpac Melbourne Institute consumer sentiment index Australia monthly",
             guidance:
               "Find the latest Westpac-Melbourne Institute Consumer Sentiment Index headline reading (e.g., 92.1). 100 = neutral; below means pessimism dominates. Return just the number.",
           },
@@ -325,8 +343,7 @@ export async function runDailyMetricsIngest(rawBaseUrl: string, apiKey: string):
             unit: "%",
             groupKey: "PROPERTY",
             displayOrder: 55,
-            googleQuery:
-              "Australia mortgage arrears rate APRA banks home loan 90 days past due",
+            googleQuery: "Australia mortgage arrears rate APRA banks home loan 90 days past due",
             guidance:
               "Find the most recent home-loan arrears rate (90+ days past due) for Australian banks, reported by APRA or one of the big four. Return the percentage (e.g., 1.05).",
           },

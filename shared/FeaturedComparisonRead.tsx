@@ -1,5 +1,6 @@
 import React from "react";
 import { CityRentRead } from "./CityRentRead";
+import { CityApprovalRead } from "./CityApprovalRead";
 import { featuredComparison } from "./featuredComparison";
 import type { MarketDirectory } from "./marketDirectory";
 
@@ -25,8 +26,8 @@ export function FeaturedComparisonRead({ directory }: { directory: MarketDirecto
         </h1>
         <h2 className="font-serif text-2xl sm:text-4xl mt-5 max-w-[32ch]">{read.headline}</h2>
         <p className="text-sm leading-6 mt-4 max-w-[75ch] text-[var(--color-fg-muted)]">
-          Start with one comparable measure. Then check what it cannot tell you about the decision.
-          Free to read and share.
+          Start with the rental read and housing approvals. Then check what the evidence cannot tell
+          you about the decision. Free to read and share.
         </p>
         {directory.demo && (
           <p role="status" className="bs-label-accent mt-4">
@@ -63,7 +64,7 @@ export function FeaturedComparisonRead({ directory }: { directory: MarketDirecto
             ],
             [
               "Supply and listings",
-              "Comparable dwelling approvals, completions and available-stock measures still needed.",
+              "Check the dated approvals below. Completions, current listings and stock-adjusted comparisons are still needed.",
             ],
             [
               "Population and employment",
@@ -77,6 +78,13 @@ export function FeaturedComparisonRead({ directory }: { directory: MarketDirecto
           ))}
         </dl>
       </section>
+      {!directory.demo && (
+        <CityApprovalRead
+          data={read.a?.approvals}
+          cities={["Brisbane", "Perth"]}
+          asOf={directory.asOf}
+        />
+      )}
       <section className="rule-major mt-6 pt-5" aria-label="What would change the call">
         <h2 className="font-serif text-3xl">What would change the call?</h2>
         <p className="text-sm leading-6 mt-4 max-w-[80ch]">
