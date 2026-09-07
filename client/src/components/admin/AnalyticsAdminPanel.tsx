@@ -123,6 +123,7 @@ export function AnalyticsAdminPanel() {
 
 function eventLabel(value: string): string {
   const labels: Record<string, string> = {
+    ask_query: "Ask query",
     ask_share: "Ask shared",
     market_watch: "Market watched",
     signal_watch: "Signal watched",
