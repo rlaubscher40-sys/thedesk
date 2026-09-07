@@ -171,7 +171,7 @@ export default function StoryPage() {
                 {corroboration}
               </p>
             </div>
-            <div className="ml-auto flex gap-2 shrink-0">
+            <div className="ml-auto flex gap-2 shrink-0 flex-wrap justify-end">
               <button
                 type="button"
                 onClick={() => toggle(String(story.id))}
@@ -180,6 +180,9 @@ export default function StoryPage() {
               >
                 {saved ? "Saved" : "Save"}
               </button>
+              <Link href="/ask" className="bs-btn bs-btn-solid">
+                Ask The Desk
+              </Link>
               <button
                 type="button"
                 onClick={() => setLinkedInOpen(true)}
