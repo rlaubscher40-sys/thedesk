@@ -7,7 +7,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { consumeAnonymousCard } from "../core/askQuota";
 import * as db from "../db";
-import { renderNumberCard } from "../og/numberCard";
+import { renderSignalCard } from "../og/signalCard";
 import { adminProcedure, publicProcedure, router } from "../core/trpc";
 
 function safeFilename(value: string): string {
@@ -17,6 +17,26 @@ function safeFilename(value: string): string {
     .replace(/^-+|-+$/g, "")
     .slice(0, 48);
   return `the-number-${slug || "metric"}.png`;
+}
+
+function displayValue(value: string, unit: string | null): string {
+  const cleanValue = value.trim();
+  const cleanUnit = unit?.trim();
+  if (!cleanUnit) return cleanValue;
+  if (cleanUnit === "%" && cleanValue.includes("%")) return cleanValue;
+  if (cleanUnit === "$" && cleanValue.startsWith("$")) return cleanValue;
+  if (["%", "°", "x"].includes(cleanUnit)) return `${cleanValue}${cleanUnit}`;
+  if (cleanUnit === "$") return `$${cleanValue}`;
+  return `${cleanValue} ${cleanUnit}`;
+}
+
+function formatAsOf(value: Date): string {
+  return new Intl.DateTimeFormat("en-AU", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "Australia/Sydney",
+  }).format(value);
 }
 
 export const metricsRouter = router({
@@ -33,9 +53,9 @@ export const metricsRouter = router({
   }),
 
   /**
-   * Render one live metric as a native 4:5 distribution asset. The input is
-   * only a metric key, never arbitrary card copy, so a shared "The Number"
-   * graphic can only contain data currently stored by The Desk.
+   * Render one live metric as the same hook-first 4:5 "The Number" asset used
+   * by Signals. The input is only a metric key, never arbitrary card copy, so
+   * a Trends share is guaranteed to reflect a currently stored Desk metric.
    */
   shareCard: publicProcedure
     .input(z.object({ metricKey: z.string().min(1).max(64) }))
@@ -57,7 +77,17 @@ export const metricsRouter = router({
       }
 
       try {
-        const png = await renderNumberCard(metric);
+        const png = await renderSignalCard({
+          label: metric.label,
+          value: displayValue(metric.value, metric.unit),
+          context: metric.context ?? null,
+          move: metric.previousValue
+            ? `Previous recorded value ${displayValue(metric.previousValue, metric.unit)}`
+            : null,
+          deskTake: null,
+          source: metric.source ?? null,
+          asOf: formatAsOf(metric.asOf),
+        });
         return {
           mimeType: "image/png" as const,
           filename: safeFilename(metric.label),
