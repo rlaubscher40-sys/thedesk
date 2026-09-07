@@ -16,6 +16,7 @@ export type EngagementEvent =
   | "signal_watch"
   | "signal_share"
   | "story_share"
+  | "take_share"
   | "brief_reshare";
 
 function sessionId(): string | null {
