@@ -1,6 +1,7 @@
 import { Bookmark, BookmarkCheck, MoveDownRight, MoveUpRight, Radio } from "lucide-react";
 import { Link } from "wouter";
 import { useEffect, useMemo, useState } from "react";
+import { GUTTER_X } from "@/components/broadsheet/tokens";
 import { ShareSignalCardButton } from "@/components/signals/ShareSignalCardButton";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { trpc } from "@/lib/trpc";
@@ -67,6 +68,10 @@ function moveLabel(move: number | null): string {
   return `${sign}${move.toFixed(Math.abs(move) >= 10 ? 1 : 2)}%`;
 }
 
+function moveMagnitude(move: number | null): number {
+  return move == null || !Number.isFinite(move) ? -1 : Math.abs(move);
+}
+
 function formatAsOf(value: Date | string | null | undefined): string | null {
   if (!value) return null;
   const date = new Date(value);
@@ -96,7 +101,7 @@ export default function SignalsPage() {
   }, [metrics.data, histories.data]);
 
   const ranked = useMemo(
-    () => [...rows].sort((a, b) => Math.abs(b.move ?? -1) - Math.abs(a.move ?? -1)),
+    () => [...rows].sort((a, b) => moveMagnitude(b.move) - moveMagnitude(a.move)),
     [rows]
   );
   const hero = ranked.find((row) => row.move != null) ?? rows[0] ?? null;
@@ -126,7 +131,7 @@ export default function SignalsPage() {
   if (metrics.isLoading || histories.isLoading) return <SignalsSkeleton />;
 
   return (
-    <div className="pb-8">
+    <div className={`${GUTTER_X} pb-8`}>
       <header className="rule-major pt-5">
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div>
@@ -352,7 +357,7 @@ function WatchButton({
 
 function SignalsSkeleton() {
   return (
-    <div className="pb-8" aria-busy="true">
+    <div className={`${GUTTER_X} pb-8`} aria-busy="true">
       <div className="rule-major pt-5 space-y-4 max-w-4xl">
         <Skeleton className="h-3 w-36" />
         <Skeleton className="h-16 w-4/5" />
