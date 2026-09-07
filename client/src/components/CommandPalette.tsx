@@ -11,7 +11,18 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
-import { ArrowRight, BarChart3, BookOpen, Bookmark, Info, Newspaper, Search } from "lucide-react";
+import {
+  ArrowRight,
+  BarChart3,
+  BookOpen,
+  Bookmark,
+  Info,
+  MapPin,
+  Newspaper,
+  Radio,
+  Search,
+  Sparkles,
+} from "lucide-react";
 import { cn } from "@/lib/cn";
 import { highlight as highlightMatch } from "@/lib/highlight";
 import { trpc } from "@/lib/trpc";
@@ -19,16 +30,40 @@ import { trpc } from "@/lib/trpc";
 type Item = {
   id: string;
   label: string;
+  href: string;
   hint?: string;
   icon?: typeof Newspaper;
   group: "nav" | "edition" | "feed";
-  href: string;
   /** When true, the query is highlighted in the label/hint (search hits). */
   highlightable?: boolean;
 };
 
 const NAV_ITEMS: Item[] = [
   { id: "nav-today", label: "Today", hint: "Daily scan", icon: Newspaper, group: "nav", href: "/" },
+  {
+    id: "nav-ask",
+    label: "Ask The Desk",
+    hint: "Interrogate the intelligence",
+    icon: Sparkles,
+    group: "nav",
+    href: "/ask",
+  },
+  {
+    id: "nav-markets",
+    label: "Markets",
+    hint: "Build a market file",
+    icon: MapPin,
+    group: "nav",
+    href: "/markets",
+  },
+  {
+    id: "nav-signals",
+    label: "Signals",
+    hint: "What is moving now",
+    icon: Radio,
+    group: "nav",
+    href: "/signals",
+  },
   {
     id: "nav-editions",
     label: "Editions",
@@ -124,7 +159,7 @@ export function CommandPalette() {
     const q = query.trim().toLowerCase();
     const matchesQuery = (label: string) => q === "" || label.toLowerCase().includes(q);
 
-    const nav = NAV_ITEMS.filter((i) => matchesQuery(i.label));
+    const nav = NAV_ITEMS.filter((i) => matchesQuery(`${i.label} ${i.hint ?? ""}`));
     const editions: Item[] = (editionsQuery.data ?? [])
       .slice(0, 8)
       .map(
@@ -242,7 +277,7 @@ export function CommandPalette() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
-            placeholder="Jump to a page, edition or story…"
+            placeholder="Jump to intelligence, a market, edition or story…"
             className="flex-1 bg-transparent text-base focus:outline-none placeholder:text-[var(--color-fg-subtle)]"
             role="combobox"
             aria-expanded={items.length > 0}

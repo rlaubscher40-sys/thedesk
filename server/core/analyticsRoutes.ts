@@ -1,21 +1,10 @@
 /**
- * Self-hosted page-view analytics endpoint. Replaces the Plausible
- * script. No cookies, no fingerprinting, no IP storage.
+ * Self-hosted analytics endpoints. No cookies, fingerprinting or IP storage.
  *
- * The browser posts JSON to /api/analytics/pageview from its router-
- * change handler. We:
- *   1. Drop the request if the user-agent looks like a bot.
- *   2. Drop the request if the user sent DNT (do-not-track) — we
- *      respect it even though the brand-guide §11 already promised
- *      "no tracking pixels". Same spirit.
- *   3. Reduce the supplied referrer to a hostname so we never persist
- *      a full URL (which can leak query strings).
- *   4. Persist {viewedAt, path, referrer-hostname, sessionId} into
- *      page_views.
- *
- * Rate-limited per-IP at 60 events/min — a real reader navigating
- * fast sits well under this, but a misbehaving tab can't carpet-bomb
- * the table.
+ * Page views record path + ephemeral session id + hostname-only referrer.
+ * Engagement events use a strict allow-list of product actions and fixed
+ * surfaces; no user-entered question, market, story or metric content is
+ * accepted. Both respect DNT and bot filtering.
  */
 import type { Express, Request, Response } from "express";
 import rateLimit from "express-rate-limit";
@@ -23,15 +12,25 @@ import { z } from "zod";
 import * as db from "../db";
 
 const pageViewSchema = z.object({
-  /** Path part of the URL the reader is on. Query strings stripped
-   *  client-side, but defensively stripped here too. */
   path: z.string().min(1).max(256),
-  /** Full referring URL or hostname, OR empty. Reduced to hostname
-   *  before persistence. */
   referrer: z.string().max(2_048).optional(),
-  /** sessionStorage-allocated token. Random hex string the browser
-   *  generates fresh per tab; we only count distinct values within a
-   *  window. */
+  sessionId: z.string().min(8).max(64),
+});
+
+const engagementEventSchema = z.object({
+  event: z.enum([
+    "ask_query",
+    "ask_share",
+    "market_watch",
+    "market_compare",
+    "market_compare_share",
+    "signal_watch",
+    "signal_share",
+    "story_share",
+    "take_share",
+    "brief_reshare",
+  ]),
+  surface: z.enum(["ask", "markets", "signals", "trends", "story", "brief"]).optional(),
   sessionId: z.string().min(8).max(64),
 });
 
@@ -43,6 +42,10 @@ function looksLikeBot(ua: string | undefined): boolean {
   return BOT_UA_RE.test(ua);
 }
 
+function analyticsBlocked(req: Request): boolean {
+  return looksLikeBot(req.header("user-agent")) || req.header("dnt") === "1";
+}
+
 /** Reduce a referrer string to just its hostname, never the full URL. */
 function reduceReferrer(raw: string | undefined): string | null {
   if (!raw) return null;
@@ -50,8 +53,6 @@ function reduceReferrer(raw: string | undefined): string | null {
     const u = new URL(raw);
     return u.hostname.slice(0, 256);
   } catch {
-    // Already a plain hostname or garbage. Strip everything after the
-    // first slash so we never persist anything path-shaped.
     const trimmed = raw.split(/[/?#]/, 1)[0]?.slice(0, 256) ?? "";
     return trimmed.length > 0 ? trimmed : null;
   }
@@ -62,8 +63,7 @@ function reducePath(raw: string): string {
   return raw.split(/[?#]/, 1)[0]?.slice(0, 256) ?? "/";
 }
 
-/** Hostname from a Host header, dropping the port. Handles bracketed IPv6
- *  literals like `[::1]:3000` where a naive split(":") would mangle it. */
+/** Hostname from a Host header, dropping the port. Handles bracketed IPv6. */
 function hostnameOnly(host: string | undefined): string | null {
   if (!host) return null;
   const ipv6 = host.match(/^\[(.+?)\]/);
@@ -72,11 +72,7 @@ function hostnameOnly(host: string | undefined): string | null {
 }
 
 async function handlePageView(req: Request, res: Response): Promise<void> {
-  const ua = req.header("user-agent");
-  const dnt = req.header("dnt");
-  if (looksLikeBot(ua) || dnt === "1") {
-    // 204 silently — we don't want to leak the filter rules and bots
-    // get no useful info from this either way.
+  if (analyticsBlocked(req)) {
     res.status(204).end();
     return;
   }
@@ -85,8 +81,6 @@ async function handlePageView(req: Request, res: Response): Promise<void> {
     res.status(400).json({ error: "Bad page-view payload" });
     return;
   }
-  // Skip the same-origin referrer — that's just internal navigation
-  // and we already have the path. Caller can also pass empty.
   const refHost = reduceReferrer(parsed.data.referrer);
   const ownHost = hostnameOnly(req.header("host"));
   const referrer = refHost && refHost !== ownHost ? refHost : null;
@@ -99,11 +93,27 @@ async function handlePageView(req: Request, res: Response): Promise<void> {
   res.status(204).end();
 }
 
+async function handleEngagementEvent(req: Request, res: Response): Promise<void> {
+  if (analyticsBlocked(req)) {
+    res.status(204).end();
+    return;
+  }
+  const parsed = engagementEventSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Bad engagement payload" });
+    return;
+  }
+  await db.recordEngagementEvent({
+    event: parsed.data.event,
+    surface: parsed.data.surface ?? null,
+    sessionId: parsed.data.sessionId,
+  });
+  res.status(204).end();
+}
+
 export function registerAnalyticsRoutes(app: Express): void {
-  // Tight bucket — 60/min/ip. A user opening lots of tabs in fast
-  // sequence sits well under this; a noisy / buggy client can't fill
-  // the table. Skip the global standardHeaders so we don't surface
-  // rate-limit info to clients (no point publicising the threshold).
+  // One quiet shared budget for self-hosted analytics. Product actions are
+  // sparse relative to page views, so 60/min/IP is still generous for humans.
   const limiter = rateLimit({
     windowMs: 60_000,
     limit: 60,
@@ -112,4 +122,5 @@ export function registerAnalyticsRoutes(app: Express): void {
     message: { error: "Too many events" },
   });
   app.post("/api/analytics/pageview", limiter, handlePageView);
+  app.post("/api/analytics/event", limiter, handleEngagementEvent);
 }

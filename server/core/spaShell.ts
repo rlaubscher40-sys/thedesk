@@ -25,6 +25,10 @@
 /** Exact-match public routes. */
 const STATIC_ROUTES = new Set([
   "/",
+  "/ask",
+  "/brief",
+  "/signals",
+  "/markets",
   "/editions",
   "/queue",
   "/trends",
@@ -54,6 +58,8 @@ const DYNAMIC_ROUTES = [/^\/editions\/[^/]+$/, /^\/topics\/[^/]+$/, /^\/story\/[
 /**
  * Real pages we don't want in search results: nothing here has content a
  * searcher could want, and several are per-reader or single-use.
+ * Shared briefs are signed one-to-one snapshots, so they are intentionally
+ * crawlable for link unfurling but noindex for search via distributionSeo.
  */
 const NOINDEX_ROUTES = new Set([
   "/admin",

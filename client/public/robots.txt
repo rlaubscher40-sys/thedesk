@@ -86,3 +86,4 @@ User-agent: YouBot
 Disallow: /
 
 Sitemap: https://thedesk.au/sitemap.xml
+Sitemap: https://thedesk.au/product-sitemap.xml

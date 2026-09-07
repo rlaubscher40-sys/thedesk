@@ -21,6 +21,9 @@ import { GUTTER } from "./tokens";
 
 const NAV = [
   { href: "/", label: "Today" },
+  { href: "/ask", label: "Ask" },
+  { href: "/markets", label: "Markets" },
+  { href: "/signals", label: "Signals" },
   { href: "/editions", label: "Editions" },
   { href: "/archive", label: "Archive" },
   { href: "/trends", label: "Trends" },
@@ -132,7 +135,7 @@ export function Masthead({
               className="bs-label mt-3 lg:mt-4 hidden sm:block"
               style={{ fontSize: 11, letterSpacing: "0.3em" }}
             >
-              Australian property intelligence for the partner channel
+              Australian property intelligence before it becomes consensus
             </p>
           </div>
         </div>

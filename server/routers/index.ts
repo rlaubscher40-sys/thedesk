@@ -4,6 +4,7 @@
  */
 import { router } from "../core/trpc";
 import { analyticsRouter } from "./analytics";
+import { askRouter } from "./ask";
 import { authRouter } from "./auth";
 import { editionsRouter } from "./editions";
 import { feedRouter } from "./feed";
@@ -13,8 +14,11 @@ import { heroLibraryRouter } from "./heroLibrary";
 import { instagramRouter } from "./instagram";
 import { readingQueueRouter } from "./readingQueue";
 import { linkedInRouter } from "./linkedIn";
+import { marketsRouter } from "./markets";
 import { metricsRouter } from "./metrics";
 import { searchRouter } from "./search";
+import { shareRouter } from "./share";
+import { signalsRouter } from "./signals";
 import { subscribersRouter } from "./subscribers";
 import { systemRouter } from "./system";
 import { topicsRouter } from "./topics";
@@ -24,6 +28,7 @@ export const appRouter = router({
   system: systemRouter,
   auth: authRouter,
   analytics: analyticsRouter,
+  ask: askRouter,
   editions: editionsRouter,
   feed: feedRouter,
   feedback: feedbackRouter,
@@ -32,10 +37,13 @@ export const appRouter = router({
   readingQueue: readingQueueRouter,
   trends: trendsRouter,
   search: searchRouter,
+  share: shareRouter,
+  signals: signalsRouter,
   subscribers: subscribersRouter,
   instagram: instagramRouter,
   linkedIn: linkedInRouter,
   metrics: metricsRouter,
+  markets: marketsRouter,
   heroLibrary: heroLibraryRouter,
 });
 

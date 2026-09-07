@@ -11,6 +11,7 @@
  */
 import type { DailyMetric } from "@shared/types";
 import { MetricSparkline } from "@/components/charts/BroadsheetCharts";
+import { ShareMetricCardButton } from "@/components/trends/ShareMetricCardButton";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/cn";
 import { resolveMetricTrend } from "@/lib/metrics";
@@ -141,7 +142,7 @@ function MetricRow({
           </p>
         )}
       </div>
-      <div className="flex flex-col items-end gap-1">
+      <div className="flex flex-col items-end gap-1.5">
         {values.length >= 2 ? (
           <MetricSparkline
             values={values}
@@ -159,6 +160,11 @@ function MetricRow({
             {metric.source}
           </span>
         )}
+        <ShareMetricCardButton
+          metricKey={metric.metricKey}
+          label={metric.label}
+          canChart={values.length >= 2}
+        />
       </div>
     </div>
   );

@@ -11,6 +11,8 @@ import { createServer } from "node:http";
 import net from "node:net";
 import { registerAnalyticsRoutes } from "./core/analyticsRoutes";
 import { registerCanonicalRedirects } from "./core/canonicalHost";
+import { registerDistributionSeoRoutes } from "./core/distributionSeo";
+import { registerProductSeoRoutes } from "./core/productSeo";
 import { registerUnsubscribeRoute } from "./core/unsubscribeRoute";
 import { createContext } from "./core/context";
 import { registerHealthRoutes, recordExpressError } from "./core/healthRoutes";
@@ -55,7 +57,7 @@ async function applyPendingMigrations(): Promise<void> {
       }
     }
   } catch (err) {
-    console.error("[migrate] catch-up run errored, continuing boot:", err);
+    console.error("[migrate] schema catch-up failed (non-fatal):", err);
   }
 }
 
@@ -152,6 +154,8 @@ async function startServer() {
 
   registerOAuthRoutes(app);
   registerSeoRoutes(app);
+  registerDistributionSeoRoutes(app);
+  registerProductSeoRoutes(app);
   registerHealthRoutes(app);
   registerAnalyticsRoutes(app);
   registerUnsubscribeRoute(app);

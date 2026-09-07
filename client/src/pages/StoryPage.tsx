@@ -17,6 +17,8 @@ import { Link, useParams } from "wouter";
 import type { DailyFeedItem } from "@shared/types";
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
 import { LinkedInPostModal } from "@/components/LinkedInPostModal";
+import { DeskTakeShareButton } from "@/components/share/DeskTakeShareButton";
+import { StoryShareButton } from "@/components/share/StoryShareButton";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { CashRatePanel, MetricRows } from "@/components/broadsheet/MetricBlocks";
 import { PartnerAngleColumns } from "@/components/broadsheet/PartnerAngles";
@@ -108,6 +110,9 @@ export default function StoryPage() {
       ? `, corroborated by ${story.corroboratingSources.slice(0, 2).join(" and ")}`
       : "";
   const saved = isBookmarked(String(story.id));
+  const hasDeskTake = Boolean(
+    story.rubensNote?.trim() || story.sayThis?.trim() || story.counterpoint?.trim()
+  );
 
   return (
     <SectionErrorBoundary section="Story">
@@ -171,7 +176,7 @@ export default function StoryPage() {
                 {corroboration}
               </p>
             </div>
-            <div className="ml-auto flex gap-2 shrink-0">
+            <div className="ml-auto flex gap-2 shrink-0 flex-wrap justify-end">
               <button
                 type="button"
                 onClick={() => toggle(String(story.id))}
@@ -180,12 +185,19 @@ export default function StoryPage() {
               >
                 {saved ? "Saved" : "Save"}
               </button>
+              <Link href="/ask" className="bs-btn bs-btn-solid">
+                Ask The Desk
+              </Link>
+              <StoryShareButton id={story.id} title={cleanHeadline(story.title)} />
+              {hasDeskTake && (
+                <DeskTakeShareButton id={story.id} title={cleanHeadline(story.title)} />
+              )}
               <button
                 type="button"
                 onClick={() => setLinkedInOpen(true)}
                 className="bs-btn bs-btn-outline"
               >
-                Share
+                LinkedIn
               </button>
             </div>
           </div>
