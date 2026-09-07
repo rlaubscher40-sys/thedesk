@@ -8,6 +8,7 @@
  * raw IP persistence or third-party scripts.
  */
 
+import { analyticsPath } from "@shared/analyticsPath";
 import { getArrival } from "@/lib/attribution";
 
 const SESSION_KEY = "thedesk:session";
@@ -16,8 +17,17 @@ export type EngagementEvent =
   | "ask_query"
   | "ask_share"
   | "market_watch"
+  | "market_discover"
+  | "market_file_ask"
+  | "market_file_compare"
+  | "market_file_source"
+  | "market_file_share"
+  | "market_file_export"
   | "market_compare"
   | "market_compare_share"
+  | "comparison_watch"
+  | "comparison_refresh"
+  | "comparison_baseline_reset"
   | "signal_watch"
   | "signal_share"
   | "story_share"
@@ -83,12 +93,14 @@ export function trackPageView(): void {
   const id = sessionId();
   if (!id) return;
 
-  const path = window.location.pathname || "/";
-  if (path === lastPath) return;
-  lastPath = path;
+  // Debounce the actual route in memory, then redact before transmission.
+  // Otherwise Perth → Sydney looks like a duplicate /markets/:market view.
+  const route = window.location.pathname || "/";
+  if (route === lastPath) return;
+  lastPath = route;
 
   send("/api/analytics/pageview", {
-    path,
+    path: analyticsPath(route),
     referrer: document.referrer || "",
     // The path deliberately drops the query string (it can carry identifiers),
     // but that also discarded the campaign tag on an inbound link. Instagram's
@@ -114,7 +126,7 @@ export function trackEvent(event: EngagementEvent, surface?: string): void {
   send("/api/analytics/event", {
     event,
     surface: surface?.slice(0, 32),
-    path: window.location.pathname || "/",
+    path: analyticsPath(window.location.pathname),
     sessionId: id,
   });
 }

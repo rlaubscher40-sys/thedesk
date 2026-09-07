@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchAbsMetric } from "./abs";
+import { fetchAbsMetric, findReferenceDate, periodToDate } from "./abs";
 
 const SCRAPE_URL = "https://www.abs.gov.au/statistics/thing/latest-release";
 
@@ -14,7 +14,7 @@ const scrape = {
   patterns: [/[Uu]nemployment rate[^0-9%]{0,200}?([0-9]+(?:\.[0-9]+)?)\s*%/],
 };
 
-const HTML = `<html><p>Unemployment rate was 4.3 %</p></html>`;
+const HTML = `<html><p>Reference period June 2026</p><p>Unemployment rate was 4.3 %</p></html>`;
 const CSV = [
   "REGION,MEASURE,TIME_PERIOD,OBS_VALUE",
   "AUS,UNEMP,2026-05,4.1",
@@ -167,4 +167,28 @@ describe("fetchAbsMetric", () => {
     // Fell back to the scrape rather than publishing 137.2 as a rate.
     expect(result?.value).toBe("4.3");
   });
+});
+
+describe("ABS reference dates", () => {
+  it.each(["unknown", "2026-13", "2026-Q5", "2026-02-30"])(
+    "rejects invalid API period %s",
+    (period) => expect(periodToDate(period)).toBeNull()
+  );
+  it("preserves explicit month and quarter API periods", () => {
+    expect(periodToDate("2026-07")?.toISOString()).toBe("2026-07-01T00:00:00.000Z");
+    expect(periodToDate("2026-Q2")?.toISOString()).toBe("2026-06-01T00:00:00.000Z");
+  });
+  it("reads nested reference markup without substituting the release date", () => {
+    expect(
+      findReferenceDate(
+        "<div>Reference period</div><div><span>July 2026</span></div>Released 26 August 2026"
+      )?.toISOString()
+    ).toBe("2026-07-01T00:00:00.000Z");
+  });
+  it.each([
+    "Released 26 August 2026",
+    "Reference period Mystery 2026",
+    "Reference period 2026",
+    "Service unavailable",
+  ])("fails closed on %s", (html) => expect(findReferenceDate(html)).toBeNull());
 });

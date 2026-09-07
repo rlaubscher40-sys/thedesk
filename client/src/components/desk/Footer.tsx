@@ -15,6 +15,7 @@
 import { Link } from "wouter";
 import { cn } from "@/lib/cn";
 import { Logomark } from "@/components/Logomark";
+import { OnboardingModal } from "@/components/OnboardingModal";
 import { useAuth } from "@/lib/useAuth";
 import { useTheme } from "@/lib/theme";
 import { useLiveEditionMeta } from "@/lib/useLiveEditionMeta";
@@ -42,6 +43,7 @@ function FooterNav() {
   const { user } = useAuth();
   return (
     <nav className="flex gap-5 flex-wrap" aria-label="Footer navigation">
+      <OnboardingModal />
       {LINKS.map((l) => (
         <Link key={l.label} href={l.href} className="bs-label bs-link">
           {l.label}

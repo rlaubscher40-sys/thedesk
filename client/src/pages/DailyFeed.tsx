@@ -34,6 +34,7 @@ import { SubscribeBand } from "@/components/broadsheet/SubscribeBand";
 import { WhereThingsStand } from "@/components/broadsheet/MetricBlocks";
 import { GUTTER_X } from "@/components/broadsheet/tokens";
 import { AskDeskBand } from "@/components/broadsheet/today/AskDeskBand";
+import { MarketDiscovery } from "@/components/markets/MarketDiscovery";
 import { IndexStrip } from "@/components/broadsheet/today/IndexStrip";
 import { Lead } from "@/components/broadsheet/today/Lead";
 import { MorningSignals } from "@/components/broadsheet/today/MorningSignals";
@@ -286,6 +287,13 @@ export default function DailyFeed() {
           columns so the layout is honest about what it is. */}
       {!hasLiveData && isDemo && <SeedFallback />}
 
+      {isToday && channel === "AU" && (
+        <SectionErrorBoundary section="Market discovery">
+          <div className={GUTTER_X}>
+            <MarketDiscovery compact />
+          </div>
+        </SectionErrorBoundary>
+      )}
       <SubscribeBand source="today-band" />
     </>
   );

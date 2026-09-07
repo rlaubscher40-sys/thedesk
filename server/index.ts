@@ -13,6 +13,7 @@ import { registerAnalyticsRoutes } from "./core/analyticsRoutes";
 import { registerCanonicalRedirects } from "./core/canonicalHost";
 import { registerDistributionSeoRoutes } from "./core/distributionSeo";
 import { registerProductSeoRoutes } from "./core/productSeo";
+import { registerMarketSeoRoutes } from "./core/marketSeo";
 import { registerUnsubscribeRoute } from "./core/unsubscribeRoute";
 import { createContext } from "./core/context";
 import { registerHealthRoutes, recordExpressError } from "./core/healthRoutes";
@@ -155,6 +156,7 @@ async function startServer() {
   registerOAuthRoutes(app);
   registerSeoRoutes(app);
   registerDistributionSeoRoutes(app);
+  registerMarketSeoRoutes(app);
   registerProductSeoRoutes(app);
   registerHealthRoutes(app);
   registerAnalyticsRoutes(app);

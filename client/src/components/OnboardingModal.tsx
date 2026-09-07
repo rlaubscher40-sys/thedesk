@@ -1,95 +1,69 @@
 /**
- * 4-step onboarding modal. Shows once per user (tracked in localStorage), or
- * never if dismissed. Keeps state inline, no need for a context.
+ * Optional product guide. A shared-link recipient sees the evidence first;
+ * this dialog opens only when they choose "How it works" in the footer.
  */
-import { useEffect, useState } from "react";
-import { ArrowRight, Sparkles } from "lucide-react";
-import { Button } from "./ui/Button";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "./ui/Dialog";
+import React, { useState } from "react";
+import { Link } from "wouter";
+import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "./ui/Dialog";
 
-const STORAGE_KEY = "thedesk:onboarding-seen";
-
-const STEPS = [
+export const PRODUCT_GUIDE_ACTIONS = [
   {
-    overline: "Step 1 of 4 · Today",
-    title: "Today is your morning scan.",
-    body: "The Desk is your daily sixty-second read on Australian property. Five stories land overnight, each angled for where you stand: buying, holding, or watching to time a move. Open one for the read behind the headline.",
+    href: "/markets",
+    title: "Start with a place",
+    body: "Open a market's dated reporting. Compare two markets, see the gaps and save a comparison to revisit on this device.",
   },
   {
-    overline: "Step 2 of 4 · Editions",
-    title: "Weekly deep-dive editions.",
-    body: "Each Sunday a long-form edition lands with topics, signals and Ruben's Take. The Substack draft sits a click away in the admin panel.",
+    href: "/ask",
+    title: "Ask what it means",
+    body: "Ask a property question. Get a sourced read, its confidence and what would change the view—or an honest evidence gap.",
   },
   {
-    overline: "Step 3 of 4 · Reading Queue",
-    title: "Save anything for later.",
-    body: "Bookmark feed items and external URLs into the Reading Queue. Adding and removing is optimistic, you don't wait for the server.",
+    href: "/signals",
+    title: "Follow the numbers",
+    body: "Inspect the live indicators behind property. Watch a signal from your own baseline and share a number with its context.",
   },
   {
-    overline: "Step 4 of 4 · Make it yours",
-    title: "Notes, tracker, search.",
-    body: "Notes per edition. Tracker for every Say This line you used in a conversation. Press / to search anywhere.",
+    href: "/",
+    title: "Read today's briefing",
+    body: "Catch up on the reporting, see why it matters and subscribe to the free daily email when you are ready.",
   },
-];
+] as const;
 
 export function OnboardingModal() {
   const [open, setOpen] = useState(false);
-  const [step, setStep] = useState(0);
-
-  useEffect(() => {
-    if (window.localStorage.getItem(STORAGE_KEY) === "1") return;
-    // Defer so the modal doesn't fight the initial route transition.
-    const t = setTimeout(() => setOpen(true), 350);
-    return () => clearTimeout(t);
-  }, []);
-
-  function dismiss() {
-    window.localStorage.setItem(STORAGE_KEY, "1");
-    setOpen(false);
-  }
-
-  function next() {
-    if (step < STEPS.length - 1) setStep(step + 1);
-    else dismiss();
-  }
-
-  const current = STEPS[step]!;
-  const isLast = step === STEPS.length - 1;
 
   return (
-    <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : dismiss())}>
-      <DialogContent className="max-w-md">
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 overline">
-            <Sparkles className="h-3 w-3 text-amber-400" />
-            {current.overline}
-          </div>
-          <DialogTitle className="text-xl font-serif leading-snug">{current.title}</DialogTitle>
-          <DialogDescription className="text-sm text-[var(--color-fg-muted)] leading-relaxed">
-            {current.body}
-          </DialogDescription>
-        </div>
-
-        <div className="flex items-center justify-between pt-2">
-          <div className="flex items-center gap-1.5" aria-hidden="true">
-            {STEPS.map((_, i) => (
-              <span
-                key={i}
-                className={`h-1.5 w-6 rounded-full transition-colors ${
-                  i === step ? "bg-amber-400" : "bg-white/10"
-                }`}
-              />
-            ))}
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={dismiss}>
-              Skip
-            </Button>
-            <Button variant="primary" size="sm" onClick={next}>
-              {isLast ? "Get started" : "Next"} <ArrowRight className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        </div>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <button type="button" className="bs-label bs-link">
+          How it works
+        </button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg max-h-[85dvh] overflow-y-auto">
+        <DialogTitle className="font-serif text-3xl leading-tight">
+          Make your next property question a better one.
+        </DialogTitle>
+        <DialogDescription className="text-sm leading-6 text-[var(--color-fg-muted)]">
+          Australian property intelligence before it becomes consensus. Start with the evidence,
+          then decide what to investigate.
+        </DialogDescription>
+        <nav aria-label="Product guide" className="rule-hair-b">
+          {PRODUCT_GUIDE_ACTIONS.map((action) => (
+            <Link
+              key={action.href}
+              href={action.href}
+              className="block rule-hair py-4 bs-row"
+              onClick={() => setOpen(false)}
+            >
+              <p className="font-serif text-xl">{action.title} →</p>
+              <p className="text-sm leading-6 text-[var(--color-fg-muted)] mt-2">{action.body}</p>
+            </Link>
+          ))}
+        </nav>
+        <p className="text-xs leading-5 text-[var(--color-fg-muted)]">
+          Reading is free. Questions and comparisons use your intelligence allowance. Saved watches
+          stay on this device; they do not send background alerts.
+        </p>
       </DialogContent>
     </Dialog>
   );

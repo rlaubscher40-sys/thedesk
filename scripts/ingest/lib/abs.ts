@@ -32,8 +32,8 @@
  * `flowRef` explicitly still overrides discovery. Neither is required.
  *
  * Each fetched value is paired with its `asOf` timestamp. From the API that is
- * the observation's own period; from a scrape it is a best-effort read of the
- * page's released date, falling back to the run timestamp.
+ * the observation's own period; a scrape requires a readable reference period.
+ * Missing or invalid periods never fall back to the run timestamp.
  */
 
 import { absDataflowUrl, fetchAbsSeries, latestObservation } from "./absApi";
@@ -57,6 +57,7 @@ async function fetchHtml(url: string): Promise<string | null> {
   try {
     const res = await fetch(url, {
       headers: { "User-Agent": UA, Accept: "text/html" },
+      signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) {
       console.warn(`[abs] ${url} → ${res.status}`);
@@ -70,15 +71,29 @@ async function fetchHtml(url: string): Promise<string | null> {
 }
 
 /** Best-effort: pull the "Reference period" date from the page header. */
-function findReferenceDate(html: string): Date {
-  const m =
-    html.match(/Reference period[^<]*<[^>]*>\s*([A-Za-z]+ \d{4})/i) ||
-    html.match(/Released[^<]*<[^>]*>\s*(\d{1,2} [A-Za-z]+ \d{4})/i);
-  if (m && m[1]) {
-    const d = new Date(m[1]);
-    if (!Number.isNaN(d.getTime())) return d;
-  }
-  return new Date();
+export function findReferenceDate(html: string): Date | null {
+  const text = html
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ");
+  const m = text.match(/Reference period\s+([A-Za-z]+)\s+(\d{4})\b/i);
+  const months = [
+    "january",
+    "february",
+    "march",
+    "april",
+    "may",
+    "june",
+    "july",
+    "august",
+    "september",
+    "october",
+    "november",
+    "december",
+  ];
+  if (!m) return null;
+  const month = months.indexOf(m[1]!.toLowerCase());
+  return month === -1 ? null : new Date(Date.UTC(Number(m[2]), month, 1));
 }
 
 /**
@@ -97,6 +112,11 @@ async function scrapeAbs(args: {
 }): Promise<AbsResult> {
   const html = await fetchHtml(args.url);
   if (!html) return null;
+  const asOf = findReferenceDate(html);
+  if (!asOf) {
+    console.warn(`[abs] no reference period for ${args.metricKey}`);
+    return null;
+  }
   for (const re of args.patterns) {
     const m = html.match(re);
     if (m && m[1]) {
@@ -111,7 +131,7 @@ async function scrapeAbs(args: {
           context: args.context,
           groupKey: args.groupKey,
           source: "ABS",
-          asOf: findReferenceDate(html),
+          asOf,
           displayOrder: args.displayOrder,
         };
       }
@@ -156,17 +176,17 @@ type ScrapeSpec = {
   patterns: RegExp[];
 };
 
-/** Turn an SDMX period ("2026-Q1", "2026-06", "2026") into a date. Best effort:
- *  a period we cannot read is not worth failing the metric over. */
-function periodToDate(period: string): Date {
+/** Reject unfamiliar periods rather than dating old data as today's observation. */
+export function periodToDate(period: string): Date | null {
   const quarter = period.match(/^(\d{4})-Q([1-4])$/);
   if (quarter) return new Date(Date.UTC(Number(quarter[1]), Number(quarter[2]) * 3 - 1, 1));
-  const month = period.match(/^(\d{4})-(\d{2})$/);
+  const month = period.match(/^(\d{4})-(0[1-9]|1[0-2])$/);
   if (month) return new Date(Date.UTC(Number(month[1]), Number(month[2]) - 1, 1));
   const year = period.match(/^(\d{4})$/);
   if (year) return new Date(Date.UTC(Number(year[1]), 11, 31));
-  const d = new Date(period);
-  return Number.isNaN(d.getTime()) ? new Date() : d;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(period)) return null;
+  const d = new Date(`${period}T00:00:00Z`);
+  return Number.isFinite(d.getTime()) && d.toISOString().slice(0, 10) === period ? d : null;
 }
 
 /**
@@ -278,7 +298,8 @@ export async function fetchAbsMetric(spec: {
           )
         : result.observations;
       const latest = latestObservation(matching);
-      if (latest) {
+      const asOf = latest ? periodToDate(latest.period) : null;
+      if (latest && asOf) {
         return {
           metricKey: spec.scrape.metricKey,
           label: spec.scrape.label,
@@ -287,7 +308,7 @@ export async function fetchAbsMetric(spec: {
           context: spec.scrape.context,
           groupKey: spec.scrape.groupKey,
           source: "ABS",
-          asOf: periodToDate(latest.period),
+          asOf,
           displayOrder: spec.scrape.displayOrder,
         };
       }
@@ -320,7 +341,7 @@ export async function fetchCpiTrimmedMean(): Promise<AbsResult> {
       metricKey: "cpi_trimmed",
       label: "Trimmed mean CPI",
       unit: "%",
-      context: "ABS quarterly",
+      context: "ABS · annual change",
       groupKey: "MACRO",
       displayOrder: 20,
       patterns: [

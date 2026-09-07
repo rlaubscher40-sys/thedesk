@@ -1,6 +1,14 @@
+import {
+  COMPARISON_BASIS_LABELS,
+  COMPARISON_EVIDENCE_WINDOW_DAYS,
+  comparisonQuality,
+  evidenceFreshness,
+  type BasisField,
+} from "@shared/comparisonQuality";
 import { Link } from "wouter";
 import { MARKET_DIMENSIONS, type MarketComparison } from "@shared/marketComparison";
 import { ShareIntelligenceCardButton } from "@/components/ask/ShareIntelligenceCardButton";
+import { ComparisonWatchButton } from "./ComparisonWatchButton";
 
 /** The same evidence object appears in Markets and its signed public destination. */
 export function ComparisonRead({
@@ -15,6 +23,12 @@ export function ComparisonRead({
   const supported = new Set(c.rows.map((row) => row.dimension));
   const gaps = Object.entries(MARKET_DIMENSIONS).filter(
     ([key]) => !supported.has(key as keyof typeof MARKET_DIMENSIONS)
+  );
+  const matchedCount = c.rows.filter(
+    (row) => comparisonQuality(row, c.sources, c.asOf).comparable
+  ).length;
+  const qualityRecorded = c.rows.some(
+    (row) => row.marketA?.basis !== undefined || row.marketB?.basis !== undefined
   );
   const challenge = `What evidence would challenge this comparison of ${c.marketA} vs ${c.marketB}?`;
   return (
@@ -37,58 +51,117 @@ export function ComparisonRead({
       <p className="bs-label mt-5">
         {c.confidence} evidence confidence · {c.sources.length} Desk sources
       </p>
+      <div className="mt-4">
+        <ComparisonWatchButton comparison={c} token={shareToken} />
+      </div>
       <p className="text-sm leading-6 text-[var(--color-fg-muted)] mt-2 max-w-[80ch]">
         Confidence reflects the available evidence, not future returns. Desk coverage is not an
         independent audit; a missing observation does not make a market weaker. Dates below identify
         the source publication.
       </p>
 
+      <section className="rule-hair mt-6 py-4" aria-label="Evidence quality">
+        <p className="bs-label-accent">
+          {qualityRecorded
+            ? `${matchedCount} of ${c.rows.length} dimensions have matching evidence criteria`
+            : "Comparison criteria were not recorded in this earlier snapshot"}
+        </p>
+        <p className="text-sm leading-6 text-[var(--color-fg-muted)] mt-2">
+          A directional call needs the same recorded measure, period, property or population type,
+          geography level and unit. Both source dates and observation endpoints must be within{" "}
+          {COMPARISON_EVIDENCE_WINDOW_DAYS} days of this brief. Matching criteria are a minimum
+          check; they do not certify identical research methods.
+        </p>
+      </section>
+
       <section className="mt-8 rule-hair-b" aria-label="Evidence by dimension">
         <p className="bs-label-accent rule-hair py-4">The forces behind the call</p>
-        {c.rows.map((row) => (
-          <section key={row.dimension} className="rule-hair py-5">
-            <div className="flex flex-wrap justify-between gap-2">
-              <h3 className="font-serif text-2xl">{MARKET_DIMENSIONS[row.dimension]}</h3>
-              <p className="bs-label-accent">
-                {row.edge === "unclear"
-                  ? "No clear edge"
-                  : `Evidence leans ${row.edge === "a" ? c.marketA : c.marketB}`}
+        {c.rows.map((row) => {
+          const quality = comparisonQuality(row, c.sources, c.asOf);
+          return (
+            <section key={row.dimension} className="rule-hair py-5">
+              <div className="flex flex-wrap justify-between gap-2">
+                <h3 className="font-serif text-2xl">{MARKET_DIMENSIONS[row.dimension]}</h3>
+                <p className="bs-label-accent">
+                  {row.edge === "unclear"
+                    ? "No clear edge"
+                    : `Evidence leans ${row.edge === "a" ? c.marketA : c.marketB}`}
+                </p>
+              </div>
+              <div className="grid md:grid-cols-2 gap-6 mt-4">
+                {(["a", "b"] as const).map((side) => {
+                  const observation = side === "a" ? row.marketA : row.marketB;
+                  const source = c.sources.find((item) => item.ref === observation?.sourceRef);
+                  return (
+                    <div key={side} className={side === "b" ? "md:rule-hair-l md:pl-6" : ""}>
+                      <p className="bs-label">{side === "a" ? c.marketA : c.marketB}</p>
+                      {observation && source ? (
+                        <>
+                          <blockquote className="font-serif text-lg leading-7 mt-2">
+                            “{observation.quote}”
+                          </blockquote>
+                          <a
+                            href={`#comparison-source-${source.ref}`}
+                            className="bs-label bs-link mt-3 inline-block"
+                          >
+                            [{source.ref}] {source.publisher ?? "Desk reporting"} · {source.date}
+                          </a>
+                          <p className="bs-label mt-2">
+                            {evidenceFreshness(source.date, c.asOf) === "recent"
+                              ? "Published within the evidence window"
+                              : "Source date needs caution"}
+                          </p>
+                          <details className="mt-3">
+                            <summary className="bs-label bs-link cursor-pointer">
+                              Evidence criteria
+                            </summary>
+                            <dl className="mt-3 space-y-2 text-sm">
+                              {(Object.keys(COMPARISON_BASIS_LABELS) as BasisField[]).map(
+                                (field) => (
+                                  <div
+                                    key={field}
+                                    className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-3"
+                                  >
+                                    <dt className="text-[var(--color-fg-muted)]">
+                                      {COMPARISON_BASIS_LABELS[field]}
+                                    </dt>
+                                    <dd>{observation.basis?.[field] ?? "Not recorded"}</dd>
+                                  </div>
+                                )
+                              )}
+                            </dl>
+                          </details>
+                        </>
+                      ) : (
+                        <p className="text-sm text-[var(--color-fg-muted)] mt-2">
+                          No supported local observation in this evidence set.
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-[var(--color-fg-body)] mt-5 max-w-[90ch]">
+                <span className="bs-label-accent mr-2">Desk interpretation</span>
+                {row.read}
               </p>
-            </div>
-            <div className="grid md:grid-cols-2 gap-6 mt-4">
-              {(["a", "b"] as const).map((side) => {
-                const observation = side === "a" ? row.marketA : row.marketB;
-                const source = c.sources.find((item) => item.ref === observation?.sourceRef);
-                return (
-                  <div key={side} className={side === "b" ? "md:rule-hair-l md:pl-6" : ""}>
-                    <p className="bs-label">{side === "a" ? c.marketA : c.marketB}</p>
-                    {observation && source ? (
-                      <>
-                        <blockquote className="font-serif text-lg leading-7 mt-2">
-                          “{observation.quote}”
-                        </blockquote>
-                        <a
-                          href={`#comparison-source-${source.ref}`}
-                          className="bs-label bs-link mt-3 inline-block"
-                        >
-                          [{source.ref}] {source.publisher ?? "Desk reporting"} · {source.date}
-                        </a>
-                      </>
-                    ) : (
-                      <p className="text-sm text-[var(--color-fg-muted)] mt-2">
-                        No supported local observation in this evidence set.
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            <p className="text-[var(--color-fg-body)] mt-5 max-w-[90ch]">
-              <span className="bs-label-accent mr-2">Desk interpretation</span>
-              {row.read}
-            </p>
-          </section>
-        ))}
+              <div className="mt-4 border-l-2 border-[var(--color-accent-text)] pl-4">
+                <p className="bs-label-accent">
+                  {quality.comparable
+                    ? "Recorded criteria match"
+                    : "Why the evidence is not directly comparable"}
+                </p>
+                {quality.reasons.length > 0 && (
+                  <ul className="mt-2 space-y-1 text-sm text-[var(--color-fg-muted)]">
+                    {quality.reasons.map((reason) => (
+                      <li key={reason}>{reason}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </section>
+          );
+        })}
       </section>
 
       <div className="grid md:grid-cols-2 gap-6 rule-hair-b py-6">

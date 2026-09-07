@@ -47,12 +47,13 @@ describe("market comparison evidence boundaries", () => {
     answer.rows[0]!.marketB = null;
     expect(ground(answer)).toBeNull();
     for (const date of ["2024-01-01", "2026-12-01", "unknown"]) {
-      expect(
-        ground(
-          comparisonAnswer,
-          comparisonEvidence.map((source) => ({ ...source, date }))
-        )
-      ).toBeNull();
+      const withheld = ground(
+        comparisonAnswer,
+        comparisonEvidence.map((source) => ({ ...source, date }))
+      );
+      expect(withheld?.rows[0]?.edge).toBe("unclear");
+      expect(withheld?.verdict).toBe("No clear edge on the available evidence.");
+      expect(withheld?.deskTake).not.toContain("leans Brisbane");
     }
     expect(ground({ ...comparisonAnswer, rows: [] })).toBeNull();
     expect(

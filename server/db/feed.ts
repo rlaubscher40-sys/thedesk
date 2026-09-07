@@ -271,6 +271,40 @@ export async function listFeedItemsBetween(
     .orderBy(desc(dailyFeedItems.createdAt));
 }
 
+/** Small public discovery sample, not an unbounded copy of the archive. */
+export async function listMarketDiscoveryItems(startDate: string, endDate: string, limit: number) {
+  if (isDemoMode()) {
+    return (await demoQueries.listFeedItemsBetween(startDate, endDate))
+      .filter((item) => ["AU", "PROPERTY"].includes((item.channel ?? "AU").toUpperCase()))
+      .filter((item) =>
+        ["PROPERTY", "MACRO", "MARKETS", "POLICY", "ECONOMICS"].includes(
+          item.category.toUpperCase()
+        )
+      )
+      .sort((a, b) => b.feedDate.localeCompare(a.feedDate) || b.id - a.id)
+      .slice(0, limit);
+  }
+  const db = getDb();
+  if (!db) return [];
+  return db
+    .select({
+      id: dailyFeedItems.id,
+      title: dailyFeedItems.title,
+      summary: dailyFeedItems.summary,
+      source: dailyFeedItems.source,
+      sourceUrl: dailyFeedItems.sourceUrl,
+      feedDate: dailyFeedItems.feedDate,
+      channel: dailyFeedItems.channel,
+      category: dailyFeedItems.category,
+    })
+    .from(dailyFeedItems)
+    .where(
+      sql`${dailyFeedItems.feedDate} >= ${startDate} AND ${dailyFeedItems.feedDate} <= ${endDate} AND (${dailyFeedItems.channel} IN ('AU', 'PROPERTY') OR ${dailyFeedItems.channel} IS NULL) AND ${dailyFeedItems.category} IN ('PROPERTY', 'MACRO', 'MARKETS', 'POLICY', 'ECONOMICS')`
+    )
+    .orderBy(desc(dailyFeedItems.feedDate), desc(dailyFeedItems.id))
+    .limit(limit);
+}
+
 /** Items missing a sayThis line, used by the backfill admin procedure. */
 export async function listFeedItemsMissingSayThis(limit = 50): Promise<DailyFeedItem[]> {
   if (isDemoMode()) return demoQueries.listFeedItemsMissingSayThis(limit);

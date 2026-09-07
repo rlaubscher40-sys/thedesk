@@ -108,7 +108,7 @@ export async function demoLlm(params: InvokeLlmParams): Promise<string> {
                 sentence.length >= 12 &&
                 sentence.length <= 360
             );
-          if (quote) return { sourceRef: source.ref, quote };
+          if (quote) return { sourceRef: source.ref, quote, basis: null };
         }
         return null;
       });

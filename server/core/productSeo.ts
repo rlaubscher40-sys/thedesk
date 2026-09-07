@@ -2,6 +2,8 @@ import type { Express, NextFunction, Request, Response } from "express";
 import fs from "node:fs";
 import path from "node:path";
 import { DEFAULT_SITE_URL } from "../../shared/const";
+import { getMarketDirectory } from "../markets/discovery";
+import { marketPath } from "../../shared/marketDirectory";
 
 function siteUrl(): string {
   return (process.env.SITE_URL || DEFAULT_SITE_URL).replace(/\/+$/, "");
@@ -23,18 +25,19 @@ function replaceMeta(
 ): string {
   const escaped = htmlEscape(content);
   const safeKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const pattern = new RegExp(
-    `<meta\\s+${attribute}="${safeKey}"\\s+content="[^"]*"\\s*\\/?>`,
-    "i"
-  );
+  const pattern = new RegExp(`<meta\\s+${attribute}="${safeKey}"\\s+content="[^"]*"\\s*\\/?>`, "i");
   const tag = `<meta ${attribute}="${key}" content="${escaped}" />`;
-  return pattern.test(html) ? html.replace(pattern, tag) : html.replace("</head>", `    ${tag}\n  </head>`);
+  return pattern.test(html)
+    ? html.replace(pattern, tag)
+    : html.replace("</head>", `    ${tag}\n  </head>`);
 }
 
 function replaceCanonical(html: string, canonical: string): string {
   const tag = `<link rel="canonical" href="${htmlEscape(canonical)}" />`;
   const pattern = /<link\s+rel="canonical"\s+href="[^"]*"\s*\/?>/i;
-  return pattern.test(html) ? html.replace(pattern, tag) : html.replace("</head>", `    ${tag}\n  </head>`);
+  return pattern.test(html)
+    ? html.replace(pattern, tag)
+    : html.replace("</head>", `    ${tag}\n  </head>`);
 }
 
 type ProductMeta = {
@@ -116,16 +119,30 @@ const PRODUCT_SITEMAP_PATHS = ["/ask", "/markets", "/signals"] as const;
  * evolve without coupling the editorial crawl contract to the app roadmap.
  */
 export function registerProductSeoRoutes(app: Express): void {
-  app.get("/product-sitemap.xml", (_req, res) => {
+  app.get("/product-sitemap.xml", async (_req, res) => {
     const base = siteUrl();
     const today = new Date().toISOString().slice(0, 10);
     const urls = PRODUCT_SITEMAP_PATHS.map((productPath) => {
       const frequency = productPath === "/signals" ? "daily" : "weekly";
       return `<url><loc>${base}${productPath}</loc><lastmod>${today}</lastmod><changefreq>${frequency}</changefreq></url>`;
-    }).join("\n");
+    });
+    try {
+      const directory = await getMarketDirectory();
+      for (const file of directory.markets) {
+        if (file.indexable && file.latestMention)
+          urls.push(
+            `<url><loc>${htmlEscape(base)}${marketPath(file.market.slug)}</loc><lastmod>${file.latestMention}</lastmod><changefreq>daily</changefreq></url>`
+          );
+      }
+    } catch {
+      res.set("Cache-Control", "no-store").status(503).end();
+      return;
+    }
     res.set("Content-Type", "application/xml; charset=utf-8");
     res.set("Cache-Control", "public, max-age=3600");
-    res.send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>`);
+    res.send(
+      `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join("\n")}\n</urlset>`
+    );
   });
 
   for (const meta of PRODUCT_META) {

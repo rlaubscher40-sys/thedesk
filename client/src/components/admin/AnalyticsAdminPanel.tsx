@@ -32,10 +32,7 @@ export function AnalyticsAdminPanel() {
   return (
     <section className="panel rounded p-6 sm:p-8 space-y-7">
       <header>
-        <p
-          className="overline-amber mb-2"
-          style={{ letterSpacing: "0.22em", fontSize: "10px" }}
-        >
+        <p className="overline-amber mb-2" style={{ letterSpacing: "0.22em", fontSize: "10px" }}>
           <BarChart3 className="inline h-3 w-3 mr-1.5 align-[-2px]" />
           Analytics
         </p>
@@ -80,9 +77,13 @@ export function AnalyticsAdminPanel() {
           </div>
           <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-px bg-[var(--color-border)]">
             {engagement.map((row) => (
-              <div key={`${row.event}-${row.surface ?? "all"}`} className="bg-[var(--color-bg-elevated)] p-4">
+              <div
+                key={`${row.event}-${row.surface ?? "all"}`}
+                className="bg-[var(--color-bg-elevated)] p-4"
+              >
                 <p className="font-mono uppercase text-[10px] tracking-[0.16em] text-[var(--color-fg-subtle)]">
-                  {eventLabel(row.event)}{row.surface ? ` · ${row.surface}` : ""}
+                  {eventLabel(row.event)}
+                  {row.surface ? ` · ${row.surface}` : ""}
                 </p>
                 <div className="flex items-end gap-3 mt-2">
                   <p className="font-serif text-3xl font-bold tabular-nums leading-none">
@@ -128,6 +129,15 @@ function eventLabel(value: string): string {
     market_watch: "Market watched",
     market_compare: "Markets compared",
     market_compare_share: "Comparison shared",
+    market_discover: "Market file discovered",
+    market_file_ask: "Market file → Ask",
+    market_file_compare: "Market file → comparison",
+    market_file_source: "Market source opened",
+    market_file_share: "Market file shared",
+    market_file_export: "Market card download requested",
+    comparison_watch: "Comparison saved",
+    comparison_refresh: "Saved comparison refreshed",
+    comparison_baseline_reset: "Comparison baseline updated",
     signal_watch: "Signal watched",
     signal_share: "Signal shared",
     story_share: "Story shared",
@@ -137,15 +147,7 @@ function eventLabel(value: string): string {
   return labels[value] ?? value.replace(/_/g, " ");
 }
 
-function Tile({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-}) {
+function Tile({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="panel rounded-sm p-4">
       <p
@@ -161,10 +163,7 @@ function Tile({
         {value}
       </p>
       {hint && (
-        <p
-          className="font-mono text-[var(--color-fg-subtle)] mt-1"
-          style={{ fontSize: "10px" }}
-        >
+        <p className="font-mono text-[var(--color-fg-subtle)] mt-1" style={{ fontSize: "10px" }}>
           {hint}
         </p>
       )}
@@ -190,10 +189,7 @@ function BreakdownList({
         {title}
       </h3>
       {rows.length === 0 ? (
-        <p
-          className="font-serif italic text-[var(--color-fg-subtle)]"
-          style={{ fontSize: "13px" }}
-        >
+        <p className="font-serif italic text-[var(--color-fg-subtle)]" style={{ fontSize: "13px" }}>
           {emptyHint}
         </p>
       ) : (

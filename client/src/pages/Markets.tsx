@@ -12,6 +12,9 @@ import {
   Sparkles,
 } from "lucide-react";
 import { MarketComparison } from "@/components/markets/MarketComparison";
+import { MarketDiscovery } from "@/components/markets/MarketDiscovery";
+import { MarketRentConditions } from "@/components/markets/MarketRentConditions";
+import { ComparisonWatchlist } from "@/components/markets/ComparisonWatchlist";
 import { ShareIntelligenceCardButton } from "@/components/ask/ShareIntelligenceCardButton";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { trackEvent } from "@/lib/analytics";
@@ -187,6 +190,8 @@ export default function MarketsPage() {
         </Link>
       </nav>
 
+      <ComparisonWatchlist />
+      {!comparisonMode && market && <MarketRentConditions marketA={market} />}
       {comparisonMode ? (
         <MarketComparison
           marketA={initial}
@@ -259,7 +264,7 @@ export default function MarketsPage() {
             </section>
           )}
 
-          {!market && <MarketEmptyState onSelect={submit} />}
+          {!market && <MarketDiscovery />}
 
           {market && (
             <>
