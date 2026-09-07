@@ -4,6 +4,7 @@
  */
 import { router } from "../core/trpc";
 import { analyticsRouter } from "./analytics";
+import { askRouter } from "./ask";
 import { authRouter } from "./auth";
 import { editionsRouter } from "./editions";
 import { feedRouter } from "./feed";
@@ -24,6 +25,7 @@ export const appRouter = router({
   system: systemRouter,
   auth: authRouter,
   analytics: analyticsRouter,
+  ask: askRouter,
   editions: editionsRouter,
   feed: feedRouter,
   feedback: feedbackRouter,
