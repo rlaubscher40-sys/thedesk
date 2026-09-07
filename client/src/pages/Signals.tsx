@@ -1,6 +1,7 @@
 import { Bookmark, BookmarkCheck, MoveDownRight, MoveUpRight, Radio } from "lucide-react";
 import { Link } from "wouter";
 import { useEffect, useMemo, useState } from "react";
+import { ShareSignalCardButton } from "@/components/signals/ShareSignalCardButton";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { trpc } from "@/lib/trpc";
 
@@ -64,6 +65,13 @@ function moveLabel(move: number | null): string {
   if (move == null || !Number.isFinite(move)) return "No recorded move";
   const sign = move > 0 ? "+" : "";
   return `${sign}${move.toFixed(Math.abs(move) >= 10 ? 1 : 2)}%`;
+}
+
+function formatAsOf(value: Date | string | null | undefined): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
 }
 
 export default function SignalsPage() {
@@ -170,6 +178,15 @@ export default function SignalsPage() {
               </p>
             )}
             <div className="flex flex-wrap gap-3 mt-6">
+              <ShareSignalCardButton
+                label={hero.metric.label}
+                value={displayValue(hero.metric)}
+                context={hero.metric.context ?? null}
+                move={hero.move != null ? `${moveLabel(hero.move)} across recorded history` : null}
+                deskTake={latestEdition?.rubensTake ?? null}
+                source={hero.metric.source ?? null}
+                asOf={formatAsOf(hero.metric.asOf)}
+              />
               <WatchButton
                 watched={watchlist.some((watch) => watch.metricKey === hero.metric.metricKey)}
                 onClick={() => toggleWatch(hero)}
