@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { renderDailyHookCoverCard } from "./dailyHookCover";
+import { extractHookStat, renderDailyHookCoverCard } from "./dailyHookCover";
 
 function expectJpeg(buf: Buffer) {
   expect(buf).toBeInstanceOf(Buffer);
@@ -8,6 +8,20 @@ function expectJpeg(buf: Buffer) {
   expect(buf[1]).toBe(0xd8);
   expect(buf[2]).toBe(0xff);
 }
+
+describe("extractHookStat", () => {
+  it("promotes source-backed social numbers without recalculating them", () => {
+    expect(extractHookStat("21,465 people left NSW last year")).toBe("21,465");
+    expect(extractHookStat("Sydney auction clearance hits 74% again")).toBe("74%");
+    expect(extractHookStat("$1.66B wiped off Australian asking prices")).toBe("$1.66B");
+    expect(extractHookStat("Investor credit rises 8.4% as demand returns")).toBe("8.4%");
+  });
+
+  it("does not turn a bare calendar year into the hero claim", () => {
+    expect(extractHookStat("2026 housing outlook turns on supply")).toBeNull();
+    expect(extractHookStat("2026 auction volumes are 12% higher")).toBe("12%");
+  });
+});
 
 describe("renderDailyHookCoverCard", () => {
   it("renders the lead hook as a 1080x1350 JPEG", async () => {
@@ -31,6 +45,21 @@ describe("renderDailyHookCoverCard", () => {
         ],
       })
     );
+  });
+
+  it("renders a huge-number hook in both grid variants", async () => {
+    const input = {
+      feedDate: "2026-09-07",
+      lead: {
+        title: "$1.66B wiped off Australian asking prices",
+        category: "PROPERTY",
+        source: "SQM Research",
+        whyItMatters: "The repricing is broad enough to matter for spring vendor expectations.",
+      },
+      supporting: [{ title: "Listings climb into spring", category: "PROPERTY" }],
+    } as const;
+    expectJpeg(await renderDailyHookCoverCard({ ...input, variant: "navy" }));
+    expectJpeg(await renderDailyHookCoverCard({ ...input, variant: "light" }));
   });
 
   it("survives a sparse day without supporting stories or metrics", async () => {
