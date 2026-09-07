@@ -53,11 +53,22 @@ describe("inventsFigures", () => {
 });
 
 describe("fallbackStatLine", () => {
-  it("states the metric and value and nothing else", () => {
-    expect(fallbackStatLine(pick)).toBe("Auction clearance is now 58.4%.");
+  it("states the direction, not the value", () => {
+    // The figure is already set at up to 400px directly above it. The prompt
+    // forbids the model from restating it; the fallback has to obey the same
+    // rule or it undoes it every time the model is unavailable.
+    expect(fallbackStatLine(pick)).toBe("Auction clearance is lower than it was.");
+    expect(fallbackStatLine({ ...pick, direction: "up" })).toBe(
+      "Auction clearance is higher than it was."
+    );
+    expect(fallbackStatLine({ ...pick, direction: "flat" })).toBe(
+      "Auction clearance did not move."
+    );
   });
 
   it("never introduces a figure of its own", () => {
-    expect(inventsFigures(fallbackStatLine(pick), facts)).toBe(false);
+    for (const direction of ["up", "down", "flat"] as const) {
+      expect(inventsFigures(fallbackStatLine({ ...pick, direction }), facts)).toBe(false);
+    }
   });
 });

@@ -241,11 +241,15 @@ describe("buildAudioGraph", () => {
 describe("composeSections", () => {
   const durations = { label: 1.2, value: 1.4, line: 3.4, claim: 2.6, signOff: 2.9 };
 
-  it("counts the number up under the passage that says it", () => {
-    const value = composeSections(stat, durations).find((s) => s.key === "value")!;
-    expect(value.frames.length).toBeGreaterThan(5);
-    expect(value.frames.every((f) => f.reveal === 0.3)).toBe(true);
-    expect(value.frames[value.frames.length - 1]!.valueText).toBeUndefined();
+  it("counts the number up under the opening passage, not the one that says it", () => {
+    // The hook is where the count belongs: it is the only passage playing over
+    // a frame with nothing on it, and a viewer decides during it.
+    const label = composeSections(stat, durations).find((s) => s.key === "label")!;
+    expect(label.frames.length).toBeGreaterThan(5);
+    expect(label.frames[0]!.reveal).toBe(0);
+    expect(label.frames.slice(1).every((f) => f.reveal === 0.3)).toBe(true);
+    // It lands on the real figure, not on a tick.
+    expect(label.frames[label.frames.length - 1]!.valueText).toBeUndefined();
   });
 
   it("holds the finished card while the sign-off plays", () => {
@@ -255,10 +259,10 @@ describe("composeSections", () => {
   });
 
   it("gives the count-up its ticks on top of the passage, not out of it", () => {
-    // Otherwise the voice would still be saying the figure after the count had
-    // finished and the card had moved on.
-    const value = composeSections(stat, durations).find((s) => s.key === "value")!;
-    expect(value.seconds).toBeGreaterThan(durations.value);
+    // Otherwise the hook would be cut short to make room for the count, and
+    // the opening is the passage that can least afford to be rushed.
+    const label = composeSections(stat, durations).find((s) => s.key === "label")!;
+    expect(label.seconds).toBeGreaterThan(durations.label + 0.7);
   });
 
   it("drops a passage that has nothing to say rather than holding on silence", () => {
@@ -469,5 +473,39 @@ describe("clip length", () => {
     const script = [line("label", 10), line("signOff", 6)];
     const speech = script.reduce((n, l) => n + estimateSpeechSeconds(l.text), 0);
     expect(estimateScriptSeconds(script)).toBeGreaterThan(speech);
+  });
+});
+
+describe("the opening", () => {
+  const durations = { label: 2.6, value: 1.4, line: 3.4, claim: 2.6, signOff: 2.9 };
+
+  it("puts the number on screen inside the first couple of seconds", () => {
+    // A viewer decides inside a second. Once the hook was written by a model
+    // rather than read off the card it ran three seconds, and the count-up sat
+    // behind it — three seconds of a frame holding nothing but a metric name.
+    const { beats } = layout(composeSections(stat, durations));
+    let t = 0;
+    let numberAt: number | null = null;
+    beats.forEach((b, i) => {
+      const start = i === 0 ? 0 : t - b.fade;
+      t = i === 0 ? b.seconds : t + b.seconds - b.fade;
+      if (numberAt === null && b.frame.reveal >= 0.3) numberAt = start;
+    });
+    expect(numberAt).not.toBeNull();
+    expect(numberAt!).toBeLessThan(2);
+  });
+
+  it("keeps the opening frame short however long the hook runs", () => {
+    const short = layout(composeSections(stat, { ...durations, label: 0.8 })).beats[0]!;
+    const long = layout(composeSections(stat, { ...durations, label: 6 })).beats[0]!;
+    expect(short.seconds).toBe(long.seconds);
+    expect(long.seconds).toBeLessThan(1);
+  });
+
+  it("still lets the hook finish before the next passage speaks", () => {
+    // The count-up moving under the hook must not make two passages overlap:
+    // they are mixed onto one track, so an overlap is two voices at once.
+    const { starts } = layout(composeSections(stat, durations));
+    expect(starts[1]!).toBeGreaterThan(durations.label);
   });
 });

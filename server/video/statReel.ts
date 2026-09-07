@@ -131,6 +131,15 @@ const SECTION_FADE = 10 / FPS;
  */
 const TICK_FADE = 1 / FPS;
 
+/**
+ * How long the frame holds on the metric's name alone before the count begins.
+ *
+ * Short, and fixed rather than tied to the narration. This is the only part of
+ * the clip where nothing is on screen but a label, and every extra tenth of a
+ * second here is spent on the frame a viewer is deciding whether to scroll past.
+ */
+const OPENING_SECONDS = 0.7;
+
 /** Ticks in the count-up. Each one is a full card render, so this is the knob
  *  that trades render time against how smooth the counter looks. */
 const COUNT_TICKS = 12;
@@ -472,16 +481,23 @@ export function composeSections(stat: ReelStat, durations: Record<string, number
         }))
       : [{ reveal }];
 
+  // The count-up belongs to the OPENING passage, not to the one that says the
+  // figure. A viewer decides inside a second, and once the hook was written by
+  // a model rather than read off the card it ran three seconds — three seconds
+  // of a frame holding nothing but a metric's name, which is the worst opening
+  // available. The number now starts climbing under the hook and is on screen
+  // by about a second and a half, whatever the hook's length.
   const sections: Section[] = [
-    { key: "label", frames: [{ reveal: 0 }], seconds: withTail("label") },
     {
-      key: "value",
+      key: "label",
       frames: [
+        { reveal: 0, seconds: OPENING_SECONDS },
         ...ticks.map((valueText) => ({ reveal: 0.3, valueText, seconds: TICK_SECONDS })),
         { reveal: 0.3 },
       ],
-      seconds: withTail("value") + ticks.length * TICK_SECONDS,
+      seconds: withTail("label") + OPENING_SECONDS + ticks.length * TICK_SECONDS,
     },
+    { key: "value", frames: [{ reveal: 0.3 }], seconds: withTail("value") },
   ];
   if (stat.line.trim()) {
     sections.push({

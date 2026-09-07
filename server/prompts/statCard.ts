@@ -51,10 +51,21 @@ export function inventsFigures(line: string, facts: string[]): boolean {
   return false;
 }
 
-/** The safe line, used whenever the model is unavailable, off-voice, or wrong.
- *  Plain, accurate, and never embarrassing. */
+/**
+ * The safe line, used whenever the model is unavailable, off-voice, or wrong.
+ * Plain, accurate, and never embarrassing.
+ *
+ * It states the direction rather than the value, for the same reason the prompt
+ * above forbids the model from stating the value: the figure is already set at
+ * up to 400px directly overhead. The old fallback broke that rule, which was
+ * invisible on the grid card and obvious on the 9:16 frame, where "Auction
+ * clearance is now 52.5%" sat under a vast "52.5%" with the supporting figures
+ * beneath it.
+ */
 export function fallbackStatLine(pick: StatPick): string {
-  return `${pick.label} is now ${pick.value}.`;
+  if (pick.direction === "up") return `${pick.label} is higher than it was.`;
+  if (pick.direction === "down") return `${pick.label} is lower than it was.`;
+  return `${pick.label} did not move.`;
 }
 
 function buildPrompt(pick: StatPick): string {
