@@ -22,6 +22,7 @@ import { GUTTER } from "./tokens";
 const NAV = [
   { href: "/", label: "Today" },
   { href: "/ask", label: "Ask" },
+  { href: "/signals", label: "Signals" },
   { href: "/editions", label: "Editions" },
   { href: "/archive", label: "Archive" },
   { href: "/trends", label: "Trends" },
