@@ -20,6 +20,8 @@ export default function SharedBriefPage() {
   if (brief.isError || !brief.data) return <InvalidBrief />;
 
   const data = brief.data;
+  const challengeQuestion = `What evidence would challenge this view: ${data.headline}?`;
+  const challengeHref = `/ask?q=${encodeURIComponent(challengeQuestion)}`;
 
   async function shareBrief() {
     const url = new URL(`/brief?t=${encodeURIComponent(token)}`, window.location.origin).toString();
@@ -160,12 +162,12 @@ export default function SharedBriefPage() {
           </div>
 
           <div className="rule-major mt-8 pt-5">
-            <p className="bs-label-accent">Go deeper</p>
+            <p className="bs-label-accent">Interrogate the call</p>
             <p className="font-serif mt-2 text-2xl leading-8">
-              Ask the archive your own property question.
+              Do not just accept the shared view. Ask The Desk what evidence would break it.
             </p>
-            <Link href="/ask" className="bs-btn bs-btn-solid mt-5 inline-flex items-center gap-2">
-              Ask The Desk <ArrowRight className="h-3.5 w-3.5" />
+            <Link href={challengeHref} className="bs-btn bs-btn-solid mt-5 inline-flex items-center gap-2">
+              Challenge the view <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
 
