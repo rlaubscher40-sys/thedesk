@@ -38,6 +38,10 @@ CI now checks dependency advisories, runs the test suite, and exercises real MyS
 
 The CodeQL job also checks the generated SARIF results and fails on reported findings or a missing report. A successful upload alone is not a clean scan. This gate deliberately includes existing findings, not just newly introduced ones.
 
+The initial strict scan surfaced 38 results, largely repeated scheduler/legacy aliases without route-level limits. Scheduler aliases now share 30 requests/client/minute, including authenticated social previews; uptime recording has a separate 30/minute limit and the identified public reads have 120/minute limits. Authentication remains mandatory where it was required. LinkedIn URLs now validate the parsed HTTPS hostname and reject credentials/ports; article and publisher text extraction use HTML parsing rather than script-removal/entity-decoding regexes.
+
+On 8 September 2026, GitHub reported `main` unprotected, status-check enforcement off, and no repository rulesets. This is a confirmed account-level gap, not a missing code workflow. The connected repository integration does not grant administration writes; an owner must enable the protections below.
+
 An owner must verify/enforce required CI, secret-scan and CodeQL checks on main, review requirements, deploy-after-checks settings, cloud MFA, runtime database least privilege, backups and a restore exercise. Repository-defined workflows alone cannot turn on those account controls. Runtime CREATE/ALTER privileges remain necessary for the existing schema catch-up architecture; separate migration credentials in a future deployment change.
 
 Public preview caching is mitigation, not a full DDoS service. Keep edge protections enabled. The application global AI cap is shared in the database; native rendering concurrency and HTTP limit stores remain per process.

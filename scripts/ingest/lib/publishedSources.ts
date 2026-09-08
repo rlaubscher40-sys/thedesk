@@ -10,31 +10,28 @@ const HOSTS = new Set([
 
 /** Retry-After may be delta seconds or an HTTP date. Never retry sooner than
  * the publisher requests; absent/invalid values receive a one-hour backoff. */
-export function publisherRetryAt(
-  value: string | null,
-  now = Date.now(),
-): number {
+export function publisherRetryAt(value: string | null, now = Date.now()): number {
   const raw = value?.trim() ?? "";
-  const requested = /^\d+$/.test(raw)
-    ? now + Number(raw) * 1000
-    : Date.parse(raw);
+  const requested = /^\d+$/.test(raw) ? now + Number(raw) * 1000 : Date.parse(raw);
   return Number.isFinite(new Date(requested).getTime()) && requested > now
     ? requested
     : now + 3_600_000;
 }
 
+export class PublisherAccessDeniedError extends Error {
+  constructor(public readonly status: number) {
+    super(`Publisher HTTP ${status}; approved source access is required`);
+    this.name = "PublisherAccessDeniedError";
+  }
+}
+
 export class PublisherRateLimitError extends Error {
   constructor(public readonly retryAt: number) {
-    super(
-      `Publisher HTTP 429; requests paused until ${new Date(retryAt).toISOString()}`,
-    );
+    super(`Publisher HTTP 429; requests paused until ${new Date(retryAt).toISOString()}`);
     this.name = "PublisherRateLimitError";
   }
 }
-export async function sourceBytes(
-  rawUrl: string,
-  maxBytes = 3_000_000,
-): Promise<Buffer> {
+export async function sourceBytes(rawUrl: string, maxBytes = 3_000_000): Promise<Buffer> {
   const signal = AbortSignal.timeout(25_000);
   let url = new URL(rawUrl);
   for (let redirects = 0; redirects <= 3; redirects++) {
@@ -50,8 +47,7 @@ export async function sourceBytes(
       signal,
       redirect: "manual",
       headers: {
-        "User-Agent":
-          "Mozilla/5.0 (compatible; TheDeskBot/1.0; +https://thedesk.au)",
+        "User-Agent": "Mozilla/5.0 (compatible; TheDeskBot/1.0; +https://thedesk.au)",
         Accept: "text/html,application/pdf",
       },
     });
@@ -64,10 +60,10 @@ export async function sourceBytes(
     }
     if (!response.ok) {
       await response.body?.cancel();
+      if (response.status === 401 || response.status === 403)
+        throw new PublisherAccessDeniedError(response.status);
       if (response.status === 429)
-        throw new PublisherRateLimitError(
-          publisherRetryAt(response.headers.get("retry-after")),
-        );
+        throw new PublisherRateLimitError(publisherRetryAt(response.headers.get("retry-after")));
       throw new Error(`Publisher HTTP ${response.status}`);
     }
     const reader = response.body?.getReader();
@@ -93,17 +89,7 @@ export async function sourceHtml(url: string) {
   return (await sourceBytes(url)).toString("utf8");
 }
 
-export function sourceText(html: string) {
-  return html
-    .replace(/<(script|style|noscript)\b[^>]*>[\s\S]*?<\/\1>/gi, " ")
-    .replace(/<[^>]*>/g, " ")
-    .replace(/&nbsp;|&#160;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&#39;|&apos;/g, "'")
-    .replace(/&quot;/g, '"')
-    .replace(/\s+/g, " ")
-    .trim();
-}
+export { readableText as sourceText } from "./htmlText";
 
 export const MONTHS = [
   "Jan",
@@ -120,9 +106,7 @@ export const MONTHS = [
   "Dec",
 ];
 export function sourceDate(day: string, month: string, year: string) {
-  const m = MONTHS.findIndex(
-    (name) => name.toLowerCase() === month.slice(0, 3).toLowerCase(),
-  );
+  const m = MONTHS.findIndex((name) => name.toLowerCase() === month.slice(0, 3).toLowerCase());
   const date = new Date(Date.UTC(Number(year), m, Number(day)));
   if (m < 0 || date.getUTCDate() !== Number(day) || date.getUTCMonth() !== m)
     throw new Error("Invalid reporting date");

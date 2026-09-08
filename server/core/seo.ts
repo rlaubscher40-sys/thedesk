@@ -13,6 +13,7 @@
  * it works in dev without an explicit value.
  */
 import type { Express, Request, Response, NextFunction } from "express";
+import rateLimit from "express-rate-limit";
 import { sdk } from "./sdk";
 import { isDemoMode } from "../demo/store";
 import fs from "node:fs";
@@ -473,7 +474,11 @@ async function handleEditionOgCard(req: Request, res: Response): Promise<void> {
 }
 
 export function registerSeoRoutes(app: Express): void {
-  app.get("/api/images/edition/:id/:kind", handleEditionImage);
+  app.get(
+    "/api/images/edition/:id/:kind",
+    rateLimit({ windowMs: 60_000, limit: 120, standardHeaders: "draft-7", legacyHeaders: false }),
+    handleEditionImage
+  );
   app.get("/api/images/hero-library/:id", handleHeroLibraryImage);
   app.get("/og/editions/:n.png", handleEditionOgCard);
   app.get("/editions/:n", handleEditionMeta);

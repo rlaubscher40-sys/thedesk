@@ -15,12 +15,28 @@ import { z } from "zod";
 import * as db from "../db";
 import { adminProcedure, publicProcedure, router } from "../core/trpc";
 
-const postUrlSchema = z
+export const postUrlSchema = z
   .string()
   .url()
-  .refine((u) => u.toLowerCase().includes("linkedin.com"), {
-    message: "URL must be a linkedin.com link",
-  });
+  .refine(
+    (u) => {
+      try {
+        const url = new URL(u);
+        return (
+          url.protocol === "https:" &&
+          !url.username &&
+          !url.password &&
+          !url.port &&
+          (url.hostname === "linkedin.com" || url.hostname.endsWith(".linkedin.com"))
+        );
+      } catch {
+        return false;
+      }
+    },
+    {
+      message: "URL must be an HTTPS linkedin.com link",
+    }
+  );
 
 export const linkedInRouter = router({
   list: publicProcedure

@@ -284,7 +284,7 @@ function buildTree(input: DailyHookCoverInput) {
                     lineHeight: hookStat ? 1.04 : 0.99,
                     letterSpacing: "-0.035em",
                     color: hookStat ? c.body : c.ink,
-                    marginTop: hookStat ? "28px" : "30px",
+                    marginTop: hookStat ? "56px" : "30px",
                   },
                   children: title,
                 },
