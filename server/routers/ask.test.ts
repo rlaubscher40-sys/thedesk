@@ -51,13 +51,23 @@ describe("Ask answer recovery", () => {
   });
 
   it("lets the model decline related but insufficient evidence and refunds the reservation", async () => {
-    vi.mocked(invokeLLMJson).mockResolvedValue({ status: "insufficient", reason: "The records do not contain this lender's current investor rate." });
+    vi.mocked(invokeLLMJson).mockResolvedValue({ status: "insufficient", reason: "The records do not contain this lender's current investor rate.", relatedSourceRefs: [1] });
     const result = await askRouter.createCaller(ctx).answer(input);
     expect(result).toMatchObject({ status: "insufficient", sources: [{ href: "/story/1" }] });
     expect(result).not.toHaveProperty("answer");
     expect(result).not.toHaveProperty("shareToken");
     expect(createIntelligenceShareToken).not.toHaveBeenCalled();
     expect(consumeAnonymousAsk(ctx.req).remaining).toBe(2);
+  });
+
+  it.each([
+    { relatedSourceRefs: undefined },
+    { relatedSourceRefs: [] },
+    { relatedSourceRefs: [999] },
+  ])("does not turn unselected or unknown records into suggested reading ($relatedSourceRefs)", async ({ relatedSourceRefs }) => {
+    vi.mocked(invokeLLMJson).mockResolvedValue({ status: "insufficient", reason: "No evidence for this lender.", relatedSourceRefs });
+    expect(await askRouter.createCaller(ctx).answer(input)).toMatchObject({ status: "insufficient", sources: [] });
+    expect(createIntelligenceShareToken).not.toHaveBeenCalled();
   });
 
   it.each(["provider failure", "malformed output", "invalid citation"])("refunds %s, then permits a successful retry", async (failure) => {

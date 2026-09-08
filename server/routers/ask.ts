@@ -37,7 +37,11 @@ const askAnswerSchema = z.object({
 
 const askResponseSchema = z.discriminatedUnion("status", [
   askAnswerSchema,
-  z.object({ status: z.literal("insufficient"), reason: z.string().trim().min(1).max(600) }),
+  z.object({
+    status: z.literal("insufficient"),
+    reason: z.string().trim().min(1).max(600),
+    relatedSourceRefs: z.array(z.number().int().positive()).max(3).default([]),
+  }),
 ]);
 
 type SearchBundle = Awaited<ReturnType<typeof db.searchAllContent>>;
@@ -322,8 +326,9 @@ export const askRouter = router({
                 status: "insufficient" as const,
                 question: input.question,
                 message: response.reason,
-                // Related reading, explicitly not sources supporting an answer.
-                sources: sourceMeta.slice(0, 3),
+                // Only offer useful follow-up reading; generic keyword matches
+                // should not become recommendations just by arriving first.
+                sources: sourceMeta.filter((source) => response.relatedSourceRefs.includes(source.ref)),
                 anonymousRemaining: null,
               };
             }

@@ -65,10 +65,15 @@ export const askDeskResponseFormat: LlmResponseFormat = {
         {
           type: "object",
           additionalProperties: false,
-          required: ["status", "reason"],
+          required: ["status", "reason", "relatedSourceRefs"],
           properties: {
             status: { type: "string", const: "insufficient" },
             reason: { type: "string", minLength: 1, maxLength: 600 },
+            relatedSourceRefs: {
+              type: "array",
+              maxItems: 3,
+              items: { type: "integer", minimum: 1 },
+            },
           },
         },
       ],
@@ -96,7 +101,8 @@ This is an intelligence product, not a generic chatbot. Be concise, commercially
 
 GROUNDING RULES:
 - First decide whether the supplied evidence actually supports an answer to this specific question. Related keywords or a nearby market are not enough.
-- If the evidence is irrelevant, missing the requested detail, too stale for a current claim, or cannot support a useful answer, return ONLY {"status":"insufficient","reason":"A short explanation of the specific evidence missing."}. Do not fill the gap with general knowledge or invent sources. Do not write an answer or signals for this outcome.
+- If the evidence is irrelevant, missing the requested detail, too stale for a current claim, or cannot support a useful answer, return ONLY {"status":"insufficient","reason":"A short explanation of the specific evidence missing.","relatedSourceRefs":[]}. Do not fill the gap with general knowledge or invent sources. Do not write an answer or signals for this outcome.
+- For insufficient evidence, relatedSourceRefs may contain up to three supplied source numbers ONLY when those records directly help the reader investigate the specific topic or entity they asked about. Return [] when no records are genuinely useful. Shared words like "investor", "rate" or "bank" are not enough; unrelated stock stories and generic economic metrics are not useful follow-up reading for a specific lender's product rate. Never invent a reference.
 - Otherwise return status "answered" with all answer fields. Mixed evidence can still support an answer that clearly explains the uncertainty.
 - Never invent a fact, number, date, source, causal claim or market movement.
 - Every material factual claim must be supported by at least one supplied source.
