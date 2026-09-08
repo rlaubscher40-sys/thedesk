@@ -46,12 +46,18 @@ export function parseCashRate(csv: string, now = new Date()) {
   const latest = observations.find(
     (row) => !(row.asOf.toISOString().slice(0, 10) === today && row.raw === "")
   );
-  if (!latest || !/^\d+(?:\.\d+)?$/.test(latest.raw))
-    throw new Error("RBA daily cash target unavailable");
+  if (!latest)
+    throw new Error("RBA daily cash target unavailable: no completed dated observation");
+  if (!/^\d+(?:\.\d+)?$/.test(latest.raw))
+    throw new Error(
+      `RBA daily cash target unavailable at ${latest.asOf.toISOString().slice(0, 10)} (Sydney date ${today})`
+    );
   const rate = Number(latest.raw);
   const age = (now.getTime() - latest.asOf.getTime()) / 86_400_000;
   if (!Number.isFinite(rate) || rate < 0 || rate > 30 || age < 0 || age > 7)
-    throw new Error("Stale, future or invalid RBA daily cash target");
+    throw new Error(
+      `Stale, future or invalid RBA daily cash target: observation ${latest.asOf.toISOString().slice(0, 10)}`
+    );
   return { rate, asOf: latest.asOf };
 }
 
