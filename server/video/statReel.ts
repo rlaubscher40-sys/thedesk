@@ -516,11 +516,9 @@ export async function renderStatReel(
     // script costs nothing rather than five TTS calls that are then discarded.
     let script = opts.script ?? buildScript(stat);
     if (opts.script && !scriptFitsClip(opts.script)) {
-      console.warn(
-        `[reel] written script would run ${estimateScriptSeconds(opts.script).toFixed(1)}s; ` +
-          `using the plain read instead.`
+      throw new Error(
+        `Narration script exceeds the ${MAX_REEL_SECONDS}-second editorial limit. Shorten the story before publishing.`
       );
-      script = buildScript(stat);
     }
     const spoken = opts.narrate === false ? null : await synthesiseScript(script);
     if (opts.narrate !== false && !spoken)
@@ -606,7 +604,7 @@ export async function renderStatReel(
       .filter(Boolean)
       .join(";");
 
-    args.push("-filter_complex", graph, "-map", "[vout]");
+    args.push("-filter_complex_threads", "1", "-filter_complex", graph, "-map", "[vout]");
     if (spokenSections.length) {
       // Instagram's transcoder is fussy about audio in a way it is not about
       // video: stereo AAC at 48kHz is what it documents, and a mono 44.1kHz
@@ -616,6 +614,10 @@ export async function renderStatReel(
     args.push(
       "-c:v",
       "libx264",
+      // Bound native parallelism on the shared host; large filter graphs must
+      // not create hundreds of threads alongside speech and scheduled jobs.
+      "-threads",
+      "2",
       // veryfast rather than medium: this material is flat colour and slow
       // motion, so the quality difference is invisible and the encode is a
       // fraction of the time on a small container.

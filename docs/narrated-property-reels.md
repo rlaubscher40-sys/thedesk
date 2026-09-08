@@ -26,20 +26,21 @@ to form a checkerboard. Manual/out-of-band posts can also change the grid.
 
 ## Voice and reproducible installation
 
-`pnpm setup:voice` is included in the production build and CI. It installs the
-standalone Linux x64 Piper release **2023.11.14-2** and **Cori high**, a UK English
-female synthetic voice. Downloads use pinned URLs/revisions and SHA-256 checks.
-The model is loaded locally on CPU. There is no speech API, new account or
-per-request speech fee. Existing hosting CPU/storage usage still applies.
-Other host architectures report narration unavailable and cannot publish Reels.
+`pnpm setup:voice` is included in the production build and CI. It installs
+Kokoro-82M v1.0 (8-bit CPU model), with the stock **George** British male voice
+from pinned `kokoro-js` 1.2.1. Model/tokenizer downloads are revision- and
+SHA-256-pinned; voice vectors and the phonemizer ship in locked npm packages.
+The killable Node child process uses one ONNX CPU thread. Remote model access
+and network fetch are disabled during narration. No speech API, new account,
+per-request fee, GPU or change to hosting plan is required. Existing hosting
+CPU/storage usage still applies. See `reel-voice-notices.txt` for licenses.
 
-- Engine: https://github.com/rhasspy/piper/releases/tag/2023.11.14-2
-- Source/license: https://github.com/rhasspy/piper/tree/2023.11.14-2
-- Model revision: `1162a9173d0ce503555aed757976b7a9912eae4c`
-- Model card: https://huggingface.co/rhasspy/piper-voices/blob/1162a9173d0ce503555aed757976b7a9912eae4c/en/en_GB/cori/high/MODEL_CARD
-- The Cori card identifies its LibriVox training dataset as public domain.
-  Model repository metadata is MIT. The release uses eSpeak NG and
-  ONNX Runtime; their source and license notices are linked below. This is an existing model, not a clone of a competitor's voice.
+The six passages now form a story: a purchase question, the verified gap,
+its direction, what the measure means, the missing purchase-price/cost inputs,
+and the free comparison. Individual rates remain on screen. Narration never
+supplies a cause, forecasts rents or turns rent growth into rental yield.
+Equal or falling rates have separate wording. The permanent publication key
+is unchanged: changing the voice cannot republish an already-used month.
 
 The installer fails on a checksum mismatch or download failure. The server
 does not download models during a publishing request and never falls back to
@@ -91,3 +92,37 @@ The corrected speech runtime uses the `speech2` preparation namespace (two
 attempts per Sydney day) so failed attempts from the old runtime do not strand
 an unpublished comparison. The ABS reference-month publication reservation is
 unchanged: neither a confirmed nor an uncertain Meta publication can be retried.
+
+## Repeatable editorial standard
+
+Every approved automatic topic needs a deterministic evidence adapter producing
+one dated candidate: story, card, caption, source trail and permanent publication
+identity. The current approved topic is the monthly Brisbane–Perth rent comparison;
+this is not yet a daily multi-topic Reel calendar.
+
+1. Start with a recognisable property decision, not the name of a data series.
+2. State one verified finding. The screen carries the supporting numbers.
+3. Explain the definition and its practical limit. Do not infer a cause from a
+   numeric-only source, promise returns or call proposed homes completed homes.
+4. Identify the evidence needed to take the decision further.
+5. End with one relevant free product destination. The caption opens with the
+   same question, adds the evidence/interpretation and retains dates, revision
+   flags, sources and campaign attribution.
+6. Use the same stock male narrator and measured speech timing. Reject missing
+   audio and overlong custom scripts; never quietly replace the story with a
+   literal card read. Preserve the publication lock across voice/copy revisions.
+
+Next format candidates, each requiring its own verified adapter and tests:
+- Market vs Market: matched measures, periods and geographies.
+- What Changed: a verified change with a comparison baseline.
+- Before You Buy: explain a property measure and the limits of a decision based on it.
+Do not manufacture more monthly observations to meet a posting quota.
+
+Audience learning is an editorial review, not an implemented automatic optimiser.
+Use existing media reach/shares/saves and attributed comparison/subscription
+activity. Review watch time in Instagram where available. Compare posts at the
+same age; treat unavailable metrics as unknown, not zero. A handful of viewers
+cannot establish a winning format. Test one change at a time (hook, topic or
+explanation), keep factual safeguards fixed, and assess a series of posts before
+changing the standard. Save/share prompts should name a useful reason or reader,
+not demand every interaction. No system can guarantee virality or perfect copy.

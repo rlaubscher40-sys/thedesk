@@ -48,4 +48,36 @@ describe("verified rent Reel", () => {
     expect(revised.publication).toEqual(before.publication);
     expect(revised.evidenceHash).not.toBe(before.evidenceHash);
   });
+  it("explains the measure and decision inputs instead of reading the displayed rates", () => {
+    const reel = verifiedRentReel(data(), now)!;
+    const story = reel.script.map((l) => l.text).join(" ");
+    expect(story).toContain("pace of change, not how expensive rents are");
+    expect(story).toContain("purchase prices and costs");
+    expect(story).toContain("Perth's rent index rose faster");
+    expect(story).not.toContain("4.6");
+    expect(story).not.toContain("5.3");
+    expect(reel.caption).toContain("Kokoro / George");
+    expect(reel.publication).toEqual({
+      key: "instagram-reel-abs-rents-brisbane-perth-v1",
+      date: "2026-07-01",
+    });
+  });
+  it.each([
+    [5.3, 4.6, "Brisbane"],
+    [-1, -2, null],
+    [-1, 1, null],
+    [0, 0, null],
+    [4.6, 4.61, null],
+  ])("keeps direction, falls and rounding grounded for %s vs %s", (brisbane, perth, risingCity) => {
+    const d = data();
+    d.observations[0]!.annualPercent = brisbane;
+    d.observations[1]!.annualPercent = perth;
+    const reel = verifiedRentReel(d, now)!;
+    const story = reel.script.map((l) => l.text).join(" ");
+    expect(scriptFitsClip(reel.script)).toBe(true);
+    if (risingCity) expect(story).toContain(`${risingCity}'s rent index rose faster`);
+    else expect(story).not.toContain("rose faster");
+    if (brisbane < 0 || perth < 0) expect(story).toContain("including falls");
+    if (Math.abs(brisbane - perth) < 0.05) expect(story).toContain("Neither city's");
+  });
 });

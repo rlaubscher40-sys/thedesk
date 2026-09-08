@@ -28,8 +28,8 @@ export function speechProcessFailure(error: {
 
 // Installed at build time, never downloaded in a publishing request.
 export const voiceRoot = () => path.resolve("dist/voice");
-export const voiceBinary = () => path.join(voiceRoot(), "piper/piper");
-export const voiceModel = () => path.join(voiceRoot(), "en_GB-cori-high.onnx");
+export const voiceBinary = () => path.join(voiceRoot(), "speak.mjs");
+export const voiceModel = () => path.join(voiceRoot(), "kokoro/onnx/model_quantized.onnx");
 
 /** Reject empty, silent, malformed or implausibly long PCM output. */
 export function audibleWave(bytes: Buffer): boolean {
@@ -100,7 +100,11 @@ export async function localSpeech(lines: SpeechLine[]): Promise<SpeechAudio[]> {
 async function runLocalSpeech(lines: SpeechLine[]): Promise<SpeechAudio[]> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "desk-voice-"));
   try {
-    for (const file of [voiceBinary(), voiceModel(), `${voiceModel()}.json`]) {
+    for (const file of [
+      voiceBinary(),
+      voiceModel(),
+      path.join(voiceRoot(), "kokoro/tokenizer.json"),
+    ]) {
       await fs.access(file).catch(() => {
         throw new Error(
           `Local narration asset missing: ${path.basename(file)}. Rebuild the voice assets.`
@@ -110,8 +114,8 @@ async function runLocalSpeech(lines: SpeechLine[]): Promise<SpeechAudio[]> {
     const files = lines.map((_, i) => path.join(dir, `${i}.wav`));
     await new Promise<void>((resolve, reject) => {
       const child = execFile(
-        voiceBinary(),
-        ["--model", voiceModel(), "--json-input", "--length_scale", "1.03"],
+        process.execPath,
+        [voiceBinary()],
         { timeout: SPEECH_TIMEOUT_MS, killSignal: "SIGKILL", maxBuffer: 256 * 1024 },
         (error, _stdout, stderr) => {
           if (!error) {

@@ -28,3 +28,17 @@ it("preserves the actual narration error for the publishing status", async () =>
     })
   ).rejects.toThrow("90-second limit");
 });
+
+it("rejects an overlong story instead of silently reverting to a card read", async () => {
+  const before = vi.mocked(synthesiseScript).mock.calls.length;
+  await expect(
+    renderStatReel(
+      { label: "Rents", value: "0.7pp", line: "Verified", subtext: "July 2026" },
+      "light",
+      {
+        script: [{ key: "label", text: "word ".repeat(150) }],
+      }
+    )
+  ).rejects.toThrow("editorial limit");
+  expect(vi.mocked(synthesiseScript).mock.calls.length).toBe(before);
+});
