@@ -41,6 +41,20 @@ Feed excerpts must not be silently promoted into verified numeric time series.
 Google redirect links can remain in the archive; Google is a discovery service,
 not an additional independent publisher. The archive does not certify claims.
 
+The ABS approvals connector requests all eight capital/territory geographies;
+Canberra's series covers the whole ACT. The population/migration connector
+requests all eight states and territories and persists up to 32 explicitly
+labelled demographic metrics. Market pages present those as state context,
+never as a suburb or city estimate. Missing or suppressed observations are
+withheld and complete annual periods are required.
+
+Official metrics refresh at 06:33, 12:03 and 18:03 Sydney time. The additional
+daytime runs skip news/LLM extraction. Per-metric health in Admin shows missing
+series, reporting periods, last successful storage and conservative review
+thresholds. Unchanged observations refresh the storage timestamp without
+duplicating history. A partial database acknowledgement fails the collection
+job so the scheduler can retry; one updated currency cannot hide missing data.
+
 ## Deployment acceptance
 
 Open Admin → Health → Property evidence coverage after deployment:
@@ -55,5 +69,5 @@ Open Admin → Health → Property evidence coverage after deployment:
 Regional place lists are discovery aids, not exhaustive suburb directories.
 Commercial suburb-level data, unindexed government notices and sources absent
 from RSS/Google require additional licensed or public-data connectors. A complete
-government register, numeric-series freshness checks and broader backfills are
+government register, exact release-calendar monitoring and broader backfills are
 separate work; this release must not be represented as complete property coverage.

@@ -167,6 +167,12 @@ export const EVIDENCE_JOBS: Job[] = Array.from({ length: 24 }, (_, hour) => ({
 }));
 
 const JOBS: Job[] = [
+  ...["12:03", "18:03"].map((at) => ({
+    key: `official-metrics-${at.slice(0, 2)}`,
+    at,
+    graceMinutes: 120,
+    run: (b: string, k: string) => runDailyMetricsIngest(b, k, { extractFromNews: false }),
+  })),
   { key: "daily-metrics", at: "06:33", run: (b, k) => runDailyMetricsIngest(b, k) },
   { key: "daily-feed", at: "06:43", run: (b, k) => runDailyFeedIngest(b, k) },
   {

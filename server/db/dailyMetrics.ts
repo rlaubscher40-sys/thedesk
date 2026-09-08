@@ -43,10 +43,7 @@ export async function listDailyMetrics(): Promise<DailyMetric[]> {
   if (isDemoMode()) return demoQueries.listDailyMetrics();
   const db = getDb();
   if (!db) return [];
-  return db
-    .select()
-    .from(dailyMetrics)
-    .orderBy(asc(dailyMetrics.displayOrder));
+  return db.select().from(dailyMetrics).orderBy(asc(dailyMetrics.displayOrder));
 }
 
 /**
@@ -83,11 +80,7 @@ export async function upsertDailyMetric(input: {
   // today's own value and the dashboard delta reads as zero.
   const sameDay =
     prior != null && prior.asOf != null && sydneyDay(prior.asOf) === sydneyDay(input.asOf);
-  const previousValue = prior
-    ? sameDay
-      ? prior.previousValue
-      : prior.value
-    : null;
+  const previousValue = prior ? (sameDay ? prior.previousValue : prior.value) : null;
 
   const row: InsertDailyMetric = {
     metricKey: input.metricKey,
@@ -117,6 +110,7 @@ export async function upsertDailyMetric(input: {
         asOf: row.asOf,
         displayOrder: row.displayOrder,
         previousValue,
+        updatedAt: new Date(),
       })
       .where(eq(dailyMetrics.metricKey, input.metricKey));
   } else {
@@ -127,7 +121,10 @@ export async function upsertDailyMetric(input: {
   // render sparklines. Best-effort, non-numeric values (very rare) are
   // skipped silently.
   const numericValue = parseNumeric(input.value);
-  if (numericValue !== null) {
+  if (
+    numericValue !== null &&
+    (!prior || prior.asOf.getTime() !== input.asOf.getTime() || prior.value !== input.value)
+  ) {
     try {
       await db.insert(dailyMetricHistory).values({
         metricKey: input.metricKey,
@@ -168,4 +165,3 @@ export async function listMetricHistories(
   }
   return out;
 }
-

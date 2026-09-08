@@ -1,7 +1,16 @@
 export const DEMOGRAPHIC_FLOW = "ABS:ERP_COMP_Q(1.0.0)";
 export const DEMOGRAPHIC_SOURCE =
   "https://www.abs.gov.au/statistics/people/population/national-state-and-territory-population/latest-release";
-export const DEMOGRAPHIC_REGIONS = { "3": "Queensland", "5": "Western Australia" } as const;
+export const DEMOGRAPHIC_REGIONS = {
+  "1": "New South Wales",
+  "2": "Victoria",
+  "3": "Queensland",
+  "4": "South Australia",
+  "5": "Western Australia",
+  "6": "Tasmania",
+  "7": "Northern Territory",
+  "8": "Australian Capital Territory",
+} as const;
 export const DEMOGRAPHIC_MEASURES = {
   "6": { name: "netInternalMigration", unitMultiplier: "0" },
   "9": { name: "netOverseasMigration", unitMultiplier: "3" },
@@ -38,7 +47,7 @@ export function demographicsDataUrl(asOf: string): string {
   // Seven quarters back is required just before a release: the latest official
   // quarter can lag the current one by three, and annual change needs its t-4.
   const start = periodFromQuarter(currentQuarter - 7);
-  return `https://data.api.abs.gov.au/rest/data/ABS,ERP_COMP_Q,1.0.0/6+9+10.3+5.Q?startPeriod=${start}&format=csv`;
+  return `https://data.api.abs.gov.au/rest/data/ABS,ERP_COMP_Q,1.0.0/6+9+10.${Object.keys(DEMOGRAPHIC_REGIONS).join("+")}.Q?startPeriod=${start}&format=csv`;
 }
 
 /** A state demand context. Every input remains state-level; no city attribution. */

@@ -9,6 +9,7 @@
  * External tools (Sentry, BetterStack) cover the same axes from
  * outside; this router is the inside-out complement.
  */
+import { metricHealth } from "../../shared/metricHealth";
 import { z } from "zod";
 import { sql } from "drizzle-orm";
 import * as db from "../db";
@@ -47,9 +48,11 @@ type ServiceInfo = {
 };
 
 export const healthRouter = router({
+  metricCoverage: adminProcedure.query(async () => metricHealth(await db.listDailyMetrics())),
   propertyCoverage: adminProcedure.query(async () => ({
     ...(await db.propertyCoverage()),
-    schedulerEnabled: process.env.ENABLE_SCHEDULER === "true" && envFlag("SCHEDULED_API_KEY"),
+    schedulerEnabled:
+      (process.env.ENABLE_SCHEDULER ?? "").toLowerCase() === "true" && envFlag("SCHEDULED_API_KEY"),
   })),
   /** Headline service-health summary for the admin dashboard. */
   summary: adminProcedure.query(async () => {

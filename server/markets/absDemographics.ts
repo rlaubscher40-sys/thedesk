@@ -30,7 +30,7 @@ export function parseAbsDemographics(csv: string, retrievedAt: string): StateDem
     !header ||
     new Set(header).size !== header.length ||
     required.some((key) => !header.includes(key)) ||
-    rows.length > 48
+    rows.length > Object.keys(DEMOGRAPHIC_REGIONS).length * 3 * 8
   )
     throw new Error("Unexpected demographics schema");
   const seen = new Set<string>();
