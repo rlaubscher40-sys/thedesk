@@ -86,13 +86,24 @@ export function InstagramReelPanel() {
         </p>
       )}
       {video && (
-        <video
-          src={video}
-          controls
-          playsInline
-          className="w-full max-w-sm rounded"
-          aria-label="Narrated property Reel preview"
-        />
+        <div className="space-y-2">
+          <video
+            src={video}
+            controls
+            playsInline
+            preload="metadata"
+            onError={() =>
+              setError(
+                "The video was generated, but this browser could not play it. Use the download link below."
+              )
+            }
+            className="w-full max-w-sm rounded"
+            aria-label="Narrated property Reel preview"
+          />
+          <a href={video} download="The-Desk-Reel-Preview.mp4" className="underline text-sm">
+            Download the Reel preview
+          </a>
+        </div>
       )}
       {plan.data?.caption && (
         <details>
