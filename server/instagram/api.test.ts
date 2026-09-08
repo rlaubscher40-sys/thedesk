@@ -13,9 +13,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { fetchPublishingLimit } from "./api";
 
 const QUOTA_BODY = {
-  content_publishing_limit: {
-    data: [{ quota_usage: 3, config: { quota_total: 50, quota_duration: 86400 } }],
-  },
+  data: [{ quota_usage: 3, config: { quota_total: 50, quota_duration: 86400 } }],
 };
 
 /** A Meta-side transient fault, exactly as the Graph API sends it. */
@@ -41,6 +39,32 @@ afterEach(() => {
 });
 
 describe("fetchPublishingLimit", () => {
+  it("uses the documented quota edge and accepts zero usage", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(okResponse({
+      data: [{ quota_usage: 0, config: { quota_total: 100, quota_duration: 86400 } }],
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    expect(await fetchPublishingLimit({ igUserId: "123", accessToken: "tok" }))
+      .toEqual({ usage: 0, quota: 100, windowHours: 24 });
+    const url = new URL(String(fetchMock.mock.calls[0][0]));
+    expect(url.pathname).toBe("/v21.0/123/content_publishing_limit");
+    expect(url.searchParams.get("fields")).toBe("quota_usage,config");
+    expect(fetchMock.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it.each([
+    { data: [{ quota_usage: -1, config: { quota_total: -1, quota_duration: -1 } }] },
+    { data: [{ quota_usage: "0", config: { quota_total: "100", quota_duration: "86400" } }] },
+    { data: [{ quota_usage: 1.5, config: { quota_total: 0, quota_duration: 0 } }] },
+    { data: {} },
+    { data: [{ quota_usage: 0 }, { quota_usage: 1 }] },
+    { content_publishing_limit: QUOTA_BODY },
+  ])("rejects malformed or ambiguous quota: %j", async (body) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(okResponse(body)));
+    expect(await fetchPublishingLimit({ igUserId: "123", accessToken: "tok" }))
+      .toEqual({ usage: null, quota: null, windowHours: null });
+  });
+
   it("rides out a single transient 500 and returns the quota", async () => {
     const fetchMock = vi
       .fn()

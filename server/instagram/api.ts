@@ -323,9 +323,9 @@ export type MediaMetrics = {
   totalInteractions: number | null;
 };
 
-async function igGet<T>(endpoint: string, params: Record<string, string>): Promise<T> {
+async function igGet<T>(endpoint: string, params: Record<string, string>, signal?: AbortSignal): Promise<T> {
   const qs = new URLSearchParams(params);
-  const res = await fetch(`${BASE}${endpoint}?${qs}`);
+  const res = await fetch(`${BASE}${endpoint}?${qs}`, signal ? { signal } : undefined);
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
     throw new Error(`Instagram API ${res.status} at ${endpoint}: ${detail.slice(0, 500)}`);
@@ -397,19 +397,10 @@ export type PublishingLimit = {
 };
 
 /**
- * Read the account's content-publishing quota usage straight from the Graph
- * API. This is the *documented* 50-posts-per-24h limit — NOT the opaque
- * "Action is blocked" integrity throttle that actually stalls our Stories — but
- * it's the one number Instagram will give us, so the admin can see at a glance
- * how much of the daily allowance a run consumed. Best-effort: any miss returns
- * nulls rather than throwing, so a quota check never breaks the admin panel.
- *
- * Retried, but on a much shorter ladder than the posting path: Meta throws its
- * transient 500s at this read too, and the panel was showing raw Graph API JSON
- * where a number should be. Two quick attempts absorb a one-off blip; anything
- * longer would be wrong here, because this drives a UI query that refetches
- * every 60 seconds — a leisurely 80-second backoff would just pile requests up
- * behind each other for a cosmetic figure.
+ * Read the dedicated publishing-limit edge, not an expanded IG User field.
+ * https://developers.facebook.com/documentation/instagram-platform/instagram-graph-api/reference/ig-user/content_publishing_limit
+ * Missing or malformed quota stays unavailable: never assume an allowance.
+ * Two bounded read attempts absorb transient faults without retrying publication.
  */
 export async function fetchPublishingLimit(opts: {
   igUserId: string;
@@ -419,24 +410,25 @@ export async function fetchPublishingLimit(opts: {
     "fetchPublishingLimit",
     () =>
       igGet<{
-        content_publishing_limit?: {
-          data?: Array<{
-            quota_usage?: number;
-            config?: { quota_total?: number; quota_duration?: number };
-          }>;
-        };
-      }>(`/${opts.igUserId}`, {
-        fields: "content_publishing_limit{quota_usage,config}",
+        data?: Array<{
+          quota_usage?: number;
+          config?: { quota_total?: number; quota_duration?: number };
+        }>;
+      }>(`/${opts.igUserId}/content_publishing_limit`, {
+        fields: "quota_usage,config",
         access_token: opts.accessToken,
-      }),
+      }, AbortSignal.timeout(10_000)),
     { attempts: 2, transientDelayMs: 1500, delayMs: 1500 }
   );
-  const row = data.content_publishing_limit?.data?.[0];
+  const row = Array.isArray(data?.data) && data.data.length === 1 ? data.data[0] : undefined;
   const duration = row?.config?.quota_duration;
+  const usage = row?.quota_usage;
+  const quota = row?.config?.quota_total;
   return {
-    usage: row?.quota_usage ?? null,
-    quota: row?.config?.quota_total ?? null,
-    windowHours: typeof duration === "number" ? Math.round(duration / 3600) : null,
+    usage: typeof usage === "number" && Number.isSafeInteger(usage) && usage >= 0 ? usage : null,
+    quota: typeof quota === "number" && Number.isSafeInteger(quota) && quota > 0 ? quota : null,
+    windowHours: typeof duration === "number" && Number.isFinite(duration) && duration > 0
+      ? duration / 3600 : null,
   };
 }
 

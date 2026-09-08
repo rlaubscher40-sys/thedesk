@@ -282,12 +282,8 @@ function PublishingQuota() {
   if (!data.configured) {
     detail = "Instagram not configured";
   } else if (data.error && data.transient) {
-    // Meta's own transient fault. Nothing is wrong with the account or the
-    // token, and there's nothing to do about it, so say that rather than
-    // printing Graph API JSON at someone who can't act on it. The raw error
-    // stays on the title attribute for when you do want to look.
     detail =
-      "Instagram's API is having a moment. Meta-side, not the account — the number's back shortly.";
+      "Meta could not return the publishing allowance. Launch posts stay blocked until this check succeeds.";
   } else if (data.error) {
     detail = `Couldn't read quota — ${data.error}`;
   } else if (data.usage == null || data.quota == null) {
