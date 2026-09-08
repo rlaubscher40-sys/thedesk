@@ -1,3 +1,4 @@
+import { publicEdition } from "../core/publicEdition";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import * as db from "../db";
@@ -53,23 +54,34 @@ export const editionsRouter = router({
     })
   ),
 
-  getById: publicProcedure.input(editionIdInput).query(async ({ input }) =>
-    cached(cacheKey("edition:byId", input.editionId), EDITION_TTL_MS, () =>
-      db.getEditionById(input.editionId)
-    )
-  ),
+  getById: publicProcedure
+    .input(editionIdInput)
+    .query(async ({ input }) =>
+      cached(cacheKey("edition:byId", input.editionId), EDITION_TTL_MS, () =>
+        db.getEditionById(input.editionId).then((ed) => (ed ? publicEdition(ed) : undefined))
+      )
+    ),
 
   getByNumber: publicProcedure
     .input(z.object({ editionNumber: z.number().int().positive() }))
     .query(async ({ input }) =>
       cached(cacheKey("edition:byNumber", input.editionNumber), EDITION_TTL_MS, () =>
-        db.getEditionByNumber(input.editionNumber)
+        db
+          .getEditionByNumber(input.editionNumber)
+          .then((ed) => (ed ? publicEdition(ed) : undefined))
       )
     ),
 
-  search: publicProcedure.input(z.object({ query: z.string().min(1) })).query(async ({ input }) => {
-    return db.searchEditionFullText(input.query);
+  editor: adminProcedure.input(editionIdInput).query(({ input, ctx }) => {
+    ctx.res.setHeader("Cache-Control", "private, no-store");
+    return db.getEditionById(input.editionId);
   }),
+
+  search: publicProcedure
+    .input(z.object({ query: z.string().min(1).max(200) }))
+    .query(async ({ input }) => {
+      return (await db.searchEditionFullText(input.query)).map(publicEdition);
+    }),
 
   /** Admin: regenerate Ruben's Take for a single edition. */
   generateRubensTake: adminProcedure.input(editionIdInput).mutation(async ({ input }) => {
@@ -241,12 +253,8 @@ export const editionsRouter = router({
       ...(input.whyItMatters !== undefined
         ? { whyItMatters: input.whyItMatters ?? undefined }
         : {}),
-      ...(input.keyTakeaway !== undefined
-        ? { keyTakeaway: input.keyTakeaway ?? undefined }
-        : {}),
-      ...(input.whatToWatch !== undefined
-        ? { whatToWatch: input.whatToWatch ?? undefined }
-        : {}),
+      ...(input.keyTakeaway !== undefined ? { keyTakeaway: input.keyTakeaway ?? undefined } : {}),
+      ...(input.whatToWatch !== undefined ? { whatToWatch: input.whatToWatch ?? undefined } : {}),
     };
     await db.updateEditionSynthesis(edition.id, { topics });
     invalidate("edition:");
@@ -265,8 +273,7 @@ export const editionsRouter = router({
     .input(editionIdInput.extend({ forceFresh: z.boolean().optional() }))
     .mutation(async ({ input }) => {
       const edition = await db.getEditionById(input.editionId);
-      if (!edition)
-        throw new TRPCError({ code: "NOT_FOUND", message: "Edition not found" });
+      if (!edition) throw new TRPCError({ code: "NOT_FOUND", message: "Edition not found" });
       const result = await resolveHeroForEdition({
         editionId: edition.id,
         prompt: editionHeroPrompt({

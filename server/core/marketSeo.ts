@@ -18,7 +18,8 @@ import {
   type PublicMarketFile,
 } from "../../shared/marketDirectory";
 import { getMarketDirectory } from "../markets/discovery";
-import { renderDeskTakeCard, type DeskTakeCardInput } from "../og/takeCard";
+import type { DeskTakeCardInput } from "../og/takeCard";
+import { renderDeskTakeCard } from "./publicRender";
 import { cached } from "./cache";
 import { routeParam } from "./requestParams";
 import { injectMeta } from "./seo";

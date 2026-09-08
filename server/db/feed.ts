@@ -419,7 +419,8 @@ export async function searchAllContent(query: string) {
     .select()
     .from(editions)
     .where(or(like(editions.fullText, pattern), like(editions.weekOf, pattern)))
-    .orderBy(desc(editions.editionNumber));
+    .orderBy(desc(editions.editionNumber))
+    .limit(50);
   const feedResults = await db
     .select()
     .from(dailyFeedItems)

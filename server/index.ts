@@ -3,6 +3,7 @@
  * client; in production it falls back to the static bundle in dist/public.
  */
 import "dotenv/config";
+import { protectBrowserMutation } from "./core/csrf";
 
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import express from "express";
@@ -106,6 +107,7 @@ async function startServer() {
   // proxy hop, without this every rate-limit bucket would key on a
   // single Railway internal IP and effectively allow nothing.
   app.set("trust proxy", 1);
+  app.disable("x-powered-by");
 
   // Security response headers (HSTS, CSP, X-Frame-Options, …). Registered
   // before any route so every response carries them. No-op outside
@@ -120,6 +122,7 @@ async function startServer() {
   // synthesis result (under 1MB), so this is ~4x headroom while still
   // protecting every endpoint from memory-bomb spam. 50MB was inherited
   // from an earlier image-bytes-over-the-wire flow that no longer exists.
+  app.use(protectBrowserMutation);
   app.use(express.json({ limit: "4mb" }));
   app.use(express.urlencoded({ limit: "4mb", extended: true }));
 
@@ -153,6 +156,10 @@ async function startServer() {
   });
   app.use("/api/auth/login", loginLimiter);
 
+  app.use(
+    "/og",
+    rateLimit({ windowMs: 60_000, limit: 120, standardHeaders: "draft-7", legacyHeaders: false })
+  );
   registerOAuthRoutes(app);
   registerSeoRoutes(app);
   registerDistributionSeoRoutes(app);
@@ -169,6 +176,7 @@ async function startServer() {
     createExpressMiddleware({
       router: appRouter,
       createContext,
+      maxBatchSize: 10,
     })
   );
 
@@ -221,6 +229,12 @@ async function startServer() {
     // Self-healing in-process scheduler (replaces GitHub cron when enabled).
     // Bound to the actual listening port so its loopback self-calls hit us.
     startScheduler({ port });
+    const cleanup = () =>
+      void import("./db/security")
+        .then((m) => m.cleanSecurityState())
+        .catch(() => console.warn("[security] cleanup unavailable"));
+    cleanup();
+    setInterval(cleanup, 60 * 60_000).unref();
     // Say now whether Tuesday's Reel can be made. Both of its dependencies are
     // invisible until the job runs, and a deploy log is where somebody looks.
     void import("./video/preflight").then((m) => m.logReelReadiness());

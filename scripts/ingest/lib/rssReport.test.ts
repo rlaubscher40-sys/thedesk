@@ -1,10 +1,11 @@
 import { beforeEach, expect, it, vi } from "vitest";
-const fixture = vi.hoisted(() => ({ parseURL: vi.fn() }));
+const fixture = vi.hoisted(() => ({ parseString: vi.fn() }));
 vi.mock("rss-parser", () => ({
   default: class {
-    parseURL = fixture.parseURL;
+    parseString = fixture.parseString;
   },
 }));
+vi.mock("./publicFetch", () => ({ publicFetch: async () => new Response("<rss />") }));
 import { fetchSourceReport } from "./rss";
 const source = {
   name: "Fixture",
@@ -15,7 +16,7 @@ const source = {
 };
 beforeEach(() => vi.clearAllMocks());
 it("validates entries before applying the budget and retains headline-only releases", async () => {
-  fixture.parseURL.mockResolvedValue({
+  fixture.parseString.mockResolvedValue({
     items: [
       { title: "" },
       { title: "Hobart housing approvals rise", link: "https://example.org/housing" },
@@ -28,9 +29,9 @@ it("validates entries before applying the budget and retains headline-only relea
   });
 });
 it("separates an empty feed from a failed request", async () => {
-  fixture.parseURL.mockResolvedValue({ items: [] });
+  fixture.parseString.mockResolvedValue({ items: [] });
   expect(await fetchSourceReport(source)).toMatchObject({ items: [], error: null });
-  fixture.parseURL.mockRejectedValue(new Error("timeout"));
+  fixture.parseString.mockRejectedValue(new Error("timeout"));
   expect(await fetchSourceReport(source)).toMatchObject({
     items: [],
     error: "Feed request or parsing failed",

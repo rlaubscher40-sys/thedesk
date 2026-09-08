@@ -15,7 +15,7 @@
  * foreign keys on reading queue / notes / conversations but is only ever
  * populated with one row.
  */
-import { createHash, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { COOKIE_NAME, SESSION_TTL_MS } from "../../shared/const";
 import { ForbiddenError } from "../../shared/errors";
 import { parse as parseCookieHeader } from "cookie";
@@ -24,11 +24,14 @@ import { SignJWT, jwtVerify } from "jose";
 import { getUserByOpenId, upsertUser } from "../db/users";
 import type { User } from "../db/schema";
 import { env } from "./env";
+import { saveAdminSession, hasAdminSession, deleteAdminSession } from "../db/security";
 
 const ADMIN_OPEN_ID = "admin";
 
 function getSecret() {
-  return new TextEncoder().encode(env.cookieSecret);
+  return createHmac("sha256", env.cookieSecret)
+    .update("the-desk-admin-session-v2:" + env.adminPassword + ":" + (env.adminTotpSecret ?? ""))
+    .digest();
 }
 
 class AuthSdk {
@@ -47,7 +50,13 @@ class AuthSdk {
   async createSessionToken(opts: { expiresInMs?: number } = {}): Promise<string> {
     const expiresInMs = opts.expiresInMs ?? SESSION_TTL_MS;
     const expSeconds = Math.floor((Date.now() + expiresInMs) / 1000);
+    const sessionId = randomBytes(32).toString("hex");
+    await saveAdminSession(sessionId, expSeconds * 1000);
     return new SignJWT({ openId: ADMIN_OPEN_ID, role: "admin" })
+      .setJti(sessionId)
+      .setIssuedAt()
+      .setIssuer("the-desk")
+      .setAudience("the-desk-admin")
       .setProtectedHeader({ alg: "HS256", typ: "JWT" })
       .setExpirationTime(expSeconds)
       .sign(getSecret());
@@ -58,13 +67,41 @@ class AuthSdk {
   ): Promise<{ openId: string; role: "admin" } | null> {
     if (!token) return null;
     try {
-      const { payload } = await jwtVerify(token, getSecret(), { algorithms: ["HS256"] });
+      const { payload } = await jwtVerify(token, getSecret(), {
+        algorithms: ["HS256"],
+        issuer: "the-desk",
+        audience: "the-desk-admin",
+      });
       const { openId, role } = payload as Record<string, unknown>;
-      if (typeof openId !== "string" || role !== "admin") return null;
+      if (
+        openId !== ADMIN_OPEN_ID ||
+        role !== "admin" ||
+        typeof payload.jti !== "string" ||
+        !/^[a-f0-9]{64}$/.test(payload.jti)
+      )
+        return null;
+      if (!(await hasAdminSession(payload.jti))) return null;
       return { openId, role: "admin" };
     } catch {
       return null;
     }
+  }
+
+  async revokeSession(req: Request): Promise<void> {
+    const token = parseCookieHeader(req.headers.cookie ?? "")[COOKIE_NAME];
+    if (!token) return;
+    let id: string | undefined;
+    try {
+      const { payload } = await jwtVerify(token, getSecret(), {
+        algorithms: ["HS256"],
+        issuer: "the-desk",
+        audience: "the-desk-admin",
+      });
+      id = payload.jti;
+    } catch {
+      return;
+    }
+    if (id) await deleteAdminSession(id);
   }
 
   /**

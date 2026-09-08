@@ -1,3 +1,4 @@
+import { publicFetch } from "./publicFetch";
 /**
  * Fetches the article HTML and extracts og:image / twitter:image. No deps —
  * a regex pass against the <head> block is enough for ~95% of news sites
@@ -36,7 +37,8 @@ export async function fetchOgImage(url: string, timeoutMs = 4_000): Promise<stri
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
-    const res = await fetch(url, {
+    const res = await publicFetch(url, {
+      maxBytes: 5 * 1024 * 1024,
       signal: controller.signal,
       redirect: "follow",
       headers: {

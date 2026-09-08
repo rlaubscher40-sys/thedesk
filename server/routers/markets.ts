@@ -4,7 +4,7 @@ import { publicMarket } from "../../shared/marketDirectory";
 import { getMarketDirectory } from "../markets/discovery";
 import { getCityRents } from "../markets/absRents";
 import { comparisonInputSchema } from "../../shared/marketComparison";
-import { consumeAnonymousAsk } from "../core/askQuota";
+import { consumeAnonymousAsk, consumeAnonymousAskAttempt } from "../core/askQuota";
 import {
   createIntelligenceShareToken,
   readIntelligenceShareToken,
@@ -30,12 +30,18 @@ export const marketsRouter = router({
     }),
   compare: publicProcedure.input(comparisonInputSchema).mutation(async ({ input, ctx }) => {
     // Share Ask's allowance, consumed before retrieval/model work to bound anonymous cost.
-    const quota = ctx.user ? null : consumeAnonymousAsk(ctx.req);
+    const quota = ctx.user ? null : await consumeAnonymousAsk(ctx.req);
     if (quota && !quota.allowed)
       throw new TRPCError({
         code: "TOO_MANY_REQUESTS",
         message: "You've used today's free intelligence questions. Sign in to keep comparing.",
       });
+    if (!ctx.user && !(await consumeAnonymousAskAttempt(ctx.req)).allowed) {
+      throw new TRPCError({
+        code: "TOO_MANY_REQUESTS",
+        message: "Intelligence is at its daily capacity. Please try tomorrow.",
+      });
+    }
     const sources = await retrieveMarketEvidence(input.marketA, input.marketB);
     const insufficient = {
       status: "insufficient" as const,

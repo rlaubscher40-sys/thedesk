@@ -1,3 +1,4 @@
+import { publicFetch } from "./publicFetch";
 /**
  * Fetches an article page once and returns BOTH the og:image and the
  * extracted body text. This replaces the old image-only scrape: the daily
@@ -91,7 +92,8 @@ export async function fetchArticle(
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
   try {
-    const res = await fetch(url, {
+    const res = await publicFetch(url, {
+      maxBytes: 5 * 1024 * 1024,
       signal: controller.signal,
       redirect: "follow",
       headers: {

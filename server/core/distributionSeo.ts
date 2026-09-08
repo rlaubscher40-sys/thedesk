@@ -3,10 +3,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { DEFAULT_SITE_URL } from "../../shared/const";
 import * as db from "../db";
-import { renderDailyHookCoverCard } from "../og/dailyHookCover";
-import { renderIntelligenceCard } from "../og/intelligenceCard";
-import { renderSignalCard } from "../og/signalCard";
-import { renderTrendCard } from "../og/trendCard";
+import { renderDailyHookCoverCard } from "../core/publicRender";
+import { renderIntelligenceCard } from "../core/publicRender";
+import { renderSignalCard } from "../core/publicRender";
+import { renderTrendCard } from "../core/publicRender";
 import { readIntelligenceShareToken } from "./intelligenceShare";
 
 function siteUrl(): string {
@@ -51,13 +51,17 @@ function replaceMeta(
     "i"
   );
   const tag = `<meta ${attribute}="${key}" content="${escaped}" />`;
-  return pattern.test(html) ? html.replace(pattern, tag) : html.replace("</head>", `    ${tag}\n  </head>`);
+  return pattern.test(html)
+    ? html.replace(pattern, tag)
+    : html.replace("</head>", `    ${tag}\n  </head>`);
 }
 
 function replaceCanonical(html: string, canonical: string): string {
   const tag = `<link rel="canonical" href="${htmlEscape(canonical)}" />`;
   const pattern = /<link\s+rel="canonical"\s+href="[^"]*"\s*\/?>/i;
-  return pattern.test(html) ? html.replace(pattern, tag) : html.replace("</head>", `    ${tag}\n  </head>`);
+  return pattern.test(html)
+    ? html.replace(pattern, tag)
+    : html.replace("</head>", `    ${tag}\n  </head>`);
 }
 
 type SocialMeta = {

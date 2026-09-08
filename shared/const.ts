@@ -6,7 +6,7 @@ export const COOKIE_NAME = "app_session_id";
  * the blast radius of a stolen cookie — a leaked session now ages out in a
  * month instead of the year it used to be valid for.
  */
-export const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30;
+export const SESSION_TTL_MS = 1000 * 60 * 60 * 12;
 export const AXIOS_TIMEOUT_MS = 30_000;
 
 /**

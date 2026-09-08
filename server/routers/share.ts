@@ -2,13 +2,16 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { consumeAnonymousCard } from "../core/askQuota";
 import * as db from "../db";
-import { renderDailyHookCoverCard } from "../og/dailyHookCover";
-import { renderDeskTakeCard } from "../og/takeCard";
+import { renderDailyHookCoverCard } from "../core/publicRender";
+import { renderDeskTakeCard } from "../core/publicRender";
 import { publicProcedure, router } from "../core/trpc";
 
-function enforceRenderQuota(authenticated: boolean, req: Parameters<typeof consumeAnonymousCard>[0]) {
+async function enforceRenderQuota(
+  authenticated: boolean,
+  req: Parameters<typeof consumeAnonymousCard>[0]
+) {
   if (authenticated) return;
-  const quota = consumeAnonymousCard(req);
+  const quota = await consumeAnonymousCard(req);
   if (!quota.allowed) {
     throw new TRPCError({
       code: "TOO_MANY_REQUESTS",
@@ -29,7 +32,12 @@ export function buildStoryShareCaption(item: {
 }): string {
   const line = clean(item.sayThis) || clean(item.whyItMatters);
   const source = clean(item.source);
-  return [item.title.trim(), line, source ? `Source: ${source}` : "", "The Desk · Australian property intelligence"]
+  return [
+    item.title.trim(),
+    line,
+    source ? `Source: ${source}` : "",
+    "The Desk · Australian property intelligence",
+  ]
     .filter(Boolean)
     .join("\n\n");
 }
@@ -57,7 +65,7 @@ export const shareRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Story not found." });
       }
 
-      enforceRenderQuota(Boolean(ctx.user), ctx.req);
+      await enforceRenderQuota(Boolean(ctx.user), ctx.req);
 
       try {
         const jpeg = await renderDailyHookCoverCard({
@@ -106,7 +114,7 @@ export const shareRouter = router({
         });
       }
 
-      enforceRenderQuota(Boolean(ctx.user), ctx.req);
+      await enforceRenderQuota(Boolean(ctx.user), ctx.req);
 
       try {
         const png = await renderDeskTakeCard({

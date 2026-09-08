@@ -114,7 +114,7 @@ describe("Ask answer recovery", () => {
       sources: [],
     });
     expect(invokeLLMJson).not.toHaveBeenCalled();
-    expect(consumeAnonymousAsk(ctx.req).remaining).toBe(2);
+    expect((await consumeAnonymousAsk(ctx.req)).remaining).toBe(2);
   });
 
   it("lets the model decline related but insufficient evidence and refunds the reservation", async () => {
@@ -128,7 +128,7 @@ describe("Ask answer recovery", () => {
     expect(result).not.toHaveProperty("answer");
     expect(result).not.toHaveProperty("shareToken");
     expect(createIntelligenceShareToken).not.toHaveBeenCalled();
-    expect(consumeAnonymousAsk(ctx.req).remaining).toBe(2);
+    expect((await consumeAnonymousAsk(ctx.req)).remaining).toBe(2);
   });
 
   it.each([
@@ -191,7 +191,7 @@ describe("Ask answer recovery", () => {
     for (let i = 0; i < 12; i++) await caller.answer(input);
     await expect(caller.answer(input)).rejects.toMatchObject({ code: "TOO_MANY_REQUESTS" });
     expect(invokeLLMJson).toHaveBeenCalledTimes(12);
-    expect(consumeAnonymousAsk(ctx.req).remaining).toBe(2);
+    expect((await consumeAnonymousAsk(ctx.req)).remaining).toBe(2);
   });
 
   it("times out stalled retrieval without allowing late work to spend quota or call the model", async () => {
@@ -209,7 +209,7 @@ describe("Ask answer recovery", () => {
     resolve(related);
     await vi.advanceTimersByTimeAsync(0);
     expect(invokeLLMJson).not.toHaveBeenCalled();
-    expect(consumeAnonymousAsk(ctx.req).remaining).toBe(2);
+    expect((await consumeAnonymousAsk(ctx.req)).remaining).toBe(2);
   });
 
   it("aborts a stalled model, refunds promptly, and never shares a late answer", async () => {
@@ -227,7 +227,7 @@ describe("Ask answer recovery", () => {
     await vi.advanceTimersByTimeAsync(ASK_SERVER_TIMEOUT_MS);
     await rejected;
     expect(signal.aborted).toBe(true);
-    expect(consumeAnonymousAsk(ctx.req).remaining).toBe(2);
+    expect((await consumeAnonymousAsk(ctx.req)).remaining).toBe(2);
     resolve(answer);
     await vi.advanceTimersByTimeAsync(0);
     expect(createIntelligenceShareToken).not.toHaveBeenCalled();
@@ -239,7 +239,7 @@ describe("Ask answer recovery", () => {
       user: { id: 1 } as NonNullable<TrpcContext["user"]>,
     });
     for (let i = 0; i < 4; i++) expect((await caller.answer(input)).anonymousRemaining).toBeNull();
-    expect(consumeAnonymousAsk(ctx.req).remaining).toBe(2);
+    expect((await consumeAnonymousAsk(ctx.req)).remaining).toBe(2);
   });
 });
 

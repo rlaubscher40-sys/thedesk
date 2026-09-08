@@ -139,7 +139,7 @@ export const feedRouter = router({
       z.object({
         category: z.string().max(64).optional(),
         limit: z.number().int().min(1).max(60).default(30),
-        offset: z.number().int().min(0).default(0),
+        offset: z.number().int().min(0).max(10000).default(0),
       })
     )
     .query(async ({ input }) =>
