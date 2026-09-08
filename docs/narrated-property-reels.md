@@ -1,4 +1,4 @@
-# Narrated property Reel pilot
+# Narrated property Reel programme
 
 The scheduled Reel now reads the same verified ABS CPI rent feed as the free
 Brisbane–Perth comparison. It requires matching, recent reference months and
@@ -7,19 +7,26 @@ No model writes causal explanations from these figures. Rent growth is neither
 rental yield nor an investment ranking. Two city observations are not plotted
 as a time series.
 
-The existing server scheduler checks for an unpublished verified comparison
-every five minutes, including 15 seconds after startup. The old Tuesday/Thursday
-window and daily success/skip watermark no longer gate Reels. The pilot publishes
-each ABS reference month once; it does not promise two new topics every week.
-More editorial topics can extend this later. A revision updates the
-evidence read without automatically reposting the same month. Publication uses
+The programme has two monthly topics: the rent comparison and an approvals
+explainer using the existing ABS BA_GCCSA original dwelling-unit counts. Approvals
+require twelve complete matching months for Greater Brisbane and Greater Perth.
+They are never presented as starts, completions, a shortage ranking or an
+investment winner. Each candidate contains a script, card, caption, exact source
+trail, evidence hash and separate permanent topic/reference-month identity.
+
+The existing server scheduler checks every five minutes, including after startup.
+Automatic delivery runs between 9am and 6pm Sydney time, at most once per Sydney
+day across both topics. A confirmed topic makes way for the next eligible one;
+uncertain outcomes pause the programme. Each topic/reference month posts once,
+with no filler to meet a weekly quota. A revision changes the evidence hash and
+caveat without reposting the same topic/month. Publication uses
 a durable reservation immediately before Meta's non-idempotent publish call;
 uncertain responses stay locked. Quota, audio or evidence failures send no post.
 
 Admin → Instagram shows the scheduler's actual enabled state, a real local
 speech check, next cover tone, sourced caption and an on-demand video preview.
 The panel is at the top of Admin, with distinct ready, rendering, retrying,
-paused, published and uncertain/locked states. It refreshes every 30 seconds.
+paused, scheduled, daily-limit, published and uncertain/locked states. It refreshes every 30 seconds.
 Previewing does not publish; no manual click or open browser is needed. Covers continue alternating from the last recorded
 grid post; pinned posts keep their colours, so the pinned row is not guaranteed
 to form a checkerboard. Manual/out-of-band posts can also change the grid.
@@ -61,7 +68,7 @@ Dependency source/license references:
 
 ## Automatic delivery safeguards
 
-Preparation is claimed atomically per evidence month and Sydney delivery day,
+Preparation is claimed atomically in one shared slot per Sydney delivery day,
 with two attempts per day and a 15-minute cooldown after failure. Rate/integrity
 blocks pause further attempts for the day. After a process restart, preparation
 claims older than 15 minutes can expire, but only while the publication slot is
@@ -86,19 +93,20 @@ still a dependency probe, not proof that a complete Reel has rendered.
 Process timeout, missing assets, permissions, exit code, termination signal and
 invalid speech now propagate into the admin result instead of becoming a generic
 “narration unavailable”. The detailed bounded native error is retained in server
-logs. CI renders a complete six-passage spoken comparison using the pinned model.
+logs. CI renders both complete six-passage stories using the pinned model and subtitles.
 
-The corrected speech runtime uses the `speech2` preparation namespace (two
-attempts per Sydney day) so failed attempts from the old runtime do not strand
-an unpublished comparison. The ABS reference-month publication reservation is
-unchanged: neither a confirmed nor an uncertain Meta publication can be retried.
+The programme uses `instagram-reel-delivery-programme-v1` for bounded daily
+preparation. A confirmed publication timestamp also enforces the daily cap when
+a delivery response or watermark was lost. The existing rent publication identity
+is unchanged and approvals have their own identity. Neither confirmed nor
+uncertain publication reservations can be reset by retry or a voice/copy change.
 
 ## Repeatable editorial standard
 
 Every approved automatic topic needs a deterministic evidence adapter producing
 one dated candidate: story, card, caption, source trail and permanent publication
-identity. The current approved topic is the monthly Brisbane–Perth rent comparison;
-this is not yet a daily multi-topic Reel calendar.
+identity. Approved topics are the monthly Brisbane–Perth rent comparison and
+dwelling-approvals explainer. Two monthly topics are not a varied weekly calendar.
 
 1. Start with a recognisable property decision, not the name of a data series.
 2. State one verified finding. The screen carries the supporting numbers.
@@ -144,6 +152,8 @@ rejected. ASS commands cannot be supplied through script text. The publisher
 rejects an output without required subtitles before creating a Meta container.
 Rendering stays local with the existing ffmpeg, font assets and CPU limits.
 
-Other future formats can request the same subtitle pipeline after checking
-that their card layout has room for the reserved band. This change adds no
-new topics, no extra scheduled posts and no reset of a publication reservation.
+Both current formats use this pipeline. Other future formats need the same
+layout and full-render checks. Cross-dissolve time is restored to each section
+so the next voice cannot begin before the current passage and its tail finish.
+The renderer also rejects measured clips over 32 seconds before publishing;
+it never truncates spoken evidence to fit.
