@@ -24,7 +24,7 @@ export const STATE_PROPERTY_SOURCES: EvidenceSource[] = PROPERTY_REGIONS.flatMap
       name: `${region.name} regional housing`,
       region: region.code,
       beat: "regional",
-      query: `(${region.places
+      query: `("${region.name}" OR ${region.code}) (${region.places
         .slice(1)
         .map((place) => `"${place}"`)
         .join(" OR ")}) ${housing}`,

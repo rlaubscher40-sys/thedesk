@@ -21,6 +21,7 @@ describe("nationwide evidence", () => {
     for (const region of PROPERTY_REGIONS) {
       const sources = STATE_PROPERTY_SOURCES.filter((source) => source.region === region.code);
       expect(sources.map((source) => source.beat)).toEqual(["housing", "regional", "policy"]);
+      expect(new URL(sources[1]!.url).searchParams.get("q")).toContain(region.name);
       expect(new URL(sources[2]!.url).searchParams.get("q")).toContain(`site:${region.domain}`);
     }
     expect(new Set(EVIDENCE_SOURCES.map((source) => source.id)).size).toBe(EVIDENCE_SOURCES.length);
