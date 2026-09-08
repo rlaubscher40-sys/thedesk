@@ -15,8 +15,15 @@
  */
 import { fetchAllAbs } from "./lib/abs";
 import { postJSON } from "./lib/post";
+import { getStateDemographics } from "../../server/markets/absDemographics";
+import { stateDemographicMetrics } from "../../shared/stateDemographicMetrics";
 import { getCityApprovals } from "../../server/markets/absApprovals";
-import { annualApprovals, APPROVAL_REGIONS } from "../../shared/cityApprovals";
+import {
+  annualApprovals,
+  approvalGeography,
+  APPROVAL_SOURCE,
+  APPROVAL_REGIONS,
+} from "../../shared/cityApprovals";
 import { rentPeriod } from "../../shared/cityRents";
 import { fetchRbaHousingRateMetrics } from "./lib/rbaHousingRates";
 
@@ -154,7 +161,19 @@ function fmtNumber(n: number, decimals = 2): string {
  * GitHub Action, or http://127.0.0.1:<port> for the in-process scheduler).
  * Pure: no env reads, no process.exit, so the server can import it.
  */
-export async function runDailyMetricsIngest(rawBaseUrl: string, apiKey: string): Promise<void> {
+/** A 200 response with partial writes must not mark the collection healthy. */
+export function verifyMetricReceipt(result: unknown, expected: number): void {
+  const receipt = result as { success?: unknown; count?: unknown } | null;
+  if (!receipt || receipt.success !== true || receipt.count !== expected) {
+    throw new Error(`[metrics] incomplete persistence: expected ${expected} metrics`);
+  }
+}
+
+export async function runDailyMetricsIngest(
+  rawBaseUrl: string,
+  apiKey: string,
+  options: { extractFromNews?: boolean } = {}
+): Promise<void> {
   const baseUrl = rawBaseUrl.replace(/\/+$/u, "");
 
   console.log("[metrics] fetching from Yahoo Finance + RBA...");
@@ -280,12 +299,17 @@ export async function runDailyMetricsIngest(rawBaseUrl: string, apiKey: string):
       value: String(read.total),
       unit: "",
       source: "ABS BA_GCCSA · original series",
+      sourceUrl: APPROVAL_SOURCE,
       groupKey: "PROPERTY",
-      context: `Greater ${city} · year to ${rentPeriod(read.period)}. Approved dwelling units, not completions or available stock.${read.preliminary ? " Includes preliminary data." : ""}${read.revised ? " Includes revised data." : ""}`,
+      context: `${approvalGeography(city)} · year to ${rentPeriod(read.period)}. Approved dwelling units, not completions or available stock.${read.preliminary ? " Includes preliminary data." : ""}${read.revised ? " Includes revised data." : ""}`,
       asOf: `${read.period}-01T00:00:00.000Z`,
       displayOrder: 61 + index,
     });
   }
+
+  metrics.push(
+    ...stateDemographicMetrics(await getStateDemographics(), new Date().toISOString().slice(0, 10))
+  );
 
   if (metrics.length === 0) {
     throw new Error("[metrics] all sources failed; nothing to ship");
@@ -298,6 +322,9 @@ export async function runDailyMetricsIngest(rawBaseUrl: string, apiKey: string):
 
   const result = await postJSON(`${baseUrl}/api/ingest/daily-metrics`, { metrics }, apiKey);
   console.log("[metrics] server response:", result);
+  verifyMetricReceipt(result, metrics.length);
+
+  if (options.extractFromNews === false) return;
 
   // ── News-driven LLM extraction for proprietary metrics ──────────────────
   // CoreLogic auction clearance / home value, Westpac-MI consumer sentiment,

@@ -1,6 +1,7 @@
 import React from "react";
 import {
   annualApprovals,
+  approvalGeography,
   approvalsDataUrl,
   APPROVAL_REGIONS,
   APPROVAL_SOURCE,
@@ -38,7 +39,7 @@ export function CityApprovalRead({
             (read) =>
               read && (
                 <div key={read.city}>
-                  <p className="bs-label">Greater {read.city}</p>
+                  <p className="bs-label">{approvalGeography(read.city)}</p>
                   <p className="font-mono text-5xl mt-2">{read.total.toLocaleString("en-AU")}</p>
                   <p className="text-sm mt-3">
                     Year to {rentPeriod(read.period)} · original series
@@ -62,9 +63,9 @@ export function CityApprovalRead({
         </p>
       )}
       <p className="text-xs leading-5 mt-5 text-[var(--color-fg-muted)]">
-        ABS Greater Capital City Statistical Areas. These counts are not adjusted for population or
-        existing housing stock and are not seasonally adjusted. They use a different series from CPI
-        rents.
+        ABS Greater Capital City Statistical Areas; Canberra uses the whole Australian Capital
+        Territory. These counts are not adjusted for population or existing housing stock and are
+        not seasonally adjusted. They use a different series from CPI rents.
       </p>
       <div className="flex flex-wrap gap-4 text-sm mt-3">
         <a href={APPROVAL_SOURCE} className="bs-link" target="_blank" rel="noopener noreferrer">

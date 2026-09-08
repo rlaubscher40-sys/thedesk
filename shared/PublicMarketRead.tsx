@@ -1,4 +1,5 @@
 import React from "react";
+import { StateDemographicsRead } from "./StateDemographicsRead";
 import { CityRentRead } from "./CityRentRead";
 import { CityApprovalRead } from "./CityApprovalRead";
 import {
@@ -61,6 +62,9 @@ export function PublicMarketRead({
         </p>
       </header>
 
+      {!directory.demo && (
+        <StateDemographicsRead data={file.demographics} stateCode={market.state} asOf={file.asOf} />
+      )}
       {!directory.demo && <CityRentRead data={file.rents} marketA={market.name} asOf={file.asOf} />}
       {!directory.demo && (
         <CityApprovalRead data={file.approvals} cities={[market.name]} asOf={file.asOf} />

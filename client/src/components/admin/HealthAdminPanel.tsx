@@ -11,6 +11,7 @@
  * 30s while the panel is visible so a freshly-ingested edition or a
  * just-thrown error appears without a manual refresh.
  */
+import { MetricHealthPanel } from "./MetricHealthPanel";
 import { PropertyCoveragePanel } from "./PropertyCoveragePanel";
 import { useState } from "react";
 import { AlertTriangle, Heart, RefreshCw, Trash2 } from "lucide-react";
@@ -118,6 +119,7 @@ export function HealthAdminPanel() {
       )}
 
       <PropertyCoveragePanel />
+      <MetricHealthPanel />
 
       {/* Uptime sparkline. */}
       {pings.length > 0 && <UptimeSparkline pings={pings} />}

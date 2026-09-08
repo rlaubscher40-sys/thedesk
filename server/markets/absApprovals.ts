@@ -10,7 +10,7 @@ import { csvRows } from "../core/strictCsv";
 
 /** Codes verified against the live ABS BA_GCCSA structure and codelists.
  * Dwelling units; all value bands, sectors, work and building types;
- * original monthly counts at Greater Brisbane / Greater Perth boundaries. */
+ * original monthly counts at capital-city statistical areas (ACT territory for Canberra). */
 const IDENTITY = {
   DATAFLOW: APPROVAL_FLOW,
   MEASURE: "1",
@@ -32,7 +32,7 @@ export function parseAbsApprovals(csv: string, retrievedAt: string): CityApprova
     !header ||
     new Set(header).size !== header.length ||
     required.some((key) => !header.includes(key)) ||
-    rows.length > 32
+    rows.length > Object.keys(APPROVAL_REGIONS).length * 16
   )
     throw new Error("Unexpected approvals schema");
   const seen = new Set<string>();

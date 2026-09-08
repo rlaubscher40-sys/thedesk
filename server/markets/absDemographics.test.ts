@@ -20,7 +20,7 @@ describe("verified ABS state demographics", () => {
 
   it("pins the flow, dimensions and bounded time range", () => {
     const url = demographicsDataUrl(retrievedAt);
-    expect(url).toContain("/ABS,ERP_COMP_Q,1.0.0/6+9+10.3+5.Q?");
+    expect(url).toContain("/ABS,ERP_COMP_Q,1.0.0/6+9+10.1+2+3+4+5+6+7+8.Q?");
     expect(url).toContain("startPeriod=2024-Q4");
     expect(url).toContain("format=csv");
   });
@@ -47,7 +47,7 @@ describe("verified ABS state demographics", () => {
 
   it.each([
     [DEMOGRAPHIC_FLOW, "ABS:ERP_Q(1.0.0)"],
-    [",6,3,Q,", ",6,1,Q,"],
+    [",6,3,Q,", ",6,9,Q,"],
     [",6,3,Q,", ",8,3,Q,"],
     [",6,3,Q,", ",6,3,M,"],
     [",NUM,0,,", ",PCT,0,,"],

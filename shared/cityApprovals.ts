@@ -1,4 +1,16 @@
-export const APPROVAL_REGIONS = { "3GBRI": "Brisbane", "5GPER": "Perth" } as const;
+export const APPROVAL_REGIONS = {
+  "1GSYD": "Sydney",
+  "2GMEL": "Melbourne",
+  "3GBRI": "Brisbane",
+  "4GADE": "Adelaide",
+  "5GPER": "Perth",
+  "6GHOB": "Hobart",
+  "7GDAR": "Darwin",
+  "8ACTE": "Canberra",
+} as const;
+export function approvalGeography(city: string) {
+  return city === "Canberra" ? "Australian Capital Territory" : `Greater ${city}`;
+}
 export const APPROVAL_SOURCE =
   "https://www.abs.gov.au/statistics/industry/building-and-construction/building-approvals-australia/latest-release";
 export const APPROVAL_FLOW = "ABS:BA_GCCSA(1.0.0)";
@@ -17,7 +29,7 @@ export type CityApprovals = {
 export function approvalsDataUrl(asOf: string): string {
   const start = new Date(`${asOf.slice(0, 7)}-01T00:00:00Z`);
   start.setUTCMonth(start.getUTCMonth() - 14);
-  return `https://data.api.abs.gov.au/rest/data/ABS,BA_GCCSA,1.0.0/1.1.9.TOT.TOT.10.3GBRI+5GPER.M?startPeriod=${start.toISOString().slice(0, 7)}&format=csv`;
+  return `https://data.api.abs.gov.au/rest/data/ABS,BA_GCCSA,1.0.0/1.1.9.TOT.TOT.10.${Object.keys(APPROVAL_REGIONS).join("+")}.M?startPeriod=${start.toISOString().slice(0, 7)}&format=csv`;
 }
 
 /** Sum only twelve consecutive observed months. Missing/suppressed is never zero. */
