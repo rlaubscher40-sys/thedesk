@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { EVIDENCE_JOBS, isJobDue, sydneyClock, type SchedulerClock } from "./index";
+import {
+  EVIDENCE_JOBS,
+  METRIC_RECOVERY_JOB,
+  isJobDue,
+  sydneyClock,
+  type SchedulerClock,
+} from "./index";
 
 const baseClock = (over: Partial<SchedulerClock> = {}): SchedulerClock => ({
   dateISO: "2026-06-04",
@@ -7,6 +13,11 @@ const baseClock = (over: Partial<SchedulerClock> = {}): SchedulerClock => ({
   dow: 4, // Thursday
   dom: 4,
   ...over,
+});
+
+it("allows missing-data recovery after an evening deployment without reopening publication windows", () => {
+  expect(isJobDue(METRIC_RECOVERY_JOB, baseClock({ minutes: 22 * 60 + 30 }))).toBe(true);
+  expect(isJobDue(METRIC_RECOVERY_JOB, baseClock({ minutes: 0 }))).toBe(true);
 });
 
 describe("sydneyClock", () => {

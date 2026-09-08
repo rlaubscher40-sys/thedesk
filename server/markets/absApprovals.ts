@@ -72,7 +72,7 @@ export async function getCityApprovals(): Promise<CityApprovals> {
         const retrievedAt = new Date().toISOString();
         const response = await fetch(approvalsDataUrl(retrievedAt), {
           headers: { Accept: "text/csv" },
-          signal: AbortSignal.timeout(8_000),
+          signal: AbortSignal.timeout(30_000),
         });
         if (
           !response.ok ||
@@ -101,7 +101,8 @@ export async function getCityApprovals(): Promise<CityApprovals> {
         if (data.status !== "available") throw new Error("No approvals observations");
         return data;
       });
-    } catch {
+    } catch (error) {
+      console.warn("[metrics] ABS capital approvals unavailable:", (error as Error).message);
       return { status: "unavailable", retrievedAt: null, observations: [] };
     }
   });

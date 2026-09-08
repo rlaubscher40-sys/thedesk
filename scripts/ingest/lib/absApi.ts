@@ -171,7 +171,10 @@ export async function fetchAbsSeries(args: {
 }): Promise<AbsFetchResult> {
   const url = absDataUrl(args);
   try {
-    const res = await fetch(url, { headers: { "User-Agent": UA, Accept: "text/csv" } });
+    const res = await fetch(url, {
+      headers: { "User-Agent": UA, Accept: "text/csv" },
+      signal: AbortSignal.timeout(15_000),
+    });
     if (!res.ok) return { ok: false, error: `${res.status} ${res.statusText}` };
     const csv = await res.text();
     const observations = parseSdmxCsv(csv);

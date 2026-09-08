@@ -260,7 +260,7 @@ export async function fetchRbaHousingRateMetrics(): Promise<RbaHousingRateMetric
   try {
     const response = await fetch(F6_CSV_URL, {
       headers: { Accept: "text/csv", "User-Agent": USER_AGENT },
-      signal: AbortSignal.timeout(10_000),
+      signal: AbortSignal.timeout(30_000),
     });
     if (!response.ok || Number(response.headers.get("content-length")) > MAX_BYTES) {
       throw new Error(`RBA F6 returned ${response.status}`);

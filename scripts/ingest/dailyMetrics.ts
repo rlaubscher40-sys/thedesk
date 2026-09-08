@@ -13,6 +13,8 @@
  *   INGEST_BASE_URL    — the deployed site URL
  *   SCHEDULED_API_KEY  — matches server-side env var
  */
+import { fetchCashRate, CASH_RATE_CSV } from "./lib/rbaCashRate";
+import { collectionDeadline } from "./lib/deadline";
 import { fetchAllAbs } from "./lib/abs";
 import { postJSON } from "./lib/post";
 import { getStateDemographics } from "../../server/markets/absDemographics";
@@ -27,7 +29,7 @@ import {
 import { rentPeriod } from "../../shared/cityRents";
 import { fetchRbaHousingRateMetrics } from "./lib/rbaHousingRates";
 
-type MetricOut = {
+export type MetricOut = {
   metricKey: string;
   label: string;
   value: string;
@@ -54,6 +56,7 @@ async function fetchYahooQuote(symbol: string): Promise<{
       headers: {
         "User-Agent": "Mozilla/5.0 (compatible; TheDeskBot/1.0; +https://thedesk.au)",
       },
+      signal: AbortSignal.timeout(15_000),
     });
     if (!res.ok) {
       console.warn(`[metrics] yahoo ${symbol} → ${res.status}`);
@@ -83,72 +86,6 @@ async function fetchYahooQuote(symbol: string): Promise<{
   }
 }
 
-/**
- * Pull the current RBA cash rate from the official statistics CSV.
- * Format (from f1.1-data.csv):
- *   "Title","Cash Rate Target",...
- *   "Description","...",...
- *   "Frequency","Monthly",...
- *   ...metadata header rows...
- *   "31-Jan-1990",17.50,...
- *   ...one row per change of the target...
- *   "24-Jul-2024",4.35
- *
- * The last data row holds the current target. Far more reliable than
- * scraping the homepage, whose layout changes.
- */
-async function fetchCashRate(): Promise<{ rate: number; asOf: Date } | null> {
-  try {
-    const res = await fetch("https://www.rba.gov.au/statistics/tables/csv/f1.1-data.csv", {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; TheDeskBot/1.0; +https://thedesk.au)",
-      },
-    });
-    if (!res.ok) {
-      console.warn(`[metrics] RBA CSV → ${res.status}`);
-      return null;
-    }
-    const csv = await res.text();
-    // Walk the rows backwards; the first row that starts with a quoted
-    // date like "DD-Mon-YYYY" is the most recent target.
-    const lines = csv.split(/\r?\n/);
-    const dateRe = /^"(\d{1,2})-(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-(\d{4})"/i;
-    for (let i = lines.length - 1; i >= 0; i--) {
-      const line = lines[i];
-      if (!line) continue;
-      const m = line.match(dateRe);
-      if (!m) continue;
-      const cells = line.split(",");
-      const valueCell = cells[1]?.trim();
-      if (!valueCell) continue;
-      const rate = Number(valueCell);
-      if (!Number.isFinite(rate)) continue;
-      // Parse the date for asOf.
-      const monthIdx = [
-        "jan",
-        "feb",
-        "mar",
-        "apr",
-        "may",
-        "jun",
-        "jul",
-        "aug",
-        "sep",
-        "oct",
-        "nov",
-        "dec",
-      ].indexOf(m[2]!.toLowerCase());
-      const asOf = new Date(Date.UTC(Number(m[3]), monthIdx, Number(m[1])));
-      return { rate, asOf };
-    }
-    console.warn("[metrics] RBA CSV had no parseable data rows");
-    return null;
-  } catch (err) {
-    console.warn("[metrics] cash rate fetch error:", (err as Error).message);
-    return null;
-  }
-}
-
 function fmtNumber(n: number, decimals = 2): string {
   return n.toLocaleString("en-AU", {
     minimumFractionDigits: decimals,
@@ -172,13 +109,24 @@ export function verifyMetricReceipt(result: unknown, expected: number): void {
 export async function runDailyMetricsIngest(
   rawBaseUrl: string,
   apiKey: string,
-  options: { extractFromNews?: boolean } = {}
+  options: { extractFromNews?: boolean; persist?: (metrics: MetricOut[]) => Promise<void> } = {}
 ): Promise<void> {
   const baseUrl = rawBaseUrl.replace(/\/+$/u, "");
 
   console.log("[metrics] fetching from Yahoo Finance + RBA...");
 
-  const [cashRate, housingRates, asx, audusd, audgbp, audeur, us10y] = await Promise.all([
+  const [
+    cashRate,
+    housingRates,
+    asx,
+    audusd,
+    audgbp,
+    audeur,
+    us10y,
+    absResults,
+    approvals,
+    demographics,
+  ] = await Promise.all([
     fetchCashRate(),
     fetchRbaHousingRateMetrics(),
     fetchYahooQuote("^AXJO"), // ASX 200
@@ -186,6 +134,9 @@ export async function runDailyMetricsIngest(
     fetchYahooQuote("AUDGBP=X"),
     fetchYahooQuote("AUDEUR=X"),
     fetchYahooQuote("^TNX"), // US 10Y treasury yield
+    collectionDeadline(fetchAllAbs(), [], 45_000),
+    getCityApprovals(),
+    getStateDemographics(),
   ]);
 
   const metrics: MetricOut[] = [];
@@ -197,6 +148,7 @@ export async function runDailyMetricsIngest(
       value: fmtNumber(cashRate.rate, 2),
       unit: "%",
       source: "RBA",
+      sourceUrl: CASH_RATE_CSV,
       groupKey: "MACRO",
       asOf: cashRate.asOf.toISOString(),
       displayOrder: 10,
@@ -272,7 +224,6 @@ export async function runDailyMetricsIngest(
 
   // ── ABS scrapes (CPI, unemployment, WPI, building approvals, NOM) ───────
   console.log("[metrics] scraping ABS...");
-  const absResults = await fetchAllAbs();
   for (const r of absResults) {
     if (!r) continue;
     metrics.push({
@@ -289,7 +240,6 @@ export async function runDailyMetricsIngest(
   }
   console.log(`[metrics] ABS yielded ${absResults.filter(Boolean).length}/${absResults.length}`);
 
-  const approvals = await getCityApprovals();
   for (const [index, city] of Object.values(APPROVAL_REGIONS).entries()) {
     const read = annualApprovals(approvals, city, new Date().toISOString());
     if (!read) continue;
@@ -307,9 +257,7 @@ export async function runDailyMetricsIngest(
     });
   }
 
-  metrics.push(
-    ...stateDemographicMetrics(await getStateDemographics(), new Date().toISOString().slice(0, 10))
-  );
+  metrics.push(...stateDemographicMetrics(demographics, new Date().toISOString().slice(0, 10)));
 
   if (metrics.length === 0) {
     throw new Error("[metrics] all sources failed; nothing to ship");
@@ -320,9 +268,13 @@ export async function runDailyMetricsIngest(
     console.log(`  - ${m.label}: ${m.value}${m.unit ?? ""} (${m.source})`);
   }
 
-  const result = await postJSON(`${baseUrl}/api/ingest/daily-metrics`, { metrics }, apiKey);
-  console.log("[metrics] server response:", result);
-  verifyMetricReceipt(result, metrics.length);
+  if (options.persist) {
+    await options.persist(metrics);
+  } else {
+    const result = await postJSON(`${baseUrl}/api/ingest/daily-metrics`, { metrics }, apiKey);
+    console.log("[metrics] server response:", result);
+    verifyMetricReceipt(result, metrics.length);
+  }
 
   if (options.extractFromNews === false) return;
 

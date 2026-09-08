@@ -94,6 +94,7 @@ export async function upsertDailyMetric(input: {
     asOf: input.asOf,
     displayOrder: input.displayOrder ?? 100,
     previousValue,
+    updatedAt: new Date(),
   };
 
   if (existing[0]) {

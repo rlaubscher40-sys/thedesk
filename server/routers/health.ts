@@ -10,6 +10,7 @@
  * outside; this router is the inside-out complement.
  */
 import { metricHealth } from "../../shared/metricHealth";
+import { metricRefreshStatus, refreshOfficialMetrics } from "../metrics/recovery";
 import { z } from "zod";
 import { sql } from "drizzle-orm";
 import * as db from "../db";
@@ -48,6 +49,13 @@ type ServiceInfo = {
 };
 
 export const healthRouter = router({
+  refreshMetrics: adminProcedure.mutation(async () => refreshOfficialMetrics()),
+  metricCollection: adminProcedure.query(() => ({
+    ...metricRefreshStatus(),
+    schedulerEnabled:
+      (process.env.ENABLE_SCHEDULER ?? "").toLowerCase() === "true" && envFlag("SCHEDULED_API_KEY"),
+    databaseConfigured: envFlag("DATABASE_URL"),
+  })),
   metricCoverage: adminProcedure.query(async () => metricHealth(await db.listDailyMetrics())),
   propertyCoverage: adminProcedure.query(async () => ({
     ...(await db.propertyCoverage()),
