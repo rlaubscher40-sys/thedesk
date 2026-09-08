@@ -1,3 +1,4 @@
+import { inReelWindow, REEL_WINDOW } from "../../shared/instagramSchedule";
 import { env } from "../core/env";
 import { claimJobRun, markJobRun, readJobRun, expireReelDelivery } from "../db/jobRuns";
 import { getVerifiedReelCandidates } from "./reelCandidates";
@@ -8,8 +9,7 @@ export const REEL_POLL_MINUTES = 5;
 export const REEL_RETRY_MINUTES = 15;
 export const REEL_STALE_MINUTES = 15;
 export const REEL_MAX_ATTEMPTS = 2;
-export const REEL_SCHEDULE =
-  "Verified rent and housing-approval stories; at most one automatic Reel per Sydney day, 9am–6pm Sydney time, checked every 5 minutes";
+export const REEL_SCHEDULE = `Verified rent and housing-approval stories; at most one automatic Reel per Sydney day, ${REEL_WINDOW.label}, checked every 5 minutes`;
 export const REEL_DELIVERY_KEY = "instagram-reel-delivery-programme-v1";
 
 function sydneyDate(now: Date) {
@@ -54,14 +54,7 @@ export async function readReelAutomation(now = new Date()) {
     )
   )
     return { state: "daily-limit" as const, candidate, date };
-  const hour = Number(
-    new Intl.DateTimeFormat("en-GB", {
-      timeZone: "Australia/Sydney",
-      hour: "2-digit",
-      hourCycle: "h23",
-    }).format(now)
-  );
-  if (hour < 9 || hour >= 18) return { state: "scheduled" as const, candidate, date };
+  if (!inReelWindow(now)) return { state: "scheduled" as const, candidate, date };
   const key = REEL_DELIVERY_KEY;
   let attempt;
   try {

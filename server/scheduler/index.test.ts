@@ -1,3 +1,4 @@
+import { INSTAGRAM_FEED_SLOTS } from "../../shared/instagramSchedule";
 import { describe, expect, it } from "vitest";
 import {
   EVIDENCE_JOBS,
@@ -104,4 +105,27 @@ it("only catches up the current hourly evidence slot after a restart", () => {
     );
     expect(due.map((job) => job.at)).toEqual([`${String(hour).padStart(2, "0")}:00`]);
   }
+});
+
+describe("shared Australian social cadence", () => {
+  const job = (slot: keyof typeof INSTAGRAM_FEED_SLOTS) => ({
+    key: slot,
+    ...INSTAGRAM_FEED_SLOTS[slot],
+    run: async () => {},
+  });
+  it("keeps briefings on weekdays and number cards on Tuesday/Thursday", () => {
+    expect(isJobDue(job("daily"), baseClock({ dow: 1, minutes: 450 }))).toBe(true);
+    expect(isJobDue(job("daily"), baseClock({ dow: 0, minutes: 450 }))).toBe(false);
+    expect(isJobDue(job("daily"), baseClock({ dow: 6, minutes: 450 }))).toBe(false);
+    expect(isJobDue(job("stat"), baseClock({ dow: 2, minutes: 750 }))).toBe(true);
+    expect(isJobDue(job("stat"), baseClock({ dow: 3, minutes: 750 }))).toBe(false);
+  });
+  it("replaces the number card on the 1st and stops late catch-up", () => {
+    const first = baseClock({ dow: 2, dom: 1, minutes: 750 });
+    expect(isJobDue(job("stat"), first)).toBe(false);
+    expect(isJobDue(job("monthly"), first)).toBe(true);
+    expect(isJobDue(job("daily"), baseClock({ dow: 1, minutes: 511 }))).toBe(false);
+    expect(isJobDue(job("weekly"), baseClock({ dow: 0, minutes: 630 }))).toBe(true);
+    expect(isJobDue(job("weekly"), baseClock({ dow: 0, minutes: 631 }))).toBe(false);
+  });
 });

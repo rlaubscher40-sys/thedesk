@@ -26,7 +26,7 @@ vi.mock("../db/jobRuns", () => ({
 }));
 import { readReelAutomation, runReelAutomation } from "./reelAutomation";
 import { reelPublicationRecord } from "./reelStatus";
-const now = new Date("2026-09-09T02:00:00Z"); // Wednesday noon Sydney, outside the old slots.
+const now = new Date("2026-09-09T08:30:00Z"); // Wednesday 6:30pm Sydney.
 const publicationKey = "instagram-reel-abs-rents-brisbane-perth-v1";
 let published = false;
 beforeEach(() => {
@@ -280,7 +280,7 @@ describe("multiple verified topics", () => {
             : null
     );
     expect((await readReelAutomation(now)).state).toBe("daily-limit");
-    const plan = await readReelAutomation(new Date("2026-09-10T00:00:00Z"));
+    const plan = await readReelAutomation(new Date("2026-09-10T08:30:00Z"));
     expect(plan.state).toBe("ready");
     expect(plan.candidate?.publication.key).toBe(supplyKey);
   });
@@ -313,9 +313,9 @@ it("recovers the daily cap from confirmed publication when the delivery watermar
   expect(m.claim).not.toHaveBeenCalled();
 });
 
-it("waits until the Sydney daytime window without consuming a delivery attempt", async () => {
+it("waits until the Sydney evening window without consuming a delivery attempt", async () => {
   expect((await readReelAutomation(new Date("2026-09-09T12:00:00Z"))).state).toBe("scheduled");
-  expect((await readReelAutomation(new Date("2026-09-08T22:59:00Z"))).state).toBe("scheduled");
-  expect((await readReelAutomation(new Date("2026-09-08T23:00:00Z"))).state).toBe("ready");
+  expect((await readReelAutomation(new Date("2026-09-09T08:29:00Z"))).state).toBe("scheduled");
+  expect((await readReelAutomation(new Date("2026-09-09T08:30:00Z"))).state).toBe("ready");
   expect(m.claim).not.toHaveBeenCalled();
 });

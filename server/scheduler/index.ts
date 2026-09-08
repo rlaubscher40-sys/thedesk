@@ -40,49 +40,13 @@ const BOOT_DELAY_MS = 15_000;
  */
 const GRACE_MINUTES = 5 * 60;
 
-export type SchedulerClock = {
-  /** Sydney calendar date, YYYY-MM-DD. */
-  dateISO: string;
-  /** Minutes since Sydney midnight (0–1439). */
-  minutes: number;
-  /** Day of week, 0 = Sunday … 6 = Saturday (Sydney). */
-  dow: number;
-  /** Day of the month, 1-31 (Sydney). */
-  dom: number;
-};
-
-/** Current wall-clock in Australia/Sydney (DST-correct via the platform tz db). */
-export function sydneyClock(d: Date = new Date()): SchedulerClock {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Australia/Sydney",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-    weekday: "short",
-  }).formatToParts(d);
-  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
-  let hour = Number(get("hour"));
-  if (hour === 24) hour = 0; // some ICU builds emit "24" at midnight
-  const minutes = hour * 60 + Number(get("minute"));
-  const dowMap: Record<string, number> = {
-    Sun: 0,
-    Mon: 1,
-    Tue: 2,
-    Wed: 3,
-    Thu: 4,
-    Fri: 5,
-    Sat: 6,
-  };
-  return {
-    dateISO: `${get("year")}-${get("month")}-${get("day")}`,
-    minutes,
-    dow: dowMap[get("weekday")] ?? 0,
-    dom: Number(get("day")),
-  };
-}
+export { sydneySocialClock as sydneyClock } from "../../shared/instagramSchedule";
+import {
+  sydneySocialClock as sydneyClock,
+  INSTAGRAM_FEED_SLOTS,
+  type SocialClock as SchedulerClock,
+} from "../../shared/instagramSchedule";
+export type { SocialClock as SchedulerClock } from "../../shared/instagramSchedule";
 
 function hhmmToMinutes(hhmm: string): number {
   const [h, m] = hhmm.split(":");
@@ -104,6 +68,7 @@ type Job = {
    * the date; the monthly review uses 1 for that reason.
    */
   dom?: number[];
+  excludeDom?: number[];
   /**
    * Max attempts per day. The Instagram posting jobs sit at 2 rather than the
    * ingest default of 3: the risk they used to guard against with 1 — a
@@ -125,6 +90,7 @@ type Job = {
 export function isJobDue(job: Job, clock: SchedulerClock): boolean {
   if (job.dow && !job.dow.includes(clock.dow)) return false;
   if (job.dom && !job.dom.includes(clock.dom)) return false;
+  if (job.excludeDom?.includes(clock.dom)) return false;
   const at = hhmmToMinutes(job.at);
   return clock.minutes >= at && clock.minutes <= at + (job.graceMinutes ?? GRACE_MINUTES);
 }
@@ -189,7 +155,7 @@ const JOBS: Job[] = [
   { key: "daily-feed", at: "06:43", run: (b, k) => runDailyFeedIngest(b, k) },
   {
     key: "instagram-daily",
-    at: "07:13",
+    ...INSTAGRAM_FEED_SLOTS.daily,
     maxAttempts: 2,
     run: (b, k, a) => postLocal(b, k, "/api/ingest/instagram-daily", a),
   },
@@ -198,19 +164,11 @@ const JOBS: Job[] = [
     at: "07:17",
     run: (b, k) => postLocal(b, k, "/api/ingest/instagram-insights"),
   },
-  // instagram-coverage ("The Wider Lens") deliberately has no slot any more.
-  // It posted general tech/business/world headlines at 12:13 daily: commodity
-  // news, no partner angle, nothing an Australian property audience follows
-  // this account for. Three posts a day of that trains the ranking system that
-  // the account is low-engagement, which costs reach on the two posts that do
-  // earn it. The endpoint and the admin re-run button stay, so it can still be
-  // fired by hand if a coverage story ever warrants one.
-  // Mid-afternoon, a long way clear of the 07:13 briefing so the day's two grid
-  // posts don't stack. Also late enough that any metric the 06:33 ingest
-  // revised during the day has settled.
+  // General-news coverage remains manual. Property formats use a trial rhythm;
+  // posting frequency alone does not establish an effect on reach.
   {
     key: "instagram-stat",
-    at: "16:41",
+    ...INSTAGRAM_FEED_SLOTS.stat,
     maxAttempts: 2,
     run: (b, k, a) => postLocal(b, k, "/api/ingest/instagram-stat", a),
   },
@@ -220,8 +178,7 @@ const JOBS: Job[] = [
   // morning briefing so the two do not publish within minutes of each other.
   {
     key: "instagram-monthly",
-    at: "10:07",
-    dom: [1],
+    ...INSTAGRAM_FEED_SLOTS.monthly,
     maxAttempts: 2,
     run: (b, k, a) => postLocal(b, k, "/api/ingest/instagram-monthly", a),
   },
@@ -233,8 +190,7 @@ const JOBS: Job[] = [
   },
   {
     key: "instagram-weekly",
-    at: "09:19",
-    dow: [0],
+    ...INSTAGRAM_FEED_SLOTS.weekly,
     maxAttempts: 2,
     run: (b, k, a) => postLocal(b, k, "/api/ingest/instagram-weekly", a),
   },

@@ -115,8 +115,8 @@ async function publishCarouselConfirmed(opts: {
  * How recently a post must have landed for a RETRY to treat it as "this run
  * already went out". The scheduler re-attempts a failed job on its next tick
  * (5 minutes), so ~25 minutes covers a couple of ticks. The scheduled posting
- * streams sit hours apart (07:13 daily, 16:41 The Number, 09:19 Sunday weekly),
- * so a window this tight can never mistake one stream's post for another's.
+ * streams use separated slots from shared/instagramSchedule. Manual or
+ * out-of-band posts can still make this legacy time-based recovery ambiguous.
  */
 const RETRY_DUPLICATE_WINDOW_MS = 25 * 60 * 1000;
 
@@ -167,7 +167,7 @@ function sanitizeStory(story: DailyFeedItem): DailyFeedItem {
 
 /** Evergreen hashtags on every post, kept tight so the feed doesn't read as
  *  tag-stuffed. One beat-specific tag (below) is appended per post. */
-const CORE_HASHTAGS = "#AusFinance #AusProperty #AusEconomy #RBA #ASX200 #TheDesk";
+const CORE_HASHTAGS = "#AustralianProperty #AusProperty #TheDesk";
 
 /**
  * One discovery hashtag tuned to the lead story's beat, appended to the core
@@ -196,9 +196,8 @@ const DAILY_CAPTION_FALLBACK_HOOK =
 
 /**
  * The caption opens with the day's own hook, carries the conversational "say
- * this" line for each remaining slide in swipe order, then asks for a comment
- * and a save — for evergreen brief content, saves are the strongest ranking
- * signal. The analytical why-it-matters stays on the cards so the caption
+ * this" line for each remaining slide in swipe order, then gives one useful reason
+ * to save it. No particular interaction is treated as a guaranteed ranking signal. The analytical why-it-matters stays on the cards so the caption
  * doesn't repeat them.
  *
  * The opening line matters more than its length suggests: the first ~125
@@ -231,8 +230,7 @@ export function buildDailyCaption(stories: DailyFeedItem[]): string {
     leadHook,
     "",
     ...rundown,
-    "Which one are you watching this week? Tell us below.",
-    "Save this so you've got the brief for the days ahead.",
+    "Save this briefing to revisit the evidence before your next property decision.",
     "",
     propertyComparisonCta("carousel"),
     "",
@@ -815,8 +813,8 @@ export async function postWeeklyEdition(
  *
  * The first ~125 characters are all Instagram shows before "…more", so the
  * sentence leads and the sourced claim follows immediately — a reader who never
- * expands still gets the whole point. Asks for a save, which is the strongest
- * ranking signal available to an evergreen data post, and names the source,
+ * expands still gets the whole point. Names a reader who may find it useful
+ * and names the source,
  * because a number nobody can check is worth nothing on this format.
  */
 export function buildStatCaption(stat: {
@@ -839,8 +837,7 @@ export function buildStatCaption(stat: {
     `${claimSentence}.`,
     stat.source ? `Source: ${sanitizeDashes(stat.source)}.` : "",
     "",
-    "Does this match what you are seeing on the ground? Tell us below.",
-    "Save this one, it is the number worth remembering this week.",
+    "Share this with someone comparing Australian property markets.",
     "",
     propertyComparisonCta("stat"),
     "",
