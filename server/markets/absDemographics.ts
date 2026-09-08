@@ -83,7 +83,7 @@ export async function getStateDemographics(): Promise<StateDemographics> {
         const retrievedAt = new Date().toISOString();
         const response = await fetch(demographicsDataUrl(retrievedAt), {
           headers: { Accept: "text/csv" },
-          signal: AbortSignal.timeout(8_000),
+          signal: AbortSignal.timeout(30_000),
         });
         if (
           !response.ok ||
@@ -112,7 +112,8 @@ export async function getStateDemographics(): Promise<StateDemographics> {
         if (data.status !== "available") throw new Error("No demographics observations");
         return data;
       });
-    } catch {
+    } catch (error) {
+      console.warn("[metrics] ABS state demographics unavailable:", (error as Error).message);
       return { status: "unavailable", retrievedAt: null, observations: [] };
     }
   });

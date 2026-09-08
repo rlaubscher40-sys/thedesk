@@ -27,6 +27,7 @@ import { runDailyMetricsIngest } from "../../scripts/ingest/dailyMetrics";
 import { runReelAutomation, REEL_MAX_ATTEMPTS } from "../instagram/reelAutomation";
 
 import { collectPropertyEvidence } from "../evidence/collect";
+import { recoverMissingMetrics } from "../metrics/recovery";
 
 const TICK_MINUTES = 5;
 const BOOT_DELAY_MS = 15_000;
@@ -166,7 +167,18 @@ export const EVIDENCE_JOBS: Job[] = Array.from({ length: 24 }, (_, hour) => ({
   },
 }));
 
+export const METRIC_RECOVERY_JOB: Job = {
+  key: "official-metrics-recovery",
+  at: "00:00",
+  graceMinutes: 1439,
+  maxAttempts: 3,
+  run: async () => {
+    await recoverMissingMetrics();
+  },
+};
+
 const JOBS: Job[] = [
+  METRIC_RECOVERY_JOB,
   ...["12:03", "18:03"].map((at) => ({
     key: `official-metrics-${at.slice(0, 2)}`,
     at,

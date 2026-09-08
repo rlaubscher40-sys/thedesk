@@ -63,6 +63,41 @@ unrelated topic such as rents. Decimal thousands from ABS are converted exactly,
 preserving whole-person counts without rounding fractional people. A metric
 write without a configured database fails rather than acknowledging storage.
 
+## Missing-data recovery
+
+Live source checks on 8 September 2026 reproduced the old eight-second ABS
+timeout. With a 30-second bound the deployed connector code retrieved 120 state
+observations in 12.7 seconds and 104 capital approvals in 14.3 seconds locally.
+Both produced complete annual reads for all eight jurisdictions. RBA lending
+requests also need a 30-second bound. These are source checks, not proof of
+production database writes.
+
+The cash-rate collector now pins the daily F1 `FIRMMCRTD` series and reads CSV
+fields correctly. The old parser required quoted dates in a format absent from
+the monthly F1.1 file. The small cash-rate fixture retains actual source columns
+and observations from `https://www.rba.gov.au/statistics/tables/csv/f1-data.csv`.
+An empty current-day row may precede the latest completed daily observation;
+older gaps, stale observations and changed series identities are rejected.
+
+An all-day recovery job runs at the scheduler's next tick when official metrics
+are missing or collection is overdue, including evening deployments. It writes
+directly to the database, retains successful writes when another source fails,
+and reports incomplete collection for the existing bounded scheduler retries.
+Admin Health also has an authenticated refresh button, current run status and
+separate counts for unavailable sources and failed writes. Concurrent manual
+requests share an in-process run and completed results have a one-minute cooldown.
+The latest manual report is process-local; scheduler failures remain in job logs.
+Scheduler configuration gates automatic recovery; manual refresh does not need
+a scheduled API key. Neither path runs news extraction or publishes content.
+
+The existing safeguard against unfiltered ABS dataflow discovery is retained.
+It uses the existing release-page readers until a scoped API series is configured.
+A bounded collection window
+prevents that source group from indefinitely delaying other metric writes.
+After those changes, a full read-only collection returned all 53 direct-source
+metrics in 13.3 seconds. The four news-extracted metrics are outside this recovery
+path and remain separately marked for evidence review.
+
 ## Deployment acceptance
 
 Open Admin → Health → Property evidence coverage after deployment:
