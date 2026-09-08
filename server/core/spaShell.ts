@@ -57,7 +57,7 @@ const STATIC_ROUTES = new Set([
 ]);
 
 /** Parameterised routes. One segment each, no nesting below them. */
-const DYNAMIC_ROUTES = [/^\/editions\/[^/]+$/, /^\/topics\/[^/]+$/, /^\/story\/[^/]+$/];
+const DYNAMIC_ROUTES = [/^\/evidence\/[1-9][0-9]*$/, /^\/editions\/[^/]+$/, /^\/topics\/[^/]+$/, /^\/story\/[^/]+$/];
 
 /**
  * Real pages we don't want in search results: nothing here has content a
@@ -84,7 +84,7 @@ export function isKnownRoute(pathname: string): boolean {
 }
 
 export function isNoindexRoute(pathname: string): boolean {
-  return NOINDEX_ROUTES.has(pathname);
+  return NOINDEX_ROUTES.has(pathname) || /^\/evidence\/[1-9][0-9]*$/.test(pathname);
 }
 
 /**
