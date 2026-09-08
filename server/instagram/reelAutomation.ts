@@ -12,7 +12,10 @@ export const REEL_MAX_ATTEMPTS = 2;
 export const REEL_SCHEDULE = "New verified monthly comparison, checked every 5 minutes";
 
 function deliveryKey(date: string) {
-  return `instagram-reel-delivery-${date}`;
+  // A corrected speech runtime gets its own bounded preparation attempts.
+  // The permanent evidence publication key is deliberately NOT versioned here:
+  // a confirmed or uncertain Meta publish still prevents every new attempt.
+  return `instagram-reel-delivery-speech2-${date}`;
 }
 function sydneyDate(now: Date) {
   return new Intl.DateTimeFormat("en-CA", {

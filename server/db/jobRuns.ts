@@ -32,7 +32,7 @@ export async function readJobRun(jobKey: string, runDate: string) {
 
 /** Recover only an expired preparation attempt, NEVER a Meta publication lock. */
 export async function expireReelDelivery(jobKey: string, runDate: string, cutoff: Date) {
-  if (!/^instagram-reel-delivery-\d{4}-\d{2}-01$/.test(jobKey))
+  if (!/^instagram-reel-delivery-(?:speech2-)?\d{4}-\d{2}-01$/.test(jobKey))
     throw new Error("Only Reel delivery attempts can expire.");
   const db = getDb();
   if (!db || isDemoMode()) return;

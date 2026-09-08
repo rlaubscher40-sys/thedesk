@@ -72,3 +72,22 @@ Terminal attempt failures use the existing configured admin alert email.
 
 A frozen browser cannot block this worker. The production scheduler and Meta
 credentials must remain enabled; the panel shows when these are absent.
+
+## Speech runtime recovery
+
+The full script uses a 90-second synthesis budget. Identical simultaneous
+requests share one process; different scripts queue behind it with at most two
+pending scripts. Four exact-script results are kept in a bounded in-memory cache,
+so a preview and publication can reuse the same verified speech. Changed figures
+produce a different key. Failures are not cached. The short readiness check is
+still a dependency probe, not proof that a complete Reel has rendered.
+
+Process timeout, missing assets, permissions, exit code, termination signal and
+invalid speech now propagate into the admin result instead of becoming a generic
+“narration unavailable”. The detailed bounded native error is retained in server
+logs. CI renders a complete six-passage spoken comparison using the pinned model.
+
+The corrected speech runtime uses the `speech2` preparation namespace (two
+attempts per Sydney day) so failed attempts from the old runtime do not strand
+an unpublished comparison. The ABS reference-month publication reservation is
+unchanged: neither a confirmed nor an uncertain Meta publication can be retried.
