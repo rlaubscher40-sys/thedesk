@@ -2151,16 +2151,16 @@ function registerInstagramRoutes(app: Express): void {
       try {
         const { fetchMediaMetrics } = await import("./instagram/api");
         const posts = await db.listInstagramPostsNeedingMetrics();
-        let updated = 0;
+        let attempted = 0;
         for (const post of posts) {
           const metrics = await fetchMediaMetrics({
             mediaId: post.mediaId,
             accessToken: instagramAccessToken,
           });
           await db.updateInstagramPostMetrics(post.mediaId, metrics);
-          updated++;
+          attempted++;
         }
-        console.log(`[instagram] insights refreshed for ${updated}/${posts.length} posts`);
+        console.log(`[instagram] insights collection attempted for ${attempted}/${posts.length} posts`);
       } catch (err) {
         console.error("[instagram] insights refresh failed:", (err as Error).message);
       }

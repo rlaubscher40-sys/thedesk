@@ -10,7 +10,7 @@
  * it must retry at all, and it must not retry forever.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchPublishingLimit } from "./api";
+import { fetchMediaMetrics, fetchPublishingLimit } from "./api";
 
 const QUOTA_BODY = {
   data: [{ quota_usage: 3, config: { quota_total: 50, quota_duration: 86400 } }],
@@ -38,14 +38,62 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+describe("fetchMediaMetrics", () => {
+  it("keeps missing and malformed counts unknown, accepts zero, and bounds both reads", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(okResponse({ like_count: 0, comments_count: -1 }))
+      .mockResolvedValueOnce(
+        okResponse({
+          data: [
+            { name: "reach", values: [{ value: 100 }] },
+            { name: "saved", values: [{ value: "3" }] },
+            { name: "shares", values: [{ value: 0 }] },
+            { name: "total_interactions", values: [{ value: 1.5 }] },
+          ],
+        })
+      );
+    vi.stubGlobal("fetch", fetchMock);
+    expect(await fetchMediaMetrics({ mediaId: "123", accessToken: "tok" })).toEqual({
+      likes: 0,
+      comments: null,
+      reach: 100,
+      saved: null,
+      shares: 0,
+      totalInteractions: null,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    for (const call of fetchMock.mock.calls) expect(call[1].signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("returns unknown counts on provider failures instead of fabricated zeroes", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(errorResponse(500, TRANSIENT_500));
+    vi.stubGlobal("fetch", fetchMock);
+    expect(await fetchMediaMetrics({ mediaId: "123", accessToken: "tok" })).toEqual({
+      likes: null,
+      comments: null,
+      reach: null,
+      saved: null,
+      shares: null,
+      totalInteractions: null,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe("fetchPublishingLimit", () => {
   it("uses the documented quota edge and accepts zero usage", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(okResponse({
-      data: [{ quota_usage: 0, config: { quota_total: 100, quota_duration: 86400 } }],
-    }));
+    const fetchMock = vi.fn().mockResolvedValue(
+      okResponse({
+        data: [{ quota_usage: 0, config: { quota_total: 100, quota_duration: 86400 } }],
+      })
+    );
     vi.stubGlobal("fetch", fetchMock);
-    expect(await fetchPublishingLimit({ igUserId: "123", accessToken: "tok" }))
-      .toEqual({ usage: 0, quota: 100, windowHours: 24 });
+    expect(await fetchPublishingLimit({ igUserId: "123", accessToken: "tok" })).toEqual({
+      usage: 0,
+      quota: 100,
+      windowHours: 24,
+    });
     const url = new URL(String(fetchMock.mock.calls[0][0]));
     expect(url.pathname).toBe("/v21.0/123/content_publishing_limit");
     expect(url.searchParams.get("fields")).toBe("quota_usage,config");
@@ -61,8 +109,11 @@ describe("fetchPublishingLimit", () => {
     { content_publishing_limit: QUOTA_BODY },
   ])("rejects malformed or ambiguous quota: %j", async (body) => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(okResponse(body)));
-    expect(await fetchPublishingLimit({ igUserId: "123", accessToken: "tok" }))
-      .toEqual({ usage: null, quota: null, windowHours: null });
+    expect(await fetchPublishingLimit({ igUserId: "123", accessToken: "tok" })).toEqual({
+      usage: null,
+      quota: null,
+      windowHours: null,
+    });
   });
 
   it("rides out a single transient 500 and returns the quota", async () => {

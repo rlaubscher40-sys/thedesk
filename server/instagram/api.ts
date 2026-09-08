@@ -1,3 +1,4 @@
+import { validMetricCount } from "../../shared/instagramMeasurement";
 /**
  * Instagram Graph API client.
  *
@@ -323,7 +324,11 @@ export type MediaMetrics = {
   totalInteractions: number | null;
 };
 
-async function igGet<T>(endpoint: string, params: Record<string, string>, signal?: AbortSignal): Promise<T> {
+async function igGet<T>(
+  endpoint: string,
+  params: Record<string, string>,
+  signal?: AbortSignal
+): Promise<T> {
   const qs = new URLSearchParams(params);
   const res = await fetch(`${BASE}${endpoint}?${qs}`, signal ? { signal } : undefined);
   if (!res.ok) {
@@ -357,10 +362,11 @@ export async function fetchMediaMetrics(opts: {
   try {
     const fields = await igGet<{ like_count?: number; comments_count?: number }>(
       `/${opts.mediaId}`,
-      { fields: "like_count,comments_count", access_token: opts.accessToken }
+      { fields: "like_count,comments_count", access_token: opts.accessToken },
+      AbortSignal.timeout(5000)
     );
-    metrics.likes = fields.like_count ?? null;
-    metrics.comments = fields.comments_count ?? null;
+    metrics.likes = validMetricCount(fields.like_count) ? fields.like_count : null;
+    metrics.comments = validMetricCount(fields.comments_count) ? fields.comments_count : null;
   } catch (err) {
     console.warn(`[instagram] media fields failed for ${opts.mediaId}:`, (err as Error).message);
   }
@@ -369,12 +375,17 @@ export async function fetchMediaMetrics(opts: {
   try {
     const insights = await igGet<{
       data?: Array<{ name: string; values?: Array<{ value: number }> }>;
-    }>(`/${opts.mediaId}/insights`, {
-      metric: "reach,saved,shares,total_interactions",
-      access_token: opts.accessToken,
-    });
+    }>(
+      `/${opts.mediaId}/insights`,
+      {
+        metric: "reach,saved,shares,total_interactions",
+        access_token: opts.accessToken,
+      },
+      AbortSignal.timeout(5000)
+    );
     for (const row of insights.data ?? []) {
-      const value = row.values?.[0]?.value ?? null;
+      const raw = row.values?.[0]?.value;
+      const value = validMetricCount(raw) ? raw : null;
       if (row.name === "reach") metrics.reach = value;
       else if (row.name === "saved") metrics.saved = value;
       else if (row.name === "shares") metrics.shares = value;
@@ -414,10 +425,14 @@ export async function fetchPublishingLimit(opts: {
           quota_usage?: number;
           config?: { quota_total?: number; quota_duration?: number };
         }>;
-      }>(`/${opts.igUserId}/content_publishing_limit`, {
-        fields: "quota_usage,config",
-        access_token: opts.accessToken,
-      }, AbortSignal.timeout(10_000)),
+      }>(
+        `/${opts.igUserId}/content_publishing_limit`,
+        {
+          fields: "quota_usage,config",
+          access_token: opts.accessToken,
+        },
+        AbortSignal.timeout(10_000)
+      ),
     { attempts: 2, transientDelayMs: 1500, delayMs: 1500 }
   );
   const row = Array.isArray(data?.data) && data.data.length === 1 ? data.data[0] : undefined;
@@ -427,8 +442,10 @@ export async function fetchPublishingLimit(opts: {
   return {
     usage: typeof usage === "number" && Number.isSafeInteger(usage) && usage >= 0 ? usage : null,
     quota: typeof quota === "number" && Number.isSafeInteger(quota) && quota > 0 ? quota : null,
-    windowHours: typeof duration === "number" && Number.isFinite(duration) && duration > 0
-      ? duration / 3600 : null,
+    windowHours:
+      typeof duration === "number" && Number.isFinite(duration) && duration > 0
+        ? duration / 3600
+        : null,
   };
 }
 
