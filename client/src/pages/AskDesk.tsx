@@ -87,6 +87,7 @@ export default function AskDeskPage() {
   }
 
   function ask(value: string) {
+    if (mutation.isPending) return;
     setQuestion(value);
     setCopied(false);
     rememberQuestion(value);
@@ -96,6 +97,17 @@ export default function AskDeskPage() {
   }
 
   const result = mutation.data;
+  const submittedQuestion = mutation.variables?.question ?? question.trim();
+  const isQuotaError = mutation.error?.data?.code === "TOO_MANY_REQUESTS";
+  const isTimeout = mutation.error?.data?.code === "TIMEOUT" ||
+    mutation.error?.message.includes("This request took too long");
+
+  function editQuestion(value: string) {
+    mutation.reset();
+    setQuestion(value);
+    inputRef.current?.focus();
+    inputRef.current?.scrollIntoView({ block: "center" });
+  }
 
   async function copyBrief() {
     if (!result || result.status !== "answered") return;
@@ -257,7 +269,7 @@ export default function AskDeskPage() {
         </div>
       )}
 
-      {!result && !mutation.isPending && (
+      {mutation.isIdle && (
         <div className="grid lg:grid-cols-[minmax(0,1fr)_1px_320px] mt-7">
           <section className="lg:pr-14">
             <p className="bs-label">Try asking</p>
@@ -312,15 +324,28 @@ export default function AskDeskPage() {
       {mutation.isPending && <ThinkingState question={mutation.variables?.question ?? question.trim()} />}
 
       {mutation.isError && (
-        <div className="rule-major mt-10 pt-6 max-w-3xl">
-          <p className="bs-label-accent">Intelligence request failed</p>
-          <h2 className="font-serif text-3xl mt-2">The Desk could not finish that answer.</h2>
-          <p className="mt-3 text-[var(--color-fg-body)]">{mutation.error.message}</p>
+        <div className="rule-major mt-10 pt-6 max-w-3xl" role="alert">
+          <p className="bs-label-accent">{isQuotaError ? "Ask allowance" : "Your question is saved below"}</p>
+          <h2 className="font-serif text-3xl mt-2">
+            {isQuotaError ? "You've reached an Ask limit." : isTimeout ? "That answer took too long." : "Something went wrong."}
+          </h2>
+          <p className="mt-3 text-[var(--color-fg-body)]">
+            {isQuotaError ? mutation.error.message : "We couldn't complete this request. Try again, edit your question, or explore the archive."}
+          </p>
+          <p className="font-serif text-xl mt-4">{submittedQuestion}</p>
           <div className="flex flex-wrap gap-2 mt-5">
-            <button type="button" onClick={() => mutation.reset()} className="bs-btn bs-btn-outline">
-              Try another question
+            {!isQuotaError && (
+              <button type="button" onClick={() => ask(submittedQuestion)} className="bs-btn bs-btn-solid">
+                Try again
+              </button>
+            )}
+            <button type="button" onClick={() => editQuestion(submittedQuestion)} className="bs-btn bs-btn-outline">
+              Edit question
             </button>
-            {!isAuthenticated && (
+            <Link href={`/archive?q=${encodeURIComponent(submittedQuestion)}`} className="bs-btn bs-btn-outline">
+              Search the archive
+            </Link>
+            {isQuotaError && !isAuthenticated && (
               <a href={getLoginUrl()} className="bs-btn bs-btn-solid">
                 Sign in
               </a>
@@ -330,20 +355,40 @@ export default function AskDeskPage() {
       )}
 
       {result?.status === "insufficient" && (
-        <div className="rule-major mt-10 pt-6 max-w-3xl">
-          <p className="bs-label-accent">Evidence threshold not met</p>
+        <div className="rule-major mt-10 pt-6 max-w-3xl" role="status">
+          <p className="bs-label-accent">More evidence needed</p>
           <h2
             className="font-serif font-bold mt-2"
             style={{ fontSize: "clamp(31px, 4vw, 50px)", lineHeight: 1.02 }}
           >
-            Not enough signal yet.
+            We don't have enough verified information to answer this yet.
           </h2>
           <p className="font-serif mt-4 text-xl leading-8 text-[var(--color-fg-body)]">
             {result.message}
           </p>
-          <Link href="/archive" className="bs-btn bs-btn-outline inline-block mt-6">
-            Search the archive
-          </Link>
+          <p className="mt-4 text-sm leading-6 text-[var(--color-fg-muted)]">
+            Try naming a suburb, lender or policy and the time period you mean.
+            {!isAuthenticated && " This hasn't used a free question."}
+          </p>
+          <div className="flex flex-wrap gap-2 mt-6">
+            <button type="button" onClick={() => editQuestion(result.question)} className="bs-btn bs-btn-solid">
+              Refine question
+            </button>
+            <Link href={`/archive?q=${encodeURIComponent(result.question)}`} className="bs-btn bs-btn-outline">
+              Search the archive
+            </Link>
+          </div>
+          {result.sources.length > 0 && (
+            <div className="rule-hair mt-7 pt-4">
+              <p className="bs-label">Explore the records we found</p>
+              <p className="mt-2 text-sm text-[var(--color-fg-muted)]">These records did not provide enough evidence for a verified answer.</p>
+              {result.sources.map((source) => (
+                <Link key={source.ref} href={source.href} className="block font-serif text-xl bs-link rule-hair mt-3 pt-3">
+                  {source.title}
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

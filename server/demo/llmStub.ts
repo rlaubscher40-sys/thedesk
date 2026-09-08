@@ -47,6 +47,7 @@ const REEL_SCRIPT_JSON = JSON.stringify({
 });
 
 const ASK_DESK_JSON = JSON.stringify({
+  status: "answered",
   headline: "Credit capacity is doing more of the work than sentiment.",
   answer:
     "The archive points to borrowing capacity and lender competition as the more useful near-term signal. The rate headline matters, but the transmission into approvals, refinancing and investor activity is where the practical change shows up.",
