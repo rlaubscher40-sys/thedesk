@@ -81,6 +81,12 @@ async function sendProductShell(
 
 const PRODUCT_META: ProductMeta[] = [
   {
+    path: "/subscribe",
+    title: "The free daily brief | The Desk",
+    description:
+      "Get The Desk's national Australian property, credit and economy briefing by email. Free to subscribe, with email confirmation and one-click unsubscribe.",
+  },
+  {
     path: "/",
     title: "The Desk: Australian property intelligence before it becomes consensus",
     description:

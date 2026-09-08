@@ -13,6 +13,8 @@ import { loopbackBaseUrl } from "../core/loopback";
 import { fetchPublishingLimit, isTransientServerError } from "../instagram/api";
 import { listInstagramPosts } from "../db/instagramPosts";
 import { adminProcedure, router } from "../core/trpc";
+import { LAUNCH_POST_IDS } from "../../shared/instagramLaunch";
+import { launchPostStatus, previewLaunchPost, publishLaunchPost } from "../instagram/launch";
 
 /** The ingest endpoint behind each re-runnable posting job. */
 const RERUN_PATHS = {
@@ -50,6 +52,21 @@ function describeFailure(status: number, body: string): string {
 }
 
 export const instagramRouter = router({
+  launchStatus: adminProcedure.query(() => launchPostStatus()),
+  launchPreview: adminProcedure
+    .input(z.object({ id: z.enum(LAUNCH_POST_IDS) }).strict())
+    .query(({ input }) => previewLaunchPost(input.id)),
+  launchPublish: adminProcedure
+    .input(
+      z
+        .object({
+          id: z.enum(LAUNCH_POST_IDS),
+          contentHash: z.string().regex(/^[a-f0-9]{64}$/),
+        })
+        .strict()
+    )
+    .mutation(({ input }) => publishLaunchPost(input.id, input.contentHash)),
+
   listAll: adminProcedure
     .input(z.object({ limit: z.number().int().min(1).max(100).default(30) }).optional())
     .query(async ({ input }) => {

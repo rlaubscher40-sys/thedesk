@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { InstagramLaunchPanel } from "./InstagramLaunchPanel";
 import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { toSydneyIsoDate } from "@/lib/date";
@@ -453,6 +454,8 @@ export function InstagramAdminPanel() {
       </div>
 
       <PublishingQuota />
+
+      <InstagramLaunchPanel />
 
       <RerunJobs posts={posts} ready={!isLoading} />
 

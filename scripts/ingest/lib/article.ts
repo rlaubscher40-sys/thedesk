@@ -17,6 +17,7 @@
  * the gradient placeholder for the image and to the RSS summary for context.
  */
 import { DEFAULT_SITE_URL } from "../../../shared/const";
+import { looksLikeGarbage, looksLikeSiteBoilerplate } from "../../../shared/headline";
 import { decodeEntities, stripHtml } from "./text";
 import { pickOgImage } from "./og";
 
@@ -53,7 +54,8 @@ export function extractArticleText(html: string, maxChars: number): string | nul
   while ((m = re.exec(container)) !== null) {
     const txt = decodeEntities(stripHtml(m[1] ?? "")).trim();
     // Drop scraps: share prompts, captions, bylines, single words.
-    if (txt.length >= 40) paras.push(txt);
+    if (txt.length >= 40 && !looksLikeSiteBoilerplate(txt) && !looksLikeGarbage(txt))
+      paras.push(txt);
   }
 
   let text = paras.join("\n\n").trim();
@@ -63,6 +65,7 @@ export function extractArticleText(html: string, maxChars: number): string | nul
   // scraps the paragraph pass just filtered out.
   if (paras.length === 0) {
     text = decodeEntities(stripHtml(container)).trim();
+    if (looksLikeSiteBoilerplate(text) || looksLikeGarbage(text)) return null;
   }
   if (!text) return null;
 
@@ -83,9 +86,11 @@ export async function fetchArticle(
   }: { timeoutMs?: number; maxBytes?: number; maxChars?: number } = {}
 ): Promise<FetchedArticle> {
   const empty: FetchedArticle = { imageUrl: null, text: null };
+  const controller = new AbortController();
+  // Keep the budget alive through the body, not just the response headers.
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
     const res = await fetch(url, {
       signal: controller.signal,
       redirect: "follow",
@@ -94,13 +99,17 @@ export async function fetchArticle(
         Accept: "text/html,application/xhtml+xml",
       },
     });
-    clearTimeout(timer);
     if (!res.ok) return empty;
+    const contentType = (res.headers.get("content-type") ?? "").split(";")[0]!.trim().toLowerCase();
+    if (!["text/html", "application/xhtml+xml"].includes(contentType)) {
+      await res.body?.cancel();
+      return empty;
+    }
 
     // Read up to maxBytes, the og tags sit in <head> (early) and most news
     // bodies fit comfortably inside 500KB. Unlike the image-only scrape we
     // can't stop at </head>, the body is what we're here for.
-    const reader = res.body?.getReader();
+    reader = res.body?.getReader();
     if (!reader) return empty;
     const decoder = new TextDecoder();
     let html = "";
@@ -108,14 +117,13 @@ export async function fetchArticle(
     while (received < maxBytes) {
       const { value, done } = await reader.read();
       if (done) break;
-      html += decoder.decode(value, { stream: true });
-      received += value.byteLength;
+      // A single incoming chunk can exceed the entire limit. Decode only the
+      // allowed prefix so the configured cap bounds retained HTML exactly.
+      const chunk = value.subarray(0, maxBytes - received);
+      html += decoder.decode(chunk, { stream: true });
+      received += chunk.byteLength;
     }
-    try {
-      await reader.cancel();
-    } catch {
-      /* ignore */
-    }
+    html += decoder.decode();
 
     return {
       imageUrl: pickOgImage(html),
@@ -123,5 +131,12 @@ export async function fetchArticle(
     };
   } catch {
     return empty;
+  } finally {
+    clearTimeout(timer);
+    try {
+      await reader?.cancel();
+    } catch {
+      /* an aborted stream is already closed */
+    }
   }
 }

@@ -28,6 +28,7 @@ import { publicMarket } from "../../shared/marketDirectory";
 const STATIC_ROUTES = new Set([
   "/",
   "/ask",
+  "/subscribe",
   "/brief",
   "/signals",
   "/markets",

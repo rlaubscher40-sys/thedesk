@@ -22,6 +22,7 @@ export function SubscribeBand({
   headline = "Five stories and three ready-made lines, in your inbox at 7am.",
   blurb = "Written each morning by Ruben Laubscher. No tracking pixels, one email a day, unsubscribe in a click.",
   showHeadshot = true,
+  hideAfterSignup = true,
 }: {
   /** Attribution source persisted with the subscriber row. */
   source: string;
@@ -29,6 +30,8 @@ export function SubscribeBand({
   headline?: string;
   blurb?: string;
   showHeadshot?: boolean;
+  /** Passive placements hide after a request; the explicit signup page stays usable. */
+  hideAfterSignup?: boolean;
 }) {
   // Read once on mount so the band doesn't disappear from under the reader
   // the instant they submit — the confirmation state handles that.
@@ -39,7 +42,7 @@ export function SubscribeBand({
     onSubscribed: () => setDone(true),
   });
 
-  if (alreadySubscribed) return null;
+  if (alreadySubscribed && hideAfterSignup) return null;
 
   return (
     <section
@@ -74,7 +77,7 @@ export function SubscribeBand({
 
       <div className="min-w-0">
         {done ? (
-          <p style={{ fontSize: 16.5, lineHeight: 1.6 }}>
+          <p role="status" style={{ fontSize: 16.5, lineHeight: 1.6 }}>
             Check your inbox — confirm the email to lock in your subscription.
           </p>
         ) : (

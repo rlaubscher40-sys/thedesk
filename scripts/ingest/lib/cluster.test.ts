@@ -3,7 +3,16 @@ import { clusterByTitle, titleTokens, type Cluster } from "./cluster";
 import type { FetchedItem } from "./rss";
 
 function item(source: string, title: string): FetchedItem {
-  return { source, category: "MARKETS", channel: "AU", title, summary: title, url: `https://x/${source}/${title}`, imageUrl: null, isoDate: null };
+  return {
+    source,
+    category: "MARKETS",
+    channel: "AU",
+    title,
+    summary: title,
+    url: `https://x/${source}/${title}`,
+    imageUrl: null,
+    isoDate: null,
+  };
 }
 
 function byTitle(clusters: Cluster[], title: string): Cluster | undefined {
@@ -23,6 +32,16 @@ describe("titleTokens", () => {
 });
 
 describe("clusterByTitle", () => {
+  it("does not count an unknown Google publisher or name variants as corroboration", () => {
+    const title = "RBA holds cash rate at 4.35 percent for third straight meeting";
+    const cluster = clusterByTitle([
+      item("ABC", title),
+      item("abc", title),
+      item("Google News", title),
+    ])[0]!;
+    expect(cluster.corroborationCount).toBe(1);
+    expect(cluster.corroboratingSources).toHaveLength(1);
+  });
   it("merges near-verbatim coverage from different outlets and counts sources", () => {
     // Wire copy (e.g. AAP) republished across outlets is the common
     // duplicate, near-identical headlines, which is what we reliably merge.
