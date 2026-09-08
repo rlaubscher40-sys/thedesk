@@ -12,6 +12,12 @@
  * Instagram's API needs to fetch them, then immediately clean up.
  */
 import { env } from "../core/env";
+import { sourceAttributedEdition } from "./socialProvenance";
+import {
+  recoverSocialPublication,
+  unpublishedSocialStories,
+  publishSocialOnce,
+} from "./socialPublication";
 import type { DailyFeedItem, Edition } from "../db/schema";
 import { getLatestEditionAsset } from "../db/editionAssets";
 import { recordServerError } from "../db/health";
@@ -284,11 +290,19 @@ export async function loadEditionHeroDataUri(editionId: number): Promise<string 
 
 export function buildWeeklyCaption(edition: Edition): string {
   const topics = pickPropertyTopics(edition.topics);
-  return [
+  const caption = [
     topics[0]?.title ?? "This week's property briefing.",
     "",
     `Property stories from Edition #${edition.editionNumber} · ${edition.weekRange ?? edition.weekOf}`,
-    ...topics.slice(1).map((topic) => `- ${sanitizeDashes(topic.title)}`),
+    ...topics.flatMap((topic, i) => [
+      ...(i ? [`- ${sanitizeDashes(topic.title)}`] : []),
+      ...(topic.socialSource
+        ? [
+            `Source: ${topic.socialSource.publisher} · Feed date: ${topic.socialSource.feedDate}`,
+            topic.socialSource.url,
+          ]
+        : []),
+    ]),
     "",
     ...(topics[0] ? [propertyReadingQuestion(topics[0]), ""] : []),
     "Save this to check the evidence before your next property decision.",
@@ -297,6 +311,9 @@ export function buildWeeklyCaption(edition: Edition): string {
     "",
     `${CORE_HASHTAGS} #WeeklyBriefing`,
   ].join("\n");
+  if (caption.length > 2200)
+    throw new Error("Source-attributed weekly caption exceeds Instagram limit");
+  return caption;
 }
 
 /** Daily carousel: at most three relevant source stories; quiet days stay thin. */
@@ -431,8 +448,9 @@ export async function postDailyCarousel(
      */
     mode?: "daily" | "coverage";
   } = {}
-): Promise<{ postId: string; headline: string }> {
+): Promise<{ postId: string; headline: string; coverVariant?: CardVariant }> {
   const isCoverage = opts.mode === "coverage";
+  const scope = `daily:${stories[0]?.feedDate ?? "missing"}`;
   const { instagramAccessToken: accessToken, instagramBusinessAccountId: igUserId } = env;
   if (!accessToken || !igUserId) {
     throw new Error("INSTAGRAM_ACCESS_TOKEN and INSTAGRAM_BUSINESS_ACCOUNT_ID must be set");
@@ -450,7 +468,12 @@ export async function postDailyCarousel(
 
   // Select only relevant stories, without asking a model to invent an angle.
   const selectStories = isCoverage ? pickCoverageTopStories : pickDailyTopStories;
-  const pool = selectStories(stories, DAILY_CANDIDATE_POOL);
+  if (!isCoverage) {
+    const recovered = await recoverSocialPublication(scope);
+    if (recovered) return recovered;
+  }
+  const candidates = selectStories(stories, DAILY_CANDIDATE_POOL);
+  const pool = isCoverage ? candidates : await unpublishedSocialStories(candidates);
 
   if (pool.length === 0) throw new Error("No stories available for Instagram post");
 
@@ -556,11 +579,15 @@ export async function postDailyCarousel(
     // ("media not ready"), so wait for readiness first — a multi-image carousel
     // can take longer to process than a single image.
     await waitForContainerReady({ containerId: carouselId, accessToken, timeoutMs: 90000 });
-    const postId = await publishCarouselConfirmed({
-      igUserId,
-      accessToken,
-      creationId: carouselId,
-    });
+    const postId = isCoverage
+      ? await publishCarouselConfirmed({ igUserId, accessToken, creationId: carouselId })
+      : await publishSocialOnce(
+          scope,
+          top,
+          sanitized[0]!.title,
+          () => publishContainer({ igUserId, accessToken, creationId: carouselId }),
+          opts.variant ?? "navy"
+        );
 
     console.log(`[instagram] daily carousel posted: ${postId}`);
 
@@ -576,7 +603,7 @@ export async function postDailyCarousel(
       accessToken,
     });
 
-    return { postId, headline: sanitized[0]!.title };
+    return { postId, headline: sanitized[0]!.title, coverVariant: opts.variant ?? "navy" };
   } finally {
     carouselUuids.forEach(removeTempImage);
   }
@@ -586,14 +613,35 @@ export async function postWeeklyEdition(
   edition: Edition,
   siteUrl: string,
   variant: CardVariant = "navy"
-): Promise<{ postId: string; headline: string }> {
+): Promise<{ postId: string; headline: string; coverVariant?: CardVariant }> {
   const { instagramAccessToken: accessToken, instagramBusinessAccountId: igUserId } = env;
   if (!accessToken || !igUserId) {
     throw new Error("INSTAGRAM_ACCESS_TOKEN and INSTAGRAM_BUSINESS_ACCOUNT_ID must be set");
   }
 
-  const rawTopics = pickPropertyTopics(edition.topics).map(sourceGroundedTopic);
-  if (rawTopics.length === 0) throw new Error("No property topics available for Instagram post");
+  const scope = `weekly:${edition.weekOf}`;
+  const recovered = await recoverSocialPublication(scope);
+  if (recovered) return recovered;
+  const attributed = await sourceAttributedEdition(edition);
+  const topicStories = attributed.topics.map(
+    (topic) =>
+      ({
+        id: topic.socialSource!.feedItemId,
+        title: topic.title,
+        sourceUrl: topic.socialSource!.url,
+        source: topic.socialSource!.publisher,
+        feedDate: topic.socialSource!.feedDate,
+        summary: topic.summary,
+        category: topic.category,
+      }) as DailyFeedItem
+  );
+  const fresh = await unpublishedSocialStories(topicStories);
+  const freshIds = new Set(fresh.map((story) => story.id));
+  const rawTopics = pickPropertyTopics(
+    attributed.topics.filter((topic) => freshIds.has(topic.socialSource!.feedItemId))
+  ).map(sourceGroundedTopic);
+  if (rawTopics.length === 0)
+    throw new Error("No fresh source-attributed property topics available for Instagram post");
   const sanitizedTopics = rawTopics.map((t) => ({
     ...t,
     title: sanitizeDashes(t.title),
@@ -616,7 +664,7 @@ export async function postWeeklyEdition(
 
   // The cover and the Story share the edition's own hero photo when one was
   // generated; null falls back to the bundled image inside the renderers.
-  const heroDataUri = await loadEditionHeroDataUri(edition.id);
+  const heroDataUri = null;
 
   try {
     // Slide 1: cover, tone set by the running checkerboard parity.
@@ -652,11 +700,14 @@ export async function postWeeklyEdition(
     // Wait until the carousel parent is FINISHED before publishing; otherwise
     // Instagram returns code 9007 ("media not ready"). See the daily path.
     await waitForContainerReady({ containerId: carouselId, accessToken, timeoutMs: 90000 });
-    const postId = await publishCarouselConfirmed({
-      igUserId,
-      accessToken,
-      creationId: carouselId,
-    });
+    const selectedIds = new Set(rawTopics.map((topic) => topic.socialSource!.feedItemId));
+    const postId = await publishSocialOnce(
+      scope,
+      fresh.filter((story) => selectedIds.has(story.id)),
+      editionAlt,
+      () => publishContainer({ igUserId, accessToken, creationId: carouselId }),
+      variant
+    );
 
     console.log(`[instagram] weekly edition ${edition.editionNumber} posted: ${postId}`);
 
@@ -690,7 +741,7 @@ export async function postWeeklyEdition(
         }).catch(() => {});
       }
 
-    return { postId, headline: editionAlt };
+    return { postId, headline: editionAlt, coverVariant: variant };
   } finally {
     uuids.forEach(removeTempImage);
   }

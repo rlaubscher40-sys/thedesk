@@ -123,6 +123,7 @@ Output a SINGLE JSON object matching this exact shape, and NOTHING ELSE:
 Rules for the revised output:
 - Keep the topic count and order identical to the input.
 - Keep the keyMetrics values unchanged (you're not re-extracting data).
+- Preserve each topic's sourceItemIds when editing or reordering it. Never invent references or socialSource metadata. A missing reference means the social post is held, not guessed.
 - Preserve all fields. If a topic had a body, return a body. If it had whatToWatch, return whatToWatch.
 - Edits should be conservative, fix what's broken, don't rewrite for taste.
 - whyItMatters is REQUIRED on every topic in the revised output, even if you had to write it from scratch.
@@ -167,6 +168,10 @@ export async function runEditorQc(input: SynthesisShape): Promise<EditorQcReport
     revised: {
       topics: r.topics.map((t) => ({
         ...t,
+        sourceItemIds: (t.sourceItemIds ?? []).filter((id) =>
+          input.topics.some((topic) => topic.sourceItemIds?.includes(id))
+        ),
+        socialSource: undefined,
         title: stripBannedChars(t.title),
         summary: stripBannedChars(t.summary),
         body: t.body ? stripBannedChars(t.body) : undefined,

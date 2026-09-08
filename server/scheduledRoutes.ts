@@ -1,4 +1,9 @@
-import { currentSocialFeed, currentSocialEdition, sourceGroundedStory, sourceGroundedTopic } from "./instagram/sourceContent";
+import {
+  currentSocialFeed,
+  currentSocialEdition,
+  sourceGroundedStory,
+  sourceGroundedTopic,
+} from "./instagram/sourceContent";
 import { pickPropertyTopics, propertyMetrics } from "./instagram/propertyEditorial";
 import { refreshOfficialMetrics } from "./metrics/recovery";
 /**
@@ -935,16 +940,30 @@ function registerExtractMetricsRoute(app: Express): void {
       res.status(400).json({ error: "Invalid payload", issues: parsed.error.flatten() });
       return;
     }
-    const managed = new Set(["auction_clearance", "dwelling_value", "consumer_confidence", "mortgage_arrears"]);
-    if (parsed.data.queries.some(query => !managed.has(query.metricKey))) {
+    const managed = new Set([
+      "auction_clearance",
+      "dwelling_value",
+      "consumer_confidence",
+      "mortgage_arrears",
+    ]);
+    if (parsed.data.queries.some((query) => !managed.has(query.metricKey))) {
       res.status(400).json({ error: "Only configured publisher metrics are supported" });
       return;
     }
     try {
       const report = await refreshOfficialMetrics();
-      const missing = parsed.data.queries.filter(query => report.unavailable.includes(query.metricKey) || report.failedWrites.includes(query.metricKey));
-      res.json({ success: missing.length === 0, extracted: parsed.data.queries.length - missing.length,
-        skipped: missing.length, unavailable: missing.map(query => query.metricKey), sourceErrors: report.sourceErrors });
+      const missing = parsed.data.queries.filter(
+        (query) =>
+          report.unavailable.includes(query.metricKey) ||
+          report.failedWrites.includes(query.metricKey)
+      );
+      res.json({
+        success: missing.length === 0,
+        extracted: parsed.data.queries.length - missing.length,
+        skipped: missing.length,
+        unavailable: missing.map((query) => query.metricKey),
+        sourceErrors: report.sourceErrors,
+      });
     } catch (error) {
       res.status(500).json({ success: false, error: (error as Error).message });
     }
@@ -1281,10 +1300,15 @@ function registerInstagramRoutes(app: Express): void {
       res.status(503).json({ error: "Instagram credentials not configured" });
       return;
     }
-    const parsed = z.object({
-      feedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-      attempt: z.number().int().min(1).optional(),
-    }).safeParse(req.body ?? {});
+    const parsed = z
+      .object({
+        feedDate: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional(),
+        attempt: z.number().int().min(1).optional(),
+      })
+      .safeParse(req.body ?? {});
     if (!parsed.success) {
       res.status(400).json({ error: "Invalid Instagram publication request" });
       return;
@@ -1294,7 +1318,10 @@ function registerInstagramRoutes(app: Express): void {
     const feedDate = current.date;
     const items = current.items.filter((it) => isEnrichedChannel(it.channel));
     if (items.length === 0) {
-      res.status(422).json({ error: "No current Sydney-date feed items; archive publication is disabled", feedDate });
+      res.status(422).json({
+        error: "No current Sydney-date feed items; archive publication is disabled",
+        feedDate,
+      });
       return;
     }
     // Post synchronously and return the real outcome. This used to run in
@@ -1305,38 +1332,15 @@ function registerInstagramRoutes(app: Express): void {
     // a missing post is actually noticed. The job's 10-minute timeout is
     // ample headroom for image render + Graph API publish.
     try {
-      const { findAlreadyPublished, pickDailyTopStories, postDailyCarousel } =
-        await import("./instagram/post");
+      const { pickDailyTopStories, postDailyCarousel } = await import("./instagram/post");
 
       // Checkerboard the profile grid (slide 1 is the grid thumbnail) and
       // surface the morning's market metrics on the cover's lower third. The
       // tone flips from whatever the last grid post used.
       const variant = await nextCoverVariant();
 
-      // A retry only re-posts if the previous attempt truly published nothing.
-      // When it did publish and then failed to report it, repair the record and
-      // call the run the success it was, rather than duplicating the carousel.
-      // The variant above is the one that attempt used: it flips from the last
-      // RECORDED post, and a publish it never got to record didn't move that.
-      const alreadyPublished = await findAlreadyPublished(attempt);
-      if (alreadyPublished) {
-        const recoveredHeadline = pickDailyTopStories(items, 1)[0]?.title ?? "Daily briefing";
-        await db.recordInstagramPost({
-          mediaId: alreadyPublished,
-          postType: "daily",
-          feedDate: feedDate ?? null,
-          headline: recoveredHeadline,
-          coverVariant: variant,
-        });
-        console.log(`[instagram] daily post recovered from a prior attempt: ${alreadyPublished}`);
-        res.json({
-          success: true,
-          postId: alreadyPublished,
-          headline: recoveredHeadline,
-          recovered: true,
-        });
-        return;
-      }
+      // The publisher owns exact-slot recovery and durable story reservations.
+      // It returns the original colour when recovering a confirmed receipt.
       if (pickDailyTopStories(items, 1).length === 0) {
         res.json({
           success: true,
@@ -1360,7 +1364,7 @@ function registerInstagramRoutes(app: Express): void {
           .catch(() => {});
       }
 
-      const { postId, headline } = await postDailyCarousel(items, siteOrigin(), {
+      const { postId, headline, coverVariant } = await postDailyCarousel(items, siteOrigin(), {
         variant,
         metrics,
       });
@@ -1370,7 +1374,7 @@ function registerInstagramRoutes(app: Express): void {
         postType: "daily",
         feedDate: feedDate ?? null,
         headline,
-        coverVariant: variant,
+        coverVariant: coverVariant ?? variant,
       });
       res.json({ success: true, postId, headline });
     } catch (err) {
@@ -1434,7 +1438,7 @@ function registerInstagramRoutes(app: Express): void {
       // Flip from the morning's daily cover so the two alternate.
       const variant = await nextCoverVariant();
 
-      // Same retry guard as the daily post — see the comment there.
+      // Exact-slot recovery lives in the publisher, never a recent-media guess.
       const alreadyPublished = await findAlreadyPublished(attempt);
       if (alreadyPublished) {
         const recoveredHeadline = pickDailyTopStories(items, 1)[0]?.title ?? "The Wider Lens";
@@ -1871,41 +1875,25 @@ function registerInstagramRoutes(app: Express): void {
     // must mean the edition actually posted, not just that the request was
     // accepted.
     try {
-      const { findAlreadyPublished, postWeeklyEdition } = await import("./instagram/post");
+      const { postWeeklyEdition } = await import("./instagram/post");
       // The weekly now flips from the last grid post too, so it slots into the
       // checkerboard instead of always being navy and clashing.
       const variant = await nextCoverVariant();
 
       // Same retry guard as the daily post — see the comment there.
-      const alreadyPublished = await findAlreadyPublished(attempt);
-      if (alreadyPublished) {
-        const recoveredHeadline = `Weekly Edition #${latest.editionNumber}`;
-        await db.recordInstagramPost({
-          mediaId: alreadyPublished,
-          postType: "weekly",
-          editionNumber: latest.editionNumber,
-          headline: recoveredHeadline,
-          coverVariant: variant,
-        });
-        console.log(`[instagram] weekly post recovered from a prior attempt: ${alreadyPublished}`);
-        res.json({
-          success: true,
-          editionNumber: latest.editionNumber,
-          postId: alreadyPublished,
-          headline: recoveredHeadline,
-          recovered: true,
-        });
-        return;
-      }
 
-      const { postId, headline } = await postWeeklyEdition(latest, siteOrigin(), variant);
+      const { postId, headline, coverVariant } = await postWeeklyEdition(
+        latest,
+        siteOrigin(),
+        variant
+      );
       console.log(`[instagram] weekly post complete: ${postId}`);
       await db.recordInstagramPost({
         mediaId: postId,
         postType: "weekly",
         editionNumber: latest.editionNumber,
         headline,
-        coverVariant: variant,
+        coverVariant: coverVariant ?? variant,
       });
       res.json({ success: true, editionNumber: latest.editionNumber, postId, headline });
     } catch (err) {
@@ -1955,12 +1943,15 @@ function registerInstagramRoutes(app: Express): void {
         const wanted =
           typeof req.query.editionNumber === "string" ? Number(req.query.editionNumber) : null;
         const rawEdition = wanted ? editions.find((e) => e.editionNumber === wanted) : editions[0];
-        const edition = rawEdition ? { ...rawEdition, rubensTake: null, topics: pickPropertyTopics(rawEdition.topics).map(sourceGroundedTopic) } : null;
-        if (!edition) {
-          res.status(422).json({ error: "No matching edition" });
+        const { sourceAttributedEdition } = await import("./instagram/socialProvenance");
+        const edition = rawEdition ? await sourceAttributedEdition(rawEdition) : null;
+        if (!edition || !edition.topics.length) {
+          res
+            .status(422)
+            .json({ error: "No matching edition with source-attributed property topics" });
           return;
         }
-        const hero = await loadEditionHeroDataUri(edition.id);
+        const hero = null;
         if (kind === "weekly-cover") buf = await cards.renderWeeklyCoverCard(edition, hero);
         else if (kind === "weekly-story")
           buf = await cards.renderWeeklyStoryVertical(edition, hero);
@@ -1978,13 +1969,15 @@ function registerInstagramRoutes(app: Express): void {
           req.query.variant === "light" ? "light" : req.query.variant === "navy" ? "navy" : "light";
         const stories = pickDailyTopStories(
           (await db.listFeedItems(date)).filter((it) => isEnrichedChannel(it.channel))
-        ).map(sourceGroundedStory).map((s) => ({
-          ...s,
-          title: sanitizeDashes(s.title),
-          whyItMatters: s.whyItMatters ? sanitizeDashes(s.whyItMatters) : s.whyItMatters,
-          source: s.source ? sanitizeDashes(s.source) : s.source,
-          category: s.category ? sanitizeDashes(s.category) : s.category,
-        }));
+        )
+          .map(sourceGroundedStory)
+          .map((s) => ({
+            ...s,
+            title: sanitizeDashes(s.title),
+            whyItMatters: s.whyItMatters ? sanitizeDashes(s.whyItMatters) : s.whyItMatters,
+            source: s.source ? sanitizeDashes(s.source) : s.source,
+            category: s.category ? sanitizeDashes(s.category) : s.category,
+          }));
         if (stories.length === 0) {
           res.status(422).json({ error: "No feed items for that date" });
           return;
@@ -2120,7 +2113,9 @@ function registerInstagramRoutes(app: Express): void {
           await db.updateInstagramPostMetrics(post.mediaId, metrics);
           attempted++;
         }
-        console.log(`[instagram] insights collection attempted for ${attempted}/${posts.length} posts`);
+        console.log(
+          `[instagram] insights collection attempted for ${attempted}/${posts.length} posts`
+        );
       } catch (err) {
         console.error("[instagram] insights refresh failed:", (err as Error).message);
       }
@@ -2147,4 +2142,3 @@ export function registerScheduledRoutes(app: Express): void {
 
 // Re-export schemas so tests can import the shape from this module's surface.
 export { dailyFeedIngestBodySchema, weeklyEditionIngestSchema, z };
-

@@ -6,6 +6,11 @@ vi.mock("../core/env", () => ({
   env: { instagramAccessToken: "fixture", instagramBusinessAccountId: "fixture" },
 }));
 vi.mock("../prompts/instagramHeadline", () => ({ generateInstagramHeadline: m.rewrite }));
+vi.mock("./socialPublication", () => ({
+  recoverSocialPublication: async () => null,
+  unpublishedSocialStories: async (stories: unknown[]) => stories,
+  publishSocialOnce: vi.fn(),
+}));
 import { renderPropertyDailyCover } from "./dailyCover";
 import { postDailyCarousel } from "./post";
 const story = {
