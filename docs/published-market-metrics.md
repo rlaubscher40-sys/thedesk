@@ -25,6 +25,24 @@ No collector substitutes today's date for an unknown reporting period.
 
 Method: https://help.realestate.com.au/hc/en-us/articles/115002044526-How-to-calculate-clearance-rates
 
+### Publisher rate limits
+
+Auction requests are sequential, with a one-second gap. Concurrent callers in
+the server share one attempt. A 429 ends that publisher's batch immediately;
+Admin refresh and scheduler calls honour Retry-After and an increasing pause
+(at least one hour). Complete successful collections are reused for six hours
+with their original reporting dates. Partial results are saved once and are
+not re-saved during cooldown. These controls are process-local: deployments
+and independent CLI processes start new lifecycles.
+
+The production server returned 429 for every state after the first deployment.
+Backoff controls request volume; it does not prove the publisher will grant
+server access. Auction coverage remains unavailable until a permitted request
+succeeds. Do not rotate IPs, move scraping to another runner, change identity
+or use proxies to evade a publisher refusal. An approved data feed is needed
+if the restriction persists. Domain's documented weekly auction API is city
+based, so it cannot silently replace statewide results or an all-state total.
+
 ## Monthly and bank releases
 
 - `consumer_confidence`: Westpac–Melbourne Institute headline sentiment index,

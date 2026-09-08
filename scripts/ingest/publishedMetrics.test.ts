@@ -5,7 +5,7 @@ import {
 } from "../../shared/auctionClearance";
 import {
   parseAuctionResults,
-  fetchAuctionMetrics,
+  createAuctionCollector,
 } from "./lib/auctionClearance";
 import {
   parseSentiment,
@@ -99,7 +99,7 @@ describe("state and national auctions", () => {
           new Response(auction(url.pathname.split("/").pop()!.toUpperCase())),
       ),
     );
-    const rows = await fetchAuctionMetrics();
+    const rows = await createAuctionCollector({ delay: async () => {} })();
     expect(rows).toHaveLength(9);
     expect(
       rows.find((row) => row.metricKey === "auction_clearance")?.value,
@@ -121,7 +121,7 @@ describe("state and national auctions", () => {
       ),
     );
     const error = vi.fn();
-    const rows = await fetchAuctionMetrics(error);
+    const rows = await createAuctionCollector({ delay: async () => {} })(error);
     expect(rows).toHaveLength(7);
     expect(rows.some((row) => row.metricKey === "auction_clearance")).toBe(
       false,
