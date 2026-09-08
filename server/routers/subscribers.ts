@@ -3,11 +3,11 @@
  *
  * Public:
  *   · subscribe  , captures email + optional name + source. Generates a
- *                   confirm token (double opt-in pattern). In production a
- *                   confirmation email would be sent; the demo just stores
- *                   the row with the token visible.
+ *                   confirm token (double opt-in pattern) and waits for the
+ *                   email provider to accept it. Local demos can expose the
+ *                   token without provider credentials.
  *   · confirm    , exchanges the token for a confirmedAt timestamp.
- *   · unsubscribe, flips unsubscribedAt; safe to call multiple times.
+ *   · unsubscribe, uses the signed link in the email, outside this router.
  *   · count      , confirmed-and-not-unsubscribed total. Used by the
  *                   sidebar/CTA to flex "Join 1,247 readers" once we
  *                   have enough subscribers to be worth flexing.
@@ -37,6 +37,20 @@ function todayAEST(): string {
 function siteOrigin(): string {
   const v = process.env.SITE_URL ?? process.env.VITE_SITE_URL ?? DEFAULT_SITE_URL;
   return v.replace(/\/+$/, "");
+}
+
+async function requireEmailAccepted(sendEmail: () => ReturnType<typeof sendConfirmEmail>): Promise<void> {
+  try {
+    const result = await sendEmail();
+    if (result.delivered) return;
+    if (result.reason === "no-key" && (isDemoMode() || process.env.NODE_ENV !== "production")) return;
+  } catch {
+    // Keep provider details and subscriber status out of public responses.
+  }
+  throw new TRPCError({
+    code: "INTERNAL_SERVER_ERROR",
+    message: "We couldn't send your email. Please try again in a minute.",
+  });
 }
 
 const emailSchema = z
@@ -87,10 +101,10 @@ export const subscribersRouter = router({
         // let anyone probe whether an address is on the list. The real
         // answer goes to the inbox owner, not the caller.
         const origin = siteOrigin();
-        void sendAlreadyConfirmedEmail({
+        await requireEmailAccepted(() => sendAlreadyConfirmedEmail({
           to: input.email,
           editionsUrl: `${origin}/editions`,
-        }).catch((err) => console.warn(`[subscribers] already-confirmed nudge failed:`, err));
+        }));
         return {
           status: "pending-confirm" as const,
           confirmToken: null,
@@ -98,7 +112,7 @@ export const subscribersRouter = router({
       }
 
       const token = randomUUID().replace(/-/g, "");
-      await db.createSubscriber({
+      const subscriber = await db.createSubscriber({
         email: input.email,
         name: input.name ?? null,
         confirmToken: token,
@@ -110,18 +124,20 @@ export const subscribersRouter = router({
         arrivalCampaign: input.arrivalCampaign || null,
       });
 
-      // Fire-and-forget confirm email. mailer.send is a no-op when
-      // RESEND_API_KEY is unset (dev / demo), so this path stays
-      // functional without provider credentials. Failures don't block
-      // the API response, the row is already persisted and an admin
-      // can resend manually if delivery is needed.
+      if (!subscriber?.confirmToken) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "We couldn't send your email. Please try again in a minute.",
+        });
+      }
+
+      // Only show "check your inbox" after the provider accepts the email.
+      // A failure leaves the pending row recoverable by submitting again.
       // The confirm page is mounted at /confirm-subscription in
       // App.tsx; the email's CTA links here. Don't change the path
       // without also updating the React route, or the link 404s.
-      const confirmUrl = `${siteOrigin()}/confirm-subscription?token=${token}`;
-      void sendConfirmEmail({ to: input.email, confirmUrl }).catch((err) =>
-        console.warn(`[subscribers] confirm email send failed:`, err)
-      );
+      const confirmUrl = `${siteOrigin()}/confirm-subscription?token=${subscriber.confirmToken}`;
+      await requireEmailAccepted(() => sendConfirmEmail({ to: input.email, confirmUrl }));
 
       return {
         status: "pending-confirm" as const,
@@ -130,7 +146,7 @@ export const subscribersRouter = router({
         // production it must never leave the server: handing it to the
         // caller would let anyone subscribe AND confirm someone else's
         // address without ever seeing their inbox, defeating double opt-in.
-        confirmToken: isDemoMode() || process.env.NODE_ENV !== "production" ? token : null,
+        confirmToken: isDemoMode() || process.env.NODE_ENV !== "production" ? subscriber.confirmToken : null,
       };
     }),
 
@@ -205,9 +221,13 @@ export const subscribersRouter = router({
         siteUrl: origin,
         unsubscribeUrl: editionUnsubscribeUrl(sub.email, origin),
       });
-      if (result.delivered) {
-        await db.markDailyBriefSent([sub.id], today);
+      if (!result.delivered) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "The email provider did not accept the brief. Please try again later.",
+        });
       }
-      return { delivered: result.delivered };
+      await db.markDailyBriefSent([sub.id], today);
+      return { delivered: true };
     }),
 });

@@ -11,6 +11,7 @@
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { COOKIE_NAME, isEnrichedChannel } from "../shared/const";
+import { isWeekdayBriefDate } from "../shared/briefSchedule";
 import { defaultFeedPriority } from "../shared/feedPriority";
 import { bestMatch, titleTokens } from "../shared/textSimilarity";
 import { parse as parseCookieHeader } from "cookie";
@@ -761,6 +762,7 @@ function registerSynthesizeEditionRoute(app: Express): void {
 // ─── Subscriber notification ─────────────────────────────────────────────────
 
 async function notifyDailyBriefSubscribers(feedDate: string): Promise<void> {
+  if (!isWeekdayBriefDate(feedDate)) return;
   try {
     // Partner-facing output: the brief covers the enriched lanes (AU +
     // Property) only. Coverage lanes (Business / Tech / Global) surface on the
