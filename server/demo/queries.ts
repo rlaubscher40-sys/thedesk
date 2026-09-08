@@ -567,7 +567,14 @@ export function findSubscriberByToken(token: string): Subscriber | undefined {
 
 export function createSubscriber(data: InsertSubscriber): Subscriber {
   const existing = findSubscriberByEmail(data.email);
-  if (existing) return existing;
+  if (existing) {
+    if ((!existing.confirmedAt || existing.unsubscribedAt) && data.confirmToken) {
+      existing.confirmToken = data.confirmToken;
+      existing.confirmTokenSentAt = new Date();
+      existing.confirmedAt = null;
+    }
+    return existing;
+  }
   const sub: Subscriber = {
     id: allocId(),
     email: data.email,
@@ -594,12 +601,17 @@ export function confirmSubscriber(token: string): Subscriber | undefined {
   row.confirmedAt = new Date();
   row.confirmToken = null;
   row.confirmTokenSentAt = null;
+  row.unsubscribedAt = null;
   return row;
 }
 
 export function unsubscribeByEmail(email: string): void {
   const row = findSubscriberByEmail(email);
-  if (row) row.unsubscribedAt = new Date();
+  if (row) {
+    row.unsubscribedAt = new Date();
+    row.confirmToken = null;
+    row.confirmTokenSentAt = null;
+  }
 }
 
 export function listSubscribers(): Subscriber[] {

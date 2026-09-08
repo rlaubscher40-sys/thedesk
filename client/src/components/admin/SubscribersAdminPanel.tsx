@@ -86,12 +86,11 @@ function ArrivalSources({ subs }: { subs: SubscriberRow[] }) {
 
 export function SubscribersAdminPanel() {
   const listQuery = trpc.subscribers.list.useQuery();
-  const countQuery = trpc.subscribers.count.useQuery();
   const resendMutation = trpc.subscribers.resendDailyBrief.useMutation();
   const [resendState, setResendState] = useState<Record<number, "sending" | "done" | "error">>({});
 
   const subs = listQuery.data ?? [];
-  const total = countQuery.data?.count ?? 0;
+  const total = subs.length;
   const confirmed = subs.filter((s) => s.confirmedAt && !s.unsubscribedAt).length;
   const pending = subs.filter((s) => !s.confirmedAt && !s.unsubscribedAt).length;
   const unsubscribed = subs.filter((s) => s.unsubscribedAt).length;
@@ -162,7 +161,7 @@ export function SubscribersAdminPanel() {
                       <button
                         title={
                           state === "done"
-                            ? "Sent!"
+                            ? "Accepted by email provider"
                             : state === "error"
                               ? "Failed — try again"
                               : "Resend today's brief"
@@ -171,8 +170,8 @@ export function SubscribersAdminPanel() {
                         onClick={async () => {
                           setResendState((prev) => ({ ...prev, [s.id]: "sending" }));
                           try {
-                            await resendMutation.mutateAsync({ subscriberId: s.id });
-                            setResendState((prev) => ({ ...prev, [s.id]: "done" }));
+                            const result = await resendMutation.mutateAsync({ subscriberId: s.id });
+                            setResendState((prev) => ({ ...prev, [s.id]: result.delivered ? "done" : "error" }));
                           } catch {
                             setResendState((prev) => ({ ...prev, [s.id]: "error" }));
                           }

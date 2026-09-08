@@ -54,6 +54,8 @@ type SendInput = {
 };
 
 type SendResult =
+  // "delivered" is the legacy field name: true means provider acceptance,
+  // not proof of inbox placement or that the recipient opened the email.
   | { delivered: true; id: string }
   | { delivered: false; reason: "no-key" | "api-error"; detail?: string };
 
@@ -84,6 +86,7 @@ export async function send(input: SendInput): Promise<SendResult> {
   try {
     const res = await fetch(RESEND_ENDPOINT, {
       method: "POST",
+      signal: AbortSignal.timeout(10_000),
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
@@ -103,7 +106,10 @@ export async function send(input: SendInput): Promise<SendResult> {
       return { delivered: false, reason: "api-error", detail };
     }
     const body = (await res.json()) as { id?: string };
-    return { delivered: true, id: body.id ?? "" };
+    if (typeof body.id !== "string" || !body.id.trim()) {
+      return { delivered: false, reason: "api-error", detail: "Missing email receipt" };
+    }
+    return { delivered: true, id: body.id };
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err);
     console.warn(`[mailer] resend send failed: ${detail}`);
@@ -265,7 +271,7 @@ function footerRow(unsubscribeUrl?: string): string {
   return `${ruleSubRow()}
   <tr>
     <td class="em-bg" bgcolor="${L.bg}" style="padding:0 0 32px;background-color:${L.bg};">
-      <p class="em-s" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.18em;color:${L.subtle};text-transform:uppercase;margin:0 0 6px;">The Desk · Daily intelligence for property partnerships</p>
+      <p class="em-s" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.18em;color:${L.subtle};text-transform:uppercase;margin:0 0 6px;">The Desk · Australian property intelligence</p>
       <p class="em-s" style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:${L.subtle};margin:0 0 8px;">Curated by Ruben Laubscher. Australian English throughout.</p>
       <p style="font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;letter-spacing:0.12em;margin:0;">
         <a class="em-s" href="https://www.linkedin.com/in/ruben-laubscher/" style="color:${L.subtle};text-decoration:none;">LinkedIn</a>&nbsp;·&nbsp;<a class="em-s" href="https://www.instagram.com/thedesk.au/" style="color:${L.subtle};text-decoration:none;">Instagram</a>&nbsp;·&nbsp;<a class="em-s" href="https://rubenlaubscher.substack.com/" style="color:${L.subtle};text-decoration:none;">Substack</a>&nbsp;·&nbsp;<a class="em-a" href="https://thedesk.au/" style="color:${L.accent};text-decoration:none;">Subscribe to The Desk →</a>
@@ -319,7 +325,7 @@ export async function sendConfirmEmail({
     "",
     "If you didn't ask for this, ignore the message and nothing happens.",
     "",
-    "The Desk · Daily intelligence for property partnerships",
+    "The Desk · Australian property intelligence",
     "Curated by Ruben Laubscher.",
   ].join("\n");
   return send({
@@ -355,7 +361,7 @@ export async function sendAlreadyConfirmedEmail({
       <td class="em-bg" bgcolor="${L.bg}" style="padding:0 0 24px;background-color:${L.bg};">
         <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${L.accent};text-transform:uppercase;margin-bottom:12px;">Already confirmed</div>
         <h1 class="em-h" style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:30px;line-height:1.05;color:${L.heading};margin:0 0 14px;letter-spacing:-0.02em;">You're already on the list.</h1>
-        <p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.6;color:${L.muted};margin:0 0 24px;">This address is already confirmed and receiving The Desk. Your email client may have automatically clicked the original confirmation link — that's a safety feature some providers use, not an error on your end. You won't miss a thing.</p>
+        <p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.6;color:${L.muted};margin:0 0 24px;">Your subscription is confirmed. If you're missing a briefing, check your spam folder. You can read the latest edition on The Desk at any time.</p>
       </td>
     </tr>
     ${ctaRow(editionsUrl, "Browse editions →")}
@@ -367,13 +373,12 @@ export async function sendAlreadyConfirmedEmail({
     "",
     "You're already on the list.",
     "",
-    "This address is already confirmed and receiving The Desk. Your email",
-    "client may have automatically clicked the original confirmation link —",
-    "that's a safety feature some providers use, not an error on your end.",
+    "Your subscription is confirmed. If you're missing a briefing, check your spam folder.",
+    "You can read the latest edition on The Desk at any time.",
     "",
     `Browse editions: ${editionsUrl}`,
     "",
-    "The Desk · Daily intelligence for property partnerships",
+    "The Desk · Australian property intelligence",
     "Curated by Ruben Laubscher.",
   ].join("\n");
   return send({ to, subject: "You're already on the list · The Desk", html, text });
@@ -415,7 +420,7 @@ export async function sendEditionNotificationEmail({
     `Read it here: ${editionUrl}`,
     "",
     "—",
-    "The Desk · Daily intelligence for property partnerships",
+    "The Desk · Australian property intelligence",
     "Curated by Ruben Laubscher.",
     "",
     `Unsubscribe: ${unsubscribeUrl}`,
@@ -473,9 +478,10 @@ export async function sendDailyBriefEmail({
     ...storyLines,
     "",
     `Read the full brief: ${siteUrl}`,
+    `Compare Brisbane and Perth for free: ${comparisonEmailUrl(siteUrl)}`,
     "",
     "—",
-    "The Desk · Daily intelligence for property partnerships",
+    "The Desk · Australian property intelligence",
     "Curated by Ruben Laubscher.",
     "",
     `Unsubscribe: ${unsubscribeUrl}`,
@@ -544,7 +550,7 @@ export async function sendWeeklyRecapEmail({
     `Review this week's talking points: ${thisWeekUrl}`,
     "",
     "—",
-    "The Desk · Daily intelligence for property partnerships",
+    "The Desk · Australian property intelligence",
     "Curated by Ruben Laubscher.",
     "",
     `Unsubscribe: ${unsubscribeUrl}`,
@@ -590,7 +596,7 @@ export async function sendTalkingPointNudgeEmail({
     `Not yet → ${notYetUrl}`,
     "",
     "—",
-    "The Desk · Daily intelligence for property partnerships",
+    "The Desk · Australian property intelligence",
   ].join("\n");
   return send({
     to,
@@ -682,6 +688,10 @@ export async function sendAdminAlertEmail({
   return send({ to, subject, html, text });
 }
 
+function comparisonEmailUrl(siteUrl: string): string {
+  return `${siteUrl.replace(/\/+$/, "")}/markets/compare/brisbane-vs-perth?utm_source=email&utm_medium=newsletter&utm_campaign=daily-brief`;
+}
+
 // ─── HTML templates ──────────────────────────────────────────────────────────
 
 function confirmEmailHtml({ confirmUrl }: { confirmUrl: string }): string {
@@ -748,6 +758,7 @@ function dailyBriefHtml({
     ${storyRows}
     <tr><td class="em-bg" bgcolor="${L.bg}" style="padding:12px 0 0;background-color:${L.bg};"></td></tr>
     ${ctaRow(briefUrl, "Read the full brief →")}
+    ${ctaRow(comparisonEmailUrl(briefUrl), "Compare Brisbane and Perth for free →")}
     ${footerRow(unsubscribeUrl)}
   `;
   return wrapLayout(`Today's brief · ${displayDate}`, inner);
@@ -774,7 +785,7 @@ function editionNotificationHtml({
         <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${L.accent};text-transform:uppercase;margin-bottom:12px;">Weekly Edition · ${esc(weekRange)}</div>
         ${greeting ? `<p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.55;color:${L.muted};margin:0 0 14px;">Hi ${esc(greeting)},</p>` : ""}
         <h1 class="em-h" style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:34px;line-height:1.05;color:${L.heading};margin:0 0 14px;letter-spacing:-0.02em;">Edition #${editionNumber} is ready.</h1>
-        <p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.6;color:${L.muted};margin:0 0 24px;">Your weekly intelligence briefing — market signals, talking points, and the context you need before any client conversation this week.</p>
+        <p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.6;color:${L.muted};margin:0 0 24px;">Your weekly intelligence briefing — market signals, talking points, and the context you need to catch up on the week.</p>
       </td>
     </tr>
     ${ctaRow(editionUrl, `Read Edition #${editionNumber} →`)}

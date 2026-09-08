@@ -54,15 +54,15 @@ export async function createSubscriber(data: InsertSubscriber): Promise<Subscrib
     if (existing.confirmedAt && !existing.unsubscribedAt) return existing;
     if (data.confirmToken) {
       // Refresh the token (and stamp its issue time so the 24h expiry runs
-      // from this send, not the original signup) and clear unsubscribedAt so
-      // a re-subscriber who had previously unsubscribed is treated as a fresh
-      // subscription once they confirm again.
+      // from this send, not the original signup). Keep an unsubscribed address
+      // suppressed until its owner confirms again; the old confirmedAt must
+      // never make a public resubscribe request opt someone back in.
       await db
         .update(subscribers)
         .set({
           confirmToken: data.confirmToken,
           confirmTokenSentAt: new Date(),
-          unsubscribedAt: null,
+          confirmedAt: null,
         })
         .where(eq(subscribers.id, existing.id));
     }
@@ -109,7 +109,7 @@ export async function unsubscribeByEmail(email: string): Promise<void> {
   if (!db) return;
   await db
     .update(subscribers)
-    .set({ unsubscribedAt: new Date() })
+    .set({ unsubscribedAt: new Date(), confirmToken: null, confirmTokenSentAt: null })
     .where(eq(subscribers.email, email));
 }
 

@@ -1,5 +1,5 @@
 /**
- * Reader settings, theme, topic interest filters, notification stubs,
+ * Reader settings, theme, topic interest filters, email subscription guidance,
  * and account actions. Everything except theme persists to localStorage
  * via the UserPrefsProvider; theme has its own ThemeProvider.
  *
@@ -31,7 +31,6 @@ import { useTheme } from "@/lib/theme";
 import {
   SELECTABLE_CATEGORIES,
   useUserPrefs,
-  type NotificationPrefs,
 } from "@/lib/userPrefs";
 
 export default function SettingsPage() {
@@ -304,93 +303,22 @@ function TopicsCard() {
 
 // ─── Notifications ──────────────────────────────────────────────────────────
 
-function NotificationsCard() {
-  const { prefs, toggleNotification } = useUserPrefs();
-  const rows: Array<{
-    key: keyof NotificationPrefs;
-    label: string;
-    description: string;
-  }> = [
-    {
-      key: "daily",
-      label: "Daily brief",
-      description: "Today's five stories at 7am AEST, Mon to Fri.",
-    },
-    {
-      key: "weekly",
-      label: "Weekly edition",
-      description: "Sunday 7am AEST. Long-form, signals, dates to watch.",
-    },
-    {
-      key: "breaking",
-      label: "Breaking signal",
-      description: "Mid-day pulse when a high-priority story lands.",
-    },
-  ];
+export function NotificationsCard() {
   return (
     <SettingsCard
       icon={Bell}
-      title="Notifications"
-      kicker="Email delivery isn't wired up yet, these flags pre-stage your choice for when it goes live."
+      title="Email subscription"
+      kicker="The free subscription includes the weekday morning brief and Sunday edition."
     >
-      <ul className="space-y-3 mt-2">
-        {rows.map((row) => {
-          const on = prefs.notifications[row.key];
-          return (
-            <li
-              key={row.key}
-              className="panel rounded-sm p-4 flex items-center gap-4"
-            >
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium">{row.label}</p>
-                <p className="text-xs text-[var(--color-fg-muted)] leading-relaxed mt-0.5">
-                  {row.description}
-                </p>
-              </div>
-              <Toggle
-                on={on}
-                onChange={() => toggleNotification(row.key)}
-                label={row.label}
-              />
-            </li>
-          );
-        })}
-      </ul>
+      <p className="text-sm text-[var(--color-fg-muted)] leading-relaxed">
+        Confirm the link in your signup email to start receiving The Desk.
+        To stop emails, use the unsubscribe link at the bottom of any message.
+        Appearance and topic choices on this page only change this browser.
+      </p>
+      <a href="/subscribe" className="inline-block mt-4 text-sm underline underline-offset-4">
+        Subscribe or request a fresh confirmation email →
+      </a>
     </SettingsCard>
-  );
-}
-
-function Toggle({
-  on,
-  onChange,
-  label,
-}: {
-  on: boolean;
-  onChange: () => void;
-  label: string;
-}) {
-  return (
-    <button
-      role="switch"
-      aria-checked={on}
-      aria-label={label}
-      onClick={onChange}
-      className="relative h-6 w-10 rounded-full transition-colors shrink-0"
-      style={{
-        background: on ? "oklch(0.78 0.18 70)" : "oklch(1 0 0 / 12%)",
-        boxShadow: on
-          ? "inset 0 0 0 1px oklch(0.78 0.18 70 / 60%), 0 0 12px oklch(0.78 0.18 70 / 30%)"
-          : "inset 0 0 0 1px oklch(1 0 0 / 14%)",
-      }}
-    >
-      <span
-        className="absolute top-1 left-1 h-4 w-4 rounded-full bg-white transition-transform"
-        style={{
-          transform: on ? "translateX(16px)" : "translateX(0)",
-          boxShadow: "0 1px 3px oklch(0 0 0 / 30%)",
-        }}
-      />
-    </button>
   );
 }
 
@@ -417,7 +345,7 @@ function AccountCard() {
     <SettingsCard
       icon={LogOut}
       title="Account"
-      kicker="The Desk has a single curator account today. Reader-level accounts arrive with email delivery."
+      kicker="The Desk has a single curator account today. Email subscriptions are managed separately using the links in your inbox."
     >
       <div className="flex flex-wrap items-center gap-3 mt-2">
         <button
