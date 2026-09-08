@@ -1,32 +1,8 @@
-/**
- * Can this deployment actually make a Reel?
- *
- * The Reel path has two dependencies that are invisible until the moment they
- * are needed, both of which fail at 18:22 on a Tuesday rather than at deploy
- * time.
- *
- * The first is ffmpeg. `ffmpeg-static` ships a *downloader*, not a binary: the
- * binary arrives in a postinstall script, and pnpm 10 does not run postinstall
- * scripts unless the package is listed in `pnpm.onlyBuiltDependencies`. It is
- * listed — but that only helps if the deploy ran `pnpm install` after that
- * config landed. When it did not, `ffmpegPath` still resolves to a plausible
- * path and the failure is an ENOENT from `execFile`, ninety seconds into a
- * render, in a scheduled job nobody is watching.
- *
- * The second is the voice. A Reel with no `OPENAI_API_KEY` renders perfectly
- * and posts perfectly and is silent, which is the failure that would survive
- * longest: nothing errors, and the only way to notice is to watch the post with
- * the sound up.
- *
- * So both are checked deliberately — at boot, on the admin panel, and once more
- * before the render starts, where it turns a cryptic ninety-second failure into
- * an immediate sentence naming what is missing.
- */
 import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import { promisify } from "node:util";
 import ffmpegPath from "ffmpeg-static";
-import { env } from "../core/env";
+import { localVoiceReady } from "./localVoice";
 
 const run = promisify(execFile);
 
@@ -35,7 +11,7 @@ export type ReelReadiness = {
   ok: boolean;
   /** The ffmpeg build in use, or null when there isn't one. */
   ffmpegVersion: string | null;
-  /** Will it have a voice track? A silent Reel still posts. */
+  /** Will it have a voice track? Required for publication. */
   voice: boolean;
   /** One sentence, in plain words, for a human reading a log or a panel. */
   detail: string;
@@ -52,10 +28,10 @@ export function parseFfmpegVersion(output: string): string | null {
  * thing to debug at the moment you are already debugging something.
  */
 export async function checkReelReadiness(): Promise<ReelReadiness> {
-  const voice = env.openAiApiKey.length > 0;
+  const voice = await localVoiceReady();
   const voiceNote = voice
     ? ""
-    : " Narration is off: OPENAI_API_KEY is not set, so Reels will be silent.";
+    : " Narration is off: the local voice check failed. Reels will not publish. Run the voice build setup.";
 
   if (!ffmpegPath) {
     return {
@@ -85,10 +61,12 @@ export async function checkReelReadiness(): Promise<ReelReadiness> {
     const { stdout } = await run(ffmpegPath, ["-version"], { timeout: 15_000 });
     const version = parseFfmpegVersion(stdout);
     return {
-      ok: true,
+      ok: voice,
       ffmpegVersion: version,
       voice,
-      detail: `ffmpeg ${version ?? "present"}.` + (voiceNote || " Narration is on."),
+      detail:
+        `ffmpeg ${version ?? "present"}.` +
+        (voiceNote || " Narration is on: local voice produced audible speech; no paid speech API."),
     };
   } catch (err) {
     return {

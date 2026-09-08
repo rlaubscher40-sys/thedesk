@@ -1,55 +1,4 @@
-/**
- * Turning a stat card into a narrated Reel.
- *
- * Reels are the only surface on Instagram that reliably reaches people who do
- * not already follow the account, so this is the format that decides whether
- * the publication grows. The first version of this file argued that the clip
- * should be silent and that four stills were enough. Both were wrong, and the
- * comparison that proved it was sitting on a competitor's profile: their Reels
- * are narrated, they move continuously, and next to them a silent slideshow
- * reads as a placeholder.
- *
- * What is kept from that first version is the part that was right: the frames
- * come from `renderStatCard`, the same component the grid post uses. The card
- * is the brand, generated footage next to checkable figures would undermine the
- * one thing the publication sells, and one design with two outputs cannot drift.
- * The fix was never "use AI video". It was to stop treating the card as a
- * poster and start cutting it like a broadcast.
- *
- * ## What changed, and why each thing was wrong
- *
- * **A voice.** `narration.ts` speaks the card's own text — the metric name, the
- * figure, the verified sentence, the computed claim — and the pictures are cut
- * to the actual measured length of each passage. Nothing new is written for the
- * audio. The old file claimed silence was right because feed video is watched
- * muted; a narrated Reel is watched by the people who unmute, and they are the
- * ones who follow.
- *
- * **The zoom was pointing at the wrong place.** `zoompan` without `x`/`y`
- * anchors the crop at the top-left corner, so the old clip did not push into
- * the number, it slid off it. It also restarted from 1.0 at every cut, which is
- * a visible hitch four times a clip. There is now one continuous ramp across
- * the whole piece: each beat renders its own slice of a single global zoom, so
- * the motion never stops and never restarts.
- *
- * **Elements popped in.** Opacity went 0 to 1 between hard cuts. Beats now
- * cross-dissolve, so the sentence arrives rather than appears.
- *
- * **The number just showed up.** It now counts up to itself. That is the one
- * piece of motion that makes a data clip look made rather than exported, and it
- * costs nothing but a handful of extra renders.
- *
- * **Everything was soft when it moved.** Frames are upscaled before the zoom
- * and the crop is resampled back down to 1080 wide, so a pushed-in frame is
- * still sharp instead of being a stretched 1080.
- *
- * ## Why stills and ffmpeg rather than a frame loop
- *
- * Satori takes about a second per render at this size, so animating in
- * JavaScript at 30fps would be minutes of work per post. One still per beat and
- * ffmpeg supplying the motion gets the same result in seconds, and the pacing
- * stays legible as a table instead of hiding in a loop.
- */
+/** Animated property cards with a required, locally generated voice track. */
 import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
@@ -547,10 +496,7 @@ export function composeSections(stat: ReelStat, durations: Record<string, number
  * removed on the way out, including on failure, so a long-running server does
  * not accumulate frames from posts that never went anywhere.
  *
- * If narration is unavailable — no key, a failed call — the clip is still made,
- * silently, with the passages' lengths estimated instead of measured. A silent
- * Reel is worse than a narrated one and better than no post at all, and it is
- * still cut like speech rather than to an arbitrary table.
+ * Narration is required unless a caller explicitly requests a silent layout preview.
  */
 export async function renderStatReel(
   stat: ReelStat,
@@ -577,6 +523,8 @@ export async function renderStatReel(
       script = buildScript(stat);
     }
     const spoken = opts.narrate === false ? null : await synthesiseScript(script);
+    if (opts.narrate !== false && !spoken)
+      throw new Error("Narration unavailable. No silent Reel was produced.");
 
     // Measure the voice when we have it; fall back to a news-read estimate.
     const durations: Record<string, number> = {};
@@ -586,10 +534,11 @@ export async function renderStatReel(
     }
     if (spoken) {
       for (const [i, clip] of spoken.entries()) {
-        const file = path.join(dir, `say-${i}.mp3`);
+        const file = path.join(dir, `say-${i}.wav`);
         await fs.writeFile(file, clip.bytes);
         const measured = await probeSeconds(file);
-        if (measured) durations[clip.key] = measured;
+        if (!measured) throw new Error("Narration duration could not be verified.");
+        durations[clip.key] = measured;
         audioFiles.push({ key: clip.key, file });
       }
     }

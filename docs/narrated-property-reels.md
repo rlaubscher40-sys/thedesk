@@ -1,0 +1,55 @@
+# Narrated property Reel pilot
+
+The scheduled Reel now reads the same verified ABS CPI rent feed as the free
+Brisbane–Perth comparison. It requires matching, recent reference months and
+preserves city boundaries, original-series identity, revisions and source links.
+No model writes causal explanations from these figures. Rent growth is neither
+rental yield nor an investment ranking. Two city observations are not plotted
+as a time series.
+
+Tuesday and Thursday at 18:22 Australia/Sydney are **opportunities**, not a
+promise of two posts each week. The pilot publishes each ABS reference month
+once. More editorial topics can extend this later. A revision updates the
+evidence read without automatically reposting the same month. Publication uses
+a durable reservation immediately before Meta's non-idempotent publish call;
+uncertain responses stay locked. Quota, audio or evidence failures send no post.
+
+Admin → Instagram shows the scheduler's actual enabled state, a real local
+speech check, next cover tone, sourced caption and an on-demand video preview.
+Previewing does not publish. Covers continue alternating from the last recorded
+grid post; pinned posts keep their colours, so the pinned row is not guaranteed
+to form a checkerboard. Manual/out-of-band posts can also change the grid.
+
+## Voice and reproducible installation
+
+`pnpm setup:voice` is included in the production build and CI. It installs the
+standalone Linux x64 Piper release **2023.11.14-2** and **Cori high**, a UK English
+female synthetic voice. Downloads use pinned URLs/revisions and SHA-256 checks.
+The model is loaded locally on CPU. There is no speech API, new account or
+per-request speech fee. Existing hosting CPU/storage usage still applies.
+Other host architectures report narration unavailable and cannot publish Reels.
+
+- Engine: https://github.com/rhasspy/piper/releases/tag/2023.11.14-2
+- Source/license: https://github.com/rhasspy/piper/tree/2023.11.14-2
+- Model revision: `1162a9173d0ce503555aed757976b7a9912eae4c`
+- Model card: https://huggingface.co/rhasspy/piper-voices/blob/1162a9173d0ce503555aed757976b7a9912eae4c/en/en_GB/cori/high/MODEL_CARD
+- The Cori card identifies its LibriVox training dataset as public domain.
+  Model repository metadata is MIT. The release uses eSpeak NG and
+  ONNX Runtime; their source and license notices are linked below. This is an existing model, not a clone of a competitor's voice.
+
+The installer fails on a checksum mismatch or download failure. The server
+does not download models during a publishing request and never falls back to
+a paid API. Readiness synthesises a short sample and checks PCM amplitude;
+each script passage is validated again, measured and mixed into AAC stereo.
+Default render and publication both reject absent narration. Explicit silent
+rendering is reserved for layout tests/previews and is rejected by publishing.
+
+## Validation
+
+Tests cover missing/stale/mismatched/future evidence, revisions, equal growth,
+script duration, invalid/silent WAVs, quota failure, lost reservations and an
+uncertain Meta response. CI installs and runs the actual voice and ffmpeg.
+
+Dependency source/license references:
+- https://github.com/espeak-ng/espeak-ng/blob/master/COPYING
+- https://github.com/microsoft/onnxruntime/blob/main/LICENSE

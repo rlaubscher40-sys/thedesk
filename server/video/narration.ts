@@ -1,49 +1,6 @@
-/**
- * The voice track.
- *
- * The first Reel was silent, on the argument that feed video is watched muted.
- * That argument loses to the evidence: the competitor's Reels are narrated and
- * they hold attention that ours does not. A silent card with a slow push is a
- * poster; a narrated one is a broadcast. So this builds a script and speaks it.
- *
- * ## The script is not written by a model
- *
- * Everything spoken here already exists, already computed and already checked:
- * the metric's name, the figure from the series, the sentence `generateStatLine`
- * produced and verified against the source facts, and the claim
- * `pickStatOfTheDay` derived from the history. This module rearranges that into
- * speech and changes nothing else. No new sentence is generated for audio,
- * because a voice saying a number is exactly as falsifiable as a card showing
- * one, and the whole position of the publication is that the numbers are real.
- *
- * What *is* generated is the audio, and only the audio.
- *
- * ## Written for the ear, not the eye
- *
- * Two transformations stand between the card's text and something worth
- * hearing. `speakValue` turns "$815,439" and "4.3%" into words a reader would
- * actually say, and `deshout` undoes the card's typographic uppercase, which a
- * speech model otherwise reads as either shouting or a string of letters — but
- * leaves ABS and RBA alone, because those genuinely are letters.
- */
-import { env } from "../core/env";
+/** Deterministic, evidence-backed scripts spoken locally. No paid speech API. */
+import { localSpeech } from "./localVoice";
 import type { ReelScriptLines } from "../prompts/reelScript";
-
-/** OpenAI's speech model. `gpt-4o-mini-tts` is the one that takes a delivery
- *  instruction, which is what keeps this from sounding like a lift announcement. */
-const TTS_MODEL = "gpt-4o-mini-tts";
-
-/** A measured male read. Overridable without a deploy, because the right voice
- *  for a publication is a judgement nobody should have to edit code to change. */
-const TTS_VOICE = process.env.OPENAI_TTS_VOICE || "onyx";
-
-/** How the line should be delivered. The model follows this closely, and
- *  without it the default read is too bright for a numbers publication. */
-const TTS_INSTRUCTIONS =
-  "Read as a calm, measured Australian financial news presenter. " +
-  "Unhurried and level, with the authority of someone reading a figure they " +
-  "have checked. Land the numbers clearly. No excitement, no upward inflection " +
-  "at the end of sentences.";
 
 /** Acronyms that must survive de-shouting as acronyms: spoken as letters, not
  *  read as words. "ABS" said as "abs" is the tell of a machine reading a card. */
@@ -219,59 +176,21 @@ export function estimateSpeechSeconds(text: string): number {
   return words / 2.6 + 0.35;
 }
 
-/**
- * Speak one passage, returning MP3 bytes.
- *
- * Returns null rather than throwing on every failure path — no key, a bad
- * response, a network fault. A Reel that goes out silent is a worse Reel; a
- * scheduled post that throws is no post at all, and the pictures are the part
- * that carries the facts.
- */
+/** Local WAV audio. Failure is explicit; publishing never falls back to silence. */
 export async function synthesise(text: string): Promise<Buffer | null> {
-  if (!env.openAiApiKey) return null;
   try {
-    const res = await fetch("https://api.openai.com/v1/audio/speech", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${env.openAiApiKey}`,
-      },
-      body: JSON.stringify({
-        model: TTS_MODEL,
-        voice: TTS_VOICE,
-        input: text,
-        instructions: TTS_INSTRUCTIONS,
-        response_format: "mp3",
-        speed: 0.98,
-      }),
-    });
-    if (!res.ok) {
-      const detail = await res.text().catch(() => "");
-      console.warn(`[reel] tts failed ${res.status}: ${detail.slice(0, 300)}`);
-      return null;
-    }
-    return Buffer.from(await res.arrayBuffer());
-  } catch (err) {
-    console.warn("[reel] tts error:", (err as Error).message);
+    return (await localSpeech([{ key: "line", text }]))[0]!.bytes;
+  } catch {
     return null;
   }
 }
 
-/**
- * Speak the whole script.
- *
- * All or nothing: if any passage fails to synthesise, the clip goes out silent
- * rather than half-narrated. A voice that stops in the middle of a sentence
- * reads as broken software, which is worse than a poster.
- */
 export async function synthesiseScript(
   lines: ScriptLine[]
 ): Promise<Array<{ key: string; bytes: Buffer }> | null> {
-  const out: Array<{ key: string; bytes: Buffer }> = [];
-  for (const line of lines) {
-    const bytes = await synthesise(line.text);
-    if (!bytes) return null;
-    out.push({ key: line.key, bytes });
+  try {
+    return await localSpeech(lines);
+  } catch {
+    return null;
   }
-  return out;
 }

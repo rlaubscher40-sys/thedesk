@@ -17,11 +17,12 @@ describe("parseFfmpegVersion", () => {
 
 describe("checkReelReadiness", () => {
   it("runs the real binary and reports what it found", async () => {
-    // Not a mock. The whole point of this check is that the binary is there and
+    // Not a mock. The whole point of this check is that ffmpeg is there and
     // executable, which only running it can establish.
     const state = await checkReelReadiness();
-    expect(state.ok).toBe(true);
+    expect(state.ok).toBe(state.voice);
     expect(state.ffmpegVersion).toBeTruthy();
+    if (process.env.CI === "true") expect(state.voice).toBe(true);
   });
 
   it("always explains itself in a sentence a human can act on", async () => {
