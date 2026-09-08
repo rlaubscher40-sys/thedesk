@@ -6,6 +6,7 @@ import {
   type AuctionResult,
 } from "../../../shared/auctionClearance";
 import type { MetricOut } from "../dailyMetrics";
+import { AUCTION_PAUSE_REASON } from "../../../shared/auctionCollectionPolicy";
 import {
   PublisherAccessDeniedError,
   PublisherRateLimitError,
@@ -226,4 +227,10 @@ export function createAuctionCollector(
   };
 }
 
-export const fetchAuctionMetrics = createAuctionCollector();
+// The old parser/factory remains for regression fixtures, never live ingestion.
+export async function fetchAuctionMetrics(
+  onError?: (key: string, reason: string) => void,
+): Promise<MetricOut[]> {
+  onError?.("auction_clearance", AUCTION_PAUSE_REASON);
+  return [];
+}

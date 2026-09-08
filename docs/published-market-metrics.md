@@ -8,6 +8,18 @@ No collector substitutes today's date for an unknown reporting period.
 
 ## Auctions
 
+**Collection is intentionally paused.** The owner has excluded PropTrack/REA.
+The live `fetchAuctionMetrics` entrypoint makes no publisher requests, including
+after deployment or process restart. The older reader below remains only for
+regression fixtures; do not reconnect it to ingestion or add an environment
+override. An approved replacement and its methodology need a separate review.
+
+Admin still lists all nine missing/stale auction figures and reports the pause.
+An intentional pause does not trigger recovery retries or failed-job emails;
+missing active metrics (including RBA) and failed writes still do.
+
+Historical reader contract (not an active feed):
+
 - Read realestate.com.au's summary for NSW, VIC, QLD, SA, WA, TAS, ACT and NT.
 - Store statewide/territory keys such as `nsw_auction_clearance` and preserve
   the Monday–Sunday reporting week, source URL, sold, reported and scheduled counts.
@@ -25,7 +37,7 @@ No collector substitutes today's date for an unknown reporting period.
 
 Method: https://help.realestate.com.au/hc/en-us/articles/115002044526-How-to-calculate-clearance-rates
 
-### Publisher rate limits
+### Historical publisher rate-limit controls
 
 Auction requests are sequential, with a one-second gap. Concurrent callers in
 the server share one attempt. A 429 ends that publisher's batch immediately;
@@ -78,36 +90,30 @@ stored, but are never combined with older states to fabricate Australia. The
 pause is process-local; a restart creates a new collector. No access was granted
 by this code change and no replacement auction observations were seeded.
 
-### Concrete replacement: PropTrack Auction Results API
+### Replacement enquiry: SQM Research (permission pending)
 
-The publisher documents state, suburb and GCCSA queries, clearance rates and
-scheduled/sold/passed-in/sold-before/sold-after/withdrawn counts. It documents
-daily updates and selectable start/end dates:
-https://www.proptrack.com.au/insights-hub/proptrack-apis-introducing-the-auction-results-api/
+PropTrack is excluded by the owner's instruction. No PropTrack access enquiry
+was sent or paid service authorised.
 
-API access/trial route:
-https://www.proptrack.com.au/products/property-data-and-insights/apis/
-Developer documentation: https://developer.proptrack.com.au/docs/apis/home
+SQM's public auction page offers all eight state/territory selections and includes
+capital and rest-of-state results: https://sqmresearch.com.au/property/auction-results
+Its terms require written permission for automated collection and commercial
+republication: https://sqmresearch.com.au/terms-of-service
+Free public viewing is not an approved free feed. No SQM collector is enabled.
 
-The Desk needs approved API credentials and the authenticated endpoint/schema
-before implementing this adapter. No credentials or approved subscription are
-available in this work session. Do not invent endpoint paths or use public-page
-cookies as API credentials. The commercial terms and eight-jurisdiction coverage
-must be confirmed with the provider before making a purchase.
+The owner authorised an enquiry, sent to SQM's published general enquiry address
+on 8 September 2026, with subject "The Desk — auction data permission and
+licensing enquiry". It requests API/CSV delivery, statewide coverage, counts,
+revisions, zero-auction weeks, historical storage, attributed display and
+AI-assisted cited answers, national derivation rights, and free/lowest-cost
+options. It explicitly makes no order or payment commitment. Await the reply.
 
-Prepared access request:
-
-> We operate thedesk.au, an Australian property intelligence site. We need
-> automated weekly statewide auction results for NSW, VIC, QLD, SA, WA, TAS,
-> ACT and NT, with matching Monday–Sunday periods and explicit zero-result
-> states. Please confirm Auction Results API access, documentation, pricing,
-> quotas, preliminary/final revision handling, and rights to store and display
-> attributed summaries on our public website and social posts. We need sold
-> before/at/after auction, withdrawn, passed-in, scheduled and reported counts
-> to calculate and label a weighted Australian rate. Please confirm availability
-> for all eight jurisdictions, including weeks with small samples.
-
-This request is prepared only; it has not been sent and no purchase is approved.
+SQM's methodology differs from the historical REA reader: sold before and at
+auction divided by scheduled auctions, rather than sold before/at/after divided
+by reported outcomes. Do not mix these series or silently reuse the old formula:
+https://sqmresearch.com.au/property/auction-methodology
+Any Australian figure must aggregate compatible counts for the same week across
+all eight jurisdictions; never take a simple mean of rounded state percentages.
 
 ### Cash-rate alternative checked
 
@@ -125,3 +131,14 @@ releases: https://data.bis.org/topics/CBPOL
 Remaining work: obtain approved auction API access; confirm RBA F1 production
 access; implement against the provider's actual schema; verify fetched values
 and actual storage in production. Full live auction coverage remains blocked.
+
+### RBA validation follow-up
+
+The exact F1 CSV download and current parser succeeded from the development
+connection on 8 September. This does not establish production access or storage.
+The Sydney-day comparison now applies to completed observations as well as
+pending rows, including daylight saving. Duplicate latest completed dates fail
+validation instead of selecting an arbitrary rate. Dates are never relabelled.
+Admin now reviews the daily F1 observation against a seven-calendar-day window;
+it no longer treats the stored date as an indefinitely valid policy decision.
+HTTP 403 is still a download/access failure, not something a parser fix resolves.
