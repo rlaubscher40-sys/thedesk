@@ -26,6 +26,8 @@ vi.mock("../db/jobRuns", () => ({
 }));
 import { readReelAutomation, runReelAutomation } from "./reelAutomation";
 import { reelPublicationRecord } from "./reelStatus";
+import { RENT_CITIES } from "../../shared/cityRents";
+import { verifiedCapitalRentReel } from "./verifiedCapitalRentReel";
 const now = new Date("2026-09-09T08:30:00Z"); // Wednesday 6:30pm Sydney.
 const publicationKey = "instagram-reel-abs-rents-brisbane-perth-v1";
 let published = false;
@@ -58,6 +60,39 @@ beforeEach(() => {
 const run = () => runReelAutomation({ post: m.post, alert: m.alert, now });
 
 describe("automatic verified Reel delivery", () => {
+  it("advances to the eight-capital topic without clearing earlier publication locks", async () => {
+    const data = {
+      status: "available" as const,
+      retrievedAt: now.toISOString(),
+      observations: RENT_CITIES.map((city, i) => ({
+        city,
+        annualPercent: i,
+        period: "2026-07",
+        status: "" as const,
+      })),
+    };
+    m.data.mockResolvedValue(data);
+    m.read.mockImplementation(async (key: string) =>
+      key === publicationKey
+        ? {
+            status: "success",
+            detail: "Published media 123456",
+            finishedAt: new Date("2026-09-07T10:00:00Z"),
+          }
+        : null
+    );
+    const plan = await readReelAutomation(now);
+    expect(plan.state).toBe("ready");
+    expect(plan.candidate?.evidenceHash).toBe(verifiedCapitalRentReel(data, now)?.evidenceHash);
+    expect(plan.candidate?.publication.key).toBe("instagram-reel-abs-rents-eight-capitals-v1");
+    m.read.mockImplementation(async (key: string) =>
+      key === publicationKey
+        ? { status: "success", detail: "Published media 123456", finishedAt: now }
+        : null
+    );
+    expect((await readReelAutomation(now)).state).toBe("daily-limit");
+    expect(m.post).not.toHaveBeenCalled();
+  });
   it("delivers outside old weekday windows and ignores old daily skip watermarks", async () => {
     m.read.mockImplementation(async (key: string) =>
       key === "instagram-reel"

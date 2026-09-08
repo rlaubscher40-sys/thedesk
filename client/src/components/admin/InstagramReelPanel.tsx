@@ -60,9 +60,10 @@ export function InstagramReelPanel() {
             {plan.data.schedule}.
           </p>
           <p className="text-sm">
-            The programme covers Brisbane–Perth rents and dwelling approvals. Each topic posts once
-            per reference month. At most one automatic Reel goes out per Sydney day; a second
-            eligible topic waits until tomorrow. Missing evidence, audio or subtitles means no post.
+            The programme covers Brisbane–Perth rents, dwelling approvals and eight-capital rent
+            growth. Each topic posts once per reference month. At most one automatic Reel goes out
+            per Sydney day; a second eligible topic waits until tomorrow. Missing evidence, audio or
+            subtitles means no post.
           </p>
           <p className="text-sm">
             Next cover: {plan.data.variant === "navy" ? "navy" : "light"}, alternating with the last
