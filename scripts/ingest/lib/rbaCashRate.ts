@@ -2,7 +2,21 @@ import { csvRows } from "../../../server/core/strictCsv";
 
 export const CASH_RATE_CSV = "https://www.rba.gov.au/statistics/tables/csv/f1-data.csv";
 const MAX_BYTES = 1_000_000;
+// Local review window, not a claimed RBA publication SLA. A single pending
+// publication row can remain overnight or across a long weekend. The actual
+// returned observation must still pass the independent seven-day age limit.
+const MAX_PENDING_PUBLICATION_DAYS = 4;
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function rbaDate(raw: string | undefined): Date | null {
+  const match = raw?.match(/^(\d{1,2})-([A-Z][a-z]{2})-(\d{4})$/);
+  if (!match) return null;
+  const month = MONTHS.indexOf(match[2]!);
+  const date = new Date(Date.UTC(Number(match[3]), month, Number(match[1])));
+  if (month < 0 || date.getUTCMonth() !== month || date.getUTCDate() !== Number(match[1]))
+    throw new Error("Invalid RBA cash target date");
+  return date;
+}
 
 /** F1's daily target, pinned by series ID; F1.1 is the monthly table. */
 export function parseCashRate(csv: string, now = new Date()) {
@@ -26,12 +40,8 @@ export function parseCashRate(csv: string, now = new Date()) {
   }
   const observations = rows
     .flatMap((row) => {
-      const match = row[0]?.match(/^(\d{1,2})-([A-Z][a-z]{2})-(\d{4})$/);
-      if (!match) return [];
-      const month = MONTHS.indexOf(match[2]!);
-      const asOf = new Date(Date.UTC(Number(match[3]), month, Number(match[1])));
-      if (month < 0 || asOf.getUTCMonth() !== month || asOf.getUTCDate() !== Number(match[1]))
-        throw new Error("Invalid RBA cash target date");
+      const asOf = rbaDate(row[0]);
+      if (!asOf) return [];
       return [{ asOf, raw: row[column]?.trim() ?? "" }];
     })
     .sort((a, b) => b.asOf.getTime() - a.asOf.getTime());
@@ -42,10 +52,21 @@ export function parseCashRate(csv: string, now = new Date()) {
   }).formatToParts(now);
   const part = (type: string) => parts.find((p) => p.type === type)!.value;
   const today = `${part("year")}-${part("month")}-${part("day")}`;
-  // RBA may include today's unfinished row. Never skip an older missing observation.
-  const latest = observations.find(
-    (row) => !(row.asOf.toISOString().slice(0, 10) === today && row.raw === "")
-  );
+  // F1 can carry a blank row for its publication date into the following day.
+  // Skip only that single, metadata-identified row within a bounded grace
+  // window. Do not search past holes in completed observations or fabricate a
+  // value/date for the unfinished row.
+  let latest = observations[0];
+  if (latest?.raw === "") {
+    const publications = rows.filter((row) => row[0] === "Publication date");
+    const publication = publications.length === 1 ? rbaDate(publications[0]![column]) : null;
+    const pendingDays = (Date.parse(today) - latest.asOf.getTime()) / 86_400_000;
+    if (
+      publication?.getTime() === latest.asOf.getTime() &&
+      pendingDays >= 0 && pendingDays <= MAX_PENDING_PUBLICATION_DAYS &&
+      observations[1] && observations[1].asOf.getTime() < latest.asOf.getTime()
+    ) latest = observations[1];
+  }
   if (!latest)
     throw new Error("RBA daily cash target unavailable: no completed dated observation");
   if (!/^\d+(?:\.\d+)?$/.test(latest.raw))

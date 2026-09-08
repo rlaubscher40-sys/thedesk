@@ -30,10 +30,57 @@ it("uses the Sydney day during daylight saving too", () => {
   });
 });
 
-it("still rejects an older blank row and a genuinely future blank row", () => {
-  expect(() => parseCashRate(csv, new Date("2026-09-09T01:00:00Z"))).toThrow("unavailable");
+it("still rejects a pending row beyond its grace window and a genuinely future blank row", () => {
+  expect(() => parseCashRate(csv, new Date("2026-09-13T01:00:00Z"))).toThrow("unavailable");
   expect(() => parseCashRate(csv.replace("08-Sep-2026,,", "09-Sep-2026,,"), now))
     .toThrow("unavailable");
+});
+
+it("handles the exact overnight production failure without relabelling the prior observation", () => {
+  expect(parseCashRate(csv, new Date("2026-09-08T15:38:57.888Z"))).toEqual({
+    rate: 4.35, asOf: new Date("2026-09-07"),
+  });
+  expect(parseCashRate(csv, new Date("2026-09-09T01:00:00Z"))).toEqual({
+    rate: 4.35, asOf: new Date("2026-09-07"),
+  });
+});
+
+it("permits one pending publication row across a long weekend and enforces the bound", () => {
+  const friday = csv.replaceAll("08-Sep-2026", "11-Sep-2026")
+    .replaceAll("07-Sep-2026", "10-Sep-2026");
+  expect(parseCashRate(friday, new Date("2026-09-14T23:00:00Z"))).toEqual({
+    rate: 4.35, asOf: new Date("2026-09-10"),
+  });
+  expect(() => parseCashRate(friday, new Date("2026-09-15T23:00:00Z"))).toThrow("unavailable");
+});
+
+it("requires a unique matching publication date before skipping a blank row", () => {
+  const overnight = new Date("2026-09-08T15:38:57.888Z");
+  for (const invalid of [
+    csv.replace("Publication date,08-Sep-2026", "Publication date,07-Sep-2026"),
+    csv.replace(/^Publication date,.*\r?\n/m, ""),
+    csv + "\nPublication date,08-Sep-2026,08-Sep-2026\n",
+    csv.replace("Publication date,08-Sep-2026", "Publication date,invalid"),
+  ]) expect(() => parseCashRate(invalid, overnight)).toThrow("unavailable");
+});
+
+it("never skips a second missing observation or a duplicate newest date", () => {
+  const overnight = new Date("2026-09-08T15:38:57.888Z");
+  expect(() => parseCashRate(csv.replace("07-Sep-2026,4.35", "07-Sep-2026,"), overnight))
+    .toThrow("unavailable");
+  expect(() => parseCashRate(csv + "\n08-Sep-2026,4.35,\n", overnight)).toThrow("unavailable");
+});
+
+it("uses a newly populated latest target rather than retaining the previous rate", () => {
+  expect(parseCashRate(csv.replace("08-Sep-2026,,", "08-Sep-2026,4.10,"),
+    new Date("2026-09-08T15:38:57.888Z"))).toEqual({
+    rate: 4.10, asOf: new Date("2026-09-08"),
+  });
+});
+
+it("keeps the independent stale-observation check after allowing a pending publication row", () => {
+  const old = csv.replace(/0[2-7]-Sep-2026/g, (date) => date.replace("Sep", "Aug"));
+  expect(() => parseCashRate(old, new Date("2026-09-08T15:38:57.888Z"))).toThrow("Stale");
 });
 
 it("returns successful data without reporting a source error", async () => {
