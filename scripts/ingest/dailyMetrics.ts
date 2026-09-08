@@ -3,7 +3,7 @@
  *
  * Pulls:
  *   - Yahoo Finance for market prices (ASX 200, FX pairs, US 10Y)
- *   - RBA's official CSV for the cash rate target
+ *   - RBA's official CSVs for the cash rate target and housing lending rates
  *   - ABS latest-release pages for CPI, unemployment, wage growth,
  *     building approvals, net migration
  *
@@ -15,6 +15,7 @@
  */
 import { fetchAllAbs } from "./lib/abs";
 import { postJSON } from "./lib/post";
+import { fetchRbaHousingRateMetrics } from "./lib/rbaHousingRates";
 
 type MetricOut = {
   metricKey: string;
@@ -22,6 +23,7 @@ type MetricOut = {
   value: string;
   unit?: string | null;
   source?: string | null;
+  sourceUrl?: string | null;
   context?: string | null;
   groupKey?: string | null;
   asOf: string;
@@ -149,8 +151,9 @@ export async function runDailyMetricsIngest(rawBaseUrl: string, apiKey: string):
 
   console.log("[metrics] fetching from Yahoo Finance + RBA...");
 
-  const [cashRate, asx, audusd, audgbp, audeur, us10y] = await Promise.all([
+  const [cashRate, housingRates, asx, audusd, audgbp, audeur, us10y] = await Promise.all([
     fetchCashRate(),
+    fetchRbaHousingRateMetrics(),
     fetchYahooQuote("^AXJO"), // ASX 200
     fetchYahooQuote("AUDUSD=X"),
     fetchYahooQuote("AUDGBP=X"),
@@ -172,6 +175,8 @@ export async function runDailyMetricsIngest(rawBaseUrl: string, apiKey: string):
       displayOrder: 10,
     });
   }
+
+  metrics.push(...housingRates);
 
   if (asx) {
     metrics.push({
