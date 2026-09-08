@@ -1,5 +1,14 @@
 import { beforeEach, expect, it, vi } from "vitest";
-const writes = vi.hoisted(() => ({ values: [] as any[], updates: [] as any[] }));
+const writes = vi.hoisted(() => ({
+  values: [] as any[],
+  updates: [] as any[],
+}));
+vi.mock("../core/llm", () => ({
+  invokeLLM: vi.fn(() => {
+    throw new Error("Archive must not call an LLM");
+  }),
+}));
+import { invokeLLM } from "../core/llm";
 vi.mock("../db/client", () => ({
   getDb: () => ({
     insert: () => ({
@@ -39,20 +48,58 @@ it("archives more than the front-page quota and persists partial feed failures",
   vi.mocked(fetchSourceReport).mockImplementation(async (source) =>
     source.name === STATE_PROPERTY_SOURCES[0]!.name
       ? { items, fetched: 20, error: null }
-      : { items: [], fetched: 0, error: "failed" }
+      : { items: [], fetched: 0, error: "failed" },
   );
-  expect(await collectPropertyEvidence(STATE_PROPERTY_SOURCES.slice(0, 2))).toEqual({
+  expect(
+    await collectPropertyEvidence(STATE_PROPERTY_SOURCES.slice(0, 2)),
+  ).toEqual({
     checked: 2,
     failed: 1,
   });
   expect(writes.values.find(Array.isArray)).toHaveLength(20);
-  expect(writes.values.some((row) => row.error === "failed" && row.accepted === 0)).toBe(true);
+  expect(
+    writes.values.some((row) => row.error === "failed" && row.accepted === 0),
+  ).toBe(true);
   expect(fetchSourceReport).toHaveBeenCalledTimes(3);
 });
 it("fails the job when every feed fails, after recording each source status", async () => {
-  vi.mocked(fetchSourceReport).mockResolvedValue({ items: [], fetched: 0, error: "failed" });
-  await expect(collectPropertyEvidence(STATE_PROPERTY_SOURCES.slice(0, 2))).rejects.toThrow(
-    "All property evidence sources failed"
-  );
+  vi.mocked(fetchSourceReport).mockResolvedValue({
+    items: [],
+    fetched: 0,
+    error: "failed",
+  });
+  await expect(
+    collectPropertyEvidence(STATE_PROPERTY_SOURCES.slice(0, 2)),
+  ).rejects.toThrow("All property evidence sources failed");
   expect(writes.values).toHaveLength(2);
+});
+
+it("preserves the actual feed check time when reusing a recent download, without AI calls", async () => {
+  const checkedAt = new Date(Date.now() - 60_000);
+  vi.mocked(fetchSourceReport).mockResolvedValue({
+    checkedAt,
+    fetched: 1,
+    error: null,
+    items: [
+      {
+        title: "Hobart housing supply update",
+        summary: "Tasmania rental vacancies fall.",
+        source: "Fixture",
+        url: "https://example.org/housing",
+        isoDate: new Date(Date.now() - 86_400_000).toISOString(),
+        category: "PROPERTY",
+        channel: "PROPERTY",
+        imageUrl: null,
+      },
+    ],
+  });
+  await collectPropertyEvidence(STATE_PROPERTY_SOURCES.slice(0, 1));
+  expect(writes.values.find((row) => row.sourceId)?.checkedAt).toEqual(
+    checkedAt,
+  );
+  expect(writes.values.find((row) => row.sourceId)?.lastSuccessAt).toEqual(
+    checkedAt,
+  );
+  expect(writes.values.find(Array.isArray)?.[0].lastSeenAt).toEqual(checkedAt);
+  expect(invokeLLM).not.toHaveBeenCalled();
 });
