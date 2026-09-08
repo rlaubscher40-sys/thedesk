@@ -6,13 +6,13 @@ import {
   Check,
   Copy,
   ExternalLink,
+  LoaderCircle,
   Search,
   Share2,
   ShieldCheck,
 } from "lucide-react";
 import { ShareIntelligenceCardButton } from "@/components/ask/ShareIntelligenceCardButton";
 import { GUTTER_X } from "@/components/broadsheet/tokens";
-import { Skeleton } from "@/components/ui/Skeleton";
 import { trackEvent } from "@/lib/analytics";
 import { getLoginUrl } from "@/lib/auth";
 import { cn } from "@/lib/cn";
@@ -230,11 +230,18 @@ export default function AskDeskPage() {
           <button
             type="submit"
             disabled={question.trim().length < 3 || mutation.isPending}
-            aria-label="Ask The Desk"
-            className="h-12 w-12 lg:h-14 lg:w-14 shrink-0 flex items-center justify-center bs-btn-solid disabled:opacity-30"
+            aria-label={mutation.isPending ? "Analysing your question" : "Ask The Desk"}
+            className={cn(
+              "h-12 w-12 lg:h-14 lg:w-14 shrink-0 flex items-center justify-center bs-btn-solid",
+              mutation.isPending ? "disabled:opacity-70" : "disabled:opacity-30"
+            )}
             style={{ borderRadius: 2 }}
           >
-            <ArrowUp className="h-5 w-5" strokeWidth={1.8} />
+            {mutation.isPending ? (
+              <LoaderCircle className="h-5 w-5 motion-safe:animate-spin" aria-hidden="true" />
+            ) : (
+              <ArrowUp className="h-5 w-5" strokeWidth={1.8} aria-hidden="true" />
+            )}
           </button>
         </div>
       </form>
@@ -302,7 +309,7 @@ export default function AskDeskPage() {
         </div>
       )}
 
-      {mutation.isPending && <ThinkingState question={question.trim()} />}
+      {mutation.isPending && <ThinkingState question={mutation.variables?.question ?? question.trim()} />}
 
       {mutation.isError && (
         <div className="rule-major mt-10 pt-6 max-w-3xl">
@@ -516,23 +523,44 @@ function IntelligenceSection({ eyebrow, body }: { eyebrow: string; body: string 
 }
 
 function ThinkingState({ question }: { question: string }) {
+  const [isTakingLonger, setIsTakingLonger] = useState(false);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setIsTakingLonger(true), 15000);
+    return () => window.clearTimeout(timer);
+  }, []);
+
   return (
-    <div className="mt-10 rule-major pt-5 max-w-5xl" aria-live="polite">
-      <div className="flex items-center justify-between gap-5">
-        <div>
-          <p className="bs-label-accent">Cross-referencing The Desk</p>
-          <p className="font-serif text-2xl mt-2 text-[var(--color-fg-body)]">{question}</p>
+    <section className="mt-10 rule-major pt-5 max-w-5xl" aria-label="Answer in progress">
+      <p className="bs-label-accent">Cross-referencing The Desk</p>
+      <p className="font-serif text-2xl mt-2 text-[var(--color-fg-body)]">{question}</p>
+
+      <div className="mt-6 border border-[var(--color-border)] border-l-2 border-l-[var(--color-accent-text)] bg-[var(--color-bg-elevated)] p-5 sm:p-7">
+        <div className="flex items-start gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center border border-[var(--color-accent-text)] text-[var(--color-accent-text)]" aria-hidden="true">
+            <LoaderCircle className="h-7 w-7 motion-safe:animate-spin" strokeWidth={1.5} />
+          </div>
+          <div className="min-w-0" role="status" aria-live="polite" aria-atomic="true">
+            <p className="font-serif text-xl sm:text-2xl leading-tight">
+              {isTakingLonger ? "Still working on your answer" : "Analysing your question"}
+            </p>
+            <p className="mt-2 text-sm leading-6 text-[var(--color-fg-muted)]">
+              {isTakingLonger
+                ? "This is taking a little longer. Your question is still being processed — no need to submit it again."
+                : "The Desk is checking its reporting to build a sourced intelligence brief."}
+            </p>
+          </div>
         </div>
-        <span className="bs-label animate-pulse">Analysing</span>
+
+        <div className="mt-6 space-y-3 motion-safe:animate-pulse" aria-hidden="true">
+          <div className="h-3 w-3/4 bg-[var(--color-fg-muted)] opacity-20" />
+          <div className="h-2 w-full bg-[var(--color-fg-muted)] opacity-15" />
+          <div className="h-2 w-5/6 bg-[var(--color-fg-muted)] opacity-15" />
+        </div>
+        <p className="mt-5 text-xs leading-5 text-[var(--color-fg-muted)]">
+          Your brief will appear here automatically.
+        </p>
       </div>
-      <div className="grid md:grid-cols-3 gap-5 mt-7">
-        <Skeleton className="h-28" />
-        <Skeleton className="h-28" />
-        <Skeleton className="h-28" />
-      </div>
-      <Skeleton className="h-12 mt-6 w-5/6" />
-      <Skeleton className="h-5 mt-3 w-full" />
-      <Skeleton className="h-5 mt-2 w-11/12" />
-    </div>
+    </section>
   );
 }
