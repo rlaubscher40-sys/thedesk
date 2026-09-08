@@ -69,6 +69,26 @@ describe("narrated Reel publication", () => {
     await expect(postStatReel(stat, "https://thedesk.au", options)).rejects.toThrow("silent");
     expect(m.create).not.toHaveBeenCalled();
   });
+  it("requires requested subtitles before creating a Meta container", async () => {
+    await expect(
+      postStatReel(stat, "https://thedesk.au", { ...options, subtitles: true })
+    ).rejects.toThrow("subtitles");
+    expect(m.create).not.toHaveBeenCalled();
+    m.render.mockResolvedValue({
+      bytes: Buffer.from("captioned"),
+      seconds: 25,
+      narrated: true,
+      subtitled: true,
+    });
+    await expect(
+      postStatReel(stat, "https://thedesk.au", { ...options, subtitles: true })
+    ).resolves.toMatchObject({ postId: "media" });
+    expect(m.render).toHaveBeenLastCalledWith(
+      expect.any(Object),
+      "navy",
+      expect.objectContaining({ subtitles: true })
+    );
+  });
   it("refuses unavailable quota, missing identity and a lost reservation", async () => {
     await expect(postStatReel(stat, "https://thedesk.au")).rejects.toThrow("reservation");
     m.quota.mockResolvedValueOnce({ usage: null, quota: 100 });

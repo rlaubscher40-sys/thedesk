@@ -1123,6 +1123,7 @@ export async function postStatReel(
   opts: {
     variant?: CardVariant;
     script?: ScriptLine[];
+    subtitles?: boolean;
     caption?: string;
     publication?: { key: string; date: string };
     /**
@@ -1161,7 +1162,7 @@ export async function postStatReel(
   const renderStartedAt = Date.now();
   try {
     const [video, cover] = await Promise.all([
-      renderStatReel(sanitized, variant, { script: opts.script }),
+      renderStatReel(sanitized, variant, { script: opts.script, subtitles: opts.subtitles }),
       renderStatCard(sanitized, variant, {
         shape: "vertical",
         kicker: "The Number",
@@ -1174,6 +1175,8 @@ export async function postStatReel(
         `${video.narrated ? "narrated" : "SILENT"})`
     );
     if (!video.narrated) throw new Error("Narration unavailable. No silent Reel was published.");
+    if (opts.subtitles && !video.subtitled)
+      throw new Error("Required Reel subtitles are unavailable. No Reel was published.");
     videoUuid = storeTempImage(video.bytes, "video/mp4");
     coverUuid = storeTempImage(cover);
 

@@ -43,6 +43,11 @@ async function loadFonts(): Promise<LoadedFonts> {
   return cachedFonts;
 }
 
+/** Same bundled font for burned-in Reel subtitles; no system-font dependency. */
+export async function loadReelSubtitleFont(): Promise<Buffer> {
+  return Buffer.from((await loadFonts()).mono);
+}
+
 /**
  * The Desk lockup (logo + wordmark), light colourway on transparent, copied
  * into the fonts dir so the build bundles it next to dist/. Loaded once as a
@@ -2543,6 +2548,8 @@ export async function renderStatCard(
     /** How many of those have arrived. They appear one at a time, which is
      *  what makes the middle of the clip move without anything sliding. */
     factsShown?: number;
+    /** Reserve a band below branding for spoken subtitles, Reel frames only. */
+    subtitleSpace?: boolean;
   } = {}
 ): Promise<Buffer> {
   const logo = await loadLogo(variant);
@@ -2695,6 +2702,15 @@ export async function renderStatCard(
             ],
           },
         },
+
+        ...(opts.subtitleSpace && vertical
+          ? [
+              {
+                type: "div",
+                props: { style: { display: "flex", height: "160px", flexShrink: 0 }, children: "" },
+              },
+            ]
+          : []),
 
         ...(slug
           ? [

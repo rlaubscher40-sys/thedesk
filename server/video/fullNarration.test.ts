@@ -27,8 +27,12 @@ describe.skipIf(!available)("real complete narrated Reel", () => {
     expect(first).toHaveLength(6);
     expect(duplicate).toEqual(first);
     expect(first.every((clip) => audibleWave(clip.bytes))).toBe(true);
-    const video = await renderStatReel(candidate.stat, "light", { script: candidate.script });
+    const video = await renderStatReel(candidate.stat, "light", {
+      script: candidate.script,
+      subtitles: true,
+    });
     expect(video.narrated).toBe(true);
+    expect(video.subtitled).toBe(true);
     expect(video.seconds).toBeGreaterThan(15);
     expect(video.seconds).toBeLessThanOrEqual(32);
     expect(video.bytes.length).toBeGreaterThan(100_000);

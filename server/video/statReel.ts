@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import ffmpegPath from "ffmpeg-static";
-import { type CardVariant, renderStatCard } from "../og/instagramCards";
+import { type CardVariant, renderStatCard, loadReelSubtitleFont } from "../og/instagramCards";
 import { formatLike, parseFigure } from "../og/figureFormat";
 import type { SparkPoint } from "../og/sparkline";
 import type { StatFact } from "../metrics/statFacts";
@@ -16,6 +16,8 @@ import {
   type ReelStatText,
   type ScriptLine,
 } from "./narration";
+
+import { subtitleCues, subtitleAss } from "./subtitles";
 
 const run = promisify(execFile);
 
@@ -501,8 +503,8 @@ export function composeSections(stat: ReelStat, durations: Record<string, number
 export async function renderStatReel(
   stat: ReelStat,
   variant: CardVariant = "navy",
-  opts: { narrate?: boolean; script?: ScriptLine[] } = {}
-): Promise<{ bytes: Buffer; seconds: number; narrated: boolean }> {
+  opts: { narrate?: boolean; script?: ScriptLine[]; subtitles?: boolean } = {}
+): Promise<{ bytes: Buffer; seconds: number; narrated: boolean; subtitled: boolean }> {
   if (!ffmpegPath) throw new Error("ffmpeg binary unavailable");
 
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "desk-reel-"));
@@ -565,6 +567,7 @@ export async function renderStatReel(
           seriesProgress: beat.frame.seriesProgress,
           facts: stat.facts,
           factsShown: beat.frame.factsShown ?? 0,
+          subtitleSpace: opts.subtitles,
           kicker: "The Number",
         });
         file = path.join(dir, `frame-${cache.size}.jpg`);
@@ -591,8 +594,32 @@ export async function renderStatReel(
     for (const file of frameFiles) args.push("-i", file);
     for (const s of spokenSections) args.push("-i", s.file);
 
+    let subtitleFilter = "";
+    if (opts.subtitles) {
+      if (!spoken) throw new Error("Subtitles require measured narration.");
+      const cues = subtitleCues(
+        script,
+        sections.map((section, i) => ({
+          key: section.key,
+          start: starts[i]!,
+          seconds: durations[section.key] ?? 0,
+        }))
+      );
+      const fontDir = path.join(dir, "fonts");
+      await fs.mkdir(fontDir);
+      await fs.writeFile(
+        path.join(fontDir, "JetBrainsMono-Regular.woff"),
+        await loadReelSubtitleFont()
+      );
+      const assFile = path.join(dir, "subtitles.ass");
+      await fs.writeFile(assFile, subtitleAss(cues));
+      subtitleFilter = `[vplain]ass=filename=${assFile}:fontsdir=${fontDir}[vout]`;
+    }
     const graph = [
-      buildVideoGraph(beats),
+      opts.subtitles
+        ? buildVideoGraph(beats).replace(/\[vout\]$/, "[vplain]")
+        : buildVideoGraph(beats),
+      subtitleFilter,
       spokenSections.length
         ? buildAudioGraph(
             spokenSections.map((s) => s.start),
@@ -644,6 +671,7 @@ export async function renderStatReel(
       bytes: await fs.readFile(output),
       seconds: total,
       narrated: spokenSections.length > 0,
+      subtitled: Boolean(subtitleFilter),
     };
   } finally {
     await fs.rm(dir, { recursive: true, force: true }).catch(() => {});
