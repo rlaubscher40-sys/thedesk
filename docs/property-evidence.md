@@ -55,6 +55,14 @@ thresholds. Unchanged observations refresh the storage timestamp without
 duplicating history. A partial database acknowledgement fails the collection
 job so the scheduler can retry; one updated currency cannot hide missing data.
 
+Ask filters the known state demographic and capital approval series by named
+geography before applying its metric limit. Recognised city names may retrieve
+their explicitly labelled state demographic context; regional city questions
+do not substitute their capital's approvals. Location alone cannot satisfy an
+unrelated topic such as rents. Decimal thousands from ABS are converted exactly,
+preserving whole-person counts without rounding fractional people. A metric
+write without a configured database fails rather than acknowledging storage.
+
 ## Deployment acceptance
 
 Open Admin → Health → Property evidence coverage after deployment:

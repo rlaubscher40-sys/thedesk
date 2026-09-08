@@ -12,6 +12,17 @@ import { csvRows } from "../core/strictCsv";
 const BASE_IDENTITY = { DATAFLOW: DEMOGRAPHIC_FLOW, FREQ: "Q", UNIT_MEASURE: "NUM" };
 const VALID_STATUS = new Set(["", "p", "r"]);
 
+/** Shift the decimal as text: binary multiplication can turn 65.531 thousand
+ * into 65531.00000000001 and incorrectly discard a whole-person observation. */
+function wholePeople(value: string, scale: number): number | null {
+  const match = value.match(/^(-?)(\d+)(?:\.(\d+))?$/);
+  if (!match) return null;
+  const fraction = (match[3] ?? "").replace(/0+$/, "");
+  if (fraction.length > scale) return null;
+  const people = Number(`${match[1]}${match[2]}${fraction.padEnd(scale, "0")}`);
+  return Number.isSafeInteger(people) ? people : null;
+}
+
 /** Parse only the pinned state-level population/component series. */
 export function parseAbsDemographics(csv: string, retrievedAt: string): StateDemographics {
   if (csv.length > 64_000 || !Number.isFinite(Date.parse(retrievedAt)))
@@ -51,15 +62,14 @@ export function parseAbsDemographics(csv: string, retrievedAt: string): StateDem
     const key = `${state}:${measure.name}:${row.TIME_PERIOD}`;
     if (seen.has(key)) throw new Error("Duplicate demographics observation");
     seen.add(key);
-    const numeric = /^-?\d+(?:\.\d+)?$/.test(row.OBS_VALUE!) ? Number(row.OBS_VALUE) : null;
-    const multiplier = measure.unitMultiplier === "3" ? 1_000 : 1;
-    const people =
-      VALID_STATUS.has(row.OBS_STATUS!) && numeric !== null ? numeric * multiplier : null;
+    const people = VALID_STATUS.has(row.OBS_STATUS!)
+      ? wholePeople(row.OBS_VALUE!, Number(measure.unitMultiplier))
+      : null;
     observations.push({
       state,
       measure: measure.name,
       period: row.TIME_PERIOD!,
-      people: people !== null && Number.isSafeInteger(people) ? people : null,
+      people,
       status: row.OBS_STATUS!,
     });
   }

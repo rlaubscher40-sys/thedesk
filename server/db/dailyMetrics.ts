@@ -65,7 +65,7 @@ export async function upsertDailyMetric(input: {
 }): Promise<void> {
   if (isDemoMode()) return demoQueries.upsertDailyMetric(input);
   const db = getDb();
-  if (!db) return;
+  if (!db) throw new Error("Metric persistence requires a database");
 
   const existing = await db
     .select()

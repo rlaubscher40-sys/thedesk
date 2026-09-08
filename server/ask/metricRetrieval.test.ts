@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { DailyMetric } from "../db/schema";
 import { askMetricTerms, displayMetricValue, rankAskMetrics } from "./metricRetrieval";
+import { PROPERTY_REGIONS } from "../../shared/propertyCoverage";
 
 function metric(overrides: Partial<DailyMetric>): DailyMetric {
   return {
@@ -62,20 +63,85 @@ const metrics = [
 ];
 
 describe("Ask metric retrieval", () => {
+  const stateMetrics = PROPERTY_REGIONS.flatMap((region, index) => [
+    metric({
+      metricKey: `${region.code.toLowerCase()}_population`,
+      label: `${region.code} population`,
+      context: `${region.name}. Whole state population, not a city or suburb estimate.`,
+      groupKey: "DEMOGRAPHICS",
+      displayOrder: 150 + index * 4,
+    }),
+    metric({
+      metricKey: `${region.code.toLowerCase()}_net_overseas_migration_12m`,
+      label: `${region.code} net overseas migration`,
+      context: `${region.name}. Net overseas migration over four quarters.`,
+      groupKey: "DEMOGRAPHICS",
+      displayOrder: 151 + index * 4,
+    }),
+  ]);
+
+  it("retrieves the named city's state context before the nationwide metric cap", () => {
+    expect(
+      rankAskMetrics("What is happening with Hobart population?", stateMetrics).map(
+        (row) => row.metricKey
+      )
+    ).toEqual(["tas_population", "tas_net_overseas_migration_12m"]);
+    expect(
+      rankAskMetrics("Compare nsw and wa population", stateMetrics)
+        .map((row) => row.metricKey)
+        .sort()
+    ).toEqual(
+      [
+        "nsw_population",
+        "nsw_net_overseas_migration_12m",
+        "wa_population",
+        "wa_net_overseas_migration_12m",
+      ].sort()
+    );
+  });
+
+  it("requires a topic match as well as a state match", () => {
+    expect(rankAskMetrics("What is happening with NSW rents?", stateMetrics)).toEqual([]);
+    expect(rankAskMetrics("South Australia rental vacancy", stateMetrics)).toEqual([]);
+  });
+
+  it("does not substitute capital-city approvals for a regional city", () => {
+    const approvals = metric({
+      metricKey: "brisbane_approvals_12m",
+      label: "Brisbane approvals (12m)",
+      context: "Greater Brisbane. Approved dwellings over 12 months.",
+      groupKey: "PROPERTY",
+    });
+    expect(rankAskMetrics("Townsville building approvals", [approvals])).toEqual([]);
+    expect(rankAskMetrics("Queensland building approvals", [approvals])).toEqual([approvals]);
+    expect(rankAskMetrics("Brisbane building approvals", [approvals])).toEqual([approvals]);
+  });
+
   it("does not offer unemployment or vacancy rates for an interest-rate question", () => {
-    const keys = rankAskMetrics("What is the current investor interest rate?", metrics).map((row) => row.metricKey);
+    const keys = rankAskMetrics("What is the current investor interest rate?", metrics).map(
+      (row) => row.metricKey
+    );
     expect(keys).toContain("cash_rate");
     expect(keys).not.toContain("unemployment_rate");
     expect(keys).not.toContain("vacancy_rate");
   });
 
   it("does not expand a rental or unemployment rate question into interest rates", () => {
-    expect(rankAskMetrics("What is the unemployment rate?", metrics).map((row) => row.metricKey)).toEqual(["unemployment_rate"]);
-    expect(rankAskMetrics("What is the rental vacancy rate?", metrics).map((row) => row.metricKey)).toEqual(["vacancy_rate"]);
+    expect(
+      rankAskMetrics("What is the unemployment rate?", metrics).map((row) => row.metricKey)
+    ).toEqual(["unemployment_rate"]);
+    expect(
+      rankAskMetrics("What is the rental vacancy rate?", metrics).map((row) => row.metricKey)
+    ).toEqual(["vacancy_rate"]);
   });
 
   it("does not treat current as rent or rate as a corporate substring", () => {
-    const unrelated = metric({ metricKey: "corporate_profit", label: "Corporate profits", context: "Current company outlook", groupKey: "EQUITIES" });
+    const unrelated = metric({
+      metricKey: "corporate_profit",
+      label: "Corporate profits",
+      context: "Current company outlook",
+      groupKey: "EQUITIES",
+    });
     expect(rankAskMetrics("rental rate", [unrelated])).toEqual([]);
     expect(rankAskMetrics("current Townsville outlook", metrics)).toEqual([]);
   });
