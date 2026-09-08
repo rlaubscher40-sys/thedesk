@@ -14,6 +14,7 @@ import {
 import { ShareIntelligenceCardButton } from "@/components/ask/ShareIntelligenceCardButton";
 import { GUTTER_X } from "@/components/broadsheet/tokens";
 import { trackEvent } from "@/lib/analytics";
+import { readAskHistory, rememberAskQuestion } from "@/lib/askHistory";
 import { getLoginUrl } from "@/lib/auth";
 import { cn } from "@/lib/cn";
 import { trpc } from "@/lib/trpc";
@@ -26,74 +27,69 @@ const EXAMPLES = [
   "What has changed in housing supply recently?",
 ];
 
-const HISTORY_KEY = "thedesk:ask-history";
-const MAX_HISTORY = 5;
-
-function readHistory(): string[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = JSON.parse(window.localStorage.getItem(HISTORY_KEY) ?? "[]");
-    return Array.isArray(raw) ? raw.filter((value): value is string => typeof value === "string") : [];
-  } catch {
-    return [];
-  }
-}
-
-function rememberQuestion(question: string): void {
-  if (typeof window === "undefined") return;
-  const next = [question, ...readHistory().filter((item) => item !== question)].slice(0, MAX_HISTORY);
-  window.localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
-}
-
 export default function AskDeskPage() {
   const search = useSearch();
   const [question, setQuestion] = useState("");
   const [history, setHistory] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const feedbackRef = useRef<HTMLDivElement>(null);
+  const requestInFlight = useRef(false);
   const handledDeepLink = useRef<string | null>(null);
   const mutation = trpc.ask.answer.useMutation();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
 
   useEffect(() => {
-    setHistory(readHistory());
+    setHistory(readAskHistory());
+    if (window.innerWidth >= 768) inputRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    const input = inputRef.current;
+    if (!input) return;
+    input.style.height = "auto";
+    input.style.height = `${Math.min(input.scrollHeight, 180)}px`;
+  }, [question]);
+
+  useEffect(() => {
+    if (!mutation.isPending || window.innerWidth >= 768) return;
+    inputRef.current?.blur();
+    feedbackRef.current?.scrollIntoView({ block: "start" });
+  }, [mutation.isPending]);
+
+  useEffect(() => {
     const linkedQuestion = (new URLSearchParams(search).get("q") ?? "").trim().slice(0, 240);
+    if (linkedQuestion.length < 3) {
+      handledDeepLink.current = null;
+      return;
+    }
     if (
       linkedQuestion.length >= 3 &&
       linkedQuestion !== handledDeepLink.current &&
-      !mutation.isPending
+      !mutation.isPending && !requestInFlight.current
     ) {
       handledDeepLink.current = linkedQuestion;
-      setQuestion(linkedQuestion);
-      setCopied(false);
-      rememberQuestion(linkedQuestion);
-      setHistory(readHistory());
-      trackEvent("ask_query", "ask");
-      mutation.mutate({ question: linkedQuestion });
-      return;
+      ask(linkedQuestion);
     }
-    if (typeof window !== "undefined" && window.innerWidth >= 768) inputRef.current?.focus();
-  }, [search]);
+  }, [search, mutation.isPending]);
 
   function submit(event?: FormEvent) {
     event?.preventDefault();
-    const value = question.trim();
-    if (value.length < 3 || mutation.isPending) return;
-    setCopied(false);
-    rememberQuestion(value);
-    setHistory(readHistory());
-    trackEvent("ask_query", "ask");
-    mutation.mutate({ question: value });
+    ask(question);
   }
 
-  function ask(value: string) {
-    if (mutation.isPending) return;
+  function ask(rawQuestion: string) {
+    const value = rawQuestion.trim().slice(0, 240);
+    if (value.length < 3 || mutation.isPending || requestInFlight.current) return;
+    // A ref closes the same-frame double-tap gap before React rerenders.
+    requestInFlight.current = true;
     setQuestion(value);
     setCopied(false);
-    rememberQuestion(value);
-    setHistory(readHistory());
+    setHistory(rememberAskQuestion(value, history));
     trackEvent("ask_query", "ask");
-    mutation.mutate({ question: value });
+    mutation.mutate({ question: value }, {
+      onSettled: () => { requestInFlight.current = false; },
+    });
   }
 
   const result = mutation.data;
@@ -148,8 +144,10 @@ export default function AskDeskPage() {
         await navigator.share({ title: result.answer.headline, text, url: publicUrl });
         trackEvent("ask_share", "ask");
         return;
-      } catch {
-        // User cancelled or Web Share is unavailable for this payload.
+      } catch (error) {
+        // Cancelling the share sheet should not unexpectedly copy the brief.
+        if (error instanceof Error && error.name === "AbortError") return;
+        // Web Share is unavailable for this payload; try the clipboard.
       }
     }
     try {
@@ -220,17 +218,15 @@ export default function AskDeskPage() {
             maxLength={240}
             onChange={(event) => {
               setQuestion(event.target.value);
-              event.currentTarget.style.height = "auto";
-              event.currentTarget.style.height = `${Math.min(event.currentTarget.scrollHeight, 180)}px`;
             }}
             onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey) {
+              if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
                 event.preventDefault();
                 submit();
               }
             }}
             placeholder="What do you need to know about Australian property?"
-            className="flex-1 min-w-0 resize-none overflow-hidden bg-transparent border-0 outline-none font-serif"
+            className="flex-1 min-w-0 resize-none overflow-y-auto bg-transparent border-0 outline-none font-serif"
             style={{
               minHeight: 48,
               fontSize: "clamp(24px, 3.8vw, 44px)",
@@ -321,6 +317,7 @@ export default function AskDeskPage() {
         </div>
       )}
 
+      <div ref={feedbackRef} className="scroll-mt-24">
       {mutation.isPending && <ThinkingState question={mutation.variables?.question ?? question.trim()} />}
 
       {mutation.isError && (
@@ -542,6 +539,7 @@ export default function AskDeskPage() {
           </div>
         </article>
       )}
+      </div>
     </div>
   );
 }
