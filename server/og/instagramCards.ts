@@ -21,6 +21,7 @@ import type { StatFact } from "../metrics/statFacts";
 import sharp from "sharp";
 import type { DailyFeedItem, Edition } from "../db/schema";
 import type { EditionTopic } from "../../shared/schemas";
+import { weeklyFeatureTree } from "./weeklyFeature";
 
 const FONT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "fonts");
 
@@ -305,6 +306,11 @@ async function renderToJpeg(tree: object, width: number, height: number): Promis
   const svg = await satori(tree as never, {
     width,
     height,
+    onNodeDetected: (node) => {
+      const maxBottom = node.props["data-max-bottom"];
+      if (typeof maxBottom === "number" && node.top + node.height > maxBottom)
+        throw new Error("Weekly feature needs editorial review: body overlaps footer clearance");
+    },
     fonts: [
       {
         name: "Playfair Display",
@@ -1295,761 +1301,31 @@ export async function renderDailyStoryVertical(
 
 /**
  * Weekly edition cover card: 1080×1350 portrait.
- * Shows edition number, week range, and topic list as a contents page.
+ * Leads with the first property finding, followed by a reading question and edition date.
  */
 export async function renderWeeklyCoverCard(
   edition: Edition,
-  heroOverride?: string | null,
+  _heroOverride?: string | null,
   variant: CardVariant = "navy"
 ): Promise<Buffer> {
-  const logo = await loadLogo(variant);
-  // Two-tone so the weekly slots into the grid checkerboard like the dailies.
-  // Shadowing the module palette with the scheme's colours keeps the large
-  // render tree below unchanged; only the surfaces that must differ by tone
-  // (background, the veil over the hero photo, the bloom) are branched. On the
-  // light tone the veil is a heavy cream so the dark hero photo drops to a
-  // faint texture and the near-ink text stays legible.
-  const c = colorScheme(variant);
-  const FG = c.fg;
-  const FG_MUTED = c.fgMuted;
-  const AMBER = c.amber;
-  const heroVeil =
-    variant === "light"
-      ? "linear-gradient(180deg, rgba(244,241,234,0.93) 0%, rgba(244,241,234,0.95) 44%, rgba(244,241,234,0.98) 100%)"
-      : "linear-gradient(180deg, rgba(12,18,32,0.46) 0%, rgba(12,18,32,0.72) 46%, rgba(12,18,32,0.94) 100%)";
-  // The edition's own AI-generated hero (a dark, no-text, category-matched
-  // image, see editionHeroPrompt) when the posting flow supplies it as a data
-  // URI, else the bundled fallback so a render never depends on a generated
-  // asset existing.
-  const hero = heroOverride ?? (await loadAsset("hero-weekly.jpg"));
-  const headshot = await loadAsset("ruben.jpg");
-  const topics = edition.topics.slice(0, 4);
-  // Topic titles are argument-headlines up to ~14 words, so a fixed 40px would
-  // force the fixed-height contents block to overflow. Step the whole list down
-  // by its longest entry so every headline shows in full instead of being cut
-  // mid-sentence.
-  const topicTitleFontSize = fitFontSize(
-    Math.max(0, ...topics.map((t) => t.title.trim().length)),
-    [
-      [46, "40px"],
-      [66, "35px"],
-      [88, "30px"],
-    ],
-    "27px"
+  return renderToJpeg(
+    weeklyFeatureTree(edition, colorScheme(variant), false, await loadLogo(variant)),
+    1080,
+    1350
   );
-  const metrics = edition.keyMetrics as Record<string, string | undefined> | null | undefined;
-  const cashRate = metrics?.cashRate ?? metrics?.cash_rate ?? null;
-  const asx = metrics?.asx200 ?? metrics?.ASX200 ?? metrics?.asx ?? null;
-  const metricsLine =
-    cashRate && asx
-      ? `Cash Rate ${cashRate} · ASX 200 ${asx}`
-      : cashRate
-        ? `Cash Rate ${cashRate}`
-        : "The full edition is on our feed";
-
-  const tree = {
-    type: "div",
-    props: {
-      style: {
-        display: "flex",
-        flexDirection: "column",
-        width: "1080px",
-        height: "1350px",
-        backgroundColor: c.bg,
-        position: "relative",
-        padding: "80px 72px",
-        justifyContent: "space-between",
-      },
-      children: [
-        // ── Photographic hero behind everything ──
-        hero
-          ? {
-              type: "div",
-              props: {
-                style: {
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "1080px",
-                  height: "1350px",
-                  display: "flex",
-                  backgroundImage: `url(${hero})`,
-                  backgroundSize: "1080px 1350px",
-                  backgroundPosition: "center",
-                },
-                children: "",
-              },
-            }
-          : { type: "div", props: { style: { display: "flex" }, children: "" } },
-        // Navy veil for legibility — heavier toward the bottom where the
-        // type sits, lifting toward the top so the photo breathes.
-        {
-          type: "div",
-          props: {
-            style: {
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "1080px",
-              height: "1350px",
-              display: "flex",
-              backgroundImage: heroVeil,
-            },
-            children: "",
-          },
-        },
-        // Amber bloom, top-right.
-        {
-          type: "div",
-          props: {
-            style: {
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "1080px",
-              height: "1350px",
-              display: "flex",
-              backgroundImage: c.bloom,
-            },
-            children: "",
-          },
-        },
-
-        // ── Header: lockup + weekly tag + edition line ──
-        {
-          type: "div",
-          props: {
-            style: { display: "flex", flexDirection: "column", gap: "14px" },
-            children: [
-              {
-                type: "div",
-                props: {
-                  style: {
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  },
-                  children: [
-                    brandHeader(logo, 50, { accent: AMBER }),
-                    {
-                      type: "div",
-                      props: {
-                        style: {
-                          fontFamily: "JetBrains Mono",
-                          fontSize: "15px",
-                          letterSpacing: "0.26em",
-                          textTransform: "uppercase",
-                          color: AMBER,
-                        },
-                        children: "Weekly Edition",
-                      },
-                    },
-                  ],
-                },
-              },
-              {
-                type: "div",
-                props: {
-                  style: {
-                    fontFamily: "JetBrains Mono",
-                    fontSize: "16px",
-                    letterSpacing: "0.18em",
-                    textTransform: "uppercase",
-                    color: FG_MUTED,
-                  },
-                  children: `Edition No. ${edition.editionNumber} · ${edition.weekRange}`,
-                },
-              },
-            ],
-          },
-        },
-
-        // ── Feature: title + topics ──
-        {
-          type: "div",
-          props: {
-            style: { display: "flex", flexDirection: "column", gap: "40px" },
-            children: [
-              {
-                type: "div",
-                props: {
-                  style: {
-                    fontFamily: "Playfair Display",
-                    fontWeight: 700,
-                    fontSize: "90px",
-                    lineHeight: 1.08,
-                    letterSpacing: "-0.03em",
-                    color: FG,
-                  },
-                  children: "This Week in\nAustralian Property",
-                },
-              },
-              {
-                type: "div",
-                props: {
-                  style: { display: "flex", flexDirection: "column", gap: "28px" },
-                  children: [
-                    {
-                      type: "div",
-                      props: {
-                        style: {
-                          fontFamily: "JetBrains Mono",
-                          fontSize: "12px",
-                          letterSpacing: "0.25em",
-                          textTransform: "uppercase",
-                          color: AMBER,
-                          marginBottom: "2px",
-                        },
-                        children: "Inside this edition",
-                      },
-                    },
-                    ...topics.map((topic, i) => ({
-                      type: "div",
-                      props: {
-                        style: {
-                          display: "flex",
-                          alignItems: "flex-start",
-                          gap: "16px",
-                        },
-                        children: [
-                          {
-                            type: "div",
-                            props: {
-                              style: {
-                                fontFamily: "JetBrains Mono",
-                                fontSize: "15px",
-                                color: AMBER,
-                                minWidth: "30px",
-                                marginTop: "11px",
-                              },
-                              children: `0${i + 1}`,
-                            },
-                          },
-                          {
-                            type: "div",
-                            props: {
-                              style: {
-                                fontFamily: "Playfair Display",
-                                fontWeight: 700,
-                                fontSize: topicTitleFontSize,
-                                lineHeight: 1.26,
-                                color: FG,
-                              },
-                              // High cap with a sentence-aware trim: real
-                              // headlines pass through whole; only a runaway
-                              // title gets an ellipsis instead of a silent chop.
-                              children: clampSentence(topic.title, 120),
-                            },
-                          },
-                        ],
-                      },
-                    })),
-                  ],
-                },
-              },
-            ],
-          },
-        },
-
-        // ── Bottom: byline (headshot) + rule + metrics/domain ──
-        {
-          type: "div",
-          props: {
-            style: { display: "flex", flexDirection: "column", gap: "22px" },
-            children: [
-              {
-                type: "div",
-                props: {
-                  style: { display: "flex", alignItems: "center", gap: "16px" },
-                  children: [
-                    {
-                      type: "div",
-                      props: {
-                        style: {
-                          display: "flex",
-                          width: "66px",
-                          height: "66px",
-                          borderRadius: "33px",
-                          border: `2px solid ${AMBER}`,
-                          ...(headshot
-                            ? {
-                                backgroundImage: `url(${headshot})`,
-                                backgroundSize: "66px 66px",
-                              }
-                            : { backgroundColor: c.amberSoft }),
-                        },
-                        children: "",
-                      },
-                    },
-                    {
-                      type: "div",
-                      props: {
-                        style: { display: "flex", flexDirection: "column", gap: "3px" },
-                        children: [
-                          {
-                            type: "div",
-                            props: {
-                              style: {
-                                fontFamily: "JetBrains Mono",
-                                fontSize: "11px",
-                                letterSpacing: "0.22em",
-                                textTransform: "uppercase",
-                                color: AMBER,
-                              },
-                              children: "Ruben's Take",
-                            },
-                          },
-                          {
-                            type: "div",
-                            props: {
-                              style: {
-                                fontFamily: "Playfair Display",
-                                fontWeight: 700,
-                                fontSize: "26px",
-                                color: FG,
-                              },
-                              children: "Ruben Laubscher",
-                            },
-                          },
-                        ],
-                      },
-                    },
-                  ],
-                },
-              },
-              {
-                type: "div",
-                props: {
-                  style: {
-                    display: "flex",
-                    width: "100%",
-                    height: "1px",
-                    backgroundImage: `linear-gradient(90deg, ${AMBER} 0%, rgba(212,168,83,0) 70%)`,
-                  },
-                  children: "",
-                },
-              },
-              {
-                type: "div",
-                props: {
-                  style: {
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  },
-                  children: [
-                    {
-                      type: "div",
-                      props: {
-                        style: {
-                          fontFamily: "JetBrains Mono",
-                          fontSize: "13px",
-                          letterSpacing: "0.15em",
-                          color: FG_MUTED,
-                        },
-                        children: metricsLine,
-                      },
-                    },
-                    {
-                      type: "div",
-                      props: {
-                        style: {
-                          fontFamily: "JetBrains Mono",
-                          fontSize: "15px",
-                          letterSpacing: "0.22em",
-                          color: AMBER,
-                        },
-                        children: "thedesk.au",
-                      },
-                    },
-                  ],
-                },
-              },
-            ],
-          },
-        },
-      ],
-    },
-  };
-
-  return renderToJpeg(tree, 1080, 1350);
 }
 
-/**
- * Weekly edition Story frame: 1080×1920 (9:16), posted to the Story right
- * after the weekly carousel. Lines up with renderWeeklyCoverCard (same edition
- * number lockup, title, and topics contents) but vertical, with a prompt back
- * to the feed for the full edition.
- */
+/** Same lead, date and palette in a Story-safe vertical composition. */
 export async function renderWeeklyStoryVertical(
   edition: Edition,
-  heroOverride?: string | null,
+  _heroOverride?: string | null,
   variant: CardVariant = "navy"
 ): Promise<Buffer> {
-  const logo = await loadLogo(variant);
-  // Match the cover's tone (see renderWeeklyCoverCard) so a light-cover week
-  // gets a light Story too. Same shadow-the-palette approach.
-  const c = colorScheme(variant);
-  const FG = c.fg;
-  const FG_MUTED = c.fgMuted;
-  const AMBER = c.amber;
-  const heroVeil =
-    variant === "light"
-      ? "linear-gradient(180deg, rgba(244,241,234,0.93) 0%, rgba(244,241,234,0.95) 44%, rgba(244,241,234,0.98) 100%)"
-      : "linear-gradient(180deg, rgba(12,18,32,0.50) 0%, rgba(12,18,32,0.72) 44%, rgba(12,18,32,0.95) 100%)";
-  // Same edition hero as the cover (with the bundled fallback) so the Story
-  // and the cover share one photograph.
-  const hero = heroOverride ?? (await loadAsset("hero-weekly.jpg"));
-  const headshot = await loadAsset("ruben.jpg");
-  const topics = edition.topics.slice(0, 4);
-  // Same step-down as the cover so full headlines fit the taller Story canvas
-  // rather than being cut mid-sentence.
-  const topicTitleFontSize = fitFontSize(
-    Math.max(0, ...topics.map((t) => t.title.trim().length)),
-    [
-      [46, "44px"],
-      [66, "38px"],
-      [88, "33px"],
-    ],
-    "30px"
+  return renderToJpeg(
+    weeklyFeatureTree(edition, colorScheme(variant), true, await loadLogo(variant)),
+    1080,
+    1920
   );
-  const metrics = edition.keyMetrics as Record<string, string | undefined> | null | undefined;
-  const cashRate = metrics?.cashRate ?? metrics?.cash_rate ?? null;
-  const asx = metrics?.asx200 ?? metrics?.ASX200 ?? metrics?.asx ?? null;
-  const metricsLine =
-    cashRate && asx
-      ? `Cash Rate ${cashRate} · ASX 200 ${asx}`
-      : cashRate
-        ? `Cash Rate ${cashRate}`
-        : "Full edition, link in bio";
-
-  const tree = {
-    type: "div",
-    props: {
-      style: {
-        display: "flex",
-        flexDirection: "column",
-        width: "1080px",
-        height: "1920px",
-        backgroundColor: c.bg,
-        position: "relative",
-        padding: "130px 80px",
-        justifyContent: "space-between",
-      },
-      children: [
-        // ── Photographic hero behind everything — the tall sibling of the
-        //    weekly cover, so the Story reads as the same premium system. ──
-        hero
-          ? {
-              type: "div",
-              props: {
-                style: {
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "1080px",
-                  height: "1920px",
-                  display: "flex",
-                  backgroundImage: `url(${hero})`,
-                  backgroundSize: "1080px 1920px",
-                  backgroundPosition: "center",
-                },
-                children: "",
-              },
-            }
-          : { type: "div", props: { style: { display: "flex" }, children: "" } },
-        // Navy veil — light at the top so the photo breathes, heavy at the
-        // bottom where the contents and byline sit.
-        {
-          type: "div",
-          props: {
-            style: {
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "1080px",
-              height: "1920px",
-              display: "flex",
-              backgroundImage: heroVeil,
-            },
-            children: "",
-          },
-        },
-        // Amber bloom, top-right.
-        {
-          type: "div",
-          props: {
-            style: {
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "1080px",
-              height: "1920px",
-              display: "flex",
-              backgroundImage: c.bloom,
-            },
-            children: "",
-          },
-        },
-
-        // ── Header: lockup + weekly tag + edition line ──
-        {
-          type: "div",
-          props: {
-            style: { display: "flex", flexDirection: "column", gap: "16px" },
-            children: [
-              {
-                type: "div",
-                props: {
-                  style: {
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  },
-                  children: [
-                    brandHeader(logo, 58, { accent: AMBER }),
-                    {
-                      type: "div",
-                      props: {
-                        style: {
-                          fontFamily: "JetBrains Mono",
-                          fontSize: "16px",
-                          letterSpacing: "0.26em",
-                          textTransform: "uppercase",
-                          color: AMBER,
-                        },
-                        children: "Weekly Edition",
-                      },
-                    },
-                  ],
-                },
-              },
-              {
-                type: "div",
-                props: {
-                  style: {
-                    fontFamily: "JetBrains Mono",
-                    fontSize: "17px",
-                    letterSpacing: "0.18em",
-                    textTransform: "uppercase",
-                    color: FG_MUTED,
-                  },
-                  children: `Edition No. ${edition.editionNumber} · ${edition.weekRange}`,
-                },
-              },
-            ],
-          },
-        },
-
-        // ── Feature: title + topic contents ──
-        {
-          type: "div",
-          props: {
-            style: { display: "flex", flexDirection: "column", gap: "48px" },
-            children: [
-              {
-                type: "div",
-                props: {
-                  style: {
-                    fontFamily: "Playfair Display",
-                    fontWeight: 700,
-                    fontSize: "104px",
-                    lineHeight: 1.04,
-                    letterSpacing: "-0.03em",
-                    color: FG,
-                  },
-                  children: "This Week in\nAustralian Property",
-                },
-              },
-              {
-                type: "div",
-                props: {
-                  style: { display: "flex", flexDirection: "column", gap: "30px" },
-                  children: [
-                    {
-                      type: "div",
-                      props: {
-                        style: {
-                          fontFamily: "JetBrains Mono",
-                          fontSize: "14px",
-                          letterSpacing: "0.25em",
-                          textTransform: "uppercase",
-                          color: AMBER,
-                          marginBottom: "2px",
-                        },
-                        children: "Inside this edition",
-                      },
-                    },
-                    ...topics.map((topic, i) => ({
-                      type: "div",
-                      props: {
-                        style: {
-                          display: "flex",
-                          alignItems: "flex-start",
-                          gap: "20px",
-                        },
-                        children: [
-                          {
-                            type: "div",
-                            props: {
-                              style: {
-                                fontFamily: "JetBrains Mono",
-                                fontSize: "17px",
-                                color: AMBER,
-                                minWidth: "34px",
-                                marginTop: "12px",
-                              },
-                              children: `0${i + 1}`,
-                            },
-                          },
-                          {
-                            type: "div",
-                            props: {
-                              style: {
-                                fontFamily: "Playfair Display",
-                                fontWeight: 700,
-                                fontSize: topicTitleFontSize,
-                                lineHeight: 1.22,
-                                color: FG,
-                              },
-                              // High cap with a sentence-aware trim: real
-                              // headlines pass through whole; only a runaway
-                              // title gets an ellipsis instead of a silent chop.
-                              children: clampSentence(topic.title, 120),
-                            },
-                          },
-                        ],
-                      },
-                    })),
-                  ],
-                },
-              },
-            ],
-          },
-        },
-
-        // ── Bottom: byline (headshot) + rule + metrics/domain ──
-        {
-          type: "div",
-          props: {
-            style: { display: "flex", flexDirection: "column", gap: "26px" },
-            children: [
-              {
-                type: "div",
-                props: {
-                  style: { display: "flex", alignItems: "center", gap: "18px" },
-                  children: [
-                    {
-                      type: "div",
-                      props: {
-                        style: {
-                          display: "flex",
-                          width: "74px",
-                          height: "74px",
-                          borderRadius: "37px",
-                          border: "2px solid rgba(212,168,83,0.6)",
-                          ...(headshot
-                            ? {
-                                backgroundImage: `url(${headshot})`,
-                                backgroundSize: "74px 74px",
-                              }
-                            : { backgroundColor: "rgba(212,168,83,0.18)" }),
-                        },
-                        children: "",
-                      },
-                    },
-                    {
-                      type: "div",
-                      props: {
-                        style: { display: "flex", flexDirection: "column", gap: "4px" },
-                        children: [
-                          {
-                            type: "div",
-                            props: {
-                              style: {
-                                fontFamily: "JetBrains Mono",
-                                fontSize: "12px",
-                                letterSpacing: "0.22em",
-                                textTransform: "uppercase",
-                                color: AMBER,
-                              },
-                              children: "Ruben's Take",
-                            },
-                          },
-                          {
-                            type: "div",
-                            props: {
-                              style: {
-                                fontFamily: "Playfair Display",
-                                fontWeight: 700,
-                                fontSize: "30px",
-                                color: FG,
-                              },
-                              children: "Ruben Laubscher",
-                            },
-                          },
-                        ],
-                      },
-                    },
-                  ],
-                },
-              },
-              {
-                type: "div",
-                props: {
-                  style: {
-                    display: "flex",
-                    width: "100%",
-                    height: "1px",
-                    backgroundImage: `linear-gradient(90deg, ${AMBER} 0%, rgba(212,168,83,0) 70%)`,
-                  },
-                  children: "",
-                },
-              },
-              {
-                type: "div",
-                props: {
-                  style: {
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  },
-                  children: [
-                    {
-                      type: "div",
-                      props: {
-                        style: {
-                          fontFamily: "JetBrains Mono",
-                          fontSize: "15px",
-                          letterSpacing: "0.15em",
-                          color: FG_MUTED,
-                        },
-                        children: metricsLine,
-                      },
-                    },
-                    {
-                      type: "div",
-                      props: {
-                        style: {
-                          fontFamily: "JetBrains Mono",
-                          fontSize: "16px",
-                          letterSpacing: "0.22em",
-                          color: AMBER,
-                        },
-                        children: "thedesk.au",
-                      },
-                    },
-                  ],
-                },
-              },
-            ],
-          },
-        },
-      ],
-    },
-  };
-
-  return renderToJpeg(tree, 1080, 1920);
 }
 
 /**
@@ -2094,13 +1370,20 @@ export async function renderWeeklyTopicCard(
   const summaryLineHeight = sparse ? 1.58 : 1.62;
   // On a standfirst page the title is the hero, so it scales right up; on a
   // dense card it stays measured to leave room for the analysis blocks.
-  const titleFontSize = sparse
-    ? topic.title.length > 42
-      ? "78px"
-      : "90px"
-    : topic.title.length > 55
-      ? "52px"
-      : "62px";
+  if (!topic.title.trim() || topic.title.length > 200)
+    throw new Error("Weekly topic needs editorial review: headline outside layout limit");
+  const titleFontSize =
+    topic.title.length > 150
+      ? "44px"
+      : topic.title.length > 100
+        ? "52px"
+        : sparse
+          ? topic.title.length > 55
+            ? "68px"
+            : "90px"
+          : topic.title.length > 55
+            ? "52px"
+            : "62px";
 
   const tree = {
     type: "div",
@@ -2153,8 +1436,8 @@ export async function renderWeeklyTopicCard(
                 props: {
                   style: {
                     fontFamily: "JetBrains Mono",
-                    fontSize: "12px",
-                    letterSpacing: "0.28em",
+                    fontSize: "24px",
+                    letterSpacing: "0.12em",
                     textTransform: "uppercase",
                     color: AMBER,
                   },
@@ -2166,8 +1449,8 @@ export async function renderWeeklyTopicCard(
                 props: {
                   style: {
                     fontFamily: "JetBrains Mono",
-                    fontSize: "12px",
-                    letterSpacing: "0.15em",
+                    fontSize: "24px",
+                    letterSpacing: "0.10em",
                     color: FG_MUTED,
                   },
                   children: `${slideNum} / ${totalNum}`,
@@ -2220,8 +1503,8 @@ export async function renderWeeklyTopicCard(
                           props: {
                             style: {
                               fontFamily: "JetBrains Mono",
-                              fontSize: "12px",
-                              letterSpacing: "0.22em",
+                              fontSize: "24px",
+                              letterSpacing: "0.12em",
                               textTransform: "uppercase",
                               color: AMBER,
                             },
@@ -2242,7 +1525,7 @@ export async function renderWeeklyTopicCard(
                           letterSpacing: "-0.025em",
                           color: FG,
                         },
-                        children: clamp(topic.title, 80),
+                        children: topic.title.trim(),
                       },
                     },
                     // Summary (the lead / standfirst — grows when it carries
@@ -2279,12 +1562,12 @@ export async function renderWeeklyTopicCard(
                                   props: {
                                     style: {
                                       fontFamily: "JetBrains Mono",
-                                      fontSize: "11px",
-                                      letterSpacing: "0.25em",
+                                      fontSize: "24px",
+                                      letterSpacing: "0.12em",
                                       textTransform: "uppercase",
                                       color: AMBER,
                                     },
-                                    children: "Why It Matters",
+                                    children: "Before You Act",
                                   },
                                 },
                                 {
@@ -2292,7 +1575,7 @@ export async function renderWeeklyTopicCard(
                                   props: {
                                     style: {
                                       fontFamily: "JetBrains Mono",
-                                      fontSize: "21px",
+                                      fontSize: sparse ? "28px" : "21px",
                                       lineHeight: 1.5,
                                       color: FG_MUTED,
                                     },
