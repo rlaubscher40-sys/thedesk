@@ -1,6 +1,7 @@
 import React from "react";
 import { CityRentRead } from "./CityRentRead";
 import { CityApprovalRead } from "./CityApprovalRead";
+import { StatePopulationRead } from "./StatePopulationRead";
 import { featuredComparison } from "./featuredComparison";
 import type { MarketDirectory } from "./marketDirectory";
 
@@ -26,8 +27,8 @@ export function FeaturedComparisonRead({ directory }: { directory: MarketDirecto
         </h1>
         <h2 className="font-serif text-2xl sm:text-4xl mt-5 max-w-[32ch]">{read.headline}</h2>
         <p className="text-sm leading-6 mt-4 max-w-[75ch] text-[var(--color-fg-muted)]">
-          Start with the rental read and housing approvals. Then check what the evidence cannot tell
-          you about the decision. Free to read and share.
+          Start with the rental read, housing approvals and state population context. Then check
+          what the evidence cannot tell you about the decision. Free to read and share.
         </p>
         {directory.demo && (
           <p role="status" className="bs-label-accent mt-4">
@@ -68,7 +69,7 @@ export function FeaturedComparisonRead({ directory }: { directory: MarketDirecto
             ],
             [
               "Population and employment",
-              "Matching city boundaries and observation periods still needed.",
+              "The state population context below is not a matching city boundary. Comparable local employment evidence is still needed.",
             ],
           ].map(([title, text]) => (
             <div className="rule-hair py-4" key={title}>
@@ -85,13 +86,24 @@ export function FeaturedComparisonRead({ directory }: { directory: MarketDirecto
           asOf={directory.asOf}
         />
       )}
+      {!directory.demo && (
+        <StatePopulationRead
+          data={read.a?.demographics}
+          contexts={[
+            { state: "Queensland", market: "Brisbane" },
+            { state: "Western Australia", market: "Perth" },
+          ]}
+          asOf={directory.asOf}
+        />
+      )}
       <section className="rule-major mt-6 pt-5" aria-label="What would change the call">
         <h2 className="font-serif text-3xl">What would change the call?</h2>
         <p className="text-sm leading-6 mt-4 max-w-[80ch]">
           A change in the relative rent-growth rates would change the rental read. To make a wider
           call, we need evidence that rent conditions translate into sustainable yields at current
-          purchase prices, alongside consistent measures of new housing, available listings and
-          demand. Until then, there is no overall winner.
+          purchase prices, alongside completions, available listings and city-matched demand and
+          employment. State population context does not close those gaps. Until then, there is no
+          overall winner.
         </p>
       </section>
       <section className="mt-8" aria-label="Selected housing reporting">
