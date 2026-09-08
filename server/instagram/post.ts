@@ -44,6 +44,9 @@ import {
 import { removeTempImage, storeTempImage } from "./tempStore";
 import type { ScriptLine } from "../video/narration";
 import { renderStatReel } from "../video/statReel";
+import { pickPropertyStories, propertyComparisonCta } from "./propertyEditorial";
+
+export const pickDailyTopStories = pickPropertyStories;
 
 /** Single source of truth for dash sanitization in Instagram content. */
 export function sanitizeDashes(text: string): string {
@@ -189,7 +192,7 @@ function categoryHashtag(category: string | null | undefined): string {
 /** Shown when the lead story has no say-this to open with. Generic by
  *  necessity, so it is a fallback rather than the default. */
 const DAILY_CAPTION_FALLBACK_HOOK =
-  "The stories moving Australian markets today, and what each one means for your money.";
+  "Today's Australian property briefing: what changed, and what the sources show.";
 
 /**
  * The caption opens with the day's own hook, carries the conversational "say
@@ -231,7 +234,7 @@ export function buildDailyCaption(stories: DailyFeedItem[]): string {
     "Which one are you watching this week? Tell us below.",
     "Save this so you've got the brief for the days ahead.",
     "",
-    "The full daily briefing is in our bio.",
+    propertyComparisonCta("carousel"),
     "",
     tags,
   ].join("\n");
@@ -395,12 +398,10 @@ const DAILY_SLIDE_COUNT = 3;
 const DAILY_CANDIDATE_POOL = 6;
 
 /**
- * Pick the top stories for the daily carousel, favouring category variety over
- * raw priority. Defaults to the slide count; the posting flow calls it with a
- * larger limit to build a candidate pool it can filter. Exported so the admin
- * preview route renders the same selection the post would.
+ * Keep category variety for the manually requested Wider Lens carousel.
+ * The daily property briefing uses pickPropertyStories instead.
  */
-export function pickDailyTopStories(
+export function pickCoverageTopStories(
   stories: DailyFeedItem[],
   limit = DAILY_SLIDE_COUNT
 ): DailyFeedItem[] {
@@ -546,7 +547,8 @@ export async function postDailyCarousel(
   // SKIP (null why-it-matters) means the story is off-topic for a finance brief
   // — dropping it keeps mis-filed items (e.g. crime tagged MARKETS) off the
   // carousel instead of rendering a blank card.
-  const pool = pickDailyTopStories(stories, DAILY_CANDIDATE_POOL);
+  const selectStories = isCoverage ? pickCoverageTopStories : pickDailyTopStories;
+  const pool = selectStories(stories, DAILY_CANDIDATE_POOL);
 
   if (pool.length === 0) throw new Error("No stories available for Instagram post");
 
@@ -577,7 +579,7 @@ export async function postDailyCarousel(
   // Best slides that earned subtext. A thin day posts fewer real slides rather
   // than padding with blanks; an entirely off-topic pool throws.
   const withContext = pool.filter((s) => s.whyItMatters && s.whyItMatters.trim());
-  const top = pickDailyTopStories(withContext, DAILY_SLIDE_COUNT);
+  const top = selectStories(withContext, DAILY_SLIDE_COUNT);
   if (top.length === 0) throw new Error("No stories with usable context for Instagram post");
 
   // Punch up the raw feed titles for the card only (3 short LLM calls). Each
@@ -840,7 +842,7 @@ export function buildStatCaption(stat: {
     "Does this match what you are seeing on the ground? Tell us below.",
     "Save this one, it is the number worth remembering this week.",
     "",
-    "The numbers behind it are in our bio.",
+    propertyComparisonCta("stat"),
     "",
     `${CORE_HASHTAGS} #PropertyData`,
   ]
@@ -1047,6 +1049,7 @@ export function buildReelCaption(stat: {
   value: string;
   line: string;
   subtext: string;
+  source?: string | null;
 }): string {
   return [
     sanitizeDashes(stat.line),
@@ -1054,9 +1057,10 @@ export function buildReelCaption(stat: {
     `${sanitizeDashes(stat.label)}: ${sanitizeDashes(stat.value)}.`,
     `${sanitizeDashes(stat.subtext.charAt(0) + stat.subtext.slice(1).toLowerCase())}.`,
     "",
-    "Measured against what that number normally does, from our own daily records.",
+    "Measured against the recorded readings we hold, not an all-time history.",
+    stat.source ? `Source: ${sanitizeDashes(stat.source)}.` : "",
     "",
-    "Save this one. The full brief is in our bio.",
+    propertyComparisonCta("reel"),
     "",
     `${CORE_HASHTAGS} #PropertyData`,
   ].join("\n");

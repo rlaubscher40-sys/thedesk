@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
 import type { DailyFeedItem } from "../db/schema";
+import { parseArrival } from "../../client/src/lib/attribution";
 import {
   buildCoverageCaption,
   buildDailyCaption,
   sanitizeDashes,
   findAlreadyPublished,
   pickDailyTopStories,
+  pickCoverageTopStories,
+  buildReelCaption,
+  buildStatCaption,
 } from "./post";
 import { isRateLimitError, isTransientServerError } from "./api";
 
@@ -55,9 +59,9 @@ const trio: DailyFeedItem[] = [
 ];
 
 // Guardrail: every carousel (daily AND coverage) targets three story slides.
-describe("pickDailyTopStories — slide-count guardrail", () => {
+describe("pickCoverageTopStories — slide-count guardrail", () => {
   it("fills to three slides when at least three stories exist", () => {
-    expect(pickDailyTopStories(trio, 3)).toHaveLength(3);
+    expect(pickCoverageTopStories(trio, 3)).toHaveLength(3);
   });
 
   it("prefers category diversity before filling by priority", () => {
@@ -68,18 +72,55 @@ describe("pickDailyTopStories — slide-count guardrail", () => {
     ];
     // One MARKETS + the lone TECH, not both MARKETS, despite priority.
     expect(
-      pickDailyTopStories(skewed, 2)
+      pickCoverageTopStories(skewed, 2)
         .map((s) => s.category)
         .sort()
     ).toEqual(["MARKETS", "TECH"]);
   });
 
   it("never returns more than the limit", () => {
-    expect(pickDailyTopStories([...trio, ...trio], 3)).toHaveLength(3);
+    expect(pickCoverageTopStories([...trio, ...trio], 3)).toHaveLength(3);
   });
 });
 
 // Guardrail: the morning post stays the partner briefing.
+describe("property conversion", () => {
+  it("wires the daily picker to property editorial selection", () => {
+    expect(
+      pickDailyTopStories([
+        fakeStory({ title: "ASX surges", summary: null }),
+        fakeStory({ id: 2, title: "Brisbane rents rise", summary: null }),
+      ]).map((s) => s.id)
+    ).toEqual([2]);
+  });
+  it("links each property format to the existing free comparison without claiming the bio was changed", () => {
+    const stat = {
+      label: "Auction clearance",
+      value: "58%",
+      line: "The latest reading fell.",
+      subtext: "SIX RECORDED FALLS IN A ROW",
+      source: "CoreLogic",
+    };
+    for (const [medium, caption] of [
+      ["carousel", buildDailyCaption(trio)],
+      ["stat", buildStatCaption(stat)],
+      ["reel", buildReelCaption(stat)],
+    ]) {
+      expect(caption).toContain("https://thedesk.au/markets/compare/brisbane-vs-perth?");
+      expect(caption).toContain(`utm_medium=${medium}`);
+      const url = new URL(caption!.match(/https:\/\/thedesk\.au\/\S+/)![0]);
+      expect(parseArrival("", url.search)).toEqual({
+        source: "instagram",
+        campaign: `property_editorial_${medium}`,
+      });
+      expect(caption).toContain("Not an investment ranking");
+      expect(caption).not.toContain("in our bio");
+    }
+    expect(buildReelCaption(stat)).toContain("Source: CoreLogic");
+    expect(buildCoverageCaption(trio)).not.toContain("utm_campaign=property_editorial");
+  });
+});
+
 describe("buildDailyCaption — partner briefing", () => {
   it("opens with the lead story's own hook, not a fixed line", () => {
     // Instagram shows ~125 characters before "…more". Spending them on the
@@ -107,9 +148,9 @@ describe("buildDailyCaption — partner briefing", () => {
     for (const s of trio) expect(caption).toContain(sanitizeDashes(s.title));
   });
 
-  it("falls back to the AU markets framing when the lead has no hook", () => {
+  it("falls back to property framing when the lead has no hook", () => {
     const noHook = [{ ...trio[0]!, sayThis: null }, ...trio.slice(1)];
-    expect(buildDailyCaption(noHook)).toContain("Australian markets");
+    expect(buildDailyCaption(noHook)).toContain("Australian property");
   });
 
   it("does not drop a lead headline when the fallback opener is used", () => {
