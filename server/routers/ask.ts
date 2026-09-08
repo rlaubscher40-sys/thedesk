@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { displayMetricValue, rankAskMetrics } from "../ask/metricRetrieval";
+import { askQueryTerms, rankAskRecords } from "../ask/relevance";
 import * as db from "../db";
 import { consumeAnonymousAskAttempt, reserveAnonymousAsk, consumeAnonymousCard } from "../core/askQuota";
 import { ASK_SERVER_TIMEOUT_MS, DeadlineError, withDeadline } from "../../shared/requestDeadline";
@@ -49,52 +50,6 @@ type FeedSearchRow = SearchBundle["feedItems"][number];
 type EditionSearchRow = SearchBundle["editions"][number];
 type MetricRow = Awaited<ReturnType<typeof db.listDailyMetrics>>[number];
 
-const STOP_WORDS = new Set([
-  "about",
-  "after",
-  "again",
-  "against",
-  "australia",
-  "australian",
-  "because",
-  "before",
-  "being",
-  "could",
-  "does",
-  "from",
-  "have",
-  "into",
-  "market",
-  "property",
-  "should",
-  "their",
-  "there",
-  "these",
-  "thing",
-  "think",
-  "this",
-  "those",
-  "what",
-  "when",
-  "where",
-  "which",
-  "would",
-  "with",
-]);
-
-function searchTerms(question: string): string[] {
-  const words = question
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, " ")
-    .split(/\s+/)
-    .map((word) => word.trim())
-    .filter((word) => word.length >= 3 && !STOP_WORDS.has(word));
-
-  const unique = [...new Set(words)];
-  unique.sort((a, b) => b.length - a.length);
-  return unique.slice(0, 7);
-}
-
 function compactText(parts: Array<string | null | undefined>, limit = 2600): string {
   const text = parts
     .map((part) => part?.trim())
@@ -116,7 +71,7 @@ async function retrieve(question: string): Promise<{
   editions: EditionSearchRow[];
   metrics: MetricRow[];
 }> {
-  const terms = searchTerms(question);
+  const terms = askQueryTerms(question).slice(0, 7);
   const queries = [...new Set([question.trim(), ...terms])].slice(0, 8);
   const [bundles, allMetrics] = await Promise.all([
     Promise.all(queries.map((query) => db.searchAllContent(query))),
@@ -136,8 +91,16 @@ async function retrieve(question: string): Promise<{
   }
 
   return {
-    feed: [...feed.values()].slice(0, 10),
-    editions: [...editions.values()].slice(0, 5),
+    feed: rankAskRecords(question, [...feed.values()], {
+      title: (item) => item.title,
+      body: (item) => [item.summary, item.whyItMatters, item.snippet].filter(Boolean).join(" "),
+      date: (item) => item.feedDate,
+    }, 10),
+    editions: rankAskRecords(question, [...editions.values()], {
+      title: (edition) => `Edition ${edition.editionNumber}: ${edition.weekRange}`,
+      body: (edition) => [edition.fullText, edition.rubensTake, edition.snippet].filter(Boolean).join(" "),
+      date: (edition) => edition.weekOf,
+    }, 5),
     metrics: rankAskMetrics(question, allMetrics, 6),
   };
 }
@@ -265,7 +228,8 @@ export const askRouter = router({
 
           for (const edition of matches.editions) {
             const ref = evidence.length + 1;
-            const text = compactText([edition.fullText, edition.rubensTake, edition.snippet], 3200);
+            // Preserve the matched passage even when a long edition is clipped.
+            const text = compactText([edition.snippet, edition.fullText, edition.rubensTake], 3200);
             if (!text) continue;
             evidence.push({
               ref,

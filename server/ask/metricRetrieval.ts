@@ -1,33 +1,5 @@
 import type { DailyMetric } from "../db/schema";
-
-const QUERY_STOP_WORDS = new Set([
-  "about",
-  "after",
-  "again",
-  "against",
-  "because",
-  "before",
-  "being",
-  "could",
-  "does",
-  "from",
-  "have",
-  "into",
-  "should",
-  "their",
-  "there",
-  "these",
-  "thing",
-  "think",
-  "this",
-  "those",
-  "what",
-  "when",
-  "where",
-  "which",
-  "would",
-  "with",
-]);
+import { askQueryTerms, hasAskTerm } from "./relevance";
 
 /**
  * Small, explicit synonym families. These are retrieval aids, not analytical
@@ -35,8 +7,9 @@ const QUERY_STOP_WORDS = new Set([
  * to the grounded answer model.
  */
 const QUERY_EXPANSIONS: Record<string, string[]> = {
-  rate: ["rates", "interest", "cash", "mortgage"],
-  rates: ["rate", "interest", "cash", "mortgage"],
+  interest: ["cash", "mortgage", "rba"],
+  mortgage: ["interest", "cash", "lending", "loans"],
+  rba: ["cash", "interest"],
   lending: ["credit", "finance", "loan", "loans", "approvals"],
   credit: ["lending", "finance", "loan", "loans", "approvals"],
   supply: ["listings", "listing", "approvals", "construction", "dwelling", "dwellings"],
@@ -61,10 +34,13 @@ function normalise(value: string | null | undefined): string {
 }
 
 export function askMetricTerms(question: string): string[] {
-  const base = normalise(question)
-    .split(" ")
-    .filter((word) => word.length >= 3 && !QUERY_STOP_WORDS.has(word));
+  const base = askQueryTerms(question);
   const expanded = new Set<string>(base);
+  // A bare rates question can mean interest rates. A vacancy/unemployment
+  // question must not acquire that interpretation from the word "rate".
+  if (base.length > 0 && base.every((word) => ["rate", "rates"].includes(word))) {
+    for (const word of ["interest", "cash", "mortgage"]) expanded.add(word);
+  }
   for (const word of base) {
     for (const synonym of QUERY_EXPANSIONS[word] ?? []) expanded.add(synonym);
   }
@@ -92,22 +68,24 @@ function scoreMetric(question: string, metric: DailyMetric): number {
   const group = normalise(metric.groupKey);
   const haystack = metricHaystack(metric);
   const terms = askMetricTerms(question);
+  const topicalTerms = terms.filter((term) => !["rate", "rates", "value", "values", "growth", "change", "changes"].includes(term));
+  if (topicalTerms.length > 0 && !topicalTerms.some((term) => hasAskTerm(haystack, term))) return 0;
 
   let score = 0;
-  if (label && query.includes(label)) score += 12;
-  if (key && query.includes(key)) score += 12;
-  if (group && query.includes(group)) score += 5;
+  if (label && ` ${query} `.includes(` ${label} `)) score += 12;
+  if (key && ` ${query} `.includes(` ${key} `)) score += 12;
+  if (group && ` ${query} `.includes(` ${group} `)) score += 5;
 
   for (const term of terms) {
-    if (!haystack.includes(term)) continue;
+    if (!hasAskTerm(haystack, term)) continue;
     score += 2;
-    if (label.includes(term) || key.includes(term)) score += 2;
+    if (hasAskTerm(label, term) || hasAskTerm(key, term)) score += 2;
     if (group === term) score += 1;
   }
 
   // Context is valuable because the metrics ingest can add a precise market
   // description even when the row's stable label is terse.
-  if (metric.context && terms.some((term) => normalise(metric.context).includes(term))) {
+  if (metric.context && terms.some((term) => hasAskTerm(metric.context!, term))) {
     score += 1;
   }
   return score;

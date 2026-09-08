@@ -62,6 +62,24 @@ const metrics = [
 ];
 
 describe("Ask metric retrieval", () => {
+  it("does not offer unemployment or vacancy rates for an interest-rate question", () => {
+    const keys = rankAskMetrics("What is the current investor interest rate?", metrics).map((row) => row.metricKey);
+    expect(keys).toContain("cash_rate");
+    expect(keys).not.toContain("unemployment_rate");
+    expect(keys).not.toContain("vacancy_rate");
+  });
+
+  it("does not expand a rental or unemployment rate question into interest rates", () => {
+    expect(rankAskMetrics("What is the unemployment rate?", metrics).map((row) => row.metricKey)).toEqual(["unemployment_rate"]);
+    expect(rankAskMetrics("What is the rental vacancy rate?", metrics).map((row) => row.metricKey)).toEqual(["vacancy_rate"]);
+  });
+
+  it("does not treat current as rent or rate as a corporate substring", () => {
+    const unrelated = metric({ metricKey: "corporate_profit", label: "Corporate profits", context: "Current company outlook", groupKey: "EQUITIES" });
+    expect(rankAskMetrics("rental rate", [unrelated])).toEqual([]);
+    expect(rankAskMetrics("current Townsville outlook", metrics)).toEqual([]);
+  });
+
   it("ranks an exact lending metric ahead of unrelated dashboard rows", () => {
     const ranked = rankAskMetrics("What is changing in investor lending?", metrics);
     expect(ranked[0]?.metricKey).toBe("investor_lending");
