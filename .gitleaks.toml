@@ -1,0 +1,12 @@
+title = "The Desk secret scanning"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "generic-api-key"
+[[rules.allowlists]]
+description = "Public RFC 6238 SHA-1 test vector, confined to its regression test"
+condition = "AND"
+paths = ['''^server/core/security\.test\.ts$''']
+regexes = ['''^GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ$''']
