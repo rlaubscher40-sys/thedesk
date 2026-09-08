@@ -22,7 +22,27 @@ import { sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 
 export const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
-  { name: "0023 · planning_snapshots table", sql: `CREATE TABLE planning_snapshots (
+  {
+    name: "nationwide · property_evidence",
+    sql: `CREATE TABLE property_evidence (
+ id INT AUTO_INCREMENT PRIMARY KEY, identity VARCHAR(64) NOT NULL UNIQUE,
+ title VARCHAR(480) NOT NULL, summary TEXT NOT NULL, source VARCHAR(120) NOT NULL,
+ sourceUrl TEXT NOT NULL, publishedAt TIMESTAMP NOT NULL, regions JSON NOT NULL, topics JSON NOT NULL,
+ firstSeenAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, lastSeenAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ INDEX idx_property_evidence_published (publishedAt)
+)`,
+  },
+  {
+    name: "nationwide · evidence_source_status",
+    sql: `CREATE TABLE evidence_source_status (
+ sourceId VARCHAR(160) PRIMARY KEY, checkedAt TIMESTAMP NOT NULL, lastSuccessAt TIMESTAMP NULL,
+ newestPublishedAt TIMESTAMP NULL, fetched INT NOT NULL, accepted INT NOT NULL, error VARCHAR(240) NULL
+)`,
+  },
+
+  {
+    name: "0023 · planning_snapshots table",
+    sql: `CREATE TABLE planning_snapshots (
   id INT AUTO_INCREMENT PRIMARY KEY,
   councilName VARCHAR(100) NOT NULL,
   periodFrom VARCHAR(10) NOT NULL,
@@ -32,7 +52,8 @@ export const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
   records JSON NOT NULL,
   storedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_planning_council_period (councilName, periodFrom, periodTo, id)
-)` },
+)`,
+  },
   {
     name: "0001 · users.isPremium",
     sql: "ALTER TABLE users ADD isPremium boolean NOT NULL DEFAULT false",

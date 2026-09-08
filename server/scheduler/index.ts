@@ -25,6 +25,8 @@ import { claimJobRun, markJobRun } from "../db/jobRuns";
 import { runDailyFeedIngest } from "../../scripts/ingest/dailyFeed";
 import { runDailyMetricsIngest } from "../../scripts/ingest/dailyMetrics";
 
+import { collectPropertyEvidence } from "../evidence/collect";
+
 const TICK_MINUTES = 5;
 const BOOT_DELAY_MS = 15_000;
 /**
@@ -86,6 +88,7 @@ function hhmmToMinutes(hhmm: string): number {
 }
 
 type Job = {
+  graceMinutes?: number;
   key: string;
   /** Sydney "HH:MM" — the earliest the job may run that day. */
   at: string;
@@ -121,7 +124,7 @@ export function isJobDue(job: Job, clock: SchedulerClock): boolean {
   if (job.dow && !job.dow.includes(clock.dow)) return false;
   if (job.dom && !job.dom.includes(clock.dom)) return false;
   const at = hhmmToMinutes(job.at);
-  return clock.minutes >= at && clock.minutes <= at + GRACE_MINUTES;
+  return clock.minutes >= at && clock.minutes <= at + (job.graceMinutes ?? GRACE_MINUTES);
 }
 
 /**
@@ -152,6 +155,16 @@ async function postLocal(
  * (DST-correct). daily-metrics leads daily-feed so the IG cover's metric strip
  * is fresh; the IG posts follow the feed.
  */
+export const EVIDENCE_JOBS: Job[] = Array.from({ length: 24 }, (_, hour) => ({
+  key: `property-evidence-${String(hour).padStart(2, "0")}`,
+  at: `${String(hour).padStart(2, "0")}:00`,
+  graceMinutes: 59,
+  maxAttempts: 2,
+  run: async () => {
+    await collectPropertyEvidence();
+  },
+}));
+
 const JOBS: Job[] = [
   { key: "daily-metrics", at: "06:33", run: (b, k) => runDailyMetricsIngest(b, k) },
   { key: "daily-feed", at: "06:43", run: (b, k) => runDailyFeedIngest(b, k) },
@@ -214,6 +227,7 @@ const JOBS: Job[] = [
     maxAttempts: 2,
     run: (b, k, a) => postLocal(b, k, "/api/ingest/instagram-weekly", a),
   },
+  ...EVIDENCE_JOBS,
 ];
 
 /**

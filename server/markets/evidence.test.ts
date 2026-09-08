@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-vi.mock("../db", () => ({ searchMarketContent: vi.fn() }));
+vi.mock("../db", () => ({
+  searchPropertyEvidence: vi.fn(async () => []),
+  searchMarketContent: vi.fn(),
+}));
 import { searchMarketContent } from "../db";
 import { retrieveMarketEvidence, marketHousingPassage } from "./evidence";
 type Bundle = Awaited<ReturnType<typeof searchMarketContent>>;

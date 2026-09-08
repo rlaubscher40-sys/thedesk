@@ -12,11 +12,11 @@ import { getCityRents } from "./absRents";
 import { getCityApprovals } from "./absApprovals";
 import { getStateDemographics } from "./absDemographics";
 
-export const MARKET_SAMPLE_LIMIT = 1000;
+export const MARKET_SAMPLE_LIMIT = 2000;
 type DiscoveryItem = Pick<
   db.DailyFeedItem,
   "id" | "title" | "summary" | "source" | "sourceUrl" | "feedDate" | "channel" | "category"
->;
+> & { href?: string };
 function validDate(value: string): boolean {
   const time = Date.parse(`${value}T00:00:00Z`);
   return (
@@ -81,6 +81,7 @@ export function buildMarketDirectory(
       return [
         {
           id: item.id,
+          href: item.href,
           title: item.title,
           excerpt: excerpt(passage, market.name),
           date: item.feedDate,
@@ -164,13 +165,31 @@ export async function getMarketDirectory(): Promise<MarketDirectory> {
   }).format(new Date());
   return cached(`feed:market-directory:${asOf}`, 60_000, async () => {
     const demo = isDemoMode();
-    const [items, rents, approvals, demographics] = await Promise.all([
-      db.listMarketDiscoveryItems(daysBefore(asOf, 89), asOf, MARKET_SAMPLE_LIMIT + 1),
+    const [items, rents, approvals, demographics, archive] = await Promise.all([
+      db.listMarketDiscoveryItems(daysBefore(asOf, 89), asOf, 1001),
       demo ? undefined : getCityRents(),
       demo ? undefined : getCityApprovals(),
       demo ? undefined : getStateDemographics(),
+      db.listPropertyMarketEvidence(),
     ]);
-    const directory = buildMarketDirectory(items, asOf, demo);
+    const directory = buildMarketDirectory(
+      [
+        ...items,
+        ...archive.map((row) => ({
+          id: -row.id,
+          href: `/evidence/${row.id}`,
+          title: row.title,
+          summary: row.summary,
+          source: row.source,
+          sourceUrl: row.sourceUrl,
+          feedDate: row.publishedAt.toISOString().slice(0, 10),
+          category: "PROPERTY",
+          channel: "PROPERTY",
+        })),
+      ],
+      asOf,
+      demo
+    );
     return {
       ...directory,
       markets: directory.markets.map((file) => ({ ...file, rents, approvals, demographics })),

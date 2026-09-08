@@ -26,6 +26,7 @@ export function marketPath(slug: string): string {
 }
 
 export type MarketReference = {
+  href?: string;
   id: number;
   title: string;
   excerpt: string;

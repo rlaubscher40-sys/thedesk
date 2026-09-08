@@ -71,7 +71,11 @@ export function PublicMarketRead({
         </p>
         <h2 className="font-serif font-bold text-3xl sm:text-4xl leading-tight mt-3 max-w-[34ch]">
           {lead ? (
-            <a href={`/story/${lead.id}`} onClick={() => onAction?.("source")} className="bs-link">
+            <a
+              href={lead.href ?? `/story/${lead.id}`}
+              onClick={() => onAction?.("source")}
+              className="bs-link"
+            >
               {lead.title}
             </a>
           ) : (
@@ -141,7 +145,7 @@ export function PublicMarketRead({
             </p>
             <h3 className="font-serif text-xl sm:text-2xl mt-2">
               <a
-                href={`/story/${reference.id}`}
+                href={reference.href ?? `/story/${reference.id}`}
                 className="bs-link"
                 onClick={() => onAction?.("source")}
               >

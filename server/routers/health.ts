@@ -47,6 +47,10 @@ type ServiceInfo = {
 };
 
 export const healthRouter = router({
+  propertyCoverage: adminProcedure.query(async () => ({
+    ...(await db.propertyCoverage()),
+    schedulerEnabled: process.env.ENABLE_SCHEDULER === "true" && envFlag("SCHEDULED_API_KEY"),
+  })),
   /** Headline service-health summary for the admin dashboard. */
   summary: adminProcedure.query(async () => {
     const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -70,8 +74,7 @@ export const healthRouter = router({
       metrics
         .slice()
         .sort(
-          (a: DailyMetric, b: DailyMetric) =>
-            b.updatedAt.getTime() - a.updatedAt.getTime()
+          (a: DailyMetric, b: DailyMetric) => b.updatedAt.getTime() - a.updatedAt.getTime()
         )[0] ?? null;
 
     return {
@@ -99,9 +102,7 @@ export const healthRouter = router({
         last7d: {
           total: uptime7d.total,
           up: uptime7d.up,
-          percent: uptime7d.total
-            ? Math.round((uptime7d.up / uptime7d.total) * 1000) / 10
-            : null,
+          percent: uptime7d.total ? Math.round((uptime7d.up / uptime7d.total) * 1000) / 10 : null,
           avgLatencyMs: uptime7d.avgLatencyMs,
         },
       },
@@ -114,14 +115,9 @@ export const healthRouter = router({
       },
       subscribers: {
         total: subs.length,
-        confirmed: subs.filter(
-          (s: Subscriber) => s.confirmedAt && !s.unsubscribedAt
-        ).length,
-        pendingConfirm: subs.filter(
-          (s: Subscriber) => !s.confirmedAt && !s.unsubscribedAt
-        ).length,
-        unsubscribed: subs.filter((s: Subscriber) => Boolean(s.unsubscribedAt))
-          .length,
+        confirmed: subs.filter((s: Subscriber) => s.confirmedAt && !s.unsubscribedAt).length,
+        pendingConfirm: subs.filter((s: Subscriber) => !s.confirmedAt && !s.unsubscribedAt).length,
+        unsubscribed: subs.filter((s: Subscriber) => Boolean(s.unsubscribedAt)).length,
       },
     };
   }),
@@ -155,8 +151,7 @@ export const healthRouter = router({
     // Railway injects RAILWAY_* env vars into the running container; their
     // presence means we are in fact running on Railway right now.
     const railwayService = process.env.RAILWAY_SERVICE_NAME;
-    const railwayEnv =
-      process.env.RAILWAY_ENVIRONMENT_NAME ?? process.env.RAILWAY_ENVIRONMENT;
+    const railwayEnv = process.env.RAILWAY_ENVIRONMENT_NAME ?? process.env.RAILWAY_ENVIRONMENT;
     const onRailway = Boolean(railwayService || railwayEnv);
 
     // Cloudflare stamps a `cf-ray` header (with the edge colo) on every
@@ -210,7 +205,9 @@ export const healthRouter = router({
         role: "Claude LLM enrichment — say-this, why-it-matters, counterpoints, weekly synthesis, editor QC.",
         required: true,
         state: envFlag("ANTHROPIC_API_KEY") ? "configured" : "not_configured",
-        detail: envFlag("ANTHROPIC_API_KEY") ? "ANTHROPIC_API_KEY set" : "ANTHROPIC_API_KEY missing",
+        detail: envFlag("ANTHROPIC_API_KEY")
+          ? "ANTHROPIC_API_KEY set"
+          : "ANTHROPIC_API_KEY missing",
         statusUrl: "https://status.anthropic.com/",
         dashboardUrl: "https://console.anthropic.com/",
       },
@@ -221,7 +218,9 @@ export const healthRouter = router({
         role: "Hero image generation for weekly editions. Optional — editions fall back to the image library.",
         required: false,
         state: envFlag("OPENAI_API_KEY") ? "configured" : "not_configured",
-        detail: envFlag("OPENAI_API_KEY") ? "OPENAI_API_KEY set" : "OPENAI_API_KEY missing (image gen disabled)",
+        detail: envFlag("OPENAI_API_KEY")
+          ? "OPENAI_API_KEY set"
+          : "OPENAI_API_KEY missing (image gen disabled)",
         statusUrl: "https://status.openai.com/",
         dashboardUrl: "https://platform.openai.com/",
       },
@@ -232,7 +231,9 @@ export const healthRouter = router({
         role: "Transactional email — subscriber confirmations, daily brief, weekly recap, talking-point nudges.",
         required: false,
         state: envFlag("RESEND_API_KEY") ? "configured" : "not_configured",
-        detail: envFlag("RESEND_API_KEY") ? "RESEND_API_KEY set" : "RESEND_API_KEY missing (emails dry-run)",
+        detail: envFlag("RESEND_API_KEY")
+          ? "RESEND_API_KEY set"
+          : "RESEND_API_KEY missing (emails dry-run)",
         statusUrl: "https://status.resend.com/",
         dashboardUrl: "https://resend.com/home",
       },

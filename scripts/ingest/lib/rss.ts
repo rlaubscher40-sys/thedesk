@@ -89,18 +89,20 @@ export type FetchedItem = {
   corroboratingSources?: string[] | null;
 };
 
-export async function fetchSource(src: Source): Promise<FetchedItem[]> {
+export async function fetchSourceReport(
+  src: Source
+): Promise<{ items: FetchedItem[]; fetched: number; error: string | null }> {
   try {
     const feed = await parser.parseURL(src.url);
-    const items = (feed.items ?? []).slice(0, src.maxItems ?? 5);
-    return items
+    const items = feed.items ?? [];
+    const usable = items
       .map((it): FetchedItem | null => {
         // Strip the " - Publisher" suffix Google News appends; we show the
         // source separately, so the suffix is pure noise (and pollutes the
         // clustering/threading token sets).
         const title = cleanHeadline(plainText(it.title, 480));
         const summary = plainText(it.contentSnippet || it.content || it.summary || "", 480);
-        if (!title || !summary) return null;
+        if (!title) return null;
         return {
           source: publisherName(src, it.publisherSource),
           category: src.category,
@@ -112,9 +114,15 @@ export async function fetchSource(src: Source): Promise<FetchedItem[]> {
           isoDate: it.isoDate ?? it.pubDate ?? null,
         };
       })
-      .filter((x): x is FetchedItem => x !== null);
+      .filter((x): x is FetchedItem => x !== null)
+      .slice(0, src.maxItems ?? 5);
+    return { items: usable, fetched: items.length, error: null };
   } catch (err) {
     console.warn(`[rss] ${src.name} failed: ${(err as Error).message}`);
-    return [];
+    return { items: [], fetched: 0, error: "Feed request or parsing failed" };
   }
+}
+
+export async function fetchSource(src: Source): Promise<FetchedItem[]> {
+  return (await fetchSourceReport(src)).items;
 }

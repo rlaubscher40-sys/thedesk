@@ -17,3 +17,5 @@ export * from "./health";
 export * from "./analytics";
 export * from "./instagramPosts";
 export * from "./jobRuns";
+
+export * from "./evidence";

@@ -3,7 +3,11 @@ import { z } from "zod";
 import { displayMetricValue, rankAskMetrics } from "../ask/metricRetrieval";
 import { askQueryTerms, rankAskRecords } from "../ask/relevance";
 import * as db from "../db";
-import { consumeAnonymousAskAttempt, reserveAnonymousAsk, consumeAnonymousCard } from "../core/askQuota";
+import {
+  consumeAnonymousAskAttempt,
+  reserveAnonymousAsk,
+  consumeAnonymousCard,
+} from "../core/askQuota";
 import { ASK_SERVER_TIMEOUT_MS, DeadlineError, withDeadline } from "../../shared/requestDeadline";
 import {
   createIntelligenceShareToken,
@@ -12,11 +16,7 @@ import {
 import { invokeLLMJson } from "../core/llm";
 import { renderIntelligenceCard } from "../og/intelligenceCard";
 import { publicProcedure, router } from "../core/trpc";
-import {
-  askDeskResponseFormat,
-  buildAskDeskMessages,
-  type AskContextSource,
-} from "../prompts/ask";
+import { askDeskResponseFormat, buildAskDeskMessages, type AskContextSource } from "../prompts/ask";
 
 const signalSchema = z.object({
   label: z.string().min(1).max(80),
@@ -68,14 +68,16 @@ function sourceDate(value: Date | string | null | undefined, fallback: string): 
 
 async function retrieve(question: string): Promise<{
   feed: FeedSearchRow[];
+  archive: Awaited<ReturnType<typeof db.searchPropertyEvidence>>;
   editions: EditionSearchRow[];
   metrics: MetricRow[];
 }> {
   const terms = askQueryTerms(question).slice(0, 7);
   const queries = [...new Set([question.trim(), ...terms])].slice(0, 8);
-  const [bundles, allMetrics] = await Promise.all([
+  const [bundles, allMetrics, archiveBundles] = await Promise.all([
     Promise.all(queries.map((query) => db.searchAllContent(query))),
     db.listDailyMetrics(),
+    Promise.all(queries.map((query) => db.searchPropertyEvidence(query))),
   ]);
 
   const feed = new Map<number, FeedSearchRow>();
@@ -90,17 +92,43 @@ async function retrieve(question: string): Promise<{
     }
   }
 
+  const archiveRows = [
+    ...new Map(archiveBundles.flat().map((row) => [row.identity, row])).values(),
+  ];
+  const feedUrls = new Set([...feed.values()].map((row) => row.sourceUrl));
+  const feedTitles = new Set([...feed.values()].map(row => row.title.trim().toLowerCase()));
   return {
-    feed: rankAskRecords(question, [...feed.values()], {
-      title: (item) => item.title,
-      body: (item) => [item.summary, item.whyItMatters, item.snippet].filter(Boolean).join(" "),
-      date: (item) => item.feedDate,
-    }, 10),
-    editions: rankAskRecords(question, [...editions.values()], {
-      title: (edition) => `Edition ${edition.editionNumber}: ${edition.weekRange}`,
-      body: (edition) => [edition.fullText, edition.rubensTake, edition.snippet].filter(Boolean).join(" "),
-      date: (edition) => edition.weekOf,
-    }, 5),
+    archive: rankAskRecords(
+      question,
+      archiveRows.filter((row) => !feedUrls.has(row.sourceUrl) && !feedTitles.has(row.title.trim().toLowerCase())),
+      {
+        title: (row) => row.title,
+        body: (row) => row.summary,
+        date: (row) => row.publishedAt.toISOString(),
+      },
+      8
+    ),
+    feed: rankAskRecords(
+      question,
+      [...feed.values()],
+      {
+        title: (item) => item.title,
+        body: (item) => [item.summary, item.whyItMatters, item.snippet].filter(Boolean).join(" "),
+        date: (item) => item.feedDate,
+      },
+      10
+    ),
+    editions: rankAskRecords(
+      question,
+      [...editions.values()],
+      {
+        title: (edition) => `Edition ${edition.editionNumber}: ${edition.weekRange}`,
+        body: (edition) =>
+          [edition.fullText, edition.rubensTake, edition.snippet].filter(Boolean).join(" "),
+        date: (edition) => edition.weekOf,
+      },
+      5
+    ),
     metrics: rankAskMetrics(question, allMetrics, 6),
   };
 }
@@ -128,12 +156,15 @@ export const askRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      const reservation: { current: ReturnType<typeof reserveAnonymousAsk> | null } = { current: null };
+      const reservation: { current: ReturnType<typeof reserveAnonymousAsk> | null } = {
+        current: null,
+      };
       try {
         const result = await withDeadline(async (signal) => {
           const matches = await retrieve(input.question);
 
           if (
+            matches.archive.length === 0 &&
             matches.feed.length === 0 &&
             matches.editions.length === 0 &&
             matches.metrics.length === 0
@@ -226,6 +257,29 @@ export const askRouter = router({
             });
           }
 
+          for (const item of matches.archive) {
+            const ref = evidence.length + 1;
+            const date = item.publishedAt.toISOString().slice(0, 10);
+            evidence.push({
+              ref,
+              kind: "feed",
+              title: item.title,
+              date,
+              category: "PROPERTY",
+              text: `Public feed excerpt only; the full article has not been verified. ${item.summary || item.title}`,
+            });
+            sourceMeta.push({
+              ref,
+              kind: "feed",
+              title: item.title,
+              date,
+              category: "PROPERTY",
+              href: `/evidence/${item.id}`,
+              publisher: item.source,
+              externalUrl: item.sourceUrl,
+            });
+          }
+
           for (const edition of matches.editions) {
             const ref = evidence.length + 1;
             // Preserve the matched passage even when a long edition is clipped.
@@ -255,7 +309,8 @@ export const askRouter = router({
             return {
               status: "insufficient" as const,
               question: input.question,
-              message: "The Desk found related records, but not enough usable evidence to answer reliably.",
+              message:
+                "The Desk found related records, but not enough usable evidence to answer reliably.",
               sources: [],
               anonymousRemaining: null,
             };
@@ -265,10 +320,18 @@ export const askRouter = router({
           if (!ctx.user) {
             reservation.current = reserveAnonymousAsk(ctx.req);
             if (!reservation.current.allowed) {
-              throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "You've used today's 3 free questions, or they are still processing. Sign in to keep going." });
+              throw new TRPCError({
+                code: "TOO_MANY_REQUESTS",
+                message:
+                  "You've used today's 3 free questions, or they are still processing. Sign in to keep going.",
+              });
             }
             if (!consumeAnonymousAskAttempt(ctx.req).allowed) {
-              throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "You've reached today's retry limit. Your unanswered questions have not used your free answer allowance. Try tomorrow or sign in to continue." });
+              throw new TRPCError({
+                code: "TOO_MANY_REQUESTS",
+                message:
+                  "You've reached today's retry limit. Your unanswered questions have not used your free answer allowance. Try tomorrow or sign in to continue.",
+              });
             }
           }
           const anonymousRemaining = reservation.current?.remaining ?? null;
@@ -292,7 +355,9 @@ export const askRouter = router({
                 message: response.reason,
                 // Only offer useful follow-up reading; generic keyword matches
                 // should not become recommendations just by arriving first.
-                sources: sourceMeta.filter((source) => response.relatedSourceRefs.includes(source.ref)),
+                sources: sourceMeta.filter((source) =>
+                  response.relatedSourceRefs.includes(source.ref)
+                ),
                 anonymousRemaining: null,
               };
             }
@@ -308,7 +373,10 @@ export const askRouter = router({
 
           const validRefs = new Set(evidence.map((source) => source.ref));
           const selectedRefs = [...new Set(parsed.sourceRefs)].filter((ref) => validRefs.has(ref));
-          if (selectedRefs.length === 0 || selectedRefs.length !== new Set(parsed.sourceRefs).size) {
+          if (
+            selectedRefs.length === 0 ||
+            selectedRefs.length !== new Set(parsed.sourceRefs).size
+          ) {
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
               message: "The Desk answer failed its source check. Try again.",
