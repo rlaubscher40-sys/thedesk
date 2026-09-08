@@ -37,5 +37,6 @@ it("flags invalid dates, unknown cadence and news-extracted figures for review",
   expect(status(metric("cash_rate", "2026-10-01"))).toBe("invalid dates");
   expect(status(metric("cash_rate", "bad"))).toBe("invalid dates");
   expect(status(metric("new_series", "2026-09-01"))).toBe("cadence unconfigured");
-  expect(status(metric("auction_clearance", "2026-09-07"))).toBe("check extracted evidence");
+  expect(status({ ...metric("auction_clearance", "2026-09-07"), source: "News + LLM" })).toBe("check extracted evidence");
 });
+

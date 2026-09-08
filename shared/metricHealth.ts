@@ -1,3 +1,4 @@
+import { AUCTION_REGIONS } from "./auctionClearance";
 import { PROPERTY_REGIONS } from "./propertyCoverage";
 import { APPROVAL_REGIONS } from "./cityApprovals";
 
@@ -51,15 +52,12 @@ export const METRIC_EXPECTATIONS: Expectation[] = [
       maxAgeDays: 300,
     }))
   ),
-  ...["auction_clearance", "dwelling_value", "consumer_confidence", "mortgage_arrears"].map(
-    (key) => ({
-      key,
-      label: key.replaceAll("_", " "),
-      period: "News extracted · verify scope",
-      maxAgeDays: key === "auction_clearance" ? 14 : key === "mortgage_arrears" ? 180 : 75,
-      extracted: true,
-    })
-  ),
+  ...["auction_clearance", ...AUCTION_REGIONS.map(region => `${region.toLowerCase()}_auction_clearance`)].map(key => ({
+    key, label: key.replaceAll("_", " "), period: "Weekly · preliminary reported outcomes", maxAgeDays: 14,
+  })),
+  { key: "dwelling_value", label: "National median dwelling value", period: "Monthly · Cotality HVI", maxAgeDays: 75 },
+  { key: "consumer_confidence", label: "Consumer sentiment", period: "Monthly · Westpac–Melbourne Institute", maxAgeDays: 75 },
+  { key: "mortgage_arrears", label: "CBA Group home-loan arrears", period: "Half-yearly · CBA Group, not industry", maxAgeDays: 210 },
 ];
 
 type StoredMetric = {
@@ -95,7 +93,7 @@ export function metricHealth(rows: StoredMetric[], now = new Date()) {
     else if (spec.maxAgeDays !== null && observationAge! > spec.maxAgeDays)
       state = "old reporting period";
     else if (storedAge! > (spec.extracted ? 8 : 2)) state = "collection overdue";
-    else if (spec.extracted) state = "check extracted evidence";
+    else if (spec.extracted || row.source === "News + LLM") state = "check extracted evidence";
     else if (spec.period === "Cadence unconfigured") state = "cadence unconfigured";
     return {
       ...spec,
@@ -107,3 +105,4 @@ export function metricHealth(rows: StoredMetric[], now = new Date()) {
     };
   });
 }
+

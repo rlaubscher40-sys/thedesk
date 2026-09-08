@@ -8,6 +8,8 @@ vi.mock("./lib/rbaCashRate", () => ({
     return null;
   },
 }));
+vi.mock("./lib/auctionClearance", () => ({ fetchAuctionMetrics: async () => [] }));
+vi.mock("./lib/propertyReleases", () => ({ fetchPropertyReleaseMetrics: async () => [] }));
 vi.mock("./lib/rbaHousingRates", () => ({ fetchRbaHousingRateMetrics: async () => [] }));
 vi.mock("./lib/abs", () => ({ fetchAllAbs: async () => [] }));
 vi.mock("../../server/markets/absDemographics", () => ({
@@ -34,3 +36,4 @@ it("forwards the cash-rate diagnosis while persisting successful sources without
   expect(metrics[0]).toHaveLength(5);
   expect(metrics[0].some((metric) => metric.metricKey === "cash_rate")).toBe(false);
 });
+
