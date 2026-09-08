@@ -2,9 +2,7 @@
 
 export const COOKIE_NAME = "app_session_id";
 /**
- * Admin session lifetime. 30 days balances single-user convenience against
- * the blast radius of a stolen cookie — a leaked session now ages out in a
- * month instead of the year it used to be valid for.
+ * Admin sessions expire after 12 hours and are revoked on logout.
  */
 export const SESSION_TTL_MS = 1000 * 60 * 60 * 12;
 export const AXIOS_TIMEOUT_MS = 30_000;

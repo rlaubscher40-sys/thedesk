@@ -6,6 +6,7 @@ The security audit is addressed in one reviewable branch. Deploy only after the 
 
 - Existing admin cookies stop working when this release deploys. Sign in again; new sessions expire after 12 hours and are stored in `admin_sessions`.
 - Logout revokes the stored session. Changing `ADMIN_PASSWORD`, `ADMIN_TOTP_SECRET` or `JWT_SECRET` invalidates existing admin sessions. The new session signing key is domain-separated from email/share signatures, so changing the password does not break those links.
+- Session keys use PBKDF2-HMAC-SHA-256 with 600,000 iterations. Derivation is asynchronous and shared/cached for each server configuration, not repeated for each request. The password itself remains an environment secret in the existing single-admin architecture; this is not a hashed-password database migration.
 - Production `JWT_SECRET` must contain at least 32 bytes. Generate a random value; length alone does not establish entropy. A signing-key change also invalidates existing email/share links.
 - Schema catch-up creates `security_limits` and `admin_sessions`. Failure to access these tables denies the affected security-sensitive action; it never switches production to in-memory counters.
 - Security counters and sessions are cleaned up hourly. Only expired counters are removed, with a one-day grace period; current-day exhaustion survives process restarts.
@@ -13,6 +14,7 @@ The security audit is addressed in one reviewable branch. Deploy only after the 
 - Public email defaults: 15-minute resend cooldown, four sends per recipient/day, ten sends per client/day and 500 sends across the site/day. Counts include already-confirmed reminder emails. A limited request gets the same neutral response as a new signup. Failed deliveries still count towards the daily abuse caps.
 - Browser mutations require a matching Origin when supplied, and reject cross-site Fetch Metadata. Header-key cron requests remain supported.
 - The built HTML shell's inline scripts are authorized by exact SHA-256 CSP hashes. Arbitrary inline JavaScript is no longer allowed. The production build must be present before boot, as with the existing server.
+- The trusted shell is parsed using an HTML5 parser, not a script-matching regular expression. Tests cover quoted attributes, spaced closing tags, inert templates/comments and browser-normalized line endings.
 - Editorial draft fields and alternative headlines are omitted from public edition detail, search and category responses. Authenticated editors use `editions.editor`; Substack draft images require authentication and are marked private/no-store. If a CDN cached those images under the old public headers, purge those URLs when deploying.
 - Shared public renders have a bounded result cache and allow at most two simultaneous uncached renders per process. Public crawler routes also have a per-client HTTP limit. Identical concurrent renders share one result.
 - Public-read cache: at most 512 entries, 32 MiB of serialized key/value content and 32 distinct pending loaders. Oversized values are returned but not cached. Object/runtime overhead is additional to the serialized byte estimate.
@@ -33,6 +35,8 @@ Do not treat the MFA code path as proof MFA is active in production; verify afte
 ## Required repository and hosting settings
 
 CI now checks dependency advisories, runs the test suite, and exercises real MySQL security-state concurrency using a throwaway local test database. Security workflows add secret scanning and CodeQL. The dependency overrides remove vulnerable nested packages as well as direct versions; the package manager and action revisions are pinned.
+
+The CodeQL job also checks the generated SARIF results and fails on reported findings or a missing report. A successful upload alone is not a clean scan. This gate deliberately includes existing findings, not just newly introduced ones.
 
 An owner must verify/enforce required CI, secret-scan and CodeQL checks on main, review requirements, deploy-after-checks settings, cloud MFA, runtime database least privilege, backups and a restore exercise. Repository-defined workflows alone cannot turn on those account controls. Runtime CREATE/ALTER privileges remain necessary for the existing schema catch-up architecture; separate migration credentials in a future deployment change.
 

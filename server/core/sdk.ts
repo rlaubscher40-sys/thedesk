@@ -10,12 +10,12 @@
  *   2. Subsequent requests carry the cookie. `authenticateRequest()`
  *      verifies it and returns the synthetic admin user.
  *
- * No OAuth backend, no user table lookup, no per-user state. The single
+ * No OAuth backend. Revocable sessions live in the database. The single
  * admin identity is hard-coded; the database `users` table stays for
  * foreign keys on reading queue / notes / conversations but is only ever
  * populated with one row.
  */
-import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHash, pbkdf2, randomBytes, timingSafeEqual } from "node:crypto";
 import { COOKIE_NAME, SESSION_TTL_MS } from "../../shared/const";
 import { ForbiddenError } from "../../shared/errors";
 import { parse as parseCookieHeader } from "cookie";
@@ -28,10 +28,30 @@ import { saveAdminSession, hasAdminSession, deleteAdminSession } from "../db/sec
 
 const ADMIN_OPEN_ID = "admin";
 
-function getSecret() {
-  return createHmac("sha256", env.cookieSecret)
-    .update("the-desk-admin-session-v2:" + env.adminPassword + ":" + (env.adminTotpSecret ?? ""))
-    .digest();
+let signingKey: { material: string; key: Promise<Buffer> } | undefined;
+function getSecret(): Promise<Buffer> {
+  const password = env.adminPassword;
+  const salt = JSON.stringify([
+    "the-desk-admin-session-v3",
+    env.cookieSecret,
+    env.adminTotpSecret ?? "",
+  ]);
+  const material = JSON.stringify([password, salt]);
+  if (signingKey?.material === material) return signingKey.key;
+  // Password-derived key: use a slow KDF, not a single fast hash/HMAC.
+  // Derive once per configuration; concurrent requests share the work and
+  // ordinary session checks never repeat the expensive derivation.
+  const key = new Promise<Buffer>((resolve, reject) => {
+    pbkdf2(password, salt, 600_000, 32, "sha256", (error, value) => {
+      if (error) reject(error);
+      else resolve(value);
+    });
+  });
+  signingKey = { material, key };
+  void key.catch(() => {
+    if (signingKey?.key === key) signingKey = undefined;
+  });
+  return key;
 }
 
 class AuthSdk {
@@ -59,7 +79,7 @@ class AuthSdk {
       .setAudience("the-desk-admin")
       .setProtectedHeader({ alg: "HS256", typ: "JWT" })
       .setExpirationTime(expSeconds)
-      .sign(getSecret());
+      .sign(await getSecret());
   }
 
   async verifySession(
@@ -67,7 +87,7 @@ class AuthSdk {
   ): Promise<{ openId: string; role: "admin" } | null> {
     if (!token) return null;
     try {
-      const { payload } = await jwtVerify(token, getSecret(), {
+      const { payload } = await jwtVerify(token, await getSecret(), {
         algorithms: ["HS256"],
         issuer: "the-desk",
         audience: "the-desk-admin",
@@ -92,7 +112,7 @@ class AuthSdk {
     if (!token) return;
     let id: string | undefined;
     try {
-      const { payload } = await jwtVerify(token, getSecret(), {
+      const { payload } = await jwtVerify(token, await getSecret(), {
         algorithms: ["HS256"],
         issuer: "the-desk",
         audience: "the-desk-admin",

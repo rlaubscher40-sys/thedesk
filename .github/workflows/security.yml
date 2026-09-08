@@ -30,3 +30,26 @@ jobs:
           languages: javascript-typescript
           build-mode: none
       - uses: github/codeql-action/analyze@fddeee1a7ece751b577e409a89057319e3172939 # v4
+        with:
+          output: codeql-results
+      - name: Require a clean CodeQL report
+        run: |
+          python3 - <<'PY'
+          import json, pathlib, sys
+          reports = list(pathlib.Path("codeql-results").glob("*.sarif"))
+          if not reports:
+              sys.exit("CodeQL did not produce a SARIF report")
+          findings = []
+          for report in reports:
+              for run in json.loads(report.read_text()).get("runs", []):
+                  for result in run.get("results", []):
+                      if result.get("kind", "fail") != "fail":
+                          continue
+                      findings.append(result)
+                      location = (result.get("locations") or [{}])[0].get("physicalLocation", {})
+                      path = location.get("artifactLocation", {}).get("uri", "unknown")
+                      line = location.get("region", {}).get("startLine", 1)
+                      print(f"CodeQL finding: {result.get('ruleId')} at {path}:{line}")
+          print(f"CodeQL findings: {len(findings)}")
+          sys.exit(1 if findings else 0)
+          PY

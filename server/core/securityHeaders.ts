@@ -24,12 +24,26 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { parse, type DefaultTreeAdapterMap } from "parse5";
 import type { Express, NextFunction, Request, Response } from "express";
 
 export function inlineScriptHashes(shell: string): string[] {
-  return [...shell.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)]
-    .filter((match) => !/\bsrc\s*=/i.test(match[1]!))
-    .map((match) => `'sha256-${createHash("sha256").update(match[2]!).digest("base64")}'`);
+  const hashes: string[] = [];
+  function visit(node: DefaultTreeAdapterMap["node"]) {
+    if (
+      "tagName" in node &&
+      node.tagName === "script" &&
+      !node.attrs.some((a) => a.name === "src")
+    ) {
+      const source = node.childNodes.map((child) => ("value" in child ? child.value : "")).join("");
+      hashes.push(`'sha256-${createHash("sha256").update(source).digest("base64")}'`);
+    }
+    if ("childNodes" in node) node.childNodes.forEach(visit);
+  }
+  // Parse like a browser: comments, quoted attributes, template content and
+  // whitespace in closing tags must not create false inline permissions.
+  visit(parse(shell));
+  return hashes;
 }
 
 const CSP = [
