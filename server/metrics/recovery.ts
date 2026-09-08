@@ -24,7 +24,7 @@ export function metricRefreshStatus() {
 export async function needsMetricRecovery() {
   return metricHealth(await listDailyMetrics()).some(
     (row) =>
-      !row.extracted && ["missing", "collection overdue", "invalid dates"].includes(row.state)
+      !row.extracted && ["missing", "collection overdue", "invalid dates", "old reporting period", "check extracted evidence"].includes(row.state)
   );
 }
 
@@ -98,3 +98,4 @@ export async function recoverMissingMetrics() {
           : "")
     );
 }
+

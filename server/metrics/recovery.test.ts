@@ -55,7 +55,11 @@ it("collects missing metrics directly and reports missing sources separately fro
   expect(report.failedWrites).toEqual(["audusd"]);
   expect(report.unavailable).toContain("tas_population");
   expect(report.unavailable).not.toContain("audusd");
-  expect(report.unavailable).not.toContain("auction_clearance");
+  expect(report.unavailable).toContain("auction_clearance");
+  expect(report.unavailable).toContain("consumer_confidence");
+  expect(report.unavailable).toContain("dwelling_value");
+  expect(report.unavailable).toContain("mortgage_arrears");
+  expect(report.unavailable).toContain("tas_auction_clearance");
   expect(state.writes[0].asOf).toEqual(new Date("2026-09-07"));
   expect(metricRefreshStatus().lastReport).toEqual(report);
   expect(metricRefreshStatus().running).toBe(false);
@@ -78,3 +82,4 @@ it("rejects collection before contacting sources when storage is unavailable", a
   await expect(refreshOfficialMetrics()).rejects.toThrow("database");
   expect(state.writes).toHaveLength(0);
 });
+

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { MarketComparison } from "@/components/markets/MarketComparison";
 import { MarketDiscovery } from "@/components/markets/MarketDiscovery";
+import { AuctionClearance } from "@/components/markets/AuctionClearance";
 import { MarketRentConditions } from "@/components/markets/MarketRentConditions";
 import { ComparisonWatchlist } from "@/components/markets/ComparisonWatchlist";
 import { ShareIntelligenceCardButton } from "@/components/ask/ShareIntelligenceCardButton";
@@ -191,6 +192,7 @@ export default function MarketsPage() {
       </nav>
 
       <ComparisonWatchlist />
+      {!comparisonMode && <AuctionClearance metrics={metrics.data} loading={metrics.isLoading} />}
       {!comparisonMode && market && <MarketRentConditions marketA={market} />}
       {comparisonMode ? (
         <MarketComparison

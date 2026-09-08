@@ -1,3 +1,4 @@
+import { refreshOfficialMetrics } from "./metrics/recovery";
 /**
  * Two POST endpoints fired by the external scheduler:
  *
@@ -35,7 +36,6 @@ import * as db from "./db";
 import { dailyFeedIngestBodySchema, weeklyEditionIngestSchema } from "../shared/schemas";
 import {
   editionHeroPrompt,
-  extractMetricFromNews,
   feedItemImagePrompt,
   generateDailyAngles,
   generateLookback,
@@ -921,10 +921,8 @@ const extractMetricsBodySchema = z.object({
 });
 
 function registerExtractMetricsRoute(app: Express): void {
-  const parser = new Parser({
-    timeout: 8_000,
-    headers: { "User-Agent": "TheDesk/1.0" },
-  });
+  // Backwards-compatible endpoint for old scheduled clients. These managed
+  // metrics now use publisher tables, never headline-only model extraction.
   const handler = async (req: Request, res: Response) => {
     if (!(await authenticateScheduled(req))) {
       res.status(401).json({ error: "Unauthorized" });
@@ -935,59 +933,19 @@ function registerExtractMetricsRoute(app: Express): void {
       res.status(400).json({ error: "Invalid payload", issues: parsed.error.flatten() });
       return;
     }
-    let ok = 0;
-    let skipped = 0;
-    for (const q of parsed.data.queries) {
-      try {
-        // 1. Fetch Google News RSS for this metric's query.
-        const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q.googleQuery)}&hl=en-AU&gl=AU&ceid=AU:en`;
-        const feed = await parser.parseURL(url);
-        const articles = (feed.items ?? []).slice(0, 6).map((it) => ({
-          title: (it.title ?? "").slice(0, 200),
-          summary: (it.contentSnippet ?? it.content ?? "").slice(0, 400),
-          source: (it.creator as string | undefined) ?? "Google News",
-          url: it.link ?? null,
-          date: it.isoDate ?? it.pubDate ?? null,
-        }));
-        if (articles.length === 0) {
-          skipped++;
-          continue;
-        }
-        // 2. Ask the LLM to extract.
-        const extracted = await extractMetricFromNews({
-          metricLabel: q.label,
-          unit: q.unit ?? null,
-          guidance: q.guidance,
-          articles,
-        });
-        if (!extracted) {
-          skipped++;
-          continue;
-        }
-        // 3. Upsert.
-        await db.upsertDailyMetric({
-          metricKey: q.metricKey,
-          label: q.label,
-          value: extracted.value,
-          unit: q.unit ?? null,
-          source: "News + LLM",
-          context: extracted.context,
-          groupKey: q.groupKey ?? null,
-          sourceUrl: extracted.sourceUrl,
-          asOf: extracted.asOf ?? new Date(),
-          displayOrder: q.displayOrder,
-        });
-        ok++;
-        console.log(
-          `[extract-metric] ${q.metricKey} = ${extracted.value}${q.unit ?? ""} (${extracted.context ?? "no context"})`
-        );
-      } catch (err) {
-        console.error(`[extract-metric] ${q.metricKey} failed:`, (err as Error).message);
-        skipped++;
-      }
+    const managed = new Set(["auction_clearance", "dwelling_value", "consumer_confidence", "mortgage_arrears"]);
+    if (parsed.data.queries.some(query => !managed.has(query.metricKey))) {
+      res.status(400).json({ error: "Only configured publisher metrics are supported" });
+      return;
     }
-    console.log(`[scheduled] extracted ${ok}/${parsed.data.queries.length} news-driven metrics`);
-    res.json({ success: true, extracted: ok, skipped });
+    try {
+      const report = await refreshOfficialMetrics();
+      const missing = parsed.data.queries.filter(query => report.unavailable.includes(query.metricKey) || report.failedWrites.includes(query.metricKey));
+      res.json({ success: missing.length === 0, extracted: parsed.data.queries.length - missing.length,
+        skipped: missing.length, unavailable: missing.map(query => query.metricKey), sourceErrors: report.sourceErrors });
+    } catch (error) {
+      res.status(500).json({ success: false, error: (error as Error).message });
+    }
   };
   app.post("/api/scheduled/extract-metrics", handler);
   app.post("/api/ingest/extract-metrics", handler);
@@ -2188,3 +2146,4 @@ export function registerScheduledRoutes(app: Express): void {
 
 // Re-export schemas so tests can import the shape from this module's surface.
 export { dailyFeedIngestBodySchema, weeklyEditionIngestSchema, z };
+

@@ -27,7 +27,7 @@ function scopedMetricRegion(metric: DailyMetric) {
   return PROPERTY_REGIONS.find(
     (region) =>
       new RegExp(
-        `^${region.code.toLowerCase()}_(population(?:_growth_annual)?|net_(internal|overseas)_migration_12m)$`
+        `^${region.code.toLowerCase()}_(auction_clearance|population(?:_growth_annual)?|net_(internal|overseas)_migration_12m)$`
       ).test(metric.metricKey) ||
       metric.metricKey === `${region.places[0].toLowerCase()}_approvals_12m`
   );
@@ -112,6 +112,8 @@ function scoreMetric(question: string, metric: DailyMetric): number {
   if (topicalTerms.length > 0 && !topicalTerms.some((term) => hasAskTerm(haystack, term))) return 0;
 
   let score = scope && geography.regions.includes(scope) ? 8 : 0;
+  if (scope && geography.regions.includes(scope) && metric.metricKey.endsWith("_auction_clearance")) score += 16;
+  if (metric.metricKey === "auction_clearance" && !geography.regions.length) score += 10;
   if (label && ` ${query} `.includes(` ${label} `)) score += 12;
   if (key && ` ${query} `.includes(` ${key} `)) score += 12;
   if (group && ` ${query} `.includes(` ${group} `)) score += 5;

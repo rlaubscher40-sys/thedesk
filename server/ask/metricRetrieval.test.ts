@@ -175,3 +175,12 @@ describe("Ask metric retrieval", () => {
     expect(displayMetricValue("$815,439", "$")).toBe("$815,439");
   });
 });
+
+it("prioritises the requested state's auction rate and the weighted Australia rate for national questions", () => {
+  const rows = PROPERTY_REGIONS.map(region => metric({ metricKey: `${region.code.toLowerCase()}_auction_clearance`, label: `${region.code} auction clearance`, context: 'Statewide preliminary auction results', groupKey: 'PROPERTY' }));
+  rows.push(metric({metricKey:'auction_clearance',label:'Australia auction clearance',context:'Weighted average of all eight jurisdictions',groupKey:'PROPERTY'}));
+  const tas = rankAskMetrics('Tasmania auction clearance',rows);
+  expect(tas[0]?.metricKey).toBe('tas_auction_clearance');
+  expect(tas.some(row=>row.metricKey==='nsw_auction_clearance')).toBe(false);
+  expect(rankAskMetrics('Australian auction clearance rate',rows)[0]?.metricKey).toBe('auction_clearance');
+});

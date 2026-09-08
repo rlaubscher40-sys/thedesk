@@ -1,0 +1,107 @@
+/** Fixed public publishers only. Bound redirects, body size and whole-request time. */
+const HOSTS = new Set([
+  "www.realestate.com.au",
+  "www.westpaciq.com.au",
+  "www.cotality.com",
+  "e.infogram.com",
+  "www.apra.gov.au",
+  "www.commbank.com.au",
+]);
+export async function sourceBytes(
+  rawUrl: string,
+  maxBytes = 3_000_000,
+): Promise<Buffer> {
+  const signal = AbortSignal.timeout(25_000);
+  let url = new URL(rawUrl);
+  for (let redirects = 0; redirects <= 3; redirects++) {
+    if (
+      url.protocol !== "https:" ||
+      !HOSTS.has(url.hostname) ||
+      url.port ||
+      url.username ||
+      url.password
+    )
+      throw new Error("Unsupported metric publisher URL");
+    const response = await fetch(url, {
+      signal,
+      redirect: "manual",
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (compatible; TheDeskBot/1.0; +https://thedesk.au)",
+        Accept: "text/html,application/pdf",
+      },
+    });
+    if ([301, 302, 303, 307, 308].includes(response.status)) {
+      await response.body?.cancel();
+      const location = response.headers.get("location");
+      if (!location) throw new Error("Publisher redirect has no location");
+      url = new URL(location, url);
+      continue;
+    }
+    if (!response.ok) {
+      await response.body?.cancel();
+      throw new Error(`Publisher HTTP ${response.status}`);
+    }
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error("Empty publisher response");
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.byteLength;
+        if (size > maxBytes) throw new Error("Publisher response too large");
+        chunks.push(value);
+      }
+    } finally {
+      await reader.cancel();
+    }
+    return Buffer.concat(chunks);
+  }
+  throw new Error("Too many publisher redirects");
+}
+export async function sourceHtml(url: string) {
+  return (await sourceBytes(url)).toString("utf8");
+}
+
+export function sourceText(html: string) {
+  return html
+    .replace(/<(script|style|noscript)\b[^>]*>[\s\S]*?<\/\1>/gi, " ")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;|&#160;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export const MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+export function sourceDate(day: string, month: string, year: string) {
+  const m = MONTHS.findIndex(
+    (name) => name.toLowerCase() === month.slice(0, 3).toLowerCase(),
+  );
+  const date = new Date(Date.UTC(Number(year), m, Number(day)));
+  if (m < 0 || date.getUTCDate() !== Number(day) || date.getUTCMonth() !== m)
+    throw new Error("Invalid reporting date");
+  return date.toISOString().slice(0, 10);
+}
+export function requireRecent(date: string, maxDays: number, now = new Date()) {
+  const age = (now.getTime() - Date.parse(date)) / 86_400_000;
+  if (!Number.isFinite(age) || age < 0 || age > maxDays)
+    throw new Error(`Reporting period outside review window: ${date}`);
+}
