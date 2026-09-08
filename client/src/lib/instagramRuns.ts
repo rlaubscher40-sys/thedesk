@@ -1,3 +1,4 @@
+import { sydneySocialClock } from "@shared/instagramSchedule";
 /**
  * Which Instagram posting jobs already have a post recorded today.
  *
@@ -10,17 +11,17 @@
  * keying on feedDate would report "nothing today" for every normal post and
  * make the panel useless exactly when it matters.
  *
- * Uses the local calendar day, which for this account is Sydney: the same day
+ * Uses the Sydney calendar day even while the account owner travels: the same day
  * boundary the scheduler's watermark uses.
  */
 export type PostedRow = { postType: string; createdAt: string | Date };
 
 export function postedToday(posts: PostedRow[], now: Date = new Date()): Set<string> {
-  const today = now.toDateString();
+  const today = sydneySocialClock(now).dateISO;
   const out = new Set<string>();
   for (const p of posts) {
     const at = p.createdAt instanceof Date ? p.createdAt : new Date(p.createdAt);
-    if (!Number.isNaN(at.getTime()) && at.toDateString() === today) out.add(p.postType);
+    if (!Number.isNaN(at.getTime()) && sydneySocialClock(at).dateISO === today) out.add(p.postType);
   }
   return out;
 }
@@ -30,27 +31,30 @@ export function postedToday(posts: PostedRow[], now: Date = new Date()): Set<str
  *
  * Without this, a "nothing posted today" indicator is useless: the weekly job
  * would read as missing every weekday, and the daily briefing every morning
- * before 07:13, so the one case that matters — a job that should have posted
+ * before its morning slot, so the one case that matters — a job that should have posted
  * and didn't — would be lost in permanent noise.
  *
  * `dow` restricts the job to one weekday (0 = Sunday) and `dom` to one day of
  * the month, both matching the scheduler's own fields; null means every day.
- * Local clock, same as postedToday.
+ * Sydney clock, regardless of the device or server timezone.
  */
 export function slotHasPassed(
   atHHMM: string,
-  dow: number | null,
+  dow: number | number[] | null,
   now: Date = new Date(),
-  dom: number | null = null
+  dom: number | null = null,
+  excludeDom: number[] = []
 ): boolean {
-  if (dow != null && now.getDay() !== dow) return false;
+  const clock = sydneySocialClock(now);
+  if (dow != null && !(Array.isArray(dow) ? dow : [dow]).includes(clock.dow)) return false;
+  if (excludeDom.includes(clock.dom)) return false;
   // A monthly job has no slot on the other 30 days of the month. Without this
   // it would read as overdue from the 2nd onwards, every month.
-  if (dom != null && now.getDate() !== dom) return false;
+  if (dom != null && clock.dom !== dom) return false;
   const [h, m] = atHHMM.split(":");
   const at = Number(h) * 60 + Number(m);
   if (!Number.isFinite(at)) return false;
-  return now.getHours() * 60 + now.getMinutes() >= at;
+  return clock.minutes >= at;
 }
 
 /**

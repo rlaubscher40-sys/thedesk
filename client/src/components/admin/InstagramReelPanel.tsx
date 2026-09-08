@@ -1,3 +1,4 @@
+import { REEL_WINDOW } from "@shared/instagramSchedule";
 import { useEffect, useState } from "react";
 import { trpc } from "@/lib/trpc";
 
@@ -75,7 +76,7 @@ export function InstagramReelPanel() {
                 : plan.data.publication === "ready"
                   ? "Ready for the next automatic check. The server checks every five minutes, including after a restart."
                   : plan.data.publication === "scheduled"
-                    ? "The next eligible story waits for the 9am–6pm Sydney publishing window."
+                    ? `The next eligible story waits for the ${REEL_WINDOW.label} publishing window.`
                     : plan.data.publication === "daily-limit"
                       ? "Today's automatic Reel slot is used. The next eligible story waits until tomorrow."
                       : plan.data.publication === "running"

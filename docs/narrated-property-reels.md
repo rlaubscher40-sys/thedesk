@@ -15,7 +15,7 @@ investment winner. Each candidate contains a script, card, caption, exact source
 trail, evidence hash and separate permanent topic/reference-month identity.
 
 The existing server scheduler checks every five minutes, including after startup.
-Automatic delivery runs between 9am and 6pm Sydney time, at most once per Sydney
+Automatic delivery starts between 6:30pm and 8pm Sydney time, at most once per Sydney
 day across both topics. A confirmed topic makes way for the next eligible one;
 uncertain outcomes pause the programme. Each topic/reference month posts once,
 with no filler to meet a weekly quota. A revision changes the evidence hash and

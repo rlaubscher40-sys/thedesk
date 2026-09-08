@@ -1797,8 +1797,9 @@ function registerInstagramRoutes(app: Express): void {
         db.listDailyMetrics(),
         db.listMetricHistories(400),
       ]);
+      const { propertyMetrics } = await import("./instagram/propertyEditorial");
       const review = buildMonthlyReview(
-        metrics.map((m) => ({
+        propertyMetrics(metrics).map((m) => ({
           metricKey: m.metricKey,
           label: m.label,
           unit: m.unit,

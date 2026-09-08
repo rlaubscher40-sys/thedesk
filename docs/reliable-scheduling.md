@@ -28,13 +28,25 @@ How jobs run (all against the server's own loopback):
   on loopback (authenticated with `SCHEDULED_API_KEY`).
 
 Jobs + Sydney times: `daily-metrics` 06:33, `daily-feed` 06:43,
-`instagram-daily` 07:13, `instagram-insights` 07:17, `instagram-stat` 16:41,
-`instagram-monthly` 10:07 on the 1st,
-`weekly-edition` Sun 07:17, `instagram-weekly` Sun 09:19.
+`instagram-insights` 07:17 daily; `weekly-edition` Sunday 07:17.
+Social publication slots are defined once in `shared/instagramSchedule.ts` and
+used by the server and admin UI:
+- Property briefing: Mon–Fri 07:30.
+- Number card: Tue/Thu 12:30, except the 1st when the monthly review replaces it.
+- Weekly edition: Sunday 09:30.
+- Monthly review: 1st at 12:30, restricted to existing eligible property metrics.
+- Verified Reels: eligible new topics 18:30–20:00, at most one per Sydney day.
 
-`instagram-coverage` ("The Wider Lens") is deliberately absent: it came off the
-schedule because a third daily post of commodity news cost reach on the two that
-earn it. Its endpoint and admin button still work, by hand.
+Feed jobs allow 60 minutes of catch-up; after that the slot is skipped. Reels
+are checked every five minutes within their evening window. Rendering and Meta
+processing add latency; these times are earliest starts, not exact publication
+promises. Existing job/publication identities are unchanged, so moving a slot
+does not reopen today's completed job or a confirmed/uncertain Reel month.
+
+`instagram-coverage` ("The Wider Lens") is deliberately absent because it is
+broader than the property proposition. Its endpoint and admin button remain
+manual. We have not established a causal relationship between posting frequency
+and reach. See `docs/australian-social-rhythm.md` for the trial and design rules.
 
 ## Rollout (deliberate, safe)
 It ships **off by default** (`env.enableScheduler`), so merging changes nothing

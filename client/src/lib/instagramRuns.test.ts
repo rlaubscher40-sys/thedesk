@@ -4,19 +4,15 @@
  * scheduled post records feedDate as null, so keying on it would show "not
  * today" for every normal run and make the panel cry wolf every morning.
  *
- * Every fixture is built from LOCAL date components (`new Date(y, m, d, h)`)
- * rather than a zoned ISO string, so the assertions hold whatever timezone the
- * runner is in. postedToday compares local calendar days on purpose — the panel
- * should agree with the clock on the reader's device — and an ISO fixture made
- * "today" in Sydney reads as yesterday on a UTC CI box.
+ * Zoned fixtures keep the account on Sydney time even while its owner travels.
  */
 import { describe, expect, it } from "vitest";
 import { jobState, postedToday, slotHasPassed } from "./instagramRuns";
 
 /** Local 20 Aug 2026, 09:30 — mid-morning, well clear of a day boundary. */
-const NOW = new Date(2026, 7, 20, 9, 30);
+const NOW = new Date("2026-08-20T09:30:00+10:00");
 /** A local wall-clock time on a given day of that same month. */
-const at = (day: number, hour: number) => new Date(2026, 7, day, hour, 0);
+const at = (day: number, hour: number) => new Date(Date.UTC(2026, 7, day, hour - 10));
 
 describe("postedToday", () => {
   it("reports a job posted when its row was created today", () => {
@@ -69,8 +65,8 @@ describe("postedToday", () => {
 // the Sunday-only weekly would read as missing all week and The Number all
 // morning, burying the one case worth showing.
 describe("slotHasPassed", () => {
-  const sunday9am = new Date(2026, 7, 23, 9, 0); // 23 Aug 2026 is a Sunday
-  const thursday9am = new Date(2026, 7, 20, 9, 0);
+  const sunday9am = new Date(Date.UTC(2026, 7, 23, -1)); // 23 Aug 2026 is a Sunday
+  const thursday9am = new Date(Date.UTC(2026, 7, 20, -1));
 
   it("is false before the job's time on the day", () => {
     expect(slotHasPassed("16:41", null, thursday9am)).toBe(false);
@@ -142,13 +138,31 @@ describe("jobState", () => {
 
   it("gives a monthly job no slot on the other days of the month", () => {
     // Without this it would read as overdue from the 2nd onwards, every month.
-    const second = new Date(2026, 8, 2, 12, 0); // 2 Sep 2026, midday
+    const second = new Date(Date.UTC(2026, 8, 2, 2)); // 2 Sep 2026, midday
     expect(slotHasPassed("10:07", null, second, 1)).toBe(false);
   });
 
   it("gives a monthly job its slot on the day, once the time has passed", () => {
-    const first = new Date(2026, 8, 1, 12, 0);
+    const first = new Date(Date.UTC(2026, 8, 1, 2));
     expect(slotHasPassed("10:07", null, first, 1)).toBe(true);
-    expect(slotHasPassed("10:07", null, new Date(2026, 8, 1, 9, 0), 1)).toBe(false);
+    expect(slotHasPassed("10:07", null, new Date(Date.UTC(2026, 8, 1, -1)), 1)).toBe(false);
   });
+});
+
+it("uses Sydney day boundaries while the viewer is overseas", () => {
+  const now = new Date("2026-09-08T14:30:00Z"); // Sep 9 00:30 Sydney; Sep 8 in Europe/UTC.
+  const posts = [
+    { postType: "daily", createdAt: "2026-09-08T14:05:00Z" },
+    { postType: "stat", createdAt: "2026-09-08T13:55:00Z" },
+  ];
+  expect([...postedToday(posts, now)]).toEqual(["daily"]);
+  expect(slotHasPassed("07:30", [1, 2, 3, 4, 5], now)).toBe(false);
+});
+it("applies weekday arrays and the monthly replacement in admin", () => {
+  expect(slotHasPassed("12:30", [2, 4], new Date("2026-09-01T13:00:00+10:00"), null, [1])).toBe(
+    false
+  );
+  expect(slotHasPassed("12:30", [2, 4], new Date("2026-09-03T13:00:00+10:00"), null, [1])).toBe(
+    true
+  );
 });

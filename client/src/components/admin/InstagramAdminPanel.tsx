@@ -1,3 +1,4 @@
+import { INSTAGRAM_FEED_SLOTS } from "@shared/instagramSchedule";
 import { useState } from "react";
 import { InstagramLaunchPanel } from "./InstagramLaunchPanel";
 import { InstagramReelPanel } from "./InstagramReelPanel";
@@ -58,18 +59,16 @@ function postRowDate(p: {
 const RERUN_JOBS = [
   {
     job: "daily" as const,
-    label: "Today's Briefing",
     full: "Today's Briefing",
-    at: "07:13",
-    dow: null,
+    ...INSTAGRAM_FEED_SLOTS.daily,
+    label: "Today’s Briefing",
     warning: "the morning carousel (top 3 AU/Property stories) plus its 24h Story frames",
   },
   {
     job: "stat" as const,
-    label: "The Number",
     full: "The Number",
-    at: "16:41",
-    dow: null,
+    ...INSTAGRAM_FEED_SLOTS.stat,
+    label: "The Number",
     // The only scheduled job here that is allowed to post nothing. On a day
     // when no metric has moved enough to be worth a card, it skips, and the
     // panel reports that as "no number today" rather than as a missed post.
@@ -80,17 +79,16 @@ const RERUN_JOBS = [
     job: "weekly" as const,
     // Shortened for the button; the full cover title is in the tooltip and the
     // confirmation prompt, where there's room for it.
-    label: "This Week",
     full: "This Week in Australian Property",
-    at: "09:19",
-    dow: 0, // Sunday
+    ...INSTAGRAM_FEED_SLOTS.weekly,
+    label: "This Week",
     warning: "the latest weekly edition carousel",
   },
   {
     job: "monthly" as const,
-    label: "The Month",
     full: "The Month in Numbers",
-    at: "10:07",
+    ...INSTAGRAM_FEED_SLOTS.monthly,
+    label: "The Month",
     dow: null,
     // Runs on the 1st only, and skips a month where nothing cleared its own
     // normal range — so like The Number it must never read as a missed post.
@@ -103,7 +101,7 @@ const RERUN_JOBS = [
     label: "The Wider Lens",
     full: "The Wider Lens",
     // Off the schedule since it was daily commodity news with no partner angle,
-    // and a third daily post cost reach on the two that earn it. Kept as a
+    // outside the property proposition. Kept as a
     // button because the machinery still works and a coverage story might one
     // day warrant one. Listed last: it is no longer part of the day's run.
     manual: true,
@@ -117,7 +115,7 @@ const RERUN_JOBS = [
 const STATE_STYLE: Record<JobState, { text: (at: string) => string; alarm: boolean }> = {
   posted: { text: () => "posted today", alarm: false },
   missing: { text: () => "not posted", alarm: true },
-  skipped: { text: () => "no number today", alarm: false },
+  skipped: { text: () => "no post recorded", alarm: false },
   manual: { text: () => "on request", alarm: false },
   pending: { text: (at) => at, alarm: false },
   unknown: { text: (at) => at, alarm: false },
@@ -165,7 +163,15 @@ function RerunJobs({ posts, ready }: { posts: PostedRow[]; ready: boolean }) {
     const monthlyOn = "monthlyOn" in entry ? (entry.monthlyOn as number) : null;
     return jobState(
       done ? done.has(entry.job) : null,
-      manual ? false : slotHasPassed(entry.at, entry.dow, new Date(), monthlyOn),
+      manual
+        ? false
+        : slotHasPassed(
+            entry.at,
+            entry.dow,
+            new Date(),
+            monthlyOn,
+            "excludeDom" in entry ? entry.excludeDom : []
+          ),
       {
         optional: "optional" in entry && entry.optional === true,
         manual,
@@ -208,9 +214,10 @@ function RerunJobs({ posts, ready }: { posts: PostedRow[]; ready: boolean }) {
           const isRunning = rerun.isPending && running === entry.job;
           const state = stateOf(entry);
           const style = STATE_STYLE[state];
-          const monthlyOn = "monthlyOn" in entry ? (entry.monthlyOn as number) : null;
           const schedule =
-            monthlyOn != null ? `1st ${entry.at}` : entry.dow === 0 ? `Sun ${entry.at}` : entry.at;
+            entry.job === "coverage"
+              ? "on request"
+              : INSTAGRAM_FEED_SLOTS[entry.job].label + " Sydney";
           return (
             <button
               key={entry.job}
@@ -222,7 +229,7 @@ function RerunJobs({ posts, ready }: { posts: PostedRow[]; ready: boolean }) {
                   : state === "missing"
                     ? `"${entry.full}" was due at ${schedule} and has nothing recorded today`
                     : state === "skipped"
-                      ? `"${entry.full}" ran at ${schedule} and found no metric worth a card today`
+                      ? `"${entry.full}" has no post recorded after ${schedule}; it may have skipped or failed. Check publishing status.`
                       : state === "manual"
                         ? `"${entry.full}" is off the schedule and only posts when you press this`
                         : `"${entry.full}" — runs ${schedule}`
@@ -420,6 +427,28 @@ export function InstagramAdminPanel() {
         </p>
       </div>
 
+      <div className="border-y border-[var(--color-border)] py-4 space-y-2">
+        <h3 className="font-serif text-lg">The Australian posting rhythm</h3>
+        <p className="text-sm text-[var(--color-fg-muted)]">
+          All times use Sydney, including daylight saving—even when you travel. This is a timing
+          trial, not a proven best-time claim. Jobs are checked every five minutes; preparation can
+          delay publication. Feed slots allow up to one hour of catch-up, then skip.
+        </p>
+        <ul className="text-sm space-y-1">
+          <li>Property briefing: {INSTAGRAM_FEED_SLOTS.daily.label}.</li>
+          <li>
+            The Number: {INSTAGRAM_FEED_SLOTS.stat.label}, only when evidence clears the threshold.
+          </li>
+          <li>Weekly recap: {INSTAGRAM_FEED_SLOTS.weekly.label}.</li>
+          <li>
+            Monthly review: {INSTAGRAM_FEED_SLOTS.monthly.label}; replaces that day’s number card.
+          </li>
+        </ul>
+        <p className="text-xs text-[var(--color-fg-muted)]">
+          Navy/light covers alternate from recorded grid posts. Pinned or manually uploaded posts
+          can interrupt the pattern. A quiet evidence day is allowed to stay quiet.
+        </p>
+      </div>
       <InstagramReelPanel />
       <PublishingQuota />
 
