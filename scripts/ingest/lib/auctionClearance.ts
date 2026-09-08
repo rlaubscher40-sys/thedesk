@@ -7,6 +7,7 @@ import {
 } from "../../../shared/auctionClearance";
 import type { MetricOut } from "../dailyMetrics";
 import {
+  PublisherAccessDeniedError,
   PublisherRateLimitError,
   requireRecent,
   sourceDate,
@@ -134,6 +135,17 @@ export function createAuctionCollector(
           ),
         );
       } catch (error) {
+        if (error instanceof PublisherAccessDeniedError) {
+          // Access denial is not a transient rate limit. Stop this publisher
+          // for the lifetime of the collector; do not retry other state URLs.
+          nextAttemptAt = Infinity;
+          errors.push({
+            key: "auction_clearance",
+            reason: `Auction publisher denied access (HTTP ${error.status}). Automatic auction requests are paused; approved API/feed access is required. Existing results retained. Other metric sources continue.`,
+          });
+          limited = true;
+          break;
+        }
         if (error instanceof PublisherRateLimitError) {
           limits++;
           // At least an hour, increasing after repeated 429s, but always honour
