@@ -1,7 +1,6 @@
 import { env } from "../core/env";
 import { claimJobRun, markJobRun, readJobRun, expireReelDelivery } from "../db/jobRuns";
-import { getCityRents } from "../markets/absRents";
-import { verifiedRentReel } from "./verifiedReel";
+import { getVerifiedReelCandidates } from "./reelCandidates";
 import { reelPublicationRecord } from "./reelStatus";
 import { isRateLimitError } from "./api";
 
@@ -9,14 +8,10 @@ export const REEL_POLL_MINUTES = 5;
 export const REEL_RETRY_MINUTES = 15;
 export const REEL_STALE_MINUTES = 15;
 export const REEL_MAX_ATTEMPTS = 2;
-export const REEL_SCHEDULE = "New verified monthly comparison, checked every 5 minutes";
+export const REEL_SCHEDULE =
+  "Verified rent and housing-approval stories; at most one automatic Reel per Sydney day, 9am–6pm Sydney time, checked every 5 minutes";
+export const REEL_DELIVERY_KEY = "instagram-reel-delivery-programme-v1";
 
-function deliveryKey(date: string) {
-  // A corrected speech runtime gets its own bounded preparation attempts.
-  // The permanent evidence publication key is deliberately NOT versioned here:
-  // a confirmed or uncertain Meta publish still prevents every new attempt.
-  return `instagram-reel-delivery-speech2-${date}`;
-}
 function sydneyDate(now: Date) {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Australia/Sydney",
@@ -28,13 +23,46 @@ function sydneyDate(now: Date) {
 
 /** Content identity owns publication; a calendar watermark must not consume it. */
 export async function readReelAutomation(now = new Date()) {
-  const candidate = verifiedRentReel(await getCityRents(), now);
+  const candidates = await getVerifiedReelCandidates(now);
   const date = sydneyDate(now);
+  let candidate = candidates[0] ?? null;
   if (!candidate) return { state: "no-evidence" as const, candidate, date };
-  const publication = await reelPublicationRecord(candidate.publication);
-  if (publication.state !== "available")
-    return { state: publication.state, candidate, date, postId: publication.postId };
-  const key = deliveryKey(candidate.publication.date);
+  const records = await Promise.all(
+    candidates.map((item) => reelPublicationRecord(item.publication))
+  );
+  // Inspect every topic before advancing. A published topic may make way for
+  // another, but an uncertain result or unavailable DB pauses the programme.
+  const blocked = records.findIndex(
+    (record) => record.state === "locked" || record.state === "unavailable"
+  );
+  if (blocked >= 0)
+    return {
+      state: records[blocked]!.state as "locked" | "unavailable",
+      candidate: candidates[blocked]!,
+      date,
+    };
+  const available = records.findIndex((record) => record.state === "available");
+  if (available < 0)
+    return { state: "published" as const, candidate, date, postId: records[0]!.postId };
+  candidate = candidates[available]!;
+  // Also recover the daily cap from the permanent publication record if the
+  // delivery response or the best-effort day watermark was lost after posting.
+  if (
+    records.some(
+      (record) =>
+        "publishedAt" in record && record.publishedAt && sydneyDate(record.publishedAt) === date
+    )
+  )
+    return { state: "daily-limit" as const, candidate, date };
+  const hour = Number(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Australia/Sydney",
+      hour: "2-digit",
+      hourCycle: "h23",
+    }).format(now)
+  );
+  if (hour < 9 || hour >= 18) return { state: "scheduled" as const, candidate, date };
+  const key = REEL_DELIVERY_KEY;
   let attempt;
   try {
     attempt = await readJobRun(key, date);
@@ -49,8 +77,9 @@ export async function readReelAutomation(now = new Date()) {
     return { state: "ready" as const, candidate, date, key, attempt, expired: true };
   }
   if (attempt?.status === "success")
-    // A response alone is not proof. This unexpected inconsistency needs inspection.
-    return { state: "locked" as const, candidate, date, attempt };
+    // This shared daily slot was consumed by a confirmed topic. A different
+    // eligible topic waits until tomorrow instead of posting five minutes later.
+    return { state: "daily-limit" as const, candidate, date, attempt };
   if (attempt?.status === "failed") {
     if (attempt.attempts >= REEL_MAX_ATTEMPTS || attempt.detail?.startsWith("PAUSED:"))
       return { state: "paused" as const, candidate, date, attempt };

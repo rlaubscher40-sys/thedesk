@@ -7,6 +7,21 @@ vi.mock("../demo/store", () => ({ isDemoMode: () => false }));
 vi.mock("./absRents", () => ({
   getCityRents: vi.fn(async () => ({ status: "unavailable", retrievedAt: null, observations: [] })),
 }));
+// Discovery cache behaviour must not depend on live ABS network latency.
+vi.mock("./absApprovals", () => ({
+  getCityApprovals: vi.fn(async () => ({
+    status: "unavailable",
+    retrievedAt: null,
+    observations: [],
+  })),
+}));
+vi.mock("./absDemographics", () => ({
+  getStateDemographics: vi.fn(async () => ({
+    status: "unavailable",
+    retrievedAt: null,
+    observations: [],
+  })),
+}));
 import { listMarketDiscoveryItems } from "../db";
 import { invalidate } from "../core/cache";
 import { buildMarketDirectory, getMarketDirectory, MARKET_SAMPLE_LIMIT } from "./discovery";

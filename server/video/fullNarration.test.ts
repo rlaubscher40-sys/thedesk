@@ -1,4 +1,6 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { parseAbsApprovals } from "../markets/absApprovals";
+import { verifiedSupplyReel } from "../instagram/verifiedSupplyReel";
 import { describe, expect, it } from "vitest";
 import { verifiedRentReel } from "../instagram/verifiedReel";
 import { localSpeech, audibleWave, voiceModel } from "./localVoice";
@@ -28,6 +30,23 @@ describe.skipIf(!available)("real complete narrated Reel", () => {
     expect(duplicate).toEqual(first);
     expect(first.every((clip) => audibleWave(clip.bytes))).toBe(true);
     const video = await renderStatReel(candidate.stat, "light", {
+      script: candidate.script,
+      subtitles: true,
+    });
+    expect(video.narrated).toBe(true);
+    expect(video.subtitled).toBe(true);
+    expect(video.seconds).toBeGreaterThan(15);
+    expect(video.seconds).toBeLessThanOrEqual(32);
+    expect(video.bytes.length).toBeGreaterThan(100_000);
+  }, 180_000);
+  it("renders the complete approvals story with spoken subtitles inside the duration limit", async () => {
+    const now = new Date("2026-09-08T10:00:00Z");
+    const data = parseAbsApprovals(
+      readFileSync(new URL("../markets/fixtures/abs-approvals.csv", import.meta.url), "utf8"),
+      now.toISOString()
+    );
+    const candidate = verifiedSupplyReel(data, now)!;
+    const video = await renderStatReel(candidate.stat, "navy", {
       script: candidate.script,
       subtitles: true,
     });

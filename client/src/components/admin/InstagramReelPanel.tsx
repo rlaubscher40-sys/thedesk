@@ -33,6 +33,8 @@ export function InstagramReelPanel() {
       }
       if (response.headers.get("X-Reel-Narrated") !== "true")
         throw new Error("The voice track could not be verified.");
+      if (response.headers.get("X-Reel-Subtitled") !== "true")
+        throw new Error("The subtitles could not be verified.");
       setVideo(URL.createObjectURL(await response.blob()));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Preview failed.");
@@ -57,9 +59,9 @@ export function InstagramReelPanel() {
             {plan.data.schedule}.
           </p>
           <p className="text-sm">
-            The current pilot uses the verified Brisbane–Perth ABS rent comparison. Each reference
-            month posts once, automatically. No preview or publish button is needed. Missing
-            evidence or audio means no post.
+            The programme covers Brisbane–Perth rents and dwelling approvals. Each topic posts once
+            per reference month. At most one automatic Reel goes out per Sydney day; a second
+            eligible topic waits until tomorrow. Missing evidence, audio or subtitles means no post.
           </p>
           <p className="text-sm">
             Next cover: {plan.data.variant === "navy" ? "navy" : "light"}, alternating with the last
@@ -72,17 +74,21 @@ export function InstagramReelPanel() {
                 ? "Automatic publishing is off. Check the scheduler and connected account configuration."
                 : plan.data.publication === "ready"
                   ? "Ready for the next automatic check. The server checks every five minutes, including after a restart."
-                  : plan.data.publication === "running"
-                    ? "Rendering or publishing. This continues on the server if you close this page."
-                    : plan.data.publication === "retrying"
-                      ? "The last attempt failed before confirmed publication. A safe retry is scheduled after a 15-minute cooldown."
-                      : plan.data.publication === "paused"
-                        ? "Automatic attempts are paused for today after a failure. They resume tomorrow if the publication slot is still unused."
-                        : plan.data.publication === "locked"
-                          ? "Publication needs inspection. The outcome may be uncertain, so automatic reposting is locked."
-                          : plan.data.publication === "no-evidence"
-                            ? "No current matching ABS evidence is available."
-                            : "The publication record is unavailable; publishing is blocked."}
+                  : plan.data.publication === "scheduled"
+                    ? "The next eligible story waits for the 9am–6pm Sydney publishing window."
+                    : plan.data.publication === "daily-limit"
+                      ? "Today's automatic Reel slot is used. The next eligible story waits until tomorrow."
+                      : plan.data.publication === "running"
+                        ? "Rendering or publishing. This continues on the server if you close this page."
+                        : plan.data.publication === "retrying"
+                          ? "The last attempt failed before confirmed publication. A safe retry is scheduled after a 15-minute cooldown."
+                          : plan.data.publication === "paused"
+                            ? "Automatic attempts are paused for today after a failure. They resume tomorrow if the publication slot is still unused."
+                            : plan.data.publication === "locked"
+                              ? "Publication needs inspection. The outcome may be uncertain, so automatic reposting is locked."
+                              : plan.data.publication === "no-evidence"
+                                ? "No current matching ABS evidence is available."
+                                : "The publication record is unavailable; publishing is blocked."}
           </p>
           {plan.data.detail && (
             <p className="text-xs break-words" role="alert">
