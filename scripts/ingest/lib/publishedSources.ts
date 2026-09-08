@@ -7,6 +7,30 @@ const HOSTS = new Set([
   "www.apra.gov.au",
   "www.commbank.com.au",
 ]);
+
+/** Retry-After may be delta seconds or an HTTP date. Never retry sooner than
+ * the publisher requests; absent/invalid values receive a one-hour backoff. */
+export function publisherRetryAt(
+  value: string | null,
+  now = Date.now(),
+): number {
+  const raw = value?.trim() ?? "";
+  const requested = /^\d+$/.test(raw)
+    ? now + Number(raw) * 1000
+    : Date.parse(raw);
+  return Number.isFinite(new Date(requested).getTime()) && requested > now
+    ? requested
+    : now + 3_600_000;
+}
+
+export class PublisherRateLimitError extends Error {
+  constructor(public readonly retryAt: number) {
+    super(
+      `Publisher HTTP 429; requests paused until ${new Date(retryAt).toISOString()}`,
+    );
+    this.name = "PublisherRateLimitError";
+  }
+}
 export async function sourceBytes(
   rawUrl: string,
   maxBytes = 3_000_000,
@@ -40,6 +64,10 @@ export async function sourceBytes(
     }
     if (!response.ok) {
       await response.body?.cancel();
+      if (response.status === 429)
+        throw new PublisherRateLimitError(
+          publisherRetryAt(response.headers.get("retry-after")),
+        );
       throw new Error(`Publisher HTTP ${response.status}`);
     }
     const reader = response.body?.getReader();

@@ -7,6 +7,7 @@ import {
 } from "../../../shared/auctionClearance";
 import type { MetricOut } from "../dailyMetrics";
 import {
+  PublisherRateLimitError,
   requireRecent,
   sourceDate,
   sourceHtml,
@@ -90,39 +91,127 @@ function metric(
   };
 }
 
-export async function fetchAuctionMetrics(
-  onError?: (key: string, reason: string) => void,
-): Promise<MetricOut[]> {
-  const rows: AuctionResult[] = [];
-  // Four requests at a time, across the same collection attempt. Never aggregate stored older states.
-  for (let i = 0; i < AUCTION_REGIONS.length; i += 4) {
-    await Promise.all(
-      AUCTION_REGIONS.slice(i, i + 4).map(async (region) => {
-        try {
-          rows.push(
-            parseAuctionResults(
-              await sourceHtml(
-                `https://www.realestate.com.au/auction-results/${region.toLowerCase()}`,
-              ),
-              region,
+type Collection = {
+  metrics: MetricOut[];
+  errors: Array<{ key: string; reason: string }>;
+};
+const HOUR = 3_600_000;
+
+/** One shared, paced collection for Admin and scheduler calls in this process.
+ * A rate limit stops the whole publisher batch, including later manual retries.
+ * This does not change network identities or bypass publisher access controls. */
+export function createAuctionCollector(
+  options: {
+    fetchPage?: (url: string) => Promise<string>;
+    now?: () => number;
+    delay?: (ms: number) => Promise<void>;
+  } = {},
+) {
+  const fetchPage = options.fetchPage ?? sourceHtml;
+  const now = options.now ?? Date.now;
+  const delay =
+    options.delay ??
+    ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+  let pending: Promise<Collection> | null = null;
+  let last: Collection | null = null;
+  let nextAttemptAt = 0;
+  let limits = 0;
+
+  async function collect(): Promise<Collection> {
+    const rows: AuctionResult[] = [];
+    const errors: Collection["errors"] = [];
+    let limited = false;
+    for (const region of AUCTION_REGIONS) {
+      try {
+        if (rows.length || errors.length) await delay(1000);
+        rows.push(
+          parseAuctionResults(
+            await fetchPage(
+              `https://www.realestate.com.au/auction-results/${region.toLowerCase()}`,
             ),
+            region,
+            new Date(now()),
+          ),
+        );
+      } catch (error) {
+        if (error instanceof PublisherRateLimitError) {
+          limits++;
+          // At least an hour, increasing after repeated 429s, but always honour
+          // a longer Retry-After. Do not sleep or retry within this request.
+          nextAttemptAt = Math.max(
+            error.retryAt,
+            now() + Math.min(24, 2 ** Math.min(limits - 1, 5)) * HOUR,
           );
-        } catch (error) {
-          onError?.(
-            `${region.toLowerCase()}_auction_clearance`,
-            (error as Error).message,
-          );
+          errors.push({
+            key: "auction_clearance",
+            reason: `Auction publisher rate-limited this server (HTTP 429). Collection stopped; next eligible attempt ${new Date(nextAttemptAt).toISOString()}. Existing results retained. Repeated refreshes will not retry during this pause.`,
+          });
+          limited = true;
+          break;
         }
-      }),
-    );
+        errors.push({
+          key: `${region.toLowerCase()}_auction_clearance`,
+          reason: (error as Error).message,
+        });
+      }
+    }
+    const metrics = rows.map((row) => metric(row, row.region));
+    const national = nationalAuctionResult(rows);
+    if (national) metrics.push(metric(national, "Australia"));
+    else if (!limited)
+      errors.push({
+        key: "auction_clearance",
+        reason:
+          "All eight states and territories must return reconciled counts for the same week; national value retained.",
+      });
+    if (!limited) {
+      limits = 0;
+      // Success is reusable for six hours. Other failures wait an hour too.
+      nextAttemptAt = now() + (national ? 6 : 1) * HOUR;
+    }
+    last = { metrics, errors };
+    return last;
   }
-  const metrics = rows.map((row) => metric(row, row.region));
-  const national = nationalAuctionResult(rows);
-  if (national) metrics.push(metric(national, "Australia"));
-  else
-    onError?.(
-      "auction_clearance",
-      "All eight states and territories must return reconciled counts for the same week; national value retained.",
-    );
-  return metrics;
+
+  return async (
+    onError?: (key: string, reason: string) => void,
+  ): Promise<MetricOut[]> => {
+    let result: Collection;
+    if (pending) result = await pending;
+    else if (last && now() < nextAttemptAt) {
+      // Do not re-save partial results during a failed collection's cooldown:
+      // preserve their real last-stored timestamp and keep gaps visible.
+      result = last.errors.length ? { metrics: [], errors: last.errors } : last;
+      if (
+        !result.errors.length &&
+        result.metrics.some((row) => {
+          try {
+            requireRecent(row.asOf, 14, new Date(now()));
+            return false;
+          } catch {
+            return true;
+          }
+        })
+      )
+        result = {
+          metrics: [],
+          errors: [
+            {
+              key: "auction_clearance",
+              reason:
+                "Cached auction reporting period needs review; existing results retained.",
+            },
+          ],
+        };
+    } else {
+      pending = collect().finally(() => {
+        pending = null;
+      });
+      result = await pending;
+    }
+    result.errors.forEach((error) => onError?.(error.key, error.reason));
+    return result.metrics.map((row) => ({ ...row }));
+  };
 }
+
+export const fetchAuctionMetrics = createAuctionCollector();
