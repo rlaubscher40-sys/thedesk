@@ -90,19 +90,20 @@ export const instagramRouter = router({
   }),
 
   reelPlan: adminProcedure.query(async () => {
-    const { getCityRents } = await import("../markets/absRents");
-    const { verifiedRentReel } = await import("../instagram/verifiedReel");
-    const { reelPublicationStatus } = await import("../instagram/reelStatus");
+    const { readReelAutomation, REEL_SCHEDULE } = await import("../instagram/reelAutomation");
     const { latestGridCoverVariant } = await import("../db/instagramPosts");
-    const candidate = verifiedRentReel(await getCityRents());
+    const plan = await readReelAutomation();
     return {
       schedulerEnabled: env.enableScheduler && Boolean(env.scheduledApiKey),
-      schedule: "Tuesday and Thursday, 6:22 pm Sydney time",
+      accountConfigured: Boolean(env.instagramAccessToken && env.instagramBusinessAccountId),
+      schedule: REEL_SCHEDULE,
       variant: (await latestGridCoverVariant()) === "navy" ? ("light" as const) : ("navy" as const),
-      caption: candidate?.caption ?? null,
-      publication: candidate
-        ? await reelPublicationStatus(candidate.publication)
-        : ("no-evidence" as const),
+      caption: plan.candidate?.caption ?? null,
+      publication: plan.state,
+      postId: "postId" in plan ? plan.postId : null,
+      lastAttempt: "attempt" in plan ? (plan.attempt?.startedAt ?? null) : null,
+      detail: "attempt" in plan ? (plan.attempt?.detail ?? null) : null,
+      retryAt: "retryAt" in plan ? plan.retryAt : null,
     };
   }),
 

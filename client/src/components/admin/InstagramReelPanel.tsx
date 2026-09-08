@@ -3,7 +3,10 @@ import { trpc } from "@/lib/trpc";
 
 export function InstagramReelPanel() {
   const readiness = trpc.instagram.reelReadiness.useQuery(undefined, { staleTime: 60_000 });
-  const plan = trpc.instagram.reelPlan.useQuery(undefined, { staleTime: 60_000 });
+  const plan = trpc.instagram.reelPlan.useQuery(undefined, {
+    staleTime: 15_000,
+    refetchInterval: 30_000,
+  });
   const [video, setVideo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +42,7 @@ export function InstagramReelPanel() {
   }
   return (
     <section className="rounded border border-[var(--color-border)] p-4 space-y-3">
-      <h3 className="font-semibold">Narrated property Reels</h3>
+      <h3 className="font-semibold">Automatic narrated Reels</h3>
       <p className="text-sm">
         {readiness.data?.detail ??
           (readiness.error
@@ -49,26 +52,43 @@ export function InstagramReelPanel() {
       {plan.data && (
         <>
           <p className="text-sm">
-            Automatic schedule: {plan.data.schedulerEnabled ? "enabled" : "off"}.{" "}
+            Automatic publishing:{" "}
+            {plan.data.schedulerEnabled && plan.data.accountConfigured ? "enabled" : "off"}.{" "}
             {plan.data.schedule}.
           </p>
           <p className="text-sm">
             The current pilot uses the verified Brisbane–Perth ABS rent comparison. Each reference
-            month posts once. Missing evidence or audio means no post.
+            month posts once, automatically. No preview or publish button is needed. Missing
+            evidence or audio means no post.
           </p>
           <p className="text-sm">
             Next cover: {plan.data.variant === "navy" ? "navy" : "light"}, alternating with the last
             recorded grid post. Pinned posts keep their existing colours.
           </p>
-          <p className="text-sm">
-            {plan.data.publication === "available"
-              ? "A comparison is available for publication."
-              : plan.data.publication === "locked"
-                ? "This reference month is already published or locked. Check the post log before any recovery."
-                : plan.data.publication === "no-evidence"
-                  ? "No current matching ABS evidence is available."
-                  : "The publication record is unavailable; publishing is blocked."}
+          <p className="text-sm" role="status">
+            {plan.data.publication === "published"
+              ? `Published to Instagram. Confirmed media ID: ${plan.data.postId}.`
+              : !plan.data.schedulerEnabled || !plan.data.accountConfigured
+                ? "Automatic publishing is off. Check the scheduler and connected account configuration."
+                : plan.data.publication === "ready"
+                  ? "Ready for the next automatic check. The server checks every five minutes, including after a restart."
+                  : plan.data.publication === "running"
+                    ? "Rendering or publishing. This continues on the server if you close this page."
+                    : plan.data.publication === "retrying"
+                      ? "The last attempt failed before confirmed publication. A safe retry is scheduled after a 15-minute cooldown."
+                      : plan.data.publication === "paused"
+                        ? "Automatic attempts are paused for today after a failure. They resume tomorrow if the publication slot is still unused."
+                        : plan.data.publication === "locked"
+                          ? "Publication needs inspection. The outcome may be uncertain, so automatic reposting is locked."
+                          : plan.data.publication === "no-evidence"
+                            ? "No current matching ABS evidence is available."
+                            : "The publication record is unavailable; publishing is blocked."}
           </p>
+          {plan.data.detail && (
+            <p className="text-xs break-words" role="alert">
+              Last result: {plan.data.detail}
+            </p>
+          )}
         </>
       )}
       {plan.error && <p role="alert">Could not check the schedule and evidence.</p>}
@@ -79,6 +99,14 @@ export function InstagramReelPanel() {
         className="rounded border px-4 py-2 text-sm disabled:opacity-50"
       >
         {busy ? "Rendering with sound… this may take a few minutes" : "Preview Reel with sound"}
+      </button>
+      <button
+        type="button"
+        onClick={() => void plan.refetch()}
+        disabled={plan.isFetching}
+        className="rounded border px-4 py-2 text-sm disabled:opacity-50"
+      >
+        Refresh publishing status
       </button>
       {error && (
         <p role="alert" className="text-sm text-red-500">
@@ -113,7 +141,7 @@ export function InstagramReelPanel() {
       )}
       <p className="text-xs text-[var(--color-fg-muted)]">
         Previewing does not publish. The voice is synthetic UK English and runs locally, with no
-        speech API fee. Use “The Number, video” below to publish.
+        speech API fee. Publishing runs on the server even when this page is closed.
       </p>
     </section>
   );

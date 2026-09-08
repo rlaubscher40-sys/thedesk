@@ -7,16 +7,20 @@ No model writes causal explanations from these figures. Rent growth is neither
 rental yield nor an investment ranking. Two city observations are not plotted
 as a time series.
 
-Tuesday and Thursday at 18:22 Australia/Sydney are **opportunities**, not a
-promise of two posts each week. The pilot publishes each ABS reference month
-once. More editorial topics can extend this later. A revision updates the
+The existing server scheduler checks for an unpublished verified comparison
+every five minutes, including 15 seconds after startup. The old Tuesday/Thursday
+window and daily success/skip watermark no longer gate Reels. The pilot publishes
+each ABS reference month once; it does not promise two new topics every week.
+More editorial topics can extend this later. A revision updates the
 evidence read without automatically reposting the same month. Publication uses
 a durable reservation immediately before Meta's non-idempotent publish call;
 uncertain responses stay locked. Quota, audio or evidence failures send no post.
 
 Admin → Instagram shows the scheduler's actual enabled state, a real local
 speech check, next cover tone, sourced caption and an on-demand video preview.
-Previewing does not publish. Covers continue alternating from the last recorded
+The panel is at the top of Admin, with distinct ready, rendering, retrying,
+paused, published and uncertain/locked states. It refreshes every 30 seconds.
+Previewing does not publish; no manual click or open browser is needed. Covers continue alternating from the last recorded
 grid post; pinned posts keep their colours, so the pinned row is not guaranteed
 to form a checkerboard. Manual/out-of-band posts can also change the grid.
 
@@ -53,3 +57,18 @@ uncertain Meta response. CI installs and runs the actual voice and ffmpeg.
 Dependency source/license references:
 - https://github.com/espeak-ng/espeak-ng/blob/master/COPYING
 - https://github.com/microsoft/onnxruntime/blob/main/LICENSE
+
+## Automatic delivery safeguards
+
+Preparation is claimed atomically per evidence month and Sydney delivery day,
+with two attempts per day and a 15-minute cooldown after failure. Rate/integrity
+blocks pause further attempts for the day. After a process restart, preparation
+claims older than 15 minutes can expire, but only while the publication slot is
+unused; the separate Meta publication reservation is never reset. Successful
+HTTP responses and skips do not count as publication: the exact evidence slot
+must contain a confirmed numeric media ID. The worker passes its evidence hash
+to the existing authenticated route, which rejects changed evidence before rendering.
+Terminal attempt failures use the existing configured admin alert email.
+
+A frozen browser cannot block this worker. The production scheduler and Meta
+credentials must remain enabled; the panel shows when these are absent.

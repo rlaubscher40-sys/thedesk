@@ -18,6 +18,38 @@ function affectedRows(result: unknown): number {
   return Number((result as Array<{ affectedRows?: number }>)[0]?.affectedRows ?? 0);
 }
 
+/** A missing row is different from an unavailable database. Never fail open. */
+export async function readJobRun(jobKey: string, runDate: string) {
+  const db = getDb();
+  if (!db || isDemoMode()) throw new Error("The durable job record is unavailable.");
+  const rows = await db
+    .select()
+    .from(jobRuns)
+    .where(and(eq(jobRuns.jobKey, jobKey), eq(jobRuns.runDate, runDate)))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+/** Recover only an expired preparation attempt, NEVER a Meta publication lock. */
+export async function expireReelDelivery(jobKey: string, runDate: string, cutoff: Date) {
+  if (!/^instagram-reel-delivery-\d{4}-\d{2}-01$/.test(jobKey))
+    throw new Error("Only Reel delivery attempts can expire.");
+  const db = getDb();
+  if (!db || isDemoMode()) return;
+  await db
+    .update(jobRuns)
+    .set({ status: "failed", detail: "Preparation interrupted; retrying safely." })
+    .where(
+      and(
+        eq(jobRuns.jobKey, jobKey),
+        eq(jobRuns.runDate, runDate),
+        eq(jobRuns.status, "running"),
+        lt(jobRuns.startedAt, cutoff),
+        lt(jobRuns.attempts, 2)
+      )
+    );
+}
+
 /**
  * Try to claim today's run of `jobKey`. Returns the attempt number this caller
  * is executing (1 for the first run of the day, 2.. for a retry) — or 0 when

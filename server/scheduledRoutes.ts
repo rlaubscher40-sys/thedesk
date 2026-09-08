@@ -1699,6 +1699,12 @@ function registerInstagramRoutes(app: Express): void {
         });
         return;
       }
+      // The automatic delivery attempt is tied to the server's evidence read.
+      // If ABS changed between selection and execution, wait for the next poll.
+      if (req.body?.evidenceHash && req.body.evidenceHash !== candidate.evidenceHash) {
+        res.json({ success: true, skipped: true, reason: "Verified evidence changed; awaiting the next delivery check." });
+        return;
+      }
       const { reelPublicationStatus } = await import("./instagram/reelStatus");
       const publication = await reelPublicationStatus(candidate.publication);
       if (publication !== "available") {

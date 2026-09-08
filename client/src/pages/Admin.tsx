@@ -91,6 +91,12 @@ export default function AdminPage() {
         actions={<BackfillRubensTakeButton />}
       />
 
+      <div id="instagram" className="my-8 scroll-mt-20">
+        <SectionErrorBoundary section="Instagram admin">
+          <InstagramAdminPanel />
+        </SectionErrorBoundary>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-px panel rounded overflow-hidden mb-10">
         <StatTile label="Editions" value={total} />
         <StatTile
@@ -204,11 +210,7 @@ export default function AdminPage() {
         </SectionErrorBoundary>
       </div>
 
-      <div className="mt-10">
-        <SectionErrorBoundary section="Instagram admin">
-          <InstagramAdminPanel />
-        </SectionErrorBoundary>
-      </div>
+
 
       <div className="mt-10">
         <SectionErrorBoundary section="Hero library">
