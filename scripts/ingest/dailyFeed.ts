@@ -20,6 +20,7 @@ import {
   looksLikeSiteBoilerplate,
 } from "../../shared/headline";
 import { CHANNEL_TARGETS, DAILY_ITEM_MIN, SOURCES } from "./sources";
+import { STATE_PROPERTY_SOURCES } from "./propertySources";
 import { fetchArticle } from "./lib/article";
 import { resolveArticleUrl } from "./lib/gnews";
 import { clusterByTitle } from "./lib/cluster";
@@ -216,8 +217,12 @@ function rankAndCap(items: FetchedItem[], target: number): FetchedItem[] {
 export async function runDailyFeedIngest(rawBaseUrl: string, apiKey: string): Promise<void> {
   const baseUrl = rawBaseUrl.replace(/\/+$/u, "");
 
-  console.log(`[ingest] pulling ${SOURCES.length} sources...`);
-  const fetched = (await Promise.all(SOURCES.map(fetchSource))).flat();
+  const briefingSources = [
+    ...SOURCES,
+    ...STATE_PROPERTY_SOURCES.map((source) => ({ ...source, maxItems: 5 })),
+  ];
+  console.log(`[ingest] pulling ${briefingSources.length} sources...`);
+  const fetched = (await Promise.all(briefingSources.map(fetchSource))).flat();
   console.log(`[ingest] fetched ${fetched.length} raw items`);
 
   // Filter out obvious sport / entertainment / lifestyle / hyper-local

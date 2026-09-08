@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-vi.mock("../db", () => ({ listMarketDiscoveryItems: vi.fn() }));
+vi.mock("../db", () => ({
+  listPropertyMarketEvidence: vi.fn(async () => []),
+  listMarketDiscoveryItems: vi.fn(),
+}));
 vi.mock("../demo/store", () => ({ isDemoMode: () => false }));
 vi.mock("./absRents", () => ({
   getCityRents: vi.fn(async () => ({ status: "unavailable", retrievedAt: null, observations: [] })),
@@ -137,6 +140,6 @@ describe("public market discovery", () => {
     vi.mocked(listMarketDiscoveryItems).mockResolvedValue([]);
     await Promise.all([getMarketDirectory(), getMarketDirectory(), getMarketDirectory()]);
     expect(listMarketDiscoveryItems).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(listMarketDiscoveryItems).mock.calls[0]?.[2]).toBe(MARKET_SAMPLE_LIMIT + 1);
+    expect(vi.mocked(listMarketDiscoveryItems).mock.calls[0]?.[2]).toBe(1001);
   });
 });

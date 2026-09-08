@@ -1,0 +1,12 @@
+CREATE TABLE property_evidence (
+ id INT AUTO_INCREMENT PRIMARY KEY, identity VARCHAR(64) NOT NULL UNIQUE,
+ title VARCHAR(480) NOT NULL, summary TEXT NOT NULL, source VARCHAR(120) NOT NULL,
+ sourceUrl TEXT NOT NULL, publishedAt TIMESTAMP NOT NULL, regions JSON NOT NULL, topics JSON NOT NULL,
+ firstSeenAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, lastSeenAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ INDEX idx_property_evidence_published (publishedAt)
+);
+
+CREATE TABLE evidence_source_status (
+ sourceId VARCHAR(160) PRIMARY KEY, checkedAt TIMESTAMP NOT NULL, lastSuccessAt TIMESTAMP NULL,
+ newestPublishedAt TIMESTAMP NULL, fetched INT NOT NULL, accepted INT NOT NULL, error VARCHAR(240) NULL
+);

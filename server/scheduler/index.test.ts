@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isJobDue, sydneyClock, type SchedulerClock } from "./index";
+import { EVIDENCE_JOBS, isJobDue, sydneyClock, type SchedulerClock } from "./index";
 
 const baseClock = (over: Partial<SchedulerClock> = {}): SchedulerClock => ({
   dateISO: "2026-06-04",
@@ -83,4 +83,14 @@ describe("isJobDue", () => {
     expect(isJobDue(both, baseClock({ minutes: 8 * 60, dow: 2, dom: 1 }))).toBe(false);
     expect(isJobDue(both, baseClock({ minutes: 8 * 60, dow: 1, dom: 2 }))).toBe(false);
   });
+});
+
+it("only catches up the current hourly evidence slot after a restart", () => {
+  expect(EVIDENCE_JOBS).toHaveLength(24);
+  for (const hour of [0, 6, 12, 23]) {
+    const due = EVIDENCE_JOBS.filter((job) =>
+      isJobDue(job, baseClock({ minutes: hour * 60 + 58 }))
+    );
+    expect(due.map((job) => job.at)).toEqual([`${String(hour).padStart(2, "0")}:00`]);
+  }
 });

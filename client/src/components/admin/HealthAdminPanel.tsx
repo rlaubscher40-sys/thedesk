@@ -11,6 +11,7 @@
  * 30s while the panel is visible so a freshly-ingested edition or a
  * just-thrown error appears without a manual refresh.
  */
+import { PropertyCoveragePanel } from "./PropertyCoveragePanel";
 import { useState } from "react";
 import { AlertTriangle, Heart, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -45,18 +46,13 @@ export function HealthAdminPanel() {
     <section className="panel rounded p-6 sm:p-8 space-y-7">
       <header className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <p
-            className="overline-amber mb-2"
-            style={{ letterSpacing: "0.22em", fontSize: "10px" }}
-          >
+          <p className="overline-amber mb-2" style={{ letterSpacing: "0.22em", fontSize: "10px" }}>
             Health
           </p>
-          <h2 className="font-serif text-2xl font-bold leading-tight">
-            Service status
-          </h2>
+          <h2 className="font-serif text-2xl font-bold leading-tight">Service status</h2>
           <p className="text-sm text-[var(--color-fg-muted)] mt-1.5 max-w-[60ch]">
-            What the app knows about itself: env coverage, ingest cadence,
-            subscriber pipeline, errors, uptime. Polls every 30 seconds.
+            What the app knows about itself: env coverage, ingest cadence, subscriber pipeline,
+            errors, uptime. Polls every 30 seconds.
           </p>
         </div>
         <button
@@ -83,10 +79,7 @@ export function HealthAdminPanel() {
               hint={summary.errors.last24h === 0 ? "Quiet" : "See log below"}
               alert={summary.errors.last24h > 0}
             />
-            <StatTile
-              label="Errors · 7d"
-              value={String(summary.errors.last7d).padStart(2, "0")}
-            />
+            <StatTile label="Errors · 7d" value={String(summary.errors.last7d).padStart(2, "0")} />
             <StatTile
               label="Uptime · 24h"
               value={
@@ -123,6 +116,8 @@ export function HealthAdminPanel() {
           </div>
         </>
       )}
+
+      <PropertyCoveragePanel />
 
       {/* Uptime sparkline. */}
       {pings.length > 0 && <UptimeSparkline pings={pings} />}
@@ -258,11 +253,7 @@ function IngestPanel({
       </h3>
       <IngestRow
         label="Edition"
-        primary={
-          ingest.latestEditionNumber
-            ? `No. ${ingest.latestEditionNumber}`
-            : "None yet"
-        }
+        primary={ingest.latestEditionNumber ? `No. ${ingest.latestEditionNumber}` : "None yet"}
         timestamp={ingest.latestEditionPublishedAt}
       />
       <IngestRow
@@ -297,16 +288,11 @@ function IngestRow({
         >
           {label}
         </span>
-        <span
-          className="font-mono text-[var(--color-fg-subtle)]"
-          style={{ fontSize: "10px" }}
-        >
+        <span className="font-mono text-[var(--color-fg-subtle)]" style={{ fontSize: "10px" }}>
           {timestamp ? relativeAge(timestamp) : "—"}
         </span>
       </div>
-      <p className="font-serif text-sm text-[var(--color-fg)] mt-0.5 truncate">
-        {primary}
-      </p>
+      <p className="font-serif text-sm text-[var(--color-fg)] mt-0.5 truncate">{primary}</p>
     </div>
   );
 }
@@ -393,9 +379,7 @@ function UptimeSparkline({
               style={{
                 width: 5,
                 height: `${heightPct}%`,
-                background: ok
-                  ? "var(--color-amber)"
-                  : "var(--color-ink-bright)",
+                background: ok ? "var(--color-amber)" : "var(--color-ink-bright)",
                 opacity: 0.7,
                 borderRadius: 1,
               }}
@@ -448,14 +432,10 @@ function ErrorLog({
         <div
           className="panel rounded-sm p-5 flex items-center gap-2.5"
           style={{
-            background:
-              "color-mix(in oklch, var(--color-amber) 5%, transparent)",
+            background: "color-mix(in oklch, var(--color-amber) 5%, transparent)",
           }}
         >
-          <Heart
-            className="h-3.5 w-3.5"
-            style={{ color: "var(--color-amber)" }}
-          />
+          <Heart className="h-3.5 w-3.5" style={{ color: "var(--color-amber)" }} />
           <p
             className="font-serif italic text-[var(--color-fg-muted)]"
             style={{ fontSize: "14px" }}

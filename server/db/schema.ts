@@ -602,15 +602,31 @@ export const jobRuns = mysqlTable(
 export type JobRun = typeof jobRuns.$inferSelect;
 export type InsertJobRun = typeof jobRuns.$inferInsert;
 
-
 /** Immutable NSW planning vintages. Location/address fields are not retained. */
-export const planningSnapshots = mysqlTable("planning_snapshots", {
-  id: int("id").autoincrement().primaryKey(),
-  councilName: varchar("councilName", { length: 100 }).notNull(),
-  periodFrom: varchar("periodFrom", { length: 10 }).notNull(),
-  periodTo: varchar("periodTo", { length: 10 }).notNull(),
-  fingerprint: varchar("fingerprint", { length: 64 }).notNull(),
-  snapshot: json("snapshot").$type<import("../../shared/nswPlanning").NswPlanningSnapshot>().notNull(),
-  records: json("records").$type<import("../../shared/nswPlanning").NswPlanningRecord[]>().notNull(),
-  storedAt: timestamp("storedAt").defaultNow().notNull(),
-}, (table) => [index("idx_planning_council_period").on(table.councilName, table.periodFrom, table.periodTo, table.id)]);
+export const planningSnapshots = mysqlTable(
+  "planning_snapshots",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    councilName: varchar("councilName", { length: 100 }).notNull(),
+    periodFrom: varchar("periodFrom", { length: 10 }).notNull(),
+    periodTo: varchar("periodTo", { length: 10 }).notNull(),
+    fingerprint: varchar("fingerprint", { length: 64 }).notNull(),
+    snapshot: json("snapshot")
+      .$type<import("../../shared/nswPlanning").NswPlanningSnapshot>()
+      .notNull(),
+    records: json("records")
+      .$type<import("../../shared/nswPlanning").NswPlanningRecord[]>()
+      .notNull(),
+    storedAt: timestamp("storedAt").defaultNow().notNull(),
+  },
+  (table) => [
+    index("idx_planning_council_period").on(
+      table.councilName,
+      table.periodFrom,
+      table.periodTo,
+      table.id
+    ),
+  ]
+);
+
+export * from "./evidenceSchema";

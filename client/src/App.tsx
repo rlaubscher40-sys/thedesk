@@ -23,6 +23,7 @@ import { UserPrefsProvider } from "./lib/userPrefs";
 // come on demand. `lazyWithReload` recovers from stale-deploy chunk
 // failures (see lib/chunkReload) so a redeploy can't strand a user on a
 // page whose chunk hash has since changed.
+const EvidencePage = lazyWithReload(() => import("./pages/Evidence"), "Evidence");
 const DailyFeed = lazyWithReload(() => import("./pages/DailyFeed"), "DailyFeed");
 const AskDesk = lazyWithReload(() => import("./pages/AskDesk"), "AskDesk");
 const SharedBrief = lazyWithReload(() => import("./pages/SharedBrief"), "SharedBrief");
@@ -131,6 +132,7 @@ function Routes() {
   const routes = (
     <Suspense fallback={<PageFallback />}>
       <Switch>
+        <Route path="/evidence/:id" component={EvidencePage} />
         <Route path="/" component={DailyFeed} />
         <Route path="/ask" component={AskDesk} />
         <Route path="/subscribe" component={Subscribe} />

@@ -45,15 +45,23 @@ export async function retrieveMarketEvidence(
   marketB: string
 ): Promise<MarketEvidence[]> {
   // Exact full-name queries keep "Port Macquarie" separate from national Macquarie lending.
-  const bundles = await Promise.all([
-    db.searchMarketContent(marketA),
-    db.searchMarketContent(marketB),
+  const [bundles, archives] = await Promise.all([
+    Promise.all([db.searchMarketContent(marketA), db.searchMarketContent(marketB)]),
+    Promise.all([db.searchPropertyEvidence(marketA), db.searchPropertyEvidence(marketB)]),
   ]);
   const evidence = new Map<string, MarketEvidence>();
   for (const [index, bundle] of bundles.entries()) {
     const side: MarketSide = index === 0 ? "a" : "b";
     const market = index === 0 ? marketA : marketB;
     const candidates = [
+      ...archives[index]!.map((item) => ({
+        title: item.title,
+        text: `${item.title}\n${item.summary}`,
+        date: item.publishedAt.toISOString().slice(0, 10),
+        publisher: item.source,
+        href: `/evidence/${item.id}`,
+        identity: item.sourceUrl,
+      })),
       ...bundle.feedItems.map((item) => ({
         title: item.title,
         text: `${item.title}\n${item.summary ?? ""}`,
