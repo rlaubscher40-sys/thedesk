@@ -24,6 +24,7 @@ import { recordServerError } from "../db/health";
 import { claimJobRun, markJobRun } from "../db/jobRuns";
 import { runDailyFeedIngest } from "../../scripts/ingest/dailyFeed";
 import { runDailyMetricsIngest } from "../../scripts/ingest/dailyMetrics";
+import { runReelAutomation, REEL_MAX_ATTEMPTS } from "../instagram/reelAutomation";
 
 import { collectPropertyEvidence } from "../evidence/collect";
 
@@ -195,16 +196,8 @@ const JOBS: Job[] = [
     maxAttempts: 2,
     run: (b, k, a) => postLocal(b, k, "/api/ingest/instagram-stat", a),
   },
-  // Twice a week rather than daily: a Reel is the reach play, and the same
-  // animated card every day would wear out fast. Tuesday and Thursday sit
-  // clear of the Sunday edition and of the 1st-of-month review.
-  {
-    key: "instagram-reel",
-    at: "18:22",
-    dow: [2, 4],
-    maxAttempts: 2,
-    run: (b, k, a) => postLocal(b, k, "/api/ingest/instagram-reel", a),
-  },
+  // Verified Reels use content-driven delivery below. An old daily "success"
+  // (including an honest skip) must not suppress newly available evidence.
   // The 1st of the month, covering the month that just finished. Sits after the
   // morning briefing so the two do not publish within minutes of each other.
   {
@@ -303,6 +296,32 @@ async function tick(baseUrl: string, apiKey: string): Promise<void> {
         }
       }
     }
+    // The approved comparison is delivered as soon as evidence and rendering
+    // are ready, independent of weekday windows and old calendar watermarks.
+    // Keep it after other grid jobs so cover alternation sees their records.
+    await runReelAutomation({
+      post: async (evidenceHash) => {
+        const response = await fetch(`${baseUrl}/api/ingest/instagram-reel`, {
+          method: "POST",
+          headers: { "content-type": "application/json", "x-scheduled-key": apiKey },
+          body: JSON.stringify({ evidenceHash }),
+          signal: AbortSignal.timeout(290_000),
+        });
+        const body = await response.text();
+        if (!response.ok)
+          throw new Error(`Reel delivery ${response.status}: ${body.slice(0, 450)}`);
+        return JSON.parse(body);
+      },
+      alert: (detail, attempt) =>
+        alertTerminalFailure("instagram-reel", clock, detail, attempt, REEL_MAX_ATTEMPTS),
+    }).catch(async (err) => {
+      console.error("[scheduler] Reel delivery check failed:", (err as Error).message);
+      await recordServerError({
+        level: "error",
+        route: "scheduler/reel",
+        message: `Reel delivery check failed: ${(err as Error).message}`.slice(0, 512),
+      }).catch(() => {});
+    });
   } finally {
     ticking = false;
   }
