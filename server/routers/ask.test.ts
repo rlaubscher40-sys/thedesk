@@ -43,6 +43,25 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
 
 describe("Ask answer recovery", () => {
+  it("ranks the combined evidence before assigning citations and applying the source cap", async () => {
+    const feedItems = [
+      ...Array.from({ length: 12 }, (_, index) => ({ ...related.feedItems[0], id: index + 1, title: `Investor stock news ${index}`, summary: "Technology companies." })),
+      { ...related.feedItems[0], id: 99, title: "Investor lending update", summary: "Housing loan commitments." },
+    ];
+    vi.mocked(db.searchAllContent).mockResolvedValue({ feedItems, editions: [] } as typeof related);
+    expect(await askRouter.createCaller(ctx).answer(input)).toMatchObject({ status: "answered", sources: [{ href: "/story/99" }] });
+  });
+
+  it("keeps the matched excerpt when long edition text exceeds the evidence budget", async () => {
+    vi.mocked(db.searchAllContent).mockResolvedValue({
+      feedItems: [],
+      editions: [{ id: 1, editionNumber: 1, weekRange: "Test week", weekOf: "2026-09-01", fullText: "Other reporting. ".repeat(400), snippet: "Investor lending evidence near the end of this edition." }],
+    } as unknown as typeof related);
+    await askRouter.createCaller(ctx).answer(input);
+    const messages = vi.mocked(invokeLLMJson).mock.calls[0]![0].messages;
+    expect(messages.map((message) => message.content).join("\n")).toContain("Investor lending evidence near the end of this edition.");
+  });
+
   it("returns no evidence without calling the model or using an answer", async () => {
     vi.mocked(db.searchAllContent).mockResolvedValue({ feedItems: [], editions: [] } as unknown as typeof related);
     expect(await askRouter.createCaller(ctx).answer(input)).toMatchObject({ status: "insufficient", sources: [] });
