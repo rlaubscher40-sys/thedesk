@@ -2,6 +2,29 @@ import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { createHash } from "node:crypto";
+
+export const SPEECH_TIMEOUT_MS = 90_000;
+const CACHE_LIMIT = 4;
+type SpeechLine = { key: string; text: string };
+type SpeechAudio = { key: string; bytes: Buffer };
+const cache = new Map<string, SpeechAudio[]>();
+const inFlight = new Map<string, Promise<SpeechAudio[]>>();
+let queue: Promise<unknown> = Promise.resolve();
+
+export function speechProcessFailure(error: {
+  code?: string | number | null;
+  signal?: string | null;
+  killed?: boolean;
+}) {
+  if (error.killed) return `Local narration exceeded its ${SPEECH_TIMEOUT_MS / 1000}-second limit.`;
+  if (error.code === "ENOENT")
+    return "Local narration executable or one of its runtime libraries is missing.";
+  if (error.code === "EACCES") return "Local narration executable is not permitted to run.";
+  if (error.signal)
+    return `Local narration was stopped by ${error.signal}. Check server memory and CPU limits.`;
+  return `Local narration exited with code ${error.code ?? "unknown"}. Check the voice runtime log.`;
+}
 
 // Installed at build time, never downloaded in a publishing request.
 export const voiceRoot = () => path.resolve("dist/voice");
@@ -41,23 +64,64 @@ export function audibleWave(bytes: Buffer): boolean {
   return audible > rate * 0.05;
 }
 
-export async function localSpeech(lines: Array<{ key: string; text: string }>) {
+export async function localSpeech(lines: SpeechLine[]): Promise<SpeechAudio[]> {
   if (
     !lines.length ||
     lines.length > 8 ||
     lines.some((l) => !l.text.trim() || l.text.length > 1000)
   )
     throw new Error("Narration script is empty or too long.");
+  // Stable exact-script identity. Different numbers never reuse another read.
+  const key = createHash("sha256").update(JSON.stringify(lines)).digest("hex");
+  const hit = cache.get(key);
+  if (hit) return hit;
+  const pending = inFlight.get(key);
+  if (pending) return pending;
+  if (inFlight.size >= 2)
+    throw new Error("Local narration is busy. The automatic publisher will retry safely.");
+  // Only one model process at a time. Readiness, previews and publishing used
+  // to load separate high-quality models concurrently on the same small host.
+  const input = lines.map((line) => ({ ...line }));
+  const task = queue.then(async () => {
+    const audio = await runLocalSpeech(input);
+    cache.set(key, audio);
+    while (cache.size > CACHE_LIMIT) cache.delete(cache.keys().next().value!);
+    return audio;
+  });
+  queue = task.catch(() => {});
+  inFlight.set(key, task);
+  try {
+    return await task;
+  } finally {
+    inFlight.delete(key);
+  }
+}
+
+async function runLocalSpeech(lines: SpeechLine[]): Promise<SpeechAudio[]> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "desk-voice-"));
   try {
-    await fs.access(voiceModel());
+    for (const file of [voiceBinary(), voiceModel(), `${voiceModel()}.json`]) {
+      await fs.access(file).catch(() => {
+        throw new Error(
+          `Local narration asset missing: ${path.basename(file)}. Rebuild the voice assets.`
+        );
+      });
+    }
     const files = lines.map((_, i) => path.join(dir, `${i}.wav`));
     await new Promise<void>((resolve, reject) => {
       const child = execFile(
         voiceBinary(),
         ["--model", voiceModel(), "--json-input", "--length_scale", "1.03"],
-        { timeout: 45_000, maxBuffer: 256 * 1024 },
-        (error) => (error ? reject(new Error("Local narration failed or timed out.")) : resolve())
+        { timeout: SPEECH_TIMEOUT_MS, killSignal: "SIGKILL", maxBuffer: 256 * 1024 },
+        (error, _stdout, stderr) => {
+          if (!error) {
+            resolve();
+            return;
+          }
+          const detail = speechProcessFailure(error);
+          console.error(`[voice] ${detail} Passages: ${lines.length}. ${stderr.slice(-1500)}`);
+          reject(new Error(detail));
+        }
       );
       child.stdin?.on("error", () => {});
       child.stdin?.end(
@@ -68,7 +132,8 @@ export async function localSpeech(lines: Array<{ key: string; text: string }>) {
     return await Promise.all(
       lines.map(async (line, i) => {
         const bytes = await fs.readFile(files[i]!);
-        if (!audibleWave(bytes)) throw new Error("Narration did not contain valid audible speech.");
+        if (!audibleWave(bytes))
+          throw new Error(`Narration passage ${i + 1} did not contain valid audible speech.`);
         return { key: line.key, bytes };
       })
     );

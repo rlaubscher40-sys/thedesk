@@ -187,10 +187,8 @@ export async function synthesise(text: string): Promise<Buffer | null> {
 
 export async function synthesiseScript(
   lines: ScriptLine[]
-): Promise<Array<{ key: string; bytes: Buffer }> | null> {
-  try {
-    return await localSpeech(lines);
-  } catch {
-    return null;
-  }
+): Promise<Array<{ key: string; bytes: Buffer }>> {
+  // Preserve the actual failure (timeout, missing assets, process exit or
+  // invalid PCM) through the scheduled route and its admin result.
+  return localSpeech(lines);
 }

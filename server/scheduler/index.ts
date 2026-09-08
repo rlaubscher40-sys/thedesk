@@ -314,8 +314,16 @@ async function tick(baseUrl: string, apiKey: string): Promise<void> {
           signal: AbortSignal.timeout(290_000),
         });
         const body = await response.text();
-        if (!response.ok)
-          throw new Error(`Reel delivery ${response.status}: ${body.slice(0, 450)}`);
+        if (!response.ok) {
+          let detail = body.slice(0, 450);
+          try {
+            const parsed = JSON.parse(body);
+            detail = parsed.message ?? parsed.detail ?? parsed.error ?? detail;
+          } catch {
+            /* Non-JSON proxy errors retain their bounded text. */
+          }
+          throw new Error(`Reel delivery ${response.status}: ${String(detail).slice(0, 450)}`);
+        }
         return JSON.parse(body);
       },
       alert: (detail, attempt) =>

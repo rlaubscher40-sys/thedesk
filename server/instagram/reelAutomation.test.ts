@@ -64,7 +64,7 @@ describe("automatic verified Reel delivery", () => {
           : null
     );
     expect(await run()).toEqual({ state: "published", postId: "123456" });
-    expect(m.claim).toHaveBeenCalledWith("instagram-reel-delivery-2026-07-01", "2026-09-09", 2);
+    expect(m.claim).toHaveBeenCalledWith("instagram-reel-delivery-speech2-2026-07-01", "2026-09-09", 2);
     expect(m.post).toHaveBeenCalledWith(expect.stringMatching(/^[a-f0-9]{64}$/));
     expect(m.mark).toHaveBeenCalledWith(
       expect.any(String),
@@ -167,7 +167,7 @@ describe("automatic verified Reel delivery", () => {
     );
     expect(await run()).toEqual({ state: "published", postId: "123456" });
     expect(m.expire).toHaveBeenCalledWith(
-      "instagram-reel-delivery-2026-07-01",
+      "instagram-reel-delivery-speech2-2026-07-01",
       "2026-09-09",
       expect.any(Date)
     );
