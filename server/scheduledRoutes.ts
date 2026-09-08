@@ -1993,7 +1993,11 @@ function registerInstagramRoutes(app: Express): void {
         }
         if (kind === "daily-cover") {
           const metrics = dailyCoverMetrics(await db.listDailyMetrics());
-          buf = await cards.renderDailyCoverCard(stories, stories[0]!.feedDate, variant, metrics);
+          const { renderPropertyDailyCover } = await import("./instagram/dailyCover");
+          // Same layout/palette as publishing; source headlines have not been
+          // rewritten by the just-in-time publishing step.
+          res.setHeader("X-Preview-Content", "source-headlines");
+          buf = await renderPropertyDailyCover(stories, variant, metrics);
         } else if (kind === "daily-slide") {
           const story = stories[idx];
           if (!story) {

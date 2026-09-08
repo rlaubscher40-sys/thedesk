@@ -20,7 +20,7 @@ import { generateCoverageBrief } from "../prompts/coverageBrief";
 import { generateInstagramHeadline } from "../prompts/instagramHeadline";
 import { generateSayThis } from "../prompts/sayThis";
 import { generateWhyItMatters } from "../prompts/whyItMatters";
-import { renderDailyHookCoverCard } from "../og/dailyHookCover";
+import { renderPropertyDailyCover } from "./dailyCover";
 import {
   type CardVariant,
   renderDailyCoverCard,
@@ -611,20 +611,7 @@ export async function postDailyCarousel(
           opts.metrics,
           coverOpts
         )
-      : await renderDailyHookCoverCard({
-          feedDate: sanitized[0]?.feedDate,
-          lead: {
-            title: sanitized[0]!.title,
-            category: sanitized[0]!.category,
-            source: sanitized[0]!.source,
-            whyItMatters: sanitized[0]!.whyItMatters,
-          },
-          supporting: sanitized.slice(1, 3).map((story) => ({
-            title: story.title,
-            category: story.category,
-          })),
-          metrics: opts.metrics,
-        });
+      : await renderPropertyDailyCover(sanitized, opts.variant ?? "navy", opts.metrics);
     carouselUuids.push(storeTempImage(coverBuf));
     altTexts.push(isCoverage ? "The Desk wider lens cover" : sanitized[0]!.title);
 
