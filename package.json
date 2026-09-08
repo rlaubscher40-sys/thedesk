@@ -21,7 +21,7 @@
     "ingest:weekly": "INGEST_CLI=1 tsx scripts/ingest/weeklyEdition.ts",
     "ingest:metrics": "INGEST_CLI=1 tsx scripts/ingest/dailyMetrics.ts",
     "setup:voice": "node scripts/setup-reel-voice.mjs",
-    "audit:security": "pnpm audit --audit-level=high"
+    "audit:security": "pnpm audit --audit-level=low"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.105.0",
@@ -80,7 +80,7 @@
     "tsx": "^4.22.4",
     "typescript": "6.0.3",
     "vite": "^8.0.16",
-    "vitest": "^3.2.6"
+    "vitest": "^4.1.11"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

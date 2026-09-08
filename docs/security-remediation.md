@@ -59,6 +59,10 @@ Cloud MFA, runtime database least privilege, backups and restore capability rema
 
 Public preview caching is mitigation, not a full DDoS service. Keep edge protections enabled. The application global AI cap is shared in the database; native rendering concurrency and HTTP limit stores remain per process.
 
+## Dependency follow-up
+
+The fresh 8 September audit detected [GHSA-82fw-gwwq-j7x9](https://github.com/vitest-dev/vitest/security/advisories/GHSA-82fw-gwwq-j7x9) in Vitest and its mocker dependency. Vitest is upgraded to patched 4.1.11; the full suite must pass on the upgraded runner. The dependency gate now fails at low severity as well, so moderate advisories cannot leave a green security gate.
+
 ## Local verification
 
 Use Node 22+ and the package manager declared in package.json. Run `pnpm install --frozen-lockfile`, `pnpm check`, `pnpm test`, `pnpm audit:security` and `pnpm build`.
