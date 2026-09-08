@@ -46,6 +46,7 @@ export function InstagramLaunchPanel() {
             className="border border-[var(--color-border)] px-3 py-2 text-sm aria-pressed:text-[var(--color-accent)]"
             onClick={() => {
               setId(slot);
+              publish.reset();
               setReviewing(false);
               setConfirmed(false);
             }}
@@ -62,6 +63,7 @@ export function InstagramLaunchPanel() {
           . {record.detail}
         </p>
       )}
+      {publish.error && <p role="alert" className="text-sm">{publish.error.message}</p>}
       {!status.data?.available && (
         <p className="text-sm">
           Publication is unavailable until the saved post records can be read.
