@@ -140,9 +140,9 @@ export function InstagramReelPanel() {
         </details>
       )}
       <p className="text-xs text-[var(--color-fg-muted)]">
-        Previewing does not publish. The voice is a synthetic male UK English voice (George) and
-        runs locally, with no speech API fee. Publishing runs on the server even when this page is
-        closed.
+        Previewing does not publish. Spoken captions are included for watching without sound. The
+        voice is a synthetic male UK English voice (George) and runs locally, with no speech API
+        fee. Publishing runs on the server even when this page is closed.
       </p>
     </section>
   );

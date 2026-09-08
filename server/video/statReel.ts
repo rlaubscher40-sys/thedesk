@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import ffmpegPath from "ffmpeg-static";
-import { type CardVariant, renderStatCard } from "../og/instagramCards";
+import { type CardVariant, renderStatCard, loadReelSubtitleFont } from "../og/instagramCards";
 import { formatLike, parseFigure } from "../og/figureFormat";
 import type { SparkPoint } from "../og/sparkline";
 import type { StatFact } from "../metrics/statFacts";
@@ -16,6 +16,8 @@ import {
   type ReelStatText,
   type ScriptLine,
 } from "./narration";
+
+import { subtitleCues, subtitleAss } from "./subtitles";
 
 const run = promisify(execFile);
 
@@ -246,6 +248,20 @@ export function layout(sections: Section[]): {
     });
   }
 
+  // A dissolve consumes wall-clock time. Restore that time to the final
+  // still of each section, including the fade into the next section. Without
+  // this, a multi-frame facts/chart section can start the next voice early.
+  const active = sections.filter((section) => section.frames.length > 0);
+  firstBeatOfSection.forEach((first, i) => {
+    const next = firstBeatOfSection[i + 1] ?? beats.length;
+    let span = 0;
+    for (let j = first; j < next; j++)
+      span += beats[j]!.seconds - (j === first ? 0 : beats[j]!.fade);
+    span -= beats[next]?.fade ?? 0;
+    const missing = active[i]!.seconds - span;
+    if (missing > 0) beats[next - 1]!.seconds += Math.ceil(missing * FPS - 1e-8) / FPS;
+  });
+
   // Chain arithmetic: after k beats the video is `chain` long, and beat k's
   // dissolve begins `fade` before that.
   const arrival: number[] = [];
@@ -444,7 +460,10 @@ export function composeSections(stat: ReelStat, durations: Record<string, number
         ...ticks.map((valueText) => ({ reveal: 0.3, valueText, seconds: TICK_SECONDS })),
         { reveal: 0.3 },
       ],
-      seconds: withTail("label") + OPENING_SECONDS + ticks.length * TICK_SECONDS,
+      seconds: Math.max(
+        withTail("label"),
+        OPENING_SECONDS + ticks.length * TICK_SECONDS + MIN_HOLD
+      ),
     },
     { key: "value", frames: [{ reveal: 0.3 }], seconds: withTail("value") },
   ];
@@ -501,8 +520,8 @@ export function composeSections(stat: ReelStat, durations: Record<string, number
 export async function renderStatReel(
   stat: ReelStat,
   variant: CardVariant = "navy",
-  opts: { narrate?: boolean; script?: ScriptLine[] } = {}
-): Promise<{ bytes: Buffer; seconds: number; narrated: boolean }> {
+  opts: { narrate?: boolean; script?: ScriptLine[]; subtitles?: boolean } = {}
+): Promise<{ bytes: Buffer; seconds: number; narrated: boolean; subtitled: boolean }> {
   if (!ffmpegPath) throw new Error("ffmpeg binary unavailable");
 
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "desk-reel-"));
@@ -565,6 +584,7 @@ export async function renderStatReel(
           seriesProgress: beat.frame.seriesProgress,
           facts: stat.facts,
           factsShown: beat.frame.factsShown ?? 0,
+          subtitleSpace: opts.subtitles,
           kicker: "The Number",
         });
         file = path.join(dir, `frame-${cache.size}.jpg`);
@@ -591,8 +611,32 @@ export async function renderStatReel(
     for (const file of frameFiles) args.push("-i", file);
     for (const s of spokenSections) args.push("-i", s.file);
 
+    let subtitleFilter = "";
+    if (opts.subtitles) {
+      if (!spoken) throw new Error("Subtitles require measured narration.");
+      const cues = subtitleCues(
+        script,
+        sections.map((section, i) => ({
+          key: section.key,
+          start: starts[i]!,
+          seconds: durations[section.key] ?? 0,
+        }))
+      );
+      const fontDir = path.join(dir, "fonts");
+      await fs.mkdir(fontDir);
+      await fs.writeFile(
+        path.join(fontDir, "JetBrainsMono-Regular.woff"),
+        await loadReelSubtitleFont()
+      );
+      const assFile = path.join(dir, "subtitles.ass");
+      await fs.writeFile(assFile, subtitleAss(cues));
+      subtitleFilter = `[vplain]ass=filename=${assFile}:fontsdir=${fontDir}[vout]`;
+    }
     const graph = [
-      buildVideoGraph(beats),
+      opts.subtitles
+        ? buildVideoGraph(beats).replace(/\[vout\]$/, "[vplain]")
+        : buildVideoGraph(beats),
+      subtitleFilter,
       spokenSections.length
         ? buildAudioGraph(
             spokenSections.map((s) => s.start),
@@ -644,6 +688,7 @@ export async function renderStatReel(
       bytes: await fs.readFile(output),
       seconds: total,
       narrated: spokenSections.length > 0,
+      subtitled: Boolean(subtitleFilter),
     };
   } finally {
     await fs.rm(dir, { recursive: true, force: true }).catch(() => {});

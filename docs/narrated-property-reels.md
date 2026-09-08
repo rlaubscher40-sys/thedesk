@@ -126,3 +126,24 @@ cannot establish a winning format. Test one change at a time (hook, topic or
 explanation), keep factual safeguards fixed, and assess a series of posts before
 changing the standard. Save/share prompts should name a useful reason or reader,
 not demand every interaction. No system can guarantee virality or perfect copy.
+
+## Sound-off story
+
+The verified automatic comparison and its preview now require burned-in spoken
+subtitles. The same trusted script supplies the voice and the subtitle text;
+there is no transcription service or second model that could change a figure.
+Each cue has at most two lines of 32 characters, set in the bundled JetBrains
+Mono at 44px on a dark background. Reel frames reserve a band below the logo;
+unchanged grid covers retain their existing design and alternation.
+
+Passage boundaries use measured WAV durations and the same start times as the
+audio mix. Longer passages split into readable phrases using length-weighted
+timing; this is not claimed to be word-level forced alignment. Missing timing,
+ambiguous keys, overlapping/unreadably short cues and words that do not fit are
+rejected. ASS commands cannot be supplied through script text. The publisher
+rejects an output without required subtitles before creating a Meta container.
+Rendering stays local with the existing ffmpeg, font assets and CPU limits.
+
+Other future formats can request the same subtitle pipeline after checking
+that their card layout has room for the reserved band. This change adds no
+new topics, no extra scheduled posts and no reset of a publication reservation.

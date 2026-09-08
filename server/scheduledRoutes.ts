@@ -1702,7 +1702,11 @@ function registerInstagramRoutes(app: Express): void {
       // The automatic delivery attempt is tied to the server's evidence read.
       // If ABS changed between selection and execution, wait for the next poll.
       if (req.body?.evidenceHash && req.body.evidenceHash !== candidate.evidenceHash) {
-        res.json({ success: true, skipped: true, reason: "Verified evidence changed; awaiting the next delivery check." });
+        res.json({
+          success: true,
+          skipped: true,
+          reason: "Verified evidence changed; awaiting the next delivery check.",
+        });
         return;
       }
       const { reelPublicationStatus } = await import("./instagram/reelStatus");
@@ -1722,6 +1726,7 @@ function registerInstagramRoutes(app: Express): void {
       const { postId, headline } = await postStatReel(candidate.stat, siteOrigin(), {
         variant,
         script: candidate.script,
+        subtitles: true,
         caption: candidate.caption,
         publication: candidate.publication,
         deadlineAt: startedAt + REEL_HTTP_BUDGET_MS,
@@ -2060,11 +2065,12 @@ function registerInstagramRoutes(app: Express): void {
         const reel = await renderStatReel(
           candidate.stat,
           req.query.variant === "light" ? "light" : "navy",
-          { script: candidate.script }
+          { script: candidate.script, subtitles: true }
         );
         res.setHeader("Content-Type", "video/mp4");
         res.setHeader("Cache-Control", "no-store");
         res.setHeader("X-Reel-Narrated", String(reel.narrated));
+        res.setHeader("X-Reel-Subtitled", String(reel.subtitled));
         res.setHeader("X-Reel-Evidence", candidate.evidenceHash);
         res.send(reel.bytes);
         return;
