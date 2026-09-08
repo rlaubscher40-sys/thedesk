@@ -16,6 +16,13 @@ const destination = process.argv[2] ?? "/tmp/thedesk-creative-review.png";
 const topic = sourceGroundedTopic({
   title: "Sydney dwelling approvals: what the annual total does—and doesn't—tell you",
   category: "PROPERTY",
+  sourceItemIds: [1],
+  socialSource: {
+    feedItemId: 1,
+    publisher: "Fixture publisher",
+    url: "https://example.org/source",
+    feedDate: "2026-09-08",
+  },
   summary:
     "Approvals count permissions to build. They are not a count of homes that have started construction or reached completion.",
 });

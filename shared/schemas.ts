@@ -33,6 +33,17 @@ export const talkingPointsSchema = z.record(z.string(), z.string());
 export type TalkingPoints = z.infer<typeof talkingPointsSchema>;
 
 export const editionTopicSchema = z.object({
+  /** References only; publisher metadata must be reloaded from the feed, never invented by a model. */
+  sourceItemIds: z.array(z.number().int().positive()).max(5).optional(),
+  /** Server-resolved social provenance. Not trusted when reading an edition. */
+  socialSource: z
+    .object({
+      feedItemId: z.number().int().positive(),
+      publisher: z.string().min(1).max(256),
+      url: z.string().url().max(2048),
+      feedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    })
+    .optional(),
   title: z.string().min(1),
   /** 2-3 sentence lead. */
   summary: z.string().min(1),

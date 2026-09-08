@@ -1751,11 +1751,13 @@ export async function renderWeeklyTopicCard(
                     props: {
                       style: {
                         fontFamily: "JetBrains Mono",
-                        fontSize: "12px",
-                        letterSpacing: "0.22em",
+                        fontSize: "24px",
+                        letterSpacing: "0.02em",
                         color: AMBER,
                       },
-                      children: "thedesk.au",
+                      children: topic.socialSource
+                        ? `Source: ${topic.socialSource.publisher} · Feed date: ${topic.socialSource.feedDate} · Link in caption`
+                        : "thedesk.au",
                     },
                   },
                 },

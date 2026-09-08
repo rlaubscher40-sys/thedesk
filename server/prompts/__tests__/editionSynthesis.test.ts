@@ -127,6 +127,25 @@ const validResponse = JSON.stringify({
 afterEach(() => vi.clearAllMocks());
 
 describe("synthesizeWeeklyEdition", () => {
+  it("retains only source IDs supplied to the writer and discards model provenance", async () => {
+    const response = JSON.parse(validResponse);
+    response.topics[0].sourceItemIds = [1, 999999];
+    response.topics[0].socialSource = {
+      feedItemId: 1,
+      publisher: "Invented",
+      url: "https://fake.example",
+      feedDate: "2026-05-13",
+    };
+    vi.mocked(invokeLLM).mockResolvedValue(JSON.stringify(response));
+    const out = await synthesizeWeeklyEdition({
+      weekOf: "2026-05-11",
+      weekRange: "11–17 May 2026",
+      items: fakeItems,
+    });
+    expect(out.topics[0]?.sourceItemIds).toEqual([1]);
+    expect(out.topics[0]?.socialSource).toBeUndefined();
+    expect(JSON.stringify(vi.mocked(invokeLLM).mock.calls.at(-1))).toContain("Feed ID 1");
+  });
   it("parses a valid LLM response into a typed SynthesisOutput", async () => {
     vi.mocked(invokeLLM).mockResolvedValueOnce(validResponse);
 

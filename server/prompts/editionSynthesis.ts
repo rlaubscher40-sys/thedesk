@@ -208,7 +208,8 @@ function formatItems(items: DailyFeedItem[]): string {
   return items
     .slice(0, 80)
     .map(
-      (it, i) => `${i + 1}. [${it.category}] ${it.title}\n   Source: ${it.source}\n   ${it.summary}`
+      (it, i) =>
+        `${i + 1}. [Feed ID ${it.id}] [${it.category}] ${it.title}\n   Source: ${it.source} · Feed date: ${it.feedDate}\n   ${it.summary}`
     )
     .join("\n\n");
 }
@@ -233,6 +234,7 @@ COVERAGE MANDATE, non-negotiable. The edition MUST include at least one topic fr
 If you find yourself shipping fewer than 5 topics, you have missed a beat, go back through the source items and find the missing angle. A weekly edition that covers only Property + Policy reads as half a brief.
 
 Each topic must synthesise 2-5 related daily items, not just restate one. If two topics start to feel redundant, merge them.
+Each topic MUST include sourceItemIds: the actual numeric Feed IDs of its supporting items, strongest supporting source first. Use only IDs supplied below. Never invent IDs, publisher names, URLs or source dates.
 
 Below is every story logged on the daily feed across the week. Synthesise them into a structured weekly edition.
 
@@ -251,6 +253,7 @@ Output a SINGLE JSON object matching this exact shape, and NOTHING ELSE, no prea
   "topics": [
     {
       "title": "Headline (max 14 words). States the argument, not the news.",
+      "sourceItemIds": [123, 456],
       "summary": "2-3 sentence editorial lede. The setup, not the recap. Reads like the opening of a Stratechery or FT Lex column.",
       "category": "MACRO | PROPERTY | POLICY | MARKETS | AI | TECH | GEOPOLITICS | SCIENCE | ECONOMICS | OTHER",
       "body": "600-800 word analytical deep-dive. Plain prose, multiple paragraphs separated by blank lines. NO bullet points, NO markdown, NO subheadings.\\n\\nStructure each body around four implicit beats:\\n  1. WHAT HAPPENED, one tight paragraph grounding the reader in the week's facts. Concrete numbers, dates, named entities.\\n  2. WHY IT MATTERS, two or three paragraphs of analysis. What does this change for someone with money or a home in the market? What's the second-order effect? What did the consensus get wrong?\\n  3. WHAT TO WATCH, a paragraph on the next 1-4 weeks. Specific data releases, decisions, or signals.\\n  4. WHAT IT MEANS FOR YOU, a closing paragraph that lands the implication for the reader. Not advice, framing.\\n\\nWrite like an editor who has sat with the week's stories for an hour and is now telling one sharp reader what they need to know. The lead topic (first in the array) gets the most substantive treatment.",
@@ -363,6 +366,10 @@ export async function synthesizeWeeklyEdition(input: SynthesisInput): Promise<Sy
   return {
     topics: validated.data.topics.map((t) => ({
       ...t,
+      sourceItemIds: (t.sourceItemIds ?? []).filter((id) =>
+        input.items.slice(0, 80).some((item) => item.id === id)
+      ),
+      socialSource: undefined,
       title: stripBannedChars(t.title),
       summary: stripBannedChars(t.summary),
       body: t.body ? stripBannedChars(t.body) : undefined,
