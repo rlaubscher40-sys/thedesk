@@ -12,12 +12,7 @@ import {
   type JobState,
   type PostedRow,
 } from "@/lib/instagramRuns";
-import {
-  MIN_POSTS_FOR_SIGNAL,
-  readFormats,
-  summariseFormats,
-  type InsightRow,
-} from "@/lib/instagramInsights";
+import { readFormats, summariseFormats, type InsightRow } from "@/lib/instagramInsights";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 function fmt(n: number | null | undefined) {
@@ -318,19 +313,8 @@ function rate(n: number | null): string {
 /**
  * Which format is earning its slot.
  *
- * The account has collected reach, saves and shares per post for months and
- * nothing ever read them, so "should we keep posting X" has always been settled
- * by argument. This is the table that settles it by measurement instead.
- *
- * Saves lead because for reference content a save is the strongest ranking
- * signal Instagram takes, and it is the one the captions actually ask for. Every
- * figure is per 1,000 reach and taken as a median — see lib/instagramInsights
- * for why both of those matter more than they look.
- *
- * The reading above the table is the point of the whole thing: four rows of
- * rates still need interpreting, and the interpretation is where someone
- * reaches a confident conclusion off five posts. So the summary line does the
- * refusing, out loud, rather than leaving it to whoever is looking.
+ * Compare first-day snapshots and disclose the per-metric sample sizes.
+ * Differences are descriptive; the panel does not claim a winning format.
  */
 function FormatPerformance({ posts, ready }: { posts: InsightRow[]; ready: boolean }) {
   if (!ready) return <Skeleton className="h-32 w-full rounded" />;
@@ -342,12 +326,12 @@ function FormatPerformance({ posts, ready }: { posts: InsightRow[]; ready: boole
     <div className="rounded border border-[var(--color-border)] p-4 space-y-3">
       <div>
         <p className="overline-amber" style={{ letterSpacing: "0.18em", fontSize: "10px" }}>
-          Which format is working
+          First-day format review
         </p>
         <p className="text-xs text-[var(--color-fg-muted)] mt-1.5 max-w-[68ch] leading-relaxed">
-          Median saves, shares and engagement per 1,000 reach, so a post that simply travelled
-          further does not read as a post that landed harder. Posts still waiting on the insights
-          job are excluded rather than counted as zeroes.
+          Readings captured 24–48 hours after publication. Medians per 1,000 reached accounts; each
+          rate shows its own sample size. Missing metrics stay unknown. Zero reach is included in
+          reach but cannot produce a rate.
         </p>
       </div>
 
@@ -376,18 +360,9 @@ function FormatPerformance({ posts, ready }: { posts: InsightRow[]; ready: boole
               <tr
                 key={s.postType}
                 className="border-b border-[var(--color-border)] last:border-b-0"
-                // Dim a format we cannot yet read, so the eye goes to the rows
-                // that mean something instead of treating all four as equal.
-                style={{ opacity: s.conclusive ? 1 : 0.55 }}
+                style={{ opacity: s.measured ? 1 : 0.55 }}
               >
-                <td className="py-2.5 pr-4 text-[var(--color-fg)] whitespace-nowrap">
-                  {s.label}
-                  {!s.conclusive && (
-                    <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-fg-subtle)]">
-                      too few
-                    </span>
-                  )}
-                </td>
+                <td className="py-2.5 pr-4 text-[var(--color-fg)] whitespace-nowrap">{s.label}</td>
                 <td className="py-2.5 pr-4 tabular-nums text-right text-[var(--color-fg-muted)] whitespace-nowrap">
                   {s.measured}
                   {s.awaiting > 0 && (
@@ -398,13 +373,16 @@ function FormatPerformance({ posts, ready }: { posts: InsightRow[]; ready: boole
                   {s.medianReach == null ? "—" : Math.round(s.medianReach).toLocaleString()}
                 </td>
                 <td className="py-2.5 pr-4 tabular-nums text-right text-[var(--color-fg)]">
-                  {rate(s.savesPer1k)}
+                  {rate(s.savesPer1k)}{" "}
+                  <span className="text-[var(--color-fg-subtle)]">(n={s.savesSamples})</span>
                 </td>
                 <td className="py-2.5 pr-4 tabular-nums text-right text-[var(--color-fg-muted)]">
-                  {rate(s.sharesPer1k)}
+                  {rate(s.sharesPer1k)}{" "}
+                  <span className="text-[var(--color-fg-subtle)]">(n={s.sharesSamples})</span>
                 </td>
                 <td className="py-2.5 tabular-nums text-right text-[var(--color-fg-muted)]">
-                  {rate(s.engagementPer1k)}
+                  {rate(s.engagementPer1k)}{" "}
+                  <span className="text-[var(--color-fg-subtle)]">(n={s.engagementSamples})</span>
                 </td>
               </tr>
             ))}
@@ -413,8 +391,11 @@ function FormatPerformance({ posts, ready }: { posts: InsightRow[]; ready: boole
       </div>
 
       <p className="text-[11px] text-[var(--color-fg-subtle)] leading-relaxed">
-        A format is read as inconclusive under {MIN_POSTS_FOR_SIGNAL} measured posts. "Posts" counts
-        those with metrics in; a "+n" is published but still waiting on the insights job.
+        “Posts” counts comparable reach snapshots; “+n” has no recorded snapshot yet.{" "}
+        {summaries.reduce((n, s) => n + s.excluded, 0)} readings are excluded because their age or
+        reach cannot support this comparison. They remain in the raw post list. Likes and comments
+        both need to be available for the engagement rate. These are platform actions, not confirmed
+        website visits or subscriptions.
       </p>
     </div>
   );

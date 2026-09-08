@@ -2,7 +2,7 @@
  * Persistence for published Instagram feed posts and their engagement metrics.
  *
  * recordInstagramPost            — called right after a post publishes.
- * listInstagramPostsNeedingMetrics — posts whose metrics haven't been fetched.
+ * listInstagramPostsNeedingMetrics — mature posts needing a complete snapshot.
  * updateInstagramPostMetrics     — backfills metrics from the insights job.
  * listInstagramPosts             — recent posts, newest first (for reporting).
  *
@@ -10,7 +10,15 @@
  * has not been applied) or the DB is unavailable, these no-op rather than throw,
  * so posting is never blocked by analytics.
  */
-import { and, count, desc, gte, inArray, isNotNull, isNull, eq } from "drizzle-orm";
+import { and, desc, gte, lte, inArray, isNotNull, eq } from "drizzle-orm";
+import {
+  INSIGHT_BATCH_LIMIT,
+  INSIGHT_MIN_AGE_HOURS,
+  INSIGHT_RETRY_DAYS,
+  INSIGHT_FIELDS,
+  needsInsightRefresh,
+  validMetricCount,
+} from "../../shared/instagramMeasurement";
 import * as demoQueries from "../demo/queries";
 import { isDemoMode } from "../demo/store";
 import { getDb } from "./client";
@@ -51,20 +59,28 @@ export async function recordInstagramPost(
 }
 
 /**
- * Posts published within the last `withinDays` whose metrics have not been
- * fetched yet. The insights job runs daily and picks up the prior day's post.
+ * Mature posts awaiting a complete first-day snapshot. Early/partial readings
+ * can recover for seven days; late recovery stays out of format comparisons.
  */
-export async function listInstagramPostsNeedingMetrics(withinDays = 7): Promise<InstagramPost[]> {
+export async function listInstagramPostsNeedingMetrics(
+  withinDays = INSIGHT_RETRY_DAYS
+): Promise<InstagramPost[]> {
   if (isDemoMode()) return [];
   const db = getDb();
   if (!db) return [];
   try {
-    const since = new Date(Date.now() - withinDays * 24 * 60 * 60 * 1000);
-    return await db
+    const now = new Date();
+    const since = new Date(
+      now.getTime() - Math.min(INSIGHT_RETRY_DAYS, Math.max(1, withinDays)) * 86_400_000
+    );
+    const mature = new Date(now.getTime() - INSIGHT_MIN_AGE_HOURS * 3_600_000);
+    const rows = await db
       .select()
       .from(instagramPosts)
-      .where(and(isNull(instagramPosts.metricsFetchedAt), gte(instagramPosts.createdAt, since)))
-      .orderBy(desc(instagramPosts.createdAt));
+      .where(and(gte(instagramPosts.createdAt, since), lte(instagramPosts.createdAt, mature)))
+      .orderBy(desc(instagramPosts.createdAt))
+      .limit(200);
+    return rows.filter((row) => needsInsightRefresh(row, now)).slice(0, INSIGHT_BATCH_LIMIT);
   } catch (err) {
     console.warn("[instagramPosts] needing-metrics query failed:", (err as Error).message);
     return [];
@@ -79,10 +95,16 @@ export async function updateInstagramPostMetrics(
   if (isDemoMode()) return;
   const db = getDb();
   if (!db) return;
+  // Never erase a prior snapshot when both provider reads failed. Partial
+  // snapshots replace all fields together so different observation ages cannot mix.
+  const snapshot = Object.fromEntries(
+    INSIGHT_FIELDS.map((key) => [key, validMetricCount(metrics[key]) ? metrics[key] : null])
+  );
+  if (!Object.values(snapshot).some(validMetricCount)) return;
   try {
     await db
       .update(instagramPosts)
-      .set({ ...metrics, metricsFetchedAt: new Date() })
+      .set({ ...snapshot, metricsFetchedAt: new Date() })
       .where(eq(instagramPosts.mediaId, mediaId));
   } catch (err) {
     console.warn(`[instagramPosts] metrics update failed for ${mediaId}:`, (err as Error).message);
