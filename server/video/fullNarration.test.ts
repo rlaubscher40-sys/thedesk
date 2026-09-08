@@ -3,6 +3,8 @@ import { parseAbsApprovals } from "../markets/absApprovals";
 import { verifiedSupplyReel } from "../instagram/verifiedSupplyReel";
 import { describe, expect, it } from "vitest";
 import { verifiedRentReel } from "../instagram/verifiedReel";
+import { verifiedCapitalRentReel } from "../instagram/verifiedCapitalRentReel";
+import { RENT_CITIES } from "../../shared/cityRents";
 import { localSpeech, audibleWave, voiceModel } from "./localVoice";
 import { renderStatReel } from "./statReel";
 
@@ -10,6 +12,31 @@ import { renderStatReel } from "./statReel";
 // deployment dependency there. Local checkouts can run logic tests without it.
 const available = process.env.CI === "true" || existsSync(voiceModel());
 describe.skipIf(!available)("real complete narrated Reel", () => {
+  it("renders the eight-capital explanation with male narration and subtitles", async () => {
+    const now = new Date("2026-09-08T10:00:00Z");
+    const candidate = verifiedCapitalRentReel(
+      {
+        status: "available",
+        retrievedAt: now.toISOString(),
+        observations: RENT_CITIES.map((city, index) => ({
+          city,
+          period: "2026-07",
+          annualPercent: [3.5, 3.1, 4.6, 4.2, 5.3, 2.1, 3.8, 1.9][index]!,
+          status: "",
+        })),
+      },
+      now
+    )!;
+    const video = await renderStatReel(candidate.stat, "light", {
+      script: candidate.script,
+      subtitles: true,
+    });
+    expect(video.narrated).toBe(true);
+    expect(video.subtitled).toBe(true);
+    expect(video.seconds).toBeGreaterThan(15);
+    expect(video.seconds).toBeLessThanOrEqual(32);
+    expect(video.bytes.length).toBeGreaterThan(100_000);
+  }, 180_000);
   it("synthesises every passage and renders the full spoken comparison", async () => {
     const now = new Date("2026-09-08T10:00:00Z");
     const candidate = verifiedRentReel(

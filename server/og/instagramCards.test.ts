@@ -233,24 +233,20 @@ function fakeEdition(overrides: Partial<Edition> = {}): Edition {
   } as Edition;
 }
 
-// A 1×1 transparent PNG, enough to exercise the hero-override branch without
-// bundling a fixture image.
+// Legacy callers may still supply a hero; the finding-led weekly layout ignores it.
 const tinyHero =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAen63NgAAAAASUVORK5CYII=";
 
 describe("renderWeeklyCoverCard", () => {
-  it("renders a 1080x1350 JPEG contents cover", async () => {
+  it("renders a 1080x1350 JPEG finding-led cover", async () => {
     expectJpeg(await renderWeeklyCoverCard(fakeEdition()));
   });
 
-  it("renders with the edition's own hero override", async () => {
+  it("accepts the legacy hero argument without using it as cover evidence", async () => {
     expectJpeg(await renderWeeklyCoverCard(fakeEdition(), tinyHero));
   });
 
-  it("renders full-length 14-word topic headlines without overflowing", async () => {
-    // Contents titles are argument-headlines up to ~14 words. They must show in
-    // full (font steps down by the longest) rather than being clamped
-    // mid-sentence like they used to at a fixed 60 chars.
+  it("renders the full lead from a four-topic edition with measured footer clearance", async () => {
     const longTitles = fakeEdition({
       topics: [
         fakeTopic({
@@ -276,11 +272,11 @@ describe("renderWeeklyStoryVertical", () => {
     expectJpeg(await renderWeeklyStoryVertical(fakeEdition()));
   });
 
-  it("renders with the edition's own hero override", async () => {
+  it("accepts the legacy hero argument without a separate Story design", async () => {
     expectJpeg(await renderWeeklyStoryVertical(fakeEdition(), tinyHero));
   });
 
-  it("renders full-length 14-word topic headlines without overflowing", async () => {
+  it("renders the same full lead vertically with measured footer clearance", async () => {
     const longTitles = fakeEdition({
       topics: [
         fakeTopic({

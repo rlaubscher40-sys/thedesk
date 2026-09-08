@@ -1,3 +1,5 @@
+import { currentSocialFeed, currentSocialEdition, sourceGroundedStory, sourceGroundedTopic } from "./instagram/sourceContent";
+import { pickPropertyTopics, propertyMetrics } from "./instagram/propertyEditorial";
 import { refreshOfficialMetrics } from "./metrics/recovery";
 /**
  * Two POST endpoints fired by the external scheduler:
@@ -105,7 +107,7 @@ async function nextCoverVariant(): Promise<"navy" | "light"> {
 
 /** The morning's metrics, value+unit formatted, capped to the 4 the cover shows. */
 function dailyCoverMetrics(metrics: db.DailyMetric[]): Array<{ label: string; value: string }> {
-  return metrics
+  return propertyMetrics(metrics)
     .slice(0, 4)
     .map((m) => ({ label: m.label, value: m.unit ? `${m.value}${m.unit}` : m.value }));
 }
@@ -1300,25 +1302,20 @@ function registerInstagramRoutes(app: Express): void {
       res.status(503).json({ error: "Instagram credentials not configured" });
       return;
     }
-    // Parse optional feedDate override, plus the scheduler's attempt number
-    // (see attemptFromBody) so a retry can't double-post.
-    const parsed = z
-      .object({
-        feedDate: z
-          .string()
-          .regex(/^\d{4}-\d{2}-\d{2}$/)
-          .optional(),
-        attempt: z.number().int().min(1).optional(),
-      })
-      .safeParse(req.body ?? {});
-    const feedDate = parsed.success ? parsed.data.feedDate : undefined;
-    const attempt = parsed.success ? (parsed.data.attempt ?? 1) : 1;
-
-    // Instagram is partner-facing: post from the enriched lanes (AU +
-    // Property) only, never the coverage tabs.
-    const items = (await db.listFeedItems(feedDate)).filter((it) => isEnrichedChannel(it.channel));
+    const parsed = z.object({
+      feedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+      attempt: z.number().int().min(1).optional(),
+    }).safeParse(req.body ?? {});
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid Instagram publication request" });
+      return;
+    }
+    const attempt = parsed.data.attempt ?? 1;
+    const current = await currentSocialFeed(db.listFeedItems, parsed.data.feedDate);
+    const feedDate = current.date;
+    const items = current.items.filter((it) => isEnrichedChannel(it.channel));
     if (items.length === 0) {
-      res.status(422).json({ error: "No feed items for the requested date" });
+      res.status(422).json({ error: "No current Sydney-date feed items; archive publication is disabled", feedDate });
       return;
     }
     // Post synchronously and return the real outcome. This used to run in
@@ -1886,9 +1883,9 @@ function registerInstagramRoutes(app: Express): void {
       return parsed.success ? (parsed.data.attempt ?? 1) : 1;
     })();
     const editions = await db.listEditions();
-    const latest = editions[0];
-    if (!latest) {
-      res.status(422).json({ error: "No editions available" });
+    const latest = currentSocialEdition(editions);
+    if (!latest || pickPropertyTopics(latest.topics).length === 0) {
+      res.status(422).json({ error: "No current Sydney-week edition with property topics" });
       return;
     }
     // Synchronous for the same reason as the daily post: a green workflow
@@ -1952,9 +1949,9 @@ function registerInstagramRoutes(app: Express): void {
   // GET /api/instagram/preview/:kind — render a single card to a browser so the
   // posts can be eyeballed (notably the real per-edition hero) before anything
   // publishes. Auth is the same as the cron handlers: the x-scheduled-key
-  // header or an admin session cookie (the latter is what a browser uses). Renders straight from the DB; weekly is byte-identical to
-  // what posts. Daily uses the raw feed titles (it skips the LLM headline
-  // punch-up the live post applies) but is otherwise the production path.
+  // header or an admin session cookie (the latter is what a browser uses).
+  // Uses the same property selection and reading questions as publication.
+  // Explicit date/edition selectors remain available for archive previews.
   //   kind: weekly-cover | weekly-story | weekly-topic | daily-cover
   //       | daily-slide | daily-story | stat | reel
   //   query: ?editionNumber=N (weekly) · ?date=YYYY-MM-DD&variant=navy|light
@@ -1978,7 +1975,8 @@ function registerInstagramRoutes(app: Express): void {
         const editions = await db.listEditions();
         const wanted =
           typeof req.query.editionNumber === "string" ? Number(req.query.editionNumber) : null;
-        const edition = wanted ? editions.find((e) => e.editionNumber === wanted) : editions[0];
+        const rawEdition = wanted ? editions.find((e) => e.editionNumber === wanted) : editions[0];
+        const edition = rawEdition ? { ...rawEdition, rubensTake: null, topics: pickPropertyTopics(rawEdition.topics).map(sourceGroundedTopic) } : null;
         if (!edition) {
           res.status(422).json({ error: "No matching edition" });
           return;
@@ -2001,7 +1999,7 @@ function registerInstagramRoutes(app: Express): void {
           req.query.variant === "light" ? "light" : req.query.variant === "navy" ? "navy" : "light";
         const stories = pickDailyTopStories(
           (await db.listFeedItems(date)).filter((it) => isEnrichedChannel(it.channel))
-        ).map((s) => ({
+        ).map(sourceGroundedStory).map((s) => ({
           ...s,
           title: sanitizeDashes(s.title),
           whyItMatters: s.whyItMatters ? sanitizeDashes(s.whyItMatters) : s.whyItMatters,
@@ -2015,8 +2013,7 @@ function registerInstagramRoutes(app: Express): void {
         if (kind === "daily-cover") {
           const metrics = dailyCoverMetrics(await db.listDailyMetrics());
           const { renderPropertyDailyCover } = await import("./instagram/dailyCover");
-          // Same layout/palette as publishing; source headlines have not been
-          // rewritten by the just-in-time publishing step.
+          // Same source-copy preparation, layout and palette as publication.
           res.setHeader("X-Preview-Content", "source-headlines");
           buf = await renderPropertyDailyCover(stories, variant, metrics);
         } else if (kind === "daily-slide") {

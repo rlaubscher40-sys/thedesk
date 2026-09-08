@@ -15,7 +15,12 @@ beforeAll(async () => {
   vi.doMock("./client", () => ({ getDb: () => drizzle(pool) }));
   vi.doMock("../demo/store", () => ({ isDemoMode: () => false }));
   security = await import("./security");
+  await expect(security.assertSecuritySchemaReady()).rejects.toThrow("Security schema unavailable");
+  await pool.query(security.SECURITY_DDL[0].sql);
+  await expect(security.assertSecuritySchemaReady()).rejects.toThrow("Security schema unavailable");
+  await pool.query("DROP TABLE security_limits");
   for (const ddl of security.SECURITY_DDL) await pool.query(ddl.sql);
+  await expect(security.assertSecuritySchemaReady()).resolves.toBeUndefined();
 });
 afterAll(async () => {
   await pool?.end();

@@ -11,28 +11,46 @@ type Expectation = {
 };
 /** Conservative operational review thresholds, not forecasts of publication dates. */
 export const METRIC_EXPECTATIONS: Expectation[] = [
-  { key: "cash_rate", label: "RBA cash rate", period: "Decision based", maxAgeDays: null },
+  {
+    key: "cash_rate",
+    label: "RBA cash rate",
+    period: "Daily target · RBA F1",
+    maxAgeDays: 7,
+  },
   ...["asx200", "audusd", "audgbp", "audeur", "us10y"].map((key) => ({
     key,
     label: key.toUpperCase(),
     period: "Trading days",
     maxAgeDays: 5,
   })),
-  ...["cpi_trimmed", "unemployment", "wage_growth", "building_approvals", "net_migration"].map(
+  ...[
+    "cpi_trimmed",
+    "unemployment",
+    "wage_growth",
+    "building_approvals",
+    "net_migration",
+  ].map((key) => ({
+    key,
+    label: key.replaceAll("_", " "),
+    period:
+      key === "unemployment" || key === "building_approvals"
+        ? "Monthly"
+        : "Release based",
+    maxAgeDays:
+      key === "net_migration"
+        ? 300
+        : key === "wage_growth" || key === "cpi_trimmed"
+          ? 180
+          : 100,
+  })),
+  ...["owner_occupier_new_lending_rate", "investor_new_lending_rate"].map(
     (key) => ({
       key,
       label: key.replaceAll("_", " "),
-      period: key === "unemployment" || key === "building_approvals" ? "Monthly" : "Release based",
-      maxAgeDays:
-        key === "net_migration" ? 300 : key === "wage_growth" || key === "cpi_trimmed" ? 180 : 100,
-    })
+      period: "Monthly",
+      maxAgeDays: 100,
+    }),
   ),
-  ...["owner_occupier_new_lending_rate", "investor_new_lending_rate"].map((key) => ({
-    key,
-    label: key.replaceAll("_", " "),
-    period: "Monthly",
-    maxAgeDays: 100,
-  })),
   ...Object.values(APPROVAL_REGIONS).map((city) => ({
     key: `${city.toLowerCase()}_approvals_12m`,
     label: `${city} approvals`,
@@ -50,14 +68,37 @@ export const METRIC_EXPECTATIONS: Expectation[] = [
       label: `${region.code} ${suffix.replaceAll("_", " ")}`,
       period: "Quarterly · official publication lag",
       maxAgeDays: 300,
-    }))
+    })),
   ),
-  ...["auction_clearance", ...AUCTION_REGIONS.map(region => `${region.toLowerCase()}_auction_clearance`)].map(key => ({
-    key, label: key.replaceAll("_", " "), period: "Weekly · preliminary reported outcomes", maxAgeDays: 14,
+  ...[
+    "auction_clearance",
+    ...AUCTION_REGIONS.map(
+      (region) => `${region.toLowerCase()}_auction_clearance`,
+    ),
+  ].map((key) => ({
+    key,
+    label: key.replaceAll("_", " "),
+    period: "Weekly · preliminary reported outcomes",
+    maxAgeDays: 14,
   })),
-  { key: "dwelling_value", label: "National median dwelling value", period: "Monthly · Cotality HVI", maxAgeDays: 75 },
-  { key: "consumer_confidence", label: "Consumer sentiment", period: "Monthly · Westpac–Melbourne Institute", maxAgeDays: 75 },
-  { key: "mortgage_arrears", label: "CBA Group home-loan arrears", period: "Half-yearly · CBA Group, not industry", maxAgeDays: 210 },
+  {
+    key: "dwelling_value",
+    label: "National median dwelling value",
+    period: "Monthly · Cotality HVI",
+    maxAgeDays: 75,
+  },
+  {
+    key: "consumer_confidence",
+    label: "Consumer sentiment",
+    period: "Monthly · Westpac–Melbourne Institute",
+    maxAgeDays: 75,
+  },
+  {
+    key: "mortgage_arrears",
+    label: "CBA Group home-loan arrears",
+    period: "Half-yearly · CBA Group, not industry",
+    maxAgeDays: 210,
+  },
 ];
 
 type StoredMetric = {
@@ -68,6 +109,19 @@ type StoredMetric = {
   source: string | null;
 };
 export function metricHealth(rows: StoredMetric[], now = new Date()) {
+  const sydneyParts = Number.isFinite(now.getTime())
+    ? new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Australia/Sydney",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).formatToParts(now)
+    : [];
+  const dayPart = (type: string) =>
+    sydneyParts.find((part) => part.type === type)?.value;
+  const sydneyDay = Date.parse(
+    `${dayPart("year")}-${dayPart("month")}-${dayPart("day")}`,
+  );
   const specs = [...METRIC_EXPECTATIONS];
   for (const row of rows)
     if (!specs.some((spec) => spec.key === row.metricKey))
@@ -79,8 +133,16 @@ export function metricHealth(rows: StoredMetric[], now = new Date()) {
       });
   return specs.map((spec) => {
     const row = rows.find((row) => row.metricKey === spec.key);
-    const observationAge = row ? (now.getTime() - row.asOf.getTime()) / 86_400_000 : null;
-    const storedAge = row ? (now.getTime() - row.updatedAt.getTime()) / 86_400_000 : null;
+    // F1 labels daily observations by Sydney calendar day. It is not an
+    // instantaneous quote or the effective date of the last policy decision.
+    const observationAge = row
+      ? ((spec.key === "cash_rate" ? sydneyDay : now.getTime()) -
+          row.asOf.getTime()) /
+        86_400_000
+      : null;
+    const storedAge = row
+      ? (now.getTime() - row.updatedAt.getTime()) / 86_400_000
+      : null;
     let state = "within review window";
     if (!row) state = "missing";
     else if (
@@ -92,9 +154,12 @@ export function metricHealth(rows: StoredMetric[], now = new Date()) {
       state = "invalid dates";
     else if (spec.maxAgeDays !== null && observationAge! > spec.maxAgeDays)
       state = "old reporting period";
-    else if (storedAge! > (spec.extracted ? 8 : 2)) state = "collection overdue";
-    else if (spec.extracted || row.source === "News + LLM") state = "check extracted evidence";
-    else if (spec.period === "Cadence unconfigured") state = "cadence unconfigured";
+    else if (storedAge! > (spec.extracted ? 8 : 2))
+      state = "collection overdue";
+    else if (spec.extracted || row.source === "News + LLM")
+      state = "check extracted evidence";
+    else if (spec.period === "Cadence unconfigured")
+      state = "cadence unconfigured";
     return {
       ...spec,
       label: row?.label ?? spec.label,
@@ -105,4 +170,3 @@ export function metricHealth(rows: StoredMetric[], now = new Date()) {
     };
   });
 }
-

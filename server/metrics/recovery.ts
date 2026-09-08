@@ -3,6 +3,7 @@ import { METRIC_EXPECTATIONS, metricHealth } from "../../shared/metricHealth";
 import { listDailyMetrics, upsertDailyMetric } from "../db/dailyMetrics";
 import { getDb } from "../db/client";
 import { isDemoMode } from "../demo/store";
+import { isAuctionCollectionPaused } from "../../shared/auctionCollectionPolicy";
 
 export type MetricRefreshReport = {
   startedAt: Date;
@@ -24,7 +25,15 @@ export function metricRefreshStatus() {
 export async function needsMetricRecovery() {
   return metricHealth(await listDailyMetrics()).some(
     (row) =>
-      !row.extracted && ["missing", "collection overdue", "invalid dates", "old reporting period", "check extracted evidence"].includes(row.state)
+      !row.extracted &&
+      !isAuctionCollectionPaused(row.key) &&
+      [
+        "missing",
+        "collection overdue",
+        "invalid dates",
+        "old reporting period",
+        "check extracted evidence",
+      ].includes(row.state),
   );
 }
 
@@ -35,7 +44,9 @@ export function refreshOfficialMetrics(): Promise<MetricRefreshReport> {
   if (lastReport && Date.now() - lastReport.finishedAt.getTime() < 60_000)
     return Promise.resolve(lastReport);
   if (!getDb() || isDemoMode())
-    return Promise.reject(new Error("Live metric collection requires a database"));
+    return Promise.reject(
+      new Error("Live metric collection requires a database"),
+    );
   startedAt = new Date();
   lastError = null;
   pending = (async () => {
@@ -58,7 +69,7 @@ export function refreshOfficialMetrics(): Promise<MetricRefreshReport> {
             failedWrites.push(metric.metricKey);
             console.error(
               `[metrics] storage failed for ${metric.metricKey}:`,
-              (error as Error).message
+              (error as Error).message,
             );
           }
         }
@@ -69,7 +80,7 @@ export function refreshOfficialMetrics(): Promise<MetricRefreshReport> {
       finishedAt: new Date(),
       stored: written.size,
       unavailable: METRIC_EXPECTATIONS.filter(
-        (row) => !row.extracted && !collected.has(row.key)
+        (row) => !row.extracted && !collected.has(row.key),
       ).map((row) => row.key),
       failedWrites,
       sourceErrors,
@@ -90,12 +101,16 @@ export function refreshOfficialMetrics(): Promise<MetricRefreshReport> {
 export async function recoverMissingMetrics() {
   if (!(await needsMetricRecovery())) return;
   const report = await refreshOfficialMetrics();
-  if (report.unavailable.length || report.failedWrites.length)
+  // Still expose all gaps in Admin. An intentional source pause cannot be
+  // repaired by retrying all the other sources and should not exhaust retries.
+  const retryableUnavailable = report.unavailable.filter(
+    (key) => !isAuctionCollectionPaused(key),
+  );
+  if (retryableUnavailable.length || report.failedWrites.length)
     throw new Error(
-      `Metric refresh stored ${report.stored}; unavailable: ${report.unavailable.join(", ") || "none"}; failed writes: ${report.failedWrites.join(", ") || "none"}` +
+      `Metric refresh stored ${report.stored}; unavailable: ${retryableUnavailable.join(", ") || "none"}; failed writes: ${report.failedWrites.join(", ") || "none"}` +
         (report.sourceErrors.length
           ? `; source errors: ${report.sourceErrors.map((error) => `${error.metricKey}: ${error.reason}`).join("; ")}`
-          : "")
+          : ""),
     );
 }
-

@@ -23,6 +23,18 @@ function database() {
   return db;
 }
 
+/** Verify required columns without retrieving any security-state rows. */
+export async function assertSecuritySchemaReady(): Promise<void> {
+  if (isDemoMode()) return;
+  try {
+    await database().execute(sql`SELECT bucketKey, used, expiresMs FROM security_limits LIMIT 0`);
+    await database().execute(sql`SELECT sessionId, expiresMs FROM admin_sessions LIMIT 0`);
+  } catch {
+    // Do not leak database connection details in the deployment error.
+    throw new Error("Security schema unavailable; verify security_limits and admin_sessions migrations and permissions");
+  }
+}
+
 /** All limits reserve together, or none do. Sorted row locks prevent lock-order deadlocks. */
 export async function chargeBudgets(budgets: Budget[]): Promise<boolean> {
   const ordered = [...budgets].sort((a, b) => a.key.localeCompare(b.key));

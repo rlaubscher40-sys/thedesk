@@ -54,6 +54,7 @@ const trio: DailyFeedItem[] = [
     id: 3,
     category: "MARKETS",
     title: "ASX 200 rises on a tech-led rally",
+    summary: "Chipmaker earnings lift technology shares.",
     sayThis: "Equities are pricing in the cut the bond market still doubts.",
   }),
 ];
@@ -93,7 +94,7 @@ describe("property conversion", () => {
       ]).map((s) => s.id)
     ).toEqual([2]);
   });
-  it("links each property format to the existing free comparison without claiming the bio was changed", () => {
+  it("sends daily readers to their story and number-card readers to market data", () => {
     const stat = {
       label: "Auction clearance",
       value: "58%",
@@ -101,63 +102,47 @@ describe("property conversion", () => {
       subtext: "SIX RECORDED FALLS IN A ROW",
       source: "CoreLogic",
     };
-    for (const [medium, caption] of [
-      ["carousel", buildDailyCaption(trio)],
-      ["stat", buildStatCaption(stat)],
-      ["reel", buildReelCaption(stat)],
-    ]) {
-      expect(caption).toContain("https://thedesk.au/markets/compare/brisbane-vs-perth?");
-      expect(caption).toContain(`utm_medium=${medium}`);
-      const url = new URL(caption!.match(/https:\/\/thedesk\.au\/\S+/)![0]);
-      expect(parseArrival("", url.search)).toEqual({
-        source: "instagram",
-        campaign: `property_editorial_${medium}`,
-      });
-      expect(caption).toContain("Not an investment ranking");
-      expect(caption).not.toContain("in our bio");
-    }
+    const daily = buildDailyCaption(trio);
+    expect(daily).toContain("https://thedesk.au/story/2?");
+    expect(daily).toContain("utm_campaign=property_story_2");
+    expect(daily).not.toContain("brisbane-vs-perth");
+    expect(buildStatCaption(stat)).toContain("https://thedesk.au/markets?");
+    expect(buildStatCaption(stat)).not.toContain("brisbane-vs-perth");
     expect(buildReelCaption(stat)).toContain("Source: CoreLogic");
-    expect(buildCoverageCaption(trio)).not.toContain("utm_campaign=property_editorial");
+    const url = new URL(daily.match(/https:\/\/thedesk\.au\/\S+/)![0]);
+    expect(parseArrival("", url.search)).toEqual({
+      source: "instagram",
+      campaign: "property_story_2",
+    });
   });
 });
 
-describe("buildDailyCaption — partner briefing", () => {
-  it("opens with the lead story's own hook, not a fixed line", () => {
-    // Instagram shows ~125 characters before "…more". Spending them on the
-    // same sentence every day gives a scroller no reason to stop, so the
-    // opener has to be specific to the day.
+describe("buildDailyCaption — source-grounded property briefing", () => {
+  it("leads with the relevant source headline and excludes unrelated stories", () => {
     const caption = buildDailyCaption(trio);
-    const hook = sanitizeDashes(trio[0]!.sayThis!);
-    expect(caption.startsWith(hook)).toBe(true);
+    expect(caption.startsWith(trio[1]!.title)).toBe(true);
+    expect(caption).toContain(trio[0]!.title);
+    expect(caption).not.toContain(trio[2]!.title);
   });
-
-  it("says the lead hook once, not twice", () => {
-    // It was promoted out of the rundown, not copied above it.
-    const caption = buildDailyCaption(trio);
-    const hook = sanitizeDashes(trio[0]!.sayThis!);
-    expect(caption.split(hook)).toHaveLength(2);
+  it("cannot publish a fabricated city/direction from cached hooks or interpretations", () => {
+    const story = fakeStory({
+      title: "Brisbane rents rose 5.3%",
+      summary: null,
+      sayThis: "Perth rents fell 5.3%",
+      whyItMatters: "Buy Perth now: prices will double.",
+    });
+    const caption = buildDailyCaption([story]);
+    expect(caption).toContain(story.title);
+    expect(caption).not.toContain("Perth");
+    expect(caption).not.toContain("double");
+    expect(caption).toContain("rent levels or rent growth");
+    expect(caption).toContain("Source: AFR");
+    expect(caption).not.toContain("in our bio");
   });
-
-  it("still carries the say-this hook for the other slides", () => {
-    const caption = buildDailyCaption(trio);
-    expect(caption).toContain(sanitizeDashes(trio[1]!.sayThis!));
-  });
-
-  it("lists every story headline", () => {
-    const caption = buildDailyCaption(trio);
-    for (const s of trio) expect(caption).toContain(sanitizeDashes(s.title));
-  });
-
-  it("falls back to property framing when the lead has no hook", () => {
-    const noHook = [{ ...trio[0]!, sayThis: null }, ...trio.slice(1)];
-    expect(buildDailyCaption(noHook)).toContain("Australian property");
-  });
-
-  it("does not drop a lead headline when the fallback opener is used", () => {
-    // The rundown skips slide 1's say-this only because it became the opener.
-    // With the fallback in play there is nothing to skip, so nothing is lost.
-    const noHook = [{ ...trio[0]!, sayThis: null }, ...trio.slice(1)];
-    expect(buildDailyCaption(noHook)).toContain(sanitizeDashes(trio[0]!.title));
+  it("does not truncate a claim to fit the caption limit", () => {
+    expect(() =>
+      buildDailyCaption([fakeStory({ title: "Housing " + "long source headline ".repeat(130) })])
+    ).toThrow("exceeds Instagram limit");
   });
 });
 

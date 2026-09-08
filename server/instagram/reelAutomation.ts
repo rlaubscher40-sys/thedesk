@@ -9,7 +9,7 @@ export const REEL_POLL_MINUTES = 5;
 export const REEL_RETRY_MINUTES = 15;
 export const REEL_STALE_MINUTES = 15;
 export const REEL_MAX_ATTEMPTS = 2;
-export const REEL_SCHEDULE = `Verified rent and housing-approval stories; at most one automatic Reel per Sydney day, ${REEL_WINDOW.label}, checked every 5 minutes`;
+export const REEL_SCHEDULE = `Verified city-comparison, eight-capital rent and housing-approval stories; at most one automatic Reel per Sydney day, ${REEL_WINDOW.label}, checked every 5 minutes`;
 export const REEL_DELIVERY_KEY = "instagram-reel-delivery-programme-v1";
 
 function sydneyDate(now: Date) {

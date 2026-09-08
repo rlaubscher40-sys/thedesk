@@ -27,6 +27,7 @@ import { appRouter } from "./routers";
 import { registerScheduledRoutes } from "./scheduledRoutes";
 import { getDb } from "./db/client";
 import { runCatchup } from "./db/catchup";
+import { assertSecuritySchemaReady } from "./db/security";
 import { isDemoMode } from "./demo/store";
 import { startScheduler } from "./scheduler";
 
@@ -208,6 +209,8 @@ async function startServer() {
   // Self-heal the schema before accepting traffic so newly-shipped code
   // never hits a column the database is missing.
   await applyPendingMigrations();
+  // Never mark a release ready while its security tables are unavailable.
+  await assertSecuritySchemaReady();
 
   // The port scan is a dev convenience (tsx watch can briefly hold the old
   // port across a restart). In production Railway's proxy routes to exactly
