@@ -1123,6 +1123,8 @@ export async function postStatReel(
   opts: {
     variant?: CardVariant;
     script?: ScriptLine[];
+    caption?: string;
+    publication?: { key: string; date: string };
     /**
      * Epoch ms by which this call must have returned. The caller is answering
      * an HTTP request with a hard ceiling on it, and the render is the variable
@@ -1136,6 +1138,14 @@ export async function postStatReel(
   if (!accessToken || !igUserId) {
     throw new Error("INSTAGRAM_ACCESS_TOKEN and INSTAGRAM_BUSINESS_ACCOUNT_ID must be set");
   }
+
+  if (!opts.publication)
+    throw new Error("A durable evidence reservation is required for Reel publication.");
+  const publication = opts.publication;
+  const { fetchPublishingLimit } = await import("./api");
+  const quota = await fetchPublishingLimit({ accessToken, igUserId });
+  if (quota.usage == null || quota.quota == null || quota.usage >= quota.quota)
+    throw new Error("Publishing quota is unavailable or exhausted. No Reel was sent.");
 
   const sanitized = {
     ...stat,
@@ -1163,6 +1173,7 @@ export async function postStatReel(
         `(${(video.bytes.length / 1e6).toFixed(2)}MB, ${video.seconds.toFixed(1)}s, ` +
         `${video.narrated ? "narrated" : "SILENT"})`
     );
+    if (!video.narrated) throw new Error("Narration unavailable. No silent Reel was published.");
     videoUuid = storeTempImage(video.bytes, "video/mp4");
     coverUuid = storeTempImage(cover);
 
@@ -1171,7 +1182,7 @@ export async function postStatReel(
       accessToken,
       videoUrl: `${siteUrl}/instagram/temp/${videoUuid}.mp4`,
       coverUrl: `${siteUrl}/instagram/temp/${coverUuid}.jpg`,
-      caption: buildReelCaption(sanitized),
+      caption: opts.caption ?? buildReelCaption(sanitized),
     });
     // Reels are transcoded server-side, so readiness takes far longer than an
     // image container. Publishing early returns "media not ready" and burns the
@@ -1181,11 +1192,29 @@ export async function postStatReel(
       accessToken,
       timeoutMs: containerWaitBudgetMs(opts.deadlineAt),
     });
-    const postId = await publishCarouselConfirmed({
-      igUserId,
-      accessToken,
-      creationId: containerId,
-    });
+    const { claimJobRun, markJobRun } = await import("../db/jobRuns");
+    if (!(await claimJobRun(publication.key, publication.date, 1)))
+      throw new Error(
+        "This evidence is already published or locked, or its durable record is unavailable. No duplicate was sent."
+      );
+    let postId: string;
+    try {
+      // No heuristic recovery from unrelated recent posts, and no retry after
+      // an uncertain non-idempotent publish response.
+      const { publishContainer } = await import("./api");
+      postId = await publishContainer({ igUserId, accessToken, creationId: containerId });
+    } catch {
+      await markJobRun(
+        publication.key,
+        publication.date,
+        "failed",
+        `Outcome unknown; inspect Meta container ${containerId}. Locked against automatic retry.`
+      );
+      throw new Error(
+        "Meta did not confirm Reel publication. The evidence slot is locked; inspect the profile before recovery."
+      );
+    }
+    await markJobRun(publication.key, publication.date, "success", `Published media ${postId}`);
 
     console.log(
       `[instagram] reel posted: ${postId} (${sanitized.label} ${sanitized.value}, ` +

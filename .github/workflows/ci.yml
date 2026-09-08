@@ -31,6 +31,9 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Install pinned local Reel voice
+        run: pnpm setup:voice
+
       - name: Type check
         run: pnpm check
 

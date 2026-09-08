@@ -89,6 +89,23 @@ export const instagramRouter = router({
     return checkReelReadiness();
   }),
 
+  reelPlan: adminProcedure.query(async () => {
+    const { getCityRents } = await import("../markets/absRents");
+    const { verifiedRentReel } = await import("../instagram/verifiedReel");
+    const { reelPublicationStatus } = await import("../instagram/reelStatus");
+    const { latestGridCoverVariant } = await import("../db/instagramPosts");
+    const candidate = verifiedRentReel(await getCityRents());
+    return {
+      schedulerEnabled: env.enableScheduler && Boolean(env.scheduledApiKey),
+      schedule: "Tuesday and Thursday, 6:22 pm Sydney time",
+      variant: (await latestGridCoverVariant()) === "navy" ? ("light" as const) : ("navy" as const),
+      caption: candidate?.caption ?? null,
+      publication: candidate
+        ? await reelPublicationStatus(candidate.publication)
+        : ("no-evidence" as const),
+    };
+  }),
+
   publishingStatus: adminProcedure.query(async () => {
     const { instagramAccessToken: accessToken, instagramBusinessAccountId: igUserId } = env;
     if (!accessToken || !igUserId) {

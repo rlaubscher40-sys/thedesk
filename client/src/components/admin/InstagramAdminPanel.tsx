@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { InstagramLaunchPanel } from "./InstagramLaunchPanel";
+import { InstagramReelPanel } from "./InstagramReelPanel";
 import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { toSydneyIsoDate } from "@/lib/date";
@@ -99,7 +100,8 @@ const RERUN_JOBS = [
     // Tuesdays and Thursdays, and skips a quiet day like The Number does, so
     // "not posted" is the normal state most days rather than an alarm.
     optional: true,
-    warning: "a Reel of the day's most notable metric movement",
+    warning:
+      "a narrated Reel using the verified Brisbane–Perth rent comparison (once per reference month)",
   },
   {
     job: "monthly" as const,
@@ -450,6 +452,7 @@ export function InstagramAdminPanel() {
       </div>
 
       <PublishingQuota />
+      <InstagramReelPanel />
 
       <InstagramLaunchPanel />
 

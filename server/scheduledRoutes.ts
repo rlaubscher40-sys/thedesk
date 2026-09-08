@@ -1383,7 +1383,11 @@ function registerInstagramRoutes(app: Express): void {
         return;
       }
       if (pickDailyTopStories(items, 1).length === 0) {
-        res.json({ success: true, skipped: true, reason: "No sourced property or financing stories for the daily carousel." });
+        res.json({
+          success: true,
+          skipped: true,
+          reason: "No sourced property or financing stories for the daily carousel.",
+        });
         return;
       }
       const metrics = dailyCoverMetrics(await db.listDailyMetrics());
@@ -1467,8 +1471,11 @@ function registerInstagramRoutes(app: Express): void {
       return;
     }
     try {
-      const { findAlreadyPublished, pickCoverageTopStories: pickDailyTopStories, postDailyCarousel } =
-        await import("./instagram/post");
+      const {
+        findAlreadyPublished,
+        pickCoverageTopStories: pickDailyTopStories,
+        postDailyCarousel,
+      } = await import("./instagram/post");
       // Flip from the morning's daily cover so the two alternate.
       const variant = await nextCoverVariant();
 
@@ -1566,7 +1573,8 @@ function registerInstagramRoutes(app: Express): void {
       // which is exactly what makes the daily carousel ignorable. 200 so the
       // workflow stays green: nothing went wrong, there was just no number.
       if (!pick && !force) {
-        const { explainNoPropertyStat: explainNoPick } = await import("./instagram/propertyEditorial");
+        const { explainNoPropertyStat: explainNoPick } =
+          await import("./instagram/propertyEditorial");
         const reason = explainNoPick(metrics, histories);
         console.log(`[instagram] skipping the stat post. ${reason}`);
         res.json({ success: true, skipped: true, reason });
@@ -1652,42 +1660,7 @@ function registerInstagramRoutes(app: Express): void {
    */
   const REEL_HTTP_BUDGET_MS = 270_000;
 
-  // POST /api/ingest/instagram-reel — the same number, as video.
-  //
-  // Reels are the only Instagram surface that reliably reaches people who do
-  // not already follow the account, so this is the one posting job aimed at
-  // growth rather than at existing readers. Same selection as The Number, same
-  // refusal to post on a quiet day: a Reel about nothing is worse than silence,
-  // because it costs reach on the next one.
-  /**
-   * The Reel's voice-over: written by a model from the computed facts, checked
-   * against them, and mapped onto the beats. Returns undefined when the script
-   * was rejected or unavailable, which makes `renderStatReel` fall back to
-   * reading the card aloud rather than failing the post.
-   */
-  const reelScript = async (
-    stat: {
-      label: string;
-      value: string;
-      line: string;
-      subtext: string;
-      context: string | null;
-      source: string | null;
-      direction: "up" | "down" | "flat";
-    },
-    facts: Array<{ figure: string; caption: string }>
-  ) => {
-    const { generateReelScript } = await import("./prompts/reelScript");
-    const { scriptFromLines } = await import("./video/narration");
-    const lines = await generateReelScript(stat, facts);
-    if (!lines) return undefined;
-    return scriptFromLines(lines, {
-      line: stat.line.trim().length > 0,
-      claim: stat.subtext.trim().length > 0,
-      facts: facts.length > 0,
-    });
-  };
-
+  // Verified monthly property comparison, with local narration and durable publication.
   const reelHandler = async (req: Request, res: Response) => {
     const startedAt = Date.now();
     if (!(await authenticateScheduled(req))) {
@@ -1699,11 +1672,6 @@ function registerInstagramRoutes(app: Express): void {
       res.status(503).json({ error: "Instagram credentials not configured" });
       return;
     }
-    const parsed = z
-      .object({ attempt: z.number().int().min(1).optional() })
-      .safeParse(req.body ?? {});
-    const attempt = parsed.success ? (parsed.data.attempt ?? 1) : 1;
-
     // Before anything expensive. A missing ffmpeg binary otherwise surfaces as
     // an ENOENT from execFile ninety seconds into a render, after the
     // metric has been picked and the card has been written.
@@ -1719,74 +1687,39 @@ function registerInstagramRoutes(app: Express): void {
     }
 
     try {
-      const { pickPropertyStat: pickStatOfTheDay } = await import("./instagram/propertyEditorial");
-      const { generateStatLine } = await import("./prompts/statCard");
-      const { findAlreadyPublished, postStatReel } = await import("./instagram/post");
-
-      const [metrics, histories] = await Promise.all([
-        db.listDailyMetrics(),
-        db.listMetricHistories(180),
-      ]);
-      const pick = pickStatOfTheDay(metrics, histories);
-      if (!pick) {
-        const { explainNoPropertyStat: explainNoPick } = await import("./instagram/propertyEditorial");
-        const reason = explainNoPick(metrics, histories);
-        console.log(`[instagram] skipping the reel. ${reason}`);
-        res.json({ success: true, skipped: true, reason });
-        return;
-      }
-
-      const variant = await nextCoverVariant();
-      const alreadyPublished = await findAlreadyPublished(attempt);
-      if (alreadyPublished) {
-        const recoveredHeadline = `${pick.label}: ${pick.value}`;
-        await db.recordInstagramPost({
-          mediaId: alreadyPublished,
-          postType: "reel",
-          feedDate: null,
-          headline: recoveredHeadline,
-          coverVariant: variant,
-        });
+      const { getCityRents } = await import("./markets/absRents");
+      const { verifiedRentReel } = await import("./instagram/verifiedReel");
+      const { postStatReel } = await import("./instagram/post");
+      const candidate = verifiedRentReel(await getCityRents());
+      if (!candidate) {
         res.json({
           success: true,
-          postId: alreadyPublished,
-          headline: recoveredHeadline,
-          recovered: true,
+          skipped: true,
+          reason: "No current, matching verified ABS rent comparison is available.",
         });
         return;
       }
-
-      const { buildStatFacts } = await import("./metrics/statFacts");
-      const reelSeries = (histories[pick.metricKey] ?? [])
-        .map((h) => ({ value: h.value, at: h.recordedAt }))
-        .sort((a, b) => a.at.getTime() - b.at.getTime());
-
-      const line = await generateStatLine(pick);
-      const reelFacts = buildStatFacts(pick.value, reelSeries, pick.delta, 3);
-      const { postId, headline } = await postStatReel(
-        {
-          label: pick.label,
-          value: pick.value,
-          line,
-          subtext: pick.subtext,
-          source: pick.source,
-          asOf: pick.asOf,
-          // The same history the pick was made from, drawn under the claim.
-          // Oldest first: the chart reads left to right.
-          series: reelSeries,
-          facts: reelFacts,
-        },
-        siteOrigin(),
-        {
-          variant,
-          script: await reelScript({ ...pick, line }, reelFacts),
-          // The scheduler drives this over fetch, which Node aborts after 300
-          // seconds. Answer inside that with headroom, so a slow transcode
-          // fails cleanly here rather than as a timeout the caller reads as a
-          // failure on a post that actually went out.
-          deadlineAt: startedAt + REEL_HTTP_BUDGET_MS,
-        }
-      );
+      const { reelPublicationStatus } = await import("./instagram/reelStatus");
+      const publication = await reelPublicationStatus(candidate.publication);
+      if (publication !== "available") {
+        if (publication === "unavailable")
+          throw new Error("The durable Reel publication record is unavailable.");
+        res.json({
+          success: true,
+          skipped: true,
+          reason:
+            "This ABS reference month is already published or locked. No repeat Reel was sent.",
+        });
+        return;
+      }
+      const variant = await nextCoverVariant();
+      const { postId, headline } = await postStatReel(candidate.stat, siteOrigin(), {
+        variant,
+        script: candidate.script,
+        caption: candidate.caption,
+        publication: candidate.publication,
+        deadlineAt: startedAt + REEL_HTTP_BUDGET_MS,
+      });
       console.log(`[instagram] reel complete: ${postId}`);
       await db.recordInstagramPost({
         mediaId: postId,
@@ -2107,8 +2040,32 @@ function registerInstagramRoutes(app: Express): void {
       // voice track, and the voice cannot be checked by reading the code. It
       // renders in about forty seconds, which is why it is behind a URL you
       // ask for rather than anything that runs on its own.
-      if (kind === "stat" || kind === "reel") {
-        const { explainNoPropertyStat: explainNoPick, rehearsePropertyStat: rehearsalStat } = await import("./instagram/propertyEditorial");
+      if (kind === "reel") {
+        const { getCityRents } = await import("./markets/absRents");
+        const { verifiedRentReel } = await import("./instagram/verifiedReel");
+        const candidate = verifiedRentReel(await getCityRents());
+        if (!candidate) {
+          res
+            .status(422)
+            .json({ error: "No current, matching verified ABS rent comparison is available." });
+          return;
+        }
+        const { renderStatReel } = await import("./video/statReel");
+        const reel = await renderStatReel(
+          candidate.stat,
+          req.query.variant === "light" ? "light" : "navy",
+          { script: candidate.script }
+        );
+        res.setHeader("Content-Type", "video/mp4");
+        res.setHeader("Cache-Control", "no-store");
+        res.setHeader("X-Reel-Narrated", String(reel.narrated));
+        res.setHeader("X-Reel-Evidence", candidate.evidenceHash);
+        res.send(reel.bytes);
+        return;
+      }
+      if (kind === "stat") {
+        const { explainNoPropertyStat: explainNoPick, rehearsePropertyStat: rehearsalStat } =
+          await import("./instagram/propertyEditorial");
         const { generateStatLine } = await import("./prompts/statCard");
         const [metrics, histories] = await Promise.all([
           db.listDailyMetrics(),
@@ -2145,20 +2102,6 @@ function registerInstagramRoutes(app: Express): void {
             kicker: "The Number",
             facts: stat.facts,
           });
-        } else {
-          const { renderStatReel } = await import("./video/statReel");
-          const reel = await renderStatReel(stat, variant, {
-            script: await reelScript(stat, stat.facts),
-          });
-          res.setHeader("Content-Type", "video/mp4");
-          res.setHeader("Cache-Control", "no-store");
-          res.setHeader("X-Reel-Seconds", reel.seconds.toFixed(2));
-          // Says out loud whether the voice made it in. A silent Reel renders
-          // successfully and looks fine in a browser, so without this the only
-          // way to notice a missing OPENAI_API_KEY is to have the sound up.
-          res.setHeader("X-Reel-Narrated", String(reel.narrated));
-          res.send(reel.bytes);
-          return;
         }
       }
 
