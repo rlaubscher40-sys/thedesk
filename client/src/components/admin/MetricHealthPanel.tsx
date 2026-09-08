@@ -11,7 +11,12 @@ export function MetricHealthPanel() {
       void utils.health.summary.invalidate();
     },
   });
-  const report = refresh.data ?? collection.data?.lastReport;
+  // A completed manual refresh must not hide a newer scheduler report.
+  const manualReport = refresh.data;
+  const scheduledReport = collection.data?.lastReport;
+  const report = manualReport && (!scheduledReport ||
+    new Date(manualReport.finishedAt).getTime() > new Date(scheduledReport.finishedAt).getTime())
+    ? manualReport : scheduledReport;
   const running = refresh.isPending || collection.data?.running;
   const rows = query.data;
   const attention = rows?.filter((row) => row.state !== "within review window").length;
@@ -58,6 +63,11 @@ export function MetricHealthPanel() {
             {report.failedWrites.length > 0 && (
               <p>Could not save: {report.failedWrites.join(", ")}.</p>
             )}
+            {report.sourceErrors?.map((error, index) => (
+              <p key={`${error.metricKey}-${index}`}>
+                {error.metricKey}: {error.reason}
+              </p>
+            ))}
           </div>
         )}
       </div>
