@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DailyFeedItem } from "../db/schema";
-const m = vi.hoisted(() => ({ render: vi.fn() }));
+const m = vi.hoisted(() => ({ render: vi.fn(), rewrite: vi.fn() }));
 vi.mock("../og/dailyHookCover", () => ({ renderDailyHookCoverCard: m.render }));
 vi.mock("../core/env", () => ({
   env: { instagramAccessToken: "fixture", instagramBusinessAccountId: "fixture" },
 }));
-vi.mock("../prompts/instagramHeadline", () => ({ generateInstagramHeadline: async () => null }));
+vi.mock("../prompts/instagramHeadline", () => ({ generateInstagramHeadline: m.rewrite }));
 import { renderPropertyDailyCover } from "./dailyCover";
 import { postDailyCarousel } from "./post";
 const story = {
@@ -22,6 +22,27 @@ const story = {
 } as DailyFeedItem;
 beforeEach(() => vi.resetAllMocks());
 describe("daily cover publication wiring", () => {
+  it("never forwards cached factual inventions or a model rewrite to the automatic cover", async () => {
+    m.rewrite.mockResolvedValue("Perth rents fell 5.3%");
+    m.render.mockRejectedValue(new Error("Stop before media upload"));
+    await expect(
+      postDailyCarousel(
+        [
+          {
+            ...story,
+            title: "Brisbane rents rose 5.3% in July 2026",
+            sayThis: "Perth rents fell 5.3%",
+            whyItMatters: "This guarantees higher investment returns.",
+          },
+        ],
+        "https://example.invalid"
+      )
+    ).rejects.toThrow("Stop before media upload");
+    expect(m.rewrite).not.toHaveBeenCalled();
+    const cover = m.render.mock.calls[0]![0];
+    expect(cover.lead.title).toBe("Brisbane rents rose 5.3% in July 2026");
+    expect(cover.lead.whyItMatters).not.toMatch(/guarantees|Perth|5\.3/);
+  });
   it.each(["light", "navy"] as const)(
     "passes the recorded %s tone into the real cover path",
     async (variant) => {

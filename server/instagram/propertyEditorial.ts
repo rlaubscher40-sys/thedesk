@@ -1,4 +1,5 @@
 import type { DailyFeedItem, DailyMetric } from "../db/schema";
+import type { EditionTopic } from "../../shared/schemas";
 import { FEATURED_COMPARISON_PATH } from "../../shared/featuredComparison";
 import { explainNoPick, pickStatOfTheDay, rehearsalStat, type HistoryPoint } from "./statPick";
 
@@ -8,6 +9,29 @@ import { explainNoPick, pickStatOfTheDay, rehearsalStat, type HistoryPoint } fro
 const PROPERTY =
   /\b(housing|dwelling\w*|mortgage\w*|home loans?|rental\w*|rents?|renters?|tenan\w*|landlords?|real estate|house prices?|home prices?|auction clearance|building approvals?|housing approvals?|residential development\w*)\b/i;
 const FINANCING = /\b(cash rate|interest rates?|RBA|Reserve Bank|housing credit)\b/i;
+
+/** An edition's category or generated takeaway cannot manufacture relevance. */
+export function pickPropertyTopics(topics: EditionTopic[], limit = 4): EditionTopic[] {
+  const seen = new Set<string>();
+  return topics
+    .map((topic, index) => {
+      const text = `${topic.title} ${topic.summary}`;
+      return { topic, index, tier: PROPERTY.test(text) ? 2 : FINANCING.test(text) ? 1 : 0 };
+    })
+    .filter(({ topic, tier }) => topic.title?.trim() && topic.summary?.trim() && tier > 0)
+    .sort((a, b) => b.tier - a.tier || a.index - b.index)
+    .filter(({ topic }) => {
+      const key = topic.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, Math.max(0, Math.floor(limit)))
+    .map(({ topic }) => topic);
+}
 
 export function propertyStoryTier(story: DailyFeedItem): number {
   if (!["AU", "PROPERTY"].includes(story.channel)) return 0;

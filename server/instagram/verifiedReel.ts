@@ -51,7 +51,7 @@ export function verifiedRentReel(data: CityRents, now = new Date()) {
         ? `${leading}'s rent index rose faster. That's rents actually paid.`
         : "This compares changes in rents actually paid, including falls.";
   const script: ScriptLine[] = [
-    { key: "label", text: "Brisbane or Perth? Which city makes the better buy?" },
+    { key: "label", text: "Brisbane or Perth: where did rents change faster?" },
     { key: "value", text: `The rent growth gap: ${figure} percentage points.` },
     { key: "line", text: meaning },
     {
@@ -71,7 +71,7 @@ export function verifiedRentReel(data: CityRents, now = new Date()) {
     publication: { key: "instagram-reel-abs-rents-brisbane-perth-v1", date: `${a.period}-01` },
     evidenceHash: hash,
     caption: [
-      "Brisbane or Perth: does faster rent growth make it the better buy?",
+      "Brisbane or Perth: where did rents change faster?",
       `Brisbane ${a.annualPercent.toFixed(1)}% vs Perth ${b.annualPercent.toFixed(1)}%. Year to ${period}.`,
       `Gap: ${figure} percentage points. ABS CPI rents actually paid, original series; capital-city boundaries.`,
       `${line} This compares the pace of change, not which city has more expensive rents.`,
