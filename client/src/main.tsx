@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { httpBatchLink, TRPCClientError } from "@trpc/client";
+import { httpBatchLink, httpLink, splitLink, TRPCClientError } from "@trpc/client";
+import { ASK_CLIENT_TIMEOUT_MS, withDeadline } from "@shared/requestDeadline";
 import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 import { UNAUTHED_ERR_MSG } from "@shared/const";
@@ -63,10 +64,27 @@ queryClient.getMutationCache().subscribe((event) => {
 
 const trpcClient = trpc.createClient({
   links: [
-    httpBatchLink({
-      url: "/api/trpc",
-      transformer: superjson,
-      fetch: (input, init) => globalThis.fetch(input, { ...(init ?? {}), credentials: "include" }),
+    splitLink({
+      condition: (op) => op.path === "ask.answer",
+      true: httpLink({
+        url: "/api/trpc",
+        transformer: superjson,
+        fetch: (input, init) => withDeadline(async (signal) => {
+          const response = await globalThis.fetch(input, { ...init, credentials: "include", signal });
+          // Include the response body in the deadline, not only the headers.
+          const body = await response.text();
+          return new Response(body, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: response.headers,
+          });
+        }, ASK_CLIENT_TIMEOUT_MS),
+      }),
+      false: httpBatchLink({
+        url: "/api/trpc",
+        transformer: superjson,
+        fetch: (input, init) => globalThis.fetch(input, { ...(init ?? {}), credentials: "include" }),
+      }),
     }),
   ],
 });

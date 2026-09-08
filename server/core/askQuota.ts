@@ -56,6 +56,29 @@ export function consumeAnonymousAsk(req: Request): QuotaResult {
   return consume(req, "ask", ANONYMOUS_ASK_LIMIT);
 }
 
+/** A separate attempt budget bounds refunded LLM work without charging answers. */
+export function consumeAnonymousAskAttempt(req: Request): QuotaResult {
+  return consume(req, "ask-attempt", 12);
+}
+
+/** Reserve before costly work, then commit an answer or release exactly once. */
+export function reserveAnonymousAsk(req: Request) {
+  const day = utcDay();
+  const key = anonymousKey(req, "ask", day);
+  const quota = consumeAnonymousAsk(req);
+  let settled = !quota.allowed;
+  return {
+    ...quota,
+    commit() { settled = true; },
+    release() {
+      if (settled) return;
+      settled = true;
+      const bucket = buckets.get(key);
+      if (bucket?.day === day) bucket.count = Math.max(0, bucket.count - 1);
+    },
+  };
+}
+
 export function consumeAnonymousCard(req: Request): QuotaResult {
   return consume(req, "ask-card", ANONYMOUS_CARD_LIMIT);
 }

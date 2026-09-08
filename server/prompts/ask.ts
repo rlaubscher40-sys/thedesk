@@ -9,52 +9,69 @@ export type AskContextSource = {
   text: string;
 };
 
+const answeredJsonSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: [
+    "status",
+    "headline",
+    "answer",
+    "whyItMatters",
+    "deskTake",
+    "whatWouldChangeOurMind",
+    "signals",
+    "sourceRefs",
+    "confidence",
+  ],
+  properties: {
+    status: { type: "string", const: "answered" },
+    headline: { type: "string" },
+    answer: { type: "string" },
+    whyItMatters: { type: "string" },
+    deskTake: { type: "string" },
+    whatWouldChangeOurMind: { type: "string" },
+    signals: {
+      type: "array",
+      maxItems: 4,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["label", "value", "context"],
+        properties: {
+          label: { type: "string" },
+          value: { type: "string" },
+          context: { type: "string" },
+        },
+      },
+    },
+    sourceRefs: {
+      type: "array",
+      minItems: 1,
+      maxItems: 8,
+      items: { type: "integer", minimum: 1 },
+    },
+    confidence: { type: "string", enum: ["high", "medium", "low"] },
+  },
+};
+
 export const askDeskResponseFormat: LlmResponseFormat = {
   type: "json_schema",
   json_schema: {
     name: "ask_the_desk_answer",
     strict: true,
     schema: {
-      type: "object",
-      additionalProperties: false,
-      required: [
-        "headline",
-        "answer",
-        "whyItMatters",
-        "deskTake",
-        "whatWouldChangeOurMind",
-        "signals",
-        "sourceRefs",
-        "confidence",
-      ],
-      properties: {
-        headline: { type: "string" },
-        answer: { type: "string" },
-        whyItMatters: { type: "string" },
-        deskTake: { type: "string" },
-        whatWouldChangeOurMind: { type: "string" },
-        signals: {
-          type: "array",
-          maxItems: 4,
-          items: {
-            type: "object",
-            additionalProperties: false,
-            required: ["label", "value", "context"],
-            properties: {
-              label: { type: "string" },
-              value: { type: "string" },
-              context: { type: "string" },
-            },
+      oneOf: [
+        answeredJsonSchema,
+        {
+          type: "object",
+          additionalProperties: false,
+          required: ["status", "reason"],
+          properties: {
+            status: { type: "string", const: "insufficient" },
+            reason: { type: "string", minLength: 1, maxLength: 600 },
           },
         },
-        sourceRefs: {
-          type: "array",
-          minItems: 1,
-          maxItems: 8,
-          items: { type: "integer", minimum: 1 },
-        },
-        confidence: { type: "string", enum: ["high", "medium", "low"] },
-      },
+      ],
     },
   },
 };
@@ -73,11 +90,14 @@ export function buildAskDeskMessages(
   return [
     {
       role: "system",
-      content: `You are The Desk, an Australian property intelligence analyst. Your job is to answer one question using ONLY the evidence supplied from The Desk reporting, editions and current market metrics.
+      content: `You are The Desk, an Australian property intelligence analyst. Your job is to answer one question using ONLY the evidence supplied from The Desk reporting, editions and current market metrics. Today is ${new Date().toISOString().slice(0, 10)}.
 
 This is an intelligence product, not a generic chatbot. Be concise, commercially useful and explicit about uncertainty. Australian English. No hype, no emojis, no exclamation marks, no em dashes.
 
 GROUNDING RULES:
+- First decide whether the supplied evidence actually supports an answer to this specific question. Related keywords or a nearby market are not enough.
+- If the evidence is irrelevant, missing the requested detail, too stale for a current claim, or cannot support a useful answer, return ONLY {"status":"insufficient","reason":"A short explanation of the specific evidence missing."}. Do not fill the gap with general knowledge or invent sources. Do not write an answer or signals for this outcome.
+- Otherwise return status "answered" with all answer fields. Mixed evidence can still support an answer that clearly explains the uncertainty.
 - Never invent a fact, number, date, source, causal claim or market movement.
 - Every material factual claim must be supported by at least one supplied source.
 - sourceRefs may contain only source numbers that appear in the evidence.

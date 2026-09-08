@@ -69,6 +69,8 @@ export type InvokeLlmParams = {
    * synthesis, Substack, look-back). Pass explicitly to override per call.
    */
   thinking?: boolean;
+  /** Cancel interactive requests without changing background-job retry defaults. */
+  signal?: AbortSignal;
 };
 
 const DEFAULT_MAX_TOKENS = 16000;
@@ -140,6 +142,7 @@ function augmentSystemForJson(
 }
 
 export async function invokeLLM(params: InvokeLlmParams): Promise<string> {
+  params.signal?.throwIfAborted();
   if (isDemoMode()) return demoLlm(params);
 
   const client = getClient();
@@ -166,7 +169,7 @@ export async function invokeLLM(params: InvokeLlmParams): Promise<string> {
       ...thinking,
       ...(system ? { system } : {}),
       messages: conversation,
-    });
+    }, { signal: params.signal });
     const finalMessage = await stream.finalMessage();
     return extractText(finalMessage);
   }
@@ -177,7 +180,7 @@ export async function invokeLLM(params: InvokeLlmParams): Promise<string> {
     ...thinking,
     ...(system ? { system } : {}),
     messages: conversation,
-  });
+  }, { signal: params.signal });
   return extractText(response);
 }
 

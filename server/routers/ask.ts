@@ -2,7 +2,8 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { displayMetricValue, rankAskMetrics } from "../ask/metricRetrieval";
 import * as db from "../db";
-import { consumeAnonymousAsk, consumeAnonymousCard } from "../core/askQuota";
+import { consumeAnonymousAskAttempt, reserveAnonymousAsk, consumeAnonymousCard } from "../core/askQuota";
+import { ASK_SERVER_TIMEOUT_MS, DeadlineError, withDeadline } from "../../shared/requestDeadline";
 import {
   createIntelligenceShareToken,
   readIntelligenceShareToken,
@@ -23,6 +24,7 @@ const signalSchema = z.object({
 });
 
 const askAnswerSchema = z.object({
+  status: z.literal("answered"),
   headline: z.string().min(1).max(220),
   answer: z.string().min(1).max(2600),
   whyItMatters: z.string().min(1).max(1800),
@@ -32,6 +34,11 @@ const askAnswerSchema = z.object({
   sourceRefs: z.array(z.number().int().positive()).min(1).max(8),
   confidence: z.enum(["high", "medium", "low"]),
 });
+
+const askResponseSchema = z.discriminatedUnion("status", [
+  askAnswerSchema,
+  z.object({ status: z.literal("insufficient"), reason: z.string().trim().min(1).max(600) }),
+]);
 
 type SearchBundle = Awaited<ReturnType<typeof db.searchAllContent>>;
 type FeedSearchRow = SearchBundle["feedItems"][number];
@@ -154,198 +161,234 @@ export const askRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      const matches = await retrieve(input.question);
-
-      if (
-        matches.feed.length === 0 &&
-        matches.editions.length === 0 &&
-        matches.metrics.length === 0
-      ) {
-        return {
-          status: "insufficient" as const,
-          question: input.question,
-          message:
-            "The Desk does not have enough evidence to answer that yet. Try a market, policy, lender, migration, supply or lending question already covered in the brief.",
-          sources: [],
-          anonymousRemaining: null,
-        };
-      }
-
-      const evidence: AskContextSource[] = [];
-      const sourceMeta: Array<{
-        ref: number;
-        kind: "feed" | "edition" | "metric";
-        title: string;
-        date: string;
-        category: string | null;
-        href: string;
-        publisher: string | null;
-        externalUrl: string | null;
-      }> = [];
-
-      for (const metric of matches.metrics) {
-        const ref = evidence.length + 1;
-        const currentValue = displayMetricValue(metric.value, metric.unit);
-        const previousValue = metric.previousValue
-          ? displayMetricValue(metric.previousValue, metric.unit)
-          : null;
-        const date = sourceDate(metric.asOf, "Current");
-        const text = compactText([
-          `Current value: ${currentValue}`,
-          previousValue ? `Previous recorded value: ${previousValue}` : null,
-          metric.context ? `Context: ${metric.context}` : null,
-          metric.source ? `Source: ${metric.source}` : null,
-          metric.groupKey ? `Metric group: ${metric.groupKey}` : null,
-          `As of: ${date}`,
-        ]);
-        evidence.push({
-          ref,
-          kind: "metric",
-          title: `${metric.label}: ${currentValue}`,
-          date,
-          category: metric.groupKey,
-          text,
-        });
-        sourceMeta.push({
-          ref,
-          kind: "metric",
-          title: `${metric.label}: ${currentValue}`,
-          date,
-          category: metric.groupKey,
-          href: "/trends",
-          publisher: metric.source ?? "The Desk metrics",
-          externalUrl: metric.sourceUrl ?? null,
-        });
-      }
-
-      for (const item of matches.feed) {
-        const ref = evidence.length + 1;
-        const text = compactText([
-          item.summary,
-          item.whyItMatters,
-          item.sayThis,
-          item.counterpoint,
-          item.rubensNote,
-          item.snippet,
-        ]);
-        if (!text) continue;
-        evidence.push({
-          ref,
-          kind: "feed",
-          title: item.title,
-          date: item.feedDate,
-          category: item.category,
-          text,
-        });
-        sourceMeta.push({
-          ref,
-          kind: "feed",
-          title: item.title,
-          date: item.feedDate,
-          category: item.category,
-          href: `/story/${item.id}`,
-          publisher: item.source ?? null,
-          externalUrl: item.sourceUrl ?? null,
-        });
-      }
-
-      for (const edition of matches.editions) {
-        const ref = evidence.length + 1;
-        const text = compactText([edition.fullText, edition.rubensTake, edition.snippet], 3200);
-        if (!text) continue;
-        evidence.push({
-          ref,
-          kind: "edition",
-          title: `Edition ${edition.editionNumber}: ${edition.weekRange}`,
-          date: sourceDate(edition.publishedAt, edition.weekOf),
-          category: null,
-          text,
-        });
-        sourceMeta.push({
-          ref,
-          kind: "edition",
-          title: `Edition ${edition.editionNumber}: ${edition.weekRange}`,
-          date: sourceDate(edition.publishedAt, edition.weekOf),
-          category: null,
-          href: `/editions/${edition.editionNumber}`,
-          publisher: "The Desk",
-          externalUrl: null,
-        });
-      }
-
-      if (evidence.length === 0) {
-        return {
-          status: "insufficient" as const,
-          question: input.question,
-          message: "The Desk found related records, but not enough usable evidence to answer reliably.",
-          sources: [],
-          anonymousRemaining: null,
-        };
-      }
-
-      const anonymousRemaining = enforceAnonymousQuota(
-        Boolean(ctx.user),
-        () => consumeAnonymousAsk(ctx.req)
-      );
-
-      let parsed: z.infer<typeof askAnswerSchema>;
+      const reservation: { current: ReturnType<typeof reserveAnonymousAsk> | null } = { current: null };
       try {
-        const raw = await invokeLLMJson<unknown>({
-          messages: buildAskDeskMessages(input.question, evidence),
-          responseFormat: askDeskResponseFormat,
-          maxTokens: 2200,
-          tier: "standard",
-          thinking: false,
-        });
-        parsed = askAnswerSchema.parse(raw);
+        const result = await withDeadline(async (signal) => {
+          const matches = await retrieve(input.question);
+
+          if (
+            matches.feed.length === 0 &&
+            matches.editions.length === 0 &&
+            matches.metrics.length === 0
+          ) {
+            return {
+              status: "insufficient" as const,
+              question: input.question,
+              message:
+                "The Desk does not have enough evidence to answer that yet. Try a market, policy, lender, migration, supply or lending question already covered in the brief.",
+              sources: [],
+              anonymousRemaining: null,
+            };
+          }
+
+          const evidence: AskContextSource[] = [];
+          const sourceMeta: Array<{
+            ref: number;
+            kind: "feed" | "edition" | "metric";
+            title: string;
+            date: string;
+            category: string | null;
+            href: string;
+            publisher: string | null;
+            externalUrl: string | null;
+          }> = [];
+
+          for (const metric of matches.metrics) {
+            const ref = evidence.length + 1;
+            const currentValue = displayMetricValue(metric.value, metric.unit);
+            const previousValue = metric.previousValue
+              ? displayMetricValue(metric.previousValue, metric.unit)
+              : null;
+            const date = sourceDate(metric.asOf, "Current");
+            const text = compactText([
+              `Current value: ${currentValue}`,
+              previousValue ? `Previous recorded value: ${previousValue}` : null,
+              metric.context ? `Context: ${metric.context}` : null,
+              metric.source ? `Source: ${metric.source}` : null,
+              metric.groupKey ? `Metric group: ${metric.groupKey}` : null,
+              `As of: ${date}`,
+            ]);
+            evidence.push({
+              ref,
+              kind: "metric",
+              title: `${metric.label}: ${currentValue}`,
+              date,
+              category: metric.groupKey,
+              text,
+            });
+            sourceMeta.push({
+              ref,
+              kind: "metric",
+              title: `${metric.label}: ${currentValue}`,
+              date,
+              category: metric.groupKey,
+              href: "/trends",
+              publisher: metric.source ?? "The Desk metrics",
+              externalUrl: metric.sourceUrl ?? null,
+            });
+          }
+
+          for (const item of matches.feed) {
+            const ref = evidence.length + 1;
+            const text = compactText([
+              item.summary,
+              item.whyItMatters,
+              item.sayThis,
+              item.counterpoint,
+              item.rubensNote,
+              item.snippet,
+            ]);
+            if (!text) continue;
+            evidence.push({
+              ref,
+              kind: "feed",
+              title: item.title,
+              date: item.feedDate,
+              category: item.category,
+              text,
+            });
+            sourceMeta.push({
+              ref,
+              kind: "feed",
+              title: item.title,
+              date: item.feedDate,
+              category: item.category,
+              href: `/story/${item.id}`,
+              publisher: item.source ?? null,
+              externalUrl: item.sourceUrl ?? null,
+            });
+          }
+
+          for (const edition of matches.editions) {
+            const ref = evidence.length + 1;
+            const text = compactText([edition.fullText, edition.rubensTake, edition.snippet], 3200);
+            if (!text) continue;
+            evidence.push({
+              ref,
+              kind: "edition",
+              title: `Edition ${edition.editionNumber}: ${edition.weekRange}`,
+              date: sourceDate(edition.publishedAt, edition.weekOf),
+              category: null,
+              text,
+            });
+            sourceMeta.push({
+              ref,
+              kind: "edition",
+              title: `Edition ${edition.editionNumber}: ${edition.weekRange}`,
+              date: sourceDate(edition.publishedAt, edition.weekOf),
+              category: null,
+              href: `/editions/${edition.editionNumber}`,
+              publisher: "The Desk",
+              externalUrl: null,
+            });
+          }
+
+          if (evidence.length === 0) {
+            return {
+              status: "insufficient" as const,
+              question: input.question,
+              message: "The Desk found related records, but not enough usable evidence to answer reliably.",
+              sources: [],
+              anonymousRemaining: null,
+            };
+          }
+
+          signal.throwIfAborted();
+          if (!ctx.user) {
+            reservation.current = reserveAnonymousAsk(ctx.req);
+            if (!reservation.current.allowed) {
+              throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "You've used today's 3 free questions, or they are still processing. Sign in to keep going." });
+            }
+            if (!consumeAnonymousAskAttempt(ctx.req).allowed) {
+              throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "You've reached today's retry limit. Your unanswered questions have not used your free answer allowance. Try tomorrow or sign in to continue." });
+            }
+          }
+          const anonymousRemaining = reservation.current?.remaining ?? null;
+
+          let parsed: z.infer<typeof askAnswerSchema>;
+          try {
+            const raw = await invokeLLMJson<unknown>({
+              messages: buildAskDeskMessages(input.question, evidence),
+              responseFormat: askDeskResponseFormat,
+              maxTokens: 2200,
+              tier: "standard",
+              thinking: false,
+              signal,
+            });
+            signal.throwIfAborted();
+            const response = askResponseSchema.parse(raw);
+            if (response.status === "insufficient") {
+              return {
+                status: "insufficient" as const,
+                question: input.question,
+                message: response.reason,
+                // Related reading, explicitly not sources supporting an answer.
+                sources: sourceMeta.slice(0, 3),
+                anonymousRemaining: null,
+              };
+            }
+            parsed = response;
+          } catch (error) {
+            signal.throwIfAborted();
+            console.error("[ask] intelligence answer failed", error);
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: "The Desk could not build a grounded answer. Try again in a moment.",
+            });
+          }
+
+          const validRefs = new Set(evidence.map((source) => source.ref));
+          const selectedRefs = [...new Set(parsed.sourceRefs)].filter((ref) => validRefs.has(ref));
+          if (selectedRefs.length === 0 || selectedRefs.length !== new Set(parsed.sourceRefs).size) {
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: "The Desk answer failed its source check. Try again.",
+            });
+          }
+
+          const selected = new Set(selectedRefs);
+          const selectedSources = sourceMeta.filter((source) => selected.has(source.ref));
+          // Mint the public-share token here, after retrieval + source validation.
+          // The later image-render endpoint accepts this token rather than browser
+          // supplied prose, so nobody can ask our server to sign an arbitrary claim
+          // as a Desk intelligence brief.
+          const shareToken = createIntelligenceShareToken({
+            question: input.question,
+            headline: parsed.headline,
+            answer: parsed.answer,
+            deskTake: parsed.deskTake,
+            confidence: parsed.confidence,
+            sourceCount: selectedSources.length,
+            sources: selectedSources.map((source) => ({
+              title: source.title,
+              date: source.date,
+              publisher: source.publisher,
+              href: source.href,
+            })),
+            signal: parsed.signals[0] ?? null,
+          });
+
+          return {
+            status: "answered" as const,
+            question: input.question,
+            answer: { ...parsed, sourceRefs: selectedRefs },
+            sources: selectedSources,
+            searchedRecords: evidence.length,
+            anonymousRemaining,
+            shareToken,
+          };
+        }, ASK_SERVER_TIMEOUT_MS);
+        if (result.status === "answered") reservation.current?.commit();
+        return result;
       } catch (error) {
-        console.error("[ask] intelligence answer failed", error);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "The Desk could not build a grounded answer. Try again in a moment.",
-        });
+        if (error instanceof DeadlineError) {
+          throw new TRPCError({ code: "TIMEOUT", message: error.message });
+        }
+        throw error;
+      } finally {
+        // Also runs on deadline: late work cannot consume or commit the reservation.
+        reservation.current?.release();
       }
-
-      const validRefs = new Set(evidence.map((source) => source.ref));
-      const selectedRefs = [...new Set(parsed.sourceRefs)].filter((ref) => validRefs.has(ref));
-      if (selectedRefs.length === 0) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "The Desk answer failed its source check. Try again.",
-        });
-      }
-
-      const selected = new Set(selectedRefs);
-      const selectedSources = sourceMeta.filter((source) => selected.has(source.ref));
-      // Mint the public-share token here, after retrieval + source validation.
-      // The later image-render endpoint accepts this token rather than browser
-      // supplied prose, so nobody can ask our server to sign an arbitrary claim
-      // as a Desk intelligence brief.
-      const shareToken = createIntelligenceShareToken({
-        question: input.question,
-        headline: parsed.headline,
-        answer: parsed.answer,
-        deskTake: parsed.deskTake,
-        confidence: parsed.confidence,
-        sourceCount: selectedSources.length,
-        sources: selectedSources.map((source) => ({
-          title: source.title,
-          date: source.date,
-          publisher: source.publisher,
-          href: source.href,
-        })),
-        signal: parsed.signals[0] ?? null,
-      });
-
-      return {
-        status: "answered" as const,
-        question: input.question,
-        answer: { ...parsed, sourceRefs: selectedRefs },
-        sources: selectedSources,
-        searchedRecords: evidence.length,
-        anonymousRemaining,
-        shareToken,
-      };
     }),
 
   /** Public read endpoint for a server-issued, signed intelligence snapshot. */
