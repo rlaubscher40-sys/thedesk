@@ -62,3 +62,10 @@ describe("catch-up migration coverage", () => {
     }
   );
 });
+
+it("creates the planning snapshot table and lookup index on existing installations", () => {
+  const migration = normalise(readFileSync(path.join(MIGRATIONS_DIR, "0023_planning_snapshots.sql"), "utf8")).replace(/;$/, "");
+  const catchup = CATCHUP_STATEMENTS.find(s => s.name === "0023 · planning_snapshots table");
+  expect(catchup).toBeDefined();
+  expect(normalise(catchup!.sql)).toBe(migration);
+});

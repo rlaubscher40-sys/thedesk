@@ -22,6 +22,17 @@ import { sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 
 export const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
+  { name: "0023 · planning_snapshots table", sql: `CREATE TABLE planning_snapshots (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  councilName VARCHAR(100) NOT NULL,
+  periodFrom VARCHAR(10) NOT NULL,
+  periodTo VARCHAR(10) NOT NULL,
+  fingerprint VARCHAR(64) NOT NULL,
+  snapshot JSON NOT NULL,
+  records JSON NOT NULL,
+  storedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_planning_council_period (councilName, periodFrom, periodTo, id)
+)` },
   {
     name: "0001 · users.isPremium",
     sql: "ALTER TABLE users ADD isPremium boolean NOT NULL DEFAULT false",

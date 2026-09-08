@@ -1,3 +1,4 @@
+import { NswPlanningPanel } from "@/components/planning/NswPlanningRead";
 import { Bookmark, BookmarkCheck, LineChart, MoveDownRight, MoveUpRight, Radio } from "lucide-react";
 import { Link, useSearch } from "wouter";
 import { useEffect, useMemo, useState } from "react";
@@ -165,6 +166,7 @@ export default function SignalsPage() {
           </div>
         </div>
       </header>
+
 
       {requestedMetricKey && !requestedHero && rows.length > 0 && (
         <div className="rule-hair rule-hair-b py-3 mt-5 text-sm text-[var(--color-fg-muted)]">
@@ -372,6 +374,8 @@ export default function SignalsPage() {
           </div>
         )}
       </section>
+
+      <NswPlanningPanel />
     </div>
   );
 }
