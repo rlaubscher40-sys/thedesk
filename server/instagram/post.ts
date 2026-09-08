@@ -14,12 +14,9 @@
 import { env } from "../core/env";
 import type { DailyFeedItem, Edition } from "../db/schema";
 import { getLatestEditionAsset } from "../db/editionAssets";
-import { updateFeedItemSayThis, updateFeedItemWhyItMatters } from "../db/feed";
 import { recordServerError } from "../db/health";
 import { generateCoverageBrief } from "../prompts/coverageBrief";
 import { generateInstagramHeadline } from "../prompts/instagramHeadline";
-import { generateSayThis } from "../prompts/sayThis";
-import { generateWhyItMatters } from "../prompts/whyItMatters";
 import { renderPropertyDailyCover } from "./dailyCover";
 import {
   type CardVariant,
@@ -44,7 +41,20 @@ import {
 import { removeTempImage, storeTempImage } from "./tempStore";
 import type { ScriptLine } from "../video/narration";
 import { renderStatReel } from "../video/statReel";
-import { pickPropertyStories, propertyComparisonCta } from "./propertyEditorial";
+import {
+  pickPropertyStories,
+  pickPropertyTopics,
+  propertyComparisonCta,
+} from "./propertyEditorial";
+
+import {
+  sourceGroundedStory,
+  sourceGroundedTopic,
+  propertyReadingQuestion,
+  storyDestination,
+  editionDestination,
+  marketDataCta,
+} from "./sourceContent";
 
 export const pickDailyTopStories = pickPropertyStories;
 
@@ -189,61 +199,33 @@ function categoryHashtag(category: string | null | undefined): string {
   return CATEGORY_HASHTAG[(category ?? "").toUpperCase()] ?? "#Markets";
 }
 
-/** Shown when the lead story has no say-this to open with. Generic by
- *  necessity, so it is a fallback rather than the default. */
-const DAILY_CAPTION_FALLBACK_HOOK =
-  "Today's Australian property briefing: what changed, and what the sources show.";
-
-/**
- * The caption opens with the day's own hook, carries the conversational "say
- * this" line for each remaining slide in swipe order, then gives one useful reason
- * to save it. No particular interaction is treated as a guaranteed ranking signal. The analytical why-it-matters stays on the cards so the caption
- * doesn't repeat them.
- *
- * The opening line matters more than its length suggests: the first ~125
- * characters are all Instagram shows before "…more", so they are the entire
- * pitch to someone deciding whether to stop. A fixed sentence spends that
- * budget saying the same thing every day, which is the same weakness a
- * contents-page cover has — nothing about it is specific to today. So the lead
- * story's say-this is promoted to the top and dropped from the rundown below,
- * said once, where it does the most work.
- */
+/** Captions keep source claims intact and give each slide its own reading link. */
 export function buildDailyCaption(stories: DailyFeedItem[]): string {
-  const leadHook = stories[0]?.sayThis?.trim()
-    ? sanitizeDashes(stories[0]!.sayThis!.trim()).slice(0, 200)
-    : DAILY_CAPTION_FALLBACK_HOOK;
-
-  const rundown = stories.flatMap((s, i) => {
-    const headline = sanitizeDashes(s.title).slice(0, 120);
-    const lines = [`${i + 1}. ${headline}`];
-    // Slide 1's say-this is already the opening hook, so it is not repeated.
-    if (s.sayThis && !(i === 0 && leadHook !== DAILY_CAPTION_FALLBACK_HOOK)) {
-      lines.push(sanitizeDashes(s.sayThis).slice(0, 220));
-    }
-    lines.push("");
-    return lines;
-  });
-
-  const tags = `${CORE_HASHTAGS} ${categoryHashtag(stories[0]?.category)}`;
-
-  return [
-    leadHook,
+  const selected = pickPropertyStories(stories, 3).map(sourceGroundedStory);
+  const lead = selected[0];
+  const rundown = selected.flatMap((story, i) => [
+    ...(i > 0 ? [`${i + 1}. ${sanitizeDashes(story.title)}`] : []),
+    propertyReadingQuestion(story),
+    `Source: ${story.source} · Briefing ${story.feedDate}`,
+    `Read story ${story.id}: ${storyDestination(story)}`,
+    "",
+  ]);
+  const caption = [
+    lead ? sanitizeDashes(lead.title) : "Today's Australian property briefing.",
     "",
     ...rundown,
     "Save this briefing to revisit the evidence before your next property decision.",
+    "On thedesk.au, open Archive and search for the headline.",
     "",
-    propertyComparisonCta("carousel"),
-    "",
-    tags,
+    `${CORE_HASHTAGS} #PropertyMarket`,
   ].join("\n");
+  if (caption.length > 2200)
+    throw new Error(
+      "Source-grounded caption exceeds Instagram limit; needs shorter source material"
+    );
+  return caption;
 }
 
-/**
- * Caption for the "Wider Lens" coverage carousel (Tech & Science, Business,
- * Global), now a hand-fired post rather than a scheduled one. Same shape as the
- * daily caption, but no per-story say-this
- * hook (coverage carries no partner angle) and a broader, non-AU-markets intro.
- */
 export function buildCoverageCaption(stories: DailyFeedItem[]): string {
   const rundown = stories.flatMap((s, i) => [
     `${i + 1}. ${sanitizeDashes(s.title).slice(0, 120)}`,
@@ -263,71 +245,6 @@ export function buildCoverageCaption(stories: DailyFeedItem[]): string {
     "",
     tags,
   ].join("\n");
-}
-
-/**
- * Fill in the lines each slide and caption need — a why-it-matters (card
- * subtext) and a say-this (caption hook) — for any story missing them.
- * Enrichment normally provides these, but a story can slip through (enrichment
- * skipped or still running), so we generate at post time and persist back to
- * the feed item. A story the model SKIPs keeps an empty why-it-matters; the
- * caller drops those rather than render a blank card. Mutates in place.
- *
- * Options:
- *   - `sayThis` (default true): also fill the say-this caption hook. The
- *     coverage post turns this OFF — say-this is a partner-channel line and
- *     coverage stories (Tech/Business/Global) carry no partner angle.
- *   - `persist` (default true): write generated lines back to the feed item.
- *     The coverage post turns this OFF so generating a why-it-matters purely to
- *     render the IG card doesn't stamp partner-style context onto a coverage
- *     story on the website, which is meant to stay headline + summary only.
- */
-async function ensureSlideContent(
-  stories: DailyFeedItem[],
-  opts: { sayThis?: boolean; persist?: boolean } = {}
-): Promise<void> {
-  const wantSay = opts.sayThis ?? true;
-  const persist = opts.persist ?? true;
-  await Promise.all(
-    stories.map(async (story, i) => {
-      const needWhy = !(story.whyItMatters && story.whyItMatters.trim());
-      const needSay = wantSay && !(story.sayThis && story.sayThis.trim());
-      if (!needWhy && !needSay) return;
-
-      const input = {
-        title: story.title,
-        summary: story.summary,
-        category: story.category,
-      };
-      const [why, say] = await Promise.all([
-        needWhy ? generateWhyItMatters(input) : Promise.resolve(null),
-        needSay ? generateSayThis(input) : Promise.resolve(null),
-      ]);
-
-      if (why) {
-        stories[i] = { ...stories[i]!, whyItMatters: why };
-        if (persist) {
-          await updateFeedItemWhyItMatters(story.id, why).catch((err) =>
-            console.warn(
-              `[instagram] couldn't persist whyItMatters for ${story.id}:`,
-              (err as Error).message
-            )
-          );
-        }
-      }
-      if (say) {
-        stories[i] = { ...stories[i]!, sayThis: say };
-        if (persist) {
-          await updateFeedItemSayThis(story.id, say).catch((err) =>
-            console.warn(
-              `[instagram] couldn't persist sayThis for ${story.id}:`,
-              (err as Error).message
-            )
-          );
-        }
-      }
-    })
-  );
 }
 
 /**
@@ -365,33 +282,24 @@ export async function loadEditionHeroDataUri(editionId: number): Promise<string 
   }
 }
 
-function buildWeeklyCaption(edition: Edition): string {
-  const take = edition.rubensTake ? sanitizeDashes(edition.rubensTake).slice(0, 300) : "";
-  const topics = edition.topics.slice(0, 4);
-  const contents = topics.map((t) => `- ${sanitizeDashes(t.title).slice(0, 90)}`);
-  const tags = `${CORE_HASHTAGS} #WeeklyBriefing ${categoryHashtag(topics[0]?.category)}`;
-
+export function buildWeeklyCaption(edition: Edition): string {
+  const topics = pickPropertyTopics(edition.topics);
   return [
-    "This week in Australian property and markets, the calls that mattered and what comes next.",
+    topics[0]?.title ?? "This week's property briefing.",
     "",
-    ...(take ? [take, ""] : []),
-    `Inside Edition #${edition.editionNumber}:`,
-    ...contents,
+    `Property stories from Edition #${edition.editionNumber} · ${edition.weekRange ?? edition.weekOf}`,
+    ...topics.slice(1).map((topic) => `- ${sanitizeDashes(topic.title)}`),
     "",
-    "Which call are you watching? Reply below.",
-    "Save the edition for the week ahead.",
+    ...(topics[0] ? [propertyReadingQuestion(topics[0]), ""] : []),
+    "Save this to check the evidence before your next property decision.",
+    `Read Edition ${edition.editionNumber}: ${editionDestination(edition)}`,
+    `On thedesk.au, open Editions and choose #${edition.editionNumber}.`,
     "",
-    "The full weekly edition is in our bio.",
-    "",
-    tags,
+    `${CORE_HASHTAGS} #WeeklyBriefing`,
   ].join("\n");
 }
 
-/**
- * Slides in a daily carousel (excluding the cover), and the larger candidate
- * pool we generate why-it-matters across so off-topic stories (which the model
- * SKIPs) can be dropped while still filling the slides.
- */
+/** Daily carousel: at most three relevant source stories; quiet days stay thin. */
 const DAILY_SLIDE_COUNT = 3;
 const DAILY_CANDIDATE_POOL = 6;
 
@@ -540,24 +448,14 @@ export async function postDailyCarousel(
   const cardOpts = isCoverage ? { subtextLabel: "In Brief" } : {};
   const verticalOpts = isCoverage ? { subtextLabel: "In Brief", header: "Wider Lens" } : {};
 
-  // Over-select a candidate pool, then generate slide content across it so we
-  // can exclude any story the model declines to write a why-it-matters for. A
-  // SKIP (null why-it-matters) means the story is off-topic for a finance brief
-  // — dropping it keeps mis-filed items (e.g. crime tagged MARKETS) off the
-  // carousel instead of rendering a blank card.
+  // Select only relevant stories, without asking a model to invent an angle.
   const selectStories = isCoverage ? pickCoverageTopStories : pickDailyTopStories;
   const pool = selectStories(stories, DAILY_CANDIDATE_POOL);
 
   if (pool.length === 0) throw new Error("No stories available for Instagram post");
 
-  // Every slide needs subtext. The daily post generates a why-it-matters (and a
-  // say-this caption hook) per story and persists both back to the feed item.
-  // The coverage post generates an original one-line "In Brief" instead — in
-  // memory, nothing persisted: coverage carries no partner angle, and the
-  // finance "why it matters" generator SKIPs general news, which was thinning
-  // the carousel below three slides. We generate our own paraphrase rather than
-  // reprint the publisher's summary verbatim (that would republish uncleared
-  // source copy). A story whose brief fails drops out via the filter below.
+  // Manual wider coverage keeps its paraphrase. Property posts use fixed
+  // reading questions and never reuse unvalidated cached social commentary.
   if (isCoverage) {
     await Promise.all(
       pool.map(async (s, i) => {
@@ -571,7 +469,7 @@ export async function postDailyCarousel(
       })
     );
   } else {
-    await ensureSlideContent(pool);
+    for (let i = 0; i < pool.length; i++) pool[i] = sourceGroundedStory(pool[i]!);
   }
 
   // Best slides that earned subtext. A thin day posts fewer real slides rather
@@ -580,19 +478,21 @@ export async function postDailyCarousel(
   const top = selectStories(withContext, DAILY_SLIDE_COUNT);
   if (top.length === 0) throw new Error("No stories with usable context for Instagram post");
 
-  // Punch up the raw feed titles for the card only (3 short LLM calls). Each
-  // call falls back to the original title on SKIP or failure, so a weak rewrite
-  // can never block the post.
-  const headlines = await Promise.all(
-    top.map((s) =>
-      generateInstagramHeadline({
-        title: s.title,
-        summary: s.summary,
-        category: s.category,
-      })
-    )
-  );
-  const punched = top.map((s, i) => ({ ...s, title: headlines[i] ?? s.title }));
+  // Only the manual Wider Lens retains the legacy headline generator.
+  // Daily property claims stay identical to the source feed headline.
+  const punched = isCoverage
+    ? await Promise.all(
+        top.map(async (story) => ({
+          ...story,
+          title:
+            (await generateInstagramHeadline({
+              title: story.title,
+              summary: story.summary,
+              category: story.category,
+            })) ?? story.title,
+        }))
+      )
+    : top.map(sourceGroundedStory);
 
   const sanitized = punched.map(sanitizeStory);
   const carouselUuids: string[] = [];
@@ -692,7 +592,8 @@ export async function postWeeklyEdition(
     throw new Error("INSTAGRAM_ACCESS_TOKEN and INSTAGRAM_BUSINESS_ACCOUNT_ID must be set");
   }
 
-  const rawTopics = edition.topics.slice(0, 4);
+  const rawTopics = pickPropertyTopics(edition.topics).map(sourceGroundedTopic);
+  if (rawTopics.length === 0) throw new Error("No property topics available for Instagram post");
   const sanitizedTopics = rawTopics.map((t) => ({
     ...t,
     title: sanitizeDashes(t.title),
@@ -704,7 +605,7 @@ export async function postWeeklyEdition(
   const sanitizedEdition: Edition = {
     ...edition,
     weekRange: edition.weekRange ? sanitizeDashes(edition.weekRange) : edition.weekRange,
-    rubensTake: edition.rubensTake ? sanitizeDashes(edition.rubensTake) : edition.rubensTake,
+    rubensTake: null,
     topics: sanitizedTopics,
   };
   const totalSlides = 1 + sanitizedTopics.length;
@@ -826,7 +727,7 @@ export function buildStatCaption(stat: {
     "",
     "Share this with someone comparing Australian property markets.",
     "",
-    propertyComparisonCta("stat"),
+    marketDataCta(),
     "",
     `${CORE_HASHTAGS} #PropertyData`,
   ]
