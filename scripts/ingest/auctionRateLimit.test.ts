@@ -1,6 +1,7 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { createAuctionCollector } from "./lib/auctionClearance";
 import {
+  PublisherAccessDeniedError,
   PublisherRateLimitError,
   publisherRetryAt,
   sourceHtml,
@@ -14,6 +15,49 @@ const page = (
 Based on 10 auction results available 4 Sold at auction 1 Sold prior to auction 1 Sold after auction
 2 Withdrawn 2 Passed in 12 auctions scheduled Non-auction sales 30 Private sales`;
 afterEach(() => vi.unstubAllGlobals());
+
+it.each([401, 403])(
+  "stops the entire publisher on HTTP %i and keeps automatic retries paused",
+  async (status) => {
+    let now = initial;
+    const fetch = vi.fn(
+      async () => new Response("private publisher response", { status }),
+    );
+    vi.stubGlobal("fetch", fetch);
+    const collect = createAuctionCollector({
+      now: () => now,
+      delay: async () => {},
+    });
+    const report = vi.fn();
+    expect(await collect(report)).toEqual([]);
+    expect(fetch).toHaveBeenCalledOnce();
+    expect(report).toHaveBeenCalledWith(
+      "auction_clearance",
+      expect.stringContaining(`denied access (HTTP ${status})`),
+    );
+    expect(report.mock.calls[0][1]).not.toContain("private publisher response");
+    now += 30 * 24 * hour;
+    expect(await collect(report)).toEqual([]);
+    expect(fetch).toHaveBeenCalledOnce();
+  },
+);
+
+it("preserves a good state before access denial without producing a national rate", async () => {
+  const fetchPage = vi.fn(async (url: string) => {
+    if (url.endsWith("nsw")) return page("NSW");
+    throw new PublisherAccessDeniedError(403);
+  });
+  const collect = createAuctionCollector({
+    fetchPage,
+    now: () => initial,
+    delay: async () => {},
+  });
+  const rows = await collect();
+  expect(rows.map((row) => row.metricKey)).toEqual(["nsw_auction_clearance"]);
+  expect(fetchPage).toHaveBeenCalledTimes(2);
+  expect(await collect()).toEqual([]);
+  expect(fetchPage).toHaveBeenCalledTimes(2);
+});
 
 it("parses delta-seconds and HTTP-date Retry-After, with a safe missing/invalid default", () => {
   expect(publisherRetryAt("7200", initial)).toBe(initial + 2 * hour);

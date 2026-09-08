@@ -23,6 +23,13 @@ export function publisherRetryAt(
     : now + 3_600_000;
 }
 
+export class PublisherAccessDeniedError extends Error {
+  constructor(public readonly status: number) {
+    super(`Publisher HTTP ${status}; approved source access is required`);
+    this.name = "PublisherAccessDeniedError";
+  }
+}
+
 export class PublisherRateLimitError extends Error {
   constructor(public readonly retryAt: number) {
     super(
@@ -64,6 +71,8 @@ export async function sourceBytes(
     }
     if (!response.ok) {
       await response.body?.cancel();
+      if (response.status === 401 || response.status === 403)
+        throw new PublisherAccessDeniedError(response.status);
       if (response.status === 429)
         throw new PublisherRateLimitError(
           publisherRetryAt(response.headers.get("retry-after")),
