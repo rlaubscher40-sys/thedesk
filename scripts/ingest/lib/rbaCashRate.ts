@@ -35,31 +35,61 @@ export function parseCashRate(csv: string, now = new Date()) {
       return [{ asOf, raw: row[column]?.trim() ?? "" }];
     })
     .sort((a, b) => b.asOf.getTime() - a.asOf.getTime());
-  const today = now.toISOString().slice(0, 10);
+  // RBA dates are Sydney calendar days, not UTC days. In the Sydney morning
+  // UTC can still be yesterday, including across daylight-saving changes.
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Australia/Sydney", year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(now);
+  const part = (type: string) => parts.find((p) => p.type === type)!.value;
+  const today = `${part("year")}-${part("month")}-${part("day")}`;
   // RBA may include today's unfinished row. Never skip an older missing observation.
   const latest = observations.find(
     (row) => !(row.asOf.toISOString().slice(0, 10) === today && row.raw === "")
   );
-  if (!latest || !/^\d+(?:\.\d+)?$/.test(latest.raw))
-    throw new Error("RBA daily cash target unavailable");
+  if (!latest)
+    throw new Error("RBA daily cash target unavailable: no completed dated observation");
+  if (!/^\d+(?:\.\d+)?$/.test(latest.raw))
+    throw new Error(
+      `RBA daily cash target unavailable at ${latest.asOf.toISOString().slice(0, 10)} (Sydney date ${today})`
+    );
   const rate = Number(latest.raw);
   const age = (now.getTime() - latest.asOf.getTime()) / 86_400_000;
   if (!Number.isFinite(rate) || rate < 0 || rate > 30 || age < 0 || age > 7)
-    throw new Error("Stale, future or invalid RBA daily cash target");
+    throw new Error(
+      `Stale, future or invalid RBA daily cash target: observation ${latest.asOf.toISOString().slice(0, 10)}`
+    );
   return { rate, asOf: latest.asOf };
 }
 
-export async function fetchCashRate() {
+export async function fetchCashRate(onUnavailable?: (reason: string) => void) {
+  let stage: "download" | "parse" = "download";
+  let failure: string | undefined;
   try {
     const response = await fetch(CASH_RATE_CSV, {
       headers: { Accept: "text/csv" },
       signal: AbortSignal.timeout(30_000),
     });
-    if (!response.ok || Number(response.headers.get("content-length")) > MAX_BYTES)
-      throw new Error(`RBA F1 HTTP ${response.status}`);
-    return parseCashRate(await response.text());
+    if (!response.ok) {
+      failure = `RBA F1 HTTP ${response.status}`;
+      throw new Error(failure);
+    }
+    if (Number(response.headers.get("content-length")) > MAX_BYTES) {
+      failure = "RBA F1 response exceeds the size limit";
+      throw new Error(failure);
+    }
+    const csv = await response.text();
+    stage = "parse";
+    return parseCashRate(csv);
   } catch (error) {
-    console.warn("[metrics] RBA daily cash target unavailable:", (error as Error).message);
+    // Do not expose response bodies or arbitrary network-error messages in Admin.
+    const reason = failure ?? (stage === "parse"
+      ? `RBA F1 validation: ${(error as Error).message}`
+      : (error as Error).name === "TimeoutError" || (error as Error).name === "AbortError"
+        ? "RBA F1 request timed out"
+        : "RBA F1 network or response-read failure");
+    const detail = `${reason}; checked at ${new Date().toISOString()}`;
+    console.warn("[metrics] RBA daily cash target unavailable:", detail);
+    onUnavailable?.(detail);
     return null;
   }
 }

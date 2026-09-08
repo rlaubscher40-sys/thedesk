@@ -10,6 +10,7 @@ export type MetricRefreshReport = {
   stored: number;
   unavailable: string[];
   failedWrites: string[];
+  sourceErrors: Array<{ metricKey: string; reason: string }>;
 };
 let pending: Promise<MetricRefreshReport> | null = null;
 let lastReport: MetricRefreshReport | null = null;
@@ -41,8 +42,12 @@ export function refreshOfficialMetrics(): Promise<MetricRefreshReport> {
     const written = new Set<string>();
     const collected = new Set<string>();
     const failedWrites: string[] = [];
+    const sourceErrors: MetricRefreshReport["sourceErrors"] = [];
     await runDailyMetricsIngest("", "", {
       extractFromNews: false,
+      onSourceError: (metricKey, reason) => {
+        sourceErrors.push({ metricKey, reason: reason.slice(0, 400) });
+      },
       persist: async (metrics) => {
         for (const metric of metrics) {
           collected.add(metric.metricKey);
@@ -67,6 +72,7 @@ export function refreshOfficialMetrics(): Promise<MetricRefreshReport> {
         (row) => !row.extracted && !collected.has(row.key)
       ).map((row) => row.key),
       failedWrites,
+      sourceErrors,
     };
     return lastReport;
   })()
@@ -86,6 +92,9 @@ export async function recoverMissingMetrics() {
   const report = await refreshOfficialMetrics();
   if (report.unavailable.length || report.failedWrites.length)
     throw new Error(
-      `Metric refresh stored ${report.stored}; unavailable: ${report.unavailable.join(", ") || "none"}; failed writes: ${report.failedWrites.join(", ") || "none"}`
+      `Metric refresh stored ${report.stored}; unavailable: ${report.unavailable.join(", ") || "none"}; failed writes: ${report.failedWrites.join(", ") || "none"}` +
+        (report.sourceErrors.length
+          ? `; source errors: ${report.sourceErrors.map((error) => `${error.metricKey}: ${error.reason}`).join("; ")}`
+          : "")
     );
 }

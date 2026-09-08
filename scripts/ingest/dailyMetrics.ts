@@ -109,7 +109,11 @@ export function verifyMetricReceipt(result: unknown, expected: number): void {
 export async function runDailyMetricsIngest(
   rawBaseUrl: string,
   apiKey: string,
-  options: { extractFromNews?: boolean; persist?: (metrics: MetricOut[]) => Promise<void> } = {}
+  options: {
+    extractFromNews?: boolean;
+    persist?: (metrics: MetricOut[]) => Promise<void>;
+    onSourceError?: (metricKey: string, reason: string) => void;
+  } = {}
 ): Promise<void> {
   const baseUrl = rawBaseUrl.replace(/\/+$/u, "");
 
@@ -127,7 +131,7 @@ export async function runDailyMetricsIngest(
     approvals,
     demographics,
   ] = await Promise.all([
-    fetchCashRate(),
+    fetchCashRate((reason) => options.onSourceError?.("cash_rate", reason)),
     fetchRbaHousingRateMetrics(),
     fetchYahooQuote("^AXJO"), // ASX 200
     fetchYahooQuote("AUDUSD=X"),

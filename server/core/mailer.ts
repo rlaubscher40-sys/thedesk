@@ -634,6 +634,13 @@ export function attemptSentence(when: string, attempt?: number, maxAttempts?: nu
  * told about rather than something you discover by eyeballing the grid weeks
  * later. Best-effort like every other send: no RESEND_API_KEY → dry-run log.
  */
+export function schedulerFailureNextStep(jobKey: string): string {
+  if (jobKey.startsWith("official-metrics-") || jobKey === "daily-metrics") {
+    return "The collection did not complete fully. Successfully stored metrics have been retained; see the error details for saved counts and missing sources. Open Admin → Health to review the latest attempt and use Refresh market data now after the source issue is resolved.";
+  }
+  return "This run did not complete successfully. Partial work may have succeeded. Check the admin error log and any published output before re-running it from the admin panel.";
+}
+
 export async function sendAdminAlertEmail({
   to,
   subject,
@@ -655,8 +662,7 @@ export async function sendAdminAlertEmail({
   const safeDetail = esc(detail.slice(0, 1000));
   const safeJobKey = esc(jobKey);
   const what = esc(attemptSentence(when, attempt, maxAttempts));
-  const nextStep =
-    "Nothing was posted or produced for this run. Check the admin error log, then re-run it from the admin panel once it's fixed.";
+  const nextStep = schedulerFailureNextStep(jobKey);
   const inner = `
     ${mastheadRow()}
     ${ruleFullRow()}

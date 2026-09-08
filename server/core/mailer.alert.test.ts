@@ -6,7 +6,21 @@
  * gracefully when RESEND_API_KEY isn't set rather than crashing the tick.
  */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { attemptSentence, sendAdminAlertEmail } from "./mailer";
+import { attemptSentence, schedulerFailureNextStep, sendAdminAlertEmail } from "./mailer";
+
+describe("schedulerFailureNextStep", () => {
+  it("does not claim that a partial metric refresh produced nothing", () => {
+    for (const job of ["official-metrics-recovery", "official-metrics-12", "daily-metrics"]) {
+      const text = schedulerFailureNextStep(job);
+      expect(text).toContain("Successfully stored metrics have been retained");
+      expect(text).toContain("Refresh market data now");
+      expect(text).not.toContain("Nothing was posted or produced");
+    }
+  });
+  it("asks operators to check existing output before retrying publication jobs", () => {
+    expect(schedulerFailureNextStep("instagram-weekly")).toContain("any published output before re-running");
+  });
+});
 
 describe("sendAdminAlertEmail", () => {
   const prev = process.env.RESEND_API_KEY;
