@@ -1,0 +1,52 @@
+{
+  "source": "https://api.apps1.nsw.gov.au/eplanning/data/v0/OnlineDA",
+  "retrievedOn": "2026-09-08",
+  "licence": "CC BY 4.0",
+  "attribution": "NSW Department of Planning, Housing and Infrastructure",
+  "note": "Projection of four live records. Address, location and unused fields omitted. Pagination is constructed in tests.",
+  "records": [
+    {
+      "PlanningPortalApplicationNumber": "PAN-662735",
+      "ApplicationType": "Development Application",
+      "ApplicationStatus": "Additional Information Requested",
+      "Council": {
+        "CouncilName": "Council of the City of Sydney"
+      },
+      "LodgementDate": "2026-08-05",
+      "DateLastUpdated": "2026-08-06T23:33:16.937"
+    },
+    {
+      "PlanningPortalApplicationNumber": "PAN-643200",
+      "ApplicationType": "Development Application",
+      "ApplicationStatus": "Additional Information Requested",
+      "Council": {
+        "CouncilName": "Council of the City of Sydney"
+      },
+      "LodgementDate": "2026-08-14",
+      "DateLastUpdated": "2026-08-25T22:44:34.400",
+      "NumberOfNewDwellings": 3
+    },
+    {
+      "PlanningPortalApplicationNumber": "PAN-661281",
+      "ApplicationType": "Modification Application",
+      "ApplicationStatus": "Additional Information Requested",
+      "Council": {
+        "CouncilName": "Council of the City of Sydney"
+      },
+      "LodgementDate": "2026-08-11",
+      "DateLastUpdated": "2026-08-26T22:54:41.387",
+      "NumberOfNewDwellings": 1
+    },
+    {
+      "PlanningPortalApplicationNumber": "PAN-665815",
+      "ApplicationType": "Review of determination",
+      "ApplicationStatus": "Under Assessment",
+      "Council": {
+        "CouncilName": "Council of the City of Sydney"
+      },
+      "LodgementDate": "2026-08-18",
+      "DateLastUpdated": "2026-08-26T23:03:42.463",
+      "NumberOfNewDwellings": 1
+    }
+  ]
+}
