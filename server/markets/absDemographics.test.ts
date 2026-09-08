@@ -84,6 +84,30 @@ describe("verified ABS state demographics", () => {
     ).toBeNull();
   });
 
+  it("converts decimal thousands exactly without losing valid whole-person counts", () => {
+    for (const [value, expected] of [
+      ["65.531", 65531],
+      ["-65.531", -65531],
+      ["65.5310", 65531],
+      ["65.5311", null],
+      ["65.531000000000001", null],
+    ] as const) {
+      const changed = csv.replace(",9,3,Q,2025-Q2,11.3,NUM,3,,", `,9,3,Q,2025-Q2,${value},NUM,3,,`);
+      const data = parseAbsDemographics(changed, retrievedAt);
+      expect(
+        data.observations.find(
+          (row) =>
+            row.state === "Queensland" &&
+            row.measure === "netOverseasMigration" &&
+            row.period === "2025-Q2"
+        )?.people
+      ).toBe(expected);
+      expect(annualStateDemographics(data, "Queensland", "2026-09-08") !== null).toBe(
+        expected !== null
+      );
+    }
+  });
+
   it("rejects duplicate rows, malformed quarters and changed schema", () => {
     const row = csv.split("\n")[1]!;
     expect(() => parseAbsDemographics(`${csv}${row}\n`, retrievedAt)).toThrow("Duplicate");

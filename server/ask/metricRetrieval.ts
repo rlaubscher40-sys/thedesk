@@ -1,5 +1,37 @@
 import type { DailyMetric } from "../db/schema";
 import { askQueryTerms, hasAskTerm } from "./relevance";
+import { PROPERTY_REGIONS } from "../../shared/propertyCoverage";
+
+function queryGeography(question: string) {
+  let topic = question;
+  const places: string[] = [];
+  const regions = PROPERTY_REGIONS.filter((region) => {
+    let matched = false;
+    for (const alias of [region.name, ...region.places, region.code]) {
+      // Lowercase "act" is usually a verb; the other abbreviations are useful
+      // in lowercase questions too. Registry aliases contain only letters/spaces.
+      const pattern = new RegExp(`\\b${alias}\\b`, alias === "ACT" ? "g" : "gi");
+      if (!pattern.test(question)) continue;
+      matched = true;
+      if (region.places.some((place) => place === alias)) places.push(alias);
+      topic = topic.replace(pattern, " ");
+    }
+    return matched;
+  });
+  return { topic, places, regions };
+}
+
+/** Known structured series retain their original geography. City questions may
+ * use explicitly labelled state context, but never another city's approvals. */
+function scopedMetricRegion(metric: DailyMetric) {
+  return PROPERTY_REGIONS.find(
+    (region) =>
+      new RegExp(
+        `^${region.code.toLowerCase()}_(population(?:_growth_annual)?|net_(internal|overseas)_migration_12m)$`
+      ).test(metric.metricKey) ||
+      metric.metricKey === `${region.places[0].toLowerCase()}_approvals_12m`
+  );
+}
 
 /**
  * Small, explicit synonym families. These are retrieval aids, not analytical
@@ -49,29 +81,37 @@ export function askMetricTerms(question: string): string[] {
 
 function metricHaystack(metric: DailyMetric): string {
   return normalise(
-    [
-      metric.metricKey,
-      metric.label,
-      metric.context,
-      metric.groupKey,
-      metric.source,
-    ]
+    [metric.metricKey, metric.label, metric.context, metric.groupKey, metric.source]
       .filter(Boolean)
       .join(" ")
   );
 }
 
 function scoreMetric(question: string, metric: DailyMetric): number {
+  const geography = queryGeography(question);
+  const scope = scopedMetricRegion(metric);
+  if (scope && geography.regions.length) {
+    if (!geography.regions.includes(scope)) return 0;
+    if (
+      metric.metricKey.endsWith("_approvals_12m") &&
+      geography.places.length &&
+      !geography.places.includes(scope.places[0])
+    )
+      return 0;
+  }
   const query = normalise(question);
   const label = normalise(metric.label);
   const key = normalise(metric.metricKey);
   const group = normalise(metric.groupKey);
   const haystack = metricHaystack(metric);
-  const terms = askMetricTerms(question);
-  const topicalTerms = terms.filter((term) => !["rate", "rates", "value", "values", "growth", "change", "changes"].includes(term));
+  const terms = askMetricTerms(geography.topic);
+  const directTerms = askQueryTerms(geography.topic);
+  const topicalTerms = terms.filter(
+    (term) => !["rate", "rates", "value", "values", "growth", "change", "changes"].includes(term)
+  );
   if (topicalTerms.length > 0 && !topicalTerms.some((term) => hasAskTerm(haystack, term))) return 0;
 
-  let score = 0;
+  let score = scope && geography.regions.includes(scope) ? 8 : 0;
   if (label && ` ${query} `.includes(` ${label} `)) score += 12;
   if (key && ` ${query} `.includes(` ${key} `)) score += 12;
   if (group && ` ${query} `.includes(` ${group} `)) score += 5;
@@ -80,6 +120,8 @@ function scoreMetric(question: string, metric: DailyMetric): number {
     if (!hasAskTerm(haystack, term)) continue;
     score += 2;
     if (hasAskTerm(label, term) || hasAskTerm(key, term)) score += 2;
+    if (directTerms.includes(term) && (hasAskTerm(label, term) || hasAskTerm(key, term)))
+      score += 4;
     if (group === term) score += 1;
   }
 
@@ -96,11 +138,7 @@ function scoreMetric(question: string, metric: DailyMetric): number {
  * A generic Ask should not silently inject every dashboard number and invite
  * the model to manufacture a relationship between unrelated data.
  */
-export function rankAskMetrics(
-  question: string,
-  metrics: DailyMetric[],
-  limit = 6
-): DailyMetric[] {
+export function rankAskMetrics(question: string, metrics: DailyMetric[], limit = 6): DailyMetric[] {
   return metrics
     .map((metric) => ({ metric, score: scoreMetric(question, metric) }))
     .filter(({ score }) => score > 0)

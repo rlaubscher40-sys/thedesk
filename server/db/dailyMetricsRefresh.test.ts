@@ -1,34 +1,52 @@
 import { beforeEach, expect, it, vi } from "vitest";
 const state = vi.hoisted(() => ({
+  connected: true,
   prior: [] as any[],
   updates: [] as any[],
   inserts: [] as any[],
 }));
 vi.mock("./client", () => ({
-  getDb: () => ({
-    select: () => ({ from: () => ({ where: () => ({ limit: async () => state.prior }) }) }),
-    update: () => ({
-      set: (row: unknown) => {
-        state.updates.push(row);
-        return { where: async () => {} };
-      },
-    }),
-    insert: () => ({
-      values: async (row: unknown) => {
-        state.inserts.push(row);
-      },
-    }),
-  }),
+  getDb: () =>
+    state.connected
+      ? {
+          select: () => ({ from: () => ({ where: () => ({ limit: async () => state.prior }) }) }),
+          update: () => ({
+            set: (row: unknown) => {
+              state.updates.push(row);
+              return { where: async () => {} };
+            },
+          }),
+          insert: () => ({
+            values: async (row: unknown) => {
+              state.inserts.push(row);
+            },
+          }),
+        }
+      : null,
 }));
 vi.mock("../demo/store", () => ({ isDemoMode: () => false }));
 import { upsertDailyMetric } from "./dailyMetrics";
 const period = new Date("2025-12-31");
 beforeEach(() => {
+  state.connected = true;
   state.prior = [
     { metricKey: "tas_population", value: "500000", previousValue: "490000", asOf: period },
   ];
   state.updates.length = 0;
   state.inserts.length = 0;
+});
+it("rejects a write when no database is configured instead of acknowledging storage", async () => {
+  state.connected = false;
+  await expect(
+    upsertDailyMetric({
+      metricKey: "tas_population",
+      label: "TAS population",
+      value: "500000",
+      asOf: period,
+    })
+  ).rejects.toThrow("database");
+  expect(state.updates).toHaveLength(0);
+  expect(state.inserts).toHaveLength(0);
 });
 it("records successful refreshes of unchanged quarterly values without duplicating history", async () => {
   await upsertDailyMetric({
