@@ -119,6 +119,19 @@ export function weeklyFeatureTree(
             lineHeight: 1.4,
             color: c.fgMuted,
           }),
+          ...(edition.topics[0]?.socialSource
+            ? [
+                text(
+                  `Source: ${edition.topics[0].socialSource.publisher} · Feed date: ${edition.topics[0].socialSource.feedDate}`,
+                  {
+                    fontFamily: "JetBrains Mono",
+                    fontSize: 24,
+                    lineHeight: 1.4,
+                    color: c.fgMuted,
+                  }
+                ),
+              ]
+            : []),
         ],
         { position: "absolute", top: coreTop, left: 72, right: 72, gap: 26 },
         vertical ? 1480 : 1100
