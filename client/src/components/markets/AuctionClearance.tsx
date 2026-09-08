@@ -45,7 +45,7 @@ export function AuctionClearance({
             return (
               <article
                 key={region}
-                className="border-b border-[var(--color-rule)] py-4"
+                className="border-b border-[var(--color-border)] py-4"
               >
                 <div className="flex items-baseline justify-between gap-3">
                   <h3 className="font-semibold">{region}</h3>
