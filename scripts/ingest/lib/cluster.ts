@@ -57,10 +57,17 @@ export function clusterByTitle(
   }
 
   return groups.map((g) => {
-    const sources = Array.from(new Set(g.members.map((m) => m.source)));
+    const sources = [
+      ...new Map(
+        g.members
+          .map((m) => m.source.trim())
+          .filter((source) => source.toLowerCase() !== "google news")
+          .map((source) => [source.toLowerCase(), source])
+      ).values(),
+    ];
     return {
       item: g.rep,
-      corroborationCount: sources.length,
+      corroborationCount: Math.max(1, sources.length),
       corroboratingSources: sources,
     };
   });

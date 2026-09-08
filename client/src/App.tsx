@@ -38,6 +38,7 @@ const ReadingQueue = lazyWithReload(() => import("./pages/ReadingQueue"), "Readi
 const TopicThreads = lazyWithReload(() => import("./pages/TopicThreads"), "TopicThreads");
 const Trends = lazyWithReload(() => import("./pages/Trends"), "Trends");
 const About = lazyWithReload(() => import("./pages/About"), "About");
+const Subscribe = lazyWithReload(() => import("./pages/Subscribe"), "Subscribe");
 const StoryPage = lazyWithReload(() => import("./pages/StoryPage"), "StoryPage");
 const AdminPage = lazyWithReload(() => import("./pages/Admin"), "Admin");
 const Archive = lazyWithReload(() => import("./pages/Archive"), "Archive");
@@ -132,6 +133,7 @@ function Routes() {
       <Switch>
         <Route path="/" component={DailyFeed} />
         <Route path="/ask" component={AskDesk} />
+        <Route path="/subscribe" component={Subscribe} />
         <Route path="/brief" component={SharedBrief} />
         <Route path="/signals" component={Signals} />
         <Route path="/markets" component={Markets} />

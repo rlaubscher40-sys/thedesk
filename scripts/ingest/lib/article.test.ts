@@ -1,7 +1,81 @@
-import { describe, it, expect } from "vitest";
-import { extractArticleText } from "./article";
+import { afterEach, describe, it, expect, vi } from "vitest";
+import { extractArticleText, fetchArticle } from "./article";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
+});
+
+describe("bounded article fetching", () => {
+  it("times out a body that stalls after successful response headers", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async (_url, opts) =>
+          new Response(
+            new ReadableStream({
+              start(controller) {
+                opts.signal.addEventListener("abort", () => controller.error(new Error("aborted")));
+              },
+            }),
+            { headers: { "content-type": "text/html" } }
+          )
+      )
+    );
+    const pending = fetchArticle("https://example.com/article", { timeoutMs: 100 });
+    await vi.advanceTimersByTimeAsync(101);
+    expect(await pending).toEqual({ imageUrl: null, text: null });
+    expect(vi.getTimerCount()).toBe(0);
+  });
+  it("does not decode beyond the byte budget even when one chunk is oversized", async () => {
+    const prefix =
+      "<article><p>This is the only sourced paragraph that fits within the permitted byte budget.</p></article>";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            prefix +
+              "<p>This extra claim must not appear in the extracted body under any circumstances.</p>",
+            { headers: { "content-type": "text/html; charset=utf-8" } }
+          )
+      )
+    );
+    const result = await fetchArticle("https://example.com/article", {
+      maxBytes: Buffer.byteLength(prefix),
+    });
+    expect(result.text).toContain("only sourced paragraph");
+    expect(result.text).not.toContain("extra claim");
+  });
+  it("does not interpret binary or JSON responses as reporting", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response('{"text":"This is not an HTML article and cannot ground the reporting."}', {
+            headers: { "content-type": "application/json" },
+          })
+      )
+    );
+    expect(await fetchArticle("https://example.com/article")).toEqual({
+      imageUrl: null,
+      text: null,
+    });
+  });
+});
 
 describe("extractArticleText", () => {
+  it("removes paywall/consent text before it can ground intelligence", () => {
+    const reporting =
+      "The official dwelling approvals series increased over the latest reference month.";
+    const gate =
+      "Subscribe to continue reading this article and unlock unlimited access to all our stories.";
+    expect(extractArticleText(`<article><p>${gate}</p><p>${reporting}</p></article>`, 6000)).toBe(
+      reporting
+    );
+    expect(extractArticleText(`<main><p>${gate}</p></main>`, 6000)).toBeNull();
+  });
   it("pulls paragraph text out of an article body", () => {
     const html = `
       <html><head><title>x</title></head><body>

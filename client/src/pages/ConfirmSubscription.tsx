@@ -5,7 +5,7 @@
  * link is good for 24 hours, after which the copy points them to resubscribe).
  */
 import { useState } from "react";
-import { useSearch } from "wouter";
+import { Link, useSearch } from "wouter";
 import { Check, Loader2, X } from "lucide-react";
 import { useDocumentTitle } from "@/lib/useDocumentTitle";
 import { trpc } from "@/lib/trpc";
@@ -67,9 +67,11 @@ function MissingToken() {
     <>
       <h1 className="font-serif text-2xl font-bold leading-tight">Missing confirmation token</h1>
       <p className="text-sm text-[var(--color-fg-muted)] leading-relaxed">
-        This URL needs a <code className="font-mono text-amber-300">?token=…</code> query parameter.
-        Use the link from your confirmation email, or ask the editor to resend it.
+        Open the link in your confirmation email to finish subscribing.
       </p>
+      <Link href="/subscribe" className="bs-link underline">
+        Request a fresh confirmation email
+      </Link>
     </>
   );
 }
@@ -158,9 +160,11 @@ function ErrorState({ message }: { message: string }) {
       </div>
       <p className="text-sm text-[var(--color-fg-muted)] leading-relaxed">{message}</p>
       <p className="text-sm text-[var(--color-fg-muted)] leading-relaxed">
-        If the link expired, subscribe again from any edition page and a fresh confirmation will be
-        issued.
+        If the link expired, request a fresh confirmation email to finish subscribing.
       </p>
+      <Link href="/subscribe" className="bs-link underline">
+        Request a fresh confirmation email
+      </Link>
     </>
   );
 }

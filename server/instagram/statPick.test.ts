@@ -63,7 +63,7 @@ describe("pickStatOfTheDay", () => {
     expect(pick).not.toBeNull();
     expect(pick!.angle).toBe("streak");
     // Five history steps plus the live value's own step = six falls.
-    expect(pick!.subtext).toBe("SIX STRAIGHT FALLS IN AUCTION CLEARANCE");
+    expect(pick!.subtext).toBe("SIX RECORDED FALLS IN A ROW");
     expect(pick!.direction).toBe("down");
   });
 
@@ -73,7 +73,7 @@ describe("pickStatOfTheDay", () => {
       { auction_clearance: history([64, 63, 62]) },
       NOW
     );
-    expect(pick!.subtext).toMatch(/^THREE STRAIGHT FALLS/);
+    expect(pick!.subtext).toMatch(/^THREE RECORDED FALLS/);
   });
 
   it("treats a flat day as ending a streak rather than extending it", () => {
@@ -100,7 +100,7 @@ describe("pickStatOfTheDay", () => {
     ];
     const pick = pickStatOfTheDay([metric({ value: "61" })], { auction_clearance: points }, NOW);
     // Deduped: 64, 63, 62 then the live 61 = three falls, not five.
-    expect(pick!.subtext).toBe("THREE STRAIGHT FALLS IN AUCTION CLEARANCE");
+    expect(pick!.subtext).toBe("THREE RECORDED FALLS IN A ROW");
   });
 
   it("flags a threshold crossing", () => {
@@ -112,7 +112,9 @@ describe("pickStatOfTheDay", () => {
     );
     expect(pick).not.toBeNull();
     expect(pick!.angle).toBe("threshold");
-    expect(pick!.subtext).toBe("AUCTION CLEARANCE BELOW 60% FOR THE FIRST TIME");
+    // This series has crossed 60 before. A crossing is not a first-ever event.
+    expect(pick!.subtext).toBe("AUCTION CLEARANCE CROSSED BELOW 60%");
+    expect(pick!.subtext).not.toContain("FIRST TIME");
   });
 
   it("ignores stale metrics whose source stopped publishing", () => {
@@ -164,7 +166,7 @@ describe("pickStatOfTheDay", () => {
     );
     expect(pick).not.toBeNull();
     expect(pick!.angle).toBe("jump");
-    expect(pick!.subtext).toContain("THE USUAL MOVE");
+    expect(pick!.subtext).toContain("THE MEDIAN RECORDED MOVE");
   });
 
   it("appends the unit to the value it hands the card", () => {
@@ -174,6 +176,46 @@ describe("pickStatOfTheDay", () => {
       NOW
     );
     expect(pick!.value).toBe("58.4%");
+  });
+
+  it("scopes an extreme to recorded observations despite gaps in the history", () => {
+    const points = history([10, 12, 11, 13, 12, 11, 13, 12]);
+    points[0]!.recordedAt = new Date("2026-01-01T00:00:00Z");
+    const pick = pickStatOfTheDay(
+      [metric({ metricKey: "test_series", value: "14", previousValue: "12" })],
+      { test_series: points },
+      NOW
+    );
+    expect(pick?.angle).toBe("extreme");
+    expect(pick?.subtext).toBe("HIGHEST OF 9 RECORDED READINGS");
+    expect(pick?.subtext).not.toMatch(/MONTHS|DAYS|RECORD HIGH/);
+  });
+
+  it("describes a rate jump across irregular observations in percentage points", () => {
+    const points = history([1.15, 1.17, 1.18, 1.19, 1.2]).map((point, index) => ({
+      ...point,
+      recordedAt: new Date(Date.UTC(2026, index, 1)),
+    }));
+    const pick = pickStatOfTheDay(
+      [metric({ metricKey: "mortgage_arrears", value: "1.62", previousValue: "1.2" })],
+      { mortgage_arrears: points },
+      NOW
+    );
+    expect(pick?.angle).toBe("jump");
+    expect(pick?.subtext).toContain("0.42PP BETWEEN READINGS");
+    expect(pick?.subtext).not.toMatch(/IN A DAY|0\.42%/);
+  });
+
+  it("does not promote empty or unit-only values into a zero-valued crash", () => {
+    for (const value of ["", " ", "%", "$"]) {
+      expect(
+        pickStatOfTheDay(
+          [metric({ value })],
+          { auction_clearance: history([60, 61, 59, 62, 60]) },
+          NOW
+        )
+      ).toBeNull();
+    }
   });
 
   it("leaves an already-formatted value alone when there is no unit", () => {

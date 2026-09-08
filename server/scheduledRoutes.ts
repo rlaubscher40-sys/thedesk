@@ -848,6 +848,7 @@ const dailyMetricsBodySchema = z.object({
         value: z.string().min(1).max(64),
         unit: z.string().max(16).optional().nullable(),
         source: z.string().max(64).optional().nullable(),
+        sourceUrl: z.string().url().max(2048).optional().nullable(),
         context: z.string().max(256).optional().nullable(),
         groupKey: z.string().max(32).optional().nullable(),
         asOf: z.string().datetime().or(z.string().min(1)),
@@ -877,6 +878,7 @@ function registerDailyMetricsRoute(app: Express): void {
           value: m.value,
           unit: m.unit ?? null,
           source: m.source ?? null,
+          sourceUrl: m.sourceUrl ?? null,
           context: m.context ?? null,
           groupKey: m.groupKey ?? null,
           asOf: new Date(m.asOf),
@@ -1378,6 +1380,10 @@ function registerInstagramRoutes(app: Express): void {
         });
         return;
       }
+      if (pickDailyTopStories(items, 1).length === 0) {
+        res.json({ success: true, skipped: true, reason: "No sourced property or financing stories for the daily carousel." });
+        return;
+      }
       const metrics = dailyCoverMetrics(await db.listDailyMetrics());
       // The metrics ingest runs before this job, so an empty strip means that
       // job didn't land today. The post still goes out (a clean cover without
@@ -1459,7 +1465,7 @@ function registerInstagramRoutes(app: Express): void {
       return;
     }
     try {
-      const { findAlreadyPublished, pickDailyTopStories, postDailyCarousel } =
+      const { findAlreadyPublished, pickCoverageTopStories: pickDailyTopStories, postDailyCarousel } =
         await import("./instagram/post");
       // Flip from the morning's daily cover so the two alternate.
       const variant = await nextCoverVariant();
@@ -1543,7 +1549,7 @@ function registerInstagramRoutes(app: Express): void {
     const force = parsed.success ? (parsed.data.force ?? false) : false;
 
     try {
-      const { pickStatOfTheDay } = await import("./instagram/statPick");
+      const { pickPropertyStat: pickStatOfTheDay } = await import("./instagram/propertyEditorial");
       const { generateStatLine } = await import("./prompts/statCard");
       const { findAlreadyPublished, postStatCard } = await import("./instagram/post");
 
@@ -1558,7 +1564,7 @@ function registerInstagramRoutes(app: Express): void {
       // which is exactly what makes the daily carousel ignorable. 200 so the
       // workflow stays green: nothing went wrong, there was just no number.
       if (!pick && !force) {
-        const { explainNoPick } = await import("./instagram/statPick");
+        const { explainNoPropertyStat: explainNoPick } = await import("./instagram/propertyEditorial");
         const reason = explainNoPick(metrics, histories);
         console.log(`[instagram] skipping the stat post. ${reason}`);
         res.json({ success: true, skipped: true, reason });
@@ -1711,7 +1717,7 @@ function registerInstagramRoutes(app: Express): void {
     }
 
     try {
-      const { pickStatOfTheDay } = await import("./instagram/statPick");
+      const { pickPropertyStat: pickStatOfTheDay } = await import("./instagram/propertyEditorial");
       const { generateStatLine } = await import("./prompts/statCard");
       const { findAlreadyPublished, postStatReel } = await import("./instagram/post");
 
@@ -1721,7 +1727,7 @@ function registerInstagramRoutes(app: Express): void {
       ]);
       const pick = pickStatOfTheDay(metrics, histories);
       if (!pick) {
-        const { explainNoPick } = await import("./instagram/statPick");
+        const { explainNoPropertyStat: explainNoPick } = await import("./instagram/propertyEditorial");
         const reason = explainNoPick(metrics, histories);
         console.log(`[instagram] skipping the reel. ${reason}`);
         res.json({ success: true, skipped: true, reason });
@@ -2100,7 +2106,7 @@ function registerInstagramRoutes(app: Express): void {
       // renders in about forty seconds, which is why it is behind a URL you
       // ask for rather than anything that runs on its own.
       if (kind === "stat" || kind === "reel") {
-        const { explainNoPick, rehearsalStat } = await import("./instagram/statPick");
+        const { explainNoPropertyStat: explainNoPick, rehearsePropertyStat: rehearsalStat } = await import("./instagram/propertyEditorial");
         const { generateStatLine } = await import("./prompts/statCard");
         const [metrics, histories] = await Promise.all([
           db.listDailyMetrics(),

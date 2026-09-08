@@ -1,5 +1,6 @@
 import React from "react";
 import { CityRentRead } from "./CityRentRead";
+import { CityApprovalRead } from "./CityApprovalRead";
 import {
   coverageLabel,
   marketPath,
@@ -61,6 +62,9 @@ export function PublicMarketRead({
       </header>
 
       {!directory.demo && <CityRentRead data={file.rents} marketA={market.name} asOf={file.asOf} />}
+      {!directory.demo && (
+        <CityApprovalRead data={file.approvals} cities={[market.name]} asOf={file.asOf} />
+      )}
       <section className="rule-hair rule-hair-b mt-6 py-6" aria-label="Latest reporting">
         <p className="bs-label-accent">
           {lead ? `Latest selected report · ${lead.date}` : "An open evidence gap"}

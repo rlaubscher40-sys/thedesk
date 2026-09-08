@@ -46,6 +46,38 @@ function mockFetch(opts: { apiStatus?: number } = {}) {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("fetchAbsMetric", () => {
+  it("never promotes name/range discovery into trusted production data", async () => {
+    const fetch = mockFetch();
+    vi.stubGlobal("fetch", fetch);
+    const result = await fetchAbsMetric({
+      api: { discover: { terms: ["labour force"], expectRange: [2, 15] } },
+      scrape,
+    });
+    expect(result?.value).toBe("4.3");
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(fetch.mock.calls[0]?.[0]).toBe(SCRAPE_URL);
+  });
+  it("rejects multiple plausible measures in a partially filtered flow", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async (url: string) =>
+          ({
+            ok: true,
+            status: 200,
+            text: async () =>
+              String(url).includes("data.api.abs.gov.au")
+                ? CSV + "\nAUS,UNDEREMP,2026-06,6.3"
+                : HTML,
+          }) as Response
+      )
+    );
+    const result = await fetchAbsMetric({
+      api: { flowRef: "ABS,LF,1.0.0", dimensionFilter: { REGION: "AUS" } },
+      scrape,
+    });
+    expect(result?.value).toBe("4.3");
+  });
   it("scrapes when no API flow is configured", async () => {
     // Every metric ships in this state until its flow reference is confirmed,
     // so it has to keep working exactly as it does today.

@@ -40,6 +40,7 @@ describe("summariseFormats", () => {
       "weekly",
       "monthly",
       "coverage",
+      "launch",
     ]);
     for (const s of summaries) {
       expect(s.measured).toBe(0);

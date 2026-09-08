@@ -38,7 +38,7 @@ export type StatPick = {
   angle: StatAngleKind;
   /**
    * The computed claim, already uppercase-ready for the mono subtext line.
-   * "BELOW 60% FOR SEVEN STRAIGHT WEEKS". This is ground truth: nothing
+   * "SEVEN RECORDED FALLS IN A ROW". This is ground truth: nothing
    * downstream may state a fact this line does not support.
    */
   subtext: string;
@@ -116,7 +116,9 @@ function spell(n: number): string {
  *  Mirrors the parser the history writer uses, so the two agree on what a
  *  metric's number is. */
 function parseNumeric(raw: string): number | null {
-  const n = Number(raw.replace(/[$,%\s]/g, ""));
+  const cleaned = raw.replace(/[$,%\s]/g, "");
+  if (!cleaned) return null;
+  const n = Number(cleaned);
   return Number.isFinite(n) ? n : null;
 }
 
@@ -203,7 +205,7 @@ function bestAngle(
       // Long streaks are the strongest story a metric can tell; saturates at
       // eight so a runaway series doesn't crowd out every other angle forever.
       score: Math.min(0.95, 0.4 + streak.length * 0.07),
-      subtext: `${spell(streak.length).toUpperCase()} STRAIGHT ${word} IN ${label}`,
+      subtext: `${spell(streak.length).toUpperCase()} RECORDED ${word} IN A ROW`,
     });
   }
 
@@ -212,19 +214,19 @@ function bestAngle(
     const prior = values.slice(0, -1);
     const max = Math.max(...prior);
     const min = Math.min(...prior);
-    const span = daysBetween(series[0]!.recordedAt, new Date());
-    const window = span >= 60 ? `${Math.round(span / 30)} MONTHS` : `${span} DAYS`;
+    // Stored observations may have gaps and are not a complete release history.
+    // Scope the claim to readings on file, never a calendar-wide record.
     if (current > max) {
       out.push({
         angle: "extreme",
         score: 0.78,
-        subtext: `HIGHEST ${label} IN ${window}`,
+        subtext: `HIGHEST OF ${values.length} RECORDED READINGS`,
       });
     } else if (current < min) {
       out.push({
         angle: "extreme",
         score: 0.78,
-        subtext: `LOWEST ${label} IN ${window}`,
+        subtext: `LOWEST OF ${values.length} RECORDED READINGS`,
       });
     }
   }
@@ -240,7 +242,9 @@ function bestAngle(
         // 3x typical is interesting, 8x is remarkable; cap so an artefact in
         // the data can't automatically win the day.
         score: Math.min(0.88, 0.45 + (ratio - 3) * 0.06),
-        subtext: `${fmtDelta(move)}${unit} IN A DAY, ${fmtDelta(ratio)}x THE USUAL MOVE`,
+        // A rate difference is percentage points; collection timestamps do
+        // not establish the period over which the source's value changed.
+        subtext: `${fmtDelta(move)}${unit === "%" ? "PP" : unit} BETWEEN READINGS, ${fmtDelta(ratio)}x THE MEDIAN RECORDED MOVE`,
       });
     }
   }
@@ -256,7 +260,7 @@ function bestAngle(
         out.push({
           angle: "threshold",
           score: 0.72,
-          subtext: `${label} ${crossedDown ? "BELOW" : "ABOVE"} ${mark}${unit} FOR THE FIRST TIME`,
+          subtext: `${label} CROSSED ${crossedDown ? "BELOW" : "ABOVE"} ${mark}${unit}`,
         });
         break;
       }

@@ -338,6 +338,79 @@ async function renderToJpeg(tree: object, width: number, height: number): Promis
     .toBuffer();
 }
 
+/** The reviewed profile carousels use the same fonts and JPEG pipeline as daily posts. */
+export async function renderLaunchSlide(
+  slide: { title: string; body: string },
+  series: string,
+  index: number,
+  count: number
+): Promise<Buffer> {
+  const el = (children: unknown, style: Record<string, unknown> = {}) => ({
+    type: "div",
+    props: { style: { display: "flex", ...style }, children },
+  });
+  return renderToJpeg(
+    el(
+      [
+        el(
+          [el("THE DESK", { color: "#D4A853", letterSpacing: "7px" }), el(`${index} / ${count}`)],
+          {
+            justifyContent: "space-between",
+            fontSize: 22,
+            fontFamily: "JetBrains Mono",
+            color: "#929CAD",
+          }
+        ),
+        el(
+          [
+            el(series.toUpperCase(), {
+              fontFamily: "JetBrains Mono",
+              fontSize: 20,
+              color: "#D4A853",
+              letterSpacing: "4px",
+            }),
+            el(slide.title, {
+              fontFamily: "Playfair Display",
+              fontSize: 90,
+              lineHeight: 1.05,
+              marginTop: 42,
+              letterSpacing: "-3px",
+            }),
+            el(slide.body, {
+              fontFamily: "Playfair Display",
+              fontSize: 36,
+              lineHeight: 1.5,
+              color: "#BFC6D0",
+              marginTop: 42,
+            }),
+          ],
+          { flexDirection: "column" }
+        ),
+        el([el("THEDESK.AU"), el(index === count ? "OPEN THE DESK" : "SWIPE")], {
+          justifyContent: "space-between",
+          fontFamily: "JetBrains Mono",
+          fontSize: 18,
+          letterSpacing: "3px",
+          borderTop: "1px solid #49505C",
+          paddingTop: 25,
+          color: "#929CAD",
+        }),
+      ],
+      {
+        width: 1080,
+        height: 1350,
+        background: "#0C1220",
+        color: "#F0EDE8",
+        padding: "76px",
+        flexDirection: "column",
+        justifyContent: "space-between",
+      }
+    ),
+    1080,
+    1350
+  );
+}
+
 /**
  * Daily story card: 1080×1350 (4:5 portrait).
  * Displays one story per slide with category, headline, and why-it-matters.

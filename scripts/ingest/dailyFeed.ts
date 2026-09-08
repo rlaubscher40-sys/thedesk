@@ -23,6 +23,7 @@ import { CHANNEL_TARGETS, DAILY_ITEM_MIN, SOURCES } from "./sources";
 import { fetchArticle } from "./lib/article";
 import { resolveArticleUrl } from "./lib/gnews";
 import { clusterByTitle } from "./lib/cluster";
+import { dedupeArticles } from "./lib/dedupe";
 import { fetchSource, type FetchedItem } from "./lib/rss";
 import { postJSON } from "./lib/post";
 
@@ -175,18 +176,6 @@ function todayInSydney(): string {
   return `${y}-${m}-${d}`;
 }
 
-function dedupe(items: FetchedItem[]): FetchedItem[] {
-  const seen = new Set<string>();
-  const out: FetchedItem[] = [];
-  for (const item of items) {
-    const key = (item.url ?? item.title).toLowerCase().replace(/[?#].*$/, "");
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(item);
-  }
-  return out;
-}
-
 function rankAndCap(items: FetchedItem[], target: number): FetchedItem[] {
   // Sort by recency desc, then interleave by source so the mix stays varied
   // even when one feed dominates the top-N by time.
@@ -244,7 +233,7 @@ export async function runDailyFeedIngest(rawBaseUrl: string, apiKey: string): Pr
   });
   console.log(`[ingest] ${relevant.length} after relevance filter`);
 
-  const deduped = dedupe(relevant);
+  const deduped = dedupeArticles(relevant);
   console.log(`[ingest] ${deduped.length} after dedup`);
 
   // Cluster same-story coverage across outlets so each representative carries
@@ -255,12 +244,9 @@ export async function runDailyFeedIngest(rawBaseUrl: string, apiKey: string): Pr
   const representatives: FetchedItem[] = clusters.map((c) => ({
     ...c.item,
     corroborationCount: c.corroborationCount,
-    corroboratingSources:
-      c.corroborationCount > 1 ? c.corroboratingSources : null,
+    corroboratingSources: c.corroborationCount > 1 ? c.corroboratingSources : null,
   }));
-  const corroborated = representatives.filter(
-    (r) => (r.corroborationCount ?? 1) > 1
-  ).length;
+  const corroborated = representatives.filter((r) => (r.corroborationCount ?? 1) > 1).length;
   console.log(
     `[ingest] ${representatives.length} stories after clustering (${corroborated} corroborated by 2+ outlets)`
   );
@@ -344,8 +330,7 @@ export async function runDailyFeedIngest(rawBaseUrl: string, apiKey: string): Pr
       // Don't ground the LLM enrichment on extraction garbage (Google News'
       // JS interstitial). When the body is junk, send null so the prompts work
       // from the (clean) title + summary instead of a page full of script soup.
-      articleText:
-        articleText && !looksLikeGarbage(articleText) ? articleText : null,
+      articleText: articleText && !looksLikeGarbage(articleText) ? articleText : null,
       corroborationCount: item.corroborationCount ?? 1,
       corroboratingSources: item.corroboratingSources ?? null,
     })),
