@@ -9,6 +9,7 @@ export async function reelPublicationRecord(publication: { key: string; date: st
     return {
       state: postId ? ("published" as const) : ("locked" as const),
       postId,
+      publishedAt: postId ? (row.finishedAt ?? row.startedAt ?? null) : null,
       detail: row.detail,
     };
   } catch {

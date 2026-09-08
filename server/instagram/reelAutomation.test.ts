@@ -7,6 +7,7 @@ const m = vi.hoisted(() => ({
     instagramBusinessAccountId: "test",
   },
   data: vi.fn(),
+  approvals: vi.fn(),
   read: vi.fn(),
   claim: vi.fn(),
   mark: vi.fn(),
@@ -16,6 +17,7 @@ const m = vi.hoisted(() => ({
 }));
 vi.mock("../core/env", () => ({ env: m.env }));
 vi.mock("../markets/absRents", () => ({ getCityRents: m.data }));
+vi.mock("../markets/absApprovals", () => ({ getCityApprovals: m.approvals }));
 vi.mock("../db/jobRuns", () => ({
   readJobRun: m.read,
   claimJobRun: m.claim,
@@ -30,6 +32,7 @@ let published = false;
 beforeEach(() => {
   vi.resetAllMocks();
   published = false;
+  m.approvals.mockResolvedValue({ status: "unavailable", observations: [] });
   m.env.enableScheduler = true;
   m.env.instagramAccessToken = "test";
   m.data.mockResolvedValue({
@@ -64,7 +67,7 @@ describe("automatic verified Reel delivery", () => {
           : null
     );
     expect(await run()).toEqual({ state: "published", postId: "123456" });
-    expect(m.claim).toHaveBeenCalledWith("instagram-reel-delivery-speech2-2026-07-01", "2026-09-09", 2);
+    expect(m.claim).toHaveBeenCalledWith("instagram-reel-delivery-programme-v1", "2026-09-09", 2);
     expect(m.post).toHaveBeenCalledWith(expect.stringMatching(/^[a-f0-9]{64}$/));
     expect(m.mark).toHaveBeenCalledWith(
       expect.any(String),
@@ -167,7 +170,7 @@ describe("automatic verified Reel delivery", () => {
     );
     expect(await run()).toEqual({ state: "published", postId: "123456" });
     expect(m.expire).toHaveBeenCalledWith(
-      "instagram-reel-delivery-speech2-2026-07-01",
+      "instagram-reel-delivery-programme-v1",
       "2026-09-09",
       expect.any(Date)
     );
@@ -227,4 +230,92 @@ describe("automatic verified Reel delivery", () => {
       postId: "123456",
     });
   });
+});
+
+describe("multiple verified topics", () => {
+  const supplyKey = "instagram-reel-abs-approvals-brisbane-perth-v1";
+  function approvals() {
+    m.approvals.mockResolvedValue({
+      status: "available",
+      observations: ["Brisbane", "Perth"].flatMap((city) =>
+        Array.from({ length: 12 }, (_, i) => ({
+          city,
+          period: new Date(Date.UTC(2026, 6 - i, 1)).toISOString().slice(0, 7),
+          dwellings: 1000,
+          status: "",
+        }))
+      ),
+    });
+  }
+  it("moves to approvals after the rent topic is confirmed", async () => {
+    approvals();
+    published = true;
+    const plan = await readReelAutomation(now);
+    expect(plan.state).toBe("ready");
+    expect(plan.candidate?.publication.key).toBe(supplyKey);
+  });
+  it("does not publish another topic after the shared daily slot is used", async () => {
+    approvals();
+    published = true;
+    m.read.mockImplementation(async (key: string) =>
+      key === publicationKey
+        ? { status: "success", detail: "Published media 123456" }
+        : key === supplyKey
+          ? null
+          : { status: "success", detail: "Published media 123456" }
+    );
+    expect(await run()).toEqual({ state: "daily-limit" });
+    expect(m.post).not.toHaveBeenCalled();
+  });
+  it("allows the second topic on a new Sydney day without reusing the rent publication", async () => {
+    approvals();
+    published = true;
+    m.read.mockImplementation(async (key: string, date: string) =>
+      key === publicationKey
+        ? { status: "success", detail: "Published media 123456" }
+        : key === supplyKey
+          ? null
+          : date === "2026-09-09"
+            ? { status: "success", detail: "Published media 123456" }
+            : null
+    );
+    expect((await readReelAutomation(now)).state).toBe("daily-limit");
+    const plan = await readReelAutomation(new Date("2026-09-10T00:00:00Z"));
+    expect(plan.state).toBe("ready");
+    expect(plan.candidate?.publication.key).toBe(supplyKey);
+  });
+  it("does not step around an uncertain publication to post the next topic", async () => {
+    approvals();
+    m.read.mockResolvedValue({ status: "running", detail: "Outcome unknown" });
+    expect(await run()).toEqual({ state: "locked" });
+    expect(m.post).not.toHaveBeenCalled();
+  });
+});
+
+it("recovers the daily cap from confirmed publication when the delivery watermark was lost", async () => {
+  m.approvals.mockResolvedValue({
+    status: "available",
+    observations: ["Brisbane", "Perth"].flatMap((city) =>
+      Array.from({ length: 12 }, (_, i) => ({
+        city,
+        period: new Date(Date.UTC(2026, 6 - i, 1)).toISOString().slice(0, 7),
+        dwellings: 1000,
+        status: "",
+      }))
+    ),
+  });
+  m.read.mockImplementation(async (key: string) =>
+    key === publicationKey
+      ? { status: "success", detail: "Published media 123456", finishedAt: now }
+      : null
+  );
+  expect(await run()).toEqual({ state: "daily-limit" });
+  expect(m.claim).not.toHaveBeenCalled();
+});
+
+it("waits until the Sydney daytime window without consuming a delivery attempt", async () => {
+  expect((await readReelAutomation(new Date("2026-09-09T12:00:00Z"))).state).toBe("scheduled");
+  expect((await readReelAutomation(new Date("2026-09-08T22:59:00Z"))).state).toBe("scheduled");
+  expect((await readReelAutomation(new Date("2026-09-08T23:00:00Z"))).state).toBe("ready");
+  expect(m.claim).not.toHaveBeenCalled();
 });

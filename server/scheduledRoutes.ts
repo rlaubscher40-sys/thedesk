@@ -1687,15 +1687,19 @@ function registerInstagramRoutes(app: Express): void {
     }
 
     try {
-      const { getCityRents } = await import("./markets/absRents");
-      const { verifiedRentReel } = await import("./instagram/verifiedReel");
+      const { getVerifiedReelCandidates } = await import("./instagram/reelCandidates");
+      const { readReelAutomation } = await import("./instagram/reelAutomation");
       const { postStatReel } = await import("./instagram/post");
-      const candidate = verifiedRentReel(await getCityRents());
+      const candidate = req.body?.evidenceHash
+        ? (await getVerifiedReelCandidates()).find(
+            (item) => item.evidenceHash === req.body.evidenceHash
+          )
+        : (await readReelAutomation()).candidate;
       if (!candidate) {
         res.json({
           success: true,
           skipped: true,
-          reason: "No current, matching verified ABS rent comparison is available.",
+          reason: "No matching verified Reel evidence is available.",
         });
         return;
       }
@@ -1718,7 +1722,7 @@ function registerInstagramRoutes(app: Express): void {
           success: true,
           skipped: true,
           reason:
-            "This ABS reference month is already published or locked. No repeat Reel was sent.",
+            "This topic and ABS reference month are already published or locked. No repeat Reel was sent.",
         });
         return;
       }
@@ -2052,13 +2056,10 @@ function registerInstagramRoutes(app: Express): void {
       // renders in about forty seconds, which is why it is behind a URL you
       // ask for rather than anything that runs on its own.
       if (kind === "reel") {
-        const { getCityRents } = await import("./markets/absRents");
-        const { verifiedRentReel } = await import("./instagram/verifiedReel");
-        const candidate = verifiedRentReel(await getCityRents());
+        const { readReelAutomation } = await import("./instagram/reelAutomation");
+        const candidate = (await readReelAutomation()).candidate;
         if (!candidate) {
-          res
-            .status(422)
-            .json({ error: "No current, matching verified ABS rent comparison is available." });
+          res.status(422).json({ error: "No matching verified Reel evidence is available." });
           return;
         }
         const { renderStatReel } = await import("./video/statReel");

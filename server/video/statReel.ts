@@ -562,6 +562,10 @@ export async function renderStatReel(
 
     const sections = composeSections(stat, durations);
     const { beats, starts, total } = layout(sections);
+    if (total > MAX_REEL_SECONDS)
+      throw new Error(
+        "Recorded narration exceeds the Reel duration limit. Shorten the story before publishing."
+      );
 
     // One still per beat, all from the same card component. Identical frames
     // are rendered once — the claim beat and the sign-off beat are the same
