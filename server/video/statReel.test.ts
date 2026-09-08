@@ -82,18 +82,14 @@ describe("countUpFrames", () => {
 });
 
 describe("layout", () => {
-  it("measures start times through the dissolves, not as a naive sum", () => {
-    // Each cross-dissolve shortens the timeline by its own length. Summing
-    // durations instead would drift the voice later on every beat, and by the
-    // end of a clip that is most of a second out of sync.
+  it("preserves requested wall-clock time after dissolves", () => {
     const { starts, total } = layout([
       { key: "a", frames: [{ reveal: 0 }], seconds: 2 },
       { key: "b", frames: [{ reveal: 1 }], seconds: 2 },
     ]);
-    const fade = 10 / 30; // SECTION_FADE, in frames because everything is
     expect(starts[0]).toBe(0);
-    expect(starts[1]).toBeCloseTo(2 - fade, 5); // the dissolve begins early
-    expect(total).toBeCloseTo(4 - fade, 5);
+    expect(starts[1]).toBeCloseTo(2, 5);
+    expect(total).toBeCloseTo(4, 5);
   });
 
   it("gives the last frame of a section whatever the fixed frames leave", () => {
@@ -109,7 +105,8 @@ describe("layout", () => {
         seconds: 3,
       },
     ]);
-    expect(beats.map((b) => b.seconds)).toEqual([0.1, 0.1, 2.8]);
+    expect(beats.slice(0, 2).map((b) => b.seconds)).toEqual([0.1, 0.1]);
+    expect(beats[2]!.seconds).toBeCloseTo(2.8 + 2 / 30);
   });
 
   it("never leaves a frame on screen too briefly to read", () => {
@@ -258,11 +255,11 @@ describe("composeSections", () => {
     expect(sections[sections.length - 1]!.frames[0]!.reveal).toBe(1);
   });
 
-  it("gives the count-up its ticks on top of the passage, not out of it", () => {
-    // Otherwise the hook would be cut short to make room for the count, and
-    // the opening is the passage that can least afford to be rushed.
+  it("lets the count-up and narration share time without shortening the voice", () => {
     const label = composeSections(stat, durations).find((s) => s.key === "label")!;
-    expect(label.seconds).toBeGreaterThan(durations.label + 0.7);
+    expect(label.seconds).toBeGreaterThan(durations.label);
+    const long = composeSections(stat, { ...durations, label: 6 })[0]!;
+    expect(long.seconds).toBeCloseTo(6.32);
   });
 
   it("drops a passage that has nothing to say rather than holding on silence", () => {
@@ -313,7 +310,8 @@ describe("layout, with a history line to draw", () => {
         seconds: 4,
       },
     ]);
-    expect(beats.map((b) => b.seconds)).toEqual([1, 1, 1, 1]);
+    expect(beats.slice(0, 3).map((b) => b.seconds)).toEqual([1, 1, 1]);
+    expect(beats[3]!.seconds).toBeCloseTo(1.1);
   });
 
   it("still lets the count-up ticks keep their own timing", () => {
@@ -328,7 +326,8 @@ describe("layout, with a history line to draw", () => {
         seconds: 3,
       },
     ]);
-    expect(beats.map((b) => b.seconds)).toEqual([0.1, 0.1, 2.8]);
+    expect(beats.slice(0, 2).map((b) => b.seconds)).toEqual([0.1, 0.1]);
+    expect(beats[2]!.seconds).toBeCloseTo(2.8 + 2 / 30);
   });
 });
 
@@ -386,12 +385,11 @@ describe("composeSections, with supporting figures", () => {
     expect(sections[sections.length - 1]!.frames[0]!.factsShown).toBe(facts.length);
   });
 
-  it("gives each figure the same time on screen", () => {
-    // They are not narrated, so a constant is the only thing pacing them.
+  it("holds the completed figures through the narration tail", () => {
     const { beats } = layout(composeSections({ ...stat, facts }, durations));
     const factBeats = beats.filter((b) => b.frame.factsShown !== undefined && b.frame.reveal === 1);
-    const held = new Set(factBeats.slice(0, facts.length).map((b) => b.seconds.toFixed(3)));
-    expect(held.size).toBe(1);
+    expect(factBeats[0]!.seconds).toBe(factBeats[1]!.seconds);
+    expect(factBeats[2]!.seconds).toBeGreaterThan(factBeats[1]!.seconds);
   });
 
   it("skips the beat entirely when there are no figures to show", () => {
@@ -508,4 +506,41 @@ describe("the opening", () => {
     const { starts } = layout(composeSections(stat, durations));
     expect(starts[1]!).toBeGreaterThan(durations.label);
   });
+});
+
+describe("measured narration never overlaps after frame dissolves", () => {
+  it.each([2.01, 3.17, 4.91, 6.03])(
+    "keeps %s-second passages apart across facts and chart frames",
+    (seconds) => {
+      const durations = {
+        label: seconds,
+        value: seconds,
+        line: seconds,
+        claim: seconds,
+        facts: seconds,
+        signOff: seconds,
+      };
+      const example = {
+        label: "Rents",
+        value: "0.7pp",
+        line: "A verified change.",
+        subtext: "July 2026",
+        facts: [
+          { figure: "4.6%", caption: "Brisbane" },
+          { figure: "5.3%", caption: "Perth" },
+          { figure: "Free", caption: "Compare" },
+        ],
+        series: Array.from({ length: 8 }, (_, i) => ({ value: i, at: new Date(2026, i, 1) })),
+      };
+      const sections = composeSections(example, durations);
+      const timing = layout(sections);
+      for (let i = 0; i < sections.length - 1; i++) {
+        expect(timing.starts[i + 1]! - timing.starts[i]!).toBeGreaterThanOrEqual(
+          sections[i]!.seconds - 1e-6
+        );
+        expect(timing.starts[i + 1]!).toBeGreaterThan(timing.starts[i]! + seconds);
+      }
+      expect(timing.total).toBeGreaterThan(timing.starts.at(-1)! + seconds);
+    }
+  );
 });

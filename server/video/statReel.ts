@@ -248,6 +248,20 @@ export function layout(sections: Section[]): {
     });
   }
 
+  // A dissolve consumes wall-clock time. Restore that time to the final
+  // still of each section, including the fade into the next section. Without
+  // this, a multi-frame facts/chart section can start the next voice early.
+  const active = sections.filter((section) => section.frames.length > 0);
+  firstBeatOfSection.forEach((first, i) => {
+    const next = firstBeatOfSection[i + 1] ?? beats.length;
+    let span = 0;
+    for (let j = first; j < next; j++)
+      span += beats[j]!.seconds - (j === first ? 0 : beats[j]!.fade);
+    span -= beats[next]?.fade ?? 0;
+    const missing = active[i]!.seconds - span;
+    if (missing > 0) beats[next - 1]!.seconds += Math.ceil(missing * FPS - 1e-8) / FPS;
+  });
+
   // Chain arithmetic: after k beats the video is `chain` long, and beat k's
   // dissolve begins `fade` before that.
   const arrival: number[] = [];
@@ -446,7 +460,10 @@ export function composeSections(stat: ReelStat, durations: Record<string, number
         ...ticks.map((valueText) => ({ reveal: 0.3, valueText, seconds: TICK_SECONDS })),
         { reveal: 0.3 },
       ],
-      seconds: withTail("label") + OPENING_SECONDS + ticks.length * TICK_SECONDS,
+      seconds: Math.max(
+        withTail("label"),
+        OPENING_SECONDS + ticks.length * TICK_SECONDS + MIN_HOLD
+      ),
     },
     { key: "value", frames: [{ reveal: 0.3 }], seconds: withTail("value") },
   ];
