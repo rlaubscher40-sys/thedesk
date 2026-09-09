@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canonicalRedirectFor } from "./canonicalHost";
+import { canonicalRedirectFor, validatedCanonicalTarget } from "./canonicalHost";
 
 const SITE = "https://thedesk.au";
 const HOST = "thedesk.au";
@@ -115,5 +115,27 @@ describe("canonicalRedirectFor", () => {
 
   it("tolerates a missing Host or proto", () => {
     expect(decide({ host: undefined, proto: undefined, originalUrl: "/about" })).toBeNull();
+  });
+});
+
+describe("validatedCanonicalTarget", () => {
+  it.each([
+    "https://outside.example/about",
+    "https://thedesk.au.outside.example/about",
+    "https://thedesk.au@outside.example/about",
+    "//outside.example/about",
+    "/..//outside.example/",
+    "/%2e%2e//outside.example/",
+    "javascript:alert(1)",
+  ])("rejects unsafe final destination %j", (target) => {
+    expect(validatedCanonicalTarget(target, SITE)).toBeNull();
+  });
+  it("preserves relative staging paths and canonical absolute URLs", () => {
+    expect(validatedCanonicalTarget("/about?ref=li", SITE)).toBe("/about?ref=li");
+    expect(validatedCanonicalTarget(`${SITE}/archive?q=rates`, SITE)).toBe(
+      `${SITE}/archive?q=rates`
+    );
+    expect(validatedCanonicalTarget("/markets/../about", SITE)).toBe("/about");
+    expect(validatedCanonicalTarget("/", "invalid-config")).toBeNull();
   });
 });
