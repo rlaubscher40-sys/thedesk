@@ -23,7 +23,7 @@ describe("verified rent Reel", () => {
     expect(reel.caption).toContain("https://thedesk.au/markets/compare/brisbane-vs-perth?");
     expect(reel.stat.series).toBeUndefined(); // Two cities are not a time series.
     expect(scriptFitsClip(reel.script)).toBe(true);
-    expect(reel.script.at(-1)!.text).toContain("free comparison");
+    expect(reel.script.at(-1)!.text).toContain("Brisbane vs Perth rents");
   });
   it("withholds missing, stale, mismatched and future observations", () => {
     expect(verifiedRentReel({ ...data(), status: "unavailable" }, now)).toBeNull();

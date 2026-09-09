@@ -8,7 +8,7 @@ import {
 } from "../../shared/cityRents";
 import type { ReelStat } from "../video/statReel";
 import type { ScriptLine } from "../video/narration";
-import { buildReelCaption } from "./reelCaption";
+import { buildReelCaption, reelReadingCta } from "./reelCaption";
 
 /** Eight matching capital-city observations, not a national average or state proxy. */
 export function verifiedCapitalRentReel(data: CityRents, now = new Date()) {
@@ -66,12 +66,12 @@ export function verifiedCapitalRentReel(data: CityRents, now = new Date()) {
     facts: level
       ? [
           { figure: `${high.toFixed(1)}%`, caption: "Annual rent change · all eight capitals" },
-          { figure: "Explore data", caption: "Bio / Markets" },
+          reelReadingCta("capitalRents").fact,
         ]
       : [
           { figure: `${high.toFixed(1)}%`, caption: endpoint(highest, "highest") },
           { figure: `${low.toFixed(1)}%`, caption: endpoint(lowest, "lowest") },
-          { figure: "Explore data", caption: "Bio / Markets" },
+          reelReadingCta("capitalRents").fact,
         ],
   };
   const script: ScriptLine[] = [
@@ -88,7 +88,7 @@ export function verifiedCapitalRentReel(data: CityRents, now = new Date()) {
       text: `Year to ${period}. It measures changes in rents paid, not dollar rents.`,
     },
     { key: "facts", text: "So a higher rate doesn't mean a more expensive city." },
-    { key: "signOff", text: "Find your capital's figure. Bio, then Markets." },
+    { key: "signOff", text: reelReadingCta("capitalRents").voice },
   ];
   const evidence = {
     series: "ABS:CPI(2.0.0)/3.30014.10.1+2+3+4+5+6+7+8.M/PCT",

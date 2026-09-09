@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { annualApprovals, APPROVAL_FLOW, type CityApprovals } from "../../shared/cityApprovals";
 import { rentPeriod } from "../../shared/cityRents";
 import type { verifiedRentReel } from "./verifiedReel";
-import { buildReelCaption } from "./reelCaption";
+import { buildReelCaption, reelReadingCta } from "./reelCaption";
 
 type VerifiedReel = NonNullable<ReturnType<typeof verifiedRentReel>>;
 
@@ -63,7 +63,7 @@ export function verifiedSupplyReel(data: CityApprovals, now = new Date()): Verif
       facts: [
         { figure: number(a.total), caption: "Greater Brisbane approvals" },
         { figure: number(b.total), caption: "Greater Perth approvals" },
-        { figure: "Compare free", caption: "Bio / Markets" },
+        reelReadingCta("supplyComparison").fact,
       ],
     },
     script: [
@@ -71,8 +71,11 @@ export function verifiedSupplyReel(data: CityApprovals, now = new Date()): Verif
       { key: "value", text: `Brisbane recorded ${number(a.total)} dwelling approvals.` },
       { key: "line", text: `That's the year to ${period}, across Greater Brisbane.` },
       { key: "claim", text: "Approvals show permission to build. They aren't finished homes." },
-      { key: "facts", text: "Compare Perth on screen. Counts alone don't measure a shortage." },
-      { key: "signOff", text: "Check completions and demand too. Compare free through our bio." },
+      {
+        key: "facts",
+        text: "Counts alone don't measure a shortage. Check completions and demand too.",
+      },
+      { key: "signOff", text: reelReadingCta("supplyComparison").voice },
     ],
     publication: { key: "instagram-reel-abs-approvals-brisbane-perth-v1", date: `${a.period}-01` },
     evidenceHash: createHash("sha256").update(JSON.stringify(evidence)).digest("hex"),

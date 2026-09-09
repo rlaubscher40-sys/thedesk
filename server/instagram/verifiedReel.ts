@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { latestRent, rentGap, rentPeriod, type CityRents } from "../../shared/cityRents";
 import type { ReelStat } from "../video/statReel";
 import type { ScriptLine } from "../video/narration";
-import { buildReelCaption } from "./reelCaption";
+import { buildReelCaption, reelReadingCta } from "./reelCaption";
 
 /** One comparable official release, not a daily market-movement claim. */
 export function verifiedRentReel(data: CityRents, now = new Date()) {
@@ -32,7 +32,7 @@ export function verifiedRentReel(data: CityRents, now = new Date()) {
     facts: [
       { figure: `${a.annualPercent.toFixed(1)}%`, caption: "Brisbane annual rent growth" },
       { figure: `${b.annualPercent.toFixed(1)}%`, caption: "Perth annual rent growth" },
-      { figure: "Compare free", caption: "Bio / Markets" },
+      reelReadingCta("rentComparison").fact,
     ],
   };
   // Interpret the measure, not its cause. The screen carries the individual
@@ -52,7 +52,7 @@ export function verifiedRentReel(data: CityRents, now = new Date()) {
       text: `Year to ${period}. That's the pace of change, not how expensive rents are.`,
     },
     { key: "facts", text: "A buyer still needs purchase prices and costs to compare returns." },
-    { key: "signOff", text: "Explore the free comparison. Bio, then Markets." },
+    { key: "signOff", text: reelReadingCta("rentComparison").voice },
   ];
   const evidence = { series: "ABS:CPI(2.0.0)/3.30014.10.3+5.M/PCT", a, b };
   const hash = createHash("sha256").update(JSON.stringify(evidence)).digest("hex");

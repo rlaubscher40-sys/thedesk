@@ -7,6 +7,7 @@ import { verifiedSydneyBeforeBuy, verifiedSydneyRentChange } from "./verifiedSyd
 import { verifiedCapitalRentReel } from "./verifiedCapitalRentReel";
 import { parseAbsApprovals } from "../markets/absApprovals";
 import { RENT_CITIES, type CityRents } from "../../shared/cityRents";
+import { scriptFitsClip } from "../video/statReel";
 const now = new Date("2026-09-09T10:00:00Z");
 const rents: CityRents = {
   status: "available",
@@ -40,9 +41,33 @@ describe("repeatable concise Reel captions", () => {
       verifiedSydneyBeforeBuy(sydneyApprovals(), now),
       verifiedCapitalRentReel(rents, now),
     ];
-    for (const recipe of recipes) {
+    const reads = [
+      "rentComparison",
+      "supplyComparison",
+      "sydneyRent",
+      "sydneySupply",
+      "capitalRents",
+    ] as const;
+    for (const [index, recipe] of recipes.entries()) {
       expect(recipe).not.toBeNull();
+      const read = reads[index]!;
+      const label = REEL_READS[read].label;
+      expect(recipe!.script.find((line) => line.key === "signOff")?.text).toContain(label);
+      expect(recipe!.script.find((line) => line.key === "signOff")?.text).not.toMatch(/[?!]\./);
+      expect(scriptFitsClip(recipe!.script)).toBe(true);
+      if (read === "sydneySupply") {
+        // Keep the complete educational checklist rather than replacing Timing with a CTA.
+        expect(recipe!.stat.facts?.map((fact) => fact.figure)).toEqual([
+          "1 · Stage",
+          "2 · Place",
+          "3 · Timing",
+        ]);
+      } else {
+        expect(recipe!.stat.facts?.at(-1)).toEqual({ figure: "Open our bio", caption: label });
+        expect(label.length).toBeLessThanOrEqual(44); // Card renderer's full-caption limit.
+      }
       const caption = recipe!.caption;
+      expect(caption).toContain(`Bio → ${label}`);
       expect(caption.length).toBeLessThanOrEqual(REEL_CAPTION_LIMIT);
       expect(caption.split("\n")[0]!.length).toBeLessThanOrEqual(110);
       expect(caption).toContain("Source: ABS");
