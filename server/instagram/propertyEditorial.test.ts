@@ -41,6 +41,22 @@ const history = (values = [64, 63, 62, 61, 60, 59]): HistoryPoint[] =>
   }));
 
 describe("property story selection", () => {
+  it("rejects Canadian Perth through an aggregator's URL using its explicit publisher", () => {
+    expect(
+      propertyStoryTier(
+        story({
+          title: "Major housing project approved on historic Perth golf course",
+          source: "CBC",
+          sourceUrl: "https://news.google.com/rss/articles/fixture",
+        })
+      )
+    ).toBe(0);
+    expect(
+      propertyStoryTier(
+        story({ title: "Perth housing approvals rise", source: "The West Australian" })
+      )
+    ).toBe(2);
+  });
   it("does not mistake the word act for Australian geography", () => {
     expect(propertyStoryTier(story({ title: "Housing act changes rental rules" }))).toBe(0);
     expect(propertyStoryTier(story({ title: "ACT housing approvals rise" }))).toBe(2);

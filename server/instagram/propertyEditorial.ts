@@ -21,8 +21,9 @@ export function australianPropertyTier(input: {
   title: string;
   summary?: string | null;
   sourceUrl?: string | null;
+  source?: string | null;
 }): number {
-  if (foreignHousingHeadline(input.title, input.sourceUrl)) return 0;
+  if (foreignHousingHeadline(input.title, input.sourceUrl, input.source)) return 0;
   const text = `${input.title} ${input.summary ?? ""}`;
   if (!AUSTRALIAN_SCOPE.test(text) && !/\bACT\b/.test(text)) return 0;
   // A passing mention in a broad politics article must not become the lead.

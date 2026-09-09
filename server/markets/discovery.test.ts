@@ -56,6 +56,12 @@ describe("public market discovery", () => {
         sourceUrl: "https://cbc.ca/news/a",
       }),
       item(-3, { href: "/evidence/3" }),
+      item(-848, {
+        title: "Major housing project approved on historic Perth golf course",
+        source: "CBC",
+        sourceUrl: "https://news.google.com/rss/articles/fixture",
+        href: "/evidence/848",
+      }),
     ]);
     expect(file.references).toHaveLength(1);
     expect(file.references[0]?.href).toBe("/evidence/3");
