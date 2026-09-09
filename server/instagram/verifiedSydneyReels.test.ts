@@ -29,6 +29,7 @@ describe("automatic Sydney story recipes", () => {
     expect(c.script.map((s) => s.text).join(" ")).toContain("still higher than a year earlier");
     expect(c.caption).toContain("not the percentage change in rents during the latest month");
     expect(c.caption).toContain("sydney_rent_change#rental-conditions");
+    expect(c.caption).toContain("slower rent growth as falling rents");
     expect(scriptFitsClip(c.script)).toBe(true);
   });
   it.each([-1, 0, 4.1])("explains the actual sign of the annual rate %s", (value) => {
@@ -38,6 +39,8 @@ describe("automatic Sydney story recipes", () => {
     expect(c.script.find((s) => s.key === "claim")?.text).toContain(
       value < 0 ? "lower" : value === 0 ? "unchanged" : "higher"
     );
+    expect(c.caption).toContain("the period and definition matter");
+    expect(c.caption).not.toContain("slower rent growth as falling rents");
   });
   it("requires a real change and consecutive current, valid observations", () => {
     const changes: Array<(d: CityRents) => void> = [

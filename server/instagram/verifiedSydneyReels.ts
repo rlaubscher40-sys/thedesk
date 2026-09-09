@@ -102,7 +102,7 @@ export function verifiedSydneyRentChange(data: CityRents, now = new Date()): Ver
       `Source: ${RENT_SOURCE}`,
       `Verified series: ${RENT_DATA_URL}`,
       "Read the two periods: https://thedesk.au/markets/sydney?utm_source=instagram&utm_medium=reel&utm_campaign=sydney_rent_change#rental-conditions",
-      "Bio → Reel sources → Sydney rent changes. Send this to someone who reads slower rent growth as falling rents.",
+      `Bio → Reel sources → Sydney rent changes. ${delta < 0 && current.annualPercent > 0 ? "Send this to someone who reads slower rent growth as falling rents." : "Send this to someone comparing rent headlines: the period and definition matter."}`,
       voiceCredit,
     ].join("\n\n"),
   };
