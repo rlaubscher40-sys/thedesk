@@ -1,3 +1,5 @@
+import { extractPublicationDate, missingPublicationDate } from "./publicationDate";
+import type { SourceTiming } from "../../../shared/sourceTiming";
 import { publicFetch } from "./publicFetch";
 import { readableHtml } from "./htmlText";
 /**
@@ -28,6 +30,7 @@ const SITE_URL = process.env.SITE_URL ?? DEFAULT_SITE_URL;
 export type FetchedArticle = {
   imageUrl: string | null;
   text: string | null;
+  publicationDate: Pick<SourceTiming, "publisherPublishedAt" | "publisherDateStatus">;
 };
 
 function matchFirst(s: string, re: RegExp): string | null {
@@ -83,7 +86,11 @@ export async function fetchArticle(
     maxChars = 6_000,
   }: { timeoutMs?: number; maxBytes?: number; maxChars?: number } = {}
 ): Promise<FetchedArticle> {
-  const empty: FetchedArticle = { imageUrl: null, text: null };
+  const empty: FetchedArticle = {
+    imageUrl: null,
+    text: null,
+    publicationDate: { ...missingPublicationDate },
+  };
   const controller = new AbortController();
   // Keep the budget alive through the body, not just the response headers.
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -125,6 +132,7 @@ export async function fetchArticle(
     html += decoder.decode();
 
     return {
+      publicationDate: extractPublicationDate(html),
       imageUrl: pickOgImage(html),
       text: extractArticleText(html, maxChars),
     };

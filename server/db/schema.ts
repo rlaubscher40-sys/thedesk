@@ -1,3 +1,4 @@
+import type { SourceTiming } from "../../shared/sourceTiming";
 /**
  * Drizzle schema for The Desk. JSON columns are typed against the Zod-derived
  * shapes in shared/schemas.ts so the database, server and client all agree on
@@ -115,6 +116,8 @@ export type InsertEdition = typeof editions.$inferInsert;
 // ─── Daily feed items ───────────────────────────────────────────────────────
 
 export const dailyFeedItems = mysqlTable("daily_feed_items", {
+  /** Feed and publisher-declared dates; null for legacy rows, never backfilled from feedDate. */
+  sourceTiming: json("sourceTiming").$type<SourceTiming | null>(),
   id: int("id").autoincrement().primaryKey(),
   feedDate: varchar("feedDate", { length: 10 }).notNull(),
   title: varchar("title", { length: 512 }).notNull(),

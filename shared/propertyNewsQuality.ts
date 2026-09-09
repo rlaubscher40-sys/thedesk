@@ -54,21 +54,24 @@ export function propertyNewsHold(
   return null;
 }
 
-/** Feed-supplied timestamp, not ingestion time or an independently verified publication date. */
-export function recentNewsTimestamp(value: string | null | undefined, now = new Date()): boolean {
-  // Refuse ambiguous date-only/local strings; RSS parsers emit ISO or RFC dates.
-  if (!value || !/(?:Z|[+-]\d{2}:?\d{2}|GMT|UTC)\s*$/i.test(value)) return false;
+/** Normalize explicit timezone-qualified dates without inventing a timezone. */
+export function newsTimestamp(value: string | null | undefined): string | null {
+  if (!value || value.length > 100 || !/(?:Z|[+-]\d{2}:?\d{2}|GMT|UTC)\s*$/i.test(value))
+    return null;
   const calendar = /^(\d{4}-\d{2}-\d{2})T/.exec(value);
   if (calendar) {
     const day = new Date(`${calendar[1]}T00:00:00Z`);
     if (!Number.isFinite(day.getTime()) || day.toISOString().slice(0, 10) !== calendar[1])
-      return false;
+      return null;
   }
   const time = Date.parse(value);
-  return (
-    Number.isFinite(now.getTime()) &&
-    Number.isFinite(time) &&
-    time <= now.getTime() &&
-    now.getTime() - time <= 96 * 3_600_000
-  );
+  return Number.isFinite(time) ? new Date(time).toISOString() : null;
+}
+
+/** Feed-supplied timestamp, not ingestion time or independently verified publication. */
+export function recentNewsTimestamp(value: string | null | undefined, now = new Date()): boolean {
+  const normalized = newsTimestamp(value);
+  if (!normalized || !Number.isFinite(now.getTime())) return false;
+  const time = Date.parse(normalized);
+  return time <= now.getTime() && now.getTime() - time <= 96 * 3_600_000;
 }

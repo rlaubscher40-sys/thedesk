@@ -85,3 +85,26 @@ describe("parseReaderAngles", () => {
     expect(parseReaderAngles(raw)).not.toBeNull();
   });
 });
+
+it("retains source timing through the ingestion contract and rejects contradictory provenance", () => {
+  const input = {
+    feedDate: "2026-09-09",
+    title: "Sydney housing update",
+    source: "ABC",
+    summary: "Housing reporting.",
+    category: "PROPERTY",
+    sourceTiming: {
+      feedReportedAt: "2026-09-09T00:00:00Z",
+      publisherPublishedAt: "2026-09-08T00:00:00Z",
+      publisherDateStatus: "available",
+      retrievedAt: "2026-09-09T00:10:00Z",
+    },
+  };
+  expect(dailyFeedIngestItemSchema.parse(input).sourceTiming).toEqual(input.sourceTiming);
+  expect(
+    dailyFeedIngestItemSchema.safeParse({
+      ...input,
+      sourceTiming: { ...input.sourceTiming, publisherDateStatus: "missing" },
+    }).success
+  ).toBe(false);
+});

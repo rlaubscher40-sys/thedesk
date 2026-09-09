@@ -27,6 +27,10 @@ export const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
   ...SECURITY_DDL,
   ...LOCAL_DATA_DDL,
   {
+    name: "0026 · daily_feed_items.sourceTiming",
+    sql: "ALTER TABLE daily_feed_items ADD sourceTiming json",
+  },
+  {
     name: "nationwide · property_evidence",
     sql: `CREATE TABLE property_evidence (
  id INT AUTO_INCREMENT PRIMARY KEY, identity VARCHAR(64) NOT NULL UNIQUE,

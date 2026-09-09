@@ -1,3 +1,4 @@
+import { datedBriefingHold } from "../../shared/sourceTiming";
 import type { DailyFeedItem, DailyMetric } from "../db/schema";
 import type { EditionTopic } from "../../shared/schemas";
 import { FEATURED_COMPARISON_PATH } from "../../shared/featuredComparison";
@@ -57,7 +58,11 @@ export function pickPropertyTopics(topics: EditionTopic[], limit = 4): EditionTo
 export function propertyStoryTier(story: DailyFeedItem): number {
   if (!["AU", "PROPERTY"].includes(story.channel)) return 0;
   if (!story.title?.trim() || !story.source?.trim()) return 0;
-  if (propertyNewsHold(story, story.feedDate)) return 0;
+  if (
+    propertyNewsHold(story, story.feedDate) ||
+    datedBriefingHold(story.sourceTiming, story.feedDate)
+  )
+    return 0;
   return australianPropertyTier(story);
 }
 

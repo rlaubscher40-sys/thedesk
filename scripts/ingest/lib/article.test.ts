@@ -10,6 +10,23 @@ afterEach(() => {
 });
 
 describe("bounded article fetching", () => {
+  it("extracts original publication metadata from the same bounded fetch", async () => {
+    const request = vi.fn(
+      async () =>
+        new Response(
+          '<meta property="article:published_time" content="2026-04-01T00:00:00Z"><article><p>This original reporting is long enough to be retained with its original publication date.</p></article>',
+          { headers: { "content-type": "text/html" } }
+        )
+    );
+    vi.stubGlobal("fetch", request);
+    const article = await fetchArticle("https://example.com/article");
+    expect(request).toHaveBeenCalledOnce();
+    expect(article.publicationDate).toEqual({
+      publisherPublishedAt: "2026-04-01T00:00:00.000Z",
+      publisherDateStatus: "available",
+    });
+    expect(article.text).toContain("original reporting");
+  });
   it("times out a body that stalls after successful response headers", async () => {
     vi.useFakeTimers();
     vi.stubGlobal(
@@ -28,7 +45,11 @@ describe("bounded article fetching", () => {
     );
     const pending = fetchArticle("https://example.com/article", { timeoutMs: 100 });
     await vi.advanceTimersByTimeAsync(101);
-    expect(await pending).toEqual({ imageUrl: null, text: null });
+    expect(await pending).toEqual({
+      imageUrl: null,
+      text: null,
+      publicationDate: { publisherPublishedAt: null, publisherDateStatus: "missing" },
+    });
     expect(vi.getTimerCount()).toBe(0);
   });
   it("does not decode beyond the byte budget even when one chunk is oversized", async () => {
@@ -64,6 +85,7 @@ describe("bounded article fetching", () => {
     expect(await fetchArticle("https://example.com/article")).toEqual({
       imageUrl: null,
       text: null,
+      publicationDate: { publisherPublishedAt: null, publisherDateStatus: "missing" },
     });
   });
 });

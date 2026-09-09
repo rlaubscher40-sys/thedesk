@@ -1,3 +1,4 @@
+import { testSourceTiming } from "./testSourceTiming";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DailyFeedItem } from "../db/schema";
 const m = vi.hoisted(() => ({ render: vi.fn(), rewrite: vi.fn() }));
@@ -14,6 +15,7 @@ vi.mock("./socialPublication", () => ({
 import { renderPropertyDailyCover } from "./dailyCover";
 import { postDailyCarousel } from "./post";
 const story = {
+  sourceTiming: testSourceTiming(),
   id: 1,
   title: "Brisbane dwelling approvals",
   channel: "PROPERTY",

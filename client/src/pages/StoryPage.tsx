@@ -1,3 +1,4 @@
+import { sourceTimingLabel } from "@shared/sourceTiming";
 /**
  * Story — the surface a LinkedIn link lands on, so it has to convert a
  * stranger.
@@ -168,9 +169,12 @@ export default function StoryPage() {
                 at InvestorKit
               </p>
               <p className="bs-label mt-1" style={{ letterSpacing: "0.16em" }}>
-                {story.feedDate} · {readingMinutes(story)} min read
+                Briefing {story.feedDate} · {readingMinutes(story)} min read
                 {story.source ? ` · source ${story.source}` : ""}
                 {corroboration}
+              </p>
+              <p className="mt-2 text-sm text-[var(--color-fg-muted)]">
+                {sourceTimingLabel(story.sourceTiming)}
               </p>
             </div>
             <div className="ml-auto flex gap-2 shrink-0 flex-wrap justify-end">

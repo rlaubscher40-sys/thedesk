@@ -1,3 +1,4 @@
+import { testSourceTiming } from "./testSourceTiming";
 import { describe, expect, it } from "vitest";
 import type { DailyFeedItem, DailyMetric } from "../db/schema";
 import {
@@ -12,6 +13,8 @@ import { pickStatOfTheDay, type HistoryPoint } from "./statPick";
 const NOW = new Date("2026-09-08T00:00:00Z");
 const story = (overrides: Partial<DailyFeedItem> = {}) =>
   ({
+    sourceTiming: testSourceTiming(),
+    feedDate: "2026-09-08",
     id: 1,
     title: "Brisbane rents rise",
     summary: null,

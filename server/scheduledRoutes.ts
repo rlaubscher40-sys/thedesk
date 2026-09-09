@@ -1,3 +1,4 @@
+import { sourceTimingHold } from "../shared/sourceTiming";
 import {
   currentSocialFeed,
   currentSocialEdition,
@@ -179,6 +180,7 @@ function registerDailyFeedRoute(app: Express): void {
       const source = sanitiseText(item.source);
       return {
         feedDate: item.feedDate,
+        sourceTiming: item.sourceTiming ?? null,
         title: sanitiseText(item.title),
         source,
         sourceUrl: item.sourceUrl ?? null,
@@ -205,6 +207,17 @@ function registerDailyFeedRoute(app: Express): void {
       };
     });
 
+    const timingChecked = items.filter(
+      (item) =>
+        !["AU", "PROPERTY"].includes(item.channel) ||
+        !sourceTimingHold(item.sourceTiming, new Date(), item.feedDate)
+    );
+    const heldForDate = items.length - timingChecked.length;
+    if (timingChecked.length === 0) {
+      res.status(422).json({ error: "No stories passed source-date checks", heldForDate });
+      return;
+    }
+
     // Reject any story whose sourceUrl already appeared in the last 14 days.
     // This prevents re-ingesting the same article on back-to-back days when
     // an external trigger re-runs or when the same story is picked up twice.
@@ -212,10 +225,10 @@ function registerDailyFeedRoute(app: Express): void {
       db.getRecentSourceUrls(14),
       db.getRecentFeedItems(10),
     ]);
-    const freshItemsRaw = items.filter(
+    const freshItemsRaw = timingChecked.filter(
       (item) => !item.sourceUrl || !recentUrls.has(item.sourceUrl)
     );
-    const skippedCount = items.length - freshItemsRaw.length;
+    const skippedCount = timingChecked.length - freshItemsRaw.length;
     if (skippedCount > 0) {
       console.log(
         `[daily-feed] skipped ${skippedCount} duplicate story/stories (seen in last 14 days)`
@@ -274,6 +287,7 @@ function registerDailyFeedRoute(app: Express): void {
     res.json({
       success: true,
       count: insertedCount,
+      heldForDate,
       skipped: skippedCount,
       dropped: freshItems.length - insertedCount,
     });

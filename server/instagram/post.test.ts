@@ -1,3 +1,4 @@
+import { testSourceTiming } from "./testSourceTiming";
 import { describe, expect, it } from "vitest";
 import type { DailyFeedItem } from "../db/schema";
 import { parseArrival } from "../../client/src/lib/attribution";
@@ -15,6 +16,7 @@ import { isRateLimitError, isTransientServerError } from "./api";
 
 function fakeStory(o: Partial<DailyFeedItem> = {}): DailyFeedItem {
   return {
+    sourceTiming: testSourceTiming(o.feedDate ?? "2026-06-03"),
     id: 1,
     feedDate: "2026-06-03",
     title: "RBA holds the cash rate at 3.85%",
