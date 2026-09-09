@@ -56,7 +56,7 @@ export async function retrieveMarketEvidence(
     const side: MarketSide = index === 0 ? "a" : "b";
     const market = index === 0 ? marketA : marketB;
     const candidates = [
-      ...localFacts[index]!.slice(0, 2).map(fact => ({...fact, identity: `${fact.sourceUrl}:${fact.title}`, fact: true})),
+      ...localFacts[index]!.slice(0, 2).map(fact => ({...fact, identity: `${fact.sourceUrl}:${fact.title}:${fact.date}`, fact: true})),
       ...archives[index]!.map((item) => ({
         title: item.title,
         text: `${item.title}\n${item.summary}`,

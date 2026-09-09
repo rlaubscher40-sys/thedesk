@@ -5,6 +5,7 @@ vi.mock("../db", () => ({
   searchMarketContent: vi.fn(),
 }));
 import { searchMarketContent } from "../db";
+import { retrieveLocalFacts } from "../ask/localFacts";
 import { retrieveMarketEvidence, marketHousingPassage } from "./evidence";
 type Bundle = Awaited<ReturnType<typeof searchMarketContent>>;
 const feed = (id: number, title: string, sourceUrl: string) =>
@@ -16,8 +17,25 @@ const feed = (id: number, title: string, sourceUrl: string) =>
     source: "Fixture",
     feedDate: "2026-09-01",
   }) as Bundle["feedItems"][number];
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.mocked(retrieveLocalFacts).mockResolvedValue([]);
+});
 describe("balanced local market retrieval", () => {
+  it("keeps different observation periods from one workbook as separate citations", async () => {
+    vi.mocked(searchMarketContent).mockResolvedValue({ editions: [], feedItems: [] });
+    vi.mocked(retrieveLocalFacts).mockResolvedValue([
+      { title: "4000, QLD (postcode)", date: "2026-06-30", href: "/markets?q=4000&state=QLD&areaKind=postcode&period=2026-06-30#local-data", publisher: "RTA", sourceUrl: "https://source.test/rents.xlsx", text: "850 AUD/week in June 2026" },
+      { title: "4000, QLD (postcode)", date: "2025-06-30", href: "/markets?q=4000&state=QLD&areaKind=postcode&period=2025-06-30#local-data", publisher: "RTA", sourceUrl: "https://source.test/rents.xlsx", text: "800 AUD/week in June 2025" },
+    ]);
+    const sources = await retrieveMarketEvidence("4000", "4000 QLD");
+    expect(sources).toHaveLength(2);
+    expect(sources.map((s) => s.date)).toEqual(["2026-06-30", "2025-06-30"]);
+    expect(sources.every((s) => s.markets.join() === "a,b")).toBe(true);
+    for (const source of sources) expect(source.href).toContain(`period=${source.date}`);
+    expect(sources[0]!.text).not.toContain("800 AUD/week");
+    expect(sources[1]!.text).not.toContain("850 AUD/week");
+  });
   it("queries full market names separately and deduplicates syndicated sources", async () => {
     vi.mocked(searchMarketContent).mockImplementation(async (query) => ({
       editions: [],
