@@ -39,6 +39,12 @@ its source summary to establish relevance. A passing housing mention in a
 broad political headline cannot lead. Foreign housing titles and known Canadian
 Perth homonyms are excluded; unknown geography is held for carousels. This is
 conservative rule-based selection, not complete geographic entity resolution.
+Daily source records now preserve feed and publisher-declared publication dates.
+Date checks run before enrichment and again during source selection; original
+publisher dates cannot be replaced by a recent modified/feed date. Missing
+publisher metadata is explicitly unconfirmed; missing legacy date records and
+conflicting metadata hold automatic news publication. See
+[property-news-quality.md](property-news-quality.md) for scope and limits.
 Manual Wider Lens remains separate. No legacy post is edited or deleted.
 
 ## From the post to the evidence

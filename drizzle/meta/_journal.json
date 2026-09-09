@@ -50,6 +50,13 @@
       "when": 1788883200000,
       "tag": "0025_security_state",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1788912000000,
+      "tag": "0026_feed_source_timing",
+      "breakpoints": true
     }
   ]
 }

@@ -1,3 +1,4 @@
+import { testSourceTiming } from "./testSourceTiming";
 import { describe, expect, it } from "vitest";
 import type { DailyFeedItem, Edition } from "../db/schema";
 import {
@@ -6,6 +7,7 @@ import {
   storyPublicationKeys,
 } from "./socialProvenance";
 const row = {
+  sourceTiming: testSourceTiming(),
   id: 1,
   title: "Sydney rents rose 3.5% in July 2026",
   summary: "Annual change in rents paid, not rent levels.",
@@ -40,6 +42,7 @@ describe("source-attributed weekly social copy", () => {
       title: row.title,
       summary: row.summary,
       socialSource: {
+        sourceTiming: row.sourceTiming,
         publisher: "ABS",
         feedDate: row.feedDate,
         url: row.sourceUrl,

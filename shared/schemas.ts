@@ -1,3 +1,4 @@
+import { sourceTimingSchema } from "./sourceTiming";
 /**
  * Zod schemas for every JSON column on `editions` and every external payload
  * the scheduled ingestion endpoints accept. The inferred TypeScript types are
@@ -38,6 +39,7 @@ export const editionTopicSchema = z.object({
   /** Server-resolved social provenance. Not trusted when reading an edition. */
   socialSource: z
     .object({
+      sourceTiming: sourceTimingSchema.optional().nullable(),
       feedItemId: z.number().int().positive(),
       publisher: z.string().min(1).max(256),
       url: z.string().url().max(2048),
@@ -164,6 +166,7 @@ export function parseReaderAngles(raw: string | null | undefined): ReaderAngles 
 // ─── Daily feed ingestion ───────────────────────────────────────────────────
 
 export const dailyFeedIngestItemSchema = z.object({
+  sourceTiming: sourceTimingSchema.optional().nullable(),
   feedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/u, "feedDate must be YYYY-MM-DD"),
   title: z.string().min(1).max(512),
   source: z.string().min(1).max(256),

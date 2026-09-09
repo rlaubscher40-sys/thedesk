@@ -1,3 +1,4 @@
+import { sourceTimingLabel } from "../../shared/sourceTiming";
 /**
  * High-level Instagram posting orchestration.
  *
@@ -213,6 +214,7 @@ export function buildDailyCaption(stories: DailyFeedItem[]): string {
     ...(i > 0 ? [`${i + 1}. ${sanitizeDashes(story.title)}`] : []),
     propertyReadingQuestion(story),
     `Source: ${story.source} · Briefing ${story.feedDate}`,
+    sourceTimingLabel(story.sourceTiming),
     `Read story ${story.id}: ${storyDestination(story)}`,
     "",
   ]);
@@ -298,7 +300,8 @@ export function buildWeeklyCaption(edition: Edition): string {
       ...(i ? [`- ${sanitizeDashes(topic.title)}`] : []),
       ...(topic.socialSource
         ? [
-            `Source: ${topic.socialSource.publisher} · Feed date: ${topic.socialSource.feedDate}`,
+            `Source: ${topic.socialSource.publisher} · Briefing ${topic.socialSource.feedDate}`,
+            sourceTimingLabel(topic.socialSource.sourceTiming),
             topic.socialSource.url,
           ]
         : []),

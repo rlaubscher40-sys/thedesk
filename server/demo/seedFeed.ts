@@ -36,6 +36,7 @@ export function feedSeed(): DailyFeedItem[] {
   const make = (
     item: Omit<
       DailyFeedItem,
+      | "sourceTiming"
       | "id"
       | "createdAt"
       | "promotedToEdition"
@@ -64,6 +65,7 @@ export function feedSeed(): DailyFeedItem[] {
       channel?: string;
     }
   ): DailyFeedItem => ({
+    sourceTiming: null,
     id: id++,
     promotedToEdition: false,
     rubensNote: item.rubensNote ?? null,

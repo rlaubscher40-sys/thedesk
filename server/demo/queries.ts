@@ -269,6 +269,7 @@ export function createFeedItems(items: InsertDailyFeedItem[]): number[] {
     demo.feed.unshift({
       id,
       feedDate: item.feedDate,
+      sourceTiming: item.sourceTiming ?? null,
       title: item.title,
       source: item.source,
       sourceUrl: item.sourceUrl ?? null,

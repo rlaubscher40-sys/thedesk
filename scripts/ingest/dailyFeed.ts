@@ -1,3 +1,6 @@
+import { newsTimestamp } from "../../shared/propertyNewsQuality";
+import { sourceTimingHold, type SourceTiming } from "../../shared/sourceTiming";
+import { missingPublicationDate } from "./lib/publicationDate";
 /**
  * Daily feed ingest. Runs once a day on GitHub Actions.
  *
@@ -311,11 +314,16 @@ export async function runDailyFeedIngest(rawBaseUrl: string, apiKey: string): Pr
       // reproduction, so The Desk uses its own AI-generated covers instead.
       const article = resolvedUrl
         ? await fetchArticle(resolvedUrl)
-        : { imageUrl: null, text: null };
+        : { imageUrl: null, text: null, publicationDate: missingPublicationDate };
       return {
         item,
         resolvedUrl,
         articleText: article.text,
+        sourceTiming: {
+          feedReportedAt: newsTimestamp(item.isoDate),
+          ...article.publicationDate,
+          retrievedAt: new Date().toISOString(),
+        } satisfies SourceTiming,
       };
     })
   );
@@ -328,8 +336,17 @@ export async function runDailyFeedIngest(rawBaseUrl: string, apiKey: string): Pr
   );
 
   const feedDate = todayInSydney();
+  const dateChecked = enriched.filter(({ item, sourceTiming }) => {
+    if (!["AU", "PROPERTY"].includes(item.channel)) return true;
+    const hold = sourceTimingHold(sourceTiming, new Date(), feedDate);
+    if (hold) console.log(`[ingest] held by publication-date policy: ${hold}`);
+    return !hold;
+  });
+  if (dateChecked.filter(({ item }) => (item.channel || "AU") === "AU").length < DAILY_ITEM_MIN)
+    throw new Error("Too few AU stories after publication-date checks; no stale replacements.");
   const payload = {
-    items: enriched.map(({ item, resolvedUrl, articleText }) => ({
+    items: dateChecked.map(({ item, resolvedUrl, articleText, sourceTiming }) => ({
+      sourceTiming,
       feedDate,
       title: item.title,
       source: item.source,

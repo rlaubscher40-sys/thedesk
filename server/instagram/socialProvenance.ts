@@ -84,6 +84,7 @@ export async function sourceAttributedEdition(
         category: source.category,
         sourceItemIds: [source.id],
         socialSource: {
+          sourceTiming: source.sourceTiming,
           feedItemId: source.id,
           publisher: source.source,
           url: source.sourceUrl!,

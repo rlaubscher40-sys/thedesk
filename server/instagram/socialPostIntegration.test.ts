@@ -1,3 +1,4 @@
+import { testSourceTiming } from "./testSourceTiming";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DailyFeedItem, Edition } from "../db/schema";
 const m = vi.hoisted(() => ({
@@ -43,6 +44,7 @@ vi.mock("./api", () => ({
 }));
 import { postDailyCarousel, postWeeklyEdition } from "./post";
 const story = {
+  sourceTiming: testSourceTiming(),
   id: 1,
   feedDate: "2026-09-08",
   title: "Sydney rents rose 3.5% in July 2026",
@@ -81,7 +83,7 @@ describe("real social publishers use provenance and durable identities", () => {
       postId: "123",
       coverVariant: "light",
     });
-    expect(m.parent.mock.calls[0]![0].caption).toContain("Source: ABS · Feed date: 2026-09-08");
+    expect(m.parent.mock.calls[0]![0].caption).toContain("Source: ABS · Briefing 2026-09-08");
     expect(m.parent.mock.calls[0]![0].caption).toContain("https://www.abs.gov.au/rents");
     expect(m.parent.mock.calls[0]![0].caption).not.toMatch(/Perth|double/);
     expect(m.reserve).toHaveBeenCalledOnce();
@@ -90,6 +92,21 @@ describe("real social publishers use provenance and durable identities", () => {
     );
     expect(m.confirm).toHaveBeenCalledOnce();
   });
+  it.each([null, { ...testSourceTiming(), publisherPublishedAt: "2026-04-01T00:00:00Z" }])(
+    "holds missing or stale source timing before upload: %j",
+    async (sourceTiming) => {
+      await expect(
+        postDailyCarousel([{ ...story, sourceTiming }], "https://thedesk.au")
+      ).rejects.toThrow();
+      m.feed.mockResolvedValue([{ ...story, sourceTiming }]);
+      await expect(postWeeklyEdition(edition, "https://thedesk.au")).rejects.toThrow(
+        "source-attributed"
+      );
+      expect(m.image).not.toHaveBeenCalled();
+      expect(m.reserve).not.toHaveBeenCalled();
+      expect(m.publish).not.toHaveBeenCalled();
+    }
+  );
   it("daily rendering failures consume no publication reservation", async () => {
     m.render.mockRejectedValue(new Error("renderer unavailable"));
     await expect(postDailyCarousel([story], "https://thedesk.au")).rejects.toThrow(
