@@ -26,7 +26,7 @@ it("imports missing SA evidence without clearing access health or changing its d
   expect(isCollectionJob(REVIEWED_SA_JOB)).toBe(true);
   expect(await reviewedSaReleasePending()).toBe(true);
   await importReviewedSaRelease();
-  expect(writeLocalDataset).toHaveBeenCalledWith(sa);
+  expect(writeLocalDataset).toHaveBeenCalledWith(sa, { onlyIfMissing: true });
   expect(sa.period).toBe("2026-06-30");
   expect(sa.retrievedAt).toBe("2026-09-09T08:26:23.209Z");
   expect(markLocalDataCheck).not.toHaveBeenCalled();

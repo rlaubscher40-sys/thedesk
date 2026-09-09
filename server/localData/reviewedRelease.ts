@@ -10,7 +10,7 @@ export async function reviewedSaReleasePending(): Promise<boolean> {
 
 export async function importReviewedSaRelease(): Promise<void> {
   if (!(await reviewedSaReleasePending())) return;
-  await writeLocalDataset(sa);
+  await writeLocalDataset(sa, { onlyIfMissing: true });
   console.log(
     `[local-data] reviewed SA release ${sa.period} stored: ${sa.areas.length} areas; automatic source health unchanged`,
   );
