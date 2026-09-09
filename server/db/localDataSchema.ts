@@ -9,7 +9,8 @@ import {
 } from "drizzle-orm/mysql-core";
 import type { LocalDataset } from "../../shared/localData";
 
-/** Immutable, bounded release snapshots. Each dataset is cached once and queried locally.
+/** Bounded release snapshots. Observation payloads are immutable; conditional-download
+ * metadata may be refreshed without changing the observation or retrieval dates.
  * A snapshot is published in one insert, so visitors can never read half a file. */
 export const localDataSnapshots = mysqlTable(
   "local_data_snapshots",

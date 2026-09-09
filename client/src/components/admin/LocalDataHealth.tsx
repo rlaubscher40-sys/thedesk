@@ -22,12 +22,19 @@ export function LocalDataHealth() {
             className="border border-[var(--color-rule)] p-4 mt-4"
           >
             <h4 className="font-semibold">{source.label}</h4>
+            <p className="mt-2 text-sm font-semibold">{source.collectionState}</p>
             <p className="mt-2 text-sm">
               {source.areas} source-defined areas · {source.cadence} publication
               · Period: {source.period ?? "Not collected"}
             </p>
             <p className="mt-2 text-sm">
               Last check: {source.checkedAt ?? "Never"}
+            </p>
+            <p className="mt-2 text-sm">
+              Across stored reporting periods: {source.observationCoverage.published} published figures ·{" "}
+              {source.observationCoverage.notPublished} not published (source suppression) ·{" "}
+              {source.observationCoverage.insufficientSample} withheld under sample rules.
+              Missing records are not proof that a publisher did not publish them.
             </p>
             {source.accessPaused ? (
               <p className="mt-2 text-sm font-semibold">
