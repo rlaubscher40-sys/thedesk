@@ -9,6 +9,7 @@ import { estimateSpeechSeconds } from "../video/narration";
 import { validateStoryboard } from "../video/storyboard";
 import { composeSections, layout, reelDurationLimit, scriptFitsClip } from "../video/statReel";
 import { subtitleCues } from "../video/subtitles";
+import { housingBalanceSubtitleScript } from "../video/housingBalanceStoryboard";
 import { isKnownRoute } from "../core/spaShell";
 
 const evidence = () => structuredClone(HOUSING_BALANCE_SNAPSHOT);
@@ -140,5 +141,33 @@ describe("the finding survives the Reel and source destination", () => {
       "#page=104",
     ])
       expect(html).toContain(term);
+  });
+  it("uses verified digits in captions without changing the spoken claim or its timing", () => {
+    const c = verifiedHousingBalanceReel(evidence(), now)!;
+    const story = c.stat.storyboard!;
+    if (story.kind !== "housing-balance") throw new Error("Unexpected storyboard");
+    const display = housingBalanceSubtitleScript(story, c.script);
+    const expected = new Map([
+      ["value", ["two hundred and thirty-two thousand", "232,000"]],
+      ["line", ["two hundred and eighty-seven thousand", "287,000"]],
+      ["facts", ["fifty-five thousand", "55,000"]],
+    ]);
+    for (const line of display) {
+      const spoken = c.script.find((s) => s.key === line.key)!;
+      const number = expected.get(line.key);
+      if (number) expect(line.text.replace(number[1]!, number[0]!)).toBe(spoken.text);
+      else if (line.key === "claim") expect(line.text).toBe("About 81 added for every 100 needed.");
+      else expect(line.text).toBe(spoken.text);
+      const seconds = estimateSpeechSeconds(spoken.text);
+      const cues = subtitleCues([line], [{ key: line.key, start: 12, seconds }]);
+      expect(cues[0]!.start).toBe(12);
+      expect(cues.at(-1)!.end).toBeCloseTo(12 + seconds);
+      expect(cues.flatMap((c) => c.lines).join(" ")).toBe(line.text);
+      if (number || line.key === "claim") expect(cues).toHaveLength(1);
+    }
+    const wrong = c.script.map((s) =>
+      s.key === "value" ? { ...s, text: "About a million homes." } : s
+    );
+    expect(() => housingBalanceSubtitleScript(story, wrong)).toThrow("evidence");
   });
 });

@@ -22,8 +22,8 @@ serif headings and count-ups alone do not meet that target.
 | Human relevance | People, property and consequences connect the story to everyday life. | Technical demand language hid what the estimate meant. A person now moves from a shared home into a separate household in an explicitly illustrative animation, before the national figures are compared. Do not equate a dwelling shortfall with a count of homeless people or claim a rent effect the data cannot establish. |
 | Evidence | Photographs and labels make evidence tangible in the supplied frames. | The actual Council report cover, full publisher, title, date and page are visible. The dated reference period and discreet source attribution remain throughout. |
 | Variety | The supplied frames alternate numbers, documentary photographs and selected text. | Our cut remains more chart-led. A future story should use relevant documents, locations or photographs where they explain a fact. Decorative stock footage would not fix this weakness. |
-| Voice | Ruben prefers the reference's newsreader delivery. | Keep the approved Fable voice at speed 1.0. Use complete sentences and allow this reviewed explainer up to 38 seconds so its figures and questions are not compressed into fragments. Keep key numbers within one subtitle cue. Review the actual audio before claiming equivalent delivery. |
-| Takeaway | The caption connects the alleged scheme to an ordinary bidder's experience. | The viewer gets two questions to use on the next housing headline: how many homes were added and how many extra homes were needed, matching place and period. The figures alone cannot support a local market or investment prediction. |
+| Voice | Ruben prefers the reference's newsreader delivery. | Keep the approved Fable voice at speed 1.0. Use complete sentences and allow this reviewed explainer up to 38 seconds so its figures and questions are not compressed into fragments. Use digits for verified counts in subtitles so each numerical sentence fits one cue. Review the actual audio before claiming equivalent delivery. |
+| Takeaway | The caption connects the alleged scheme to an ordinary bidder's experience. | The close states the finding directly: new homes did not keep up with new households. The 81/100 house grid stays fixed through the payoff and the practical instruction to compare homes added with extra homes needed, matching place and period. The figures alone cannot support a local market or investment prediction. |
 
 ## Gates for every future Reel
 
@@ -37,3 +37,18 @@ serif headings and count-ups alone do not meet that target.
 - Watch the encoded MP4 for reading time, voice pacing, subtitle alignment and the final hold. Check that the central finding is still understandable with sound off.
 - Use Australian English and no em dashes in captions. Write the post caption as a coherent story, with concise attribution and the relevant limitation, rather than a methodology dump.
 - Judge audience response from actual retention, completion, saves and replies once posted. Do not promise performance from a design review.
+
+## Payoff and readable numeric captions
+
+The opening contrast is now spoken as well as shown: substantial building was
+still insufficient for the estimated additional need in this period. The last
+three scenes retain the same house grid, replacing the numerical headline with
+the conclusion and then the reusable comparison. Established objects should
+remain visible while their meaning is explained.
+
+Housing subtitles replace only the exact, evidence-validated spoken counts
+with Australian-formatted digits (232,000, 287,000, 55,000 and 81/100). All other
+words stay verbatim. Each of these numerical sentences fits a single measured
+passage cue. This reduces reading load without shortening the narration or
+claiming forced word alignment. Other story formats keep their existing
+verbatim captions.

@@ -72,6 +72,15 @@ describe("quiet housing Reel layouts", () => {
       expect(children(children(frame)[0])[0]!.props.style?.width).toBe(210);
     }
   });
+  it("retains the completed 81/19 comparison through the explanation and takeaway", () => {
+    const ratio = housingBalanceFrameLayout(story, "claim", 1, "navy").content;
+    for (const key of ["signOff", "checkNeed"]) {
+      const ending = housingBalanceFrameLayout(story, key, 1, "navy").content;
+      expect(children(ending)[2]).toEqual(children(ratio)[2]);
+      expect(children(ending)[0]!.props.style?.height).toBe(165);
+      expect(ending.props.style).toEqual(ratio.props.style);
+    }
+  });
   it("holds static opening and closing scenes without redundant animation ticks", () => {
     const sections = storyboardSections(
       story,

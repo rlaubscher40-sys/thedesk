@@ -29,12 +29,12 @@ export function housingBalanceStoryboard(
       {
         key: "label",
         kind: "balance-opening",
-        text: "Over a quarter of a million homes built.",
+        text: "Over a quarter of a million homes built. Still not enough.",
       },
       {
         key: "contrast",
         kind: "balance-contrast",
-        text: "The Housing Council's figures explain why.",
+        text: "The Housing Council shows why.",
       },
       {
         key: "households",
@@ -64,12 +64,12 @@ export function housingBalanceStoryboard(
       {
         key: "signOff",
         kind: "balance-takeaway",
-        text: "Next headline, ask: how many homes were actually added?",
+        text: "New homes didn't keep up with new households.",
       },
       {
         key: "checkNeed",
         kind: "balance-takeaway",
-        text: "And how many extra homes were needed?",
+        text: "Compare homes added with extra homes needed.",
       },
     ],
   };
@@ -85,6 +85,30 @@ export function validateHousingBalanceStoryboard(
       JSON.stringify(expected.scenes.map(({ key, text }) => ({ key, text })))
   )
     throw new Error("Housing balance pictures and narration do not match the evidence.");
+}
+
+/** Deterministic display notation for the verified spoken counts. All other
+ * words stay verbatim; the measured audio passage still owns cue timing. */
+export function housingBalanceSubtitleScript(
+  story: HousingBalanceStoryboard,
+  script: Array<{ key: string; text: string }>
+) {
+  validateHousingBalanceStoryboard(story, script);
+  const b = matchedHousingBalance(story.evidence)!;
+  const counts: Record<string, number[]> = {
+    value: [b.net],
+    line: [b.demand],
+    facts: [b.shortfall],
+    claim: [b.netPer100, 100],
+  };
+  return script.map(({ key, text }) => {
+    for (const count of counts[key] ?? []) {
+      const spoken = count === 100 ? "hundred" : spokenCount(count);
+      if (!text.includes(spoken)) throw new Error("Verified subtitle count is missing.");
+      text = text.replace(spoken, count.toLocaleString("en-AU"));
+    }
+    return { key, text };
+  });
 }
 type Node = { type: string; props: Record<string, unknown> };
 /** One eased, rounded value drives both the label and its bar. Intermediate
@@ -299,14 +323,31 @@ export function housingBalanceFrameLayout(
       ),
       axis(),
     ]);
-  } else if (scene.kind === "balance-ratio") {
-    const shown = Math.round(b.netPer100 * progress);
+  } else {
+    // Keep the established 100-home comparison in place through the payoff.
+    // The viewer can see the evidence while hearing what it means.
+    const ratio = scene.kind === "balance-ratio";
+    const shown = ratio ? Math.round(b.netPer100 * progress) : b.netPer100;
+    const complete = !ratio || progress === 1;
+    const final = key === "checkNeed";
     content = box({ flexDirection: "column", gap: 32, paddingTop: 25 }, [
-      box({ alignItems: "baseline", gap: 18, height: 165 }, [
-        box({ width: 210, justifyContent: "flex-end" }, text(String(shown), 150, c.gold)),
-        text("/ 100", 70, c.muted),
-      ]),
-      text("Net new homes for every 100 needed.", 38, c.fg, true),
+      ratio
+        ? box({ alignItems: "baseline", gap: 18, height: 165 }, [
+            box({ width: 210, justifyContent: "flex-end" }, text(String(shown), 150, c.gold)),
+            text("/ 100", 70, c.muted),
+          ])
+        : box(
+            { height: 165, flexDirection: "column", justifyContent: "center" },
+            final
+              ? text("Watch the gap.", 86, c.gold, true)
+              : [text("New homes", 68, c.fg, true), text("fell behind.", 68, c.gap, true)]
+          ),
+      text(
+        final ? "Homes added vs extra homes needed." : "Net new homes for every 100 needed.",
+        38,
+        c.fg,
+        true
+      ),
       box(
         { flexDirection: "column", gap: 8 },
         Array.from({ length: 10 }, (_, r) =>
@@ -315,43 +356,31 @@ export function housingBalanceFrameLayout(
             Array.from({ length: 10 }, (_, col) => {
               const i = r * 10 + col;
               return box(
-                { width: 70, height: 37, opacity: i < shown || progress === 1 ? 1 : 0.35 },
-                houseSvg(i < shown ? c.gold : progress === 1 ? c.gap : c.muted, 46, 37)
+                { width: 70, height: 37, opacity: i < shown || complete ? 1 : 0.35 },
+                houseSvg(i < shown ? c.gold : complete ? c.gap : c.muted, 46, 37)
               );
             })
           )
         )
       ),
       text(
-        progress === 1
-          ? `${100 - b.netPer100} missing. For every 100 needed.`
-          : "Approximate ratio",
+        final
+          ? "Same place. Same period."
+          : complete
+            ? `${100 - b.netPer100} missing. For every 100 needed.`
+            : "Approximate ratio",
         29,
-        progress === 1 ? c.gap : c.muted
+        complete && !final ? c.gap : c.muted
       ),
+      ...(final
+        ? [
+            box({ flexDirection: "column", gap: 12, marginTop: 12 }, [
+              tag("Figures and sources in bio"),
+              text(REEL_READS.housingBalance.label, 27, c.gold),
+            ]),
+          ]
+        : []),
     ]);
-  } else {
-    const second = key === "checkNeed";
-    const question = (n: string, label: string, colour: string, visible = true) =>
-      box({ height: 145, alignItems: "center", gap: 28, opacity: visible ? 1 : 0 }, [
-        text(n, 35, colour),
-        text(label, 62, c.fg, true),
-      ]);
-    content = box(
-      { flexDirection: "column", height: 800, justifyContent: "space-between", paddingTop: 45 },
-      [
-        box({ flexDirection: "column", gap: 24 }, [
-          text("Two questions.", 86, c.gold, true),
-          question("01", "Homes added?", c.gold),
-          question("02", "Extra homes needed?", c.teal, second),
-          box({ opacity: second ? 1 : 0 }, tag("Same place. Same period.")),
-        ]),
-        box({ flexDirection: "column", gap: 18, opacity: second ? 1 : 0 }, [
-          tag("Figures and sources in bio"),
-          text(REEL_READS.housingBalance.label, 27, c.gold),
-        ]),
-      ]
-    );
   }
 
   return {

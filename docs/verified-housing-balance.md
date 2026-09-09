@@ -114,7 +114,7 @@ implied by rounded figures. Supply, demand and shortfall share fixed positions
 and the same 300,000-home scale. The 55,000 shortfall is highlighted within the
 demand bar beyond the supply endpoint. The ratio grid finishes with 81 gold
 homes and 19 coral homes, then holds. Fable delivers the closing takeaway:
-“More homes built doesn't mean the housing gap is closing.”
+“New homes didn't keep up with new households.”
 
 The demand passage explains the household meaning of the estimate: households
 needed about 287,000 extra homes. Its chart label says “Estimated extra homes
@@ -136,34 +136,34 @@ story concise. The close states the implication: supply must outpace new
 demand to close the gap. Exact data, source attribution, publication identity
 and the post caption are unchanged.
 
-### Practical closing questions
+### Practical payoff and visual continuity
 
-The close now teaches a reusable way to assess a housing headline: compare
-homes actually added with extra homes needed, for the same place and period.
-The two questions have separate measured Fable utterances. The first stays
-visible while the second is revealed, followed by the source destination.
-The local voice wrapper and child accept at most nine short utterances for
-this nine-scene sequence. The overall 32-second editorial limit, per-line
-length limits, voice speed, queue and concurrency limits remain in force.
+The close states what the comparison means: new homes did not keep up with
+new households. The completed grid of 81 gold and 19 coral homes stays in the
+same position through this explanation and the final instruction to compare
+homes added with extra homes needed. The ending also specifies the same place
+and period and gives the named source destination in the bio.
 
-The caption follows the same question, finding and practical application.
-It retains all three matched figures, the derived gap and ratio, the reference
-period, full attribution and the distinction from total accumulated shortage.
-Australian English and the no-em-dash rule remain enforced.
+The caption provides the same comparison through two questions for the next
+housing headline. It retains the matched figures, gap, ratio, reference period,
+full attribution and distinction from total accumulated shortage. Australian
+English and the no-em-dash rule remain enforced.
 
-### Complete sentences and numeric subtitle continuity
+### Complete sentences and readable numerical captions
 
-The latest read restores complete sentences to the figures and closing
-questions, and names the Housing Council during its source scene. This
-manually reviewed housing explainer has a 38-second maximum, allowing a
-slightly longer source passage and natural Fable delivery at speed 1.0. Other
-Reels retain their 32-second default. Both the script estimate and measured
-encoded timeline are checked against the applicable budget; invalid storyboards
-are still rejected before synthesis. A longer allowance is not a retention
-claim, and the final duration is determined by the actual recorded speech.
+The opening speaks the contrast as well as showing it. The Housing Council is
+named during its source scene. This manually reviewed housing explainer has a
+38-second maximum, with Fable at speed 1.0. Other Reels retain their 32-second
+default. Both the script estimate and measured timeline are checked against
+the applicable budget. Invalid storyboards are rejected before synthesis.
+The local voice wrapper and child accept at most nine short utterances; the
+per-line, queue and concurrency limits remain in force.
 
-Subtitle cue boundaries now avoid splitting the key spoken counts, such as
-“two hundred and thirty-two thousand”, across successive captions. Two-line
-wrapping is retained inside each cue, every word remains unchanged, and the
-existing minimum reading-time and passage-overlap checks remain active.
-Within-passage timing remains length-weighted, not forced word alignment.
+Housing subtitles use deterministic display notation for verified spoken
+counts: 232,000, 287,000, 55,000 and 81/100. The mapper first validates the exact
+storyboard and script against the matched evidence, then replaces only those
+count phrases. All other wording stays verbatim. Each numerical sentence fits
+one measured passage cue, with the existing two-line, minimum reading-time and
+overlap checks. Other formats keep verbatim subtitles with numeric phrases
+protected against cue splits where they fit. Within-passage timing remains
+length weighted, not forced word alignment.

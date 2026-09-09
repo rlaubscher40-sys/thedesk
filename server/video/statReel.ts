@@ -18,6 +18,7 @@ import {
 } from "./narration";
 
 import { subtitleCues, subtitleAss } from "./subtitles";
+import { housingBalanceSubtitleScript } from "./housingBalanceStoryboard";
 import {
   renderStoryFrame,
   storyboardSections,
@@ -652,7 +653,9 @@ export async function renderStatReel(
     if (opts.subtitles) {
       if (!spoken) throw new Error("Subtitles require measured narration.");
       const cues = subtitleCues(
-        script,
+        stat.storyboard?.kind === "housing-balance"
+          ? housingBalanceSubtitleScript(stat.storyboard, script)
+          : script,
         sections.map((section, i) => ({
           key: section.key,
           start: starts[i]!,
