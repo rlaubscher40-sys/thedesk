@@ -64,6 +64,23 @@ afterEach(() => {
 });
 
 describe("Ask answer recovery", () => {
+  it("answers a factual rent lookup from stored observations through normal sharing", async () => {
+    const href = "/markets?q=4000&state=QLD&areaKind=postcode&period=2026-06-30#local-data";
+    vi.mocked(retrieveLocalFacts).mockResolvedValue([{
+      title: "4000, QLD (postcode)", date: "2026-06-30", href,
+      publisher: "RTA", sourceUrl: "https://source.test/rents.xlsx", text: "Stored rent evidence",
+      localRent: { method: "New-tenancy medians; bond counts are contextual.", observations: [{
+        measure: "weekly-rent", value: 850, unit: "AUD/week", period: "2026-06-30",
+        category: "Flat 2", sample: 287, status: "published",
+        periodLabel: "Quarter ended 30 June 2026", sampleLabel: "Bonds lodged",
+      }] },
+    }]);
+    const result = await askRouter.createCaller(ctx).answer({ question: "What is the median weekly rent for a 2-bedroom flat in postcode 4000 QLD?" });
+    expect(result).toMatchObject({ status: "answered", sources: [{ href, date: "2026-06-30" }], shareToken: "verified-share-token" });
+    expect(result).toHaveProperty("answer.answer", expect.stringContaining("$850/week"));
+    expect(invokeLLMJson).not.toHaveBeenCalled();
+    expect(createIntelligenceShareToken).toHaveBeenCalledTimes(1);
+  });
   it("answers an entirely withheld rent lookup without model speculation or a share token", async () => {
     const href = "/markets?q=4000&state=QLD&areaKind=postcode&period=2026-06-30#local-data";
     vi.mocked(retrieveLocalFacts).mockResolvedValue([{

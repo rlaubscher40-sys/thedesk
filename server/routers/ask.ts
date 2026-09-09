@@ -4,6 +4,7 @@ import { displayMetricValue, rankAskMetrics } from "../ask/metricRetrieval";
 import { askQueryTerms, rankAskRecords } from "../ask/relevance";
 import { retrieveLocalFacts } from "../ask/localFacts";
 import { describeMetricObservation } from "../../shared/metricObservation";
+import { directLocalRentAnswer } from "../ask/directLocalRent";
 import * as db from "../db";
 import {
   consumeAnonymousAskAttempt,
@@ -375,7 +376,7 @@ export const askRouter = router({
 
           let parsed: z.infer<typeof askAnswerSchema>;
           try {
-            const raw = await invokeLLMJson<unknown>({
+            const raw = directLocalRentAnswer(input.question, matches.facts) ?? await invokeLLMJson<unknown>({
               messages: buildAskDeskMessages(input.question, evidence),
               responseFormat: askDeskResponseFormat,
               maxTokens: 2200,

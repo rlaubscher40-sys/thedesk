@@ -38,3 +38,14 @@ withheld matching local evidence now return a deterministic insufficient-data
 explanation and dated source links, without a model call, share token or consumed
 answer allowance. Mixed available/withheld evidence still uses synthesis. This
 does not repair prior saved answers or guarantee other model commentary.
+
+A second live comparison returned the correct $800 and $850 with separate
+June 2025/June 2026 links, but called the new-tenancy medians "asking rents".
+Simple factual median/weekly-rent lookups and comparisons now quote the stored
+observations and source methodology directly when all selected rows are
+published, from one publisher/method, and number at most four. They use normal
+answer validation and sharing without a model call. Bedroom counts written as
+words (one through nine) are also respected. Broader interpretation, mixed
+availability, different sources and larger selections retain normal synthesis.
+This narrow route does not claim that contextual bond counts explain changes,
+establish reliability or measure vacancy.

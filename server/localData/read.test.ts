@@ -193,5 +193,12 @@ describe("geographic fact retrieval", () => {
     expect(facts[1]!.text).toContain(
       "Latest stored release period: 2026-06-30",
     );
+    const words = localFactEvidence(
+      matchLocalAreas("4000", [data])[0]!,
+      "What was the median weekly rent for a two-bedroom flat in 4000 QLD in June 2025?",
+    );
+    expect(words[0]!.localRent!.observations).toEqual([
+      expect.objectContaining({ category: "Flat 2", value: 800, period: "2025-06-30" }),
+    ]);
   });
 });
