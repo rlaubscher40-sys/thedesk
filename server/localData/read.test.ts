@@ -112,5 +112,26 @@ describe("geographic fact retrieval", () => {
     expect(
       localFactEvidence(match, "Rents in postcode 2000 in 2025")?.text,
     ).toContain("500 AUD/week");
+    const historic = localFactEvidence(
+      match,
+      "Rents in postcode 2000 in 2025",
+    )!;
+    expect(historic.href).toContain("period=2025-08-01");
+    expect(historic.text).toContain("Historical reporting period");
+    expect(historic.text).not.toContain(
+      "Latest available in this stored source release",
+    );
+    expect(
+      localFactEvidence(
+        match,
+        "Rents in postcode 2000 for reporting period 2025-08-01",
+      )?.date,
+    ).toBe("2025-08-01");
+    expect(
+      localFactEvidence(
+        match,
+        "Rents in postcode 2000 for reporting period 2025-03-31",
+      ),
+    ).toBeNull();
   });
 });

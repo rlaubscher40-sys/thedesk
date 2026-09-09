@@ -168,8 +168,9 @@ export function localDatasetIsOlder(
 }
 export function localAreaHref(
   area: Pick<LocalArea, "name" | "state" | "kind">,
+  period?: string,
 ): string {
-  return `/markets?q=${encodeURIComponent(area.name)}&state=${area.state}&areaKind=${area.kind}#local-data`;
+  return `/markets?q=${encodeURIComponent(area.name)}&state=${area.state}&areaKind=${area.kind}${period ? `&period=${encodeURIComponent(period)}` : ""}#local-data`;
 }
 export function localPeriodLabel(
   source: LocalSourceKey,
