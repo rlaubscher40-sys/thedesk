@@ -13,6 +13,31 @@ export function AuctionClearance({
     <section className="rule-major mt-8 py-6" aria-busy={loading}>
       <p className="bs-label-accent">Auction results</p>
       <h2 className="bs-headline mt-3 text-2xl">Clearance across Australia</h2>
+      <aside
+        className="mt-4 max-w-3xl border border-[var(--color-border)] p-4 sm:p-5"
+        aria-label="Public auction results"
+      >
+        <h3 className="font-semibold">Read Domain’s weekly auction results</h3>
+        <p className="mt-2 text-sm text-[var(--color-fg-muted)]">
+          Free to view on Domain for Sydney, Melbourne, Brisbane, Adelaide and
+          Canberra, with reported auction counts and six months of history.
+          Coverage excludes Perth, Hobart and Darwin. These are city results;
+          they do not cover every state or establish an Australian clearance
+          rate.
+        </p>
+        <a
+          className="mt-3 inline-flex min-h-11 items-center underline underline-offset-4"
+          href="https://www.domain.com.au/auction-results/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          View auction results on Domain{" "}
+          <span className="ml-1" aria-hidden="true">
+            ↗
+          </span>
+          <span className="sr-only"> (opens in a new tab)</span>
+        </a>
+      </aside>
       <p className="mt-3 max-w-3xl text-sm text-[var(--color-fg-muted)]">
         New auction collection is paused while access to an approved replacement
         source is arranged. Any retained figures below are historical
