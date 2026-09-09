@@ -6,6 +6,7 @@ import { REEL_READS } from "../instagram/reelCaption";
 type Kind =
   | "balance-opening"
   | "balance-contrast"
+  | "balance-households"
   | "balance-net"
   | "balance-demand"
   | "balance-gap"
@@ -28,12 +29,17 @@ export function housingBalanceStoryboard(
       {
         key: "label",
         kind: "balance-opening",
-        text: "Australia built over a quarter of a million homes.",
+        text: "Over a quarter of a million homes built.",
       },
       {
         key: "contrast",
         kind: "balance-contrast",
-        text: "Yet housing supply still fell behind demand.",
+        text: "Why wasn't it enough?",
+      },
+      {
+        key: "households",
+        kind: "balance-households",
+        text: "Someone moves out. Another home is needed.",
       },
       {
         key: "value",
@@ -45,16 +51,20 @@ export function housingBalanceStoryboard(
         kind: "balance-demand",
         text: `Households needed about ${spokenCount(b.demand)} extra homes.`,
       },
-      { key: "facts", kind: "balance-gap", text: `A gap of ${spokenCount(b.shortfall)} homes.` },
+      {
+        key: "facts",
+        kind: "balance-gap",
+        text: `${spokenCount(b.shortfall)[0]!.toUpperCase() + spokenCount(b.shortfall).slice(1)} more than we added.`,
+      },
       {
         key: "claim",
         kind: "balance-ratio",
-        text: `About ${spokenCount(b.netPer100)} net new homes for every hundred needed.`,
+        text: `About ${spokenCount(b.netPer100)} added for every hundred needed.`,
       },
       {
         key: "signOff",
         kind: "balance-takeaway",
-        text: "More homes built doesn't mean the housing gap is closing.",
+        text: "Closing the gap means supply must outpace new demand.",
       },
     ],
   };
@@ -205,11 +215,14 @@ export function housingBalanceFrameLayout(
     content = box({ flexDirection: "column", gap: 32, paddingTop: 55 }, [
       text(number(b.gross), 172, c.gold, true),
       text("homes built.", 88, c.fg, true),
-      box({ marginTop: 70, height: 220, alignItems: "center" }, houseSvg(c.gold, 220, 190)),
+      box({ marginTop: 55, flexDirection: "column", gap: 12 }, [
+        text("So why did", 76, c.fg, true),
+        text("the gap grow?", 88, c.gap, true),
+      ]),
     ]);
   } else if (scene.kind === "balance-contrast") {
     content = box({ flexDirection: "column", gap: 55, paddingTop: 40 }, [
-      text("Still not enough.", 86, c.gap, true),
+      text("Follow the numbers.", 78, c.fg, true),
       box({ gap: 36, alignItems: "center" }, [
         ...(sourceCover
           ? [{ type: "img", props: { src: sourceCover, width: 340, height: 480 } }]
@@ -220,6 +233,34 @@ export function housingBalanceFrameLayout(
           text("30 APRIL 2026 / P. 21", 23, c.muted),
         ]),
       ]),
+    ]);
+  } else if (scene.kind === "balance-households") {
+    const moved = Math.max(0, Math.min(1, (progress - 0.15) / 0.65));
+    const eased = moved * moved * (3 - 2 * moved);
+    const person = (x: number, colour: string) =>
+      `<g transform="translate(${x} 205)" fill="none" stroke="${colour}" stroke-width="5" stroke-linecap="round"><circle cy="-28" r="12"/><path d="M-20 37V6q0-19 20-19t20 19v31 M-8 18v41 M8 18v41"/></g>`;
+    const roof = (x: number, colour: string) =>
+      `<g transform="translate(${x} 0)" fill="none" stroke="${colour}" stroke-width="5" stroke-linejoin="round"><path d="M0 130 140 30l140 100 M25 115v175h230V115"/></g>`;
+    const diagram = `<svg xmlns="http://www.w3.org/2000/svg" width="840" height="350" viewBox="0 0 840 350">${roof(10, c.gold)}<g opacity="${0.15 + eased * 0.85}">${roof(540, c.teal)}</g>${person(95, c.gold)}${person(160, c.gold)}${person(225 + eased * 450, c.teal)}<path d="M340 110h130m-15-15 15 15-15 15" fill="none" stroke="${c.muted}" stroke-width="3"/></svg>`;
+    content = box({ flexDirection: "column", gap: 40, paddingTop: 50 }, [
+      text("People move.", 88, c.fg, true),
+      text("Households form.", 80, c.teal, true),
+      box(
+        { marginTop: 35 },
+        {
+          type: "img",
+          props: {
+            width: 840,
+            height: 350,
+            src: `data:image/svg+xml;base64,${Buffer.from(diagram).toString("base64")}`,
+          },
+        }
+      ),
+      box({ width: 840, justifyContent: "space-between" }, [
+        tag("EXISTING HOUSEHOLD"),
+        text("ANOTHER HOME NEEDED", 25, c.teal),
+      ]),
+      text("One example of how housing need grows.", 26, c.muted),
     ]);
   } else if (["balance-net", "balance-demand", "balance-gap"].includes(scene.kind)) {
     const netScene = scene.kind === "balance-net";
@@ -289,8 +330,9 @@ export function housingBalanceFrameLayout(
       { flexDirection: "column", height: 760, justifyContent: "space-between", paddingTop: 80 },
       [
         box({ flexDirection: "column", gap: 22 }, [
-          text("More homes built.", 84, c.fg, true),
-          text("A gap still growing.", 84, c.gold, true),
+          text("To close the gap:", 78, c.fg, true),
+          text("Supply must", 92, c.gold, true),
+          text("outpace demand.", 88, c.gold, true),
         ]),
         box({ flexDirection: "column", gap: 18 }, [
           tag("Figures and sources in bio"),

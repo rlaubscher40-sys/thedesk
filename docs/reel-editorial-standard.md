@@ -17,13 +17,13 @@ serif headings and count-ups alone do not meet that target.
 
 | Area | Glasshouse reference | Housing Reel assessment and response |
 | --- | --- | --- |
-| Story | An investigation develops through concrete discoveries and named roles. | A single statistical comparison has less inherent narrative variety. The sequence now explains construction, demolitions, household need and the uncovered gap. Every step must answer the question raised by the previous one. |
+| Story | An investigation develops through concrete discoveries and named roles. | A single statistical comparison has less inherent narrative variety. The opening asks why the gap grew despite substantial construction. The sequence then explains household formation, demolitions, additional dwelling need and the uncovered gap. Every step must answer the question raised by the previous one. |
 | Visual meaning | The banks and people mentioned have recognisable visual counterparts. | The supply bar shrinks as demolitions are deducted. Demand extends beyond it. The excess becomes the highlighted gap. The house grid gives the ratio a visible meaning. |
-| Human relevance | People, property and consequences connect the story to everyday life. | Technical demand language hid what the estimate meant. The narration now explains that households needed extra homes. Do not equate a dwelling shortfall with a count of homeless people or claim a rent effect the data cannot establish. |
+| Human relevance | People, property and consequences connect the story to everyday life. | Technical demand language hid what the estimate meant. A person now moves from a shared home into a separate household in an explicitly illustrative animation, before the national figures are compared. Do not equate a dwelling shortfall with a count of homeless people or claim a rent effect the data cannot establish. |
 | Evidence | Photographs and labels make evidence tangible in the supplied frames. | The actual Council report cover, full publisher, title, date and page are visible. The dated reference period and discreet source attribution remain throughout. |
 | Variety | The supplied frames alternate numbers, documentary photographs and selected text. | Our cut remains more chart-led. A future story should use relevant documents, locations or photographs where they explain a fact. Decorative stock footage would not fix this weakness. |
 | Voice | Ruben prefers the reference's newsreader delivery. | Keep the approved Fable voice. Write sentences for speech, give important findings room to land, and review the actual audio before claiming equivalent delivery. |
-| Takeaway | The caption connects the alleged scheme to an ordinary bidder's experience. | The explicit lesson is that building more homes does not mean the gap is closing if additional household need is greater. The figures alone cannot support a local market or investment prediction. |
+| Takeaway | The caption connects the alleged scheme to an ordinary bidder's experience. | The explicit lesson is that new supply must outpace new demand to close the gap. The figures alone cannot support a local market or investment prediction. |
 
 ## Gates for every future Reel
 

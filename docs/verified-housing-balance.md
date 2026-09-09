@@ -119,3 +119,19 @@ homes and 19 coral homes, then holds. Fable delivers the closing takeaway:
 The demand passage explains the household meaning of the estimate: households
 needed about 287,000 extra homes. Its chart label says “Estimated extra homes
 needed”, so viewers do not need to interpret the technical demand label.
+
+### Human context and opening question
+
+The opening now puts the surprising contrast on screen immediately: 263,000
+homes built, yet the gap grew. A new, explicitly illustrative household scene
+shows a person leaving a shared home and forming a separate household. This
+explains one mechanism behind additional dwelling need; it is not an observed
+family, a demographic count or a claim that all moves add housing demand.
+The household illustration precedes the three continuous chart scenes so the
+established net-supply bar stays in place through demand and the gap.
+
+The additional passage uses measured Fable speech timing, bounded hard-cut
+animation and a reading hold. The shorter shortfall and ratio lines keep the
+story concise. The close states the implication: supply must outpace new
+demand to close the gap. Exact data, source attribution, publication identity
+and the post caption are unchanged.

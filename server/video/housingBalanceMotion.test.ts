@@ -22,9 +22,11 @@ describe("synchronised housing count-ups", () => {
   });
   it("allocates a bounded reveal and reading hold inside the spoken passage", () => {
     const story = housingBalanceStoryboard(HOUSING_BALANCE_SNAPSHOT);
-    const durations = Object.fromEntries(story.scenes.map((s) => [s.key, 4]));
+    const durations = Object.fromEntries(
+      story.scenes.map((s) => [s.key, s.key === "households" ? 3 : s.key === "contrast" ? 2.7 : 4])
+    );
     const sections = storyboardSections(story, durations);
-    for (const key of ["value", "line", "facts"]) {
+    for (const key of ["value", "line", "facts", "households"]) {
       const s = sections.find((s) => s.key === key)!;
       expect(s.frames[0]!.sceneProgress).toBe(0);
       expect(s.frames.at(-1)!.sceneProgress).toBe(1);
@@ -32,7 +34,7 @@ describe("synchronised housing count-ups", () => {
       expect(s.frames.reduce((sum, f) => sum + (f.seconds ?? 0), 0)).toBeLessThan(2.1);
       const beats = layout([s]).beats;
       expect(beats.slice(1).every((b) => b.fade === 0)).toBe(true);
-      expect(beats.at(-1)!.seconds).toBeGreaterThan(1.5);
+      expect(beats.at(-1)!.seconds).toBeGreaterThan(key === "households" ? 1 : 1.5);
     }
     expect(layout(sections).total).toBeLessThan(32);
   });
