@@ -43,6 +43,11 @@ export function metricObservationAskHref(metric: MetricObservationInput, value: 
   const timing = observation.date
     ? `as of ${observation.date}`
     : "with an unverified observation date";
-  const question = `What does ${metric.label} recorded at ${value} ${timing} tell us about Australian property? ${observation.explanation} Preserve its reporting period and do not assume it describes conditions today.`;
+  const detailed = `What does ${metric.label} at ${value} ${timing} mean for property? ${observation.explanation}`;
+  // Ask accepts 240 characters. Retain the date and complete warning rather
+  // than letting the receiving page cut a sentence or numeric value in half.
+  const question = detailed.length <= 240
+    ? detailed
+    : `What does ${metric.label.slice(0, 70)} ${timing} mean for property? ${observation.explanation}`;
   return `/ask?q=${encodeURIComponent(question)}`;
 }

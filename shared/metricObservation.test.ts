@@ -46,6 +46,13 @@ it("retains the actual date and historical limit in the Ask hand-off", () => {
   expect(question).toContain("4.35% as of 2025-01-01");
   expect(question).toContain("not a current observation");
   expect(question).not.toContain("right now");
+  expect(question.length).toBeLessThanOrEqual(240);
+});
+it("keeps complete date warnings within Ask's limit for long metric names", () => {
+  const question = new URL(metricObservationAskHref({ ...metric, label: "Long published metric name ".repeat(12) }, "123456789.123456789"), "https://thedesk.au").searchParams.get("q")!;
+  expect(question.length).toBeLessThanOrEqual(240);
+  expect(question).toContain("as of 2025-01-01");
+  expect(question).toMatch(/This is not a current observation\.$/);
 });
 it("does not present an unconfigured cadence as verified freshness", () => {
   expect(
