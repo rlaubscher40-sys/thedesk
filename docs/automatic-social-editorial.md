@@ -99,3 +99,19 @@ cards and complete videos are checked separately, then public UI after deploy.
 Railway reported 14 separately staged changes on initial inspection; this
 work does not accept or mutate that staging patch. Security changes on main
 are preserved. No email, profile edit, manual Instagram post or paid API added.
+
+# Published carousel reading links
+
+The Instagram-tagged homepage and `/social` show up to six recent story links
+(three on the compact homepage). These come from story IDs written to a
+permanent slot receipt only after Meta returns a confirmed media ID. The
+public response contains only the story ID, title, source, posting date and
+server-owned reading URL. Account metrics and raw receipts remain private.
+
+The read is cached for one minute and considers at most twelve confirmed slots
+from the last thirty days. Missing/deleted sources and stories that no longer
+pass the property/source-date rules are omitted. Old receipts without story
+IDs are not reconstructed from rankings or fuzzy headline matching. The story
+number form and archive remain available for those posts. The index is based
+on saved confirmation, not a live Meta deletion check; manually removing a post
+does not remove its still-public source story. It adds no Meta or model call.
