@@ -67,6 +67,24 @@ afterEach(() => {
 });
 
 describe("Ask answer recovery", () => {
+  it("joins renumbered citations to the selected story rather than the original first metric", async () => {
+    vi.mocked(db.searchAllContent).mockResolvedValue({ ...related, feedItems: [{ ...related.feedItems[0], title: "Investor lending update" }] } as typeof related);
+    vi.mocked(db.listDailyMetrics).mockResolvedValue([{
+      metricKey: "cash_rate", label: "RBA cash rate", value: "4.35", unit: "%",
+      asOf: new Date("2026-09-08"), updatedAt: new Date("2026-09-09"), source: "RBA",
+      groupKey: "MACRO", context: "Investor lending conditions", previousValue: null,
+    }] as Awaited<ReturnType<typeof db.listDailyMetrics>>);
+    const result = await askRouter.createCaller(ctx).answer({ question: "Investor lending update. Use only one source." });
+    expect(result).toMatchObject({ status: "answered", sources: [{ ref: 1, href: "/story/1" }] });
+    expect(vi.mocked(reviewAskAnswer).mock.calls[0]![2]).toEqual([expect.objectContaining({ ref: 1, kind: "feed", title: "Investor lending update" })]);
+  });
+  it("does not feed generated angles back into the factual evidence", async () => {
+    vi.mocked(db.searchAllContent).mockResolvedValue({ ...related, feedItems: [{ ...related.feedItems[0], whyItMatters: "IMPLIED COMPLETION DELAYS", sayThis: "UNSUPPORTED SALES LINE", counterpoint: "GENERATED COUNTERPOINT", rubensNote: "PERSONAL OPINION" }] } as typeof related);
+    await askRouter.createCaller(ctx).answer(input);
+    const prompt = vi.mocked(invokeLLMJson).mock.calls[0]![0].messages.map((message) => message.content).join("\n");
+    expect(prompt).toContain("Lender competition increased.");
+    expect(prompt).not.toMatch(/IMPLIED COMPLETION|UNSUPPORTED SALES|GENERATED COUNTERPOINT|PERSONAL OPINION/);
+  });
   it("limits the model's evidence and schema to a requested source count", async () => {
     vi.mocked(db.searchAllContent).mockResolvedValue({ feedItems: Array.from({ length: 12 }, (_, index) => ({ ...related.feedItems[0], id: index + 1 })), editions: [] } as typeof related);
     await askRouter.createCaller(ctx).answer({ question: "What changed in investor lending? Use at most three dated sources." });
@@ -86,7 +104,7 @@ describe("Ask answer recovery", () => {
   it("rejects a source that was retrieved but excluded by the requested limit", async () => {
     vi.mocked(db.searchAllContent).mockResolvedValue({ feedItems: Array.from({ length: 4 }, (_, index) => ({ ...related.feedItems[0], id: index + 1 })), editions: [] } as typeof related);
     vi.mocked(invokeLLMJson).mockResolvedValue({ ...answer, sourceRefs: [4] });
-    await expect(askRouter.createCaller(ctx).answer({ question: "Investor lending? Use at most three sources." })).rejects.toMatchObject({ code: "INTERNAL_SERVER_ERROR" });
+    expect(await askRouter.createCaller(ctx).answer({ question: "Investor lending? Use at most three sources." })).toMatchObject({ status: "insufficient" });
     expect(reviewAskAnswer).not.toHaveBeenCalled();
     expect(createIntelligenceShareToken).not.toHaveBeenCalled();
   });
@@ -105,7 +123,7 @@ describe("Ask answer recovery", () => {
   });
   it("does not publish when the review is unavailable", async () => {
     vi.mocked(reviewAskAnswer).mockRejectedValue(new Error("Review unavailable"));
-    await expect(askRouter.createCaller(ctx).answer(input)).rejects.toThrow("Review unavailable");
+    expect(await askRouter.createCaller(ctx).answer(input)).toMatchObject({ status: "insufficient" });
     expect(createIntelligenceShareToken).not.toHaveBeenCalled();
     expect((await consumeAnonymousAsk(ctx.req)).remaining).toBe(2);
   });
@@ -301,7 +319,8 @@ describe("Ask answer recovery", () => {
       if (failure === "invalid citation")
         vi.mocked(invokeLLMJson).mockResolvedValueOnce({ ...answer, sourceRefs: [1, 999] });
       const caller = askRouter.createCaller(ctx);
-      await expect(caller.answer(input)).rejects.toMatchObject({ code: "INTERNAL_SERVER_ERROR" });
+      if (failure === "invalid citation") expect(await caller.answer(input)).toMatchObject({ status: "insufficient" });
+      else await expect(caller.answer(input)).rejects.toMatchObject({ code: "INTERNAL_SERVER_ERROR" });
       expect(createIntelligenceShareToken).not.toHaveBeenCalled();
       expect(await caller.answer(input)).toMatchObject({
         status: "answered",
