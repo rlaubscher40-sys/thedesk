@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { balanceCountFrame, housingBalanceStoryboard } from "./housingBalanceStoryboard";
+import {
+  balanceCountFrame,
+  housingBalanceStoryboard,
+  housingGapIllustration,
+} from "./housingBalanceStoryboard";
 import { HOUSING_BALANCE_SNAPSHOT } from "../../shared/housingBalance";
 import { storyboardSections } from "./storyboard";
 import { layout } from "./statReel";
@@ -65,8 +69,33 @@ describe("synchronised housing count-ups", () => {
     const demandBeats = layout([demand]).beats;
     expect(demandBeats.slice(1).every((b) => b.fade === 0)).toBe(true);
     const hook = sections.find((s) => s.key === "label")!;
-    expect(hook.frames.map((f) => f.sceneProgress)).toEqual([0, 1]);
-    expect(hook.frames[0]!.seconds).toBeCloseTo(1.2);
+    for (const key of ["label", "contrast", "signOff"]) {
+      const section = sections.find((s) => s.key === key)!;
+      let at = 0;
+      for (const frame of section.frames) {
+        if (at < 1.2 - 0.001) expect(frame.sceneProgress).toBeLessThanOrEqual(0.5);
+        if (frame.sceneProgress! > 0.5) expect(at).toBeGreaterThanOrEqual(1.2);
+        expect((frame.seconds ?? 1) > 0).toBe(true);
+        at += frame.seconds ?? 0;
+      }
+      expect(section.frames.at(-1)!.sceneProgress).toBe(1);
+      expect(at).toBeLessThan(5);
+    }
     expect(() => storyboardSections(story, durations, {})).toThrow("measured");
   });
+});
+
+it("shows a fixed illustrative gap for equal growth and a closing gap for faster supply", () => {
+  let previous = 60;
+  for (const p of [0, 0.25, 0.5, 0.75, 1]) {
+    const keep = housingGapIllustration("keep-up", p);
+    const catchUp = housingGapIllustration("catch-up", p);
+    expect(keep.gap).toBe(60);
+    expect(catchUp.needY).toBe(keep.needY);
+    expect(catchUp.gap).toBeLessThanOrEqual(previous);
+    expect(catchUp.gap).toBeGreaterThanOrEqual(0);
+    previous = catchUp.gap;
+  }
+  expect(housingGapIllustration("catch-up", 1).gap).toBe(0);
+  expect(() => housingGapIllustration("keep-up", NaN)).toThrow();
 });

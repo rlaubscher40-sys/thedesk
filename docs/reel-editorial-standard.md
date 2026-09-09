@@ -42,8 +42,10 @@ licence with the subset. Numbers retain aligned monospaced figures.
 Show the two sides of the comparison before the chart. Keep the supply row and
 scale fixed while demand arrives. Highlight the uncovered portion within demand.
 Use 100 filled house tiles to make 81/100 readable on a phone. The final two
-statements reuse the established supply and demand colours and highlight with
-the relevant narration. The actual Council report cover, full publisher, title,
+comparisons animate the principle: equal growth preserves the initial gap, while
+faster supply can close it. Reuse the established gold supply and teal need lines,
+with a coral bracket showing their separation. Label this as an illustration,
+not a forecast; do not add forecast dates or invented housing quantities. The actual Council report cover, full publisher, title,
 date and page support the comparison without becoming a whole source-only scene.
 
 ## Voice, timing and delivery
@@ -77,3 +79,18 @@ MP4 download link because the chat's inline preview has failed for this user.
 - Review the encoded MP4 for legibility, narration, timing and sound-off meaning.
 - Use retention, completion, saves and replies after posting to assess results.
   A design review cannot establish parity with Glasshouse's audience performance.
+
+## Visual actions at phrase boundaries
+
+The opening homes appear during the first spoken phrase; the question appears
+only when the second phrase starts. The supply definition arrives first and the
+need definition arrives with its own phrase. The spoken sentence is preserved.
+The moving-out scene explicitly labels household formation as one way need grows.
+
+The ending draws the closing-gap illustration during the first phrase and the
+constant-gap illustration during the second. Use the exact measured phrase
+starts and durations, at most 24 animation steps per phrase, with a reading hold
+for the remaining 28 percent of each phrase. No visual crosses a phrase boundary
+early. Internal frames are cuts on the 30fps grid so changing geometry stays crisp.
+This adds purposeful motion while preserving the verified national finding and
+Fable speed. Review the encoded file before handing over the preview.

@@ -99,6 +99,53 @@ export function storyboardSections(
     const measured = durations[scene.key];
     if (!Number.isFinite(measured) || measured! <= 0)
       throw new Error("Scene has no speech timing.");
+    // Two authored phrases control two visual actions. Each phase finishes
+    // before its speech ends and holds through the pause; no guessed word cues.
+    if (
+      story.kind === "housing-balance" &&
+      phrases &&
+      ["balance-opening", "balance-contrast", "balance-takeaway"].includes(scene.kind)
+    ) {
+      const cues = phrases[scene.key];
+      if (
+        !cues ||
+        cues.length !== 2 ||
+        cues.some(
+          (p) =>
+            !Number.isFinite(p.start) ||
+            !Number.isFinite(p.seconds) ||
+            p.start < 0 ||
+            p.seconds < 0.2 ||
+            p.start + p.seconds > measured! + 0.02
+        ) ||
+        cues[1]!.start < cues[0]!.start + cues[0]!.seconds - 0.02
+      )
+        throw new Error("Two visual phases require valid measured phrases.");
+      const ticks: Array<{ at: number; progress: number }> = [];
+      cues.forEach((cue, phase) => {
+        const start = Math.round(cue.start * 30);
+        const end = Math.round((cue.start + cue.seconds * 0.72) * 30);
+        const steps = Math.min(24, end - start);
+        if (steps < 1) throw new Error("Measured visual phase is too short.");
+        if (phase === 0 && start > 0) ticks.push({ at: 0, progress: 0 });
+        for (let i = 0; i <= steps; i++)
+          ticks.push({
+            at: Math.round(start + ((end - start) * i) / steps),
+            progress: (phase + i / steps) / 2,
+          });
+      });
+      return {
+        key: scene.key,
+        seconds: measured! + (index === story.scenes.length - 1 ? 0.65 : 0.14),
+        frames: ticks.map((tick, i) => ({
+          reveal: 1,
+          sceneKey: scene.key,
+          sceneProgress: tick.progress,
+          ...(i > 0 ? { hardCut: true } : {}),
+          ...(i < ticks.length - 1 ? { seconds: (ticks[i + 1]!.at - tick.at) / 30 } : {}),
+        })),
+      };
+    }
     if (
       story.kind === "housing-balance" &&
       phrases &&

@@ -46,7 +46,8 @@ export function housingBalanceStoryboard(
         1
       ),
       scene("contrast", "balance-contrast", [
-        "Homes added have to keep up with extra homes needed.",
+        "Homes added have to keep up",
+        "with extra homes needed.",
       ]),
       scene(
         "households",
@@ -145,6 +146,15 @@ export function balanceCountFrame(target: number, progress: number, scale = 3000
   const value =
     progress === 1 ? target : Math.min(target, Math.round((target * eased) / 1000) * 1000);
   return { value, widthPercent: (value / scale) * 100 };
+}
+/** Illustrative geometry only: equal growth preserves a gap; faster additions
+ * can close it. No axis values or forecast dates are assigned. */
+export function housingGapIllustration(mode: "keep-up" | "catch-up", progress: number) {
+  if (!Number.isFinite(progress) || progress < 0 || progress > 1)
+    throw new Error("Invalid illustration progress");
+  const needY = 54 - progress * 30;
+  const supplyY = 114 - progress * (mode === "keep-up" ? 30 : 90);
+  return { x: 24 + progress * 640, needY, supplyY, gap: supplyY - needY };
 }
 const box = (style: Record<string, unknown>, children: unknown): Node => ({
   type: "div",
@@ -285,12 +295,22 @@ export function housingBalanceFrameLayout(
       text("More homes.", 102, c.fg, true),
       box(
         { gap: 24, marginTop: 20 },
-        Array.from({ length: 5 }, () => houseSvg(c.gold, 140, 125))
+        Array.from({ length: 5 }, (_, i) =>
+          box(
+            { opacity: Math.min(1, Math.max(0.12, progress * 10 - i)) },
+            houseSvg(c.gold, 140, 125)
+          )
+        )
       ),
-      box({ flexDirection: "column", gap: 14, marginTop: 55, opacity: progress }, [
-        text("Still a", 100, c.fg, true),
-        text("shortage?", 120, c.gap, true),
-      ]),
+      box(
+        {
+          flexDirection: "column",
+          gap: 14,
+          marginTop: 55,
+          opacity: Math.max(0, Math.min(1, (progress - 0.5) * 4)),
+        },
+        [text("Still a", 100, c.fg, true), text("shortage?", 120, c.gap, true)]
+      ),
     ]);
   } else if (scene.kind === "balance-contrast") {
     content = box({ flexDirection: "column", gap: 36, paddingTop: 15 }, [
@@ -300,6 +320,7 @@ export function housingBalanceFrameLayout(
           padding: 30,
           backgroundColor: c.panel,
           borderLeft: `7px solid ${c.gold}`,
+          opacity: Math.min(1, progress * 4),
           flexDirection: "column",
           gap: 12,
         },
@@ -310,6 +331,7 @@ export function housingBalanceFrameLayout(
           padding: 30,
           backgroundColor: c.panel,
           borderLeft: `7px solid ${c.teal}`,
+          opacity: Math.max(0, Math.min(1, (progress - 0.5) * 4)),
           flexDirection: "column",
           gap: 12,
         },
@@ -358,6 +380,7 @@ export function housingBalanceFrameLayout(
         c.fg,
         true
       ),
+      text("One way housing need grows.", 30, c.teal, true),
       text("Illustrative example", 24, c.muted),
     ]);
   } else if (["balance-net", "balance-demand", "balance-gap"].includes(scene.kind)) {
@@ -393,23 +416,45 @@ export function housingBalanceFrameLayout(
       axis(),
     ]);
   } else if (scene.kind === "balance-takeaway") {
-    const rule = (heading: string, meaning: string, colour: string, active: boolean) =>
-      box(
+    const illustration = (mode: "keep-up" | "catch-up", p: number, active: boolean) => {
+      const f = housingGapIllustration(mode, p);
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="760" height="145" viewBox="0 0 760 145"><path d="M24 54L${f.x} ${f.needY}" fill="none" stroke="${c.teal}" stroke-width="8" stroke-linecap="round"/><path d="M24 114L${f.x} ${f.supplyY}" fill="none" stroke="${c.gold}" stroke-width="8" stroke-linecap="round"/><circle cx="${f.x}" cy="${f.needY}" r="7" fill="${c.teal}"/><circle cx="${f.x}" cy="${f.supplyY}" r="7" fill="${c.gold}"/>${f.gap > 1 ? `<path d="M${f.x + 22} ${f.needY}h12v${f.gap}h-12" fill="none" stroke="${c.gap}" stroke-width="4"/>` : ""}</svg>`;
+      return box(
         {
-          padding: 32,
+          padding: 24,
           flexDirection: "column",
-          gap: 18,
-          borderLeft: `7px solid ${colour}`,
+          gap: 8,
+          borderLeft: `6px solid ${active ? c.fg : c.rule}`,
           backgroundColor: c.panel,
-          opacity: active ? 1 : 0.5,
         },
-        [text(heading, 46, colour, true), text(meaning, 35, c.fg, true)]
+        [
+          box({ justifyContent: "space-between", alignItems: "baseline" }, [
+            text(mode === "keep-up" ? "Meet new need" : "Outpace new need", 37, c.fg, true),
+            text(
+              mode === "keep-up" ? "Gap stays" : "Gap closes",
+              30,
+              mode === "keep-up" ? c.gap : c.gold,
+              true
+            ),
+          ]),
+          {
+            type: "img",
+            props: {
+              width: 760,
+              height: 145,
+              src: `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`,
+            },
+          },
+        ]
       );
-    content = box({ flexDirection: "column", gap: 36, paddingTop: 20 }, [
+    };
+    content = box({ flexDirection: "column", gap: 24, paddingTop: 20 }, [
       text("Keeping up is not catching up.", 74, c.fg, true),
-      rule("Meet new need", "Stop the gap growing", c.teal, progress > 0),
-      rule("Outpace new need", "Start closing the gap", c.gold, progress === 0),
-      box({ flexDirection: "column", gap: 14, marginTop: 24 }, [
+      box({ gap: 38 }, [text("Homes added", 27, c.gold), text("Extra need", 27, c.teal)]),
+      illustration("keep-up", Math.max(0, (progress - 0.5) * 2), progress >= 0.5),
+      illustration("catch-up", Math.min(1, progress * 2), progress < 0.5),
+      text("Illustration, not a forecast", 23, c.muted),
+      box({ flexDirection: "column", gap: 12, marginTop: 8 }, [
         tag("Full source: link in bio"),
         text(REEL_READS.housingBalance.label, 27, c.gold),
       ]),

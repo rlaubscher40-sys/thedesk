@@ -89,8 +89,8 @@ describe("quiet housing Reel layouts", () => {
     for (const progress of [0, 1]) {
       const ending = housingBalanceFrameLayout(story, "signOff", progress, "navy").content;
       const words = copy(ending);
-      expect(words).toContain("Stop the gap growing");
-      expect(words).toContain("Start closing the gap");
+      expect(words).toContain("Gap stays");
+      expect(words).toContain("Gap closes");
       expect(words.join(" ")).not.toMatch(/55,000|19 gap/);
     }
   });
