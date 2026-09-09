@@ -54,3 +54,129 @@ it.skipIf(!testUrl)(
     );
   }
 );
+
+it.skipIf(!testUrl)("enforces draft privacy and revokes copied cookies through HTTP", async () => {
+  // Only session/budget persistence uses MySQL. Editorial content and the admin
+  // identity are synthetic; this test never opens a production database.
+  const draft = "synthetic-private-draft";
+  const asset = vi.fn(async () => ({ contentType: "image/png", bytes: Buffer.from(draft) }));
+  vi.doMock("../db", () => ({
+    getEditionById: async () => ({
+      id: 1,
+      editionNumber: 1,
+      fullText: "public text",
+      substackDraftBody: draft,
+    }),
+    getLatestEditionAsset: asset,
+  }));
+  vi.doMock("./users", () => ({
+    getUserByOpenId: async () => ({ id: 1, openId: "admin", role: "admin" }),
+    upsertUser: async () => undefined,
+  }));
+  vi.doMock("../core/env", () => ({
+    env: {
+      adminPassword: "isolated-http-test-password",
+      cookieSecret: "isolated-http-test-signing-secret-at-least-32-bytes",
+      adminTotpSecret: "",
+    },
+  }));
+  const { default: express } = await import("express");
+  const { createServer } = await import("node:http");
+  const { createExpressMiddleware } = await import("@trpc/server/adapters/express");
+  const { registerOAuthRoutes } = await import("../core/oauth");
+  const { registerSeoRoutes } = await import("../core/seo");
+  const { protectBrowserMutation } = await import("../core/csrf");
+  const { createContext } = await import("../core/context");
+  const { router } = await import("../core/trpc");
+  const { editionsRouter } = await import("../routers/editions");
+  const app = express();
+  app.set("trust proxy", 1);
+  app.use(express.json(), protectBrowserMutation);
+  registerOAuthRoutes(app);
+  registerSeoRoutes(app);
+  app.use(
+    "/api/trpc",
+    createExpressMiddleware({ router: router({ editions: editionsRouter }), createContext })
+  );
+  const server = createServer(app);
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const port = (server.address() as import("node:net").AddressInfo).port;
+  const base = `http://127.0.0.1:${port}`;
+  const headers = {
+    "content-type": "application/json",
+    "x-forwarded-proto": "https",
+    origin: `https://127.0.0.1:${port}`,
+  };
+  const input = encodeURIComponent(JSON.stringify({ json: { editionId: 1 } }));
+  const editorPath = `/api/trpc/editions.editor?input=${input}`;
+  const imagePath = "/api/images/edition/1/substack";
+  try {
+    const publicResponse = await fetch(`${base}/api/trpc/editions.getById?input=${input}`);
+    expect(publicResponse.status).toBe(200);
+    const publicBody = await publicResponse.text();
+    expect(publicBody).toContain("public text");
+    expect(publicBody).not.toContain(draft);
+    expect(publicBody).not.toContain("substackDraftBody");
+
+    for (const path of [editorPath, imagePath]) {
+      const response = await fetch(base + path);
+      expect(response.status).toBe(403);
+      expect(await response.text()).not.toContain(draft);
+    }
+    expect(asset).not.toHaveBeenCalled();
+
+    const crossSite = await fetch(`${base}/api/auth/login`, {
+      method: "POST",
+      headers: { ...headers, origin: "https://untrusted.invalid" },
+      body: JSON.stringify({ password: "isolated-http-test-password" }),
+    });
+    expect(crossSite.status).toBe(403);
+    expect(crossSite.headers.get("set-cookie")).toBeNull();
+    await crossSite.text();
+    const wrongPassword = await fetch(`${base}/api/auth/login`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ password: "wrong" }),
+    });
+    expect(wrongPassword.status).toBe(401);
+    expect(wrongPassword.headers.get("set-cookie")).toBeNull();
+    await wrongPassword.text();
+
+    const login = await fetch(`${base}/api/auth/login`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ password: "isolated-http-test-password" }),
+    });
+    expect(login.status).toBe(200);
+    expect(await login.json()).toEqual({ success: true });
+    const setCookie = login.headers.get("set-cookie")!;
+    for (const attribute of ["HttpOnly", "Secure", "SameSite=Lax", "Max-Age=43200"])
+      expect(setCookie).toContain(attribute);
+    const copiedCookie = setCookie.split(";")[0];
+    for (const path of [editorPath, imagePath]) {
+      const response = await fetch(base + path, { headers: { cookie: copiedCookie } });
+      expect(response.status).toBe(200);
+      expect(response.headers.get("cache-control")).toBe("private, no-store");
+      expect(await response.text()).toContain(draft);
+    }
+    expect(asset).toHaveBeenCalledTimes(1);
+    const logout = await fetch(`${base}/api/auth/logout`, {
+      method: "POST",
+      headers: { ...headers, cookie: copiedCookie },
+    });
+    expect(logout.status).toBe(200);
+    expect(await logout.json()).toEqual({ success: true });
+    expect(logout.headers.get("set-cookie")).toContain("Expires=Thu, 01 Jan 1970");
+    for (const path of [editorPath, imagePath]) {
+      const response = await fetch(base + path, { headers: { cookie: copiedCookie } });
+      expect(response.status).toBe(403);
+      expect(await response.text()).not.toContain(draft);
+    }
+    expect(asset).toHaveBeenCalledTimes(1);
+  } finally {
+    server.closeAllConnections();
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve()))
+    );
+  }
+});
