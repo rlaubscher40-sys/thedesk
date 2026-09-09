@@ -1,5 +1,5 @@
 import { matchedHousingBalance, type HousingBalanceSnapshot } from "../../shared/housingBalance";
-import { renderEditorialFrame, type CardVariant } from "../og/instagramCards";
+import { renderEditorialFrame, loadAsset, type CardVariant } from "../og/instagramCards";
 import { spokenCount } from "./spokenNumbers";
 import { REEL_READS } from "../instagram/reelCaption";
 
@@ -43,7 +43,7 @@ export function housingBalanceStoryboard(
       {
         key: "line",
         kind: "balance-demand",
-        text: `Estimated new demand: ${spokenCount(b.demand)} homes.`,
+        text: `Households needed about ${spokenCount(b.demand)} extra homes.`,
       },
       { key: "facts", kind: "balance-gap", text: `A gap of ${spokenCount(b.shortfall)} homes.` },
       {
@@ -54,7 +54,7 @@ export function housingBalanceStoryboard(
       {
         key: "signOff",
         kind: "balance-takeaway",
-        text: "New supply didn't even cover new demand.",
+        text: "More homes built doesn't mean the housing gap is closing.",
       },
     ],
   };
@@ -117,7 +117,8 @@ export function housingBalanceFrameLayout(
   story: HousingBalanceStoryboard,
   key: string,
   progress: number,
-  variant: CardVariant
+  variant: CardVariant,
+  sourceCover?: string
 ) {
   const b = matchedHousingBalance(story.evidence),
     scene = story.scenes.find((s) => s.key === key);
@@ -146,17 +147,51 @@ export function housingBalanceFrameLayout(
   const number = (n: number) => n.toLocaleString("en-AU");
   const tag = (s: string) => text(s, 25, c.muted);
   const scale = 300000;
-  const row = (label: string, target: number, color: string, reveal = 1) => {
-    const tick = balanceCountFrame(target, reveal, scale);
+  const row = (label: string, value: number, color: string, gapReveal = 0, removed = 0) => {
     return box({ flexDirection: "column", gap: 12, width: 840 }, [
       text(label, 25, color),
       box(
         { height: 108, justifyContent: "flex-end", alignItems: "center" },
-        text(number(tick.value), 94, c.fg)
+        text(number(value), 94, c.fg)
       ),
       box(
-        { height: 66, backgroundColor: c.panel, borderRadius: 5, overflow: "hidden" },
-        box({ height: 66, width: `${tick.widthPercent}%`, backgroundColor: color }, "")
+        {
+          height: 66,
+          position: "relative",
+          backgroundColor: c.panel,
+          borderRadius: 5,
+          overflow: "hidden",
+        },
+        [
+          box({ height: 66, width: `${(value / scale) * 100}%`, backgroundColor: color }, ""),
+          ...(removed > 0
+            ? [
+                box(
+                  {
+                    height: 66,
+                    width: `${(removed / scale) * 100}%`,
+                    backgroundColor: c.gap,
+                    opacity: 1 - removed / b.impliedRemovals,
+                  },
+                  ""
+                ),
+              ]
+            : []),
+          ...(gapReveal > 0
+            ? [
+                box(
+                  {
+                    position: "absolute",
+                    left: `${(b.net / scale) * 100}%`,
+                    width: `${(gapReveal / scale) * 100}%`,
+                    height: 66,
+                    backgroundColor: c.gap,
+                  },
+                  ""
+                ),
+              ]
+            : []),
+        ]
       ),
     ]);
   };
@@ -166,46 +201,57 @@ export function housingBalanceFrameLayout(
       text("300,000 homes", 21, c.muted),
     ]);
   let content: Node;
-  if (scene.kind === "balance-opening" || scene.kind === "balance-contrast") {
-    const contrast = scene.kind === "balance-contrast";
+  if (scene.kind === "balance-opening") {
     content = box({ flexDirection: "column", gap: 32, paddingTop: 55 }, [
-      text(number(b.gross), 172, contrast ? c.muted : c.gold, true),
-      text("homes built.", 88, contrast ? c.muted : c.fg, true),
-      box(
-        { marginTop: 70, height: 220, alignItems: "center" },
-        contrast ? text("Still not enough.", 86, c.gap, true) : houseSvg(c.gold, 220, 190)
-      ),
+      text(number(b.gross), 172, c.gold, true),
+      text("homes built.", 88, c.fg, true),
+      box({ marginTop: 70, height: 220, alignItems: "center" }, houseSvg(c.gold, 220, 190)),
     ]);
-  } else if (scene.kind === "balance-net" || scene.kind === "balance-demand") {
-    const demandScene = scene.kind === "balance-demand";
-    // Shared positions let demand arrive beneath the already-established supply.
+  } else if (scene.kind === "balance-contrast") {
+    content = box({ flexDirection: "column", gap: 55, paddingTop: 40 }, [
+      text("Still not enough.", 86, c.gap, true),
+      box({ gap: 36, alignItems: "center" }, [
+        ...(sourceCover
+          ? [{ type: "img", props: { src: sourceCover, width: 340, height: 480 } }]
+          : []),
+        box({ width: 460, flexDirection: "column", gap: 28 }, [
+          text("National Housing Supply and Affordability Council", 35, c.fg, true),
+          text("State of the Housing System 2026", 29, c.gold),
+          text("30 APRIL 2026 / P. 21", 23, c.muted),
+        ]),
+      ]),
+    ]);
+  } else if (["balance-net", "balance-demand", "balance-gap"].includes(scene.kind)) {
+    const netScene = scene.kind === "balance-net";
+    const gapScene = scene.kind === "balance-gap";
+    const removed = netScene
+      ? balanceCountFrame(b.impliedRemovals, progress).value
+      : b.impliedRemovals;
+    const supply = b.gross - removed;
+    const demand = netScene ? 0 : gapScene ? b.demand : balanceCountFrame(b.demand, progress).value;
+    const gap = gapScene ? balanceCountFrame(b.shortfall, progress).value : 0;
+    // Identical positions and a common scale across all three spoken passages.
     content = box({ flexDirection: "column", gap: 40, paddingTop: 35 }, [
       box(
         { height: 130, alignItems: "flex-start" },
-        text(demandScene ? "Supply vs demand." : "After demolitions.", 72, c.fg, true)
+        gapScene
+          ? box({ alignItems: "baseline", gap: 20 }, [
+              text(number(gap), 80, c.gap),
+              text("homes short.", 50, c.fg, true),
+            ])
+          : text(netScene ? "After demolitions." : "Supply vs demand.", 72, c.fg, true)
       ),
-      row("NET NEW SUPPLY", b.net, c.gold, demandScene ? 1 : progress),
+      row("NET NEW SUPPLY", supply, c.gold, 0, netScene && progress < 1 ? removed : 0),
       box(
-        { height: 244 },
-        demandScene ? row("ESTIMATED NEW DEMAND", b.demand, c.teal, progress) : ""
+        { height: 244, alignItems: "flex-start" },
+        netScene
+          ? box({ flexDirection: "column", gap: 18, paddingTop: 28 }, [
+              text(`~${number(removed)} demolished*`, 38, c.gap),
+              text("*Implied by rounded figures", 23, c.muted),
+            ])
+          : row("ESTIMATED EXTRA HOMES NEEDED", demand, c.teal, gap)
       ),
       axis(),
-    ]);
-  } else if (scene.kind === "balance-gap") {
-    const tick = balanceCountFrame(b.shortfall, progress, scale);
-    content = box({ flexDirection: "column", gap: 32, paddingTop: 45 }, [
-      text("The additional gap.", 66, c.fg, true),
-      box({ height: 192, alignItems: "center" }, text(number(tick.value), 160, c.gap)),
-      text("homes short.", 80, c.fg, true),
-      box({ height: 88, backgroundColor: c.panel, marginTop: 45 }, [
-        box({ width: `${(b.net / scale) * 100}%`, backgroundColor: c.gold }, ""),
-        box({ width: `${tick.widthPercent}%`, backgroundColor: c.gap }, ""),
-      ]),
-      axis(),
-      box({ justifyContent: "space-between" }, [
-        text("ADDED", 23, c.gold),
-        text("SHORTFALL", 23, c.gap),
-      ]),
     ]);
   } else if (scene.kind === "balance-ratio") {
     const shown = Math.round(b.netPer100 * progress);
@@ -223,22 +269,28 @@ export function housingBalanceFrameLayout(
             Array.from({ length: 10 }, (_, col) => {
               const i = r * 10 + col;
               return box(
-                { width: 70, height: 37, opacity: i < shown ? 1 : 0.45 },
-                houseSvg(i < shown ? c.gold : c.gap, 46, 37)
+                { width: 70, height: 37, opacity: i < shown || progress === 1 ? 1 : 0.35 },
+                houseSvg(i < shown ? c.gold : progress === 1 ? c.gap : c.muted, 46, 37)
               );
             })
           )
         )
       ),
-      tag("Approximate ratio"),
+      text(
+        progress === 1
+          ? `${100 - b.netPer100} missing. For every 100 needed.`
+          : "Approximate ratio",
+        29,
+        progress === 1 ? c.gap : c.muted
+      ),
     ]);
   } else {
     content = box(
       { flexDirection: "column", height: 760, justifyContent: "space-between", paddingTop: 80 },
       [
         box({ flexDirection: "column", gap: 22 }, [
-          text("New supply", 100, c.fg, true),
-          text("didn't keep up.", 100, c.gold, true),
+          text("More homes built.", 84, c.fg, true),
+          text("A gap still growing.", 84, c.gold, true),
         ]),
         box({ flexDirection: "column", gap: 18 }, [
           tag("Figures and sources in bio"),
@@ -265,6 +317,14 @@ export async function renderHousingBalanceFrame(
   progress: number,
   variant: CardVariant
 ) {
-  const { content, meta } = housingBalanceFrameLayout(story, key, progress, variant);
+  const cover = key === "contrast" ? await loadAsset("nhsac-2026-cover.jpg") : undefined;
+  if (key === "contrast" && !cover) throw new Error("Verified NHSAC report cover is missing.");
+  const { content, meta } = housingBalanceFrameLayout(
+    story,
+    key,
+    progress,
+    variant,
+    cover ?? undefined
+  );
   return renderEditorialFrame(content, variant, meta);
 }

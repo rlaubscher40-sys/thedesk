@@ -96,3 +96,26 @@ it. The ratio reserves a fixed-width counter to prevent the /100 from shifting
 at the change from one to two digits. Static introductory and closing scenes
 hold without redundant animation ticks; moving data still uses eased count-ups
 and measured narration, with a final reading hold.
+
+### Connected visual sequence
+
+The review Reel uses the actual 2026 Council report cover on its source scene,
+with the full publisher name, report title, publication date and printed page 21.
+`server/og/fonts/nhsac-2026-cover.jpg` is a proportional JPEG rendering of PDF
+page 1 from the pinned source PDF above, produced with Poppler at a 1,000-pixel
+long edge. It is bundled with the existing editorial assets and must be present
+for this scene to render. The source cover is documentary attribution, not an
+endorsement of The Desk.
+
+The net-supply animation starts at 263,000 and subtracts approximately 31,000
+implied demolitions to arrive at 232,000. Both the figure and the gold bar use
+the same rounded animation value. The demolition estimate is labelled as
+implied by rounded figures. Supply, demand and shortfall share fixed positions
+and the same 300,000-home scale. The 55,000 shortfall is highlighted within the
+demand bar beyond the supply endpoint. The ratio grid finishes with 81 gold
+homes and 19 coral homes, then holds. Fable delivers the closing takeaway:
+“More homes built doesn't mean the housing gap is closing.”
+
+The demand passage explains the household meaning of the estimate: households
+needed about 287,000 extra homes. Its chart label says “Estimated extra homes
+needed”, so viewers do not need to interpret the technical demand label.

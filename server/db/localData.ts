@@ -38,6 +38,7 @@ export async function writeLocalDataset(
   await withCollectionWrite(async (db) => {
     const [latest] = await db
       .select({
+        id: localDataSnapshots.id,
         period: localDataSnapshots.period,
         payload: localDataSnapshots.payload,
       })
@@ -60,6 +61,10 @@ export async function writeLocalDataset(
         period: data.period,
         payload: data,
       });
+    else if (latest && JSON.stringify(latest.payload.downloadCache) !== JSON.stringify(data.downloadCache))
+      await db.update(localDataSnapshots).set({
+        payload: { ...latest.payload, downloadCache: data.downloadCache },
+      }).where(eq(localDataSnapshots.id, latest.id));
   });
   invalidate(`local-data:${data.sourceKey}`);
 }

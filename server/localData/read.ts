@@ -15,6 +15,7 @@ import {
 } from "../../shared/localData";
 import { readLocalDataset, readLocalDataHealth } from "../db/localData";
 import { localSourceAccessDenied } from "../../shared/localSourceAccess";
+import { localCoverageState, localObservationCoverage } from "../../shared/localCoverage";
 import { requestedLocalPeriods } from "./requestedPeriods";
 
 const STATE_NAMES = [
@@ -165,8 +166,9 @@ export async function getLocalData(
 }
 export async function getLocalCoverage() {
   const [datasets, health] = await Promise.all([
-    localDatasets(),
-    readLocalDataHealth().catch(() => []),
+    // Admin must not mislabel a database read failure as an absent release.
+    Promise.all(LOCAL_SOURCE_KEYS.map(readLocalDataset)).then((rows) => rows.filter((row): row is LocalDataset => row !== null)),
+    readLocalDataHealth(),
   ]);
   return LOCAL_SOURCE_KEYS.map((sourceKey) => {
     const data = datasets.find((d) => d.sourceKey === sourceKey),
@@ -175,6 +177,8 @@ export async function getLocalCoverage() {
       sourceKey,
       label: LOCAL_SOURCES[sourceKey].label,
       cadence: LOCAL_SOURCES[sourceKey].cadence,
+      collectionState: localCoverageState(data, check?.error),
+      observationCoverage: localObservationCoverage(data),
       period: data?.period ?? null,
       retrievedAt: data?.retrievedAt ?? null,
       provenance: data?.provenance ?? null,

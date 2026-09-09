@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { AskContextSource } from "../prompts/ask";
 import {
   deduplicateAnswerRefs,
+  numberAskEvidence,
   packAskEvidence,
   requestedSourceLimit,
   validateAnswerRefs,
@@ -26,6 +27,36 @@ const answer = {
 };
 
 describe("Ask evidence limits", () => {
+  it("uses structured records for a named dated observation instead of editorial or article context", () => {
+    const rows = [
+      source(1, { kind: "metric" }),
+      source(25, { kind: "edition" }),
+      source(26),
+      source(27, { kind: "metric" }),
+    ];
+    expect(
+      packAskEvidence("What do building approvals in July 2026 mean?", rows, 8)!.map(
+        (row) => row.ref
+      )
+    ).toEqual([1, 27]);
+    expect(
+      packAskEvidence("What do editions say about building approvals?", rows, 8)!.some(
+        (row) => row.kind === "edition"
+      )
+    ).toBe(true);
+  });
+  it("numbers a sparse selection consecutively without changing source identity or date", () => {
+    const numbered = numberAskEvidence(
+      [source(1), source(29), source(31)],
+      [
+        { ref: 1, href: "/one", date: "2026-07-01" },
+        { ref: 29, href: "/twenty-nine", date: "2025-06-30" },
+        { ref: 31, href: "/thirty-one", date: "2026-06-30" },
+      ]
+    );
+    expect(numbered.map((entry) => entry.source.ref)).toEqual([1, 2, 3]);
+    expect(numbered[1]!.metadata).toEqual({ ref: 2, href: "/twenty-nine", date: "2025-06-30" });
+  });
   it.each([
     "Use at most three dated sources",
     "Up to 3 sources",

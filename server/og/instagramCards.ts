@@ -161,7 +161,7 @@ async function loadLogo(variant: CardVariant = "navy"): Promise<string | null> {
 /** Load a bundled JPEG/PNG asset (hero photo, headshot) as a data URI,
  *  cached. Returns null if missing so a render never hard-fails. */
 const cachedAssets: Record<string, string | null> = {};
-async function loadAsset(filename: string): Promise<string | null> {
+export async function loadAsset(filename: string): Promise<string | null> {
   const cached = cachedAssets[filename];
   if (cached !== undefined) return cached;
   try {

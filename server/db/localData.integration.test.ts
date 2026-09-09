@@ -42,6 +42,13 @@ it.skipIf(!testUrl)("stores the reviewed release under a lease and atomically pr
     await data.writeLocalDataset(sa, {onlyIfMissing:true});
     // Even a candidate with a later retrieval date must not overwrite an existing snapshot.
     await data.writeLocalDataset({...sa, retrievedAt:"2026-09-10T00:00:00Z", fingerprint:"a".repeat(64)}, {onlyIfMissing:true});
+    await data.writeLocalDataset({...sa, areas: [], retrievedAt:"2026-09-10T00:00:00Z", downloadCache: {
+      resourceUrl:sa.resourceUrl, finalUrl:sa.resourceUrl, parserVersion:"local-data-v1", downloadedAt:"2026-09-10T00:00:00Z",etag:'"release-v1"',
+    }});
+    const stored = await data.readLocalDataset("sa-bond-rents");
+    expect(stored?.areas).toEqual(sa.areas);
+    expect(stored?.retrievedAt).toBe(sa.retrievedAt);
+    expect(stored?.downloadCache?.etag).toBe('"release-v1"');
   });
   const [snapshots] = await pool.query("SELECT fingerprint, period FROM local_data_snapshots WHERE sourceKey = 'sa-bond-rents'");
   expect(snapshots).toEqual([{fingerprint:sa.fingerprint,period:sa.period}]);

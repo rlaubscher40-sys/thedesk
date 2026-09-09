@@ -71,3 +71,41 @@ CI also exercises concurrent claims, expiry, rollback and stale completions
 against isolated MySQL. Deployment does not by itself verify recovery across
 every production outage. Upstream access failures, database outages and data
 licensing remain separate constraints. No new paid provider is introduced.
+
+## Conditional local workbook downloads
+
+Local-data collection still discovers the publisher's current resource after the
+existing 12-hour success cooldown. A successful parsed snapshot can now retain
+bounded ETag/Last-Modified metadata in its existing JSON payload; no schema
+migration is needed. Subsequent requests prefer If-None-Match, falling back to
+If-Modified-Since. Only an exact resource URL, final redirect URL and parser
+version can reuse validators. A changed redirect target receives no old validator.
+
+A valid 304 updates source-check health without downloading a body, parsing or
+writing another snapshot. Reporting periods and original retrieval dates remain
+unchanged. A revised 200 response is hashed and parsed when its content changes.
+An identical 200 can refresh only download metadata on the existing snapshot.
+Failed parsing/storage does not replace the good snapshot or its validators.
+
+At least every seven days a full download checks the content even if a publisher
+keeps returning the same validators. Changed URLs/parser versions and absent,
+invalid or future cache dates also force full downloads. Publishers without
+usable validators retain normal bounded downloads and content-hash deduplication.
+Access denials remain paused, and redirect allowlists, streaming size limits,
+deadlines and fenced database writes remain in force. This reduces avoidable work;
+no measured production bandwidth or dollar saving is claimed.
+
+## Briefing deduplication and Admin labels
+
+The briefing endpoint now uses the same conservative URL identity as the archive
+before insertion and editorial AI processing. Known tracking parameters/fragments
+are ignored, content-selecting query parameters and path case are preserved, and
+duplicates within one submission are removed. The stored-URL window remains 14
+days. This is not a content-revision history or a database uniqueness guarantee
+across concurrent submissions; those remain separate follow-up work.
+
+Admin separates operational states (access blocked, collection failed, not
+collected, stored release available) from individual observations that the source
+suppressed or The Desk withheld under sample rules. A missing record is not
+labelled not published. Failed health/snapshot reads surface as an unavailable
+coverage view rather than silently presenting an empty or healthy state.

@@ -5,7 +5,8 @@ import { askQueryTerms, rankAskRecords } from "../ask/relevance";
 import { retrieveLocalFacts } from "../ask/localFacts";
 import { describeMetricObservation } from "../../shared/metricObservation";
 import { directLocalRentAnswer } from "../ask/directLocalRent";
-import { deduplicateAnswerRefs, packAskEvidence, requestedSourceLimit, validateAnswerRefs } from "../ask/evidencePolicy";
+import { directApprovalsSignalAnswer } from "../ask/directSignal";
+import { deduplicateAnswerRefs, numberAskEvidence, packAskEvidence, requestedSourceLimit, validateAnswerRefs } from "../ask/evidencePolicy";
 import { reviewAskAnswer } from "../ask/review";
 import * as db from "../db";
 import {
@@ -248,10 +249,6 @@ export const askRouter = router({
             const ref = evidence.length + 1;
             const text = compactText([
               item.summary,
-              item.whyItMatters,
-              item.sayThis,
-              item.counterpoint,
-              item.rubensNote,
               item.snippet,
             ]);
             if (!text) continue;
@@ -354,8 +351,8 @@ export const askRouter = router({
           }
 
           signal.throwIfAborted();
-          const packedEvidence = packAskEvidence(input.question, evidence, sourceLimit);
-          if (!packedEvidence) {
+          const selectedEvidence = packAskEvidence(input.question, evidence, sourceLimit);
+          if (!selectedEvidence) {
             return {
               status: "insufficient" as const,
               question: input.question,
@@ -364,8 +361,19 @@ export const askRouter = router({
               anonymousRemaining: null,
             };
           }
+          const numbered = numberAskEvidence(selectedEvidence, sourceMeta);
+          const packedEvidence = numbered.map((entry) => entry.source);
+          const packedSources = numbered.map((entry) => entry.metadata);
+          const unverified = () => ({
+            status: "insufficient" as const,
+            question: input.question,
+            message: "We could not verify a complete answer from these records. Try a narrower question or inspect the dated sources below. No unverified answer has been shared.",
+            sources: packedSources.slice(0, Math.min(sourceLimit, 3)),
+            anonymousRemaining: null,
+          });
           const packedRefs = new Set(packedEvidence.map((source) => source.ref));
-          const directAnswer = directLocalRentAnswer(input.question, matches.facts);
+          const directAnswer = directLocalRentAnswer(input.question, matches.facts) ??
+            directApprovalsSignalAnswer(input.question, matches.metrics, packedEvidence);
           if (!ctx.user) {
             reservation.current = await reserveAnonymousAsk(ctx.req);
             if (signal.aborted) {
@@ -408,7 +416,7 @@ export const askRouter = router({
                 message: response.reason,
                 // Only offer useful follow-up reading; generic keyword matches
                 // should not become recommendations just by arriving first.
-                sources: sourceMeta.filter((source) =>
+                sources: packedSources.filter((source) =>
                   packedRefs.has(source.ref) && response.relatedSourceRefs.includes(source.ref)
                 ),
                 anonymousRemaining: null,
@@ -426,16 +434,14 @@ export const askRouter = router({
 
           try {
             validateAnswerRefs(parsed, packedEvidence, sourceLimit);
-          } catch {
-            throw new TRPCError({
-              code: "INTERNAL_SERVER_ERROR",
-              message: "The Desk answer failed its source check. Try again.",
-            });
+          } catch (error) {
+            console.info("[ask] reference check withheld draft", { reason: (error as Error).message });
+            return unverified();
           }
 
           const selectedRefs = parsed.sourceRefs;
           const selected = new Set(selectedRefs);
-          const selectedSources = sourceMeta.filter((source) => selected.has(source.ref));
+          const selectedSources = packedSources.filter((source) => selected.has(source.ref));
           if (!directAnswer) {
             // Each model invocation counts against the existing spend ceiling.
             // Only the completed, reviewed answer consumes an answer allowance.
@@ -443,8 +449,15 @@ export const askRouter = router({
             if (!ctx.user && !(await consumeAnonymousAskAttempt(ctx.req)).allowed) {
               throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Today's answer-processing limit has been reached. This unanswered question has not used your free answer allowance." });
             }
-            const supported = await reviewAskAnswer(input.question, parsed,
-              packedEvidence.filter((source) => selected.has(source.ref)), signal);
+            let supported: boolean;
+            try {
+              supported = await reviewAskAnswer(input.question, parsed,
+                packedEvidence.filter((source) => selected.has(source.ref)), signal);
+            } catch (error) {
+              signal.throwIfAborted();
+              console.info("[ask] evidence review unavailable", { type: error instanceof Error ? error.name : "unknown" });
+              return unverified();
+            }
             signal.throwIfAborted();
             if (!supported) {
               return {
