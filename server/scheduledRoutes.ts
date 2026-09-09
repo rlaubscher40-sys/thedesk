@@ -35,6 +35,7 @@ const scheduledLimiter = rateLimit({
 });
 import { z } from "zod";
 import { invalidate } from "./core/cache";
+import { unseenFeedItems } from "./core/feedDedupe";
 import { env, signingSecret } from "./core/env";
 import { routeParam } from "./core/requestParams";
 import { resolveHeroForEdition } from "./core/heroSelection";
@@ -225,9 +226,7 @@ function registerDailyFeedRoute(app: Express): void {
       db.getRecentSourceUrls(14),
       db.getRecentFeedItems(10),
     ]);
-    const freshItemsRaw = timingChecked.filter(
-      (item) => !item.sourceUrl || !recentUrls.has(item.sourceUrl)
-    );
+    const freshItemsRaw = unseenFeedItems(timingChecked, recentUrls);
     const skippedCount = timingChecked.length - freshItemsRaw.length;
     if (skippedCount > 0) {
       console.log(
