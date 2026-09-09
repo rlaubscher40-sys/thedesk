@@ -59,3 +59,15 @@ It also numbers selected evidence consecutively and returns a sourced
 insufficient result for reference/review failures, with privacy-preserving logs
 identifying the failure stage. No rejected draft is shown or shared. The broader
 semantic limits of model review still apply.
+
+
+Live checks after #211 confirmed the three-source limit and consecutive source
+links, but a Signals answer still labelled the July observation current and
+asserted a material approvals/completions gap without supporting records. The
+reviewer accepted it despite the removal of editorial evidence. The specific
+generated building-approvals Signals question now receives a structured answer
+with the matched value, date and source, a recomputed reporting status, and
+explicit limits on trends and completion claims. It makes no model calls.
+Changed or missing observations decline rather than substituting another period.
+Additional user questions and other metric topics retain the model path and its
+stated limitations. Existing saved model answers are not retroactively corrected.
