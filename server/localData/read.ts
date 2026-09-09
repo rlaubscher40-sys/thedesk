@@ -205,6 +205,7 @@ export function localFactEvidence(
   question = "",
 ): FactEvidence | null {
   const source = LOCAL_SOURCES[match.sourceKey];
+  const requestedPeriod = question.match(/\b(20\d{2}-\d{2}-\d{2})\b/)?.[1];
   const year = question
     .replace(/\bpostcode\s+\d{4}\b/gi, "")
     .match(/\b(20\d{2})\b/)?.[1];
@@ -214,7 +215,13 @@ export function localFactEvidence(
     town = /\btownhouses?\b/i.test(question);
   const observations = match.area.observations
     .filter((o) => {
-      if (year ? !o.period.startsWith(year) : o.period !== match.period)
+      if (
+        requestedPeriod
+          ? o.period !== requestedPeriod
+          : year
+            ? !o.period.startsWith(year)
+            : o.period !== match.period
+      )
         return false;
       if (o.measure !== "weekly-rent") return true;
       if (beds && !new RegExp(`(?:^|\\s)${beds}(?:\\s|$)`).test(o.category))
@@ -231,7 +238,7 @@ export function localFactEvidence(
   return {
     title: `${area.name}, ${area.state} (${area.kind}) · ${source.label}`,
     date: observations[0]!.period,
-    href: localAreaHref(area),
+    href: localAreaHref(area, observations[0]!.period),
     publisher: source.publisher,
     sourceUrl: match.resourceUrl,
     text: [
@@ -246,9 +253,11 @@ export function localFactEvidence(
             "Reviewed import of the stated publisher release. This does not establish that automatic updates are working or that a later release is unavailable.",
           ]
         : []),
-      match.older
-        ? "Older reporting period; do not describe as current market conditions."
-        : "Latest available in this stored source release.",
+      observations.some((o) => o.period !== match.period)
+        ? "Historical reporting period requested; do not describe these observations as current market conditions or the latest stored values."
+        : match.older
+          ? "Older reporting period; do not describe as current market conditions."
+          : "Latest available in this stored source release.",
       `Retrieved: ${match.retrievedAt}. Retrieval is not publication. ${source.attribution}.`,
     ].join("\n"),
   };

@@ -21,10 +21,12 @@ export function LocalMarketData({
   query,
   state,
   kind,
+  period,
 }: {
   query: string;
   state?: string | null;
   kind?: string | null;
+  period?: string | null;
 }) {
   const { data, isLoading, isError } = trpc.markets.localData.useQuery(
     {
@@ -87,6 +89,12 @@ export function LocalMarketData({
             {match.area.kind} · {LOCAL_SOURCES[match.sourceKey].label}
           </p>
           <p className="text-sm mt-2">{match.area.boundaryVersion}</p>
+          {period && period !== match.period && (
+            <p className="text-sm mt-3 font-semibold">
+              Historical reporting period: {period}. These are not current figures.
+              Latest stored reporting period: {match.period}.
+            </p>
+          )}
           {match.older && (
             <p className="text-sm mt-3 font-semibold">
               Older reporting period — current conditions may differ.
@@ -103,8 +111,16 @@ export function LocalMarketData({
                 </tr>
               </thead>
               <tbody>
+                {!match.area.observations.some((o) => o.period === (period || match.period)) && (
+                  <tr>
+                    <td colSpan={4} className="py-3">
+                      No observations are stored for the requested reporting period {period}.
+                      The original workbook may contain that period.
+                    </td>
+                  </tr>
+                )}
                 {match.area.observations
-                  .filter((o) => o.period === match.period)
+                  .filter((o) => o.period === (period || match.period))
                   .map((o) => (
                     <tr
                       key={`${o.measure}:${o.category}`}
