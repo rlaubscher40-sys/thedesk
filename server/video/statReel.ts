@@ -705,11 +705,21 @@ export async function renderStatReel(
       const fontDir = path.join(dir, "fonts");
       await fs.mkdir(fontDir);
       await fs.writeFile(
-        path.join(fontDir, "JetBrainsMono-Regular.woff"),
-        await loadReelSubtitleFont()
+        path.join(fontDir, "Desk-Subtitle.woff"),
+        await loadReelSubtitleFont(stat.storyboard?.kind === "housing-balance")
       );
       const assFile = path.join(dir, "subtitles.ass");
-      await fs.writeFile(assFile, subtitleAss(cues, stat.storyboard ? "story" : "card"));
+      await fs.writeFile(
+        assFile,
+        subtitleAss(
+          cues,
+          stat.storyboard?.kind === "housing-balance"
+            ? "documentary"
+            : stat.storyboard
+              ? "story"
+              : "card"
+        )
+      );
       subtitleFilter = `[vplain]ass=filename=${assFile}:fontsdir=${fontDir}[vout]`;
     }
     const graph = [

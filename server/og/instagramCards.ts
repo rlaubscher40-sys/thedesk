@@ -57,8 +57,9 @@ async function loadFonts(): Promise<LoadedFonts> {
 }
 
 /** Same bundled font for burned-in Reel subtitles; no system-font dependency. */
-export async function loadReelSubtitleFont(): Promise<Buffer> {
-  return Buffer.from((await loadFonts()).mono);
+export async function loadReelSubtitleFont(documentary = false): Promise<Buffer> {
+  const fonts = await loadFonts();
+  return Buffer.from(documentary ? fonts.sans : fonts.mono);
 }
 
 /** A stable 9:16 scene canvas, with room for platform chrome and spoken subtitles. */
@@ -72,6 +73,7 @@ export async function renderEditorialFrame(
     count: number;
     quiet?: boolean;
     documentary?: boolean;
+    publisher?: string;
   }
 ): Promise<Buffer> {
   const c = colorScheme(variant);
@@ -123,12 +125,24 @@ export async function renderEditorialFrame(
         {
           position: "absolute",
           left: 84,
-          top: 1375,
+          top: meta.documentary ? 1325 : 1375,
           width: 840,
           ...(meta.quiet ? {} : { borderTop: `1px solid ${c.fgMuted}` }),
           paddingTop: 20,
+          flexDirection: "column",
+          gap: 12,
         },
-        mono(meta.source, 21, c.fgMuted)
+        [
+          ...(meta.publisher
+            ? [
+                div(
+                  { fontFamily: "Desk Editorial Sans", fontSize: 26, color: c.fgMuted },
+                  meta.publisher
+                ),
+              ]
+            : []),
+          mono(meta.source, 21, c.fgMuted),
+        ]
       ),
       ...(!meta.quiet
         ? [

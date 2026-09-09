@@ -1,11 +1,10 @@
 import { matchedHousingBalance, type HousingBalanceSnapshot } from "../../shared/housingBalance";
-import { renderEditorialFrame, loadAsset, type CardVariant } from "../og/instagramCards";
+import { renderEditorialFrame, type CardVariant } from "../og/instagramCards";
 import { spokenCount } from "./spokenNumbers";
 import { REEL_READS } from "../instagram/reelCaption";
 
 type Kind =
   | "balance-opening"
-  | "balance-contrast"
   | "balance-households"
   | "balance-net"
   | "balance-demand"
@@ -39,40 +38,41 @@ export function housingBalanceStoryboard(
     kind: "housing-balance",
     evidence: structuredClone(evidence),
     scenes: [
+      scene("label", "balance-opening", ["More homes.", "A bigger housing gap."], 1),
       scene(
-        "label",
-        "balance-opening",
-        [`Australia added about ${spokenCount(b.net)} homes.`, "Yet the housing gap grew."],
-        1
+        "value",
+        "balance-net",
+        [`Australia added about ${spokenCount(b.net)} homes, after demolitions.`],
+        0
       ),
-      scene("contrast", "balance-contrast", [
-        "The report compares homes added",
-        "with extra homes needed.",
-      ]),
-      scene(
-        "households",
-        "balance-households",
-        [
-          "The Council links high housing and living costs",
-          "to adult children staying home longer.",
-        ],
-        1
-      ),
-      scene("value", "balance-net", ["Supply is homes added,", "after demolitions."], 1),
       scene(
         "line",
         "balance-demand",
-        ["But we needed an estimated", `${spokenCount(b.demand)} extra homes.`],
+        [
+          "Over the same eighteen months,",
+          `we needed an estimated ${spokenCount(b.demand)} extra homes.`,
+        ],
         1
       ),
-      scene("facts", "balance-gap", [`So the gap grew by ${spokenCount(b.shortfall)} homes.`], 0),
+      scene(
+        "facts",
+        "balance-gap",
+        [`An extra gap of about ${spokenCount(b.shortfall)} homes.`],
+        0
+      ),
       scene("claim", "balance-ratio", [
         `About ${spokenCount(b.netPer100)} added for every hundred needed.`,
       ]),
       scene(
+        "households",
+        "balance-households",
+        ["The Council links high housing and living costs to adult children staying home longer."],
+        0
+      ),
+      scene(
         "signOff",
         "balance-takeaway",
-        ["Building more isn't enough.", "To close the shortage, we must outpace new need."],
+        ["To close a shortage,", "homes added must outpace extra homes needed."],
         1
       ),
     ],
@@ -100,7 +100,7 @@ export function housingBalanceSubtitleScript(
   validateHousingBalanceStoryboard(story, script);
   const b = matchedHousingBalance(story.evidence)!;
   const counts: Record<string, number[]> = {
-    label: [b.net],
+    value: [b.net],
     line: [b.demand],
     facts: [b.shortfall],
     claim: [b.netPer100, 100],
@@ -167,13 +167,75 @@ const italic = (value: string, size: number, color: string): Node =>
     value
   );
 
+const clamp = (v: number) => Math.max(0, Math.min(1, v));
+const ease = (v: number) => 1 - Math.pow(1 - clamp(v), 3);
+const at = (left: number, top: number, children: unknown, extra: Record<string, unknown> = {}) =>
+  box({ position: "absolute", left, top, ...extra }, children);
+
+/** All four quantitative scenes share these physical anchors and one scale. */
+export const BALANCE_CHART = {
+  width: 840,
+  scale: 300000,
+  supplyTop: 300,
+  demandTop: 535,
+  barTop: 148,
+};
+export function housingBalanceGeometry(
+  story: HousingBalanceStoryboard,
+  key: string,
+  progress: number
+) {
+  const b = matchedHousingBalance(story.evidence);
+  if (!b || !Number.isFinite(progress) || progress < 0 || progress > 1)
+    throw new Error("Invalid balance geometry");
+  const supply =
+    key === "label" ? balanceCountFrame(b.net, Math.min(1, progress * 2)).value : b.net;
+  const demand = key === "line" ? balanceCountFrame(b.demand, progress).value : b.demand;
+  const gap = key === "facts" ? balanceCountFrame(b.shortfall, progress).value : 0;
+  return {
+    supply,
+    demand,
+    gap,
+    supplyWidth: (supply / BALANCE_CHART.scale) * BALANCE_CHART.width,
+    demandWidth: (demand / BALANCE_CHART.scale) * BALANCE_CHART.width,
+    gapLeft: (b.net / BALANCE_CHART.scale) * BALANCE_CHART.width,
+    gapWidth: (gap / BALANCE_CHART.scale) * BALANCE_CHART.width,
+  };
+}
+
+/** Original symbolic illustration, not a photograph of an affected household. */
+function movingOutIllustration(progress: number, gold: string, ink: string, muted: string) {
+  const p = ease(progress);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="840" height="430" viewBox="0 0 840 430">
+  <g fill="none" stroke="${muted}" stroke-width="1.5">
+    <path d="M24 362H815 M578 362V52H768V362 M588 352V62H758V352"/>
+    <path d="M630 352V90L747 65V353" stroke="${ink}" stroke-width="2"/>
+    <path d="M650 130L724 115V231L650 235Z M650 255L724 256V320L650 313Z" opacity=".45"/>
+  </g>
+  <path d="M588 352V62H747L630 90V352Z" fill="${gold}" opacity=".07"/>
+  <circle cx="648" cy="246" r="4" fill="${gold}"/>
+  <g transform="translate(${p * 30} 0)" fill="none" stroke="${gold}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="118" cy="202" r="55"/><circle cx="118" cy="202" r="34" stroke-width="1.5" opacity=".45"/>
+    <path d="M173 202H360V234H336V219H308V237H280V202"/>
+  </g>
+  <path d="M420 202H${420 + 120 * p}" stroke="${gold}" stroke-width="2" stroke-dasharray="3 10"/>
+  <path d="M555 186V218 M566 186V218" stroke="${gold}" stroke-width="3" opacity="${p}"/>
+  </svg>`;
+  return {
+    type: "img",
+    props: {
+      width: 840,
+      height: 430,
+      src: `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`,
+    },
+  };
+}
+
 export function housingBalanceFrameLayout(
   story: HousingBalanceStoryboard,
   key: string,
   progress: number,
-  variant: CardVariant,
-  sourceCover?: string,
-  sourceExcerpts?: { net: string; need: string }
+  variant: CardVariant
 ) {
   const b = matchedHousingBalance(story.evidence),
     scene = story.scenes.find((s) => s.key === key);
@@ -182,223 +244,207 @@ export function housingBalanceFrameLayout(
   const c =
     variant === "light"
       ? { fg: "#171B21", muted: "#66635C", gold: "#946C29", rule: "#CEC7BA", track: "#E6E0D4" }
-      : { fg: "#F0EDE6", muted: "#A4A29C", gold: "#C5A267", rule: "#3B3E40", track: "#1A2026" };
+      : { fg: "#F0EDE6", muted: "#A4A29C", gold: "#C5A267", rule: "#464A4D", track: "#20262C" };
   const n = (v: number) => v.toLocaleString("en-AU");
   const tag = (v: string) =>
-    box({ fontFamily: "JetBrains Mono", fontSize: 23, color: c.muted, letterSpacing: 2 }, v);
-  const rule = (width = 840) => box({ width, height: 1, backgroundColor: c.rule }, "");
-  const row = (label: string, value: number, need = false, gap = 0) =>
-    box({ width: 840, flexDirection: "column", gap: 20 }, [
-      box({ justifyContent: "space-between", alignItems: "baseline" }, [
-        text(label, 35, c.muted),
-        text(value ? n(value) : " ", 88, c.fg, true),
-      ]),
-      box({ height: 28, width: 840, position: "relative", backgroundColor: c.track }, [
-        box(
-          { width: (value / 300000) * 840, height: 28, backgroundColor: need ? c.fg : c.gold },
-          ""
+    box({ fontFamily: "JetBrains Mono", fontSize: 23, color: c.muted, letterSpacing: 1.5 }, v);
+  const g = housingBalanceGeometry(story, key, progress);
+  const row = (need: boolean) => {
+    const value = need ? g.demand : g.supply,
+      width = need ? g.demandWidth : g.supplyWidth;
+    return at(
+      0,
+      need ? BALANCE_CHART.demandTop : BALANCE_CHART.supplyTop,
+      [
+        at(0, 59, text(need ? "Extra homes needed" : "Homes added", 35, c.muted)),
+        at(0, 0, text(value ? n(value) : " ", 111, c.fg, true), {
+          width: 840,
+          justifyContent: "flex-end",
+        }),
+        at(0, 148, "", { width: 840, height: 22, backgroundColor: c.track }),
+        at(0, 148, "", { width, height: 22, backgroundColor: need ? c.fg : c.gold }),
+        ...(need && value > b.net
+          ? [at(g.gapLeft, 134, "", { height: 51, borderLeft: `2px solid ${c.gold}` })]
+          : []),
+        ...(need && g.gap > 0
+          ? [at(g.gapLeft, 148, "", { width: g.gapWidth, height: 22, backgroundColor: c.gold })]
+          : []),
+      ],
+      { width: 840, height: 185 }
+    );
+  };
+  let nodes: unknown[];
+  if (["balance-opening", "balance-net", "balance-demand", "balance-gap"].includes(scene.kind)) {
+    nodes = [row(false)];
+    if (key === "label") {
+      const second = ease((progress - 0.5) * 2);
+      nodes.push(
+        at(0, 0, text("More homes.", 102, c.fg, true)),
+        at(0, 125, italic("Still behind.", 111, c.gold), {
+          opacity: second,
+          transform: `translateY(${12 * (1 - second)}px)`,
+        }),
+        at(
+          0,
+          535,
+          box({ flexDirection: "column", gap: 20 }, [
+            tag("NET ADDITIONS"),
+            text("After demolitions. Over 18 months.", 36, c.muted),
+          ])
+        )
+      );
+    } else if (key === "value") {
+      nodes.push(
+        at(0, 0, text("Homes added.", 96, c.fg, true)),
+        at(0, 125, italic("After demolitions.", 78, c.gold)),
+        at(
+          0,
+          550,
+          box({ flexDirection: "column", gap: 26 }, [
+            text("Homes completed", 47, c.fg),
+            box({ gap: 24, opacity: 0.25 + 0.75 * ease(progress) }, [
+              text("−", 50, c.gold),
+              text("Homes demolished", 47, c.muted),
+            ]),
+            box({ height: 1, width: 840, backgroundColor: c.rule }, ""),
+            text("= Net homes added", 41, c.fg),
+          ])
+        )
+      );
+    } else if (key === "line") {
+      nodes.push(
+        at(0, 0, text("But we needed", 91, c.fg, true)),
+        at(0, 120, italic("more.", 119, c.gold)),
+        row(true),
+        at(0, 775, tag("SAME COUNTRY / SAME 18 MONTHS"))
+      );
+    } else {
+      nodes.push(
+        at(0, 0, tag("THE ADDITIONAL GAP")),
+        at(
+          0,
+          40,
+          box({ alignItems: "baseline", gap: 24 }, [
+            text(g.gap ? n(g.gap) : " ", 145, c.gold, true),
+            italic("homes.", 61, c.fg),
+          ])
         ),
-        ...(need && value > 0
-          ? [
-              box(
-                {
-                  position: "absolute",
-                  left: (b.net / 300000) * 840,
-                  top: -12,
-                  height: 52,
-                  borderLeft: `2px solid ${c.gold}`,
-                },
-                ""
-              ),
-            ]
-          : []),
-        ...(gap
-          ? [
-              box(
-                {
-                  position: "absolute",
-                  left: (b.net / 300000) * 840,
-                  width: (gap / 300000) * 840,
-                  height: 28,
-                  backgroundColor: c.gold,
-                },
-                ""
-              ),
-            ]
-          : []),
-      ]),
-    ]);
-  let content: Node;
-  if (scene.kind === "balance-opening") {
-    const shown = balanceCountFrame(b.net, Math.min(1, progress * 2)).value;
-    content = box({ flexDirection: "column", gap: 28, paddingTop: 55 }, [
-      tag("THE HOUSING FILE"),
-      text(shown ? n(shown) : " ", 186, c.fg, true),
-      text("homes added.", 70, c.fg, true),
-      rule(150),
-      box(
-        {
-          flexDirection: "column",
-          marginTop: 48,
-          opacity: Math.max(0, Math.min(1, (progress - 0.5) * 4)),
-        },
-        [italic("And still,", 77, c.muted), italic("further behind.", 85, c.gold)]
-      ),
-      tag("Net additions / 18 months"),
-    ]);
-  } else if (scene.kind === "balance-contrast") {
-    const part = Math.max(0, Math.min(1, (progress - 0.5) * 4));
-    const extract = (src: string | undefined, width: number, height: number) =>
-      src ? { type: "img", props: { src, width, height } } : text("Source excerpt", 30, "#222222");
-    content = box({ flexDirection: "column", gap: 34, paddingTop: 25 }, [
-      text("The evidence.", 91, c.fg, true),
-      text("State of the Housing System 2026", 36, c.muted),
-      box({ flexDirection: "column", gap: 35, padding: 38, backgroundColor: "#FAF9F5" }, [
-        text("EXTRACTS / PAGE 21", 23, "#67635A"),
-        text("Homes added, after demolitions", 32, "#37342D"),
-        extract(sourceExcerpts?.net, 764, 52),
-        box({ height: 2, width: 764 * Math.min(1, progress * 4), backgroundColor: "#AA853D" }, ""),
-        box({ flexDirection: "column", gap: 24, opacity: part }, [
-          text("Extra homes needed", 32, "#37342D"),
-          extract(sourceExcerpts?.need, 390, 79),
-          box({ height: 2, width: 390, backgroundColor: "#AA853D" }, ""),
-        ]),
-      ]),
-      text("National Housing Supply and Affordability Council", 34, c.fg),
-      tag("30 APRIL 2026 / ORIGINAL EXCERPTS"),
-    ]);
-  } else if (scene.kind === "balance-households") {
-    content = box({ flexDirection: "column", gap: 38, paddingTop: 35 }, [
-      tag("THE HUMAN CONTEXT"),
-      text("Leaving home.", 89, c.fg, true),
-      italic("Later.", 120, c.gold),
-      rule(150),
-      box({ flexDirection: "column", gap: 20, marginTop: 20, opacity: 0.3 + 0.7 * progress }, [
-        italic("“adult children staying in the parental home for longer.”", 58, c.fg),
-      ]),
-      text("The Council links this to high housing and living costs.", 35, c.muted),
-      tag("NHSAC 2026 / PAGE 44"),
-    ]);
-  } else if (["balance-net", "balance-demand", "balance-gap"].includes(scene.kind)) {
-    const net = scene.kind === "balance-net",
-      gapScene = scene.kind === "balance-gap";
-    const supply = net ? balanceCountFrame(b.net, progress).value : b.net;
-    const demand = gapScene ? b.demand : balanceCountFrame(b.demand, progress).value;
-    const gap = gapScene ? balanceCountFrame(b.shortfall, progress).value : 0;
-    content = box({ flexDirection: "column", gap: 65, paddingTop: 40 }, [
-      box(
-        { height: 180, flexDirection: "column", gap: 12 },
-        gapScene
-          ? [
-              tag("THE GAP GREW BY"),
-              box({ gap: 20, alignItems: "baseline" }, [
-                text(n(gap), 112, c.gold, true),
-                italic("homes.", 54, c.fg),
-              ]),
-            ]
-          : [
-              text(net ? "What we added." : "What we needed.", 78, c.fg, true),
-              ...(net ? [text("Supply means homes added after demolitions.", 36, c.muted)] : []),
-            ]
-      ),
-      row("Homes added", supply),
-      box(
-        { height: 230, flexDirection: "column", paddingTop: 20 },
-        net
-          ? [italic("Completions, less demolitions.", 46, c.muted)]
-          : [row("Estimated extra homes needed", demand, true, gap)]
-      ),
-      box({ justifyContent: "space-between", borderTop: `1px solid ${c.rule}`, paddingTop: 15 }, [
-        tag("0"),
-        tag("300,000 HOMES"),
-      ]),
-    ]);
+        row(true),
+        at(g.gapLeft, 749, "", {
+          width: g.gapWidth,
+          height: 30,
+          borderBottom: `2px solid ${c.gold}`,
+          borderLeft: `2px solid ${c.gold}`,
+          borderRight: `2px solid ${c.gold}`,
+        }),
+        at(0, 850, text("The shortage grew during these 18 months.", 37, c.muted))
+      );
+    }
+    // The visual source remains at the same place across this whole passage.
+    nodes.push(
+      at(
+        0,
+        920,
+        box({ width: 840, justifyContent: "space-between" }, [tag("0"), tag("300,000 HOMES")])
+      )
+    );
   } else if (scene.kind === "balance-ratio") {
     const shown = Math.round(b.netPer100 * progress);
-    content = box({ flexDirection: "column", gap: 40, paddingTop: 60 }, [
-      tag("FOR EVERY 100 EXTRA HOMES NEEDED"),
-      box({ alignItems: "baseline", gap: 24, height: 220 }, [
-        text(String(shown), 240, c.fg, true),
-        italic("added.", 84, c.gold),
-      ]),
-      box(
-        { flexDirection: "column", gap: 16, marginTop: 15 },
-        Array.from({ length: 5 }, (_, r) =>
-          box(
-            { gap: 18 },
-            Array.from({ length: 20 }, (_, col) => {
-              const i = r * 20 + col;
-              return box(
-                { width: 24, height: 46, backgroundColor: i < shown ? c.gold : c.track },
-                ""
-              );
-            })
+    nodes = [
+      at(0, 0, text("For every 100", 89, c.fg, true)),
+      at(0, 112, italic("homes needed.", 91, c.gold)),
+      at(
+        0,
+        330,
+        box(
+          { flexDirection: "column", gap: 27 },
+          Array.from({ length: 10 }, (_, r) =>
+            box(
+              { gap: 27 },
+              Array.from({ length: 10 }, (_, col) => {
+                const i = r * 10 + col;
+                return box(
+                  {
+                    width: 22,
+                    height: 22,
+                    borderRadius: 11,
+                    backgroundColor: i < shown ? c.gold : "transparent",
+                    border: `1.5px solid ${i < shown ? c.gold : c.rule}`,
+                  },
+                  ""
+                );
+              })
+            )
           )
         )
       ),
-      box({ opacity: progress === 1 ? 1 : 0, flexDirection: "column", gap: 16, marginTop: 35 }, [
-        italic(`${100 - b.netPer100} short.`, 78, c.muted),
-        text("Approximate ratio, over these 18 months.", 31, c.muted),
-      ]),
-    ]);
-  } else {
-    const catchup = Math.max(0, Math.min(1, (progress - 0.5) * 2));
-    content = box({ flexDirection: "column", gap: 42, paddingTop: 30 }, [
-      tag("THE TAKEAWAY"),
-      text("More building.", 89, c.fg, true),
-      box(
-        {
-          opacity: Math.max(0, Math.min(1, (progress - 0.5) * 4)),
-          flexDirection: "column",
-          gap: 16,
-        },
-        [italic("Enough to", 86, c.gold), italic("catch up?", 108, c.gold)]
+      at(
+        545,
+        365,
+        box({ flexDirection: "column", gap: 2 }, [
+          text(String(shown), 172, c.fg, true),
+          text("added", 44, c.gold),
+        ])
       ),
-      rule(150),
-      text("Homes added must outpace extra homes needed.", 48, c.fg),
-      box({ position: "relative", marginTop: 30, height: 68, width: 800 }, [
-        box(
-          {
-            position: "absolute",
-            left: 0,
-            top: 26,
-            width: 800,
-            height: 2,
-            backgroundColor: c.rule,
-          },
-          ""
-        ),
-        box(
-          {
-            position: "absolute",
-            left: 0,
-            top: 21,
-            width: 500 + 270 * catchup,
-            height: 12,
-            backgroundColor: c.gold,
-          },
-          ""
-        ),
-        box(
-          { position: "absolute", left: 610, top: 0, height: 58, borderLeft: `2px solid ${c.fg}` },
-          ""
-        ),
-      ]),
-      text("Illustration / marker = new need", 25, c.muted),
-      box({ flexDirection: "column", gap: 12, marginTop: 25 }, [
-        tag("FULL SOURCE / LINK IN BIO"),
-        text(REEL_READS.housingBalance.label, 31, c.gold),
-      ]),
-    ]);
+      at(
+        545,
+        650,
+        box({ flexDirection: "column", gap: 12, opacity: progress === 1 ? 1 : 0 }, [
+          italic("19 short.", 63, c.muted),
+        ])
+      ),
+      at(0, 895, text("Approximate ratio, not a count of households.", 32, c.muted)),
+    ];
+  } else if (scene.kind === "balance-households") {
+    nodes = [
+      at(0, 0, text("A place of your own.", 75, c.fg, true)),
+      at(0, 112, italic("Later.", 132, c.gold)),
+      at(0, 300, movingOutIllustration(progress, c.gold, c.fg, c.muted)),
+      at(
+        0,
+        748,
+        box({ flexDirection: "column", gap: 22 }, [
+          text("Adult children staying home longer.", 44, c.fg),
+          text("The Council links this to high housing and living costs.", 33, c.muted),
+          tag("ILLUSTRATION / REPORTED CONTEXT"),
+        ])
+      ),
+    ];
+  } else {
+    const p = ease((progress - 0.5) * 2),
+      supply = 470 + 290 * p;
+    nodes = [
+      at(0, 0, text("To close the gap,", 90, c.fg, true)),
+      at(0, 120, italic("get ahead.", 115, c.gold), { opacity: p }),
+      at(0, 340, text("Homes added", 39, c.gold)),
+      at(0, 410, "", { width: supply, height: 22, backgroundColor: c.gold }),
+      at(0, 525, text("Extra homes needed", 39, c.fg)),
+      at(0, 595, "", { width: 640, height: 22, backgroundColor: c.fg }),
+      at(640, 389, "", { height: 250, borderLeft: `1px solid ${c.muted}` }),
+      at(0, 700, text("Add homes faster than new need grows.", 43, c.fg)),
+      at(0, 778, tag("ILLUSTRATION / NO FORECAST")),
+      at(
+        0,
+        884,
+        box({ flexDirection: "column", gap: 12 }, [
+          tag("FULL COMPARISON / LINK IN BIO"),
+          text(REEL_READS.housingBalance.label, 32, c.gold),
+        ])
+      ),
+    ];
   }
   return {
-    content,
+    content: box({ width: 840, height: 980, position: "relative" }, nodes),
     meta: {
-      kicker: "AUSTRALIA / JUL 2024 TO DEC 2025",
+      kicker:
+        key === "households"
+          ? "HOUSING AFFORDABILITY / REPORTED CONTEXT"
+          : "AUSTRALIA / JUL 2024 TO DEC 2025",
       source:
         key === "households"
           ? "NHSAC 2026 / p. 44 / Reported context"
-          : "Based on NHSAC 2026 / Approximate figures",
+          : "NHSAC 2026 / p. 21 / Approximate figures",
+      publisher: "National Housing Supply and Affordability Council",
       index: story.scenes.indexOf(scene),
       count: story.scenes.length,
       quiet: true,
@@ -406,24 +452,12 @@ export function housingBalanceFrameLayout(
     },
   };
 }
-
 export async function renderHousingBalanceFrame(
   story: HousingBalanceStoryboard,
   key: string,
   progress: number,
   variant: CardVariant
 ) {
-  const net = key === "contrast" ? await loadAsset("nhsac-net-extract.png") : undefined;
-  const need = key === "contrast" ? await loadAsset("nhsac-need-extract.png") : undefined;
-  if (key === "contrast" && (!net || !need))
-    throw new Error("Verified report excerpts are missing.");
-  const { content, meta } = housingBalanceFrameLayout(
-    story,
-    key,
-    progress,
-    variant,
-    undefined,
-    net && need ? { net, need } : undefined
-  );
+  const { content, meta } = housingBalanceFrameLayout(story, key, progress, variant);
   return renderEditorialFrame(content, variant, meta);
 }

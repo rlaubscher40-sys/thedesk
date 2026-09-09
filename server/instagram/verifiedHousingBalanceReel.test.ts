@@ -150,7 +150,7 @@ describe("the finding survives the Reel and source destination", () => {
     if (story.kind !== "housing-balance") throw new Error("Unexpected storyboard");
     const display = housingBalanceSubtitleScript(story, c.script);
     const expected = new Map([
-      ["label", ["two hundred and thirty-two thousand", "232,000"]],
+      ["value", ["two hundred and thirty-two thousand", "232,000"]],
       ["line", ["two hundred and eighty-seven thousand", "287,000"]],
       ["facts", ["fifty-five thousand", "55,000"]],
     ]);

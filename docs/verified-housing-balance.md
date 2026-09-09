@@ -39,7 +39,7 @@ raw population growth, a target, approvals or buyer enquiries. Glossary: printed
 page 93 (PDF 104). Model discussion: printed page 73 (PDF 84).
 
 The difference is not Australia's accumulated shortage, a count of homeless
-households, a city comparison or a price/rent forecast. The 100 tally marks show
+households, a city comparison or a price/rent forecast. The 100 dots show
 a rounded ratio, not 100 real dwellings. No local shortage is inferred from state
 population or city approvals. The original approvals recipe stays an approvals
 explanation, while this sixth recipe supplies an independently matched finding.
@@ -58,19 +58,17 @@ The public source page and bio destination ship with the recipe in the same PR.
 
 Credit: Based on National Housing Supply and Affordability Council data.
 
-## Human context and source excerpts
+## Human context and source attribution
 
 Printed page 44 (PDF page 55) links high living and housing costs to adult
 children staying in the parental home longer. This is separately attributed
 context, not a consequence measured by the housing-flow calculation.
 https://nhsac.gov.au/sites/nhsac.gov.au/files/2026-04/ar-state-housing-system-2026.pdf#page=55
 
-The on-screen quotation is ten words: “adult children staying in the parental
-home for longer.” The two numerical excerpts are cropped from the pinned PDF's
-page index 31, using PyMuPDF text search for `around 232,000 net new dwelling
-completions.` and `around 287,000`, adding two PDF points of padding and rendering
-at 5x resolution. No source wording is reconstructed. The report's CC BY 4.0
-text attribution is retained; full source identity and SHA-256 are above.
+The human scene now paraphrases this context alongside an explicitly labelled
+original key-and-door illustration. It does not show a real household. The
+former white excerpt panel has been removed; source credit stays beside the
+story, and the original pages remain linked from the public source read.
 
 ## Reproduce review
 
@@ -78,13 +76,13 @@ text attribution is retained; full source identity and SHA-256 are above.
 node --import tsx scripts/review-housing-balance-reel.ts --out /tmp/desk-housing-gap
 ```
 
-Produces a Fable-narrated, subtitled MP4, caption, eight scene JPEGs, evidence,
+Produces a Fable-narrated, subtitled MP4, caption, seven scene JPEGs, evidence,
 measured phrase audit and final timeline. `--frames-only` skips speech and video.
 It never posts. Housing has a 46-second cap; other formats retain 32 seconds.
 
 The count-up uses one cubic ease-out for both digits and bar width. Intermediate
 figures are animation states, not observations. Net supply, demand and gap use
-a fixed 300,000-home scale. The ratio reveals 81 of 100 tally marks, then holds.
+a fixed 300,000-home scale. The ratio reveals 81 of 100 dots, then holds.
 Hard-cut frames avoid ghosted numbers. The renderer decodes the finished picture
 stream and checks coverage of the measured timeline within two frames.
 

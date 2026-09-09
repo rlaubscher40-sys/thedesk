@@ -104,7 +104,7 @@ export function storyboardSections(
     if (
       story.kind === "housing-balance" &&
       phrases &&
-      ["balance-opening", "balance-contrast", "balance-takeaway"].includes(scene.kind)
+      ["balance-opening", "balance-takeaway"].includes(scene.kind)
     ) {
       const cues = phrases[scene.key];
       if (
@@ -195,7 +195,7 @@ export function storyboardSections(
     const ratio = scene.kind === "balance-ratio";
     const household = scene.kind === "balance-households";
     const counter = ["balance-net", "balance-demand", "balance-gap"].includes(scene.kind);
-    // One house per video frame at normal speech duration, followed by a hold.
+    // One dot per video frame at normal speech duration, followed by a hold.
     // A shorter measured passage uses fewer steps, never extends the narration.
     const ratioCount =
       ratio && story.kind === "housing-balance"
@@ -207,9 +207,7 @@ export function storyboardSections(
         ? Math.min(31, Math.max(2, Math.floor(measured! * 0.55 * 15) + 1))
         : ratio
           ? ratioCount
-          : ["takeaway", "balance-takeaway", "balance-opening", "balance-contrast"].includes(
-                scene.kind
-              )
+          : ["takeaway", "balance-takeaway", "balance-opening"].includes(scene.kind)
             ? 1
             : ["comparison", "balance-demand"].includes(scene.kind)
               ? 8

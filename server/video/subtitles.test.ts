@@ -87,3 +87,11 @@ it("keeps the housing counts together across timed subtitle cues", () => {
     expect(cues.every((c) => c.end - c.start >= 0.6)).toBe(true);
   }
 });
+
+it("uses the bundled editorial sans face for documentary captions and keeps their safe position", () => {
+  const cues = [{ start: 0, end: 2, lines: ["Homes added must outpace new need."] }];
+  const out = subtitleAss(cues, "documentary");
+  expect(out).toContain("Style: Desk,Desk Editorial Sans,44");
+  expect(out).toContain("504,1490");
+  expect(subtitleAss(cues, "story")).toContain("Style: Desk,JetBrains Mono,40");
+});
