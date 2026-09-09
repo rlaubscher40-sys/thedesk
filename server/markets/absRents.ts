@@ -6,7 +6,11 @@ import {
 } from "../../shared/cityRents";
 import { cached } from "../core/cache";
 
+import { getPublishedCityRents } from "./absRentWorkbook";
+
 import { csvRows } from "../core/strictCsv";
+
+class NoPublishedRents extends Error {}
 
 /** Pin the full series identity. Missing values must never become numeric zero. */
 export function parseAbsRents(csv: string, retrievedAt: string): CityRents {
@@ -85,40 +89,47 @@ export async function getCityRents(): Promise<CityRents> {
   return cached("abs:rents:attempt", 60_000, async () => {
     try {
       return await cached("abs:rents:data", 3_600_000, async () => {
-        const response = await fetch(RENT_DATA_URL, {
-          headers: { Accept: "text/csv" },
-          signal: AbortSignal.timeout(15_000),
-        });
-        if (
-          !response.ok ||
-          !["text/csv", "application/vnd.sdmx.data+csv"].includes(
-            (response.headers.get("content-type") ?? "").split(";")[0]!.trim()
-          ) ||
-          Number(response.headers.get("content-length")) > 64_000
-        )
-          throw new Error("ABS rents unavailable");
-        // Bound streamed bodies too; Content-Length is optional.
-        const reader = response.body?.getReader();
-        if (!reader) throw new Error("Empty ABS response");
-        const chunks: Uint8Array[] = [];
-        let size = 0;
         try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            size += value.byteLength;
-            if (size > 64_000) throw new Error("Oversized ABS response");
-            chunks.push(value);
+          const response = await fetch(RENT_DATA_URL, {
+            headers: { Accept: "text/csv" },
+            signal: AbortSignal.timeout(4_000),
+            redirect: "error",
+          });
+          if (
+            !response.ok ||
+            !["text/csv", "application/vnd.sdmx.data+csv"].includes(
+              (response.headers.get("content-type") ?? "").split(";")[0]!.trim()
+            ) ||
+            Number(response.headers.get("content-length")) > 64_000
+          )
+            throw new Error("ABS rents unavailable");
+          // Bound streamed bodies too; Content-Length is optional.
+          const reader = response.body?.getReader();
+          if (!reader) throw new Error("Empty ABS response");
+          const chunks: Uint8Array[] = [];
+          let size = 0;
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              size += value.byteLength;
+              if (size > 64_000) throw new Error("Oversized ABS response");
+              chunks.push(value);
+            }
+          } finally {
+            await reader.cancel();
           }
-        } finally {
-          await reader.cancel();
+          const result = parseAbsRents(
+            Buffer.concat(chunks).toString("utf8"),
+            new Date().toISOString()
+          );
+          if (result.status !== "available")
+            throw new NoPublishedRents("No usable ABS observations");
+          return { ...result, sourceUrl: RENT_DATA_URL, delivery: "api" as const };
+        } catch (error) {
+          if (error instanceof NoPublishedRents) throw error;
+          return getPublishedCityRents();
         }
-        const result = parseAbsRents(
-          Buffer.concat(chunks).toString("utf8"),
-          new Date().toISOString()
-        );
-        if (result.status !== "available") throw new Error("No usable ABS observations");
-        return result;
       });
     } catch {
       return { status: "unavailable", retrievedAt: null, observations: [] };

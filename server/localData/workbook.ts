@@ -108,6 +108,7 @@ export function inspectZip(data: Buffer, maxEntries = 256) {
 export async function readWorkbook(
   data: Buffer,
   signal?: AbortSignal,
+  profile?: "abs-cpi",
 ): Promise<Sheet[]> {
   validateWorkbookZip(data);
   signal?.throwIfAborted();
@@ -122,8 +123,8 @@ export async function readWorkbook(
         const sheets = await module.default(Buffer.from(workerData.data));
         if (sheets.length > 32) throw new Error('Too many worksheets');
         for (const sheet of sheets) {
-          if (sheet.data.length > 100000) throw new Error('Too many rows');
-          if (sheet.data.some(row => row.length > 128)) throw new Error('Too many columns');
+          if (sheet.data.length > workerData.maxRows) throw new Error('Too many rows');
+          if (sheet.data.some(row => row.length > workerData.maxColumns)) throw new Error('Too many columns');
         }
         parentPort.postMessage(sheets);
       }).catch(() => { throw new Error('Workbook parsing failed'); });
@@ -131,7 +132,11 @@ export async function readWorkbook(
       {
         eval: true,
         execArgv: [],
-        workerData: { data, moduleUrl },
+        workerData: {
+          data, moduleUrl,
+          maxRows: profile === "abs-cpi" ? 2000 : 100000,
+          maxColumns: profile === "abs-cpi" ? 256 : 128,
+        },
         resourceLimits: { maxOldGenerationSizeMb: 384 },
       },
     );

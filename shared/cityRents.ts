@@ -23,6 +23,9 @@ export type CityRents = {
   status: "available" | "unavailable";
   retrievedAt: string | null;
   observations: RentObservation[];
+  /** Exact representation used, retained when API/workbook availability changes. */
+  sourceUrl?: string;
+  delivery?: "api" | "workbook";
 };
 export function rentCity(name: string): string | undefined {
   return RENT_CITIES.find((city) => city.toLowerCase() === name.trim().toLowerCase());

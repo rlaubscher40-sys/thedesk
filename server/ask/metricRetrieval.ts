@@ -1,6 +1,7 @@
 import type { DailyMetric } from "../db/schema";
 import { askQueryTerms, hasAskTerm } from "./relevance";
 import { PROPERTY_REGIONS } from "../../shared/propertyCoverage";
+import { RENT_CITIES } from "../../shared/cityRents";
 
 function queryGeography(question: string) {
   let topic = question;
@@ -88,6 +89,20 @@ function metricHaystack(metric: DailyMetric): string {
 }
 
 function scoreMetric(question: string, metric: DailyMetric): number {
+  if (metric.metricKey.endsWith("_rent_growth_annual")) {
+    const city = RENT_CITIES.find(
+      (city) => metric.metricKey === `${city.toLowerCase()}_rent_growth_annual`
+    );
+    // City rates must never fill state, suburb, weekly-dollar or vacancy gaps.
+    if (
+      !city ||
+      !new RegExp(`\\b${city}\\b`, "i").test(question) ||
+      /\b(suburb|postcode|lga|council|city of|western|eastern|northern|southern|north|south|east|west|weekly|median|vacancy|yield)\b/i.test(
+        question
+      )
+    )
+      return 0;
+  }
   const geography = queryGeography(question);
   const scope = scopedMetricRegion(metric);
   if (scope && geography.regions.length) {
@@ -112,7 +127,8 @@ function scoreMetric(question: string, metric: DailyMetric): number {
   if (topicalTerms.length > 0 && !topicalTerms.some((term) => hasAskTerm(haystack, term))) return 0;
 
   let score = scope && geography.regions.includes(scope) ? 8 : 0;
-  if (scope && geography.regions.includes(scope) && metric.metricKey.endsWith("_auction_clearance")) score += 16;
+  if (scope && geography.regions.includes(scope) && metric.metricKey.endsWith("_auction_clearance"))
+    score += 16;
   if (metric.metricKey === "auction_clearance" && !geography.regions.length) score += 10;
   if (label && ` ${query} `.includes(` ${label} `)) score += 12;
   if (key && ` ${query} `.includes(` ${key} `)) score += 12;

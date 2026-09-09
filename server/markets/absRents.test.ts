@@ -1,5 +1,7 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getCityRents, parseAbsRents } from "./absRents";
+vi.mock("./absRentWorkbook", () => ({ getPublishedCityRents: vi.fn() }));
+import { getPublishedCityRents } from "./absRentWorkbook";
 import { invalidate } from "../core/cache";
 import { latestRent, rentGap, rentIsOlder } from "../../shared/cityRents";
 
@@ -9,6 +11,9 @@ const row = (region = "5", period = "2026-07", value = "5.3", status = "") =>
   `ABS:CPI(2.0.0),3,30014,10,${region},M,${period},${value},PCT,${status},,,25`;
 const csv = (...rows: string[]) => [header, ...rows].join("\r\n");
 const now = "2026-09-07T00:00:00Z";
+beforeEach(() => {
+  vi.mocked(getPublishedCityRents).mockReset().mockRejectedValue(new Error("Unavailable workbook"));
+});
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
@@ -91,13 +96,11 @@ describe("ABS capital-city rent observations", () => {
   it("coalesces concurrent reads and caches successful requests", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(now));
-    const fetcher = vi
-      .fn()
-      .mockResolvedValue(
-        new Response(csv(row()), {
-          headers: { "content-type": "application/vnd.sdmx.data+csv; charset=utf-8" },
-        })
-      );
+    const fetcher = vi.fn().mockResolvedValue(
+      new Response(csv(row()), {
+        headers: { "content-type": "application/vnd.sdmx.data+csv; charset=utf-8" },
+      })
+    );
     vi.stubGlobal("fetch", fetcher);
     const results = await Promise.all([getCityRents(), getCityRents()]);
     expect(results[0].status).toBe("available");
@@ -124,4 +127,33 @@ describe("ABS capital-city rent observations", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response));
     expect((await getCityRents()).status).toBe("unavailable");
   });
+});
+
+it("uses the published workbook after API failure and caches the successful fallback", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("API offline")));
+  const workbook = {
+    status: "available" as const,
+    retrievedAt: now,
+    observations: [
+      { city: "Melbourne", period: "2026-07", annualPercent: 2.5, status: "" as const },
+    ],
+    delivery: "workbook" as const,
+    sourceUrl: "https://www.abs.gov.au/example.xlsx",
+  };
+  vi.mocked(getPublishedCityRents).mockResolvedValue(workbook);
+  expect(await getCityRents()).toEqual(workbook);
+  expect(await getCityRents()).toEqual(workbook);
+  expect(getPublishedCityRents).toHaveBeenCalledOnce();
+});
+it("does not replace a valid suppressed API observation with a workbook value", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi
+      .fn()
+      .mockResolvedValue(
+        new Response(csv(row("2", "2026-07", "", "s")), { headers: { "content-type": "text/csv" } })
+      )
+  );
+  expect((await getCityRents()).status).toBe("unavailable");
+  expect(getPublishedCityRents).not.toHaveBeenCalled();
 });

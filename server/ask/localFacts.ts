@@ -89,7 +89,7 @@ export async function retrieveLocalFacts(
               date: row.period,
               href: `/markets/${city.toLowerCase()}#rental-conditions`,
               publisher: "Australian Bureau of Statistics",
-              sourceUrl: RENT_SOURCE,
+              sourceUrl: data.sourceUrl ?? RENT_SOURCE,
               text: `Capital-city CPI rent series for ${city}. Annual change in rents paid: ${row.annualPercent}%, year to ${row.period}. Status: ${row.status || "published"}. This is not monthly growth, median weekly rent, advertised rent, vacancy or a suburb observation. Retrieved ${data.retrievedAt}; retrieval is not publication.`,
             },
           ];
