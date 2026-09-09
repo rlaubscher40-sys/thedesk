@@ -1,13 +1,8 @@
 import { createHash } from "node:crypto";
-import { RENT_DATA_URL, RENT_SOURCE, rentPeriod, type CityRents } from "../../shared/cityRents";
-import {
-  annualApprovals,
-  APPROVAL_FLOW,
-  APPROVAL_SOURCE,
-  approvalsDataUrl,
-  type CityApprovals,
-} from "../../shared/cityApprovals";
+import { rentPeriod, type CityRents } from "../../shared/cityRents";
+import { annualApprovals, APPROVAL_FLOW, type CityApprovals } from "../../shared/cityApprovals";
 import type { verifiedRentReel } from "./verifiedReel";
+import { buildReelCaption } from "./reelCaption";
 type VerifiedReel = NonNullable<ReturnType<typeof verifiedRentReel>>;
 const monthIndex = (period: string) => Number(period.slice(0, 4)) * 12 + Number(period.slice(5, 7));
 const validPeriod = (period: string, now: Date) =>
@@ -23,8 +18,6 @@ function fresh(data: { status: string; retrievedAt: string | null }, now: Date) 
   );
 }
 const hash = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
-const voiceCredit =
-  "Synthetic male narration: Kokoro / George. #SydneyProperty #PropertyData #TheDesk";
 
 /** Compare two consecutive annual rates, NEVER call their difference monthly rent inflation. */
 export function verifiedSydneyRentChange(data: CityRents, now = new Date()): VerifiedReel | null {
@@ -93,18 +86,19 @@ export function verifiedSydneyRentChange(data: CityRents, now = new Date()): Ver
     ],
     publication: { key: "instagram-reel-abs-sydney-rent-change-v1", date: `${current.period}-01` },
     evidenceHash: hash({ series: "ABS:CPI(2.0.0)/3.30014.10.1.M/PCT", rows }),
-    caption: [
-      "Sydney rents: what actually changed?",
-      `Annual change in ABS CPI rents actually paid: ${previous.annualPercent.toFixed(1)}% in the year to ${prior}; ${current.annualPercent.toFixed(1)}% in the year to ${period}. Difference: ${signed}.`,
-      meaning,
-      "This is a change between two year-on-year rates, not the percentage change in rents during the latest month. Different year-earlier comparison bases can affect annual rates. It does not measure asking rents, dollar rent levels, yields or all of NSW.",
-      `Sydney capital-city original series. ${rows.map((r) => `${r.period}: ${r.status === "p" ? "provisional" : r.status === "r" ? "revised" : "no revision flag"}`).join("; ")}. Data can be revised.`,
-      `Source: ${RENT_SOURCE}`,
-      `Verified series: ${RENT_DATA_URL}`,
-      "Read the two periods: https://thedesk.au/markets/sydney?utm_source=instagram&utm_medium=reel&utm_campaign=sydney_rent_change#rental-conditions",
-      `Bio → Reel sources → Sydney rent changes. ${delta < 0 && current.annualPercent > 0 ? "Send this to someone who reads slower rent growth as falling rents." : "Send this to someone comparing rent headlines: the period and definition matter."}`,
-      voiceCredit,
-    ].join("\n\n"),
+    caption: buildReelCaption({
+      hook: "Sydney rents: what actually changed?",
+      finding: `Annual rent change: ${previous.annualPercent.toFixed(1)}% in the year to ${prior}; ${current.annualPercent.toFixed(1)}% in the year to ${period}. Difference: ${signed}. ${meaning}`,
+      meaning:
+        "This compares two annual rates, not the percentage change in rents during the latest month. Different year-earlier bases can affect annual rates. Not asking rents, dollar levels, yields or all of NSW.",
+      method: "Source: ABS CPI rents actually paid, Sydney capital-city original series.",
+      revisions: `${rows.map((r) => `${r.period}: ${r.status === "p" ? "provisional" : r.status === "r" ? "revised" : "no revision flag"}`).join("; ")}. Data can be revised.`,
+      action:
+        delta < 0 && current.annualPercent > 0
+          ? "Send this to someone who reads slower rent growth as falling rents."
+          : "Send this to someone comparing rent headlines: the period and definition matter.",
+      read: "sydneyRent",
+    }),
   };
 }
 
@@ -161,17 +155,16 @@ export function verifiedSydneyBeforeBuy(
       key: "1.1.9.TOT.TOT.10.1GSYD.M/NUM",
       rows: rows.slice(0, 12),
     }),
-    caption: [
-      "Buying in Sydney? Three checks before using a supply headline.",
-      `${count} dwelling units approved across Greater Sydney in the year to ${period}. Twelve consecutive monthly ABS original counts; all sectors and dwelling types.`,
-      "1. Stage: an approval is permission, not a start or a completion.\n2. Place: Greater Sydney is not your suburb or a whole-NSW total.\n3. Timing: check actual construction and completions before assuming homes will be available.",
-      "These raw counts are not seasonally adjusted or population-adjusted. They do not establish a shortage, a surplus, future prices or an investment recommendation.",
-      `${annual.preliminary ? "Includes provisional observations. " : ""}${annual.revised ? "Includes revised observations. " : ""}Data can be revised.`,
-      `Source: ${APPROVAL_SOURCE}`,
-      `Verified series: ${approvalsDataUrl(now.toISOString())}`,
-      "Open the source panel: https://thedesk.au/markets/sydney?utm_source=instagram&utm_medium=reel&utm_campaign=sydney_before_buy#housing-approvals",
-      "Bio → Reel sources → Sydney supply. Save the stage, place and timing checklist for your next property comparison.",
-      voiceCredit,
-    ].join("\n\n"),
+    caption: buildReelCaption({
+      hook: "Buying in Sydney? Three checks before using a supply headline.",
+      finding: `${count} dwelling units approved across Greater Sydney in the year to ${period}.`,
+      meaning:
+        "1. Stage: permission, not a start or a completion.\n2. Place: Greater Sydney, not your suburb or all NSW.\n3. Timing: check construction and completions before assuming homes are available. Counts alone don't establish shortage, future prices or investment quality.",
+      method:
+        "Source: ABS Building Approvals; twelve monthly original counts, all sectors and dwelling types. Not seasonally or population-adjusted.",
+      revisions: `${annual.preliminary ? "Includes provisional observations. " : ""}${annual.revised ? "Includes revised observations. " : ""}Data can be revised.`,
+      action: "Save the stage, place and timing checklist for your next property comparison.",
+      read: "sydneySupply",
+    }),
   };
 }

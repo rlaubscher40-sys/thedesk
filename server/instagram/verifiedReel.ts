@@ -1,15 +1,8 @@
 import { createHash } from "node:crypto";
-import {
-  latestRent,
-  rentGap,
-  rentPeriod,
-  RENT_DATA_URL,
-  RENT_SOURCE,
-  type CityRents,
-} from "../../shared/cityRents";
+import { latestRent, rentGap, rentPeriod, type CityRents } from "../../shared/cityRents";
 import type { ReelStat } from "../video/statReel";
 import type { ScriptLine } from "../video/narration";
-import { propertyComparisonCta } from "./propertyEditorial";
+import { buildReelCaption } from "./reelCaption";
 
 /** One comparable official release, not a daily market-movement claim. */
 export function verifiedRentReel(data: CityRents, now = new Date()) {
@@ -70,17 +63,14 @@ export function verifiedRentReel(data: CityRents, now = new Date()) {
     // read, without quietly republishing the same topic after a restart.
     publication: { key: "instagram-reel-abs-rents-brisbane-perth-v1", date: `${a.period}-01` },
     evidenceHash: hash,
-    caption: [
-      "Brisbane or Perth: where did rents change faster?",
-      `Brisbane ${a.annualPercent.toFixed(1)}% vs Perth ${b.annualPercent.toFixed(1)}%. Year to ${period}.`,
-      `Gap: ${figure} percentage points. ABS CPI rents actually paid, original series; capital-city boundaries.`,
-      `${line} This compares the pace of change, not which city has more expensive rents.`,
-      "For a buying decision, purchase prices and costs matter too. Rent growth is not rental yield or an overall investment verdict; these figures do not explain why rents changed.",
-      revision + ". Data can be revised.",
-      `Source: ${RENT_SOURCE}`,
-      `Verified series: ${RENT_DATA_URL}`,
-      propertyComparisonCta("reel"),
-      "Synthetic male narration: Kokoro / George. #AusProperty #PropertyData #TheDesk",
-    ].join("\n\n"),
+    caption: buildReelCaption({
+      hook: "Brisbane or Perth: where did rents change faster?",
+      finding: `Brisbane ${a.annualPercent.toFixed(1)}% vs Perth ${b.annualPercent.toFixed(1)}%. Year to ${period}. Gap: ${figure} percentage points.`,
+      meaning: `${line} This is the pace of change, not dollar rents, rental yield or a better-investment verdict. It does not explain why rents changed.`,
+      method: "Source: ABS CPI rents actually paid, original capital-city series.",
+      revisions: revision + ". Data can be revised.",
+      action: "Save this comparison. Check purchase prices and costs before comparing returns.",
+      read: "rentComparison",
+    }),
   };
 }

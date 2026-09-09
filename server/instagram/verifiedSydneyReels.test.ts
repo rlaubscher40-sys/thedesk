@@ -28,7 +28,8 @@ describe("automatic Sydney story recipes", () => {
     expect(c.stat.value).toBe("-0.3pp");
     expect(c.script.map((s) => s.text).join(" ")).toContain("still higher than a year earlier");
     expect(c.caption).toContain("not the percentage change in rents during the latest month");
-    expect(c.caption).toContain("sydney_rent_change#rental-conditions");
+    expect(c.caption).toContain("utm_campaign=sydney_rent_change");
+    expect(c.caption).toContain("Bio → What changed in Sydney rents?");
     expect(c.caption).toContain("slower rent growth as falling rents");
     expect(scriptFitsClip(c.script)).toBe(true);
   });
@@ -84,7 +85,8 @@ describe("automatic Sydney story recipes", () => {
     expect(c.stat.value).toBe("12,066");
     expect(c.caption).toContain("Greater Sydney");
     expect(c.caption).toContain("not a start or a completion");
-    expect(c.caption).toContain("sydney_before_buy#housing-approvals");
+    expect(c.caption).toContain("utm_campaign=sydney_before_buy");
+    expect(c.caption).toContain("Bio → Before you buy: Sydney supply");
     expect(scriptFitsClip(c.script)).toBe(true);
   });
   it("blocks missing months, suppressed/fractional/negative counts, duplicate periods and unknown flags", () => {

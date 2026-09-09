@@ -19,7 +19,8 @@ describe("verified rent Reel", () => {
     expect(reel.stat.line).toContain("Perth");
     expect(reel.caption).toContain("Perth: revised");
     expect(reel.caption).toContain("Year to July 2026");
-    expect(reel.caption).toContain("data.api.abs.gov.au");
+    expect(reel.caption).toContain("Source: ABS CPI rents actually paid");
+    expect(reel.caption).toContain("https://thedesk.au/markets/compare/brisbane-vs-perth?");
     expect(reel.stat.series).toBeUndefined(); // Two cities are not a time series.
     expect(scriptFitsClip(reel.script)).toBe(true);
     expect(reel.script.at(-1)!.text).toContain("free comparison");

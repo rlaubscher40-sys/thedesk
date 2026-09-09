@@ -51,7 +51,7 @@ export function SocialStart({ compact = false }: { compact?: boolean }) {
         </p>
       )}
       <div className="grid sm:grid-cols-2 gap-x-7 mt-4">
-        {SOCIAL_DESTINATIONS.slice(0, compact ? 3 : undefined).map((item) => (
+        {SOCIAL_DESTINATIONS.map((item) => (
           <a
             key={item.path}
             href={item.path}

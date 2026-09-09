@@ -1,13 +1,8 @@
 import { createHash } from "node:crypto";
-import {
-  annualApprovals,
-  APPROVAL_FLOW,
-  APPROVAL_SOURCE,
-  approvalsDataUrl,
-  type CityApprovals,
-} from "../../shared/cityApprovals";
+import { annualApprovals, APPROVAL_FLOW, type CityApprovals } from "../../shared/cityApprovals";
 import { rentPeriod } from "../../shared/cityRents";
 import type { verifiedRentReel } from "./verifiedReel";
+import { buildReelCaption } from "./reelCaption";
 
 type VerifiedReel = NonNullable<ReturnType<typeof verifiedRentReel>>;
 
@@ -81,18 +76,17 @@ export function verifiedSupplyReel(data: CityApprovals, now = new Date()): Verif
     ],
     publication: { key: "instagram-reel-abs-approvals-brisbane-perth-v1", date: `${a.period}-01` },
     evidenceHash: createHash("sha256").update(JSON.stringify(evidence)).digest("hex"),
-    caption: [
-      "Approved doesn't mean ready to move in.",
-      `Year to ${period}: ${number(a.total)} dwelling units approved in Greater Brisbane; ${number(b.total)} in Greater Perth.`,
-      "These are twelve consecutive monthly ABS original counts, all sectors and dwelling types, within Greater Capital City Statistical Areas. They are not seasonally adjusted.",
-      "Approvals measure permission to build, not starts or completed homes. These counts do not tell us when homes will be available, whether supply will meet demand, or which city is the better investment.",
-      "When comparing markets, check actual completions and demand alongside approvals. Different-sized cities cannot be ranked for shortage using raw approval counts alone.",
-      `${flags}. Figures can be revised.`,
-      `Source: ${APPROVAL_SOURCE}`,
-      `Verified series: ${approvalsDataUrl(asOf)}`,
-      "Check the approvals panel: https://thedesk.au/markets/compare/brisbane-vs-perth?utm_source=instagram&utm_medium=reel&utm_campaign=supply_comparison#housing-approvals",
-      "Send this to someone comparing Brisbane and Perth's housing supply.",
-      "Synthetic male narration: Kokoro / George. #AusProperty #HousingSupply #TheDesk",
-    ].join("\n\n"),
+    caption: buildReelCaption({
+      hook: "Approved doesn't mean ready to move in.",
+      finding: `Year to ${period}: ${number(a.total)} dwelling units approved in Greater Brisbane; ${number(b.total)} in Greater Perth.`,
+      meaning:
+        "Approvals are permission, not starts or completed homes. Raw counts cannot rank different-sized cities for shortage or investment quality.",
+      method:
+        "Source: ABS Building Approvals; twelve consecutive monthly ABS original counts, all sectors and dwelling types, Greater Capital City Statistical Areas. Not seasonally adjusted.",
+      revisions: `${flags}. Figures can be revised.`,
+      action:
+        "Send this to someone comparing housing supply. Check completions and demand before assuming when homes will be available.",
+      read: "supplyComparison",
+    }),
   };
 }

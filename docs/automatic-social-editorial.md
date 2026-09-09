@@ -100,7 +100,31 @@ Railway reported 14 separately staged changes on initial inspection; this
 work does not accept or mutate that staging patch. Security changes on main
 are preserved. No email, profile edit, manual Instagram post or paid API added.
 
-# Published carousel reading links
+# Social publishing and reading links
+
+## Repeatable Reel captions
+
+All five verified Reel recipes use `buildReelCaption`: short hook, exact finding,
+meaning/limits, source method, revision flags, one save/share prompt and a
+topic-specific reading direction. The 1,400-character editorial ceiling fails
+closed; it never truncates numbers or limitations. This is deterministic copy,
+not an additional model request.
+
+Raw ABS API URLs remain on the existing evidence pages. Captions identify ABS
+and the measure and link to the matching free Desk page. The compact bio page
+shows every Reel topic, including Brisbane–Perth supply. Existing campaign
+attribution names remain unchanged. Caption URLs omit fragment anchors because
+Instagram interpreted `#housing-approvals` as a stray hashtag; the clickable bio
+destinations retain their anchors. Eight-capital rent captions now point to
+`/social`, which displays all eight values rather than only a market search.
+
+Source pages can update after publication; every caption asks readers to match
+the post's reference period. Periods, signed values, geography, series definitions
+and revision flags stay in the caption. Audio scripts, evidence hashes, schedules
+and permanent publication keys are unchanged; copy edits cannot republish a month.
+This release does not edit existing Instagram captions or establish engagement gains.
+
+## Published carousel reading links
 
 The Instagram-tagged homepage and `/social` show up to six recent story links
 (three on the compact homepage). These come from story IDs written to a
