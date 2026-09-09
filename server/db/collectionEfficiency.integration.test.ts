@@ -474,9 +474,9 @@ it.skipIf(!testUrl)(
   async () => {
     await resetBrief();
     const id = await freshJob("brief-readiness");
-    expect(await brief.briefStoriesReady([id])).toBe(false);
-    expect(await brief.briefStoriesReady([])).toBe(false);
-    expect(await brief.briefStoriesReady([999999])).toBe(false);
+    await pool.query("UPDATE daily_feed_items SET feedDate=? WHERE id=?", [briefDate, id]);
+    expect(await brief.readReadyBriefStories(briefDate)).toBeNull();
+    expect(await brief.readReadyBriefStories("2026-01-01")).toBeNull();
     await worker.drainFeedEnrichment();
     expect((await brief.readReadyBriefStories(briefDate))?.[0]?.id).toBe(id);
     const stories = [{ id, title: "Original story", category: "PROPERTY", summary: "Evidence" }];
