@@ -64,6 +64,57 @@ afterEach(() => {
 });
 
 describe("Ask answer recovery", () => {
+  it("answers a factual rent lookup from stored observations through normal sharing", async () => {
+    const href = "/markets?q=4000&state=QLD&areaKind=postcode&period=2026-06-30#local-data";
+    vi.mocked(retrieveLocalFacts).mockResolvedValue([{
+      title: "4000, QLD (postcode)", date: "2026-06-30", href,
+      publisher: "RTA", sourceUrl: "https://source.test/rents.xlsx", text: "Stored rent evidence",
+      localRent: { method: "New-tenancy medians; bond counts are contextual.", observations: [{
+        measure: "weekly-rent", value: 850, unit: "AUD/week", period: "2026-06-30",
+        category: "Flat 2", sample: 287, status: "published",
+        periodLabel: "Quarter ended 30 June 2026", sampleLabel: "Bonds lodged",
+      }] },
+    }]);
+    const result = await askRouter.createCaller(ctx).answer({ question: "What is the median weekly rent for a 2-bedroom flat in postcode 4000 QLD?" });
+    expect(result).toMatchObject({ status: "answered", sources: [{ href, date: "2026-06-30" }], shareToken: "verified-share-token" });
+    expect(result).toHaveProperty("answer.answer", expect.stringContaining("$850/week"));
+    expect(invokeLLMJson).not.toHaveBeenCalled();
+    expect(createIntelligenceShareToken).toHaveBeenCalledTimes(1);
+  });
+  it("answers an entirely withheld rent lookup without model speculation or a share token", async () => {
+    const href = "/markets?q=4000&state=QLD&areaKind=postcode&period=2026-06-30#local-data";
+    vi.mocked(retrieveLocalFacts).mockResolvedValue([{
+      title: "4000, QLD (postcode)", date: "2026-06-30", href,
+      publisher: "RTA", sourceUrl: "https://source.test/rents.xlsx",
+      text: "House 4; withheld: suppressed; Bonds lodged: 8.", withheldRent: true,
+    }]);
+    const result = await askRouter.createCaller(ctx).answer({ question: "What is the median weekly rent for a 4-bedroom house in postcode 4000 QLD in June 2026?" });
+    expect(result).toMatchObject({ status: "insufficient", sources: [{ href, date: "2026-06-30" }] });
+    expect(result).not.toHaveProperty("answer");
+    expect(invokeLLMJson).not.toHaveBeenCalled();
+    expect(createIntelligenceShareToken).not.toHaveBeenCalled();
+    expect((await consumeAnonymousAsk(ctx.req)).remaining).toBe(2);
+  });
+  it("does not bypass synthesis when only part of the requested rent evidence is withheld", async () => {
+    const fact = { title: "4000, QLD", date: "2026-06-30", href: "/markets?q=4000", publisher: "RTA", sourceUrl: "https://source.test/rents.xlsx", text: "Rent evidence" };
+    vi.mocked(retrieveLocalFacts).mockResolvedValue([{ ...fact, withheldRent: true }, { ...fact, withheldRent: false, date: "2025-06-30" }]);
+    await askRouter.createCaller(ctx).answer({ question: "Compare median weekly rents in postcode 4000 QLD in June 2025 and June 2026" });
+    expect(invokeLLMJson).toHaveBeenCalledTimes(1);
+  });
+  it("does not label an old metric current when its database record was freshly updated", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date("2026-09-09T08:00:00Z"));
+    vi.mocked(db.listDailyMetrics).mockResolvedValue([{
+      metricKey: "cash_rate", label: "RBA cash rate", value: "4.35", unit: "%",
+      asOf: new Date("2025-01-01"), updatedAt: new Date("2026-09-09T07:00:00Z"),
+      source: "RBA", groupKey: "MACRO", context: null, previousValue: null,
+    }] as Awaited<ReturnType<typeof db.listDailyMetrics>>);
+    await askRouter.createCaller(ctx).answer({ question: "What does the RBA cash rate mean?" });
+    const messages = vi.mocked(invokeLLMJson).mock.calls[0]![0].messages.map((m) => m.content).join("\n");
+    expect(messages).toContain("Stored observation: 4.35%");
+    expect(messages).toContain("Older reporting period. This is not a current observation.");
+    expect(messages).toContain("As of: 2025-01-01");
+    expect(messages).not.toContain("Current value: 4.35%");
+  });
   it("answers from stored local facts when there are no archived stories or headline metrics", async () => {
     vi.mocked(db.searchAllContent).mockResolvedValue({ feedItems: [], editions: [] });
     const href = "/markets?q=Aranda&state=ACT&areaKind=SA2#local-data";

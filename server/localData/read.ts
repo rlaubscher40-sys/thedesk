@@ -10,6 +10,7 @@ import {
   type LocalArea,
   type LocalDataset,
   type LocalSourceKey,
+  type LocalObservation,
   type StateCode,
 } from "../../shared/localData";
 import { readLocalDataset, readLocalDataHealth } from "../db/localData";
@@ -200,6 +201,12 @@ export type FactEvidence = {
   publisher: string;
   sourceUrl: string;
   text: string;
+  /** All selected weekly-rent observations are explicitly withheld, not absent. */
+  withheldRent?: boolean;
+  localRent?: {
+    method: string;
+    observations: Array<LocalObservation & { periodLabel: string; sampleLabel: string }>;
+  };
 };
 export function localFactEvidence(
   match: LocalMatch,
@@ -207,7 +214,9 @@ export function localFactEvidence(
 ): FactEvidence[] {
   const source = LOCAL_SOURCES[match.sourceKey];
   const requestedPeriods = requestedLocalPeriods(question);
-  const beds = question.match(/\b([0-9]+)[ -]?(?:bed|bedroom)/i)?.[1];
+  const bedroomWords = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
+  const bedroomMatch = question.match(/\b([0-9]+|one|two|three|four|five|six|seven|eight|nine)[ -]?(?:bed|bedroom)/i)?.[1]?.toLowerCase();
+  const beds = bedroomMatch && (bedroomWords.includes(bedroomMatch) ? String(bedroomWords.indexOf(bedroomMatch) + 1) : bedroomMatch);
   const house = /\bhouses?\b/i.test(question),
     flat = /\b(flats?|units?|apartments?)\b/i.test(question),
     town = /\btownhouses?\b/i.test(question);
@@ -240,6 +249,13 @@ export function localFactEvidence(
       href: localAreaHref(area, period),
       publisher: source.publisher,
       sourceUrl: match.resourceUrl,
+      withheldRent: rows.every((o) => o.measure === "weekly-rent" && o.value === null && o.status !== "published"),
+      ...(rows.every((o) => o.measure === "weekly-rent") ? {
+        localRent: {
+          method: source.method,
+          observations: rows.map((o) => ({ ...o, periodLabel: localPeriodLabel(match.sourceKey, period, o.measure), sampleLabel: localSampleLabel(match.sourceKey) })),
+        },
+      } : {}),
       text: [
         `Geography: ${area.name}, ${area.state}; ${area.kind}; ${area.boundaryVersion}. Do not extend these observations to another geographic boundary.`,
         ...rows.map(

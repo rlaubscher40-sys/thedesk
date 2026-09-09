@@ -22,7 +22,7 @@ describe("spoken approval scenes", () => {
     expect(() => validateStoryboard(story, script.slice(1))).toThrow("do not match");
     expect(() => validateStoryboard({ ...story, perth: 1 }, script)).toThrow("do not match");
   });
-  it("keeps each city's comparison and each building stage with its measured speech", () => {
+  it("keeps the comparison and supply-demand explanation with measured speech", () => {
     const storyboard = approvalStoryboard(27628, 22229, "July 2026");
     const script = storyboard.scenes.map(({ key, text }) => ({ key, text }));
     const durations = Object.fromEntries(script.map((s, i) => [s.key, 1.8 + i / 10]));
@@ -43,7 +43,7 @@ describe("spoken approval scenes", () => {
     );
     expect(cues.flatMap((c) => c.lines).join(" ")).toBe(script.map((s) => s.text).join(" "));
     expect(subtitleAss(cues, "story")).toContain("\\pos(504,1490)");
-    expect(storyboard.scenes.find((s) => s.key === "line")!.showPerth).toBe(true);
-    expect(storyboard.scenes.find((s) => s.key === "claim")!.showPerth).toBe(true);
+    expect(storyboard.scenes.find((s) => s.key === "value")!.showPerth).toBe(true);
+    expect(storyboard.scenes.find((s) => s.key === "claim")!.kind).toBe("demand");
   });
 });

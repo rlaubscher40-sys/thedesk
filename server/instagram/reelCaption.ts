@@ -1,4 +1,5 @@
 import { SOCIAL_DESTINATIONS } from "../../shared/socialDestinations";
+import { assertCaptionStyle } from "./captionStyle";
 
 export const REEL_READS = {
   rentComparison: SOCIAL_DESTINATIONS[0],
@@ -35,7 +36,7 @@ export function buildNarrativeReelCaption(input: {
   ].join("\n\n");
   if (caption.length > REEL_CAPTION_LIMIT)
     throw new Error("Reel caption exceeds editorial length limit; no factual truncation allowed");
-  return caption;
+  return assertCaptionStyle(caption);
 }
 
 /** The spoken ending and video card name the same visible link as the caption. */
@@ -88,9 +89,9 @@ export function buildReelCaption(input: {
     ...paragraphs.map((p) => p.trim()),
     `Bio → ${reading.label}. Figures, definitions and ABS source links:\n${url}`,
     "Source pages update; match the post's reference period.",
-    "Synthetic male narration: Kokoro / George.\n#AusProperty #PropertyData #TheDesk",
+    "AI narration.\n#AusProperty #PropertyData #TheDesk",
   ].join("\n\n");
   if (caption.length > REEL_CAPTION_LIMIT)
     throw new Error("Reel caption exceeds editorial length limit; no factual truncation allowed");
-  return caption;
+  return assertCaptionStyle(caption);
 }

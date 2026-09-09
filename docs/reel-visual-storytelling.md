@@ -1,64 +1,80 @@
-# Visual approvals Reel
+# Visual supply and demand Reel
 
-The Brisbane–Perth approvals recipe now produces a dated storyboard alongside
-its verified figures. Its eight spoken passages control the opening illustration,
-two bars on a shared zero-based scale, the comparison period, and separate
-approval/construction/completion scenes. The final frame explains what else a
-viewer needs to understand supply. A scene starts at its measured WAV passage
-boundary. Sub-phrase caption timing remains length-weighted; this is not word
-alignment.
+The question is whether housing supply is keeping up with household demand.
+The approvals are evidence about the start of potential supply. They do not
+answer the whole question, and the Reel must not invent a shortage verdict.
 
-The renderer rejects a storyboard whose narration, order or values differ from
-the generated evidence recipe. It retains the source period and rejects measured
-videos above 32 seconds. The comparison is not a time series, a shortage ranking
-or a claim that every approval becomes a completed home.
+The eight measured passages open with the question, reveal the dated Brisbane
+and Perth approvals together, turn a permit into construction and a finished
+home, introduce households needing homes, and return to the original question.
+The images carry the exact figures. Narration carries their meaning, without
+spending most of the clip reading five-digit numbers or a bio instruction.
+The final frame and caption still name the exact visible bio destination.
 
-The scheduled renderer and the authenticated preview both receive the storyboard
-through the existing candidate. No scheduler, monthly publication key, daily
-quota, evidence hash definition or uncertain-publication lock is reset. Revising
-the visual treatment cannot repost a month already published. Other recipes keep
-the existing statistic-card renderer for now.
+Two bars share a zero-based scale. A short reveal of up to eight frames is followed by
+reading time. Static closing graphics are rendered once. The same site holds its position through the building stages.
+Gold represents supply and teal represents households. The house and household
+illustrations are conceptual, not measured household totals, a one-to-one ratio,
+a delivery forecast or a suggestion that all approvals become finished homes.
+No invented people photos, local shortage sizes or completion rates appear.
 
-The approvals caption now follows a short narrative: hook, exact dated figures,
-meaning, practical limit and a bio destination. It names ABS and retains original
-series/seasonal-adjustment context and material provisional/revised observations.
-It no longer prints API or tracking URLs, engine names or empty revision flags.
-AI narration is still disclosed. Detailed methodology and source links remain on
-the comparison page. The four other recipe captions are unchanged.
+The current adapter has city approvals, not matching city completion and
+household-demand observations. The existing population series is state-level.
+Do not combine it with city approvals to calculate a city shortage. A future
+quantified supply-demand story needs matching geography, period and definitions,
+including care with household formation, available stock and replacement homes.
 
-## Voice review
+## Repeatable editorial approach
 
-The production voice remains the existing local George profile until a listening
-review selects a replacement. The render API now accepts bounded local George,
-Fable and Daniel audition profiles, with speed between 0.9 and 1.1. The child
-process validates the profile too. Cache keys include both voice and speed, so
-one audition cannot accidentally play another voice's cached audio. No remote
-speech service, fee, credential or hosting-plan change is introduced.
+Each episode needs one plain-English question, a concrete reason it matters,
+verified evidence, a visual explanation and a takeaway that answers the question
+as far as the evidence allows. Write that causal sequence before drawing scenes.
+A statistic without an interpretation is not a finished story. Neither is a
+series of caveats without a useful explanation.
 
-The new script spells out exact counts and gives each sentence a clear purpose.
-The three building stages each have their own utterance. There is less inserted
-silence between scenes. Neither tests nor PCM amplitude establish that a synthetic
-voice sounds human: the produced audio needs a listening review. Fable in a review
-file is an audition, not an approved production voice change.
+Use motion to reveal the thing being discussed. Keep related objects in the
+same position, introduce one concept at a time, give numbers time to be read,
+and use subtitles to support the narration. Avoid adding effects without a
+story purpose. Keep a consistent identity while varying the evidence, question
+and visual device across episodes. Do not claim this single recipe improves all
+other Reel formats or guarantees engagement. Review completion, watch time,
+saves and shares against comparable posts after publication.
 
-## Reproduce the posted story
+Every caption uses Australian English and no em dashes. The shared generation
+rules state this explicitly. The two verified-caption builders and final Meta
+submission guard reject em dashes and common American prose spellings. The
+spelling check is a backstop, not a complete grammar checker; official names,
+URLs and ambiguous words must still be reviewed in context. It does not silently
+rewrite facts or proper names. Captions retain the date, source, definitions and
+material revision flags, with a short AI narration disclosure.
 
-Install the locked dependencies and pinned voice assets, then run:
+## Selected voice and timing
+
+Ruben selected local Fable after listening to the comparison. It is now the
+production default at speed 1.0, including the child-process fallback and review
+script. George and Daniel remain bounded audition options. Cache keys include
+voice and speed. No paid service, credential or hosting change is introduced.
+
+A scene starts at its measured WAV passage boundary. Sub-phrase subtitle timing
+remains length-weighted, not word-level forced alignment. The renderer rejects
+storyboards whose evidence identity, narration or order differs from the recipe,
+and rejects measured videos above 32 seconds.
+
+No scheduler, monthly publication key, daily quota, evidence hash definition or
+uncertain-publication lock is reset. Revising the treatment cannot repost a month
+already published. Other recipes keep their existing visual renderers, while
+using the selected default voice and shared caption style guard.
+
+## Reproduce the historical review
 
 ```sh
 corepack pnpm install --frozen-lockfile
 corepack pnpm setup:voice
-node --import tsx scripts/review-supply-reel.ts --out /tmp/desk-reel-review --voice bm_fable
+node --import tsx scripts/review-supply-reel.ts --out /tmp/desk-reel-review
 ```
 
-The script uses the checked-in ABS snapshot that reproduces the user's posted
-year-to-July-2026 totals: 27,628 in Greater Brisbane and 22,229 in Greater Perth.
-This is a historical review, not a fresh release lookup. It writes a narrated,
-subtitled MP4, the revised caption, scene JPEGs, a voice audition WAV and metadata.
-It never publishes. Use `--frames-only` for layout inspection. Omit `--voice` for
-a George audition at speed 1.0; the existing production default is George 1.02.
-
-Tests cover figure spelling, edited or reordered narration, speech/scene timing,
-caption integrity, voice-cache isolation and passing the storyboard through the
-publishing wrapper. Review rendered frames at phone size and listen to the full
-clip before choosing a voice or publishing a remake.
+The script uses the checked-in ABS snapshot matching the supplied July 2026 post:
+27,628 Greater Brisbane approvals and 22,229 Greater Perth approvals. This is a
+historical review, not a new release lookup. It writes a narrated and subtitled
+MP4, caption, scene JPEGs, voice sample and metadata. It never publishes. Use
+`--frames-only` for layout inspection, or `--voice bm_george` to audition George.

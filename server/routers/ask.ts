@@ -3,6 +3,8 @@ import { z } from "zod";
 import { displayMetricValue, rankAskMetrics } from "../ask/metricRetrieval";
 import { askQueryTerms, rankAskRecords } from "../ask/relevance";
 import { retrieveLocalFacts } from "../ask/localFacts";
+import { describeMetricObservation } from "../../shared/metricObservation";
+import { directLocalRentAnswer } from "../ask/directLocalRent";
 import * as db from "../db";
 import {
   consumeAnonymousAskAttempt,
@@ -209,9 +211,11 @@ export const askRouter = router({
             const previousValue = metric.previousValue
               ? displayMetricValue(metric.previousValue, metric.unit)
               : null;
-            const date = sourceDate(metric.asOf, "Current");
+            const observation = describeMetricObservation(metric);
+            const date = observation.date ?? "Observation date unavailable";
             const text = compactText([
-              `Current value: ${currentValue}`,
+              `Stored observation: ${currentValue}`,
+              `Reporting status: ${observation.explanation}`,
               previousValue ? `Previous recorded value: ${previousValue}` : null,
               metric.context ? `Context: ${metric.context}` : null,
               metric.source ? `Source: ${metric.source}` : null,
@@ -328,6 +332,24 @@ export const askRouter = router({
             };
           }
 
+          // A direct numeric lookup with only withheld local values needs no
+          // model interpretation. In particular, contextual bond counts do not
+          // establish why the publisher suppressed a median.
+          if (
+            /\b(?:median|weekly)\b/i.test(input.question) &&
+            /\b(?:rent|rents|rental)\b/i.test(input.question) &&
+            matches.facts.length > 0 &&
+            matches.facts.every((fact) => fact.withheldRent === true)
+          ) {
+            return {
+              status: "insufficient" as const,
+              question: input.question,
+              message: "The matching local rent values are withheld or suppressed for the reporting periods shown in the sources. No numeric rent is available for the requested category. The records do not establish a reason beyond their stated suppression or sample-size status. A different category, place or period would not answer the same question.",
+              sources: sourceMeta.slice(0, Math.min(matches.facts.length, 3)),
+              anonymousRemaining: null,
+            };
+          }
+
           signal.throwIfAborted();
           if (!ctx.user) {
             reservation.current = await reserveAnonymousAsk(ctx.req);
@@ -354,7 +376,7 @@ export const askRouter = router({
 
           let parsed: z.infer<typeof askAnswerSchema>;
           try {
-            const raw = await invokeLLMJson<unknown>({
+            const raw = directLocalRentAnswer(input.question, matches.facts) ?? await invokeLLMJson<unknown>({
               messages: buildAskDeskMessages(input.question, evidence),
               responseFormat: askDeskResponseFormat,
               maxTokens: 2200,

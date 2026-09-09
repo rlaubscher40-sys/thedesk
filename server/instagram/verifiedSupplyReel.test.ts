@@ -22,7 +22,7 @@ describe("verified approvals story", () => {
     expect(reel.caption).toContain("link in bio → Brisbane and Perth supply");
     expect(reel.caption).toContain("don't count construction starts or completed homes");
     expect(reel.script.map((line) => line.text).join(" ")).toContain(
-      "Check completions against local demand"
+      "supply only makes sense alongside demand"
     );
     expect(scriptFitsClip(reel.script)).toBe(true);
   });

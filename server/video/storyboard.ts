@@ -9,10 +9,13 @@ type SceneKind =
   | "permission"
   | "construction"
   | "completion"
+  | "supply"
+  | "demand"
   | "takeaway";
 export type ReelStoryboard = {
   kind: "approvals-comparison";
   period: string;
+  evidenceKey: string;
   brisbane: number;
   perth: number;
   scenes: Array<{ key: string; text: string; kind: SceneKind; showPerth?: boolean }>;
@@ -71,31 +74,43 @@ export function approvalStoryboard(
   perth: number,
   period: string
 ): ReelStoryboard {
-  const a = spokenCount(brisbane),
-    b = spokenCount(perth);
+  spokenCount(brisbane);
+  spokenCount(perth);
   if (!/^[A-Z][a-z]+ 20\d{2}$/.test(period)) throw new Error("Invalid approval period.");
   return {
     kind: "approvals-comparison",
     period,
     brisbane,
     perth,
+    evidenceKey: `approvals:${period}:${brisbane}:${perth}`,
     scenes: [
-      { key: "label", kind: "opening", text: "Approved. But ready to move in?" },
-      { key: "value", kind: "comparison", text: `Brisbane: ${a} approvals.` },
-      { key: "line", kind: "comparison", showPerth: true, text: `Perth: ${b}.` },
+      { key: "label", kind: "opening", text: "Are we building enough homes?" },
       {
-        key: "claim",
+        key: "value",
         kind: "comparison",
         showPerth: true,
-        text: `Both cover the year to ${period}.`,
+        text:
+          brisbane >= 1000 && perth >= 1000
+            ? "Brisbane and Perth both approved thousands of homes."
+            : "These are Brisbane and Perth's housing approvals.",
       },
-      { key: "facts", kind: "permission", text: "That's permission to build." },
-      { key: "construction", kind: "construction", text: "Construction is a separate step." },
-      { key: "completion", kind: "completion", text: "Check completions against local demand." },
+      { key: "line", kind: "permission", text: "But approved doesn't mean built." },
+      { key: "construction", kind: "construction", text: "Construction comes next." },
+      { key: "completion", kind: "completion", text: "Then, a finished home." },
+      {
+        key: "facts",
+        kind: "supply",
+        text: "The real test: are homes being delivered fast enough?",
+      },
+      {
+        key: "claim",
+        kind: "demand",
+        text: "Fast enough for households needing somewhere to live.",
+      },
       {
         key: "signOff",
         kind: "takeaway",
-        text: reelReadingCta("supplyComparison").voice,
+        text: "That's why supply only makes sense alongside demand.",
       },
     ],
   };
@@ -118,10 +133,17 @@ export function storyboardSections(story: ReelStoryboard, durations: Record<stri
     const measured = durations[scene.key];
     if (!Number.isFinite(measured) || measured! <= 0)
       throw new Error("Scene has no speech timing.");
-    const steps = ["permission", "construction", "completion"].includes(scene.kind)
-      ? [1]
-      : [0.35, 0.7, 1];
-    // Reveal only changing elements. Stage highlights each hold on one frame.
+    // A short, legible build within the measured passage, then time to read.
+    // Spend frames on changing information; the closing composition is static.
+    const count =
+      scene.kind === "takeaway"
+        ? 1
+        : scene.kind === "comparison"
+          ? 8
+          : ["permission", "construction", "completion"].includes(scene.kind)
+            ? 6
+            : 4;
+    const steps = Array.from({ length: count }, (_, i) => (i + 1) / count);
     return {
       key: scene.key,
       seconds: measured! + (index === story.scenes.length - 1 ? 0.65 : 0.14),
@@ -129,7 +151,7 @@ export function storyboardSections(story: ReelStoryboard, durations: Record<stri
         reveal: 1,
         sceneKey: scene.key,
         sceneProgress: progress,
-        ...(i < steps.length - 1 ? { seconds: 0.1 } : {}),
+        ...(i < steps.length - 1 ? { seconds: 0.08 } : {}),
       })),
     };
   });
@@ -171,7 +193,7 @@ const house = (
         ? '<path d="M65 16h80l30 30v140H65z M145 16v30h30 M85 66h65 M85 86h65 M85 106h44"/><circle cx="126" cy="145" r="24"/><path d="m113 144 9 9 18-19"/>'
         : phase === "construction"
           ? '<path d="M35 173h170 M48 173V92l72-61 72 61v81 M48 92h144 M85 63v110 M155 63v110 M25 27h168 M62 27v146 M143 27v48 M127 49h31" stroke-dasharray="0"/>'
-          : '<path d="M30 96 120 22l90 74 M48 82v101h144V82 M105 183v-57h32v57 M70 111h22v26H70 M151 111h22v26h-22"/>') +
+          : '<path d="M30 96 120 22l90 74 M48 82v101h144V82 M105 183v-57h32v57 M70 111h22v26H70z M151 111h22v26h-22z"/>') +
       "</g>",
     width,
     height
@@ -195,156 +217,205 @@ export async function renderStoryFrame(
       type(a, 88, c.fg, true),
       ...(b ? [type(b, 88, c.accent, true)] : []),
     ]);
+  const teal = variant === "light" ? "#286B65" : "#85C5BA";
+  const phases = ["permission", "construction", "completion"] as const;
+  const people = (color: string, width = 230, height = 200) =>
+    svg(
+      `<g fill="none" stroke="${color}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="88" cy="49" r="21"/><circle cx="157" cy="57" r="19"/>
+      <path d="M47 170v-60q0-30 41-30t41 30v60 M133 91q55-13 55 30v49 M67 122v48 M108 122v48 M169 126v44"/>
+    </g>`,
+      width,
+      height
+    );
+  const badge = (text: string, color = c.accent) =>
+    box(
+      { padding: "12px 18px", border: `1px solid ${color}`, alignSelf: "flex-start" },
+      type(text, 23, color)
+    );
+  const pair = (focus: "supply" | "demand" | "both") =>
+    box(
+      { gap: 24, height: 350 },
+      (["supply", "demand"] as const).map((side) => {
+        const color = side === "supply" ? c.accent : teal;
+        const revealed = focus === "both" || side === "supply" || focus === "demand";
+        return box(
+          {
+            width: 408,
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 14,
+            backgroundColor: c.panel,
+            borderTop: `4px solid ${color}`,
+            opacity: revealed ? (focus === side ? 0.45 + progress * 0.55 : 1) : 0.2,
+          },
+          [
+            side === "supply" ? house(color, "completion", 230, 190) : people(color, 230, 190),
+            type(side === "supply" ? "HOMES DELIVERED" : "HOUSEHOLDS", 27, color),
+            type(side === "supply" ? "Supply" : "Needing a home", 23, c.muted),
+          ]
+        );
+      })
+    );
   let content: Node;
   if (scene.kind === "opening") {
-    content = box({ flexDirection: "column", gap: 70 }, [
-      title("Approved.", "But completed?"),
+    content = box({ flexDirection: "column", gap: 42 }, [
+      title("Are we building", "enough homes?"),
       box(
-        {
-          height: 355,
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "20px 24px",
-          borderTop: `1px solid ${c.rule}`,
-          borderBottom: `1px solid ${c.rule}`,
-        },
+        { alignItems: "center", justifyContent: "space-between", height: 315, padding: "0 32px" },
         [
-          box({ flexDirection: "column", alignItems: "center", gap: 24 }, [
-            house(c.accent, "permission", 245, 220),
-            type("PERMISSION", 24, c.accent),
-          ]),
-          svg(
-            `<path d="M55 78h130 M55 122h130 M156 40 84 160" fill="none" stroke="${c.muted}" stroke-width="10" stroke-linecap="round"/>`,
-            90,
-            90
-          ),
-          box({ flexDirection: "column", alignItems: "center", gap: 24, opacity: progress }, [
-            house(c.fg, "completion", 245, 220),
-            type("FINISHED HOME", 24, c.fg),
-          ]),
+          house(c.accent, "completion", 245, 220),
+          type("?", 124, c.fg, true),
+          box({ opacity: 0.3 + progress * 0.7 }, people(teal, 245, 220)),
         ]
       ),
-      type("Brisbane · Perth", 30, c.muted),
+      box(
+        {
+          justifyContent: "space-between",
+          padding: "0 24px",
+          borderTop: `1px solid ${c.rule}`,
+          paddingTop: 22,
+        },
+        [type("HOUSING SUPPLY", 27, c.accent), type("HOUSEHOLD DEMAND", 27, teal)]
+      ),
+      type("Brisbane + Perth", 29, c.muted),
     ]);
   } else if (scene.kind === "comparison") {
     const maximum = Math.max(
       10000,
       Math.ceil(Math.max(story.brisbane, story.perth) / 10000) * 10000
     );
-    const row = (name: string, value: number, active: boolean, shown: boolean) =>
-      box({ flexDirection: "column", gap: 20, opacity: shown ? 1 : 0.28 }, [
+    const row = (name: string, value: number, delay: number) => {
+      const reveal = Math.min(1, Math.max(0, (progress - delay) / (1 - delay)));
+      return box({ flexDirection: "column", gap: 16 }, [
         box({ justifyContent: "space-between", alignItems: "center" }, [
-          type(name, 28, active ? c.accent : c.muted),
-          type(shown ? value.toLocaleString("en-AU") : "—", 70, c.fg, true),
+          type(name, 27, c.muted),
+          type(value.toLocaleString("en-AU"), 76, c.fg, true),
         ]),
-        box({ height: 90, backgroundColor: c.panel, borderLeft: `2px solid ${c.muted}` }, [
+        box({ height: 84, backgroundColor: c.panel, borderLeft: `2px solid ${c.muted}` }, [
           box(
             {
-              width: shown ? `${(value / maximum) * 100 * (active ? progress : 1)}%` : 0,
-              height: 90,
-              backgroundColor: active ? c.accent : c.muted,
+              width: `${(value / maximum) * 100 * reveal}%`,
+              height: 84,
+              backgroundColor: c.accent,
             },
             ""
           ),
         ]),
       ]);
-    content = box({ flexDirection: "column", gap: 48 }, [
-      title("Two cities.", "One measure."),
-      type(`DWELLING APPROVALS · YEAR TO ${story.period.toUpperCase()}`, 23, c.muted),
-      row("GREATER BRISBANE", story.brisbane, key === "value", true),
-      row("GREATER PERTH", story.perth, key === "line", Boolean(scene.showPerth)),
-      box({ justifyContent: "space-between", borderTop: `1px solid ${c.rule}`, paddingTop: 14 }, [
+    };
+    content = box({ flexDirection: "column", gap: 35 }, [
+      title("Homes", "approved."),
+      type(`12 MONTHS TO ${story.period.toUpperCase()}`, 26, c.muted),
+      row("GREATER BRISBANE", story.brisbane, 0),
+      row("GREATER PERTH", story.perth, 0.25),
+      box({ justifyContent: "space-between", borderTop: `1px solid ${c.rule}`, paddingTop: 12 }, [
         type("0", 22, c.muted),
         type(`${maximum.toLocaleString("en-AU")} dwellings`, 22, c.muted),
       ]),
-      ...(key === "claim"
-        ? [
-            box({ flexDirection: "column", gap: 20 }, [
-              box(
-                { gap: 8 },
-                Array.from({ length: 12 }, (_, i) =>
-                  box(
-                    {
-                      width: 57,
-                      height: 20,
-                      backgroundColor: i < Math.ceil(progress * 12) ? c.accent : c.rule,
-                    },
-                    ""
-                  )
-                )
-              ),
-              type("12 months · Same period · Original counts", 24, c.muted),
-            ]),
-          ]
-        : []),
+      badge("APPROVALS ARE THE START"),
     ]);
-  } else if (["permission", "construction", "completion"].includes(scene.kind)) {
-    const phases = ["permission", "construction", "completion"] as const;
+  } else if (phases.includes(scene.kind as (typeof phases)[number])) {
     const active = phases.indexOf(scene.kind as (typeof phases)[number]);
-    content = box({ flexDirection: "column", gap: 40 }, [
-      title("Three different", "stages."),
-      ...phases.map((phase, i) =>
-        box(
-          {
-            alignItems: "center",
-            gap: 30,
-            padding: "18px 24px",
-            height: 190,
-            border: `2px solid ${i === active ? c.accent : c.rule}`,
-            backgroundColor: c.panel,
-            opacity: i > active ? 0.35 : 1,
-          },
-          [
-            house(i === active ? c.accent : c.muted, phase),
-            box({ flexDirection: "column", gap: 14 }, [
-              type(
-                ["01  APPROVAL", "02  CONSTRUCTION", "03  COMPLETION"][i]!,
-                29,
-                i === active ? c.accent : c.fg
-              ),
-              type(
-                ["Permission to build", "Building the home", "A finished dwelling"][i]!,
-                27,
-                c.muted
-              ),
-            ]),
-          ]
-        )
+    const phase = phases[active]!;
+    const labels = ["APPROVED", "UNDER CONSTRUCTION", "FINISHED"];
+    // Keep the site in the same position as the permit gives way to the building.
+    // Illustrative stages, with no invented attrition rate or delivery deadline.
+    content = box({ flexDirection: "column", gap: 28 }, [
+      title(
+        ...([
+          ["Permission", "to build."],
+          ["Then comes", "construction."],
+          ["Then, a", "finished home."],
+        ][active]! as [string, string])
       ),
-      type("Approvals count the first stage.", 24, c.muted),
-    ]);
-  } else {
-    content = box({ flexDirection: "column", gap: 55 }, [
-      title("What actually", "gets built?"),
       box(
         {
+          position: "relative",
+          height: 385,
           alignItems: "center",
-          gap: 30,
-          padding: 28,
-          borderTop: `1px solid ${c.rule}`,
-          borderBottom: `1px solid ${c.rule}`,
+          justifyContent: "center",
+          backgroundColor: c.panel,
         },
         [
-          house(c.accent, "completion"),
-          box({ flexDirection: "column", gap: 18 }, [
-            type("COMPLETIONS", 34, c.fg),
-            type("The homes delivered", 26, c.muted),
-          ]),
+          ...(active > 0
+            ? [
+                box(
+                  { position: "absolute", opacity: (1 - progress) * 0.6 },
+                  house(c.muted, phases[active - 1]!, 410, 350)
+                ),
+              ]
+            : []),
+          box({ opacity: progress }, house(c.accent, phase, 410, 350)),
         ]
       ),
-      box({ flexDirection: "column", gap: 18, opacity: progress }, [
-        type("+ LOCAL DEMAND", 34, c.accent),
-        type("Approval counts alone", 43, c.fg, true),
-        type("don't establish a shortage.", 43, c.fg, true),
-      ]),
-      box({ flexDirection: "column", gap: 16, marginTop: 18 }, [
-        type("Open our bio. Choose:", 27, c.fg),
+      box(
+        { gap: 12 },
+        phases.map((_, i) =>
+          box(
+            {
+              width: 272,
+              height: 65,
+              alignItems: "center",
+              justifyContent: "center",
+              borderTop: `4px solid ${i <= active ? c.accent : c.rule}`,
+              opacity: i <= active ? 1 : 0.4,
+            },
+            type(
+              ["01 APPROVAL", "02 BUILD", "03 FINISH"][i]!,
+              23,
+              i === active ? c.accent : c.muted
+            )
+          )
+        )
+      ),
+      badge(labels[active]!),
+      type(
+        active === 0
+          ? "The totals count permission."
+          : active === 1
+            ? "Approval does not guarantee delivery."
+            : "Now look at demand.",
+        26,
+        c.muted
+      ),
+    ]);
+  } else if (scene.kind === "supply" || scene.kind === "demand") {
+    const isDemand = scene.kind === "demand";
+    content = box({ flexDirection: "column", gap: 44 }, [
+      title(
+        ...((isDemand ? ["Enough homes", "for whom?"] : ["Homes delivered.", "Fast enough?"]) as [
+          string,
+          string,
+        ])
+      ),
+      pair(scene.kind),
+      box(
+        { height: 10, backgroundColor: c.rule },
+        box({ width: `${progress * 100}%`, backgroundColor: isDemand ? teal : c.accent }, "")
+      ),
+      type(
+        isDemand ? "People needing somewhere to live." : "Supply has to be read beside demand.",
+        35,
+        c.fg,
+        true
+      ),
+      type("Compare the same area and period.", 25, c.muted),
+    ]);
+  } else {
+    content = box({ flexDirection: "column", gap: 35 }, [
+      title("Is supply", "keeping up?"),
+      pair("both"),
+      type("Approvals alone can't answer that.", 36, c.fg, true),
+      box({ flexDirection: "column", gap: 12, paddingTop: 25, borderTop: `1px solid ${c.rule}` }, [
+        type("Open our bio. Choose:", 25, c.muted),
         type(reelReadingCta("supplyComparison").fact.caption, 26, c.accent),
       ]),
     ]);
   }
   return renderEditorialFrame(content, variant, {
-    kicker: "BEFORE YOU BUY / HOUSING SUPPLY",
+    kicker: "THE HOUSING QUESTION / SUPPLY + DEMAND",
     source: `ABS Building Approvals · Year to ${story.period}`,
     index: story.scenes.indexOf(scene),
     count: story.scenes.length,

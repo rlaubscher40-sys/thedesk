@@ -1044,7 +1044,7 @@ export function containerWaitBudgetMs(deadlineAt: number | undefined, now = Date
  */
 export async function postStatReel(
   stat: {
-    editorialLabel?: "What Changed" | "Before You Buy";
+    editorialLabel?: "What Changed" | "Before You Buy" | "Supply and Demand";
     label: string;
     value: string;
     line: string;

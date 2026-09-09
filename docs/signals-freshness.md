@@ -1,0 +1,51 @@
+# Signals observation dates
+
+The production Signals page previously called every stored metric live and
+offered an Ask link describing its value as relevant "right now", without
+showing the observation date. Ask likewise introduced retrieved metric rows as
+"Current value" regardless of their reporting date.
+
+Signals now displays the observation date on its leading number, metric board
+and watchlist entries. The existing Admin metric-health rules provide separate
+notices for old reporting periods, overdue collection, invalid/future dates,
+extracted evidence and unknown publication cadence. A recent database update
+cannot make an old observation current. Review thresholds allow publication
+lags; they do not prove that a publisher has no newer data.
+
+Ask links carry the date and freshness explanation. The server independently
+adds the same explanation when retrieving a metric, including questions entered
+directly on Ask. Evidence is labelled "Stored observation" and the prompt must
+respect its reporting status throughout the answer. These instructions are not
+a guarantee of compliant model prose or verification of the underlying number.
+
+No collection, history, share-card rendering, data schema or schedule changes.
+The existing ranking still uses movement across recorded history; it is not a
+ranking of the freshest observations. Share cards already carry an as-of date;
+their public links still open the latest stored record. Historical link
+retention and the broader source-coverage work remain separate.
+
+Verification covers a freshly saved old observation, a current-period overdue
+refresh, invalid/future dates, unknown cadence, the dated Ask link, the rendered
+Signals hero/board and the actual evidence supplied by the Ask router. Production
+checks should confirm the date labels on the board and a retained older metric,
+then follow its Ask link and inspect the generated response separately.
+
+Live verification after #206 showed a specific remaining model failure: the
+withheld postcode 4000 four-bedroom house answer correctly omitted a rent but
+invented a suppression threshold, privacy rationale and liquidity conclusions
+from eight contextual bonds. Direct median/weekly-rent lookups with only
+withheld matching local evidence now return a deterministic insufficient-data
+explanation and dated source links, without a model call, share token or consumed
+answer allowance. Mixed available/withheld evidence still uses synthesis. This
+does not repair prior saved answers or guarantee other model commentary.
+
+A second live comparison returned the correct $800 and $850 with separate
+June 2025/June 2026 links, but called the new-tenancy medians "asking rents".
+Simple factual median/weekly-rent lookups and comparisons now quote the stored
+observations and source methodology directly when all selected rows are
+published, from one publisher/method, and number at most four. They use normal
+answer validation and sharing without a model call. Bedroom counts written as
+words (one through nine) are also respected. Broader interpretation, mixed
+availability, different sources and larger selections retain normal synthesis.
+This narrow route does not claim that contextual bond counts explain changes,
+establish reliability or measure vacancy.

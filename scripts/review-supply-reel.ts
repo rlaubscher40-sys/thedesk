@@ -13,7 +13,7 @@ if (outArg < 0 || !args[outArg + 1])
   throw new Error("Use --out /absolute/review-directory [--frames-only] [--voice bm_fable]");
 const out = path.resolve(args[outArg + 1]!);
 const voiceArg = args.indexOf("--voice");
-const voice = voiceArg < 0 ? "bm_george" : args[voiceArg + 1];
+const voice = voiceArg < 0 ? "bm_fable" : args[voiceArg + 1];
 if (!["bm_george", "bm_fable", "bm_daniel"].includes(voice!))
   throw new Error("Unknown review voice.");
 const profile: SpeechProfile = { voice: voice as SpeechProfile["voice"], speed: 1.0 };

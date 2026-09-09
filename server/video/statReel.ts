@@ -131,7 +131,7 @@ export const MAX_REEL_SECONDS = 32;
 
 export type ReelStat = ReelStatText & {
   storyboard?: ReelStoryboard;
-  editorialLabel?: "What Changed" | "Before You Buy";
+  editorialLabel?: "What Changed" | "Before You Buy" | "Supply and Demand";
   asOf?: Date | null;
   series?: SparkPoint[];
   facts?: StatFact[];

@@ -57,7 +57,8 @@ describe("repeatable concise Reel captions", () => {
       expect(recipe).not.toBeNull();
       const read = reads[index]!;
       const label = REEL_READS[read].label;
-      expect(recipe!.script.find((line) => line.key === "signOff")?.text).toContain(label);
+      if (!recipe!.stat.storyboard)
+        expect(recipe!.script.find((line) => line.key === "signOff")?.text).toContain(label);
       expect(recipe!.script.find((line) => line.key === "signOff")?.text).not.toMatch(/[?!]\./);
       expect(scriptFitsClip(recipe!.script)).toBe(true);
       if (read === "sydneySupply") {
@@ -75,6 +76,7 @@ describe("repeatable concise Reel captions", () => {
       expect(caption.toLowerCase()).toContain(`bio → ${label.toLowerCase()}`);
       expect(caption.length).toBeLessThanOrEqual(REEL_CAPTION_LIMIT);
       expect(caption.split("\n")[0]!.length).toBeLessThanOrEqual(110);
+      expect(caption).not.toContain("\u2014");
       expect(caption).toContain("Source: ABS");
       expect(caption).toContain("July 2026");
       expect(caption).toContain("can be revised");
