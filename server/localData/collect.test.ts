@@ -6,6 +6,7 @@ vi.mock("../db/localData", () => ({
   readLocalDataHealth: vi.fn(),
 }));
 vi.mock("../db/collectionRuns", () => ({ collectionSignal: () => undefined }));
+vi.mock("../db/localTransfers", () => ({recordLocalTransfer:vi.fn()}));
 vi.mock("./fetch", () => ({
   fetchSource: vi.fn(),
   fetchSourceResponse: vi.fn(),
@@ -21,6 +22,7 @@ vi.mock("./parsers", () => ({
   parseLocalPopulation: vi.fn(),
 }));
 import { createHash } from "node:crypto";
+import { recordLocalTransfer } from "../db/localTransfers";
 import { collectLocalData, reusableDownloadCache, LOCAL_PARSER_VERSION } from "./collect";
 import { LocalSourceAccessPaused } from "./access";
 import { fetchSource, fetchSourceResponse } from "./fetch";
@@ -36,6 +38,7 @@ import {
 beforeEach(() => {
   vi.resetAllMocks();
   vi.mocked(readLocalDataHealth).mockResolvedValue([]);
+  vi.mocked(recordLocalTransfer).mockResolvedValue(undefined);
   vi.mocked(readLocalDataset).mockResolvedValue(null);
   vi.mocked(fetchSource).mockResolvedValue(Buffer.from("file"));
   vi.mocked(fetchSourceResponse).mockResolvedValue({
@@ -61,6 +64,7 @@ it("does not download within the persistent success cooldown", async () => {
   ]);
   await collectLocalData("nsw-bond-rents");
   expect(fetchSource).not.toHaveBeenCalled();
+  expect(recordLocalTransfer).not.toHaveBeenCalled();
 });
 it("does not reparse or duplicate an unchanged workbook", async () => {
   const fingerprint = createHash("sha256")
@@ -82,12 +86,29 @@ it("does not reparse or duplicate an unchanged workbook", async () => {
   expect(writeLocalDataset).not.toHaveBeenCalled();
   expect(markLocalDataCheck).toHaveBeenCalledWith("nsw-bond-rents", null);
 });
+
+it("records estimated avoided body bytes only when a previous file size is known", async () => {
+  const previous = cachedDataset();
+  previous.downloadCache!.bodyBytes = 1234;
+  vi.mocked(readLocalDataset).mockResolvedValue(previous);
+  vi.mocked(fetchSourceResponse).mockResolvedValue({status:"unchanged"});
+  await collectLocalData("nsw-bond-rents");
+  expect(recordLocalTransfer).toHaveBeenCalledWith("nsw-bond-rents",{status:"unchanged",previousBodyBytes:1234});
+});
+
+it("does not block valid collection when optional measurement storage is unavailable", async () => {
+  vi.mocked(recordLocalTransfer).mockRejectedValue(new Error("Measurement table unavailable"));
+  await collectLocalData("nsw-bond-rents");
+  expect(writeLocalDataset).toHaveBeenCalledTimes(1);
+  expect(markLocalDataCheck).toHaveBeenCalledWith("nsw-bond-rents",null);
+});
 it("retains the last good snapshot on a schema failure and reports failure", async () => {
   vi.mocked(parseNswBonds).mockImplementation(() => {
     throw new Error("Schema changed");
   });
   await expect(collectLocalData("nsw-bond-rents")).rejects.toThrow("Schema changed");
   expect(writeLocalDataset).not.toHaveBeenCalled();
+  expect(recordLocalTransfer).toHaveBeenCalledWith("nsw-bond-rents", {status:"downloaded",bodyBytes:4});
   expect(markLocalDataCheck).toHaveBeenCalledWith("nsw-bond-rents", "Schema changed");
 });
 it("does not report success when storage fails", async () => {

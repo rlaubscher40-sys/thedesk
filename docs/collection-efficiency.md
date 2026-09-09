@@ -101,11 +101,47 @@ The briefing endpoint now uses the same conservative URL identity as the archive
 before insertion and editorial AI processing. Known tracking parameters/fragments
 are ignored, content-selecting query parameters and path case are preserved, and
 duplicates within one submission are removed. The stored-URL window remains 14
-days. This is not a content-revision history or a database uniqueness guarantee
-across concurrent submissions; those remain separate follow-up work.
+days. Database claims now separately protect concurrent submissions as described
+below. This is not a content-revision history.
 
 Admin separates operational states (access blocked, collection failed, not
 collected, stored release available) from individual observations that the source
 suppressed or The Desk withheld under sample rules. A missing record is not
 labelled not published. Failed health/snapshot reads surface as an unavailable
 coverage view rather than silently presenting an empty or healthy state.
+
+## Atomic ingest claims
+
+The current briefing writer locks one hashed article identity in
+`feed_ingest_claims` and inserts the feed row in the same transaction. Only the
+winning worker receives an inserted ID; duplicate workers receive zero and are
+excluded by the existing background-enrichment guard. An insertion failure rolls
+back the claim, so a later retry is allowed. No model call occurs under the lock.
+Duplicate and failed-insert counts are reported separately in the ingest receipt.
+
+URL identities retain the existing 14-day acceptance window. Duplicate requests
+do not extend it. URL-less headlines are scoped to publisher, channel and feed
+date so a generic headline does not suppress a different day's reporting. These
+claims cover current ingest writers after rollout, not older binaries or direct
+SQL inserts. The recent-URL prefilter still protects pre-rollout stored stories.
+Deleting a feed row does not clear its acceptance claim. Old claims may be reused
+after the acceptance window; this is not a revision history or permanent exclusion.
+If a winning worker dies after insertion but before enrichment, it can leave an
+unenriched row, as before. This change does not implement an enrichment retry queue
+or restrict intentional admin backfills/regeneration.
+
+## Download measurements
+
+`local_transfer_stats` records completed data-file 200 and valid 304 responses in
+UTC day/source counters, using atomic increments. It counts decoded body bytes
+from complete 200 responses even if later parsing fails. A 304's avoided bytes are
+an estimate using the cached size of the preceding full response; a legacy cache
+without size information increments a separate unknown-size count. Discovery
+pages, headers, compression overhead and partial failed transfers are excluded.
+These figures are not billed network traffic or measured dollar savings.
+
+Admin displays the latest 30 UTC days and explicitly shows when a source has no
+measurements yet. Stats persist across restarts. Measurement failure is logged
+without blocking otherwise valid collection; the stats endpoint reports read
+failure separately from source health. Startup catch-up adds the two new tables
+without rewriting existing observations or resetting access pauses/cooldowns.
