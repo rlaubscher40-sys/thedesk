@@ -26,15 +26,24 @@ export function packAskEvidence(question: string, sources: AskContextSource[], l
   if (local.length > limit) return null;
   const primary = sources.find((source) => {
     const label = normaliseAskText(source.title.split(":")[0]!);
-    return source.kind === "metric" && source.category !== "LOCAL DATA" &&
-      label.length > 0 && ` ${normaliseAskText(question)} `.includes(` ${label} `);
+    return (
+      source.kind === "metric" &&
+      source.category !== "LOCAL DATA" &&
+      label.length > 0 &&
+      ` ${normaliseAskText(question)} `.includes(` ${label} `)
+    );
   });
   const chosen = [...local];
   if (primary && chosen.length < limit) chosen.push(primary);
   const selected = new Set(chosen.map((source) => source.ref));
+  // A question about a named, dated/numbered observation must not use our own
+  // editorial interpretation as independent evidence of market conditions.
+  const readingObservation = Boolean(primary && /\d/.test(question));
   const remaining = rankAskRecords(
     question,
-    sources.filter((source) => !selected.has(source.ref)),
+    sources.filter(
+      (source) => !selected.has(source.ref) && (!readingObservation || source.kind === "metric")
+    ),
     {
       title: (source) => source.title,
       body: (source) => source.text,
@@ -43,6 +52,18 @@ export function packAskEvidence(question: string, sources: AskContextSource[], l
     limit - chosen.length
   );
   return [...chosen, ...remaining];
+}
+
+/** Number only after selection, keeping each citation joined to its metadata. */
+export function numberAskEvidence<T extends { ref: number }>(
+  sources: AskContextSource[],
+  metadata: T[]
+) {
+  return sources.map((source, index) => {
+    const original = metadata.find((item) => item.ref === source.ref);
+    if (!original) throw new Error("Missing evidence metadata");
+    return { source: { ...source, ref: index + 1 }, metadata: { ...original, ref: index + 1 } };
+  });
 }
 
 /** Repeated references carry no extra evidence. Never discard an unknown ref

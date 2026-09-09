@@ -9,8 +9,9 @@ The answer prompt now receives at most eight relevant records, or a smaller
 explicit limit requested as digits or words one through eight. Local facts keep
 their separate period references. If those facts exceed the requested limit,
 Ask declines instead of dropping part of a comparison. An explicitly named
-metric is prioritised, then remaining reporting is ranked. IDs stay stable;
-records retrieved but omitted from this evidence set cannot be cited.
+metric is prioritised, then remaining reporting is ranked. Citations are numbered
+consecutively after selection, with each number joined to its original source
+metadata. Records omitted from this evidence set cannot be cited.
 
 The JSON format and prompt carry the same source limit. Repeated references are
 deduplicated before schema validation. Unknown references, excessive distinct
@@ -46,3 +47,15 @@ preservation, repeated versus invalid citations, excluded references, reviewer
 rejection/unavailability/malformed responses, quota accounting and cancellation
 during a stalled review. Live checks must assess actual review behaviour and
 latency separately; mocked reviewer tests establish control flow only.
+
+Post-deployment checks of #210 exposed a false acceptance: the reviewer allowed
+claims about conversion pressure based on editorial commentary. A three-source
+request also failed without enough logging to distinguish a reference failure
+from a malformed review. The follow-up keeps interpretations of explicitly named,
+dated or numbered observations on structured metric records only. General
+editorial questions can still retrieve editions. Generated feed angles, sales
+lines, counterpoints and personal notes are no longer factual prompt material.
+It also numbers selected evidence consecutively and returns a sourced
+insufficient result for reference/review failures, with privacy-preserving logs
+identifying the failure stage. No rejected draft is shown or shared. The broader
+semantic limits of model review still apply.
