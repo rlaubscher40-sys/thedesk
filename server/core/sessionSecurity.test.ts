@@ -51,3 +51,32 @@ it("supports concurrent sessions using the same derived signing key", async () =
   const sessions = await Promise.all(tokens.map((token) => sdk.verifySession(token)));
   expect(sessions.every((session) => session?.role === "admin")).toBe(true);
 });
+
+it("requires the exact password, including Unicode, and accepts configuration rotation", async () => {
+  config.adminPassword = "example-café🔑";
+  expect(await sdk.verifyPassword(config.adminPassword)).toBe(true);
+  expect(await sdk.verifyPassword("example-cafe🔑")).toBe(false);
+  config.adminPassword = "replacement-test-password";
+  expect(await sdk.verifyPassword("example-café🔑")).toBe(false);
+  expect(await sdk.verifyPassword(config.adminPassword)).toBe(true);
+});
+
+it("does not accept missing or oversized input", async () => {
+  expect(await sdk.verifyPassword("")).toBe(false);
+  expect(await sdk.verifyPassword("x".repeat(4097))).toBe(false);
+  config.adminPassword = "";
+  expect(await sdk.verifyPassword("before")).toBe(false);
+});
+
+it("bounds concurrent password work and recovers capacity", async () => {
+  const results = await Promise.all(Array.from({ length: 4 }, () => sdk.verifyPassword("before")));
+  expect(results.filter((result) => result === true)).toHaveLength(2);
+  expect(results.filter((result) => result === null)).toHaveLength(2);
+  expect(await sdk.verifyPassword("before")).toBe(true);
+});
+
+it("refuses the previous password if configuration rotates during verification", async () => {
+  const verification = sdk.verifyPassword("before");
+  config.adminPassword = "after";
+  expect(await verification).toBe(false);
+});

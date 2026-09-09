@@ -19,6 +19,25 @@ function decide(over: Partial<Parameters<typeof canonicalRedirectFor>[0]>) {
 }
 
 describe("canonicalRedirectFor", () => {
+  it.each([
+    "//outside.example/path/",
+    "/\\outside.example/path/",
+    "https://outside.example/",
+    "/\t/outside.example/",
+    "/\n/outside.example/",
+    "/\r/outside.example/",
+    " /about/",
+  ])("does not turn malformed path %j into a redirect", (originalUrl) => {
+    for (const host of [HOST, "www.thedesk.au", "staging.thedesk.au"])
+      expect(decide({ host, originalUrl })).toBeNull();
+  });
+
+  it("keeps an encoded URL in a query on the same site", () => {
+    expect(decide({ originalUrl: "/about/?next=https%3A%2F%2Foutside.example" })).toBe(
+      "/about?next=https%3A%2F%2Foutside.example"
+    );
+  });
+
   it("leaves a canonical request alone", () => {
     expect(decide({ originalUrl: "/editions/12" })).toBeNull();
     expect(decide({ originalUrl: "/" })).toBeNull();

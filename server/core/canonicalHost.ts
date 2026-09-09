@@ -53,6 +53,14 @@ export function canonicalRedirectFor(
 ): string | null {
   if (req.method !== "GET" && req.method !== "HEAD") return null;
 
+  // Only origin-form paths: browsers interpret // and backslashes as hosts.
+  if (
+    !req.originalUrl.startsWith("/") ||
+    req.originalUrl.startsWith("//") ||
+    /[\\\x00-\x20\x7f]/.test(req.originalUrl)
+  )
+    return null;
+
   const [rawPath = "/", ...rest] = req.originalUrl.split("?");
   const query = rest.length > 0 ? `?${rest.join("?")}` : "";
   if (rawPath.startsWith("/api/")) return null;
@@ -88,6 +96,16 @@ export function registerCanonicalRedirects(app: Express): void {
     if (!target) return next();
     // 301 rather than 302: this is a permanent address change, and it's
     // what consolidates the duplicate into the canonical URL's ranking.
-    res.redirect(301, target);
+    // Resolve against trusted configuration and verify the destination at the
+    // sink too. Keep relative slash fixes relative for staging deployments.
+    try {
+      const base = new URL(siteUrl());
+      const destination = new URL(target, base);
+      if (destination.origin !== base.origin || !["https:", "http:"].includes(destination.protocol))
+        return next();
+      res.redirect(301, target);
+    } catch {
+      next();
+    }
   });
 }

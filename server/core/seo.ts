@@ -264,10 +264,7 @@ async function handleEditionMeta(req: Request, res: Response, next: NextFunction
     res.set("Cache-Control", "no-cache");
     res.send(html);
   } catch (err) {
-    console.warn(
-      `[seo] edition meta injection failed for ${req.params.n}:`,
-      (err as Error).message
-    );
+    console.warn("[seo] edition meta injection failed:", req.params.n, (err as Error).message);
     next();
   }
 }
@@ -365,7 +362,7 @@ async function handleStoryMeta(req: Request, res: Response, next: NextFunction):
     res.set("Cache-Control", "no-cache");
     res.send(html);
   } catch (err) {
-    console.warn(`[seo] story meta injection failed for ${req.params.id}:`, (err as Error).message);
+    console.warn("[seo] story meta injection failed:", req.params.id, (err as Error).message);
     next();
   }
 }
