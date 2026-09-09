@@ -21,7 +21,7 @@ describe("verified eight-capital rent story", () => {
     expect(reel.stat.facts?.[1]).toEqual({ figure: "1.9%", caption: "Canberra · lowest" });
     for (const city of RENT_CITIES) expect(reel.caption).toContain(`${city}:`);
     expect(reel.caption).toContain("Year to July 2026");
-    expect(reel.caption).toContain("https://thedesk.au/markets?");
+    expect(reel.caption).toContain("https://thedesk.au/social?");
     expect(reel.caption).not.toContain("/compare");
     expect(reel.caption.length).toBeLessThanOrEqual(2200);
     expect(reel.script.map((line) => line.key)).toEqual([

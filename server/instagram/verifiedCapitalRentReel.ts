@@ -1,8 +1,6 @@
 import { createHash } from "node:crypto";
 import {
   RENT_CITIES,
-  RENT_DATA_URL,
-  RENT_SOURCE,
   latestRent,
   rentIsOlder,
   rentPeriod,
@@ -10,6 +8,7 @@ import {
 } from "../../shared/cityRents";
 import type { ReelStat } from "../video/statReel";
 import type { ScriptLine } from "../video/narration";
+import { buildReelCaption } from "./reelCaption";
 
 /** Eight matching capital-city observations, not a national average or state proxy. */
 export function verifiedCapitalRentReel(data: CityRents, now = new Date()) {
@@ -100,22 +99,23 @@ export function verifiedCapitalRentReel(data: CityRents, now = new Date()) {
     script,
     publication: { key: "instagram-reel-abs-rents-eight-capitals-v1", date: `${reference}-01` },
     evidenceHash: createHash("sha256").update(JSON.stringify(evidence)).digest("hex"),
-    caption: [
-      "Are rents changing at the same pace across our capitals?",
-      `Year to ${period}: ${figure} percentage points between the highest and lowest annual rent changes.`,
-      evidenceRows
-        .map(
-          (row) =>
-            `${row.city}: ${row.annualPercent.toFixed(1)}%${row.status === "r" ? " (revised)" : row.status === "p" ? " (provisional)" : ""}`
-        )
-        .join("\n"),
-      "ABS CPI rents actually paid, original series, capital-city boundaries. This range is not a national average and does not describe whole states or regional markets.",
-      "A higher annual change does not establish higher dollar rents, higher rental yields or a better investment. These figures do not explain why rents changed. Data can be revised.",
-      `Source: ${RENT_SOURCE}`,
-      `Verified series: ${RENT_DATA_URL}`,
-      "Find your capital: bio → Markets. https://thedesk.au/markets?utm_source=instagram&utm_medium=reel&utm_campaign=eight_capital_rents",
-      "Share this with someone comparing rental markets—the distinction between rent levels and growth matters.",
-      "Synthetic male narration: Kokoro / George. #AusProperty #PropertyData #TheDesk",
-    ].join("\n\n"),
+    caption: buildReelCaption({
+      hook: "Are rents changing at the same pace across our capitals?",
+      finding:
+        `Year to ${period}: ${figure} percentage points between highest and lowest annual rent changes.\n` +
+        evidenceRows
+          .map(
+            (row) =>
+              `${row.city}: ${row.annualPercent.toFixed(1)}%${row.status === "r" ? " (revised)" : row.status === "p" ? " (provisional)" : ""}`
+          )
+          .join("\n"),
+      meaning:
+        "The range is not a national average or a state/regional estimate. Higher rent growth doesn't establish higher dollar rents, yields or a better investment, or explain why rents changed.",
+      method: "Source: ABS CPI rents actually paid, original capital-city series.",
+      revisions: "Revision flags shown above where present. Data can be revised.",
+      action:
+        "Share this with someone comparing rent levels and growth—they measure different things.",
+      read: "capitalRents",
+    }),
   };
 }

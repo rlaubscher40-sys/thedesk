@@ -18,7 +18,8 @@ describe("verified approvals story", () => {
     expect(reel.stat.facts?.[1]?.figure).toBe("22,229");
     expect(reel.caption).toContain("Greater Brisbane");
     expect(reel.caption).toContain("twelve consecutive monthly ABS original counts");
-    expect(reel.caption).toContain("ABS,BA_GCCSA,1.0.0");
+    expect(reel.caption).toContain("Source: ABS Building Approvals");
+    expect(reel.caption).toContain("Bio → Brisbane and Perth supply");
     expect(reel.caption).toContain("not starts or completed homes");
     expect(reel.script.map((line) => line.text).join(" ")).toContain(
       "Counts alone don't measure a shortage"
