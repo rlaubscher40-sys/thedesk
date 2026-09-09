@@ -67,7 +67,7 @@ export function buildMarketDirectory(
           item.category.toUpperCase()
         ) &&
         hasHousingEvidence(`${item.title} ${item.summary ?? ""}`) &&
-        !foreignHousingHeadline(item.title, item.sourceUrl) &&
+        !foreignHousingHeadline(item.title, item.sourceUrl, item.source) &&
         validDate(item.feedDate) &&
         item.feedDate >= since &&
         item.feedDate <= asOf
