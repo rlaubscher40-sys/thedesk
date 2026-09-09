@@ -93,7 +93,24 @@ export const instagramRouter = router({
     const { readReelAutomation, REEL_SCHEDULE } = await import("../instagram/reelAutomation");
     const { latestGridCoverVariant } = await import("../db/instagramPosts");
     const plan = await readReelAutomation();
+    const { getVerifiedReelProgramme } = await import("../instagram/reelCandidates");
+    const { reelPublicationRecord } = await import("../instagram/reelStatus");
+    const programme = await getVerifiedReelProgramme();
+    const editorialQueue = await Promise.all(
+      programme.map(async (entry) => ({
+        topic: entry.topic,
+        status: entry.candidate
+          ? (await reelPublicationRecord(entry.candidate.publication)).state
+          : "no-evidence",
+        requirement: entry.requirement,
+        referenceMonth: entry.candidate?.publication.date.slice(0, 7) ?? null,
+        hook: entry.candidate?.script[0]?.text ?? null,
+        selected: entry.candidate?.evidenceHash === plan.candidate?.evidenceHash,
+      }))
+    );
     return {
+      editorialQueue,
+      script: plan.candidate?.script ?? null,
       schedulerEnabled: env.enableScheduler && Boolean(env.scheduledApiKey),
       accountConfigured: Boolean(env.instagramAccessToken && env.instagramBusinessAccountId),
       schedule: REEL_SCHEDULE,

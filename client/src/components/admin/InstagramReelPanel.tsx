@@ -60,11 +60,33 @@ export function InstagramReelPanel() {
             {plan.data.schedule}.
           </p>
           <p className="text-sm">
-            The programme covers Brisbane–Perth rents, dwelling approvals and eight-capital rent
-            growth. Each topic posts once per reference month. At most one automatic Reel goes out
-            per Sydney day; a second eligible topic waits until tomorrow. Missing evidence, audio or
-            subtitles means no post.
+            The programme selects from five evidence-backed recipes automatically. Each topic posts
+            once per reference month. At most one automatic Reel goes out per Sydney day; a second
+            eligible topic waits until tomorrow. Missing evidence, audio or subtitles means no post.
           </p>
+          <details>
+            <summary className="cursor-pointer text-sm">
+              Automatic selection and writing rules
+            </summary>
+            <p className="text-sm mt-3">
+              Validate source, geography, units, periods and freshness → exclude published or locked
+              topics → prefer the newest reference month, then vary rents/supply → write the
+              recipe's hook, finding, meaning, limitation and next step → render the same script as
+              male narration and subtitles → publish in the Sydney window. Captions add the
+              definitions and source trail. No model call runs on the five-minute selection check.
+            </p>
+            <ul className="space-y-3 mt-3 text-sm">
+              {plan.data.editorialQueue.map((entry) => (
+                <li key={entry.topic}>
+                  <strong>{entry.topic}</strong>: {entry.status}
+                  {entry.referenceMonth ? ` · ${entry.referenceMonth}` : ""}
+                  {entry.selected && entry.status === "available" ? " · selected" : ""}
+                  <p>{entry.requirement}</p>
+                  {entry.hook && <p>Hook: {entry.hook}</p>}
+                </li>
+              ))}
+            </ul>
+          </details>
           <p className="text-sm">
             Next cover: {plan.data.variant === "navy" ? "navy" : "light"}, alternating with the last
             recorded grid post. Pinned posts keep their existing colours.
@@ -145,6 +167,18 @@ export function InstagramReelPanel() {
         <details>
           <summary className="cursor-pointer text-sm">Read the sourced caption</summary>
           <p className="whitespace-pre-wrap text-sm mt-3">{plan.data.caption}</p>
+        </details>
+      )}
+      {plan.data?.script && (
+        <details>
+          <summary className="cursor-pointer text-sm">
+            Read the automatically written narration
+          </summary>
+          <ol className="space-y-2 mt-3 text-sm">
+            {plan.data.script.map((line) => (
+              <li key={line.key}>{line.text}</li>
+            ))}
+          </ol>
         </details>
       )}
       <p className="text-xs text-[var(--color-fg-muted)]">

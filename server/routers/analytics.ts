@@ -10,10 +10,20 @@ import * as db from "../db";
 import { adminProcedure, router } from "../core/trpc";
 
 const windowSchema = z
-  .object({ hours: z.number().int().min(1).max(24 * 90).default(24) })
+  .object({
+    hours: z
+      .number()
+      .int()
+      .min(1)
+      .max(24 * 90)
+      .default(24),
+  })
   .optional();
 
 export const analyticsRouter = router({
+  social: adminProcedure
+    .input(windowSchema)
+    .query(({ input }) => db.socialPerformance(input?.hours ?? 24 * 28)),
   summary: adminProcedure.input(windowSchema).query(async ({ input }) => {
     const hours = input?.hours ?? 24;
     const [now, week, month] = await Promise.all([

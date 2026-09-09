@@ -1,0 +1,83 @@
+import { useState } from "react";
+import { useLocation } from "wouter";
+import { SOCIAL_DESTINATIONS, socialStoryPath } from "@shared/socialDestinations";
+import { trackEvent } from "@/lib/analytics";
+
+/** Works behind the already-tagged homepage bio link, without editing Instagram. */
+export function SocialStart({ compact = false }: { compact?: boolean }) {
+  const [storyId, setStoryId] = useState("");
+  const [error, setError] = useState("");
+  const [, navigate] = useLocation();
+  return (
+    <section aria-label="Reel sources" className="rule-major py-6 my-5">
+      <p className="bs-label-accent">Seen a post? Start here</p>
+      <h2 className="font-serif text-3xl mt-2">Reel sources. The next useful read.</h2>
+      <p className="text-sm leading-6 mt-3">
+        Match the topic you watched to its evidence. Free to read, without an account or an AI
+        question.
+      </p>
+      <div className="grid sm:grid-cols-2 gap-x-7 mt-4">
+        {SOCIAL_DESTINATIONS.slice(0, compact ? 3 : undefined).map((item) => (
+          <a
+            key={item.path}
+            href={item.path}
+            onClick={() => trackEvent("social_open", "social")}
+            className="block rule-hair py-4 bs-link"
+          >
+            <h3 className="font-serif text-xl">{item.label} →</h3>
+            <p className="text-sm mt-2 text-[var(--color-fg-muted)]">{item.detail}</p>
+          </a>
+        ))}
+        <a
+          href="/social#capital-rents"
+          onClick={() => trackEvent("social_open", "social")}
+          className="block rule-hair py-4 bs-link"
+        >
+          All eight capital-city rent figures →
+        </a>
+      </div>
+      <form
+        className="mt-5"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const path = socialStoryPath(storyId.trim());
+          if (!path) {
+            setError("Enter the story number shown in the caption.");
+            return;
+          }
+          trackEvent("social_open", "social");
+          navigate(path);
+        }}
+      >
+        <label className="text-sm block" htmlFor="social-story-number">
+          Carousel? Enter its “Read story” number
+        </label>
+        <div className="flex flex-wrap gap-2 mt-2">
+          <input
+            id="social-story-number"
+            inputMode="numeric"
+            value={storyId}
+            maxLength={10}
+            onChange={(event) => setStoryId(event.target.value)}
+            className="border border-[var(--color-border)] bg-transparent p-3 min-w-0"
+            placeholder="Story number"
+          />
+          <button className="bs-btn bs-btn-solid">Open story</button>
+        </div>
+        {error && (
+          <p role="alert" className="text-sm mt-2">
+            {error}
+          </p>
+        )}
+      </form>
+      <p className="text-xs mt-4 text-[var(--color-fg-muted)]">
+        Data pages show the latest available observations and may have changed since the post. Check
+        its reference month. Older stories are also searchable in{" "}
+        <a className="bs-link" href="/archive">
+          Archive
+        </a>
+        .
+      </p>
+    </section>
+  );
+}

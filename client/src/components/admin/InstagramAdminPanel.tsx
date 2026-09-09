@@ -2,6 +2,7 @@ import { INSTAGRAM_FEED_SLOTS } from "@shared/instagramSchedule";
 import { useState } from "react";
 import { InstagramLaunchPanel } from "./InstagramLaunchPanel";
 import { InstagramReelPanel } from "./InstagramReelPanel";
+import { SocialPerformance } from "./SocialPerformance";
 import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { toSydneyIsoDate } from "@/lib/date";
@@ -457,6 +458,7 @@ export function InstagramAdminPanel() {
       <RerunJobs posts={posts} ready={!isLoading} />
 
       <FormatPerformance posts={posts} ready={!isLoading} />
+      <SocialPerformance />
 
       {isLoading ? (
         <Skeleton className="h-40 w-full rounded" />

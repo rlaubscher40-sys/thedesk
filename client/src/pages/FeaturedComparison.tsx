@@ -47,7 +47,10 @@ export default function FeaturedComparisonPage() {
   }
   return (
     <>
-      <FeaturedComparisonRead directory={query.data} />
+      <FeaturedComparisonRead
+        directory={query.data}
+        onSource={() => trackEvent("market_file_source", "markets")}
+      />
       <div className="rule-hair py-5 flex flex-wrap gap-3 items-center">
         <button className="bs-btn bs-btn-solid" onClick={() => void share()}>
           Share Brisbane vs Perth

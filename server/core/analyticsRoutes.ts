@@ -11,8 +11,11 @@ import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import * as db from "../db";
 import { analyticsPath } from "../../shared/analyticsPath";
+import { SOCIAL_CAMPAIGNS } from "../../shared/socialCampaign";
 
 const pageViewSchema = z.object({
+  socialCampaign: z.enum(SOCIAL_CAMPAIGNS).optional(),
+  isLanding: z.boolean().optional(),
   path: z.string().min(1).max(256),
   referrer: z.string().max(2_048).optional(),
   /** Campaign slug for this session, already whitelisted and slugged by
@@ -29,6 +32,7 @@ const pageViewSchema = z.object({
 
 const engagementEventSchema = z.object({
   event: z.enum([
+    "social_open",
     "ask_query",
     "ask_share",
     "market_watch",
@@ -49,7 +53,10 @@ const engagementEventSchema = z.object({
     "take_share",
     "brief_reshare",
   ]),
-  surface: z.enum(["ask", "markets", "signals", "trends", "story", "brief", "today"]).optional(),
+  surface: z
+    .enum(["ask", "markets", "signals", "trends", "story", "brief", "today", "social"])
+    .optional(),
+  socialCampaign: z.enum(SOCIAL_CAMPAIGNS).optional(),
   sessionId: z.string().min(8).max(64),
 });
 
@@ -111,6 +118,13 @@ async function handlePageView(req: Request, res: Response): Promise<void> {
         : null,
     sessionId: parsed.data.sessionId,
   });
+  if (parsed.data.campaign === "instagram" && parsed.data.socialCampaign && parsed.data.isLanding) {
+    await db.recordEngagementEvent({
+      event: "social_landing",
+      sessionId: parsed.data.sessionId,
+      socialCampaign: parsed.data.socialCampaign,
+    });
+  }
   res.status(204).end();
 }
 
@@ -128,6 +142,7 @@ async function handleEngagementEvent(req: Request, res: Response): Promise<void>
     event: parsed.data.event,
     surface: parsed.data.surface ?? null,
     sessionId: parsed.data.sessionId,
+    socialCampaign: parsed.data.socialCampaign,
   });
   res.status(204).end();
 }

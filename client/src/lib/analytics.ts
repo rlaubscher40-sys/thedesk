@@ -10,10 +10,12 @@
 
 import { analyticsPath } from "@shared/analyticsPath";
 import { getArrival } from "@/lib/attribution";
+import { socialCampaign } from "@shared/socialCampaign";
 
 const SESSION_KEY = "thedesk:session";
 
 export type EngagementEvent =
+  | "social_open"
   | "ask_query"
   | "ask_share"
   | "market_watch"
@@ -97,6 +99,7 @@ export function trackPageView(): void {
   // Otherwise Perth → Sydney looks like a duplicate /markets/:market view.
   const route = window.location.pathname || "/";
   if (route === lastPath) return;
+  const isLanding = lastPath === null;
   lastPath = route;
 
   send("/api/analytics/pageview", {
@@ -109,6 +112,8 @@ export function trackPageView(): void {
     // slug goes — already whitelisted and slugged in lib/attribution — never
     // the raw query.
     campaign: getArrival()?.source,
+    socialCampaign: socialCampaign(getArrival()),
+    isLanding,
     sessionId: id,
   });
 }
@@ -127,6 +132,7 @@ export function trackEvent(event: EngagementEvent, surface?: string): void {
     event,
     surface: surface?.slice(0, 32),
     path: analyticsPath(window.location.pathname),
+    socialCampaign: socialCampaign(getArrival()),
     sessionId: id,
   });
 }

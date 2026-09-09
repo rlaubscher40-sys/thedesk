@@ -221,7 +221,7 @@ export function buildDailyCaption(stories: DailyFeedItem[]): string {
     "",
     ...rundown,
     "Save this briefing to revisit the evidence before your next property decision.",
-    "On thedesk.au, open Archive and search for the headline.",
+    "Open our bio → Reel sources and enter the Read story number. You can also search the headline in Archive.",
     "",
     `${CORE_HASHTAGS} #PropertyMarket`,
   ].join("\n");
@@ -1041,6 +1041,7 @@ export function containerWaitBudgetMs(deadlineAt: number | undefined, now = Date
  */
 export async function postStatReel(
   stat: {
+    editorialLabel?: "What Changed" | "Before You Buy";
     label: string;
     value: string;
     line: string;
@@ -1101,7 +1102,7 @@ export async function postStatReel(
       renderStatReel(sanitized, variant, { script: opts.script, subtitles: opts.subtitles }),
       renderStatCard(sanitized, variant, {
         shape: "vertical",
-        kicker: "The Number",
+        kicker: sanitized.editorialLabel ?? "The Number",
         facts: sanitized.facts,
       }),
     ]);

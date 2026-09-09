@@ -41,6 +41,10 @@ const history = (values = [64, 63, 62, 61, 60, 59]): HistoryPoint[] =>
   }));
 
 describe("property story selection", () => {
+  it("does not mistake the word act for Australian geography", () => {
+    expect(propertyStoryTier(story({ title: "Housing act changes rental rules" }))).toBe(0);
+    expect(propertyStoryTier(story({ title: "ACT housing approvals rise" }))).toBe(2);
+  });
   it("leads with direct property ahead of higher-priority financing and excludes unrelated markets", () => {
     const input = [
       story({ id: 3, title: "ASX surges", channel: "AU", priority: 99 }),
@@ -61,7 +65,7 @@ describe("property story selection", () => {
   it("uses source summary, requires attribution, and keeps wider coverage separate", () => {
     expect(
       propertyStoryTier(
-        story({ title: "New figures released", summary: "Dwelling approvals fell." })
+        story({ title: "New figures released", summary: "Australian dwelling approvals fell." })
       )
     ).toBe(2);
     expect(propertyStoryTier(story({ source: " " }))).toBe(0);
@@ -84,6 +88,45 @@ describe("property story selection", () => {
     ).toHaveLength(2);
     expect(pickPropertyStories([story()], 0)).toEqual([]);
     expect(pickPropertyStories([story()], -1)).toEqual([]);
+  });
+  it("rejects foreign housing even if a feed lane says AU and an implication mentions Australia", () => {
+    for (const title of [
+      "The US cities where home prices are falling the fastest",
+      "Cotality: Local Economies, Not National Trends Drive US Home Prices",
+      "Ontario Land Tribunal approves Perth housing redevelopment",
+      "UK housing prices rise",
+    ]) {
+      expect(
+        propertyStoryTier(
+          story({
+            title,
+            channel: "AU",
+            summary: "Australian buyers may be interested in these rents.",
+          })
+        )
+      ).toBe(0);
+    }
+    expect(
+      propertyStoryTier(
+        story({
+          title: "Major housing project approved on historic Perth golf course",
+          sourceUrl: "https://www.cbc.ca/news/story",
+        })
+      )
+    ).toBe(0);
+  });
+  it("requires a clear property headline and local scope, not a passing summary mention", () => {
+    expect(
+      propertyStoryTier(
+        story({
+          title: "Chalmers says super puts Australia ahead on pension spending",
+          summary: "The report debates access for renters and homebuyers.",
+        })
+      )
+    ).toBe(0);
+    expect(propertyStoryTier(story({ title: "Dwelling approvals rise", summary: null }))).toBe(0);
+    expect(propertyStoryTier(story({ title: "Australian home loans rise" }))).toBe(2);
+    expect(propertyStoryTier(story({ title: "Sydney rents give us a new comparison" }))).toBe(2);
   });
 });
 

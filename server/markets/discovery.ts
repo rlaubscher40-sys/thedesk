@@ -8,6 +8,7 @@ import * as db from "../db";
 import { isDemoMode } from "../demo/store";
 import { marketHousingPassage, normaliseText } from "./evidence";
 import { hasHousingEvidence } from "../../shared/marketRelevance";
+import { foreignHousingHeadline } from "../../shared/australianScope";
 import { getCityRents } from "./absRents";
 import { getCityApprovals } from "./absApprovals";
 import { getStateDemographics } from "./absDemographics";
@@ -66,6 +67,7 @@ export function buildMarketDirectory(
           item.category.toUpperCase()
         ) &&
         hasHousingEvidence(`${item.title} ${item.summary ?? ""}`) &&
+        !foreignHousingHeadline(item.title, item.sourceUrl) &&
         validDate(item.feedDate) &&
         item.feedDate >= since &&
         item.feedDate <= asOf

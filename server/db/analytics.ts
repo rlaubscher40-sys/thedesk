@@ -12,6 +12,7 @@ import * as demoQueries from "../demo/queries";
 import { isDemoMode } from "../demo/store";
 import { getDb } from "./client";
 import { pageViews, type InsertPageView, type PageView } from "./schema";
+import { SOCIAL_CAMPAIGNS, type SocialCampaign } from "../../shared/socialCampaign";
 
 const EVENT_PREFIX = "@event/";
 const EVENT_PATTERN = `${EVENT_PREFIX}%`;
@@ -31,10 +32,59 @@ export async function recordEngagementEvent(data: {
   event: string;
   surface?: string | null;
   sessionId: string;
+  socialCampaign?: SocialCampaign;
 }): Promise<void> {
   const surface = (data.surface ?? "").replace(/[^a-z0-9_-]/gi, "").slice(0, 32);
   const path = `${EVENT_PREFIX}${data.event}${surface ? `/${surface}` : ""}`.slice(0, 256);
-  await recordPageView({ path, referrer: null, sessionId: data.sessionId });
+  const campaign =
+    data.socialCampaign && SOCIAL_CAMPAIGNS.includes(data.socialCampaign)
+      ? `ig:${data.socialCampaign}`
+      : null;
+  await recordPageView({ path, referrer: null, sessionId: data.sessionId, campaign });
+}
+
+/** First-party observations, not person-level conversion or causal attribution.
+ * Fixed cohorts are attached to events; no joins to emails or personal data.
+ * An action can occur after a landing outside this window, so show counts,
+ * never divide them into a purported conversion rate.
+ */
+export async function socialPerformance(windowHours = 24 * 28) {
+  const db = getDb();
+  if (isDemoMode() || !db) return { available: false, rows: [] };
+  const since = new Date(Date.now() - Math.min(24 * 90, Math.max(1, windowHours)) * 3_600_000);
+  try {
+    const rows = await db
+      .select({
+        campaign: pageViews.campaign,
+        landings: sql<number>`count(distinct case when ${pageViews.path} = '@event/social_landing' then ${pageViews.sessionId} end)`,
+        onward: sql<number>`count(distinct case when ${pageViews.path} = '@event/social_open/social' then ${pageViews.sessionId} end)`,
+        sources: sql<number>`count(distinct case when ${pageViews.path} like '@event/market_file_source/%' then ${pageViews.sessionId} end)`,
+        shares: sql<number>`count(distinct case when ${pageViews.path} like '@event/market_file_share/%' or ${pageViews.path} like '@event/market_compare_share/%' or ${pageViews.path} like '@event/story_share/%' then ${pageViews.sessionId} end)`,
+      })
+      .from(pageViews)
+      .where(
+        and(
+          gte(pageViews.viewedAt, since),
+          like(pageViews.path, EVENT_PATTERN),
+          like(pageViews.campaign, "ig:%")
+        )
+      )
+      .groupBy(pageViews.campaign);
+    return {
+      available: true,
+      rows: rows
+        .filter((row) => SOCIAL_CAMPAIGNS.some((value) => row.campaign === `ig:${value}`))
+        .map((row) => ({
+          campaign: row.campaign!.slice(3) as SocialCampaign,
+          landings: Number(row.landings),
+          onward: Number(row.onward),
+          sources: Number(row.sources),
+          shares: Number(row.shares),
+        })),
+    };
+  } catch {
+    return { available: false, rows: [] };
+  }
 }
 
 export async function listRecentPageViews(limit = 50): Promise<PageView[]> {

@@ -48,6 +48,18 @@ beforeEach(() => {
 });
 
 describe("public market discovery", () => {
+  it("keeps Canadian Perth and overseas housing out and retains actual evidence routes", () => {
+    const file = perth([
+      item(1, { title: "Ontario approves Perth housing redevelopment" }),
+      item(2, {
+        title: "Major housing project approved in Perth",
+        sourceUrl: "https://cbc.ca/news/a",
+      }),
+      item(-3, { href: "/evidence/3" }),
+    ]);
+    expect(file.references).toHaveLength(1);
+    expect(file.references[0]?.href).toBe("/evidence/3");
+  });
   it("uses exact local mentions, not substrings, foreign lanes or unrelated categories", () => {
     const file = perth([
       item(1),

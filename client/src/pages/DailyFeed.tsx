@@ -35,6 +35,7 @@ import { WhereThingsStand } from "@/components/broadsheet/MetricBlocks";
 import { GUTTER_X } from "@/components/broadsheet/tokens";
 import { AskDeskBand } from "@/components/broadsheet/today/AskDeskBand";
 import { MarketDiscovery } from "@/components/markets/MarketDiscovery";
+import { SocialStart } from "@/components/SocialStart";
 import { IndexStrip } from "@/components/broadsheet/today/IndexStrip";
 import { Lead } from "@/components/broadsheet/today/Lead";
 import { MorningSignals } from "@/components/broadsheet/today/MorningSignals";
@@ -206,6 +207,17 @@ export default function DailyFeed() {
       </UtilityBar>
 
       <Masthead dateLabel={dateLabel} shapeLine={shapeLine} />
+      {isToday && new URLSearchParams(search).get("utm_source") === "instagram" ? (
+        <div className={GUTTER_X}>
+          <SocialStart compact />
+        </div>
+      ) : (
+        <div className={GUTTER_X}>
+          <a href="/social" className="bs-link text-sm inline-block py-3">
+            Seen a Reel? Open the sources →
+          </a>
+        </div>
+      )}
 
       <SectionErrorBoundary section="Lane nav">
         <LaneNav channel={channel} onChannelChange={setChannel} />

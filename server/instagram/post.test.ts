@@ -141,7 +141,9 @@ describe("buildDailyCaption — source-grounded property briefing", () => {
   });
   it("does not truncate a claim to fit the caption limit", () => {
     expect(() =>
-      buildDailyCaption([fakeStory({ title: "Housing " + "long source headline ".repeat(130) })])
+      buildDailyCaption([
+        fakeStory({ title: "Australian housing " + "long source headline ".repeat(130) }),
+      ])
     ).toThrow("exceeds Instagram limit");
   });
 });

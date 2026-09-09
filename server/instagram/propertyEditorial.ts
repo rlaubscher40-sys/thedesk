@@ -1,6 +1,7 @@
 import type { DailyFeedItem, DailyMetric } from "../db/schema";
 import type { EditionTopic } from "../../shared/schemas";
 import { FEATURED_COMPARISON_PATH } from "../../shared/featuredComparison";
+import { foreignHousingHeadline } from "../../shared/australianScope";
 import { explainNoPick, pickStatOfTheDay, rehearsalStat, type HistoryPoint } from "./statPick";
 
 // Editorial relevance is not a confidence score or a claim about causation.
@@ -10,13 +11,31 @@ const PROPERTY =
   /\b(housing|dwelling\w*|mortgage\w*|home loans?|rental\w*|rents?|renters?|tenan\w*|landlords?|real estate|house prices?|home prices?|auction clearance|building approvals?|housing approvals?|residential development\w*)\b/i;
 const FINANCING = /\b(cash rate|interest rates?|RBA|Reserve Bank|housing credit)\b/i;
 
+// A channel label is not geographic evidence. Overseas housing headlines
+// require a separate editorial decision, not automatic Australian hashtags.
+const AUSTRALIAN_SCOPE =
+  /\b(Australia\w*|Sydney|Melbourne|Brisbane|Perth|Adelaide|Hobart|Darwin|Canberra|Townsville|Newcastle|Wollongong|Geelong|Gold Coast|Sunshine Coast|NSW|New South Wales|Queensland|Victoria|Tasmania|Western Australia|South Australia|Northern Territory|RBA|Reserve Bank of Australia)\b/i;
+const NEUTRAL_RELEASE = /^(new |latest |official |ABS )?(data|figures|statistics|report|update)\b/i;
+
+export function australianPropertyTier(input: {
+  title: string;
+  summary?: string | null;
+  sourceUrl?: string | null;
+}): number {
+  if (foreignHousingHeadline(input.title, input.sourceUrl)) return 0;
+  const text = `${input.title} ${input.summary ?? ""}`;
+  if (!AUSTRALIAN_SCOPE.test(text) && !/\bACT\b/.test(text)) return 0;
+  // A passing mention in a broad politics article must not become the lead.
+  const subject = NEUTRAL_RELEASE.test(input.title) ? text : input.title;
+  return PROPERTY.test(subject) ? 2 : FINANCING.test(subject) ? 1 : 0;
+}
+
 /** An edition's category or generated takeaway cannot manufacture relevance. */
 export function pickPropertyTopics(topics: EditionTopic[], limit = 4): EditionTopic[] {
   const seen = new Set<string>();
   return topics
     .map((topic, index) => {
-      const text = `${topic.title} ${topic.summary}`;
-      return { topic, index, tier: PROPERTY.test(text) ? 2 : FINANCING.test(text) ? 1 : 0 };
+      return { topic, index, tier: australianPropertyTier(topic) };
     })
     .filter(({ topic, tier }) => topic.title?.trim() && topic.summary?.trim() && tier > 0)
     .sort((a, b) => b.tier - a.tier || a.index - b.index)
@@ -36,8 +55,7 @@ export function pickPropertyTopics(topics: EditionTopic[], limit = 4): EditionTo
 export function propertyStoryTier(story: DailyFeedItem): number {
   if (!["AU", "PROPERTY"].includes(story.channel)) return 0;
   if (!story.title?.trim() || !story.source?.trim()) return 0;
-  const text = `${story.title} ${story.summary ?? ""}`;
-  return PROPERTY.test(text) ? 2 : FINANCING.test(text) ? 1 : 0;
+  return australianPropertyTier(story);
 }
 
 /** Thin days stay thin. Never pad a property carousel with unrelated news. */
