@@ -18,6 +18,7 @@
  * what stops the class of outage where new code ships expecting a column
  * the database doesn't have yet.
  */
+import { DAILY_BRIEF_DDL } from "./dailyBriefSchema";
 import { FEED_ENRICHMENT_DDL } from "./feedEnrichmentSchema";
 import { SECURITY_DDL } from "./security";
 import { LOCAL_DATA_DDL } from "./localDataSchema";
@@ -28,6 +29,7 @@ import type { MySql2Database } from "drizzle-orm/mysql2";
 export const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
   ...SECURITY_DDL,
   ...FEED_ENRICHMENT_DDL,
+  ...DAILY_BRIEF_DDL,
   ...LOCAL_DATA_DDL,
   ...COLLECTION_EFFICIENCY_DDL,
   {

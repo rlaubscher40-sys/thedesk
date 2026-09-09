@@ -21,7 +21,6 @@ import { refreshOfficialMetrics } from "./metrics/recovery";
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { COOKIE_NAME, isEnrichedChannel } from "../shared/const";
-import { isWeekdayBriefDate } from "../shared/briefSchedule";
 import { defaultFeedPriority } from "../shared/feedPriority";
 import { bestMatch, titleTokens } from "../shared/textSimilarity";
 import { parse as parseCookieHeader } from "cookie";
@@ -43,7 +42,6 @@ import { resolveHeroForEdition } from "./core/heroSelection";
 import {
   editionUnsubscribeUrl,
   nudgeResponseUrl,
-  sendDailyBriefEmail,
   sendEditionNotificationEmail,
   sendTalkingPointNudgeEmail,
   sendWeeklyRecapEmail,
@@ -275,7 +273,6 @@ function registerDailyFeedRoute(app: Express): void {
       setImmediate(async () => {
         try {
           await drainFeedEnrichment();
-          void notifyDailyBriefSubscribers(feedDate);
         } catch {
           console.warn("[scheduled] daily-feed enrichment deferred to recovery worker");
         }
@@ -674,48 +671,6 @@ function registerSynthesizeEditionRoute(app: Express): void {
 }
 
 // ─── Subscriber notification ─────────────────────────────────────────────────
-
-async function notifyDailyBriefSubscribers(feedDate: string): Promise<void> {
-  if (!isWeekdayBriefDate(feedDate)) return;
-  try {
-    // Partner-facing output: the brief covers the enriched lanes (AU +
-    // Property) only. Coverage lanes (Business / Tech / Global) surface on the
-    // Today-page tabs but don't belong in a partner's inbox.
-    const items = (await db.listFeedItems(feedDate)).filter((it) => isEnrichedChannel(it.channel));
-    if (items.length === 0) return;
-    const subs = await db.listSubscribersForDailyBrief(feedDate);
-    if (subs.length === 0) return;
-    const origin = siteOrigin();
-    const top5 = items.slice(0, 5);
-    const deliveredIds: number[] = [];
-    let delivered = 0;
-    for (let i = 0; i < subs.length; i++) {
-      if (i > 0) await new Promise((r) => setTimeout(r, 600));
-      const sub = subs[i];
-      if (!sub) continue;
-      try {
-        const result = await sendDailyBriefEmail({
-          to: sub.email,
-          name: sub.name,
-          items: top5,
-          feedDate,
-          siteUrl: origin,
-          unsubscribeUrl: editionUnsubscribeUrl(sub.email, origin),
-        });
-        if (result.delivered) {
-          deliveredIds.push(sub.id);
-          delivered++;
-        }
-      } catch {
-        // leave this subscriber unmarked so they're retried next run
-      }
-    }
-    await db.markDailyBriefSent(deliveredIds, feedDate);
-    console.log(`[mailer] daily brief ${feedDate}: delivered ${delivered}/${subs.length}`);
-  } catch (err) {
-    console.warn("[mailer] daily brief notification failed:", err);
-  }
-}
 
 async function notifySubscribers(editionNumber: number, weekRange: string): Promise<void> {
   try {

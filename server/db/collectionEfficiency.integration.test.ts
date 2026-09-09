@@ -1,12 +1,14 @@
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { createPool, type Pool } from "mysql2/promise";
 import { drizzle } from "drizzle-orm/mysql2";
+import { DAILY_BRIEF_DDL } from "./dailyBriefSchema";
 import { FEED_ENRICHMENT_DDL } from "./feedEnrichmentSchema";
 import { COLLECTION_EFFICIENCY_DDL } from "./collectionEfficiencySchema";
 import type { InsertDailyFeedItem } from "./schema";
 
 const testUrl = process.env.SECURITY_TEST_DATABASE_URL;
 let pool: Pool;
+let brief: typeof import("./dailyBrief");
 let claims: typeof import("./feedClaims");
 let transfers: typeof import("./localTransfers");
 let recovery: typeof import("./feedEnrichment");
@@ -29,7 +31,7 @@ beforeAll(async () => {
   if (!["localhost", "127.0.0.1"].includes(url.hostname) || url.pathname !== "/security_audit_test")
     throw new Error("Use the isolated local test database");
   pool = createPool(testUrl);
-  for (const ddl of [...COLLECTION_EFFICIENCY_DDL, ...FEED_ENRICHMENT_DDL])
+  for (const ddl of [...COLLECTION_EFFICIENCY_DDL, ...FEED_ENRICHMENT_DDL, ...DAILY_BRIEF_DDL])
     await pool.query(ddl.sql.replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS "));
   await pool.query(`CREATE TABLE IF NOT EXISTS daily_feed_items (
     id INT AUTO_INCREMENT PRIMARY KEY, sourceTiming JSON, feedDate VARCHAR(10) NOT NULL,
@@ -40,6 +42,10 @@ beforeAll(async () => {
     threadParentTitle TEXT, rubensNote TEXT, priority INT NOT NULL DEFAULT 50,
     promotedToEdition BOOLEAN DEFAULT FALSE, createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
   )`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS subscribers (
+    id INT PRIMARY KEY, email VARCHAR(320) NOT NULL UNIQUE, name VARCHAR(128),
+    confirmedAt TIMESTAMP NULL, unsubscribedAt TIMESTAMP NULL, lastDailyBriefDate VARCHAR(10)
+  )`);
   await pool.query("DELETE FROM daily_feed_items WHERE source = 'concurrency-test'");
   await pool.query("DELETE FROM feed_ingest_claims");
   await pool.query("DELETE FROM feed_enrichment_jobs");
@@ -49,6 +55,7 @@ beforeAll(async () => {
   vi.doMock("../prompts/dailyAngles", () => ({ generateDailyAngles: generate }));
   recovery = await import("./feedEnrichment");
   worker = await import("../feed/enrichmentWorker");
+  brief = await import("./dailyBrief");
   claims = await import("./feedClaims");
   transfers = await import("./localTransfers");
   feed = await import("./feed");
@@ -381,5 +388,101 @@ it.skipIf(!testUrl)(
       await pool.query("DROP TRIGGER test_reject_recovery_job");
     }
     expect(await claims.insertFeedOnce(row)).toBeGreaterThan(0);
+  }
+);
+
+const briefDate = "2026-09-10";
+const briefPayload = {
+  to: "brief-test@example.com",
+  from: "The Desk <hello@example.com>",
+  subject: "Saved subject",
+  html: "Saved body",
+};
+async function resetBrief() {
+  await pool.query("DELETE FROM daily_brief_deliveries");
+  await pool.query("DELETE FROM daily_brief_batches");
+  await pool.query(`INSERT INTO subscribers (id,email,name,confirmedAt,unsubscribedAt,lastDailyBriefDate)
+    VALUES (910001,'brief-test@example.com','Test',CURRENT_TIMESTAMP,NULL,NULL)
+    ON DUPLICATE KEY UPDATE confirmedAt=CURRENT_TIMESTAMP,unsubscribedAt=NULL,lastDailyBriefDate=NULL,email='brief-test@example.com'`);
+}
+it.skipIf(!testUrl)(
+  "claims one daily email across workers and reuses its immutable payload after a crash",
+  async () => {
+    await resetBrief();
+    const results = await Promise.all(
+      Array.from({ length: 6 }, () => brief.claimDailyBrief(briefDate, 910001, briefPayload))
+    );
+    const winners = results.filter((x) => x !== null);
+    expect(winners).toHaveLength(1);
+    const stale = winners[0]!;
+    await pool.query(
+      "UPDATE daily_brief_deliveries SET availableAt=DATE_SUB(CURRENT_TIMESTAMP,INTERVAL 1 SECOND)"
+    );
+    const recovered = (await brief.claimDailyBrief(briefDate, 910001, {
+      ...briefPayload,
+      html: "Changed template",
+    }))!;
+    expect(recovered.payload).toEqual(briefPayload);
+    expect(recovered.attempts).toBe(2);
+    expect(await brief.finishDailyBrief(stale, "accepted", "stale")).toBe(false);
+    expect(await brief.finishDailyBrief(recovered, "accepted", "receipt")).toBe(true);
+    expect(await brief.claimDailyBrief(briefDate, 910001, briefPayload)).toBeNull();
+    expect(await brief.dailyBriefCandidates(briefDate)).toHaveLength(0);
+    const [rows] = await pool.query("SELECT payload,receipt FROM daily_brief_deliveries");
+    expect((rows as any[])[0]).toMatchObject({ payload: null, receipt: "receipt" });
+  }
+);
+it.skipIf(!testUrl)(
+  "checks current subscriber consent, address and prior delivery after claiming",
+  async () => {
+    await resetBrief();
+    const claim = (await brief.claimDailyBrief(briefDate, 910001, briefPayload))!;
+    expect(await brief.briefRecipientEligible(claim)).toBe(true);
+    await pool.query("UPDATE subscribers SET unsubscribedAt=CURRENT_TIMESTAMP WHERE id=910001");
+    expect(await brief.briefRecipientEligible(claim)).toBe(false);
+    await pool.query(
+      "UPDATE subscribers SET unsubscribedAt=NULL,email='changed@example.com' WHERE id=910001"
+    );
+    expect(await brief.briefRecipientEligible(claim)).toBe(false);
+    await pool.query(
+      "UPDATE subscribers SET email='brief-test@example.com',lastDailyBriefDate=? WHERE id=910001",
+      [briefDate]
+    );
+    expect(await brief.briefRecipientEligible(claim)).toBe(false);
+  }
+);
+it.skipIf(!testUrl)("bounds daily delivery retries and expires old unsent emails", async () => {
+  await resetBrief();
+  for (let i = 1; i <= 3; i++) {
+    const claim = (await brief.claimDailyBrief(briefDate, 910001, briefPayload))!;
+    expect(claim.attempts).toBe(i);
+    await brief.finishDailyBrief(claim, "retry");
+    expect(await brief.claimDailyBrief(briefDate, 910001, briefPayload)).toBeNull();
+    await pool.query(
+      "UPDATE daily_brief_deliveries SET availableAt=DATE_SUB(CURRENT_TIMESTAMP,INTERVAL 1 SECOND)"
+    );
+  }
+  expect((await brief.dailyBriefHealth(briefDate)).counts.failed).toBe(1);
+  await resetBrief();
+  await brief.claimDailyBrief(briefDate, 910001, briefPayload);
+  await brief.expireDailyBriefs("2026-09-11");
+  expect((await brief.dailyBriefHealth(briefDate)).counts.expired).toBe(1);
+  expect(await brief.claimDailyBrief(briefDate, 910001, briefPayload)).toBeNull();
+});
+it.skipIf(!testUrl)(
+  "requires completed story jobs and freezes the first brief selection",
+  async () => {
+    await resetBrief();
+    const id = await freshJob("brief-readiness");
+    expect(await brief.briefStoriesReady([id])).toBe(false);
+    expect(await brief.briefStoriesReady([])).toBe(false);
+    expect(await brief.briefStoriesReady([999999])).toBe(false);
+    await worker.drainFeedEnrichment();
+    expect((await brief.readReadyBriefStories(briefDate))?.[0]?.id).toBe(id);
+    const stories = [{ id, title: "Original story", category: "PROPERTY", summary: "Evidence" }];
+    expect(await brief.freezeBriefBatch(briefDate, stories)).toEqual(stories);
+    expect(
+      await brief.freezeBriefBatch(briefDate, [{ ...stories[0]!, title: "Later edit" }])
+    ).toEqual(stories);
   }
 );
