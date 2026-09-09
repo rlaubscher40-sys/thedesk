@@ -64,6 +64,26 @@ afterEach(() => {
 });
 
 describe("Ask answer recovery", () => {
+  it("answers an entirely withheld rent lookup without model speculation or a share token", async () => {
+    const href = "/markets?q=4000&state=QLD&areaKind=postcode&period=2026-06-30#local-data";
+    vi.mocked(retrieveLocalFacts).mockResolvedValue([{
+      title: "4000, QLD (postcode)", date: "2026-06-30", href,
+      publisher: "RTA", sourceUrl: "https://source.test/rents.xlsx",
+      text: "House 4; withheld: suppressed; Bonds lodged: 8.", withheldRent: true,
+    }]);
+    const result = await askRouter.createCaller(ctx).answer({ question: "What is the median weekly rent for a 4-bedroom house in postcode 4000 QLD in June 2026?" });
+    expect(result).toMatchObject({ status: "insufficient", sources: [{ href, date: "2026-06-30" }] });
+    expect(result).not.toHaveProperty("answer");
+    expect(invokeLLMJson).not.toHaveBeenCalled();
+    expect(createIntelligenceShareToken).not.toHaveBeenCalled();
+    expect((await consumeAnonymousAsk(ctx.req)).remaining).toBe(2);
+  });
+  it("does not bypass synthesis when only part of the requested rent evidence is withheld", async () => {
+    const fact = { title: "4000, QLD", date: "2026-06-30", href: "/markets?q=4000", publisher: "RTA", sourceUrl: "https://source.test/rents.xlsx", text: "Rent evidence" };
+    vi.mocked(retrieveLocalFacts).mockResolvedValue([{ ...fact, withheldRent: true }, { ...fact, withheldRent: false, date: "2025-06-30" }]);
+    await askRouter.createCaller(ctx).answer({ question: "Compare median weekly rents in postcode 4000 QLD in June 2025 and June 2026" });
+    expect(invokeLLMJson).toHaveBeenCalledTimes(1);
+  });
   it("does not label an old metric current when its database record was freshly updated", async () => {
     vi.useFakeTimers(); vi.setSystemTime(new Date("2026-09-09T08:00:00Z"));
     vi.mocked(db.listDailyMetrics).mockResolvedValue([{

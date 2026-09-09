@@ -29,3 +29,12 @@ refresh, invalid/future dates, unknown cadence, the dated Ask link, the rendered
 Signals hero/board and the actual evidence supplied by the Ask router. Production
 checks should confirm the date labels on the board and a retained older metric,
 then follow its Ask link and inspect the generated response separately.
+
+Live verification after #206 showed a specific remaining model failure: the
+withheld postcode 4000 four-bedroom house answer correctly omitted a rent but
+invented a suppression threshold, privacy rationale and liquidity conclusions
+from eight contextual bonds. Direct median/weekly-rent lookups with only
+withheld matching local evidence now return a deterministic insufficient-data
+explanation and dated source links, without a model call, share token or consumed
+answer allowance. Mixed available/withheld evidence still uses synthesis. This
+does not repair prior saved answers or guarantee other model commentary.

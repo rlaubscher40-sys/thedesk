@@ -113,6 +113,7 @@ describe("geographic fact retrieval", () => {
     expect(
       localFactEvidence(match, "Rents in postcode 2000")[0]?.text,
     ).toContain("withheld: insufficient-sample");
+    expect(localFactEvidence(match, "Rents in postcode 2000")[0]?.withheldRent).toBe(true);
     expect(
       localFactEvidence(match, "Rents in postcode 2000")[0]?.text,
     ).not.toContain("500 AUD/week");
@@ -124,6 +125,7 @@ describe("geographic fact retrieval", () => {
       "Rents in postcode 2000 in 2025",
     )[0]!;
     expect(historic.href).toContain("period=2025-08-01");
+    expect(historic.withheldRent).toBe(false);
     expect(historic.text).toContain("Historical reporting period");
     expect(historic.text).not.toContain(
       "Latest available in this stored source release",

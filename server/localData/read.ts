@@ -200,6 +200,8 @@ export type FactEvidence = {
   publisher: string;
   sourceUrl: string;
   text: string;
+  /** All selected weekly-rent observations are explicitly withheld, not absent. */
+  withheldRent?: boolean;
 };
 export function localFactEvidence(
   match: LocalMatch,
@@ -240,6 +242,7 @@ export function localFactEvidence(
       href: localAreaHref(area, period),
       publisher: source.publisher,
       sourceUrl: match.resourceUrl,
+      withheldRent: rows.every((o) => o.measure === "weekly-rent" && o.value === null && o.status !== "published"),
       text: [
         `Geography: ${area.name}, ${area.state}; ${area.kind}; ${area.boundaryVersion}. Do not extend these observations to another geographic boundary.`,
         ...rows.map(
