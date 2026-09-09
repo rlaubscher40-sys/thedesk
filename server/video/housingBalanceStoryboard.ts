@@ -196,12 +196,21 @@ export function housingBalanceFrameLayout(
   const number = (n: number) => n.toLocaleString("en-AU");
   const tag = (s: string) => text(s, 25, c.muted);
   const scale = 300000;
-  const row = (label: string, value: number, color: string, gapReveal = 0, removed = 0) => {
+  const row = (
+    label: string,
+    value: number,
+    color: string,
+    gapReveal = 0,
+    removed = 0,
+    compare = false
+  ) => {
     return box({ flexDirection: "column", gap: 12, width: 840 }, [
       text(label, 25, color),
       box(
         { height: 108, justifyContent: "flex-end", alignItems: "center" },
-        text(number(value), 94, c.fg)
+        // The measured lead-in can last two seconds. A waiting reveal must
+        // not look like an observation of zero housing need.
+        text(compare && value === 0 ? " " : number(value), 94, c.fg)
       ),
       box(
         {
@@ -235,6 +244,19 @@ export function housingBalanceFrameLayout(
                     width: `${(gapReveal / scale) * 100}%`,
                     height: 66,
                     backgroundColor: c.gap,
+                  },
+                  ""
+                ),
+              ]
+            : []),
+          ...(compare && value > 0
+            ? [
+                box(
+                  {
+                    position: "absolute",
+                    left: `${(b.net / scale) * 100}%`,
+                    height: 66,
+                    borderLeft: `3px dashed ${c.fg}`,
                   },
                   ""
                 ),
@@ -321,9 +343,12 @@ export function housingBalanceFrameLayout(
       box(
         { height: 130, alignItems: "flex-start" },
         gapScene
-          ? box({ alignItems: "baseline", gap: 20 }, [
-              text(number(gap), 80, c.gap),
-              text("homes short.", 50, c.fg, true),
+          ? box({ flexDirection: "column", gap: 9 }, [
+              text("THE GAP GREW BY", 25, c.muted),
+              box({ alignItems: "baseline", gap: 20 }, [
+                text(number(gap), 80, c.gap),
+                text("homes.", 50, c.fg, true),
+              ]),
             ])
           : text(netScene ? "After demolitions." : "Supply vs demand.", 72, c.fg, true)
       ),
@@ -335,7 +360,7 @@ export function housingBalanceFrameLayout(
               text(`~${number(removed)} demolished*`, 38, c.gap),
               text("*Implied by rounded figures", 23, c.muted),
             ])
-          : row("ESTIMATED EXTRA HOMES NEEDED", demand, c.teal, gap)
+          : row("ESTIMATED EXTRA HOMES NEEDED", demand, c.teal, gap, 0, true)
       ),
       axis(),
     ]);
@@ -379,15 +404,12 @@ export function housingBalanceFrameLayout(
           )
         )
       ),
-      text(
-        final
-          ? "Same place. Same period."
-          : complete
-            ? `${100 - b.netPer100} missing. For every 100 needed.`
-            : "Approximate ratio",
-        29,
-        complete && !final ? c.gap : c.muted
-      ),
+      complete
+        ? box({ justifyContent: "space-between", width: 840 }, [
+            text(`${b.netPer100} added`, 29, c.gold),
+            text(`${100 - b.netPer100} gap`, 29, c.gap),
+          ])
+        : text("Approximate ratio", 29, c.muted),
       ...(final
         ? [
             box({ flexDirection: "column", gap: 12, marginTop: 12 }, [

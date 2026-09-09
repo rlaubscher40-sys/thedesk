@@ -38,6 +38,20 @@ describe("quiet housing Reel layouts", () => {
     expect(children(net)[0]!.props.style?.height).toBe(children(demand)[0]!.props.style?.height);
     expect(net.props.style).toEqual(demand.props.style);
   });
+  it("does not present the demand lead-in as zero need and keeps its comparison marker at net supply", () => {
+    const demand = (p: number) =>
+      children(housingBalanceFrameLayout(story, "line", p, "navy").content)[2]!.props
+        .children as Element;
+    expect(copy(demand(0))).not.toContain("0");
+    for (const progress of [0.3, 1]) {
+      const bar = children(demand(progress))[2]!;
+      const guide = children(bar).at(-1)!;
+      expect(parseFloat(String(guide.props.style?.left))).toBeCloseTo((232000 / 300000) * 100);
+      expect(guide.props.style?.borderLeft).toContain("dashed");
+    }
+    const gap = housingBalanceFrameLayout(story, "facts", 1, "navy").content;
+    expect(copy(gap)).toContain("THE GAP GREW BY");
+  });
   it("subtracts demolitions from completions and retains the supply endpoint through the gap", () => {
     const first = housingBalanceFrameLayout(story, "value", 0, "navy").content;
     const last = housingBalanceFrameLayout(story, "value", 1, "navy").content;
@@ -77,6 +91,8 @@ describe("quiet housing Reel layouts", () => {
     for (const key of ["signOff"]) {
       const ending = housingBalanceFrameLayout(story, key, 1, "navy").content;
       expect(children(ending)[2]).toEqual(children(ratio)[2]);
+      expect(children(ending)[3]).toEqual(children(ratio)[3]);
+      expect(copy(children(ending)[3])).toEqual(["81 added", "19 gap"]);
       expect(children(ending)[0]!.props.style?.height).toBe(165);
       expect(ending.props.style).toEqual(ratio.props.style);
     }

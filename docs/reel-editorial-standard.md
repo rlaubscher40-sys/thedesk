@@ -77,3 +77,23 @@ and uses sequential batches of at most nine through the existing local voice
 queue. A failed phrase is an explicit render failure. Review exports include
 speech-audit.json and timing.json so actual cues can be inspected alongside
 the encoded video. No paid speech or transcription service is involved.
+
+## Reading the comparison without sound
+
+Do not show zero demand during the measured lead-in before its number is
+spoken. Keep the space reserved and reveal the amount with the count. Mark
+the net-supply endpoint inside the demand bar so the excess is easy to locate
+on the shared scale. The shortfall headline says the gap grew by 55,000 homes,
+making the flow over this period explicit. Keep the 81 added / 19 gap labels
+beneath the house grid through the ending, so meaning does not rely on colour.
+
+The post caption now uses the moving-out example before the national figures.
+The same people can form more households and need more homes. The existing
+reference period, approximate figures, modelled demand definition, full source
+and distinction from total accumulated shortage remain.
+
+Verification note: the local clarity changes passed TypeScript and 119 focused
+tests before the workspace went offline during export. The patch was recovered
+against the last saved PR head through GitHub. The new production build and
+encoded MP4 review remain pending; the last verified MP4 is the measured-phrase
+version, 37.97 seconds. Do not treat the new visual pass as export-verified.
