@@ -1,3 +1,4 @@
+import { publicFetch } from "./publicFetch";
 /**
  * Thin wrapper around rss-parser. Returns normalised items plus the source's
  * fixed category, with a per-fetch timeout so one slow site can't stall
@@ -108,7 +109,15 @@ export type SourceReport = {
 };
 
 export function createSourceReader() {
-  const read = createFeedCache((url: string) => parser.parseURL(url));
+  const read = createFeedCache(async (url: string) => {
+    const response = await publicFetch(url, {
+      signal: AbortSignal.timeout(8000),
+      maxBytes: 2 * 1024 * 1024,
+      headers: { "User-Agent": `TheDesk/1.0 (+${SITE_URL})` },
+    });
+    if (!response.ok) throw new Error(`RSS HTTP ${response.status}`);
+    return parser.parseString(await response.text());
+  });
   return async (src: Source): Promise<SourceReport> => {
     try {
       const { value: feed, checkedAt } = await read(src.url);

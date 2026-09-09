@@ -1,3 +1,4 @@
+import { decodeBase32 } from "./totp";
 /**
  * Single read of process.env wrapped so the rest of the server can import a
  * frozen, typed config object instead of touching env vars directly.
@@ -54,6 +55,12 @@ if (process.env.NODE_ENV === "production") {
   }
 }
 
+if (process.env.NODE_ENV === "production" && Buffer.byteLength(process.env.JWT_SECRET ?? "") < 32) {
+  throw new Error("JWT_SECRET must contain at least 32 bytes in production");
+}
+
+if (process.env.ADMIN_TOTP_SECRET) decodeBase32(process.env.ADMIN_TOTP_SECRET);
+
 export const env = Object.freeze({
   isProduction: process.env.NODE_ENV === "production",
   cookieSecret: process.env.JWT_SECRET ?? "",
@@ -64,6 +71,7 @@ export const env = Object.freeze({
   anthropicModelPremium: process.env.ANTHROPIC_MODEL_PREMIUM ?? "claude-opus-4-8",
   openAiApiKey: process.env.OPENAI_API_KEY ?? "",
   adminPassword: process.env.ADMIN_PASSWORD ?? "",
+  adminTotpSecret: process.env.ADMIN_TOTP_SECRET ?? "",
   instagramAccessToken: process.env.INSTAGRAM_ACCESS_TOKEN ?? "",
   instagramBusinessAccountId: process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID ?? "",
   dbPoolSize: intEnv(process.env.DB_POOL_SIZE, 10),

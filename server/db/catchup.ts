@@ -18,10 +18,12 @@
  * what stops the class of outage where new code ships expecting a column
  * the database doesn't have yet.
  */
+import { SECURITY_DDL } from "./security";
 import { sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 
 export const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
+  ...SECURITY_DDL,
   {
     name: "nationwide · property_evidence",
     sql: `CREATE TABLE property_evidence (

@@ -5,6 +5,7 @@
  */
 import {
   boolean,
+  bigint,
   customType,
   double,
   index,
@@ -630,3 +631,22 @@ export const planningSnapshots = mysqlTable(
 );
 
 export * from "./evidenceSchema";
+
+// Security state is durable and separate from editorial data.
+export const securityLimits = mysqlTable(
+  "security_limits",
+  {
+    bucketKey: varchar("bucketKey", { length: 191 }).primaryKey(),
+    used: int("used").notNull().default(0),
+    expiresMs: bigint("expiresMs", { mode: "number" }).notNull(),
+  },
+  (table) => [index("idx_security_limits_expiry").on(table.expiresMs)]
+);
+export const adminSessions = mysqlTable(
+  "admin_sessions",
+  {
+    sessionId: varchar("sessionId", { length: 64 }).primaryKey(),
+    expiresMs: bigint("expiresMs", { mode: "number" }).notNull(),
+  },
+  (table) => [index("idx_admin_sessions_expiry").on(table.expiresMs)]
+);

@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import fs from "node:fs";
 import type { Express, Request, Response, NextFunction } from "express";
+import express from "express";
+import { createServer, type Server } from "node:http";
 vi.mock("../markets/discovery", () => ({ getMarketDirectory: vi.fn() }));
 vi.mock("../og/takeCard", () => ({ renderDeskTakeCard: vi.fn() }));
 import { getMarketDirectory } from "../markets/discovery";
@@ -17,7 +19,9 @@ import {
 type Handler = (req: Request, res: Response, next: NextFunction) => unknown;
 const handlers = new Map<string, Handler>();
 const app = {
-  get: (path: string, handler: Handler) => handlers.set(path, handler),
+  // These cases unit-test the final handler; middleware is exercised over
+  // actual local HTTP in the limiter regression below.
+  get: (path: string, ...chain: Handler[]) => handlers.set(path, chain.at(-1)!),
 } as unknown as Express;
 const file: PublicMarketFile = {
   market: PUBLIC_MARKETS[3],
@@ -75,6 +79,31 @@ beforeEach(() => {
 });
 
 describe("market page HTTP contracts", () => {
+  it("enforces the actual route limiter before data access over HTTP", async () => {
+    const realApp = express();
+    registerMarketSeoRoutes(realApp);
+    const server: Server = createServer(realApp);
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("Missing local test port");
+    try {
+      const url = `http://127.0.0.1:${address.port}/markets/not-a-market`;
+      for (let i = 0; i < 120; i++) {
+        const result = await fetch(url);
+        expect(result.status).toBe(404);
+        await result.text();
+      }
+      const limited = await fetch(url);
+      expect(limited.status).toBe(429);
+      await limited.text();
+      expect(getMarketDirectory).not.toHaveBeenCalled();
+    } finally {
+      server.closeAllConnections();
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve()))
+      );
+    }
+  });
   it("keeps the free comparison readable without data and ignores client copy", async () => {
     const res = response();
     await handlers.get("/markets/compare/brisbane-vs-perth")!(

@@ -10,12 +10,12 @@
  *   2. Subsequent requests carry the cookie. `authenticateRequest()`
  *      verifies it and returns the synthetic admin user.
  *
- * No OAuth backend, no user table lookup, no per-user state. The single
+ * No OAuth backend. Revocable sessions live in the database. The single
  * admin identity is hard-coded; the database `users` table stays for
  * foreign keys on reading queue / notes / conversations but is only ever
  * populated with one row.
  */
-import { createHash, timingSafeEqual } from "node:crypto";
+import { createHash, pbkdf2, randomBytes, timingSafeEqual } from "node:crypto";
 import { COOKIE_NAME, SESSION_TTL_MS } from "../../shared/const";
 import { ForbiddenError } from "../../shared/errors";
 import { parse as parseCookieHeader } from "cookie";
@@ -24,11 +24,34 @@ import { SignJWT, jwtVerify } from "jose";
 import { getUserByOpenId, upsertUser } from "../db/users";
 import type { User } from "../db/schema";
 import { env } from "./env";
+import { saveAdminSession, hasAdminSession, deleteAdminSession } from "../db/security";
 
 const ADMIN_OPEN_ID = "admin";
 
-function getSecret() {
-  return new TextEncoder().encode(env.cookieSecret);
+let signingKey: { material: string; key: Promise<Buffer> } | undefined;
+function getSecret(): Promise<Buffer> {
+  const password = env.adminPassword;
+  const salt = JSON.stringify([
+    "the-desk-admin-session-v3",
+    env.cookieSecret,
+    env.adminTotpSecret ?? "",
+  ]);
+  const material = JSON.stringify([password, salt]);
+  if (signingKey?.material === material) return signingKey.key;
+  // Password-derived key: use a slow KDF, not a single fast hash/HMAC.
+  // Derive once per configuration; concurrent requests share the work and
+  // ordinary session checks never repeat the expensive derivation.
+  const key = new Promise<Buffer>((resolve, reject) => {
+    pbkdf2(password, salt, 600_000, 32, "sha256", (error, value) => {
+      if (error) reject(error);
+      else resolve(value);
+    });
+  });
+  signingKey = { material, key };
+  void key.catch(() => {
+    if (signingKey?.key === key) signingKey = undefined;
+  });
+  return key;
 }
 
 class AuthSdk {
@@ -47,10 +70,16 @@ class AuthSdk {
   async createSessionToken(opts: { expiresInMs?: number } = {}): Promise<string> {
     const expiresInMs = opts.expiresInMs ?? SESSION_TTL_MS;
     const expSeconds = Math.floor((Date.now() + expiresInMs) / 1000);
+    const sessionId = randomBytes(32).toString("hex");
+    await saveAdminSession(sessionId, expSeconds * 1000);
     return new SignJWT({ openId: ADMIN_OPEN_ID, role: "admin" })
+      .setJti(sessionId)
+      .setIssuedAt()
+      .setIssuer("the-desk")
+      .setAudience("the-desk-admin")
       .setProtectedHeader({ alg: "HS256", typ: "JWT" })
       .setExpirationTime(expSeconds)
-      .sign(getSecret());
+      .sign(await getSecret());
   }
 
   async verifySession(
@@ -58,13 +87,41 @@ class AuthSdk {
   ): Promise<{ openId: string; role: "admin" } | null> {
     if (!token) return null;
     try {
-      const { payload } = await jwtVerify(token, getSecret(), { algorithms: ["HS256"] });
+      const { payload } = await jwtVerify(token, await getSecret(), {
+        algorithms: ["HS256"],
+        issuer: "the-desk",
+        audience: "the-desk-admin",
+      });
       const { openId, role } = payload as Record<string, unknown>;
-      if (typeof openId !== "string" || role !== "admin") return null;
+      if (
+        openId !== ADMIN_OPEN_ID ||
+        role !== "admin" ||
+        typeof payload.jti !== "string" ||
+        !/^[a-f0-9]{64}$/.test(payload.jti)
+      )
+        return null;
+      if (!(await hasAdminSession(payload.jti))) return null;
       return { openId, role: "admin" };
     } catch {
       return null;
     }
+  }
+
+  async revokeSession(req: Request): Promise<void> {
+    const token = parseCookieHeader(req.headers.cookie ?? "")[COOKIE_NAME];
+    if (!token) return;
+    let id: string | undefined;
+    try {
+      const { payload } = await jwtVerify(token, await getSecret(), {
+        algorithms: ["HS256"],
+        issuer: "the-desk",
+        audience: "the-desk-admin",
+      });
+      id = payload.jti;
+    } catch {
+      return;
+    }
+    if (id) await deleteAdminSession(id);
   }
 
   /**

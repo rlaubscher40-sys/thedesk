@@ -1,3 +1,4 @@
+import { publicFetch } from "./publicFetch";
 /**
  * Resolve Google News redirect links to the real publisher URL.
  *
@@ -115,7 +116,7 @@ export async function decodeGoogleNewsUrlOnline(
     };
 
     // 1. Fetch the article page for the per-link signature + timestamp.
-    const page = await fetch(`https://news.google.com/rss/articles/${articleId}`, {
+    const page = await publicFetch(`https://news.google.com/rss/articles/${articleId}`, {
       signal: controller.signal,
       redirect: "follow",
       headers,
@@ -143,7 +144,7 @@ export async function decodeGoogleNewsUrlOnline(
       ],
     ];
     const body = new URLSearchParams({ "f.req": JSON.stringify(payload) });
-    const res = await fetch(BATCHEXECUTE_URL, {
+    const res = await publicFetch(BATCHEXECUTE_URL, {
       method: "POST",
       signal: controller.signal,
       headers: {

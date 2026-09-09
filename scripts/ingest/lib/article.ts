@@ -1,3 +1,5 @@
+import { publicFetch } from "./publicFetch";
+import { readableHtml } from "./htmlText";
 /**
  * Fetches an article page once and returns BOTH the og:image and the
  * extracted body text. This replaces the old image-only scrape: the daily
@@ -5,7 +7,7 @@
  * the 480-char RSS snippet alone, so "why it matters" / "say this" / partner
  * angles were written from the headline rather than the actual reporting.
  *
- * Extraction is deliberately dependency-free (no cheerio / readability):
+ * Extraction uses an HTML5 parser before paragraph selection:
  *   - strip <script>/<style>/<noscript>/comments so we don't read junk
  *   - prefer the semantic <article> or <main> container when present, which
  *     drops nav bars, sidebars and related-link rails
@@ -35,11 +37,7 @@ function matchFirst(s: string, re: RegExp): string | null {
 
 /** Pull readable body text out of raw article HTML, capped at `maxChars`. */
 export function extractArticleText(html: string, maxChars: number): string | null {
-  const cleaned = html
-    .replace(/<script\b[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style\b[\s\S]*?<\/style>/gi, " ")
-    .replace(/<noscript\b[\s\S]*?<\/noscript>/gi, " ")
-    .replace(/<!--[\s\S]*?-->/g, " ");
+  const cleaned = readableHtml(html);
 
   // Prefer a semantic container, the article body lives here on most news
   // sites and this strips chrome (nav, footer, "more stories" rails).
@@ -91,7 +89,8 @@ export async function fetchArticle(
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
   try {
-    const res = await fetch(url, {
+    const res = await publicFetch(url, {
+      maxBytes: 5 * 1024 * 1024,
       signal: controller.signal,
       redirect: "follow",
       headers: {

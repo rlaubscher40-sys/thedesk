@@ -8,8 +8,8 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { consumeAnonymousCard } from "../core/askQuota";
 import * as db from "../db";
-import { renderSignalCard } from "../og/signalCard";
-import { renderTrendCard } from "../og/trendCard";
+import { renderSignalCard } from "../core/publicRender";
+import { renderTrendCard } from "../core/publicRender";
 import { adminProcedure, publicProcedure, router } from "../core/trpc";
 
 function safeFilename(value: string, prefix = "the-number"): string {
@@ -41,9 +41,12 @@ function formatAsOf(value: Date): string {
   }).format(value);
 }
 
-function enforceCardQuota(authenticated: boolean, req: Parameters<typeof consumeAnonymousCard>[0]) {
+async function enforceCardQuota(
+  authenticated: boolean,
+  req: Parameters<typeof consumeAnonymousCard>[0]
+) {
   if (authenticated) return;
-  const quota = consumeAnonymousCard(req);
+  const quota = await consumeAnonymousCard(req);
   if (!quota.allowed) {
     throw new TRPCError({
       code: "TOO_MANY_REQUESTS",
@@ -74,7 +77,7 @@ export const metricsRouter = router({
   shareCard: publicProcedure
     .input(z.object({ metricKey: z.string().min(1).max(64) }))
     .mutation(async ({ input, ctx }) => {
-      enforceCardQuota(Boolean(ctx.user), ctx.req);
+      await enforceCardQuota(Boolean(ctx.user), ctx.req);
 
       const metrics = await db.listDailyMetrics();
       const metric = metrics.find((row) => row.metricKey === input.metricKey);
@@ -117,7 +120,7 @@ export const metricsRouter = router({
   shareTrendCard: publicProcedure
     .input(z.object({ metricKey: z.string().min(1).max(64) }))
     .mutation(async ({ input, ctx }) => {
-      enforceCardQuota(Boolean(ctx.user), ctx.req);
+      await enforceCardQuota(Boolean(ctx.user), ctx.req);
 
       const [metrics, histories] = await Promise.all([
         db.listDailyMetrics(),

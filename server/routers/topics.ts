@@ -1,16 +1,19 @@
+import { publicEdition } from "../core/publicEdition";
 import { z } from "zod";
 import * as db from "../db";
 import { publicProcedure, router } from "../core/trpc";
 
 export const topicsRouter = router({
   /** Aggregate feed items + edition topics for a category. */
-  getByCategory: publicProcedure.input(z.object({ category: z.string().min(1) })).query(async ({ input }) => {
-    const [feedItems, editions] = await Promise.all([
-      db.getFeedItemsByCategory(input.category),
-      db.getEditionsByCategory(input.category),
-    ]);
-    return { feedItems, editions };
-  }),
+  getByCategory: publicProcedure
+    .input(z.object({ category: z.string().min(1) }))
+    .query(async ({ input }) => {
+      const [feedItems, editions] = await Promise.all([
+        db.getFeedItemsByCategory(input.category),
+        db.getEditionsByCategory(input.category),
+      ]);
+      return { feedItems, editions: editions.map(publicEdition) };
+    }),
 
   list: publicProcedure.query(async () => db.listAllCategories()),
 

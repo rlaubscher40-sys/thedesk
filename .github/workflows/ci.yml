@@ -16,20 +16,36 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: test-only-password
+          MYSQL_DATABASE: security_audit_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -ptest-only-password"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+    env:
+      SECURITY_TEST_DATABASE_URL: mysql://root:test-only-password@127.0.0.1:3306/security_audit_test
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
-          version: 10
+          version: 10.34.5
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+
+      - name: Dependency security gate
+        run: pnpm audit:security
 
       - name: Install pinned local Reel voice
         run: pnpm setup:voice
@@ -39,3 +55,6 @@ jobs:
 
       - name: Tests
         run: pnpm test
+
+      - name: Production build
+        run: pnpm build

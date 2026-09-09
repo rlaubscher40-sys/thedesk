@@ -14,7 +14,7 @@ import {
   readIntelligenceShareToken,
 } from "../core/intelligenceShare";
 import { invokeLLMJson } from "../core/llm";
-import { renderIntelligenceCard } from "../og/intelligenceCard";
+import { renderIntelligenceCard } from "../core/publicRender";
 import { publicProcedure, router } from "../core/trpc";
 import { askDeskResponseFormat, buildAskDeskMessages, type AskContextSource } from "../prompts/ask";
 
@@ -96,11 +96,13 @@ async function retrieve(question: string): Promise<{
     ...new Map(archiveBundles.flat().map((row) => [row.identity, row])).values(),
   ];
   const feedUrls = new Set([...feed.values()].map((row) => row.sourceUrl));
-  const feedTitles = new Set([...feed.values()].map(row => row.title.trim().toLowerCase()));
+  const feedTitles = new Set([...feed.values()].map((row) => row.title.trim().toLowerCase()));
   return {
     archive: rankAskRecords(
       question,
-      archiveRows.filter((row) => !feedUrls.has(row.sourceUrl) && !feedTitles.has(row.title.trim().toLowerCase())),
+      archiveRows.filter(
+        (row) => !feedUrls.has(row.sourceUrl) && !feedTitles.has(row.title.trim().toLowerCase())
+      ),
       {
         title: (row) => row.title,
         body: (row) => row.summary,
@@ -133,12 +135,12 @@ async function retrieve(question: string): Promise<{
   };
 }
 
-function enforceAnonymousQuota(
+async function enforceAnonymousQuota(
   authenticated: boolean,
-  consume: () => { allowed: boolean; remaining: number; limit: number }
-): number | null {
+  consume: () => Promise<{ allowed: boolean; remaining: number; limit: number }>
+): Promise<number | null> {
   if (authenticated) return null;
-  const quota = consume();
+  const quota = await consume();
   if (!quota.allowed) {
     throw new TRPCError({
       code: "TOO_MANY_REQUESTS",
@@ -156,7 +158,7 @@ export const askRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      const reservation: { current: ReturnType<typeof reserveAnonymousAsk> | null } = {
+      const reservation: { current: Awaited<ReturnType<typeof reserveAnonymousAsk>> | null } = {
         current: null,
       };
       try {
@@ -318,7 +320,11 @@ export const askRouter = router({
 
           signal.throwIfAborted();
           if (!ctx.user) {
-            reservation.current = reserveAnonymousAsk(ctx.req);
+            reservation.current = await reserveAnonymousAsk(ctx.req);
+            if (signal.aborted) {
+              await reservation.current.release();
+              signal.throwIfAborted();
+            }
             if (!reservation.current.allowed) {
               throw new TRPCError({
                 code: "TOO_MANY_REQUESTS",
@@ -326,7 +332,7 @@ export const askRouter = router({
                   "You've used today's 3 free questions, or they are still processing. Sign in to keep going.",
               });
             }
-            if (!consumeAnonymousAskAttempt(ctx.req).allowed) {
+            if (!(await consumeAnonymousAskAttempt(ctx.req)).allowed) {
               throw new TRPCError({
                 code: "TOO_MANY_REQUESTS",
                 message:
@@ -424,7 +430,7 @@ export const askRouter = router({
         throw error;
       } finally {
         // Also runs on deadline: late work cannot consume or commit the reservation.
-        reservation.current?.release();
+        await reservation.current?.release();
       }
     }),
 
@@ -450,7 +456,7 @@ export const askRouter = router({
   shareCard: publicProcedure
     .input(z.object({ token: z.string().min(20).max(16_000) }))
     .mutation(async ({ input, ctx }) => {
-      enforceAnonymousQuota(Boolean(ctx.user), () => consumeAnonymousCard(ctx.req));
+      await enforceAnonymousQuota(Boolean(ctx.user), () => consumeAnonymousCard(ctx.req));
       const brief = readIntelligenceShareToken(input.token);
       if (!brief) {
         throw new TRPCError({

@@ -271,7 +271,8 @@ export async function searchEditionFullText(query: string): Promise<Edition[]> {
     .select()
     .from(editions)
     .where(or(like(editions.fullText, pattern), like(editions.weekOf, pattern)))
-    .orderBy(desc(editions.editionNumber));
+    .orderBy(desc(editions.editionNumber))
+    .limit(50);
 }
 
 export async function getEditionsByCategory(category: string): Promise<Edition[]> {
@@ -294,7 +295,8 @@ export async function getEditionsByCategory(category: string): Promise<Edition[]
         like(sql`CAST(${editions.topics} AS CHAR)`, title)
       )
     )
-    .orderBy(desc(editions.editionNumber));
+    .orderBy(desc(editions.editionNumber))
+    .limit(50);
 }
 
 export async function getRecentEditionsForMetrics(limit = 4) {

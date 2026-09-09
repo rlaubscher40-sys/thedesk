@@ -1,4 +1,7 @@
 import { afterEach, describe, it, expect, vi } from "vitest";
+vi.mock("./publicFetch", () => ({
+  publicFetch: (...args: Parameters<typeof fetch>) => globalThis.fetch(...args),
+}));
 import { extractArticleText, fetchArticle } from "./article";
 
 afterEach(() => {

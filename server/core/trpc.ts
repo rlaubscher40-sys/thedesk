@@ -3,7 +3,18 @@ import superjson from "superjson";
 import { NOT_ADMIN_ERR_MSG, UNAUTHED_ERR_MSG } from "../../shared/const";
 import type { TrpcContext } from "./context";
 
-const t = initTRPC.context<TrpcContext>().create({ transformer: superjson });
+const t = initTRPC.context<TrpcContext>().create({
+  transformer: superjson,
+  errorFormatter({ shape, error, ctx }) {
+    if (error.code === "INTERNAL_SERVER_ERROR" && !ctx?.user)
+      return {
+        ...shape,
+        message: "The Desk could not complete this request. Please try again shortly.",
+        data: { ...shape.data, stack: undefined },
+      };
+    return shape;
+  },
+});
 
 export const router = t.router;
 export const publicProcedure = t.procedure;

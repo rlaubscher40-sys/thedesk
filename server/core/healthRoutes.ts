@@ -104,10 +104,7 @@ export function recordExpressError(
   const e = err instanceof Error ? err : new Error(String(err));
   // Express attaches the matched route on req.route when one exists;
   // otherwise fall back to the originalUrl path (no query string).
-  const route =
-    (req.route?.path as string | undefined) ??
-    req.originalUrl.split("?")[0] ??
-    null;
+  const route = (req.route?.path as string | undefined) ?? req.originalUrl.split("?")[0] ?? null;
   const message = e.message.split("\n")[0]?.slice(0, 512) ?? "unknown error";
   void db
     .recordServerError({
@@ -120,9 +117,7 @@ export function recordExpressError(
       userAgent: req.header("user-agent")?.slice(0, 256) ?? null,
     })
     .catch((logErr) => {
-      console.warn(
-        `[health] error-logger failed to persist: ${(logErr as Error).message}`
-      );
+      console.warn(`[health] error-logger failed to persist: ${(logErr as Error).message}`);
     });
   next(err);
 }
@@ -166,6 +161,10 @@ export function registerHealthRoutes(app: Express): void {
     message: { error: "Too many events" },
   });
   app.get("/api/healthz", handleHealthz);
-  app.post("/api/uptime/record", handleRecordPing);
+  app.post(
+    "/api/uptime/record",
+    rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: "draft-7", legacyHeaders: false }),
+    handleRecordPing
+  );
   app.post("/api/errors/client", clientErrorLimiter, handleClientError);
 }

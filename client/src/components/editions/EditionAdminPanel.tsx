@@ -27,9 +27,17 @@ import { SITE_DISPLAY } from "@/lib/siteUrl";
 import { useAuth } from "@/lib/useAuth";
 import { trpc } from "@/lib/trpc";
 
-export function EditionAdminPanel({ edition }: { edition: Edition }) {
+export function EditionAdminPanel({ edition: publicEdition }: { edition: Edition }) {
   const { user } = useAuth();
-  if (user?.role !== "admin") return null;
+  const query = trpc.editions.editor.useQuery(
+    { editionId: publicEdition.id },
+    { enabled: user?.role === "admin" }
+  );
+  if (user?.role !== "admin" || !query.data) return null;
+  return <EditionEditor edition={query.data} />;
+}
+
+function EditionEditor({ edition }: { edition: Edition }) {
   return (
     <section className="panel rounded p-6 mt-12">
       <header className="mb-5">
@@ -81,8 +89,8 @@ function DeleteEditionButton({ edition }: { edition: Edition }) {
     <div className="mt-8 pt-6 border-t border-[var(--color-border)]">
       <p className="overline mb-2 text-red-300/70">Danger zone</p>
       <p className="text-xs text-[var(--color-fg-muted)] mb-3 max-w-[60ch]">
-        Permanently removes this edition. Use to clear a thin first-pass before
-        re-running weekly synthesis for the same week.
+        Permanently removes this edition. Use to clear a thin first-pass before re-running weekly
+        synthesis for the same week.
       </p>
       <button
         onClick={onClick}
@@ -120,7 +128,8 @@ function ForwardEdition({ edition }: { edition: Edition }) {
         <div>
           <p className="overline mb-1">Forward this edition</p>
           <p className="text-xs text-[var(--color-fg-muted)]">
-            Opens your default mail client with a pre-filled subject, Ruben's Take, the edition link, and a Subscribe nudge.
+            Opens your default mail client with a pre-filled subject, Ruben's Take, the edition
+            link, and a Subscribe nudge.
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={openComposer}>
@@ -138,6 +147,7 @@ function HeroImageControls({ edition }: { edition: Edition }) {
   const generate = trpc.editions.generateHeroImage.useMutation({
     onSuccess: () => {
       utils.editions.getById.invalidate({ editionId: edition.id });
+      utils.editions.editor.invalidate({ editionId: edition.id });
       utils.editions.getByNumber.invalidate({ editionNumber: edition.editionNumber });
       utils.editions.list.invalidate();
       toast.success("Hero image regenerated");
@@ -179,6 +189,7 @@ function TakeControls({ edition }: { edition: Edition }) {
   const generate = trpc.editions.generateRubensTake.useMutation({
     onSuccess: () => {
       utils.editions.getById.invalidate({ editionId: edition.id });
+      utils.editions.editor.invalidate({ editionId: edition.id });
       utils.editions.getByNumber.invalidate({ editionNumber: edition.editionNumber });
       utils.editions.list.invalidate();
       toast.success("Ruben's Take regenerated");
@@ -192,7 +203,9 @@ function TakeControls({ edition }: { edition: Edition }) {
         <div>
           <p className="overline mb-1">Ruben's Take</p>
           <p className="text-xs text-[var(--color-fg-muted)]">
-            {edition.rubensTake ? "Take is in place. Regenerate to try a different angle." : "Not yet written."}
+            {edition.rubensTake
+              ? "Take is in place. Regenerate to try a different angle."
+              : "Not yet written."}
           </p>
         </div>
         <Button
@@ -240,6 +253,7 @@ function SubstackDraftEditor({ edition }: { edition: Edition }) {
       setImageUrl(draft.imageUrl);
       utils.editions.list.invalidate();
       utils.editions.getById.invalidate({ editionId: edition.id });
+      utils.editions.editor.invalidate({ editionId: edition.id });
       toast.success("Substack draft generated");
     },
     onError: (err) => toast.error(`Draft generation failed: ${err.message}`),
@@ -250,6 +264,7 @@ function SubstackDraftEditor({ edition }: { edition: Edition }) {
       setImageUrl(url);
       utils.editions.list.invalidate();
       utils.editions.getById.invalidate({ editionId: edition.id });
+      utils.editions.editor.invalidate({ editionId: edition.id });
       toast.success("Hero image regenerated");
     },
     onError: (err) => toast.error(`Image regeneration failed: ${err.message}`),
@@ -259,6 +274,7 @@ function SubstackDraftEditor({ edition }: { edition: Edition }) {
     onSuccess: () => {
       utils.editions.list.invalidate();
       utils.editions.getById.invalidate({ editionId: edition.id });
+      utils.editions.editor.invalidate({ editionId: edition.id });
       toast.success("Draft saved");
     },
     onError: (err) => toast.error(`Save failed: ${err.message}`),
@@ -331,7 +347,12 @@ function SubstackDraftEditor({ edition }: { edition: Edition }) {
         <div className="space-y-3">
           {imageUrl && (
             <div className="relative aspect-[2/1] w-full overflow-hidden rounded bg-[var(--color-bg-deep)] group">
-              <img src={imageUrl} alt="Draft hero" className="w-full h-full object-cover" loading="lazy" />
+              <img
+                src={imageUrl}
+                alt="Draft hero"
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
                 <CopyImageButton imageUrl={imageUrl} />
               </div>
@@ -409,9 +430,7 @@ function buildLinkedInDraftFromEssay({
     .map((p) => p.trim())
     .filter(Boolean);
   const teaser = paragraphs.slice(0, 2).join("\n\n");
-  return [`${title}`, subtitle, "", teaser, "", `Via The Desk · ${SITE_DISPLAY}`]
-    .join("\n")
-    .trim();
+  return [`${title}`, subtitle, "", teaser, "", `Via The Desk · ${SITE_DISPLAY}`].join("\n").trim();
 }
 
 // ─── Bulk action that lives at the Editions list level too ──────────────────

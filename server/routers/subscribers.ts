@@ -16,6 +16,7 @@
  *   · list       , full list. Drives the Admin console's subscriber
  *                   table.
  */
+import { reserveSubscriptionEmail, releaseSubscriptionCooldown } from "../core/publicLimits";
 import { TRPCError } from "@trpc/server";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
@@ -39,11 +40,14 @@ function siteOrigin(): string {
   return v.replace(/\/+$/, "");
 }
 
-async function requireEmailAccepted(sendEmail: () => ReturnType<typeof sendConfirmEmail>): Promise<void> {
+async function requireEmailAccepted(
+  sendEmail: () => ReturnType<typeof sendConfirmEmail>
+): Promise<void> {
   try {
     const result = await sendEmail();
     if (result.delivered) return;
-    if (result.reason === "no-key" && (isDemoMode() || process.env.NODE_ENV !== "production")) return;
+    if (result.reason === "no-key" && (isDemoMode() || process.env.NODE_ENV !== "production"))
+      return;
   } catch {
     // Keep provider details and subscriber status out of public responses.
   }
@@ -90,64 +94,75 @@ export const subscribersRouter = router({
         _hp: z.string().max(0).optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      const existing = await db.findSubscriberByEmail(input.email);
-      if (existing?.confirmedAt && !existing.unsubscribedAt) {
-        // Already confirmed. Send a quiet nudge so the subscriber knows
-        // they're on the list (covers the case where an email security
-        // scanner auto-clicked their confirm link without them realising).
-        // The API response is deliberately indistinguishable from the
-        // fresh-subscribe case: a distinct "already-confirmed" status would
-        // let anyone probe whether an address is on the list. The real
-        // answer goes to the inbox owner, not the caller.
-        const origin = siteOrigin();
-        await requireEmailAccepted(() => sendAlreadyConfirmedEmail({
-          to: input.email,
-          editionsUrl: `${origin}/editions`,
-        }));
+    .mutation(async ({ input, ctx }) => {
+      if (!(await reserveSubscriptionEmail(ctx.req, input.email))) {
+        return { status: "pending-confirm" as const, confirmToken: null };
+      }
+      try {
+        const existing = await db.findSubscriberByEmail(input.email);
+        if (existing?.confirmedAt && !existing.unsubscribedAt) {
+          // Already confirmed. Send a quiet nudge so the subscriber knows
+          // they're on the list (covers the case where an email security
+          // scanner auto-clicked their confirm link without them realising).
+          // The API response is deliberately indistinguishable from the
+          // fresh-subscribe case: a distinct "already-confirmed" status would
+          // let anyone probe whether an address is on the list. The real
+          // answer goes to the inbox owner, not the caller.
+          const origin = siteOrigin();
+          await requireEmailAccepted(() =>
+            sendAlreadyConfirmedEmail({
+              to: input.email,
+              editionsUrl: `${origin}/editions`,
+            })
+          );
+          return {
+            status: "pending-confirm" as const,
+            confirmToken: null,
+          };
+        }
+
+        const token = randomUUID().replace(/-/g, "");
+        const subscriber = await db.createSubscriber({
+          email: input.email,
+          name: input.name ?? null,
+          confirmToken: token,
+          source: input.source ?? null,
+          // Empty string means the client had the field but nothing to put in
+          // it (storage blocked, say). Store null rather than "" so a missing
+          // arrival never reads as a channel named "".
+          arrivalSource: input.arrivalSource || null,
+          arrivalCampaign: input.arrivalCampaign || null,
+        });
+
+        if (!subscriber?.confirmToken) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "We couldn't send your email. Please try again in a minute.",
+          });
+        }
+
+        // Only show "check your inbox" after the provider accepts the email.
+        // A failure leaves the pending row recoverable by submitting again.
+        // The confirm page is mounted at /confirm-subscription in
+        // App.tsx; the email's CTA links here. Don't change the path
+        // without also updating the React route, or the link 404s.
+        const confirmUrl = `${siteOrigin()}/confirm-subscription?token=${subscriber.confirmToken}`;
+        await requireEmailAccepted(() => sendConfirmEmail({ to: input.email, confirmUrl }));
+
         return {
           status: "pending-confirm" as const,
-          confirmToken: null,
+          // Token returned ONLY outside production so dev / demo can construct
+          // the confirm URL by hand when RESEND_API_KEY isn't wired up. In
+          // production it must never leave the server: handing it to the
+          // caller would let anyone subscribe AND confirm someone else's
+          // address without ever seeing their inbox, defeating double opt-in.
+          confirmToken:
+            isDemoMode() || process.env.NODE_ENV !== "production" ? subscriber.confirmToken : null,
         };
+      } catch (error) {
+        await releaseSubscriptionCooldown(input.email).catch(() => {});
+        throw error;
       }
-
-      const token = randomUUID().replace(/-/g, "");
-      const subscriber = await db.createSubscriber({
-        email: input.email,
-        name: input.name ?? null,
-        confirmToken: token,
-        source: input.source ?? null,
-        // Empty string means the client had the field but nothing to put in
-        // it (storage blocked, say). Store null rather than "" so a missing
-        // arrival never reads as a channel named "".
-        arrivalSource: input.arrivalSource || null,
-        arrivalCampaign: input.arrivalCampaign || null,
-      });
-
-      if (!subscriber?.confirmToken) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "We couldn't send your email. Please try again in a minute.",
-        });
-      }
-
-      // Only show "check your inbox" after the provider accepts the email.
-      // A failure leaves the pending row recoverable by submitting again.
-      // The confirm page is mounted at /confirm-subscription in
-      // App.tsx; the email's CTA links here. Don't change the path
-      // without also updating the React route, or the link 404s.
-      const confirmUrl = `${siteOrigin()}/confirm-subscription?token=${subscriber.confirmToken}`;
-      await requireEmailAccepted(() => sendConfirmEmail({ to: input.email, confirmUrl }));
-
-      return {
-        status: "pending-confirm" as const,
-        // Token returned ONLY outside production so dev / demo can construct
-        // the confirm URL by hand when RESEND_API_KEY isn't wired up. In
-        // production it must never leave the server: handing it to the
-        // caller would let anyone subscribe AND confirm someone else's
-        // address without ever seeing their inbox, defeating double opt-in.
-        confirmToken: isDemoMode() || process.env.NODE_ENV !== "production" ? subscriber.confirmToken : null,
-      };
     }),
 
   confirm: publicProcedure

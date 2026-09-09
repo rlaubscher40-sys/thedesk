@@ -13,6 +13,9 @@
  * it works in dev without an explicit value.
  */
 import type { Express, Request, Response, NextFunction } from "express";
+import rateLimit from "express-rate-limit";
+import { sdk } from "./sdk";
+import { isDemoMode } from "../demo/store";
 import fs from "node:fs";
 import { routeParam } from "./requestParams";
 import path from "node:path";
@@ -381,13 +384,27 @@ async function handleEditionImage(req: Request, res: Response): Promise<void> {
     return;
   }
   try {
+    if (kind === "substack") {
+      res.set("Cache-Control", "private, no-store");
+      if (!isDemoMode()) {
+        try {
+          await sdk.authenticateRequest(req);
+        } catch {
+          res.status(403).send("Forbidden");
+          return;
+        }
+      }
+    }
     const asset = await db.getLatestEditionAsset(id, kind);
     if (!asset) {
       res.status(404).send("Not found");
       return;
     }
     res.set("Content-Type", asset.contentType);
-    res.set("Cache-Control", "public, max-age=86400, immutable");
+    res.set(
+      "Cache-Control",
+      kind === "substack" ? "private, no-store" : "public, max-age=86400, immutable"
+    );
     res.send(asset.bytes);
   } catch (err) {
     console.warn(`[seo] edition image fetch failed for ${id}/${kind}:`, (err as Error).message);
@@ -457,7 +474,11 @@ async function handleEditionOgCard(req: Request, res: Response): Promise<void> {
 }
 
 export function registerSeoRoutes(app: Express): void {
-  app.get("/api/images/edition/:id/:kind", handleEditionImage);
+  app.get(
+    "/api/images/edition/:id/:kind",
+    rateLimit({ windowMs: 60_000, limit: 120, standardHeaders: "draft-7", legacyHeaders: false }),
+    handleEditionImage
+  );
   app.get("/api/images/hero-library/:id", handleHeroLibraryImage);
   app.get("/og/editions/:n.png", handleEditionOgCard);
   app.get("/editions/:n", handleEditionMeta);

@@ -144,7 +144,7 @@ They just need two secrets:
 
 1. Open `https://thedesk.au/login`.
 2. Type the `ADMIN_PASSWORD` you set on Railway.
-3. You're now signed in for a year. You can:
+3. If `ADMIN_TOTP_SECRET` is configured, enter your authenticator code too. Sessions last 12 hours; logout and password rotation revoke access. See [security rollout and MFA enrollment](docs/security-remediation.md). You can:
    - Manage featured LinkedIn posts at `/admin`
    - Regenerate Ruben's Take or hero images per edition
    - Run the `feed.backfillSayThis` admin mutation

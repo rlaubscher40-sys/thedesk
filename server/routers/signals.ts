@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { consumeAnonymousCard } from "../core/askQuota";
 import * as db from "../db";
-import { renderSignalCard } from "../og/signalCard";
+import { renderSignalCard } from "../core/publicRender";
 import { publicProcedure, router } from "../core/trpc";
 
 function displayValue(value: string, unit: string | null): string {
@@ -51,7 +51,7 @@ export const signalsRouter = router({
     .input(z.object({ metricKey: z.string().min(1).max(64) }))
     .mutation(async ({ input, ctx }) => {
       if (!ctx.user) {
-        const quota = consumeAnonymousCard(ctx.req);
+        const quota = await consumeAnonymousCard(ctx.req);
         if (!quota.allowed) {
           throw new TRPCError({
             code: "TOO_MANY_REQUESTS",

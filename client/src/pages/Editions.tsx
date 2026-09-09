@@ -64,7 +64,16 @@ export default function EditionsPage() {
   // Pump per-edition meta tags into <head> so a share to LinkedIn / Slack
   // gets the right preview card. Static index.html tags still serve as
   // the Google-crawler fallback.
-  const edition = editionQuery.data;
+  const edition = editionQuery.data
+    ? {
+        ...editionQuery.data,
+        substackDraftTitle: null,
+        substackDraftSubtitle: null,
+        substackDraftBody: null,
+        substackDraftImageUrl: null,
+        headlineVariants: null,
+      }
+    : undefined;
   useEditionMeta(
     edition
       ? {
@@ -124,7 +133,7 @@ export default function EditionsPage() {
             </div>
           ) : editionQuery.data ? (
             <EditionReader
-              edition={editionQuery.data}
+              edition={edition!}
               priorMetrics={priorMetrics}
               priorMarketStress={priorMarketStress}
             />

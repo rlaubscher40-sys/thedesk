@@ -25,6 +25,13 @@ import { bestMatch, titleTokens } from "../shared/textSimilarity";
 import { parse as parseCookieHeader } from "cookie";
 import type { Express, Request, Response } from "express";
 import rateLimit from "express-rate-limit";
+// One shared client budget across scheduler endpoints and legacy aliases.
+const scheduledLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: 30,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+});
 import { z } from "zod";
 import { invalidate } from "./core/cache";
 import { env, signingSecret } from "./core/env";
@@ -375,8 +382,8 @@ function registerDailyFeedRoute(app: Express): void {
       });
     }
   };
-  app.post("/api/scheduled/daily-feed", handler);
-  app.post("/api/ingest/daily-feed", handler);
+  app.post("/api/scheduled/daily-feed", scheduledLimiter, handler);
+  app.post("/api/ingest/daily-feed", scheduledLimiter, handler);
 }
 
 // ─── Weekly edition ─────────────────────────────────────────────────────────
@@ -492,8 +499,8 @@ function registerWeeklyEditionRoute(app: Express): void {
       }
     });
   };
-  app.post("/api/scheduled/weekly-edition", handler);
-  app.post("/api/ingest/weekly-edition", handler);
+  app.post("/api/scheduled/weekly-edition", scheduledLimiter, handler);
+  app.post("/api/ingest/weekly-edition", scheduledLimiter, handler);
 }
 
 // ─── Weekly edition synthesis from feed ─────────────────────────────────────
@@ -762,8 +769,8 @@ function registerSynthesizeEditionRoute(app: Express): void {
       }
     });
   };
-  app.post("/api/scheduled/synthesize-edition", handler);
-  app.post("/api/ingest/synthesize-edition", handler);
+  app.post("/api/scheduled/synthesize-edition", scheduledLimiter, handler);
+  app.post("/api/ingest/synthesize-edition", scheduledLimiter, handler);
 }
 
 // ─── Subscriber notification ─────────────────────────────────────────────────
@@ -901,8 +908,8 @@ function registerDailyMetricsRoute(app: Express): void {
     console.log(`[scheduled] upserted ${ok}/${parsed.data.metrics.length} daily metrics`);
     res.json({ success: true, count: ok });
   };
-  app.post("/api/scheduled/daily-metrics", handler);
-  app.post("/api/ingest/daily-metrics", handler);
+  app.post("/api/scheduled/daily-metrics", scheduledLimiter, handler);
+  app.post("/api/ingest/daily-metrics", scheduledLimiter, handler);
 }
 
 // ─── News-driven metric extraction ──────────────────────────────────────────
@@ -968,8 +975,8 @@ function registerExtractMetricsRoute(app: Express): void {
       res.status(500).json({ success: false, error: (error as Error).message });
     }
   };
-  app.post("/api/scheduled/extract-metrics", handler);
-  app.post("/api/ingest/extract-metrics", handler);
+  app.post("/api/scheduled/extract-metrics", scheduledLimiter, handler);
+  app.post("/api/ingest/extract-metrics", scheduledLimiter, handler);
 }
 
 // ─── Weekly recap ────────────────────────────────────────────────────────────
@@ -1071,8 +1078,8 @@ function registerWeeklyRecapRoute(app: Express): void {
     res.json({ success: true, weekOf });
     void sendWeeklyRecap(weekOf);
   };
-  app.post("/api/scheduled/weekly-recap", handler);
-  app.post("/api/ingest/weekly-recap", handler);
+  app.post("/api/scheduled/weekly-recap", scheduledLimiter, handler);
+  app.post("/api/ingest/weekly-recap", scheduledLimiter, handler);
 }
 
 // ─── Talking-point nudge ─────────────────────────────────────────────────────
@@ -1110,8 +1117,8 @@ function registerNudgeCheckRoute(app: Express): void {
     console.log(`[mailer] nudge-check: sent ${sent} nudges`);
     res.json({ success: true, sent });
   };
-  app.post("/api/scheduled/nudge-check", handler);
-  app.post("/api/ingest/nudge-check", handler);
+  app.post("/api/scheduled/nudge-check", scheduledLimiter, handler);
+  app.post("/api/ingest/nudge-check", scheduledLimiter, handler);
 }
 
 function registerNudgeRespondRoute(app: Express): void {
@@ -1393,8 +1400,8 @@ function registerInstagramRoutes(app: Express): void {
       res.status(502).json({ error: "Instagram daily post failed", message: e.message });
     }
   };
-  app.post("/api/scheduled/instagram-daily", dailyHandler);
-  app.post("/api/ingest/instagram-daily", dailyHandler);
+  app.post("/api/scheduled/instagram-daily", scheduledLimiter, dailyHandler);
+  app.post("/api/ingest/instagram-daily", scheduledLimiter, dailyHandler);
 
   // POST /api/ingest/instagram-coverage — the "Wider Lens" carousel. No longer
   // on the scheduler (see server/scheduler/index.ts); reachable by hand only.
@@ -1487,8 +1494,8 @@ function registerInstagramRoutes(app: Express): void {
       res.status(502).json({ error: "Instagram coverage post failed", message: e.message });
     }
   };
-  app.post("/api/scheduled/instagram-coverage", coverageHandler);
-  app.post("/api/ingest/instagram-coverage", coverageHandler);
+  app.post("/api/scheduled/instagram-coverage", scheduledLimiter, coverageHandler);
+  app.post("/api/ingest/instagram-coverage", scheduledLimiter, coverageHandler);
 
   // POST /api/ingest/instagram-stat — "The Number": one metric, posted as a
   // single image. The counterweight to the daily carousel, which leads with a
@@ -1606,8 +1613,8 @@ function registerInstagramRoutes(app: Express): void {
       res.status(502).json({ error: "Instagram stat post failed", message: e.message });
     }
   };
-  app.post("/api/scheduled/instagram-stat", statHandler);
-  app.post("/api/ingest/instagram-stat", statHandler);
+  app.post("/api/scheduled/instagram-stat", scheduledLimiter, statHandler);
+  app.post("/api/ingest/instagram-stat", scheduledLimiter, statHandler);
 
   /**
    * How long the Reel job may take before it must answer.
@@ -1717,8 +1724,8 @@ function registerInstagramRoutes(app: Express): void {
       res.status(502).json({ error: "Instagram reel failed", message: e.message });
     }
   };
-  app.post("/api/scheduled/instagram-reel", reelHandler);
-  app.post("/api/ingest/instagram-reel", reelHandler);
+  app.post("/api/scheduled/instagram-reel", scheduledLimiter, reelHandler);
+  app.post("/api/ingest/instagram-reel", scheduledLimiter, reelHandler);
 
   // POST /api/ingest/instagram-monthly — "The Month in Numbers". The one series
   // built entirely from our own metric history, so it is the one a competitor
@@ -1845,8 +1852,8 @@ function registerInstagramRoutes(app: Express): void {
       res.status(502).json({ error: "Instagram monthly post failed", message: e.message });
     }
   };
-  app.post("/api/scheduled/instagram-monthly", monthlyHandler);
-  app.post("/api/ingest/instagram-monthly", monthlyHandler);
+  app.post("/api/scheduled/instagram-monthly", scheduledLimiter, monthlyHandler);
+  app.post("/api/ingest/instagram-monthly", scheduledLimiter, monthlyHandler);
 
   // POST /api/ingest/instagram-weekly  — posts the latest weekly edition as a carousel
   const weeklyHandler = async (req: Request, res: Response) => {
@@ -1910,8 +1917,8 @@ function registerInstagramRoutes(app: Express): void {
       res.status(502).json({ error: "Instagram weekly post failed", message: e.message });
     }
   };
-  app.post("/api/scheduled/instagram-weekly", weeklyHandler);
-  app.post("/api/ingest/instagram-weekly", weeklyHandler);
+  app.post("/api/scheduled/instagram-weekly", scheduledLimiter, weeklyHandler);
+  app.post("/api/ingest/instagram-weekly", scheduledLimiter, weeklyHandler);
 
   // GET /api/instagram/preview/:kind — render a single card to a browser so the
   // posts can be eyeballed (notably the real per-edition hero) before anything
@@ -1925,7 +1932,7 @@ function registerInstagramRoutes(app: Express): void {
   //          (daily) · ?i=N (topic/slide index)
   //          · ?shape=vertical (stat) — `reel` returns video/mp4, with the
   //            narrated flag in the X-Reel-Narrated response header
-  app.get("/api/instagram/preview/:kind", async (req: Request, res: Response) => {
+  app.get("/api/instagram/preview/:kind", scheduledLimiter, async (req: Request, res: Response) => {
     if (!(await authenticateScheduled(req))) {
       res.status(401).json({ error: "Unauthorized" });
       return;
@@ -2121,8 +2128,8 @@ function registerInstagramRoutes(app: Express): void {
       }
     });
   };
-  app.post("/api/scheduled/instagram-insights", insightsHandler);
-  app.post("/api/ingest/instagram-insights", insightsHandler);
+  app.post("/api/scheduled/instagram-insights", scheduledLimiter, insightsHandler);
+  app.post("/api/ingest/instagram-insights", scheduledLimiter, insightsHandler);
 }
 
 export function registerScheduledRoutes(app: Express): void {

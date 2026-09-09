@@ -1,79 +1,74 @@
-/**
- * Tiny in-process TTL cache for hot public read queries.
- *
- * The site's content (daily feed, weekly editions) is read by every
- * anonymous visitor but written only by the single admin / scheduler a
- * handful of times a day. Without a cache, thousands of concurrent
- * readers each turn into a TiDB round-trip for identical data. This
- * collapses every read within a TTL window into a single DB hit, with a
- * short window (tens of seconds) bounding how stale a fresh admin edit
- * can look.
- *
- * Single-instance only by design — the cache lives in this process's
- * heap. That's the deployment model The Desk runs on (one Railway
- * instance, scale up not out). If the app ever scales horizontally,
- * swap this for a shared store (Redis) so replicas don't serve
- * divergent snapshots.
- *
- * Results are treated as immutable: callers must not mutate a cached
- * value in place, since the same reference is handed to every concurrent
- * reader within the window.
- */
-
-type Entry = { value: unknown; expiresAt: number };
-
-const store = new Map<string, Entry>();
-
-/**
- * In-flight loaders, keyed identically to `store`. Dedupes a thundering
- * herd: if 500 readers miss the same cold key in the same tick, only the
- * first triggers the DB query and the rest await its promise.
- */
-const inflight = new Map<string, Promise<unknown>>();
-
-/**
- * Return the cached value for `key`, or run `loader`, cache its result
- * for `ttlMs`, and return it. Loader rejections are not cached.
- */
-export async function cached<T>(key: string, ttlMs: number, loader: () => Promise<T>): Promise<T> {
-  const now = Date.now();
-  const hit = store.get(key);
-  if (hit && hit.expiresAt > now) return hit.value as T;
-
-  const pending = inflight.get(key);
-  if (pending) return pending as Promise<T>;
-
-  const promise = (async () => {
-    try {
-      const value = await loader();
-      store.set(key, { value, expiresAt: Date.now() + ttlMs });
-      return value;
-    } finally {
-      inflight.delete(key);
+/** Bounded LRU with expiry, single-flight loading and invalidation-safe publication. */
+import { serialize } from "node:v8";
+export class CacheCapacityError extends Error {}
+export function createBoundedCache(
+  options = { maxEntries: 512, maxBytes: 32 * 1024 * 1024, maxInflight: 32 }
+) {
+  type Entry = { value: unknown; expiresAt: number; bytes: number };
+  const store = new Map<string, Entry>();
+  const inflight = new Map<string, Promise<unknown>>();
+  let bytes = 0;
+  function remove(key: string) {
+    const item = store.get(key);
+    if (item) {
+      bytes -= item.bytes;
+      store.delete(key);
     }
-  })();
-  inflight.set(key, promise);
-  return promise as Promise<T>;
-}
-
-/**
- * Drop every entry whose key starts with `prefix` (or the entire cache
- * when no prefix is given). Called from the admin mutations and the
- * scheduled ingest so an edit shows up immediately rather than waiting
- * out the TTL. The TTL remains the safety net if an invalidation point
- * is ever missed.
- */
-export function invalidate(prefix?: string): void {
-  if (!prefix) {
-    store.clear();
-    return;
   }
-  for (const key of store.keys()) {
-    if (key.startsWith(prefix)) store.delete(key);
+  function purge() {
+    const now = Date.now();
+    for (const [key, item] of store) if (item.expiresAt <= now) remove(key);
   }
+  async function cached<T>(key: string, ttlMs: number, loader: () => Promise<T>): Promise<T> {
+    purge();
+    const hit = store.get(key);
+    if (hit) {
+      store.delete(key);
+      store.set(key, hit);
+      return hit.value as T;
+    }
+    const pending = inflight.get(key);
+    if (pending) return pending as Promise<T>;
+    if (inflight.size >= options.maxInflight) throw new CacheCapacityError("Read capacity reached");
+    // Promise.resolve gives the map time to register before even a synchronous loader settles.
+    const promise = Promise.resolve()
+      .then(loader)
+      .then((value) => {
+        if (inflight.get(key) !== promise) return value;
+        const size = Buffer.byteLength(key) + serialize(value).byteLength;
+        if (size <= options.maxBytes && ttlMs > 0) {
+          remove(key);
+          while (store.size >= options.maxEntries || bytes + size > options.maxBytes) {
+            const oldest = store.keys().next().value;
+            if (oldest === undefined) break;
+            remove(oldest);
+          }
+          store.set(key, { value, expiresAt: Date.now() + ttlMs, bytes: size });
+          bytes += size;
+        }
+        return value;
+      })
+      .finally(() => {
+        if (inflight.get(key) === promise) inflight.delete(key);
+      });
+    inflight.set(key, promise);
+    return promise;
+  }
+  function invalidate(prefix = "") {
+    for (const key of store.keys()) if (key.startsWith(prefix)) remove(key);
+    for (const key of inflight.keys()) if (key.startsWith(prefix)) inflight.delete(key);
+  }
+  return {
+    cached,
+    invalidate,
+    purge,
+    stats: () => ({ entries: store.size, bytes, inflight: inflight.size }),
+  };
 }
-
-/** Stable cache key from a name + structured input. */
-export function cacheKey(name: string, input?: unknown): string {
+const cache = createBoundedCache();
+setInterval(cache.purge, 30000).unref();
+export const cached = cache.cached,
+  invalidate = cache.invalidate;
+export function cacheKey(name: string, input?: unknown) {
   return input === undefined ? name : `${name}:${JSON.stringify(input)}`;
 }

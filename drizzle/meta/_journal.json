@@ -43,6 +43,13 @@
       "when": 1747700000000,
       "tag": "0005_dashboard_richer",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788883200000,
+      "tag": "0025_security_state",
+      "breakpoints": true
     }
   ]
 }

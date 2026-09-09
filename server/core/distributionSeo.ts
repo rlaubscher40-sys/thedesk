@@ -1,12 +1,13 @@
 import type { Express, NextFunction, Request, Response } from "express";
+import rateLimit from "express-rate-limit";
 import fs from "node:fs";
 import path from "node:path";
 import { DEFAULT_SITE_URL } from "../../shared/const";
 import * as db from "../db";
-import { renderDailyHookCoverCard } from "../og/dailyHookCover";
-import { renderIntelligenceCard } from "../og/intelligenceCard";
-import { renderSignalCard } from "../og/signalCard";
-import { renderTrendCard } from "../og/trendCard";
+import { renderDailyHookCoverCard } from "../core/publicRender";
+import { renderIntelligenceCard } from "../core/publicRender";
+import { renderSignalCard } from "../core/publicRender";
+import { renderTrendCard } from "../core/publicRender";
 import { readIntelligenceShareToken } from "./intelligenceShare";
 
 function siteUrl(): string {
@@ -51,13 +52,17 @@ function replaceMeta(
     "i"
   );
   const tag = `<meta ${attribute}="${key}" content="${escaped}" />`;
-  return pattern.test(html) ? html.replace(pattern, tag) : html.replace("</head>", `    ${tag}\n  </head>`);
+  return pattern.test(html)
+    ? html.replace(pattern, tag)
+    : html.replace("</head>", `    ${tag}\n  </head>`);
 }
 
 function replaceCanonical(html: string, canonical: string): string {
   const tag = `<link rel="canonical" href="${htmlEscape(canonical)}" />`;
   const pattern = /<link\s+rel="canonical"\s+href="[^"]*"\s*\/?>/i;
-  return pattern.test(html) ? html.replace(pattern, tag) : html.replace("</head>", `    ${tag}\n  </head>`);
+  return pattern.test(html)
+    ? html.replace(pattern, tag)
+    : html.replace("</head>", `    ${tag}\n  </head>`);
 }
 
 type SocialMeta = {
@@ -346,11 +351,17 @@ async function handleStoryOg(req: Request, res: Response): Promise<void> {
  * rather than the generic homepage shell before the SPA has a chance to run.
  */
 export function registerDistributionSeoRoutes(app: Express): void {
+  const readLimiter = rateLimit({
+    windowMs: 60_000,
+    limit: 120,
+    standardHeaders: "draft-7",
+    legacyHeaders: false,
+  });
   app.get("/og/brief.png", handleBriefOg);
   app.get("/og/signals/:metricKey.png", handleSignalOg);
   app.get("/og/charts/:metricKey.png", handleChartOg);
   app.get("/og/story/:id.jpg", handleStoryOg);
-  app.get("/brief", handleBriefMeta);
-  app.get("/signals", handleSignalMeta);
-  app.get("/story/:id", handleStoryMeta);
+  app.get("/brief", readLimiter, handleBriefMeta);
+  app.get("/signals", readLimiter, handleSignalMeta);
+  app.get("/story/:id", readLimiter, handleStoryMeta);
 }

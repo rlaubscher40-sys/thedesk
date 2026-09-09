@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import rateLimit from "express-rate-limit";
 import fs from "node:fs";
 import path from "node:path";
 import { createElement } from "react";
@@ -18,7 +19,8 @@ import {
   type PublicMarketFile,
 } from "../../shared/marketDirectory";
 import { getMarketDirectory } from "../markets/discovery";
-import { renderDeskTakeCard, type DeskTakeCardInput } from "../og/takeCard";
+import type { DeskTakeCardInput } from "../og/takeCard";
+import { renderDeskTakeCard } from "./publicRender";
 import { cached } from "./cache";
 import { routeParam } from "./requestParams";
 import { injectMeta } from "./seo";
@@ -151,40 +153,44 @@ export function registerMarketSeoRoutes(app: Express): void {
       res.set("Cache-Control", "no-store").status(503).end();
     }
   });
-  app.get("/markets/:slug", async (req, res, next) => {
-    const accept = req.headers.accept ?? "*/*";
-    if (!accept.includes("text/html") && !accept.includes("*/*")) return next();
-    const slug = routeParam(req.params.slug);
-    if (!publicMarket(slug)) {
-      res.status(404);
-      return next();
-    }
-    const shellPath = path.resolve(process.cwd(), "dist/public/index.html");
-    if (!fs.existsSync(shellPath)) return next();
-    try {
-      const [shell, directory] = await Promise.all([
-        fs.promises.readFile(shellPath, "utf8"),
-        getMarketDirectory(),
-      ]);
-      const file = directory.markets.find((item) => item.market.slug === slug);
-      if (!file) {
+  app.get(
+    "/markets/:slug",
+    rateLimit({ windowMs: 60_000, limit: 120, standardHeaders: "draft-7", legacyHeaders: false }),
+    async (req, res, next) => {
+      const accept = req.headers.accept ?? "*/*";
+      if (!accept.includes("text/html") && !accept.includes("*/*")) return next();
+      const slug = routeParam(req.params.slug);
+      if (!publicMarket(slug)) {
         res.status(404);
         return next();
       }
-      res.set("Cache-Control", "public, max-age=60");
-      res.type("html").send(marketShell(shell, file, directory, siteUrl()));
-    } catch {
-      // A database outage must not publish a successful empty page to search engines.
-      res.set("Cache-Control", "no-store");
-      res.set("Retry-After", "60");
-      res
-        .status(503)
-        .type("html")
-        .send(
-          '<!doctype html><html lang="en"><head><title>Market file temporarily unavailable | The Desk</title></head><body><h1>Market file temporarily unavailable</h1><p>Please try again shortly.</p><a href="/markets">Back to Markets</a></body></html>'
-        );
+      const shellPath = path.resolve(process.cwd(), "dist/public/index.html");
+      if (!fs.existsSync(shellPath)) return next();
+      try {
+        const [shell, directory] = await Promise.all([
+          fs.promises.readFile(shellPath, "utf8"),
+          getMarketDirectory(),
+        ]);
+        const file = directory.markets.find((item) => item.market.slug === slug);
+        if (!file) {
+          res.status(404);
+          return next();
+        }
+        res.set("Cache-Control", "public, max-age=60");
+        res.type("html").send(marketShell(shell, file, directory, siteUrl()));
+      } catch {
+        // A database outage must not publish a successful empty page to search engines.
+        res.set("Cache-Control", "no-store");
+        res.set("Retry-After", "60");
+        res
+          .status(503)
+          .type("html")
+          .send(
+            '<!doctype html><html lang="en"><head><title>Market file temporarily unavailable | The Desk</title></head><body><h1>Market file temporarily unavailable</h1><p>Please try again shortly.</p><a href="/markets">Back to Markets</a></body></html>'
+          );
+      }
     }
-  });
+  );
   app.get("/og/markets/:slug.png", async (req, res) => {
     const slug = routeParam(req.params.slug);
     if (!publicMarket(slug)) {

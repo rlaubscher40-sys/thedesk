@@ -1,10 +1,11 @@
 import { beforeEach, expect, it, vi } from "vitest";
-const fixture = vi.hoisted(() => ({ parseURL: vi.fn() }));
+const fixture = vi.hoisted(() => ({ parseString: vi.fn(), publicFetch: vi.fn() }));
 vi.mock("rss-parser", () => ({
   default: class {
-    parseURL = fixture.parseURL;
+    parseString = fixture.parseString;
   },
 }));
+vi.mock("./publicFetch", () => ({ publicFetch: fixture.publicFetch }));
 import { createSourceReader } from "./rss";
 let fetchSourceReport = createSourceReader();
 const source = {
@@ -15,11 +16,12 @@ const source = {
   maxItems: 1,
 };
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.resetAllMocks();
+  fixture.publicFetch.mockImplementation(async () => new Response("<rss />"));
   fetchSourceReport = createSourceReader();
 });
 it("validates entries before applying the budget and retains headline-only releases", async () => {
-  fixture.parseURL.mockResolvedValue({
+  fixture.parseString.mockResolvedValue({
     items: [
       { title: "" },
       {
@@ -35,14 +37,14 @@ it("validates entries before applying the budget and retains headline-only relea
   });
 });
 it("separates an empty feed from a failed request", async () => {
-  fixture.parseURL.mockResolvedValue({ items: [] });
+  fixture.parseString.mockResolvedValue({ items: [] });
   expect(await fetchSourceReport(source)).toMatchObject({
     items: [],
     error: null,
   });
   // Independent reader: cached empty success is intentionally reusable.
   fetchSourceReport = createSourceReader();
-  fixture.parseURL.mockRejectedValue(new Error("timeout"));
+  fixture.parseString.mockRejectedValue(new Error("timeout"));
   expect(await fetchSourceReport(source)).toMatchObject({
     items: [],
     error: "Feed request or parsing failed",
@@ -50,7 +52,7 @@ it("separates an empty feed from a failed request", async () => {
 });
 
 it("shares a download across callers but applies each caller's own budget and category", async () => {
-  fixture.parseURL.mockResolvedValue({
+  fixture.parseString.mockResolvedValue({
     items: [
       { title: "Hobart housing approvals rise", link: "https://example.org/1" },
       { title: "Perth rental supply rises", link: "https://example.org/2" },
@@ -65,7 +67,12 @@ it("shares a download across callers but applies each caller's own budget and ca
       category: "ECONOMICS",
     }),
   ]);
-  expect(fixture.parseURL).toHaveBeenCalledTimes(1);
+  expect(fixture.parseString).toHaveBeenCalledTimes(1);
+  expect(fixture.publicFetch).toHaveBeenCalledTimes(1);
+  expect(fixture.publicFetch).toHaveBeenCalledWith(source.url, expect.objectContaining({
+    maxBytes: 2 * 1024 * 1024,
+    signal: expect.any(AbortSignal),
+  }));
   expect(brief.items).toHaveLength(1);
   expect(archive.items).toHaveLength(2);
   expect(archive.items[0]).toMatchObject({
@@ -77,4 +84,14 @@ it("shares a download across callers but applies each caller's own budget and ca
   expect((await fetchSourceReport(source)).items[0]!.title).toBe(
     "Hobart housing approvals rise",
   );
+});
+
+it("does not cache a rejected destination or bypass the guarded transport on retry", async () => {
+  fixture.publicFetch.mockRejectedValueOnce(new Error("Blocked destination"));
+  fixture.parseString.mockResolvedValue({ items: [] });
+  expect(await fetchSourceReport(source)).toMatchObject({ error: "Feed request or parsing failed" });
+  expect(fixture.parseString).not.toHaveBeenCalled();
+  expect(await fetchSourceReport(source)).toMatchObject({ error: null });
+  expect(fixture.publicFetch).toHaveBeenCalledTimes(2);
+  expect(fixture.parseString).toHaveBeenCalledTimes(1);
 });

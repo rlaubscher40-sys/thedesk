@@ -3,7 +3,7 @@ import path from "node:path";
 
 export default defineConfig({
   // Match the client build's JSX runtime for server-rendered component assertions.
-  esbuild: { jsx: "automatic" },
+  oxc: { jsx: { runtime: "automatic" } },
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),

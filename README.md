@@ -73,6 +73,8 @@ per-var docs, lives in `server/core/env.ts`):
 DATABASE_URL          MySQL/TiDB connection string
 JWT_SECRET            Signs the admin session cookie + HMAC'd email links
 ADMIN_PASSWORD        Gates the single-admin login
+ADMIN_TOTP_SECRET     Optional — enrolled authenticator secret for admin MFA
+ANONYMOUS_AI_DAILY_ATTEMPTS Optional — site-wide daily AI attempt cap (default 200)
 ANTHROPIC_API_KEY     LLM enrichment (tags, sayThis, synthesis, …)
 SCHEDULED_API_KEY     x-scheduled-key header for /api/scheduled/* POSTs
 OPENAI_API_KEY        Optional — hero image generation
