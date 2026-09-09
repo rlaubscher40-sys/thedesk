@@ -68,3 +68,9 @@ This produces a Fable-narrated, subtitled MP4, caption, seven scene JPEGs and th
 complete evidence/storyboard JSON. `--frames-only` skips speech/video generation.
 It never posts. The 32-second runtime guard and measured passage timing apply.
 Australian English and no em dashes are required for the caption.
+
+The ratio reveals one house per 30fps frame, then holds the completed grid.
+Single-frame hard cuts use concat instead of a zero-duration xfade, which can
+silently truncate the picture stream. The renderer decodes the finished video
+and checks that its pictures cover the measured timeline within two frames.
+The encoded-timeline regression test exercises both hard cuts and dissolves.

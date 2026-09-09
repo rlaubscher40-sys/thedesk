@@ -347,9 +347,14 @@ export function buildVideoGraph(beats: Beat[], stationary = false): string {
     const beat = beats[i]!;
     const offset = Math.max(0, chained - beat.fade);
     const out = i === beats.length - 1 ? "[vout]" : `[x${i}]`;
+    // xfade with a zero-duration, one-frame input can silently end the video
+    // stream early. A hard cut must use concat, then restore the input timebase
+    // so a later non-zero dissolve still receives compatible streams.
     parts.push(
-      `${label}[v${i}]xfade=transition=fade:duration=${beat.fade.toFixed(3)}:` +
-        `offset=${offset.toFixed(3)}${out}`
+      beat.fade === 0
+        ? `${label}[v${i}]concat=n=2:v=1:a=0,settb=1/${FPS}${out}`
+        : `${label}[v${i}]xfade=transition=fade:duration=${beat.fade.toFixed(3)}:` +
+            `offset=${offset.toFixed(3)}${out}`
     );
     label = out;
     chained = chained + beat.seconds - beat.fade;
@@ -720,6 +725,30 @@ export async function renderStatReel(
 
     // The encode measures a few seconds; the ceiling is for a cold container.
     await run(ffmpegPath, args, { timeout: 180_000, maxBuffer: 1024 * 1024 * 32 });
+    // A successful encode can still contain a truncated video stream while
+    // audio continues. Measure decoded picture duration, not container duration.
+    const decoded = await run(
+      ffmpegPath,
+      [
+        "-v",
+        "error",
+        "-i",
+        output,
+        "-map",
+        "0:v:0",
+        "-an",
+        "-f",
+        "null",
+        "-",
+        "-progress",
+        "pipe:1",
+      ],
+      { timeout: 60_000, maxBuffer: 1024 * 1024 }
+    );
+    const times = [...decoded.stdout.matchAll(/^out_time_us=(\d+)$/gm)];
+    const actual = Number(times.at(-1)?.[1]) / 1_000_000;
+    if (!Number.isFinite(actual) || Math.abs(actual - total) > 2 / FPS)
+      throw new Error("Encoded pictures do not cover the complete measured Reel timeline.");
     return {
       bytes: await fs.readFile(output),
       seconds: total,
