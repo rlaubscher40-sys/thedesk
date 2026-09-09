@@ -6,7 +6,7 @@ import { escapeLike } from "./like";
 import { rankResults } from "./searchRank";
 import { hasHousingEvidence, HOUSING_TOPIC_PATTERN } from "../../shared/marketRelevance";
 import { dailyFeedItems, editions, type DailyFeedItem, type InsertDailyFeedItem } from "./schema";
-import { insertFeedOnce } from "./feedClaims";
+import { insertFeedOnce, type FeedIngestItem } from "./feedClaims";
 
 /** Most recent 30 items if no date specified, otherwise everything for that day. */
 /**
@@ -163,11 +163,14 @@ export async function getRecentFeedItems(
  * against the input rows to enrich each item without re-matching by title
  * (titles can collide across sources).
  */
-export async function createFeedItems(items: InsertDailyFeedItem[]): Promise<{ids:number[]; duplicateCount:number; failedCount:number}> {
-  if (isDemoMode()) return {ids:demoQueries.createFeedItems(items),duplicateCount:0,failedCount:0};
+export async function createFeedItems(
+  items: FeedIngestItem[]
+): Promise<{ ids: number[]; duplicateCount: number; failedCount: number }> {
+  if (isDemoMode())
+    return { ids: demoQueries.createFeedItems(items.map(({ articleText: _drop, ...row }) => row)), duplicateCount: 0, failedCount: 0 };
   const db = getDb();
   if (!db) throw new Error("createFeedItems: database unavailable");
-  if (items.length === 0) return {ids:[],duplicateCount:0,failedCount:0};
+  if (items.length === 0) return { ids: [], duplicateCount: 0, failedCount: 0 };
   // Row-by-row on purpose, not a multi-row INSERT. The old batch path
   // derived every row's id as `firstId + i` from the first insertId — but on
   // TiDB auto-increment values inside one multi-row INSERT come from cached
@@ -200,7 +203,7 @@ export async function createFeedItems(items: InsertDailyFeedItem[]): Promise<{id
   // schema drift), not one bad row. Surface it loudly so the ingest run
   // goes red instead of silently reporting success on an empty insert.
   if (ids.every((id) => id === 0) && firstErr) throw firstErr;
-  return {ids,duplicateCount,failedCount};
+  return { ids, duplicateCount, failedCount };
 }
 
 export async function deleteFeedItem(id: number): Promise<void> {

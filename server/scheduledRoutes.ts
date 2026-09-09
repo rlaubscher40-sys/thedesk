@@ -1,3 +1,4 @@
+import { drainFeedEnrichment } from "./feed/enrichmentWorker";
 import { sourceTimingHold } from "../shared/sourceTiming";
 import {
   currentSocialFeed,
@@ -52,8 +53,6 @@ import * as db from "./db";
 import { dailyFeedIngestBodySchema, weeklyEditionIngestSchema } from "../shared/schemas";
 import {
   editionHeroPrompt,
-  feedItemImagePrompt,
-  generateDailyAngles,
   generateLookback,
   generateRubensTake,
   optimiseHeadlines,
@@ -138,28 +137,6 @@ function sanitiseText<T extends string | null | undefined>(text: T): T {
 
 // ─── Daily feed ─────────────────────────────────────────────────────────────
 
-/**
- * Run an async worker over items with at most `limit` in flight at once.
- * Used to throttle the per-item LLM enrichment so the whole feed doesn't burst
- * its calls at Anthropic in one go and trip the rate limit. Order-independent;
- * the worker keys off its own index.
- */
-async function mapWithConcurrency<T>(
-  items: T[],
-  limit: number,
-  worker: (item: T, index: number) => Promise<void>
-): Promise<void> {
-  let next = 0;
-  const runners = Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, async () => {
-    for (;;) {
-      const i = next++;
-      if (i >= items.length) return;
-      await worker(items[i]!, i);
-    }
-  });
-  await Promise.all(runners);
-}
-
 function registerDailyFeedRoute(app: Express): void {
   const handler = async (req: Request, res: Response) => {
     if (!(await authenticateScheduled(req))) {
@@ -202,8 +179,7 @@ function registerDailyFeedRoute(app: Express): void {
         // Editorial-impact baseline. The admin can override per-item via
         // feed.setPriority, manual control always wins.
         priority: defaultFeedPriority({ category, source }),
-        // Transient, used only to ground the LLM enrichment below. Stripped
-        // before the DB insert (no column for it on the feed table).
+        // Persisted in the recovery job, capped to the prompt input length.
         articleText: item.articleText ?? null,
       };
     });
@@ -260,11 +236,7 @@ function registerDailyFeedRoute(app: Express): void {
     let duplicateCount = 0;
     let failedCount = 0;
     try {
-      // Drop the transient articleText before persisting, the feed table has
-      // no column for it. It stays available on `freshItems` for enrichment.
-      const inserted = await db.createFeedItems(
-        freshItems.map(({ articleText: _drop, ...row }) => row)
-      );
+      const inserted = await db.createFeedItems(freshItems);
       insertedIds = inserted.ids;
       duplicateCount = inserted.duplicateCount;
       failedCount = inserted.failedCount;
@@ -296,106 +268,16 @@ function registerDailyFeedRoute(app: Express): void {
       dropped: failedCount,
     });
 
-    // ── Background: partnerTag + sayThis + per-item image enrichment ─────
+    // Jobs committed with the feed rows. The startup poll also resumes work
+    // when this immediate wake-up is interrupted by a restart.
     const feedDate = freshItems[0]?.feedDate;
-    if (feedDate && insertedIds.length === freshItems.length) {
+    if (feedDate && insertedCount > 0) {
       setImmediate(async () => {
         try {
-          let tagOk = 0;
-          let sayOk = 0;
-          let whyOk = 0;
-          let cpOk = 0;
-          let imgOk = 0;
-          // Bounded concurrency: each enriched item now fires a single
-          // combined LLM call, but a flat Promise.all over the whole feed
-          // would still burst the per-minute ceiling on a big day. A small
-          // pool keeps us under it. Items zip to their row by position:
-          // createFeedItems returns IDs in input order (matching by title
-          // collided when two sources ran the same headline).
-          await mapWithConcurrency(freshItems, 4, async (item, index) => {
-            const id = insertedIds[index];
-            if (!id) return;
-
-            // Only the partner-relevant Australian lanes (AU, PROPERTY) get
-            // the expensive editorial enrichment. BUSINESS / TECH / GLOBAL
-            // are coverage-only — they skip angle generation and run
-            // image/dedup/threading alone (the latter two already ran
-            // pre-insert above). Any preset angle the source supplied was
-            // persisted at insert and is left untouched.
-            const enrich = isEnrichedChannel(item.channel);
-
-            // One combined call writes all four angles together (and edits
-            // them against each other), instead of four generators plus a
-            // fifth QC pass each re-sending the full article text. Same
-            // editorial result, ~5x fewer calls and ~5x less input. Source-
-            // supplied presets always win; the call only fills the gaps.
-            let tagValue: string | null = null;
-            let sayValue: string | null = null;
-            let whyValue: string | null = null;
-            let cpValue: string | null = null;
-            if (enrich) {
-              const angles = await generateDailyAngles({
-                title: item.title,
-                summary: item.summary,
-                category: item.category,
-                articleText: item.articleText,
-              });
-              tagValue = item.partnerTag ?? angles.partnerTag;
-              sayValue = item.sayThis ?? angles.sayThis;
-              whyValue = item.whyItMatters ?? angles.whyItMatters;
-              cpValue = angles.counterpoint;
-            }
-
-            // Feed items don't use AI thumbnails post-refactor, they rely on
-            // the og:image scraped during ingest. Wiring per-item asset
-            // storage is doable (mirror the edition_assets pattern keyed on
-            // feedItemId) but isn't worth the schema churn for thumbnails
-            // that come free from the source URL.
-            const imageUrl = item.imageUrl ?? null;
-
-            // Persist each angle independently. The Today page now gives a
-            // story a full card if it has EITHER a Say This or a Partner
-            // Angle (FeedItemCard renders whichever is present), so keeping
-            // a lone angle surfaces more full-size stories instead of
-            // demoting them to the signals strip.
-            if (tagValue) {
-              await db.updateFeedItemPartnerTag(id, tagValue);
-              tagOk++;
-            }
-            if (sayValue) {
-              await db.updateFeedItemSayThis(id, sayValue);
-              sayOk++;
-            }
-            // "Why it matters" stands alone — it's context, not a partner
-            // angle, so it persists independent of the say/tag pairing.
-            if (whyValue) {
-              await db.updateFeedItemWhyItMatters(id, whyValue);
-              whyOk++;
-            }
-            // Counterpoint also stands alone, present only when the story
-            // had a genuine second side.
-            if (cpValue) {
-              await db.updateFeedItemCounterpoint(id, cpValue);
-              cpOk++;
-            }
-            if (imageUrl) {
-              await db.updateFeedItemImageUrl(id, imageUrl);
-              imgOk++;
-            }
-          });
-          console.log(
-            `[scheduled] enriched ${feedDate}: ${tagOk} partnerTags, ${sayOk} sayThis, ${whyOk} whyItMatters, ${cpOk} counterpoints, ${imgOk} images`
-          );
-          // Enrichment mutated the rows in place — bust again so the
-          // AI-generated lines replace the bare summaries readers may have
-          // cached in the seconds between ingest and enrichment finishing.
-          invalidate("feed:");
-
-          // Send the daily brief after enrichment so subscribers get
-          // the AI-generated context lines, not raw summaries.
+          await drainFeedEnrichment();
           void notifyDailyBriefSubscribers(feedDate);
-        } catch (err) {
-          console.error("[scheduled] daily-feed enrichment error:", err);
+        } catch {
+          console.warn("[scheduled] daily-feed enrichment deferred to recovery worker");
         }
       });
     }

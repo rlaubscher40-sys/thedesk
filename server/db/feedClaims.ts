@@ -3,6 +3,8 @@ import { eq, sql } from "drizzle-orm";
 import { articleIdentity } from "../../scripts/ingest/lib/dedupe";
 import { getDb } from "./client";
 import { dailyFeedItems, type InsertDailyFeedItem } from "./schema";
+import { isEnrichedChannel } from "../../shared/const";
+import { feedEnrichmentJobs } from "./feedEnrichmentSchema";
 import { feedIngestClaims } from "./collectionEfficiencySchema";
 
 export function feedClaimIdentity(
@@ -20,7 +22,9 @@ export function feedClaimIdentity(
  * item ID, so it cannot enter the downstream enrichment path. No network/model
  * work occurs under this lock. Failed inserts roll the claim back for retry.
  */
-export async function insertFeedOnce(item: InsertDailyFeedItem, now = new Date()): Promise<number> {
+export type FeedIngestItem = InsertDailyFeedItem & { articleText?: string | null };
+export async function insertFeedOnce(input: FeedIngestItem, now = new Date()): Promise<number> {
+  const { articleText, ...item } = input;
   const db = getDb();
   if (!db) throw new Error("Feed database unavailable");
   const identity = feedClaimIdentity(item);
@@ -43,6 +47,17 @@ export async function insertFeedOnce(item: InsertDailyFeedItem, now = new Date()
       .update(feedIngestClaims)
       .set({ feedItemId: id, acceptedAt: now })
       .where(eq(feedIngestClaims.identity, identity));
+    if (isEnrichedChannel(item.channel ?? "AU")) {
+      await tx.insert(feedEnrichmentJobs).values({
+        feedItemId: id,
+        input: {
+          title: item.title,
+          summary: item.summary,
+          category: item.category,
+          articleText: articleText?.trim().slice(0, 6000) ?? null,
+        },
+      });
+    }
     return id;
   });
 }
