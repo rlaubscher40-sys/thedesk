@@ -9,6 +9,7 @@ import { getCityRents } from "../markets/absRents";
 import { readPlanningSnapshots } from "../db/planningSnapshots";
 import { readLocalDataset } from "../db/localData";
 import { retrieveLocalFacts } from "./localFacts";
+import { STATE_CODES, type LocalDataset } from "../../shared/localData";
 beforeEach(() => {
   vi.resetAllMocks();
   vi.useFakeTimers();
@@ -25,10 +26,93 @@ beforeEach(() => {
 });
 afterEach(() => vi.useRealTimers());
 describe("optional local evidence", () => {
+  it.each(STATE_CODES)(
+    "preserves state, SA2 boundary, period and citation for %s",
+    async (state) => {
+      // Same-name fixtures deliberately catch accidental cross-state matches.
+      const data: LocalDataset = {
+        sourceKey: "abs-sa2-population",
+        period: "2025-06-30",
+        resourceUrl: "https://www.abs.gov.au/data.xlsx",
+        retrievedAt: "2026-09-09T07:00:00Z",
+        fingerprint: "a".repeat(64),
+        excludedRows: 0,
+        areas: STATE_CODES.map((code, i) => ({
+          id: `${code}:fixture`,
+          name: "Test locality",
+          state: code,
+          kind: "SA2",
+          boundaryVersion: "ASGS Edition 3",
+          observations: [
+            {
+              measure: "population",
+              value: 1000 + i,
+              unit: "people",
+              period: "2025-06-30",
+              category: "All residents",
+              sample: null,
+              status: "published",
+            },
+          ],
+        })),
+      };
+      vi.mocked(readLocalDataset).mockImplementation(async (key) =>
+        key === data.sourceKey ? data : null,
+      );
+      const facts = await retrieveLocalFacts(
+        `What is the population of Test locality SA2 in ${state}?`,
+      );
+      expect(facts).toHaveLength(1);
+      expect(facts[0]!.text).toContain(
+        `${1000 + STATE_CODES.indexOf(state)} people`,
+      );
+      expect(facts[0]!.text).toContain("ASGS Edition 3");
+      expect(facts[0]!.href).toContain(
+        `state=${state}&areaKind=SA2&period=2025-06-30`,
+      );
+      expect(facts[0]!.publisher).toBe("Australian Bureau of Statistics");
+      expect(facts[0]!.date).toBe("2025-06-30");
+    },
+  );
   it("uses the capital rent series with its actual definition", async () => {
     const facts = await retrieveLocalFacts("How fast are Sydney rents rising?");
     expect(facts).toHaveLength(1);
     expect(facts[0]!.text).toContain("not monthly growth");
+  });
+  it("does not substitute July CPI for a requested January in the same year", async () => {
+    expect(
+      await retrieveLocalFacts(
+        "How fast were Sydney rents rising in January 2026?",
+      ),
+    ).toEqual([]);
+    expect(
+      await retrieveLocalFacts(
+        "How fast were Sydney rents rising in July 2026?",
+      ),
+    ).toHaveLength(1);
+  });
+  it("does not substitute the current planning window for a historical request", async () => {
+    vi.mocked(readPlanningSnapshots).mockResolvedValue([
+      {
+        from: "2026-08-01",
+        to: "2026-08-31",
+        completePagination: true,
+        retrievedAt: "2026-09-09T07:00:00Z",
+        originalApplications: 92,
+        modifications: 4,
+        reviews: 0,
+        dwellings: { reported: 268, missingApplications: 59 },
+      },
+    ] as Awaited<ReturnType<typeof readPlanningSnapshots>>);
+    expect(
+      await retrieveLocalFacts(
+        "City of Sydney planning applications in August 2025",
+      ),
+    ).toEqual([]);
+    const facts = await retrieveLocalFacts(
+      "City of Sydney planning applications in August 2026",
+    );
+    expect(facts[0]!.text).toContain("not approvals or completions");
   });
   it.each([
     "Sydney median weekly rent",

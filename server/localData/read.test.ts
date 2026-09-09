@@ -80,8 +80,10 @@ describe("geographic fact retrieval", () => {
     const match = matchLocalAreas("Aranda ACT", [
       dataset([area("Aranda", "ACT")]),
     ])[0]!;
-    expect(localFactEvidence(match)?.href).toContain("state=ACT&areaKind=SA2");
-    expect(localFactEvidence(match)?.text).toContain("Do not extend");
+    expect(localFactEvidence(match)[0]?.href).toContain(
+      "state=ACT&areaKind=SA2",
+    );
+    expect(localFactEvidence(match)[0]?.text).toContain("Do not extend");
   });
   it("does not answer from a prior-year median when the newest one is suppressed", () => {
     const data = dataset([area("2000", "NSW", "postcode")]);
@@ -108,14 +110,19 @@ describe("geographic fact retrieval", () => {
       },
     ];
     const match = matchLocalAreas("2000", [data])[0]!;
-    expect(localFactEvidence(match, "Rents in postcode 2000")).toBeNull();
     expect(
-      localFactEvidence(match, "Rents in postcode 2000 in 2025")?.text,
+      localFactEvidence(match, "Rents in postcode 2000")[0]?.text,
+    ).toContain("withheld: insufficient-sample");
+    expect(
+      localFactEvidence(match, "Rents in postcode 2000")[0]?.text,
+    ).not.toContain("500 AUD/week");
+    expect(
+      localFactEvidence(match, "Rents in postcode 2000 in 2025")[0]?.text,
     ).toContain("500 AUD/week");
     const historic = localFactEvidence(
       match,
       "Rents in postcode 2000 in 2025",
-    )!;
+    )[0]!;
     expect(historic.href).toContain("period=2025-08-01");
     expect(historic.text).toContain("Historical reporting period");
     expect(historic.text).not.toContain(
@@ -125,13 +132,64 @@ describe("geographic fact retrieval", () => {
       localFactEvidence(
         match,
         "Rents in postcode 2000 for reporting period 2025-08-01",
-      )?.date,
+      )[0]?.date,
     ).toBe("2025-08-01");
     expect(
       localFactEvidence(
         match,
         "Rents in postcode 2000 for reporting period 2025-03-31",
       ),
-    ).toBeNull();
+    ).toEqual([]);
+  });
+  it("does not substitute another quarter in the requested year", () => {
+    const data = dataset([area("4000", "QLD", "postcode")]);
+    data.sourceKey = "qld-bond-rents";
+    const match = matchLocalAreas("4000", [data])[0]!;
+    expect(
+      localFactEvidence(match, "Rents in postcode 4000 QLD in March 2025"),
+    ).toEqual([]);
+    expect(
+      localFactEvidence(match, "Rents in postcode 4000 QLD in June 2025")[0]
+        ?.href,
+    ).toContain("period=2025-06-30");
+  });
+  it("gives each comparison period its own verifiable citation", () => {
+    const data = dataset([area("4000", "QLD", "postcode")]);
+    data.sourceKey = "qld-bond-rents";
+    data.period = "2026-06-30";
+    data.areas[0]!.observations = [
+      {
+        measure: "weekly-rent",
+        value: 800,
+        unit: "AUD/week",
+        period: "2025-06-30",
+        category: "Flat 2",
+        sample: 345,
+        status: "published",
+      },
+      {
+        measure: "weekly-rent",
+        value: 850,
+        unit: "AUD/week",
+        period: "2026-06-30",
+        category: "Flat 2",
+        sample: 287,
+        status: "published",
+      },
+    ];
+    const facts = localFactEvidence(
+      matchLocalAreas("4000", [data])[0]!,
+      "Compare 2-bedroom flat rents in postcode 4000 in June 2025 and June 2026",
+    );
+    expect(facts.map((f) => f.date)).toEqual(["2026-06-30", "2025-06-30"]);
+    for (const fact of facts)
+      expect(fact.href).toContain(`period=${fact.date}`);
+    expect(facts[0]!.text).toContain("850 AUD/week");
+    expect(facts[0]!.text).not.toContain("800 AUD/week");
+    expect(facts[1]!.text).toContain("800 AUD/week");
+    expect(facts[1]!.text).not.toContain("850 AUD/week");
+    expect(facts[1]!.text).toContain(
+      "Latest stored release period: 2026-06-30",
+    );
   });
 });

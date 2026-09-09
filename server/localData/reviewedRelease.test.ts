@@ -61,10 +61,16 @@ it("preserves the reviewed source's geography, suppression and rounded-count thr
   const area = sa.areas.find((a) => a.id === "sa:postcode:5000")!;
   expect(
     area.observations.find((o) => o.category === "Flat 2 bedrooms"),
-  ).toMatchObject({ value: 650, sample: 230 });
+  ).toMatchObject({
+    value: 650,
+    sample: 230,
+  });
   expect(
     area.observations.find((o) => o.category === "Flat 4+ bedrooms"),
-  ).toMatchObject({ value: null, status: "insufficient-sample" });
+  ).toMatchObject({
+    value: null,
+    status: "insufficient-sample",
+  });
 });
 it("exposes the reviewed import and original period in Markets and Ask evidence", () => {
   const [match] = matchLocalAreas("5000", [sa], {
@@ -72,11 +78,11 @@ it("exposes the reviewed import and original period in Markets and Ask evidence"
     kind: "postcode",
   });
   expect(match!.provenance).toBe("reviewed-release");
-  const evidence = localFactEvidence(
+  const [evidence] = localFactEvidence(
     match!,
     "2 bedroom flats in postcode 5000 SA",
   )!;
-  expect(evidence.text).toContain("650 AUD/week");
-  expect(evidence.text).toContain("Reviewed import");
-  expect(evidence.date).toBe("2026-06-30");
+  expect(evidence!.text).toContain("650 AUD/week");
+  expect(evidence!.text).toContain("Reviewed import");
+  expect(evidence!.date).toBe("2026-06-30");
 });

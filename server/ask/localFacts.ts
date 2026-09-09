@@ -11,6 +11,7 @@ import {
 } from "../../shared/nswPlanning";
 import { getCityRents } from "../markets/absRents";
 import { readPlanningSnapshots } from "../db/planningSnapshots";
+import { requestedLocalPeriods } from "../localData/requestedPeriods";
 import {
   localDatasets,
   localFactEvidence,
@@ -23,6 +24,7 @@ import {
 export async function retrieveLocalFacts(
   question: string,
 ): Promise<FactEvidence[]> {
+  const requestedPeriods = requestedLocalPeriods(question);
   const rent = /\brent(?:s|al)?\b/i.test(question),
     population = /\b(population|migration|demographic|residents)\b/i.test(
       question,
@@ -36,8 +38,8 @@ export async function retrieveLocalFacts(
   const work: Array<Promise<FactEvidence[]>> = [];
   if (rent || population || broad)
     work.push(
-      localDatasets().then((datasets) =>
-        matchLocalAreas(
+      localDatasets().then((datasets) => {
+        const groups = matchLocalAreas(
           question,
           datasets.filter(
             (d) =>
@@ -45,10 +47,16 @@ export async function retrieveLocalFacts(
               (d.sourceKey === "abs-sa2-population" ? population : rent),
           ),
           { question: true },
-        )
-          .map((match) => localFactEvidence(match, question))
-          .filter((fact): fact is FactEvidence => fact !== null),
-      ),
+        ).map((match) => localFactEvidence(match, question));
+        // Give each locality one source before adding its historical periods.
+        const facts: FactEvidence[] = [];
+        for (let period = 0; period < 6 && facts.length < 6; period++) {
+          for (const group of groups) {
+            if (group[period] && facts.length < 6) facts.push(group[period]!);
+          }
+        }
+        return facts;
+      }),
     );
   const cities = RENT_CITIES.filter((city) =>
     new RegExp(`\\b${city}\\b`, "i").test(question),
@@ -70,8 +78,11 @@ export async function retrieveLocalFacts(
             !data.retrievedAt
           )
             return [];
-          const requestedYear = question.match(/\b(20\d{2})\b/)?.[1];
-          if (requestedYear && !row.period.startsWith(requestedYear)) return [];
+          if (
+            requestedPeriods.length &&
+            !requestedPeriods.some((period) => row.period.startsWith(period))
+          )
+            return [];
           return [
             {
               title: `${city}: annual CPI rent change`,
@@ -95,6 +106,8 @@ export async function retrieveLocalFacts(
           if (
             !row ||
             !row.completePagination ||
+            (requestedPeriods.length &&
+              !requestedPeriods.some((period) => row.to.startsWith(period))) ||
             Date.now() - Date.parse(row.retrievedAt) > 7 * 86400_000
           )
             return [];
