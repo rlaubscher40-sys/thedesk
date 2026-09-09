@@ -17,6 +17,8 @@ import { parseLocalPopulation, parseNswBonds, parseQldBonds } from "./parsers";
 import { discoverRentResource } from "./rentResources";
 import { parseSaBonds, parseTasBonds } from "./stateRents";
 import { parseWaArchive } from "./waArchive";
+import { localSourceAccessDenied } from "../../shared/localSourceAccess";
+import { LocalSourceAccessPaused } from "./access";
 
 export async function collectLocalData(source: LocalSourceKey): Promise<void> {
   const signal = collectionSignal();
@@ -24,11 +26,16 @@ export async function collectLocalData(source: LocalSourceKey): Promise<void> {
   const health = (await readLocalDataHealth()).find(
     (row) => row.sourceKey === source,
   );
+  if (localSourceAccessDenied(health?.error))
+    throw new LocalSourceAccessPaused(
+      `${LOCAL_SOURCES[source].label}: access review required; ${health!.error}`,
+    );
   if (
     health?.lastSuccessAt &&
     Date.now() - health.lastSuccessAt.getTime() < 12 * 60 * 60_000
   )
     return;
+  let stage = "Source discovery";
   try {
     const now = new Date();
     const resource =
@@ -48,7 +55,9 @@ export async function collectLocalData(source: LocalSourceKey): Promise<void> {
             ).toString("utf8"),
             now,
           );
+    stage = "Data download";
     const bytes = await fetchSource(resource.url, source, 10_000_000, signal);
+    stage = "Parsing or storage";
     const fingerprint = createHash("sha256")
       .update("local-data-v1\n")
       .update(resource.url)
@@ -85,11 +94,19 @@ export async function collectLocalData(source: LocalSourceKey): Promise<void> {
     signal?.throwIfAborted();
     await markLocalDataCheck(source, null);
   } catch (error) {
-    const message =
+    const detail =
       error instanceof Error
         ? error.message.slice(0, 240)
         : "Local collection failed";
+    const denied = localSourceAccessDenied(detail);
+    const message = (
+      stage === "Parsing or storage" ? detail : `${stage}: ${detail}`
+    ).slice(0, 240);
     await markLocalDataCheck(source, message);
+    if (denied)
+      throw new LocalSourceAccessPaused(
+        `${LOCAL_SOURCES[source].label}: ${message}`,
+      );
     throw new Error(`${LOCAL_SOURCES[source].label}: ${message}`);
   }
 }

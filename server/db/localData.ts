@@ -24,7 +24,10 @@ export async function readLocalDataset(
     return rows[0]?.payload ?? null;
   });
 }
-export async function writeLocalDataset(data: LocalDataset): Promise<void> {
+export async function writeLocalDataset(
+  data: LocalDataset,
+  options: { onlyIfMissing?: boolean } = {},
+): Promise<void> {
   if (
     !LOCAL_SOURCE_KEYS.includes(data.sourceKey) ||
     !/^[a-f0-9]{64}$/.test(data.fingerprint) ||
@@ -41,7 +44,9 @@ export async function writeLocalDataset(data: LocalDataset): Promise<void> {
       .from(localDataSnapshots)
       .where(eq(localDataSnapshots.sourceKey, data.sourceKey))
       .orderBy(desc(localDataSnapshots.id))
-      .limit(1);
+      .limit(1)
+      .for("update");
+    if (options.onlyIfMissing && latest) return;
     if (
       latest &&
       (latest.period > data.period ||
@@ -49,14 +54,12 @@ export async function writeLocalDataset(data: LocalDataset): Promise<void> {
     )
       throw new Error("Refusing an older local data release");
     if (latest?.payload.fingerprint !== data.fingerprint)
-      await db
-        .insert(localDataSnapshots)
-        .values({
-          sourceKey: data.sourceKey,
-          fingerprint: data.fingerprint,
-          period: data.period,
-          payload: data,
-        });
+      await db.insert(localDataSnapshots).values({
+        sourceKey: data.sourceKey,
+        fingerprint: data.fingerprint,
+        period: data.period,
+        payload: data,
+      });
   });
   invalidate(`local-data:${data.sourceKey}`);
 }

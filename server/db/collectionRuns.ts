@@ -8,6 +8,7 @@ import { jobRuns } from "./schema";
 // deliberately keep their existing semantics.
 export function isCollectionJob(key: string): boolean {
   return (
+    key === "local-data-sa-reviewed-release" ||
     key === "daily-metrics" ||
     /^local-data-(?:abs-sa2-population|nsw-bond-rents|qld-bond-rents|sa-bond-rents|wa-bond-rents|tas-bond-rents)$/.test(
       key,
