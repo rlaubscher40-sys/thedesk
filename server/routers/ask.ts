@@ -5,6 +5,7 @@ import { askQueryTerms, rankAskRecords } from "../ask/relevance";
 import { retrieveLocalFacts } from "../ask/localFacts";
 import { describeMetricObservation } from "../../shared/metricObservation";
 import { directLocalRentAnswer } from "../ask/directLocalRent";
+import { directApprovalsSignalAnswer } from "../ask/directSignal";
 import { deduplicateAnswerRefs, numberAskEvidence, packAskEvidence, requestedSourceLimit, validateAnswerRefs } from "../ask/evidencePolicy";
 import { reviewAskAnswer } from "../ask/review";
 import * as db from "../db";
@@ -371,7 +372,8 @@ export const askRouter = router({
             anonymousRemaining: null,
           });
           const packedRefs = new Set(packedEvidence.map((source) => source.ref));
-          const directAnswer = directLocalRentAnswer(input.question, matches.facts);
+          const directAnswer = directLocalRentAnswer(input.question, matches.facts) ??
+            directApprovalsSignalAnswer(input.question, matches.metrics, packedEvidence);
           if (!ctx.user) {
             reservation.current = await reserveAnonymousAsk(ctx.req);
             if (signal.aborted) {

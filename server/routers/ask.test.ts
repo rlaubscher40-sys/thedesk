@@ -67,6 +67,24 @@ afterEach(() => {
 });
 
 describe("Ask answer recovery", () => {
+  it("answers the approvals Signals hand-off without either model invocation", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date("2026-09-09"));
+    vi.mocked(db.listDailyMetrics).mockResolvedValue([{
+      metricKey: "building_approvals", label: "Building approvals", value: "17,687", unit: null,
+      asOf: new Date("2026-07-01"), updatedAt: new Date("2026-09-09"), source: "ABS",
+      groupKey: "PROPERTY", context: "ABS monthly total dwellings", previousValue: "17,687",
+    }] as Awaited<ReturnType<typeof db.listDailyMetrics>>);
+    const question = "What does Building approvals at 17,687 as of 2026-07-01 mean for property? Within the expected reporting window; check the observation date.";
+    const result = await askRouter.createCaller(ctx).answer({ question });
+    expect(result).toMatchObject({ status: "answered", answer: { sourceRefs: [1] }, sources: [{ ref: 1, date: "2026-07-01", href: "/trends" }] });
+    expect(invokeLLMJson).not.toHaveBeenCalled();
+    expect(reviewAskAnswer).not.toHaveBeenCalled();
+    expect(createIntelligenceShareToken).toHaveBeenCalledTimes(1);
+    vi.mocked(createIntelligenceShareToken).mockClear();
+    expect(await askRouter.createCaller(ctx).answer({ question: question.replace("2026-07-01", "2026-06-01") })).toMatchObject({ status: "insufficient" });
+    expect(invokeLLMJson).not.toHaveBeenCalled();
+    expect(createIntelligenceShareToken).not.toHaveBeenCalled();
+  });
   it("joins renumbered citations to the selected story rather than the original first metric", async () => {
     vi.mocked(db.searchAllContent).mockResolvedValue({ ...related, feedItems: [{ ...related.feedItems[0], title: "Investor lending update" }] } as typeof related);
     vi.mocked(db.listDailyMetrics).mockResolvedValue([{
