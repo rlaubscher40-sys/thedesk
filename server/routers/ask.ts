@@ -5,6 +5,8 @@ import { askQueryTerms, rankAskRecords } from "../ask/relevance";
 import { retrieveLocalFacts } from "../ask/localFacts";
 import { describeMetricObservation } from "../../shared/metricObservation";
 import { directLocalRentAnswer } from "../ask/directLocalRent";
+import { deduplicateAnswerRefs, packAskEvidence, requestedSourceLimit, validateAnswerRefs } from "../ask/evidencePolicy";
+import { reviewAskAnswer } from "../ask/review";
 import * as db from "../db";
 import {
   consumeAnonymousAskAttempt,
@@ -19,7 +21,7 @@ import {
 import { invokeLLMJson } from "../core/llm";
 import { renderIntelligenceCard } from "../core/publicRender";
 import { publicProcedure, router } from "../core/trpc";
-import { askDeskResponseFormat, buildAskDeskMessages, type AskContextSource } from "../prompts/ask";
+import { askDeskResponseFormatForLimit, buildAskDeskMessages, type AskContextSource } from "../prompts/ask";
 
 const signalSchema = z.object({
   label: z.string().min(1).max(80),
@@ -335,6 +337,7 @@ export const askRouter = router({
           // A direct numeric lookup with only withheld local values needs no
           // model interpretation. In particular, contextual bond counts do not
           // establish why the publisher suppressed a median.
+          const sourceLimit = requestedSourceLimit(input.question);
           if (
             /\b(?:median|weekly)\b/i.test(input.question) &&
             /\b(?:rent|rents|rental)\b/i.test(input.question) &&
@@ -345,12 +348,24 @@ export const askRouter = router({
               status: "insufficient" as const,
               question: input.question,
               message: "The matching local rent values are withheld or suppressed for the reporting periods shown in the sources. No numeric rent is available for the requested category. The records do not establish a reason beyond their stated suppression or sample-size status. A different category, place or period would not answer the same question.",
-              sources: sourceMeta.slice(0, Math.min(matches.facts.length, 3)),
+              sources: sourceMeta.slice(0, Math.min(matches.facts.length, 3, sourceLimit)),
               anonymousRemaining: null,
             };
           }
 
           signal.throwIfAborted();
+          const packedEvidence = packAskEvidence(input.question, evidence, sourceLimit);
+          if (!packedEvidence) {
+            return {
+              status: "insufficient" as const,
+              question: input.question,
+              message: "This question needs more separately dated local records than the requested source limit allows. Increase the source limit or narrow the places and reporting periods.",
+              sources: [],
+              anonymousRemaining: null,
+            };
+          }
+          const packedRefs = new Set(packedEvidence.map((source) => source.ref));
+          const directAnswer = directLocalRentAnswer(input.question, matches.facts);
           if (!ctx.user) {
             reservation.current = await reserveAnonymousAsk(ctx.req);
             if (signal.aborted) {
@@ -376,16 +391,16 @@ export const askRouter = router({
 
           let parsed: z.infer<typeof askAnswerSchema>;
           try {
-            const raw = directLocalRentAnswer(input.question, matches.facts) ?? await invokeLLMJson<unknown>({
-              messages: buildAskDeskMessages(input.question, evidence),
-              responseFormat: askDeskResponseFormat,
-              maxTokens: 2200,
+            const raw = directAnswer ?? await invokeLLMJson<unknown>({
+              messages: buildAskDeskMessages(input.question, packedEvidence, sourceLimit),
+              responseFormat: askDeskResponseFormatForLimit(sourceLimit),
+              maxTokens: 1800,
               tier: "standard",
               thinking: false,
               signal,
             });
             signal.throwIfAborted();
-            const response = askResponseSchema.parse(raw);
+            const response = askResponseSchema.parse(deduplicateAnswerRefs(raw));
             if (response.status === "insufficient") {
               return {
                 status: "insufficient" as const,
@@ -394,7 +409,7 @@ export const askRouter = router({
                 // Only offer useful follow-up reading; generic keyword matches
                 // should not become recommendations just by arriving first.
                 sources: sourceMeta.filter((source) =>
-                  response.relatedSourceRefs.includes(source.ref)
+                  packedRefs.has(source.ref) && response.relatedSourceRefs.includes(source.ref)
                 ),
                 anonymousRemaining: null,
               };
@@ -409,20 +424,38 @@ export const askRouter = router({
             });
           }
 
-          const validRefs = new Set(evidence.map((source) => source.ref));
-          const selectedRefs = [...new Set(parsed.sourceRefs)].filter((ref) => validRefs.has(ref));
-          if (
-            selectedRefs.length === 0 ||
-            selectedRefs.length !== new Set(parsed.sourceRefs).size
-          ) {
+          try {
+            validateAnswerRefs(parsed, packedEvidence, sourceLimit);
+          } catch {
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
               message: "The Desk answer failed its source check. Try again.",
             });
           }
 
+          const selectedRefs = parsed.sourceRefs;
           const selected = new Set(selectedRefs);
           const selectedSources = sourceMeta.filter((source) => selected.has(source.ref));
+          if (!directAnswer) {
+            // Each model invocation counts against the existing spend ceiling.
+            // Only the completed, reviewed answer consumes an answer allowance.
+            signal.throwIfAborted();
+            if (!ctx.user && !(await consumeAnonymousAskAttempt(ctx.req)).allowed) {
+              throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Today's answer-processing limit has been reached. This unanswered question has not used your free answer allowance." });
+            }
+            const supported = await reviewAskAnswer(input.question, parsed,
+              packedEvidence.filter((source) => selected.has(source.ref)), signal);
+            signal.throwIfAborted();
+            if (!supported) {
+              return {
+                status: "insufficient" as const,
+                question: input.question,
+                message: "We could not support every part of an answer with the cited records. Try a narrower question or inspect the dated sources below. No unverified answer has been shared.",
+                sources: selectedSources.slice(0, 3),
+                anonymousRemaining: null,
+              };
+            }
+          }
           // Mint the public-share token here, after retrieval + source validation.
           // The later image-render endpoint accepts this token rather than browser
           // supplied prose, so nobody can ask our server to sign an arbitrary claim
@@ -448,7 +481,7 @@ export const askRouter = router({
             question: input.question,
             answer: { ...parsed, sourceRefs: selectedRefs },
             sources: selectedSources,
-            searchedRecords: evidence.length,
+            searchedRecords: packedEvidence.length,
             anonymousRemaining,
             shareToken,
           };

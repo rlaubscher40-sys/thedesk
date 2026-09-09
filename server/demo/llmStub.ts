@@ -81,6 +81,9 @@ export async function demoLlm(params: InvokeLlmParams): Promise<string> {
     .join("\n")
     .toLowerCase();
   const isJson = params.responseFormat?.type === "json_schema";
+  // Demo mode uses canned answers and reviews; this is never a production audit.
+  if (params.responseFormat?.type === "json_schema" && params.responseFormat.json_schema.name === "ask_evidence_review")
+    return JSON.stringify({ supported: true, issues: [] });
 
   // Before the generic JSON branch, because this one also asks for JSON and
   // would otherwise be answered with a Substack draft.
