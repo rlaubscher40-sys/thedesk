@@ -31,6 +31,14 @@ import {
 
 import { collectPropertyEvidence } from "../evidence/collect";
 import { collectLocalData } from "../localData/collect";
+import {
+  REVIEWED_SA_JOB,
+  reviewedSaReleasePending,
+  importReviewedSaRelease,
+} from "../localData/reviewedRelease";
+import { readLocalDataHealth } from "../db/localData";
+import { pausedLocalSourceJobs } from "../../shared/localSourceAccess";
+import { LocalSourceAccessPaused } from "../localData/access";
 import { LOCAL_SOURCE_KEYS } from "../../shared/localData";
 import {
   recoverMissingMetrics,
@@ -163,6 +171,13 @@ export const METRIC_RECOVERY_JOBS: Job[] = [0, 4, 8, 12, 16, 20].map(
 );
 
 const JOBS: Job[] = [
+  {
+    key: REVIEWED_SA_JOB,
+    at: "00:00",
+    graceMinutes: 24 * 60 - 1,
+    maxAttempts: 2,
+    run: importReviewedSaRelease,
+  },
   ...LOCAL_SOURCE_KEYS.map((source, index) => ({
     key: `local-data-${source}`,
     at: `00:${15 + index * 5}`,
@@ -268,7 +283,22 @@ async function tick(baseUrl: string, apiKey: string): Promise<void> {
   if (ticking) return; // a slow run must not overlap the next interval
   ticking = true;
   try {
+    const pausedLocalJobs = pausedLocalSourceJobs(
+      await readLocalDataHealth().catch(() => []),
+    );
     for (const job of JOBS) {
+      if (
+        job.key === REVIEWED_SA_JOB &&
+        !(await reviewedSaReleasePending().catch((err) => {
+          console.warn(
+            "[scheduler] cannot check reviewed SA import:",
+            (err as Error).message,
+          );
+          return false;
+        }))
+      )
+        continue;
+      if (pausedLocalJobs.has(job.key)) continue;
       const clock = sydneyClock();
       if (!isJobDue(job, clock)) continue;
       const maxAttempts = job.maxAttempts ?? 3;
@@ -304,7 +334,11 @@ async function tick(baseUrl: string, apiKey: string): Promise<void> {
         console.log(`[scheduler] ${job.key} ✓`);
       } catch (err) {
         const msg = (err as Error)?.message ?? String(err);
-        console.error(`[scheduler] ${job.key} failed:`, msg);
+        const accessPaused = err instanceof LocalSourceAccessPaused;
+        console.error(
+          `[scheduler] ${job.key} ${accessPaused ? "paused" : "failed"}:`,
+          msg,
+        );
         if (lease) {
           const finished = await finishCollectionRun(
             lease,
@@ -324,7 +358,7 @@ async function tick(baseUrl: string, apiKey: string): Promise<void> {
         // won't self-heal on a later tick. Alert loudly (once) rather than
         // letting it sink into the error log — the silent weekly-post failure
         // is exactly what this guards against.
-        if (attempt >= maxAttempts) {
+        if (!accessPaused && attempt >= maxAttempts) {
           await alertTerminalFailure(job.key, clock, msg, attempt, maxAttempts);
         }
       }

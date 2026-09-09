@@ -13,6 +13,7 @@ import {
   type StateCode,
 } from "../../shared/localData";
 import { readLocalDataset, readLocalDataHealth } from "../db/localData";
+import { localSourceAccessDenied } from "../../shared/localSourceAccess";
 
 const STATE_NAMES = [
   "New South Wales",
@@ -43,6 +44,7 @@ export type LocalMatch = {
   period: string;
   resourceUrl: string;
   retrievedAt: string;
+  provenance?: "reviewed-release";
   older: boolean;
 };
 export function matchLocalAreas(
@@ -109,6 +111,7 @@ export function matchLocalAreas(
         period: data.period,
         resourceUrl: data.resourceUrl,
         retrievedAt: data.retrievedAt,
+        ...(data.provenance ? { provenance: data.provenance } : {}),
         older: localDatasetIsOlder(data, now),
         alias,
       });
@@ -172,8 +175,10 @@ export async function getLocalCoverage() {
       cadence: LOCAL_SOURCES[sourceKey].cadence,
       period: data?.period ?? null,
       retrievedAt: data?.retrievedAt ?? null,
+      provenance: data?.provenance ?? null,
       checkedAt: check?.checkedAt.toISOString() ?? null,
       error: check?.error ?? null,
+      accessPaused: localSourceAccessDenied(check?.error),
       older: data ? localDatasetIsOlder(data, new Date()) : false,
       areas: data?.areas.length ?? 0,
       excludedRows: data?.excludedRows ?? 0,
@@ -236,6 +241,11 @@ export function localFactEvidence(
           `${o.measure}; ${o.category}; ${localPeriodLabel(match.sourceKey, o.period, o.measure)}; ${o.value === null ? "withheld: " + o.status : `${o.value} ${o.unit}`}${o.sample === null ? "" : `; ${localSampleLabel(match.sourceKey)}: ${o.sample}`}.`,
       ),
       source.method,
+      ...(match.provenance === "reviewed-release"
+        ? [
+            "Reviewed import of the stated publisher release. This does not establish that automatic updates are working or that a later release is unavailable.",
+          ]
+        : []),
       match.older
         ? "Older reporting period; do not describe as current market conditions."
         : "Latest available in this stored source release.",

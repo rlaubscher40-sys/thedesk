@@ -49,6 +49,7 @@ export type LocalDataset = {
   resourceUrl: string;
   fingerprint: string;
   retrievedAt: string;
+  provenance?: "reviewed-release";
   areas: LocalArea[];
   excludedRows: number;
 };

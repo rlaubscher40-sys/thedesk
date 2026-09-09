@@ -39,7 +39,8 @@ export async function fetchSource(
     }
     if (!response.ok) {
       await response.body?.cancel();
-      throw new Error(`Publisher HTTP ${response.status}`);
+      // Host only: do not log query strings, credentials or arbitrary paths.
+      throw new Error(`Publisher HTTP ${response.status} (${target.hostname})`);
     }
     if (Number(response.headers.get("content-length")) > limit) {
       await response.body?.cancel();

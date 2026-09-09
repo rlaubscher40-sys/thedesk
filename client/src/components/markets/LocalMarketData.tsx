@@ -139,6 +139,12 @@ export function LocalMarketData({
             {LOCAL_SOURCES[match.sourceKey].attribution}. Retrieved{" "}
             {match.retrievedAt.slice(0, 10)}.
           </p>
+          {match.provenance === "reviewed-release" && (
+            <p className="text-sm mt-3">
+              Reviewed publisher release. Automatic updates are not verified;
+              these figures describe the reporting period shown above.
+            </p>
+          )}
           <div className="flex flex-wrap gap-4 mt-4 text-sm">
             <a
               className="bs-link"

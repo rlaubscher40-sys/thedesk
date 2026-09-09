@@ -29,15 +29,31 @@ export function LocalDataHealth() {
             <p className="mt-2 text-sm">
               Last check: {source.checkedAt ?? "Never"}
             </p>
-            {source.error && (
-              <p className="mt-2 text-sm">
-                Last attempt failed: {source.error}. Any prior snapshot is
-                retained.
+            {source.accessPaused ? (
+              <p className="mt-2 text-sm font-semibold">
+                Collection paused: the publisher denied access. Automatic
+                retries are stopped until source access is reviewed.{" "}
+                {source.error}. Stored releases remain available; automatic
+                updates are not verified.
               </p>
+            ) : (
+              source.error && (
+                <p className="mt-2 text-sm">
+                  Last attempt failed: {source.error}. Any prior snapshot is
+                  retained.
+                </p>
+              )
             )}
             {source.older && (
               <p className="mt-2 text-sm">
                 Older reporting period — review the publisher release.
+              </p>
+            )}
+            {source.provenance === "reviewed-release" && (
+              <p className="mt-2 text-sm">
+                Reviewed release imported from the openly licensed publisher
+                workbook retrieved {source.retrievedAt?.slice(0, 10)}. The
+                import does not clear the automatic collection error.
               </p>
             )}
             <p className="mt-2 text-sm">

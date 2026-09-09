@@ -21,6 +21,7 @@ vi.mock("./parsers", () => ({
 }));
 import { createHash } from "node:crypto";
 import { collectLocalData } from "./collect";
+import { LocalSourceAccessPaused } from "./access";
 import { fetchSource } from "./fetch";
 import { readWorkbook } from "./workbook";
 import { parseNswBonds } from "./parsers";
@@ -95,4 +96,56 @@ it("does not report success when storage fails", async () => {
     "Storage unavailable",
   );
   expect(markLocalDataCheck).not.toHaveBeenCalledWith("nsw-bond-rents", null);
+});
+
+it("honours a persisted legacy denial without downloading or marking success", async () => {
+  vi.mocked(readLocalDataHealth).mockResolvedValue([
+    {
+      sourceKey: "sa-bond-rents",
+      checkedAt: new Date("2026-09-09"),
+      lastSuccessAt: null,
+      error: "Publisher HTTP 403",
+    },
+  ]);
+  await expect(collectLocalData("sa-bond-rents")).rejects.toBeInstanceOf(
+    LocalSourceAccessPaused,
+  );
+  expect(fetchSource).not.toHaveBeenCalled();
+  expect(markLocalDataCheck).not.toHaveBeenCalled();
+  expect(writeLocalDataset).not.toHaveBeenCalled();
+});
+it("persists a first discovery denial with stage context and no success", async () => {
+  vi.mocked(fetchSource).mockRejectedValueOnce(
+    new Error("Publisher HTTP 403 (www.nsw.gov.au)"),
+  );
+  await expect(collectLocalData("nsw-bond-rents")).rejects.toBeInstanceOf(
+    LocalSourceAccessPaused,
+  );
+  expect(markLocalDataCheck).toHaveBeenCalledWith(
+    "nsw-bond-rents",
+    "Source discovery: Publisher HTTP 403 (www.nsw.gov.au)",
+  );
+  expect(writeLocalDataset).not.toHaveBeenCalled();
+});
+it("distinguishes file access denial from catalogue discovery", async () => {
+  vi.mocked(fetchSource)
+    .mockResolvedValueOnce(Buffer.from("page"))
+    .mockRejectedValueOnce(new Error("Publisher HTTP 401"));
+  await expect(collectLocalData("nsw-bond-rents")).rejects.toBeInstanceOf(
+    LocalSourceAccessPaused,
+  );
+  expect(markLocalDataCheck).toHaveBeenCalledWith(
+    "nsw-bond-rents",
+    "Data download: Publisher HTTP 401",
+  );
+});
+it("does not pause or hide ordinary transient download failures", async () => {
+  vi.mocked(fetchSource).mockRejectedValueOnce(new Error("Publisher HTTP 500"));
+  try {
+    await collectLocalData("nsw-bond-rents");
+    throw new Error("Expected failure");
+  } catch (e) {
+    expect(e).not.toBeInstanceOf(LocalSourceAccessPaused);
+    expect((e as Error).message).toContain("Publisher HTTP 500");
+  }
 });
