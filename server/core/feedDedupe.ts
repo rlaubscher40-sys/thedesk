@@ -2,8 +2,8 @@ import { articleIdentity } from "../../scripts/ingest/lib/dedupe";
 
 /** Reuse the archive's conservative URL identity before insertion/enrichment.
  * Keep content query IDs and path case; never infer identity from similar titles.
- * This covers recent stored URLs and repeats within one submission, not races
- * between separate workers or a persistent content-revision history.
+ * This prefilter covers recent stored URLs and repeats within one submission.
+ * The database claim separately protects races between current ingest workers.
  */
 export function unseenFeedItems<T extends { sourceUrl?: string | null; title: string }>(
   items: T[],

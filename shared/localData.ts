@@ -54,6 +54,7 @@ export type LocalDataset = {
     finalUrl: string;
     parserVersion: string;
     downloadedAt: string;
+    bodyBytes?: number;
     etag?: string;
     lastModified?: string;
   };

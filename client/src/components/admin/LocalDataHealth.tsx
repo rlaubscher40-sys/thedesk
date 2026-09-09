@@ -1,4 +1,5 @@
 import { trpc } from "@/lib/trpc";
+import { LocalTransferHealth } from "./LocalTransferHealth";
 export function LocalDataHealth() {
   const query = trpc.health.localDataCoverage.useQuery(undefined, {
     refetchInterval: 60_000,
@@ -78,6 +79,7 @@ export function LocalDataHealth() {
           </article>
         ))
       )}
+      <LocalTransferHealth />
     </section>
   );
 }
