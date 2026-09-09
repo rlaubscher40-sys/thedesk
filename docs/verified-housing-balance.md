@@ -39,7 +39,7 @@ raw population growth, a target, approvals or buyer enquiries. Glossary: printed
 page 93 (PDF 104). Model discussion: printed page 73 (PDF 84).
 
 The difference is not Australia's accumulated shortage, a count of homeless
-households, a city comparison or a price/rent forecast. The 100 house icons show
+households, a city comparison or a price/rent forecast. The 100 tally marks show
 a rounded ratio, not 100 real dwellings. No local shortage is inferred from state
 population or city approvals. The original approvals recipe stays an approvals
 explanation, while this sixth recipe supplies an independently matched finding.
@@ -58,122 +58,37 @@ The public source page and bio destination ship with the recipe in the same PR.
 
 Credit: Based on National Housing Supply and Affordability Council data.
 
+## Human context and source excerpts
+
+Printed page 44 (PDF page 55) links high living and housing costs to adult
+children staying in the parental home longer. This is separately attributed
+context, not a consequence measured by the housing-flow calculation.
+https://nhsac.gov.au/sites/nhsac.gov.au/files/2026-04/ar-state-housing-system-2026.pdf#page=55
+
+The on-screen quotation is ten words: “adult children staying in the parental
+home for longer.” The two numerical excerpts are cropped from the pinned PDF's
+page index 31, using PyMuPDF text search for `around 232,000 net new dwelling
+completions.` and `around 287,000`, adding two PDF points of padding and rendering
+at 5x resolution. No source wording is reconstructed. The report's CC BY 4.0
+text attribution is retained; full source identity and SHA-256 are above.
+
 ## Reproduce review
 
 ```sh
 node --import tsx scripts/review-housing-balance-reel.ts --out /tmp/desk-housing-gap
 ```
 
-This produces a Fable-narrated, subtitled MP4, caption, seven scene JPEGs and the
-complete evidence/storyboard JSON. `--frames-only` skips speech/video generation.
-It never posts. The 32-second runtime guard and measured passage timing apply.
-Australian English and no em dashes are required for the caption.
+Produces a Fable-narrated, subtitled MP4, caption, eight scene JPEGs, evidence,
+measured phrase audit and final timeline. `--frames-only` skips speech and video.
+It never posts. Housing has a 46-second cap; other formats retain 32 seconds.
 
-The ratio reveals one house per 30fps frame, then holds the completed grid.
-Single-frame hard cuts use concat instead of a zero-duration xfade, which can
-silently truncate the picture stream. The renderer decodes the finished video
-and checks that its pictures cover the measured timeline within two frames.
-The encoded-timeline regression test exercises both hard cuts and dissolves.
+The count-up uses one cubic ease-out for both digits and bar width. Intermediate
+figures are animation states, not observations. Net supply, demand and gap use
+a fixed 300,000-home scale. The ratio reveals 81 of 100 tally marks, then holds.
+Hard-cut frames avoid ghosted numbers. The renderer decodes the finished picture
+stream and checks coverage of the measured timeline within two frames.
 
-The net-supply, demand and gap labels count up with their corresponding bars.
-One cubic ease-out produces a rounded value for both the digits and bar width,
-so intermediate pictures never imply different quantities. Counters start at
-zero, land on the reviewed figure and hold for reading. Intermediate figures
-are animation states, not observations. Numeric ticks use hard cuts to avoid
-ghosted digits. The ratio counter tracks the exact number of illuminated icons.
-The revised design gives the headline number more prominence, shortens chart
-headings and uses fixed-height monospaced counters to prevent layout jumps.
-
-The quiet-layout pass removes page counters, the progress strip, duplicate date
-lines, explanatory paragraphs and decorative comparison icons. Each scene body
-is limited to 25 words of essential copy. Geography, reference period, source,
-approximation and the estimated-demand label remain visible. Full calculation
-and limitations remain in the unchanged caption and public source read. The
-gap is explicitly labelled additional, not total accumulated shortage.
-
-Supply keeps the same row, position and 840px scale when demand enters beneath
-it. The ratio reserves a fixed-width counter to prevent the /100 from shifting
-at the change from one to two digits. Static introductory and closing scenes
-hold without redundant animation ticks; moving data still uses eased count-ups
-and measured narration, with a final reading hold.
-
-### Connected visual sequence
-
-The review Reel uses the actual 2026 Council report cover on its source scene,
-with the full publisher name, report title, publication date and printed page 21.
-`server/og/fonts/nhsac-2026-cover.jpg` is a proportional JPEG rendering of PDF
-page 1 from the pinned source PDF above, produced with Poppler at a 1,000-pixel
-long edge. It is bundled with the existing editorial assets and must be present
-for this scene to render. The source cover is documentary attribution, not an
-endorsement of The Desk.
-
-The net-supply animation starts at 263,000 and subtracts approximately 31,000
-implied demolitions to arrive at 232,000. Both the figure and the gold bar use
-the same rounded animation value. The demolition estimate is labelled as
-implied by rounded figures. Supply, demand and shortfall share fixed positions
-and the same 300,000-home scale. The 55,000 shortfall is highlighted within the
-demand bar beyond the supply endpoint. The ratio grid finishes with 81 gold
-homes and 19 coral homes, then holds. Fable delivers the closing takeaway:
-“Thousands of homes built. Yet we still fell further behind.”
-
-The demand passage explains the household meaning of the estimate: households
-needed about 287,000 extra homes. Its chart label says “Estimated extra homes
-needed”, so viewers do not need to interpret the technical demand label.
-
-### Human context and opening question
-
-The opening now puts the surprising contrast on screen immediately: 263,000
-homes built, yet the gap grew. A new, explicitly illustrative household scene
-shows someone leaving their parents' home: the same three people now form
-two households needing two homes. This
-explains one mechanism behind additional dwelling need; it is not an observed
-family, a demographic count or a claim that all moves add housing demand.
-The household illustration precedes the three continuous chart scenes so the
-established net-supply bar stays in place through demand and the gap.
-
-The additional passage uses measured Fable speech timing, bounded hard-cut
-animation and a reading hold. The shorter shortfall and ratio lines keep the
-story concise. The close states the implication: supply must outpace new
-demand to close the gap. Exact data, source attribution, publication identity
-and the post caption are unchanged.
-
-### Practical payoff and visual continuity
-
-The close states what the comparison means: thousands of homes were built,
-yet we still fell further behind. The completed grid of 81 gold and 19 coral homes stays in the
-same position through the two closing headline beats, while the instruction to compare
-homes added with extra homes needed stays visible. The ending also specifies the same place
-and period and gives the named source destination in the bio.
-
-The caption provides the same comparison through two questions for the next
-housing headline. It retains the matched figures, gap, ratio, reference period,
-full attribution and distinction from total accumulated shortage. Australian
-English and the no-em-dash rule remain enforced.
-
-### Complete sentences and readable numerical captions
-
-The opening speaks the contrast as well as showing it. The Housing Council is
-named during its source scene. This manually reviewed housing explainer has a
-38-second maximum, with Fable at speed 1.0. Other Reels retain their 32-second
-default. Both the script estimate and measured timeline are checked against
-the applicable budget. Invalid storyboards are rejected before synthesis.
-The eight scenes contain fourteen authored speech phrases. Sequential batches
-of at most nine use the existing local voice wrapper and child; per-line,
-queue and concurrency limits remain in force. The phrase helper caps the
-whole request at sixteen phrases and nine scenes.
-
-Housing subtitles use deterministic display notation for verified spoken
-counts: 232,000, 287,000, 55,000 and 81/100. The mapper first validates the exact
-storyboard and script against the matched evidence, then replaces only those
-count phrases. All other wording stays verbatim. Each numerical phrase fits
-one measured audio cue, with the existing two-line, minimum reading-time and
-overlap checks. Other formats keep verbatim subtitles with numeric phrases
-protected against cue splits where they fit. For this storyboard, excess model silence at phrase edges is trimmed while
-retaining 100ms before and 160ms after detectable speech. Interior speech
-samples stay unchanged, are joined with an 80ms gap and
-produce measured phrase starts and durations. These control subtitle cues and
-the selected visual actions. Chart steps are rounded to the 30fps grid; the
-ratio retains its existing bounded reveal. This is phrase timing, not forced
-word alignment. Generic subtitle chunking remains length weighted within a
-phrase if one is too long to fit a single cue. Review exports include both
-the measured speech audit and the final scene timeline.
+Subtitles convert only verified spoken counts to digits, retaining every other
+word and its measured phrase timing. The caption and public source destination
+carry the same finding and distinguish it from accumulated shortage. See
+`reel-editorial-standard.md` for the current design and delivery requirements.

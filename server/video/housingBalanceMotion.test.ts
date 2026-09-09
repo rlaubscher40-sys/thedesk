@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  balanceCountFrame,
-  housingBalanceStoryboard,
-  housingGapIllustration,
-} from "./housingBalanceStoryboard";
+import { balanceCountFrame, housingBalanceStoryboard } from "./housingBalanceStoryboard";
 import { HOUSING_BALANCE_SNAPSHOT } from "../../shared/housingBalance";
 import { storyboardSections } from "./storyboard";
 import { layout } from "./statReel";
@@ -83,19 +79,4 @@ describe("synchronised housing count-ups", () => {
     }
     expect(() => storyboardSections(story, durations, {})).toThrow("measured");
   });
-});
-
-it("shows a fixed illustrative gap for equal growth and a closing gap for faster supply", () => {
-  let previous = 60;
-  for (const p of [0, 0.25, 0.5, 0.75, 1]) {
-    const keep = housingGapIllustration("keep-up", p);
-    const catchUp = housingGapIllustration("catch-up", p);
-    expect(keep.gap).toBe(60);
-    expect(catchUp.needY).toBe(keep.needY);
-    expect(catchUp.gap).toBeLessThanOrEqual(previous);
-    expect(catchUp.gap).toBeGreaterThanOrEqual(0);
-    previous = catchUp.gap;
-  }
-  expect(housingGapIllustration("catch-up", 1).gap).toBe(0);
-  expect(() => housingGapIllustration("keep-up", NaN)).toThrow();
 });

@@ -116,7 +116,7 @@ const FINAL_TAIL_SECONDS = 0.85;
  *  short passage never leaves a frame on screen too briefly to read. */
 const MIN_HOLD = 0.55;
 
-/** Default duration budget. The reviewed housing explainer gets six extra
+/** Default duration budget. The reviewed housing explainer gets fourteen extra
  * seconds for complete sentences and its source passage, without speeding up
  * the voice. This is an editorial limit, not a claim about audience retention. */
 export const MAX_REEL_SECONDS = 32;

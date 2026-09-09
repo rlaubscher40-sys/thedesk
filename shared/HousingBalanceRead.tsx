@@ -11,7 +11,7 @@ export function HousingBalanceRead() {
       <header className="rule-major pt-5">
         <p className="bs-label-accent">Australia · Supply and demand · Historical read</p>
         <h1 className="font-serif text-4xl sm:text-6xl mt-4 leading-tight">
-          263,000 homes built.
+          {n(b.net)} homes added.
           <br />
           And still behind.
         </h1>
@@ -70,6 +70,11 @@ export function HousingBalanceRead() {
           demand. In this matched period, the net addition did not cover that new demand.
         </p>
         <p className="text-base leading-7 mt-4">
+          The Council also links high housing and living costs to adult children staying in the
+          parental home longer (printed page 44). This is the report's wider affordability context,
+          not a consequence measured by the 55,000-home gap calculation.
+        </p>
+        <p className="text-base leading-7 mt-4">
           This is the gap added during these 18 months. It is not Australia's total accumulated
           shortage, a homelessness count, or a forecast of prices and rents. The comparison is
           national and cannot tell us the shortfall in Brisbane, Perth or any particular suburb.
@@ -96,6 +101,14 @@ export function HousingBalanceRead() {
         <div className="flex flex-col items-start gap-3 mt-5">
           <a className="bs-link" href={b.source} target="_blank" rel="noopener noreferrer">
             Read the matched source figures, page 21 →
+          </a>
+          <a
+            className="bs-link"
+            href={`${HOUSING_BALANCE_SNAPSHOT.sourceUrl}#page=55`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Affordability and living at home longer, page 44 →
           </a>
           <a
             className="bs-link"
