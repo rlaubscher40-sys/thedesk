@@ -24,6 +24,7 @@ import { registerSecurityHeaders } from "./core/securityHeaders";
 import { registerSeoRoutes } from "./core/seo";
 import { serveStatic, setupVite } from "./core/vite";
 import { appRouter } from "./routers";
+import { startDailyBriefDelivery } from "./brief/delivery";
 import { startFeedEnrichmentWorker } from "./feed/enrichmentWorker";
 import { registerScheduledRoutes } from "./scheduledRoutes";
 import { getDb } from "./db/client";
@@ -234,6 +235,7 @@ async function startServer() {
     // Bound to the actual listening port so its loopback self-calls hit us.
     startScheduler({ port });
     startFeedEnrichmentWorker();
+    startDailyBriefDelivery();
     const cleanup = () =>
       void import("./db/security")
         .then((m) => m.cleanSecurityState())

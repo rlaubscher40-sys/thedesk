@@ -12,6 +12,7 @@
  * just-thrown error appears without a manual refresh.
  */
 import { MetricHealthPanel } from "./MetricHealthPanel";
+import { DailyBriefHealth } from "./DailyBriefHealth";
 import { FeedEnrichmentHealth } from "./FeedEnrichmentHealth";
 import { LocalDataHealth } from "./LocalDataHealth";
 import { PropertyCoveragePanel } from "./PropertyCoveragePanel";
@@ -123,6 +124,7 @@ export function HealthAdminPanel() {
       <PropertyCoveragePanel />
       <MetricHealthPanel />
       <FeedEnrichmentHealth />
+      <DailyBriefHealth />
       <LocalDataHealth />
 
       {/* Uptime sparkline. */}

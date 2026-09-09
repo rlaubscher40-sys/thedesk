@@ -9,6 +9,8 @@
  * External tools (Sentry, BetterStack) cover the same axes from
  * outside; this router is the inside-out complement.
  */
+import { sydneySocialClock } from "../../shared/instagramSchedule";
+import { dailyBriefHealth } from "../db/dailyBrief";
 import { metricHealth } from "../../shared/metricHealth";
 import { metricRefreshStatus, refreshOfficialMetrics } from "../metrics/recovery";
 import { z } from "zod";
@@ -53,6 +55,7 @@ type ServiceInfo = {
 
 export const healthRouter = router({
   localDataCoverage: adminProcedure.query(() => getLocalCoverage()),
+  dailyBriefDelivery: adminProcedure.query(() => dailyBriefHealth(sydneySocialClock().dateISO)),
   feedEnrichment: adminProcedure.query(() => feedEnrichmentHealth()),
   localTransferStats: adminProcedure.query(() => readLocalTransfers()),
   refreshMetrics: adminProcedure.mutation(async () => refreshOfficialMetrics()),

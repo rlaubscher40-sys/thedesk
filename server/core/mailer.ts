@@ -44,7 +44,9 @@ function esc(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-type SendInput = {
+export type SendInput = {
+  /** Frozen for durable sends so retries keep exactly the same payload. */
+  from?: string;
   to: string;
   subject: string;
   html: string;
@@ -74,9 +76,12 @@ export function listUnsubscribeHeaders(unsubscribeUrl: string): Record<string, s
   };
 }
 
-export async function send(input: SendInput): Promise<SendResult> {
+export async function send(
+  input: SendInput,
+  options: { idempotencyKey?: string } = {}
+): Promise<SendResult> {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.MAIL_FROM ?? "The Desk <hello@thedesk.au>";
+  const from = input.from ?? process.env.MAIL_FROM ?? "The Desk <hello@thedesk.au>";
 
   if (!apiKey) {
     console.log(`[mailer] no RESEND_API_KEY set, dry-run send to ${input.to}: ${input.subject}`);
@@ -90,6 +95,7 @@ export async function send(input: SendInput): Promise<SendResult> {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
+        ...(options.idempotencyKey ? { "Idempotency-Key": options.idempotencyKey } : {}),
       },
       body: JSON.stringify({
         from,
@@ -437,7 +443,7 @@ export async function sendEditionNotificationEmail({
 /** Sends the daily brief — top-5 stories with why-it-matters context —
  *  to a single confirmed subscriber. Called after LLM enrichment so the
  *  email has the AI-generated context lines, not raw summaries. */
-export async function sendDailyBriefEmail({
+export function buildDailyBriefEmail({
   to,
   name,
   items,
@@ -457,7 +463,7 @@ export async function sendDailyBriefEmail({
   feedDate: string;
   siteUrl: string;
   unsubscribeUrl: string;
-}): Promise<SendResult> {
+}): SendInput {
   const greeting = name ? (name.split(" ")[0] ?? null) : null;
   const displayDate = new Date(`${feedDate}T12:00:00Z`).toLocaleString("en-AU", {
     weekday: "long",
@@ -486,13 +492,20 @@ export async function sendDailyBriefEmail({
     "",
     `Unsubscribe: ${unsubscribeUrl}`,
   ].join("\n");
-  return send({
+  return {
+    from: process.env.MAIL_FROM ?? "The Desk <hello@thedesk.au>",
     to,
     subject: `The Desk · ${displayDate} — ${items.length} stor${items.length === 1 ? "y" : "ies"}`,
     html,
     text,
     headers: listUnsubscribeHeaders(unsubscribeUrl),
-  });
+  };
+}
+
+export async function sendDailyBriefEmail(
+  input: Parameters<typeof buildDailyBriefEmail>[0]
+): Promise<SendResult> {
+  return send(buildDailyBriefEmail(input));
 }
 
 /** HMAC-signed URL for the one-tap nudge response. */
