@@ -9,6 +9,7 @@ vi.mock("../db", () => ({
   listDailyMetrics: vi.fn(),
 }));
 vi.mock("../core/llm", () => ({ invokeLLMJson: vi.fn() }));
+vi.mock("../ask/review", () => ({ reviewAskAnswer: vi.fn() }));
 vi.mock("../ask/localFacts", () => ({retrieveLocalFacts: vi.fn()}));
 vi.mock("../og/intelligenceCard", () => ({ renderIntelligenceCard: vi.fn() }));
 vi.mock("../core/intelligenceShare", () => ({
@@ -17,6 +18,7 @@ vi.mock("../core/intelligenceShare", () => ({
 }));
 import * as db from "../db";
 import { invokeLLMJson } from "../core/llm";
+import { reviewAskAnswer } from "../ask/review";
 import { createIntelligenceShareToken } from "../core/intelligenceShare";
 import { askRouter } from "./ask";
 import { retrieveLocalFacts } from "../ask/localFacts";
@@ -55,6 +57,7 @@ beforeEach(() => {
   vi.mocked(db.listDailyMetrics).mockResolvedValue([]);
   vi.mocked(db.searchPropertyEvidence).mockResolvedValue([]);
   vi.mocked(invokeLLMJson).mockResolvedValue(answer);
+  vi.mocked(reviewAskAnswer).mockResolvedValue(true);
   vi.mocked(createIntelligenceShareToken).mockReturnValue("verified-share-token");
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
@@ -64,6 +67,71 @@ afterEach(() => {
 });
 
 describe("Ask answer recovery", () => {
+  it("limits the model's evidence and schema to a requested source count", async () => {
+    vi.mocked(db.searchAllContent).mockResolvedValue({ feedItems: Array.from({ length: 12 }, (_, index) => ({ ...related.feedItems[0], id: index + 1 })), editions: [] } as typeof related);
+    await askRouter.createCaller(ctx).answer({ question: "What changed in investor lending? Use at most three dated sources." });
+    const call = vi.mocked(invokeLLMJson).mock.calls[0]![0];
+    const prompt = call.messages.map((message) => message.content).join("\n");
+    expect(prompt.match(/\[SOURCE \d+\]/g)).toHaveLength(3);
+    expect(prompt).toContain("at most 3 distinct source references");
+    expect(call.responseFormat).toMatchObject({ json_schema: { schema: { oneOf: [expect.objectContaining({ properties: expect.objectContaining({ sourceRefs: expect.objectContaining({ maxItems: 3 }) }) }), expect.anything()] } } });
+    expect(vi.mocked(reviewAskAnswer).mock.calls[0]![2]).toHaveLength(1);
+    expect(vi.mocked(reviewAskAnswer).mock.calls[0]![2][0]!.ref).toBe(1);
+  });
+  it("accepts repeated citations without hiding distinct invalid references", async () => {
+    vi.mocked(invokeLLMJson).mockResolvedValue({ ...answer, sourceRefs: Array(12).fill(1) });
+    expect(await askRouter.createCaller(ctx).answer(input)).toMatchObject({ status: "answered", answer: { sourceRefs: [1] } });
+    expect(reviewAskAnswer).toHaveBeenCalledTimes(1);
+  });
+  it("rejects a source that was retrieved but excluded by the requested limit", async () => {
+    vi.mocked(db.searchAllContent).mockResolvedValue({ feedItems: Array.from({ length: 4 }, (_, index) => ({ ...related.feedItems[0], id: index + 1 })), editions: [] } as typeof related);
+    vi.mocked(invokeLLMJson).mockResolvedValue({ ...answer, sourceRefs: [4] });
+    await expect(askRouter.createCaller(ctx).answer({ question: "Investor lending? Use at most three sources." })).rejects.toMatchObject({ code: "INTERNAL_SERVER_ERROR" });
+    expect(reviewAskAnswer).not.toHaveBeenCalled();
+    expect(createIntelligenceShareToken).not.toHaveBeenCalled();
+  });
+  it("does not silently remove one period to fit a local comparison into one citation", async () => {
+    vi.mocked(retrieveLocalFacts).mockResolvedValue(["2025-06-30", "2026-06-30"].map((date) => ({ title: "4000 QLD", date, href: `/markets?period=${date}`, publisher: "RTA", sourceUrl: "https://source.test/rents", text: "Published rent" })));
+    expect(await askRouter.createCaller(ctx).answer({ question: "Compare median weekly rents in 4000 QLD in June 2025 and June 2026. Use only one source." })).toMatchObject({ status: "insufficient", sources: [] });
+    expect(invokeLLMJson).not.toHaveBeenCalled();
+    expect(reviewAskAnswer).not.toHaveBeenCalled();
+    expect((await consumeAnonymousAsk(ctx.req)).remaining).toBe(2);
+  });
+  it("withholds an unsupported draft before sharing and refunds the answer allowance", async () => {
+    vi.mocked(reviewAskAnswer).mockResolvedValue(false);
+    expect(await askRouter.createCaller(ctx).answer(input)).toMatchObject({ status: "insufficient", sources: [{ href: "/story/1" }] });
+    expect(createIntelligenceShareToken).not.toHaveBeenCalled();
+    expect((await consumeAnonymousAsk(ctx.req)).remaining).toBe(2);
+  });
+  it("does not publish when the review is unavailable", async () => {
+    vi.mocked(reviewAskAnswer).mockRejectedValue(new Error("Review unavailable"));
+    await expect(askRouter.createCaller(ctx).answer(input)).rejects.toThrow("Review unavailable");
+    expect(createIntelligenceShareToken).not.toHaveBeenCalled();
+    expect((await consumeAnonymousAsk(ctx.req)).remaining).toBe(2);
+  });
+  it("bounds review spend with the existing model-attempt ceiling", async () => {
+    vi.mocked(reviewAskAnswer).mockResolvedValue(false);
+    const caller = askRouter.createCaller(ctx);
+    for (let index = 0; index < 6; index++) await caller.answer(input);
+    await expect(caller.answer(input)).rejects.toMatchObject({ code: "TOO_MANY_REQUESTS" });
+    expect(invokeLLMJson).toHaveBeenCalledTimes(6);
+    expect(reviewAskAnswer).toHaveBeenCalledTimes(6);
+  });
+  it("aborts a stalled review and never signs its late result", async () => {
+    vi.useFakeTimers();
+    let resolve!: (supported: boolean) => void;
+    vi.mocked(reviewAskAnswer).mockReturnValue(new Promise((done) => { resolve = done; }));
+    const request = askRouter.createCaller(ctx).answer(input);
+    const rejected = expect(request).rejects.toMatchObject({ code: "TIMEOUT" });
+    await vi.advanceTimersByTimeAsync(0);
+    const signal = vi.mocked(reviewAskAnswer).mock.calls[0]![3];
+    await vi.advanceTimersByTimeAsync(ASK_SERVER_TIMEOUT_MS);
+    await rejected;
+    expect(signal.aborted).toBe(true);
+    resolve(true); await vi.advanceTimersByTimeAsync(0);
+    expect(createIntelligenceShareToken).not.toHaveBeenCalled();
+    expect((await consumeAnonymousAsk(ctx.req)).remaining).toBe(2);
+  });
   it("answers a factual rent lookup from stored observations through normal sharing", async () => {
     const href = "/markets?q=4000&state=QLD&areaKind=postcode&period=2026-06-30#local-data";
     vi.mocked(retrieveLocalFacts).mockResolvedValue([{
@@ -79,6 +147,7 @@ describe("Ask answer recovery", () => {
     expect(result).toMatchObject({ status: "answered", sources: [{ href, date: "2026-06-30" }], shareToken: "verified-share-token" });
     expect(result).toHaveProperty("answer.answer", expect.stringContaining("$850/week"));
     expect(invokeLLMJson).not.toHaveBeenCalled();
+    expect(reviewAskAnswer).not.toHaveBeenCalled();
     expect(createIntelligenceShareToken).toHaveBeenCalledTimes(1);
   });
   it("answers an entirely withheld rent lookup without model speculation or a share token", async () => {

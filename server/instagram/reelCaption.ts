@@ -6,6 +6,7 @@ export const REEL_READS = {
   sydneyRent: SOCIAL_DESTINATIONS[1],
   sydneySupply: SOCIAL_DESTINATIONS[2],
   supplyComparison: SOCIAL_DESTINATIONS[3],
+  housingBalance: SOCIAL_DESTINATIONS[4],
   capitalRents: { label: "All eight capital-city rent figures", path: "/social" },
 } as const;
 export const REEL_CAPTION_LIMIT = 1400;
@@ -54,6 +55,7 @@ const CAMPAIGNS = {
   sydneySupply: "sydney_before_buy",
   supplyComparison: "supply_comparison",
   capitalRents: "eight_capital_rents",
+  housingBalance: "national_housing_balance",
 } as const;
 
 /** Fixed editorial copy, not another model call. Never truncate a source claim. */

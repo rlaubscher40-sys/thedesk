@@ -1,0 +1,43 @@
+{
+  "id": "nhsac-2026-first-18-months",
+  "report": "State of the Housing System 2026",
+  "publisher": "National Housing Supply and Affordability Council",
+  "publishedAt": "2026-04-30",
+  "sourceUrl": "https://nhsac.gov.au/sites/nhsac.gov.au/files/2026-04/ar-state-housing-system-2026.pdf",
+  "sourceSha256": "23ebfc6b1439c5506e3cc607a8f44e34b5b5f310b80fed9f84407a130630eb57",
+  "printedPage": 21,
+  "pdfPage": 32,
+  "verifiedAt": "2026-09-09",
+  "observations": [
+    {
+      "measure": "grossCompletions",
+      "scope": "Australia",
+      "start": "2024-07-01",
+      "end": "2025-12-31",
+      "unit": "dwellings",
+      "basis": "reported-completions",
+      "approximate": true,
+      "value": 263000
+    },
+    {
+      "measure": "netNewSupply",
+      "scope": "Australia",
+      "start": "2024-07-01",
+      "end": "2025-12-31",
+      "unit": "dwellings",
+      "basis": "historical-estimate",
+      "approximate": true,
+      "value": 232000
+    },
+    {
+      "measure": "newUnderlyingDemand",
+      "scope": "Australia",
+      "start": "2024-07-01",
+      "end": "2025-12-31",
+      "unit": "dwellings",
+      "basis": "historical-estimate",
+      "approximate": true,
+      "value": 287000
+    }
+  ]
+}

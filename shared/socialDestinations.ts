@@ -20,6 +20,11 @@ export const SOCIAL_DESTINATIONS = [
     detail: "Open the comparison's approvals panel.",
     path: "/markets/compare/brisbane-vs-perth#housing-approvals",
   },
+  {
+    label: "Australia's housing supply gap",
+    detail: "Matched supply and demand, the 55,000 gap and the source.",
+    path: "/markets/housing-balance",
+  },
 ] as const;
 export function socialStoryPath(value: string): string | null {
   if (!/^[1-9]\d{0,9}$/.test(value)) return null;

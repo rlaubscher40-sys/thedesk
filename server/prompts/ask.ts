@@ -54,7 +54,7 @@ const answeredJsonSchema = {
   },
 };
 
-export const askDeskResponseFormat: LlmResponseFormat = {
+export const askDeskResponseFormat: Extract<LlmResponseFormat, { type: "json_schema" }> = {
   type: "json_schema",
   json_schema: {
     name: "ask_the_desk_answer",
@@ -81,9 +81,28 @@ export const askDeskResponseFormat: LlmResponseFormat = {
   },
 };
 
+export function askDeskResponseFormatForLimit(sourceLimit: number): LlmResponseFormat {
+  return {
+    ...askDeskResponseFormat,
+    json_schema: {
+      ...askDeskResponseFormat.json_schema,
+      schema: {
+        ...askDeskResponseFormat.json_schema.schema,
+        oneOf: [{
+          ...answeredJsonSchema,
+          properties: { ...answeredJsonSchema.properties, sourceRefs: {
+            ...answeredJsonSchema.properties.sourceRefs, maxItems: sourceLimit,
+          } },
+        }, ...(askDeskResponseFormat.json_schema.schema.oneOf as unknown[]).slice(1)],
+      },
+    },
+  };
+}
+
 export function buildAskDeskMessages(
   question: string,
-  sources: AskContextSource[]
+  sources: AskContextSource[],
+  sourceLimit = 8,
 ): LlmMessage[] {
   const evidence = sources
     .map(
@@ -107,6 +126,7 @@ GROUNDING RULES:
 - Never invent a fact, number, date, source, causal claim or market movement.
 - Every material factual claim must be supported by at least one supplied source.
 - sourceRefs may contain only source numbers that appear in the evidence.
+- Use at most ${sourceLimit} distinct source references. Do not repeat references. Every source cited in prose must also appear in sourceRefs; every factual claim must be supported by one of those selected records.
 - If the evidence is mixed, say so.
 - If a numeric signal is not explicitly present in the evidence, do not create one.
 - Stored metric rows are authoritative only for the value, reporting date and context explicitly shown. Respect any old-period, overdue-refresh or unverified-date warning in every answer field. Do not infer a percentage change from stored versus previous values unless that change itself is supplied in the evidence.
@@ -114,12 +134,14 @@ GROUNDING RULES:
 - Distinguish CPI rent inflation from median weekly new-tenancy rent. Withheld values and missing coverage are not zero. Never use an older observation as the latest when the latest is suppressed.
 - A historical rent median describes that reporting period only. Do not turn it into a floor, ceiling, forecast or recommended price for current leasing negotiations. National trends cannot establish a current local rent.
 - Bond counts are contextual unless the evidence explicitly identifies the statistical sample. A count alone does not establish statistical significance, representativeness or reliability; do not claim it does, even in The Desk Take.
+- Approvals are not starts, completions, available homes or completion times. Counts of approvals, migration and commentary on costs do not establish that completion times are lengthening. Do not assert a growing supply shortfall, causal effect, vacancy movement or future rent direction without directly relevant evidence.
+- An identical stored previous value does not prove flat market conditions or a failed refresh. Attribute editorial opinions to the dated edition; do not promote them into verified statistics or causal facts.
 - Signals are optional analytical anchors. Return an empty array rather than manufacture metrics.
 - "The Desk Take" may interpret the evidence, but clearly separate interpretation from fact.
 - "What would change our mind" must identify the observable evidence that would weaken the current conclusion.
 - Confidence is about the supplied evidence, not certainty about the future.
 
-Write the answer as short editorial paragraphs, not bullet-point prose.`,
+Write short editorial paragraphs, no more than 350 words across all answer fields. State what the evidence cannot establish instead of filling every section with a market thesis. A separate evidence review will reject unsupported claims.`,
     },
     {
       role: "user",

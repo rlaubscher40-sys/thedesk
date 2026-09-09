@@ -1,3 +1,10 @@
+import { spokenCount } from "./spokenNumbers";
+export { spokenCount } from "./spokenNumbers";
+import {
+  type HousingBalanceStoryboard,
+  renderHousingBalanceFrame,
+  validateHousingBalanceStoryboard,
+} from "./housingBalanceStoryboard";
 import type { ScriptLine } from "./narration";
 import type { CardVariant } from "../og/instagramCards";
 import { renderEditorialFrame } from "../og/instagramCards";
@@ -12,7 +19,8 @@ type SceneKind =
   | "supply"
   | "demand"
   | "takeaway";
-export type ReelStoryboard = {
+export type ReelStoryboard = ApprovalStoryboard | HousingBalanceStoryboard;
+export type ApprovalStoryboard = {
   kind: "approvals-comparison";
   period: string;
   evidenceKey: string;
@@ -21,59 +29,11 @@ export type ReelStoryboard = {
   scenes: Array<{ key: string; text: string; kind: SceneKind; showPerth?: boolean }>;
 };
 
-/** Spell integer counts for the ear; the screen retains the exact numeric form. */
-export function spokenCount(value: number): string {
-  if (!Number.isSafeInteger(value) || value < 0 || value > 999999)
-    throw new Error("Approval count is outside the narration range.");
-  const small = [
-    "zero",
-    "one",
-    "two",
-    "three",
-    "four",
-    "five",
-    "six",
-    "seven",
-    "eight",
-    "nine",
-    "ten",
-    "eleven",
-    "twelve",
-    "thirteen",
-    "fourteen",
-    "fifteen",
-    "sixteen",
-    "seventeen",
-    "eighteen",
-    "nineteen",
-  ];
-  const tens = [
-    "",
-    "",
-    "twenty",
-    "thirty",
-    "forty",
-    "fifty",
-    "sixty",
-    "seventy",
-    "eighty",
-    "ninety",
-  ];
-  const underThousand = (n: number): string => {
-    if (n < 20) return small[n]!;
-    if (n < 100) return tens[Math.floor(n / 10)]! + (n % 10 ? `-${small[n % 10]}` : "");
-    return `${small[Math.floor(n / 100)]} hundred${n % 100 ? ` and ${underThousand(n % 100)}` : ""}`;
-  };
-  return value < 1000
-    ? underThousand(value)
-    : `${underThousand(Math.floor(value / 1000))} thousand${value % 1000 ? `${value % 1000 < 100 ? " and" : ","} ${underThousand(value % 1000)}` : ""}`;
-}
-
 export function approvalStoryboard(
   brisbane: number,
   perth: number,
   period: string
-): ReelStoryboard {
+): ApprovalStoryboard {
   spokenCount(brisbane);
   spokenCount(perth);
   if (!/^[A-Z][a-z]+ 20\d{2}$/.test(period)) throw new Error("Invalid approval period.");
@@ -118,6 +78,7 @@ export function approvalStoryboard(
 
 /** Bind the pictures to the exact verified script before spending time on speech. */
 export function validateStoryboard(story: ReelStoryboard, script: ScriptLine[]) {
+  if (story.kind === "housing-balance") return validateHousingBalanceStoryboard(story, script);
   if (story.kind !== "approvals-comparison") throw new Error("Unknown Reel storyboard.");
   const expected = approvalStoryboard(story.brisbane, story.perth, story.period);
   if (
@@ -135,10 +96,18 @@ export function storyboardSections(story: ReelStoryboard, durations: Record<stri
       throw new Error("Scene has no speech timing.");
     // A short, legible build within the measured passage, then time to read.
     // Spend frames on changing information; the closing composition is static.
-    const count =
-      scene.kind === "takeaway"
+    const ratio = scene.kind === "balance-ratio";
+    // One house per video frame at normal speech duration, followed by a hold.
+    // A shorter measured passage uses fewer steps, never extends the narration.
+    const ratioCount =
+      ratio && story.kind === "housing-balance"
+        ? Math.min(81, Math.max(2, Math.floor(measured! * 0.72 * 30) + 1))
+        : 0;
+    const count = ratio
+      ? ratioCount
+      : ["takeaway", "balance-takeaway"].includes(scene.kind)
         ? 1
-        : scene.kind === "comparison"
+        : ["comparison", "balance-demand"].includes(scene.kind)
           ? 8
           : ["permission", "construction", "completion"].includes(scene.kind)
             ? 6
@@ -151,7 +120,7 @@ export function storyboardSections(story: ReelStoryboard, durations: Record<stri
         reveal: 1,
         sceneKey: scene.key,
         sceneProgress: progress,
-        ...(i < steps.length - 1 ? { seconds: 0.08 } : {}),
+        ...(i < steps.length - 1 ? { seconds: ratio ? 1 / 30 : 0.08 } : {}),
       })),
     };
   });
@@ -205,6 +174,8 @@ export async function renderStoryFrame(
   progress: number,
   variant: CardVariant
 ): Promise<Buffer> {
+  if (story.kind === "housing-balance")
+    return renderHousingBalanceFrame(story, key, progress, variant);
   const scene = story.scenes.find((s) => s.key === key);
   if (!scene || !Number.isFinite(progress) || progress < 0 || progress > 1)
     throw new Error("Invalid storyboard frame.");

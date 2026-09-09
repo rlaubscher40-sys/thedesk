@@ -1,4 +1,11 @@
-# Visual supply and demand Reel
+# Visual supply and demand Reels
+
+The newer national finding is documented in [verified-housing-balance.md](verified-housing-balance.md).
+It matches actual net new supply to estimated additional demand, then explains
+the 55,000 gap and 81-per-100 ratio. The city approvals treatment below remains
+a separate recipe with narrower evidence.
+
+## City approvals treatment
 
 The question is whether housing supply is keeping up with household demand.
 The approvals are evidence about the start of potential supply. They do not
