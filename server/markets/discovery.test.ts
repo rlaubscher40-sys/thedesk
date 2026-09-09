@@ -48,6 +48,17 @@ beforeEach(() => {
 });
 
 describe("public market discovery", () => {
+  it("excludes stored spam and recycled updates even when their feed date is recent", () => {
+    const file = perth([
+      item(1),
+      item(2, {
+        title: "Perth Housing Market Update | April 2026 Emergency Alert Today (7Y9mHxXuGJ)",
+        source: "MSHALE",
+      }),
+      item(3, { title: "Perth housing market update April 2026" }),
+    ]);
+    expect(file.references.map((row) => row.id)).toEqual([1]);
+  });
   it("keeps Canadian Perth and overseas housing out and retains actual evidence routes", () => {
     const file = perth([
       item(1, { title: "Ontario approves Perth housing redevelopment" }),

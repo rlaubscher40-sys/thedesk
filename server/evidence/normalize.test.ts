@@ -17,6 +17,24 @@ const item: FetchedItem = {
 };
 
 describe("nationwide evidence", () => {
+  it("does not archive search spam or Canadian Perth as Australian property evidence", () => {
+    for (const title of [
+      "Perth Housing Market Update | April 2026 Emergency Alert Today (7Y9mHxXuGJ)",
+      "Perth housing market update April 2026",
+    ])
+      expect(normaliseEvidence({ ...item, title }, now)).toBeNull();
+    expect(
+      normaliseEvidence(
+        {
+          ...item,
+          title: "Major housing project approved on historic Perth golf course",
+          source: "CBC",
+          url: "https://news.google.com/rss/articles/fixture",
+        },
+        now
+      )
+    ).toBeNull();
+  });
   it("has independent statewide, regional and government feeds for all eight jurisdictions", () => {
     for (const region of PROPERTY_REGIONS) {
       const sources = STATE_PROPERTY_SOURCES.filter((source) => source.region === region.code);

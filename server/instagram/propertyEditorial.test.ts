@@ -41,6 +41,13 @@ const history = (values = [64, 63, 62, 61, 60, 59]): HistoryPoint[] =>
   }));
 
 describe("property story selection", () => {
+  it("keeps search spam and recycled market updates out of automatic social selection", () => {
+    for (const title of [
+      "Perth Housing Market Update | April 2026 Emergency Alert Today (7Y9mHxXuGJ)",
+      "Perth housing market update April 2026",
+    ])
+      expect(propertyStoryTier(story({ title, feedDate: "2026-09-09" }))).toBe(0);
+  });
   it("rejects Canadian Perth through an aggregator's URL using its explicit publisher", () => {
     expect(
       propertyStoryTier(
