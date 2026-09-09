@@ -74,3 +74,12 @@ Single-frame hard cuts use concat instead of a zero-duration xfade, which can
 silently truncate the picture stream. The renderer decodes the finished video
 and checks that its pictures cover the measured timeline within two frames.
 The encoded-timeline regression test exercises both hard cuts and dissolves.
+
+The net-supply, demand and gap labels count up with their corresponding bars.
+One cubic ease-out produces a rounded value for both the digits and bar width,
+so intermediate pictures never imply different quantities. Counters start at
+zero, land on the reviewed figure and hold for reading. Intermediate figures
+are animation states, not observations. Numeric ticks use hard cuts to avoid
+ghosted digits. The ratio counter tracks the exact number of illuminated icons.
+The revised design gives the headline number more prominence, shortens chart
+headings and uses fixed-height monospaced counters to prevent layout jumps.

@@ -152,6 +152,8 @@ const FACT_SECONDS = 1.25;
 const DRAW_STEPS = 8;
 
 export type Frame = {
+  /** Numeric animation uses crisp cuts so adjacent digits never ghost. */
+  hardCut?: boolean;
   sceneKey?: string;
   sceneProgress?: number;
   reveal: number;
@@ -245,7 +247,7 @@ export function layout(sections: Section[]): {
     const share = elastic > 0 ? Math.max(MIN_HOLD, section.seconds - fixedTotal) / elastic : 0;
 
     section.frames.forEach((frame, i) => {
-      const fade = beats.length === 0 ? 0 : i === 0 ? SECTION_FADE : TICK_FADE;
+      const fade = beats.length === 0 || frame.hardCut ? 0 : i === 0 ? SECTION_FADE : TICK_FADE;
       const seconds = snapToFrame(frame.seconds ?? share);
       beats.push({
         frame,
