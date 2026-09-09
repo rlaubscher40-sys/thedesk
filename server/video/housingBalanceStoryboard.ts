@@ -44,12 +44,12 @@ export function housingBalanceStoryboard(
       {
         key: "value",
         kind: "balance-net",
-        text: `After demolitions: ${spokenCount(b.net)} net new homes.`,
+        text: `After demolitions: ${spokenCount(b.net)} added.`,
       },
       {
         key: "line",
         kind: "balance-demand",
-        text: `Households needed about ${spokenCount(b.demand)} extra homes.`,
+        text: `We needed about ${spokenCount(b.demand)} homes.`,
       },
       {
         key: "facts",
@@ -64,7 +64,12 @@ export function housingBalanceStoryboard(
       {
         key: "signOff",
         kind: "balance-takeaway",
-        text: "Closing the gap means supply must outpace new demand.",
+        text: "Next headline: how many homes added?",
+      },
+      {
+        key: "checkNeed",
+        kind: "balance-takeaway",
+        text: "And how many needed?",
       },
     ],
   };
@@ -326,21 +331,29 @@ export function housingBalanceFrameLayout(
       ),
     ]);
   } else {
+    const second = key === "checkNeed";
+    const question = (n: string, label: string, colour: string, visible = true) =>
+      box({ height: 145, alignItems: "center", gap: 28, opacity: visible ? 1 : 0 }, [
+        text(n, 35, colour),
+        text(label, 62, c.fg, true),
+      ]);
     content = box(
-      { flexDirection: "column", height: 760, justifyContent: "space-between", paddingTop: 80 },
+      { flexDirection: "column", height: 800, justifyContent: "space-between", paddingTop: 45 },
       [
-        box({ flexDirection: "column", gap: 22 }, [
-          text("To close the gap:", 78, c.fg, true),
-          text("Supply must", 92, c.gold, true),
-          text("outpace demand.", 88, c.gold, true),
+        box({ flexDirection: "column", gap: 24 }, [
+          text("Two questions.", 86, c.gold, true),
+          question("01", "Homes added?", c.gold),
+          question("02", "Extra homes needed?", c.teal, second),
+          box({ opacity: second ? 1 : 0 }, tag("Same place. Same period.")),
         ]),
-        box({ flexDirection: "column", gap: 18 }, [
+        box({ flexDirection: "column", gap: 18, opacity: second ? 1 : 0 }, [
           tag("Figures and sources in bio"),
           text(REEL_READS.housingBalance.label, 27, c.gold),
         ]),
       ]
     );
   }
+
   return {
     content,
     meta: {

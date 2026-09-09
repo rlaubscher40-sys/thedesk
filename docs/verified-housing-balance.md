@@ -135,3 +135,18 @@ animation and a reading hold. The shorter shortfall and ratio lines keep the
 story concise. The close states the implication: supply must outpace new
 demand to close the gap. Exact data, source attribution, publication identity
 and the post caption are unchanged.
+
+### Practical closing questions
+
+The close now teaches a reusable way to assess a housing headline: compare
+homes actually added with extra homes needed, for the same place and period.
+The two questions have separate measured Fable utterances. The first stays
+visible while the second is revealed, followed by the source destination.
+The local voice wrapper and child accept at most nine short utterances for
+this nine-scene sequence. The overall 32-second editorial limit, per-line
+length limits, voice speed, queue and concurrency limits remain in force.
+
+The caption follows the same question, finding and practical application.
+It retains all three matched figures, the derived gap and ratio, the reference
+period, full attribution and the distinction from total accumulated shortage.
+Australian English and the no-em-dash rule remain enforced.

@@ -25,7 +25,7 @@ const lines = input
   .map((line) => JSON.parse(line));
 if (
   !lines.length ||
-  lines.length > 8 ||
+  lines.length > 9 ||
   lines.some(
     (l) =>
       typeof l.text !== "string" ||

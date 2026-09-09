@@ -23,7 +23,7 @@ serif headings and count-ups alone do not meet that target.
 | Evidence | Photographs and labels make evidence tangible in the supplied frames. | The actual Council report cover, full publisher, title, date and page are visible. The dated reference period and discreet source attribution remain throughout. |
 | Variety | The supplied frames alternate numbers, documentary photographs and selected text. | Our cut remains more chart-led. A future story should use relevant documents, locations or photographs where they explain a fact. Decorative stock footage would not fix this weakness. |
 | Voice | Ruben prefers the reference's newsreader delivery. | Keep the approved Fable voice. Write sentences for speech, give important findings room to land, and review the actual audio before claiming equivalent delivery. |
-| Takeaway | The caption connects the alleged scheme to an ordinary bidder's experience. | The explicit lesson is that new supply must outpace new demand to close the gap. The figures alone cannot support a local market or investment prediction. |
+| Takeaway | The caption connects the alleged scheme to an ordinary bidder's experience. | The viewer gets two questions to use on the next housing headline: how many homes were added and how many extra homes were needed, matching place and period. The figures alone cannot support a local market or investment prediction. |
 
 ## Gates for every future Reel
 

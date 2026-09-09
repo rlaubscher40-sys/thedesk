@@ -23,7 +23,18 @@ describe("synchronised housing count-ups", () => {
   it("allocates a bounded reveal and reading hold inside the spoken passage", () => {
     const story = housingBalanceStoryboard(HOUSING_BALANCE_SNAPSHOT);
     const durations = Object.fromEntries(
-      story.scenes.map((s) => [s.key, s.key === "households" ? 3 : s.key === "contrast" ? 2.7 : 4])
+      story.scenes.map((s) => [
+        s.key,
+        s.key === "households"
+          ? 3
+          : s.key === "contrast"
+            ? 2.7
+            : s.key === "signOff"
+              ? 2.3
+              : s.key === "checkNeed"
+                ? 1.7
+                : 4,
+      ])
     );
     const sections = storyboardSections(story, durations);
     for (const key of ["value", "line", "facts", "households"]) {

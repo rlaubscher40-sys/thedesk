@@ -39,11 +39,12 @@ export function verifiedHousingBalanceReel(data: HousingBalanceSnapshot | null, 
     publication: { key: "instagram-reel-nhsac-housing-balance-v1", date: balance.end },
     caption: buildNarrativeReelCaption({
       paragraphs: [
-        "Australia built more than a quarter of a million homes. And still fell behind.",
-        `From July 2024 to December 2025, around ${number(balance.gross)} homes were completed. After demolitions, the net addition was about ${number(balance.net)}.`,
-        `The Housing Council estimates new demand over those same 18 months at ${number(balance.demand)} homes. That leaves an additional gap of roughly ${number(balance.shortfall)}.`,
-        `Put simply: about ${balance.netPer100} net new homes for every 100 additional homes needed. New supply did not cover new demand.`,
-        "That helps explain why a big construction number can coexist with housing pressure. This measures the gap added during that period, not Australia's total accumulated shortage or the number of homeless households.",
+        `Australia built around ${number(balance.gross)} homes. So why did the housing gap grow?`,
+        `From July 2024 to December 2025, demolitions reduced that to about ${number(balance.net)} net new homes. Meanwhile, households needed an estimated ${number(balance.demand)} extra homes.`,
+        `The difference: roughly ${number(balance.shortfall)} homes. About ${balance.netPer100} added for every 100 additionally needed.`,
+        "People move out, households form, and housing needs change. A big construction number only tells part of the story.",
+        "Next time you see a housing headline, ask two questions: how many homes were actually added, and how many extra homes were needed? Compare the same place over the same period.",
+        "This is the additional gap over those 18 months, not Australia's total accumulated shortage or a count of homeless households.",
       ],
       source:
         "Based on National Housing Supply and Affordability Council data, State of the Housing System 2026, p. 21. National historical estimates; approximate figures. Demand is modelled from household formation. Report released 30 April 2026.",

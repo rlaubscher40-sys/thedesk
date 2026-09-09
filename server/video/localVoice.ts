@@ -79,7 +79,7 @@ export async function localSpeech(
     throw new Error("Invalid local speech profile.");
   if (
     !lines.length ||
-    lines.length > 8 ||
+    lines.length > 9 ||
     lines.some((l) => !l.text.trim() || l.text.length > 1000)
   )
     throw new Error("Narration script is empty or too long.");
