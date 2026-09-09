@@ -57,7 +57,7 @@ describe("social evidence destinations", () => {
     );
     expect(html).toContain('id="rental-conditions"');
     expect(html).toContain("3.8%");
-    expect(html.replace(/<[^>]*>/g, "")).toContain("3.5%");
+    expect(html).toContain('3.5<span class="text-3xl">%</span>');
     expect(html).toContain("not the latest month");
   });
 });
