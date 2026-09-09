@@ -176,3 +176,64 @@ it("still fails recovery for a storage error even when the only missing sources 
     "failed writes: audusd",
   );
 });
+
+it("fails a scheduled partial refresh even when retained metrics look healthy", async () => {
+  state.failWrites = false;
+  state.sourceError = "RBA F1 HTTP 403";
+  state.metrics = METRIC_EXPECTATIONS.filter(
+    (row) => !isAuctionCollectionPaused(row.key),
+  ).map((row) => ({
+    metricKey: row.key,
+    label: row.label,
+    asOf: new Date(new Date().toISOString().slice(0, 10)),
+    updatedAt: new Date(),
+    source: "Fixture",
+  }));
+  const { needsMetricRecovery, runScheduledMetricRefresh } =
+    await import("./recovery");
+  expect(await needsMetricRecovery()).toBe(false);
+  await expect(runScheduledMetricRefresh()).rejects.toThrow(
+    "cash_rate: RBA F1 HTTP 403",
+  );
+  expect(state.writes.some((row) => row.metricKey === "audusd")).toBe(true);
+});
+
+it("can discover a new gap after an earlier healthy recovery check", async () => {
+  state.metrics = METRIC_EXPECTATIONS.filter(
+    (row) => !isAuctionCollectionPaused(row.key),
+  ).map((row) => ({
+    metricKey: row.key,
+    label: row.label,
+    asOf: new Date(new Date().toISOString().slice(0, 10)),
+    updatedAt: new Date(),
+    source: "Fixture",
+  }));
+  const { recoverMissingMetrics } = await import("./recovery");
+  await recoverMissingMetrics();
+  expect(state.writes).toHaveLength(0);
+  state.metrics = state.metrics.filter((row) => row.metricKey !== "cash_rate");
+  await expect(recoverMissingMetrics()).rejects.toThrow(
+    "Metric refresh stored",
+  );
+  expect(state.writes.length).toBeGreaterThan(0);
+});
+
+it("keeps an old-release warning without repeatedly downloading a just-checked release", async () => {
+  state.metrics = METRIC_EXPECTATIONS.filter(
+    (row) => !isAuctionCollectionPaused(row.key),
+  ).map((row) => ({
+    metricKey: row.key,
+    label: row.label,
+    asOf: new Date(new Date().toISOString().slice(0, 10)),
+    updatedAt: new Date(),
+    source: "Fixture",
+  }));
+  const release = state.metrics.find(
+    (row) => row.metricKey === "consumer_confidence",
+  );
+  release.asOf = new Date(Date.now() - 100 * 86_400_000);
+  const { needsMetricRecovery } = await import("./recovery");
+  expect(await needsMetricRecovery()).toBe(false);
+  release.updatedAt = new Date(Date.now() - 7 * 60 * 60_000);
+  expect(await needsMetricRecovery()).toBe(true);
+});

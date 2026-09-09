@@ -1,4 +1,5 @@
 import { beforeEach, expect, it, vi } from "vitest";
+vi.mock("../demo/store", () => ({ isDemoMode: () => false }));
 const writes = vi.hoisted(() => ({
   values: [] as any[],
   updates: [] as any[],
