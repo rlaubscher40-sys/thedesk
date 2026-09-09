@@ -123,6 +123,7 @@ const MIN_HOLD = 0.55;
 export const MAX_REEL_SECONDS = 32;
 
 export type ReelStat = ReelStatText & {
+  editorialLabel?: "What Changed" | "Before You Buy";
   asOf?: Date | null;
   series?: SparkPoint[];
   facts?: StatFact[];
@@ -589,7 +590,7 @@ export async function renderStatReel(
           facts: stat.facts,
           factsShown: beat.frame.factsShown ?? 0,
           subtitleSpace: opts.subtitles,
-          kicker: "The Number",
+          kicker: stat.editorialLabel ?? "The Number",
         });
         file = path.join(dir, `frame-${cache.size}.jpg`);
         await fs.writeFile(file, buf);

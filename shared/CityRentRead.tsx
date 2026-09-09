@@ -16,18 +16,24 @@ export function CityRentRead({
   marketA,
   marketB,
   asOf,
+  onSource,
 }: {
   data?: CityRents;
   marketA: string;
   marketB?: string;
   asOf: string;
+  onSource?: () => void;
 }) {
   if (!rentCity(marketA) && (!marketB || !rentCity(marketB))) return null;
   const a = latestRent(data, marketA),
     b = marketB ? latestRent(data, marketB) : undefined;
   const gap = marketB ? rentGap(a, b, asOf) : null;
   return (
-    <section className="rule-major mt-8 py-6" aria-label="Official rental conditions">
+    <section
+      id="rental-conditions"
+      className="rule-major mt-8 py-6 scroll-mt-6"
+      aria-label="Official rental conditions"
+    >
       <p className="bs-label-accent">Official rental conditions · ABS</p>
       <h2 className="font-serif text-3xl mt-3">The pace of rent growth.</h2>
       <p className="text-sm mt-3 text-[var(--color-fg-muted)]">
@@ -48,6 +54,32 @@ export function CityRentRead({
                     <span className="text-3xl">%</span>
                   </p>
                   <p className="bs-label mt-4">Year to {rentPeriod(row.period)}</p>
+                  {data?.observations
+                    .filter(
+                      (previous) =>
+                        previous.city === name &&
+                        /^\d{4}-(0[1-9]|1[0-2])$/.test(previous.period) &&
+                        Number(row.period.slice(0, 4)) * 12 +
+                          Number(row.period.slice(5, 7)) -
+                          Number(previous.period.slice(0, 4)) * 12 -
+                          Number(previous.period.slice(5, 7)) ===
+                          1 &&
+                        Number.isFinite(previous.annualPercent) &&
+                        ["", "p", "r"].includes(previous.status)
+                    )
+                    .slice(0, 1)
+                    .map((previous) => (
+                      <p key={previous.period} className="text-sm mt-3">
+                        Previous annual rate: {previous.annualPercent.toFixed(1)}%, year to{" "}
+                        {rentPeriod(previous.period)}
+                        {previous.status === "r"
+                          ? " (revised)"
+                          : previous.status === "p"
+                            ? " (provisional)"
+                            : ""}
+                        . A difference between annual rates is not the latest month's rent change.
+                      </p>
+                    ))}
                   <p className="text-sm mt-2">
                     {rentIsOlder(row, asOf)
                       ? "Older observation · more than three months behind"
@@ -87,10 +119,22 @@ export function CityRentRead({
         </p>
       )}
       <div className="flex flex-wrap gap-4 mt-4 text-sm">
-        <a href={RENT_SOURCE} target="_blank" rel="noopener noreferrer" className="bs-link">
+        <a
+          href={RENT_SOURCE}
+          onClick={onSource}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bs-link"
+        >
           ABS release & methodology ↗
         </a>
-        <a href={RENT_DATA_URL} target="_blank" rel="noopener noreferrer" className="bs-link">
+        <a
+          href={RENT_DATA_URL}
+          onClick={onSource}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bs-link"
+        >
           Source observations (CSV) ↗
         </a>
       </div>

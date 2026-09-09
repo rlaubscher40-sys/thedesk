@@ -27,6 +27,7 @@ import { publicMarket } from "../../shared/marketDirectory";
 /** Exact-match public routes. */
 const STATIC_ROUTES = new Set([
   "/",
+  "/social",
   "/ask",
   "/subscribe",
   "/brief",
@@ -57,7 +58,12 @@ const STATIC_ROUTES = new Set([
 ]);
 
 /** Parameterised routes. One segment each, no nesting below them. */
-const DYNAMIC_ROUTES = [/^\/evidence\/[1-9][0-9]*$/, /^\/editions\/[^/]+$/, /^\/topics\/[^/]+$/, /^\/story\/[^/]+$/];
+const DYNAMIC_ROUTES = [
+  /^\/evidence\/[1-9][0-9]*$/,
+  /^\/editions\/[^/]+$/,
+  /^\/topics\/[^/]+$/,
+  /^\/story\/[^/]+$/,
+];
 
 /**
  * Real pages we don't want in search results: nothing here has content a

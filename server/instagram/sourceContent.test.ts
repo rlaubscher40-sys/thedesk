@@ -81,7 +81,7 @@ describe("source-preserving social copy", () => {
       whyItMatters: "Housing will boom",
     };
     const housing = {
-      title: "Housing approvals rise",
+      title: "Australian housing approvals rise",
       summary: "New dwelling approvals",
       category: "PROPERTY",
       keyTakeaway: "Buy now",

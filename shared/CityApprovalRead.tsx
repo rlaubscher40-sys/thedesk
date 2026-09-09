@@ -13,10 +13,12 @@ export function CityApprovalRead({
   data,
   cities,
   asOf,
+  onSource,
 }: {
   data: CityApprovals | undefined;
   cities: string[];
   asOf: string;
+  onSource?: () => void;
 }) {
   const supported = cities.filter((city) =>
     Object.values(APPROVAL_REGIONS).some((name) => name === city)
@@ -25,7 +27,11 @@ export function CityApprovalRead({
   const reads = supported.map((city) => annualApprovals(data, city, asOf));
   const matched = reads.every(Boolean) && new Set(reads.map((read) => read?.period)).size === 1;
   return (
-    <section className="rule-hair mt-6 py-6" aria-label="Housing approvals">
+    <section
+      id="housing-approvals"
+      className="rule-hair mt-6 py-6 scroll-mt-6"
+      aria-label="Housing approvals"
+    >
       <p className="bs-label-accent">Housing supply · Approvals</p>
       <h2 className="font-serif text-3xl mt-3">The pipeline before the homes.</h2>
       <p className="text-sm leading-6 mt-3 max-w-[78ch]">
@@ -68,11 +74,18 @@ export function CityApprovalRead({
         not seasonally adjusted. They use a different series from CPI rents.
       </p>
       <div className="flex flex-wrap gap-4 text-sm mt-3">
-        <a href={APPROVAL_SOURCE} className="bs-link" target="_blank" rel="noopener noreferrer">
+        <a
+          href={APPROVAL_SOURCE}
+          onClick={onSource}
+          className="bs-link"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           ABS source and methodology
         </a>
         <a
           href={approvalsDataUrl(asOf)}
+          onClick={onSource}
           className="bs-link"
           target="_blank"
           rel="noopener noreferrer"

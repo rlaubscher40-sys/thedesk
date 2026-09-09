@@ -1,7 +1,7 @@
 import { inReelWindow, REEL_WINDOW } from "../../shared/instagramSchedule";
 import { env } from "../core/env";
 import { claimJobRun, markJobRun, readJobRun, expireReelDelivery } from "../db/jobRuns";
-import { getVerifiedReelCandidates } from "./reelCandidates";
+import { getVerifiedReelCandidates, chooseReelCandidate } from "./reelCandidates";
 import { reelPublicationRecord } from "./reelStatus";
 import { isRateLimitError } from "./api";
 
@@ -9,7 +9,7 @@ export const REEL_POLL_MINUTES = 5;
 export const REEL_RETRY_MINUTES = 15;
 export const REEL_STALE_MINUTES = 15;
 export const REEL_MAX_ATTEMPTS = 2;
-export const REEL_SCHEDULE = `Verified city-comparison, eight-capital rent and housing-approval stories; at most one automatic Reel per Sydney day, ${REEL_WINDOW.label}, checked every 5 minutes`;
+export const REEL_SCHEDULE = `Five evidence-gated topics: city comparisons, eight-capital rents, Sydney rent changes and the Sydney buyer supply checklist; at most one automatic Reel per Sydney day, ${REEL_WINDOW.label}, checked every 5 minutes. Monthly evidence, not five guaranteed posts`;
 export const REEL_DELIVERY_KEY = "instagram-reel-delivery-programme-v1";
 
 function sydneyDate(now: Date) {
@@ -41,7 +41,7 @@ export async function readReelAutomation(now = new Date()) {
       candidate: candidates[blocked]!,
       date,
     };
-  const available = records.findIndex((record) => record.state === "available");
+  const available = chooseReelCandidate(candidates, records);
   if (available < 0)
     return { state: "published" as const, candidate, date, postId: records[0]!.postId };
   candidate = candidates[available]!;

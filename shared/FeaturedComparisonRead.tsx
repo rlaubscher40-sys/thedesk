@@ -5,7 +5,13 @@ import { StatePopulationRead } from "./StatePopulationRead";
 import { featuredComparison } from "./featuredComparison";
 import type { MarketDirectory } from "./marketDirectory";
 
-export function FeaturedComparisonRead({ directory }: { directory: MarketDirectory }) {
+export function FeaturedComparisonRead({
+  directory,
+  onSource,
+}: {
+  directory: MarketDirectory;
+  onSource?: () => void;
+}) {
   const read = featuredComparison(directory);
   // A single retrieval contains both cities; do not combine observations fetched at different times.
   const rents = read.a?.rents;
@@ -37,7 +43,13 @@ export function FeaturedComparisonRead({ directory }: { directory: MarketDirecto
         )}
       </header>
       {!directory.demo && (
-        <CityRentRead data={rents} marketA="Brisbane" marketB="Perth" asOf={directory.asOf} />
+        <CityRentRead
+          data={rents}
+          marketA="Brisbane"
+          marketB="Perth"
+          asOf={directory.asOf}
+          onSource={onSource}
+        />
       )}
       <section className="rule-hair pt-5 mt-5" aria-label="The Desk read">
         <p className="bs-label-accent">The Desk read</p>
@@ -84,6 +96,7 @@ export function FeaturedComparisonRead({ directory }: { directory: MarketDirecto
           data={read.a?.approvals}
           cities={["Brisbane", "Perth"]}
           asOf={directory.asOf}
+          onSource={onSource}
         />
       )}
       {!directory.demo && (
@@ -120,7 +133,11 @@ export function FeaturedComparisonRead({ directory }: { directory: MarketDirecto
                       {ref.date}
                       {ref.publisher ? ` · ${ref.publisher}` : ""}
                     </p>
-                    <a className="bs-link block font-serif text-xl mt-2" href={`/story/${ref.id}`}>
+                    <a
+                      className="bs-link block font-serif text-xl mt-2"
+                      href={ref.href ?? `/story/${ref.id}`}
+                      onClick={onSource}
+                    >
                       {ref.title}
                     </a>
                   </div>

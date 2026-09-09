@@ -65,9 +65,21 @@ export function PublicMarketRead({
       {!directory.demo && (
         <StateDemographicsRead data={file.demographics} stateCode={market.state} asOf={file.asOf} />
       )}
-      {!directory.demo && <CityRentRead data={file.rents} marketA={market.name} asOf={file.asOf} />}
       {!directory.demo && (
-        <CityApprovalRead data={file.approvals} cities={[market.name]} asOf={file.asOf} />
+        <CityRentRead
+          data={file.rents}
+          marketA={market.name}
+          asOf={file.asOf}
+          onSource={() => onAction?.("source")}
+        />
+      )}
+      {!directory.demo && (
+        <CityApprovalRead
+          data={file.approvals}
+          cities={[market.name]}
+          asOf={file.asOf}
+          onSource={() => onAction?.("source")}
+        />
       )}
       <section className="rule-hair rule-hair-b mt-6 py-6" aria-label="Latest reporting">
         <p className="bs-label-accent">

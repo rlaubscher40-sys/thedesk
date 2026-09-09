@@ -7,7 +7,6 @@ import {
   type CityApprovals,
 } from "../../shared/cityApprovals";
 import { rentPeriod } from "../../shared/cityRents";
-import { propertyComparisonCta } from "./propertyEditorial";
 import type { verifiedRentReel } from "./verifiedReel";
 
 type VerifiedReel = NonNullable<ReturnType<typeof verifiedRentReel>>;
@@ -91,7 +90,7 @@ export function verifiedSupplyReel(data: CityApprovals, now = new Date()): Verif
       `${flags}. Figures can be revised.`,
       `Source: ${APPROVAL_SOURCE}`,
       `Verified series: ${approvalsDataUrl(asOf)}`,
-      propertyComparisonCta("reel"),
+      "Check the approvals panel: https://thedesk.au/markets/compare/brisbane-vs-perth?utm_source=instagram&utm_medium=reel&utm_campaign=supply_comparison#housing-approvals",
       "Send this to someone comparing Brisbane and Perth's housing supply.",
       "Synthetic male narration: Kokoro / George. #AusProperty #HousingSupply #TheDesk",
     ].join("\n\n"),

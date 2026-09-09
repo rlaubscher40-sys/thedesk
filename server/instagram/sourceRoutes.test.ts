@@ -103,7 +103,11 @@ describe("actual scheduled social entrypoints", () => {
       {
         weekOf: "2026-08-31",
         topics: [
-          { title: "Housing approvals rise", summary: "Dwelling approvals", category: "PROPERTY" },
+          {
+            title: "Australian housing approvals rise",
+            summary: "Dwelling approvals",
+            category: "PROPERTY",
+          },
         ],
       },
       {
@@ -122,7 +126,11 @@ describe("actual scheduled social entrypoints", () => {
       editionNumber: 10,
       weekOf: "2026-09-07",
       topics: [
-        { title: "Housing approvals rise", summary: "Dwelling approvals", category: "PROPERTY" },
+        {
+          title: "Australian housing approvals rise",
+          summary: "Dwelling approvals",
+          category: "PROPERTY",
+        },
       ],
     };
     m.editions.mockResolvedValue([edition]);
