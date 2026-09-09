@@ -6,6 +6,19 @@ import type { Sheet } from "./parsers";
 /** Reject oversized/ambiguous ZIPs before the maintained workbook parser sees them.
  * The parser then runs off the request thread with its own memory/time budget. */
 export function validateWorkbookZip(data: Buffer): void {
+  const entries = inspectZip(data);
+  if (!entries.some((e) => e.name === "xl/workbook.xml"))
+    throw new Error("Not an XLSX workbook");
+}
+
+export function inspectZip(data: Buffer, maxEntries = 256) {
+  const entries: {
+    name: string;
+    method: number;
+    compressed: number;
+    raw: number;
+    start: number;
+  }[] = [];
   if (data.length < 22 || data.length > 10_000_000)
     throw new Error("Invalid workbook size");
   let end = -1;
@@ -25,7 +38,7 @@ export function validateWorkbookZip(data: Buffer): void {
     start = data.readUInt32LE(end + 16);
   if (
     !count ||
-    count > 256 ||
+    count > maxEntries ||
     data.readUInt16LE(end + 8) !== count ||
     start + size !== end
   )
@@ -70,10 +83,26 @@ export function validateWorkbookZip(data: Buffer): void {
         start
     )
       throw new Error("Workbook expansion limit exceeded");
+    const localNameLength = data.readUInt16LE(offset + 26);
+    if (
+      data
+        .subarray(offset + 30, offset + 30 + localNameLength)
+        .toString("utf8") !== name ||
+      data.readUInt16LE(offset + 8) !== method ||
+      data.readUInt16LE(offset + 6) !== flags
+    )
+      throw new Error("Mismatched ZIP entry");
+    entries.push({
+      name,
+      method,
+      compressed,
+      raw,
+      start: offset + 30 + localNameLength + data.readUInt16LE(offset + 28),
+    });
     at += 46 + len + extra + comment;
   }
-  if (at !== end || !names.has("xl/workbook.xml"))
-    throw new Error("Not an XLSX workbook");
+  if (at !== end) throw new Error("Invalid ZIP directory");
+  return entries;
 }
 
 export async function readWorkbook(

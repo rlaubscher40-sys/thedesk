@@ -7,7 +7,6 @@ export async function fetchSource(
   limit: number,
   signal?: AbortSignal,
 ): Promise<Buffer> {
-  const host = new URL(LOCAL_SOURCES[source].url).hostname;
   const controller = AbortSignal.any([
     AbortSignal.timeout(30_000),
     ...(signal ? [signal] : []),
@@ -16,7 +15,7 @@ export async function fetchSource(
   for (let redirects = 0; redirects <= 3; redirects++) {
     if (
       target.protocol !== "https:" ||
-      target.hostname !== host ||
+      !sourceHostAllowed(target, source) ||
       target.username ||
       target.password ||
       (target.port && target.port !== "443")
@@ -66,7 +65,20 @@ export async function fetchSource(
   throw new Error("Too many source redirects");
 }
 
-export function sourceLinks(html: string, base: string): string[] {
+export function sourceHostAllowed(url: URL, source: LocalSourceKey): boolean {
+  if (url.hostname === new URL(LOCAL_SOURCES[source].url).hostname) return true;
+  return (
+    source === "wa-bond-rents" &&
+    url.hostname === "ahdap-public-data.s3.ap-southeast-2.amazonaws.com" &&
+    url.pathname.startsWith("/RentalBondsWA/")
+  );
+}
+
+export function sourceLinks(
+  html: string,
+  base: string,
+  source?: LocalSourceKey,
+): string[] {
   const links: string[] = [];
   const walk = (node: ReturnType<typeof parse> | any) => {
     if (node.tagName === "a") {
@@ -76,7 +88,11 @@ export function sourceLinks(html: string, base: string): string[] {
       if (href) {
         try {
           const url = new URL(href, base);
-          if (url.origin === new URL(base).origin) links.push(url.href);
+          if (
+            url.origin === new URL(base).origin ||
+            (source && sourceHostAllowed(url, source))
+          )
+            links.push(url.href);
         } catch {}
       }
     }

@@ -14,6 +14,9 @@ import { collectionSignal } from "../db/collectionRuns";
 import { fetchSource, selectResource } from "./fetch";
 import { readWorkbook } from "./workbook";
 import { parseLocalPopulation, parseNswBonds, parseQldBonds } from "./parsers";
+import { discoverRentResource } from "./rentResources";
+import { parseSaBonds, parseTasBonds } from "./stateRents";
+import { parseWaArchive } from "./waArchive";
 
 export async function collectLocalData(source: LocalSourceKey): Promise<void> {
   const signal = collectionSignal();
@@ -28,13 +31,23 @@ export async function collectLocalData(source: LocalSourceKey): Promise<void> {
     return;
   try {
     const now = new Date();
-    const html = await fetchSource(
-      LOCAL_SOURCES[source].url,
-      source,
-      2_000_000,
-      signal,
-    );
-    const resource = selectResource(source, html.toString("utf8"), now);
+    const resource =
+      source === "sa-bond-rents" ||
+      source === "wa-bond-rents" ||
+      source === "tas-bond-rents"
+        ? await discoverRentResource(source, now, signal)
+        : selectResource(
+            source,
+            (
+              await fetchSource(
+                LOCAL_SOURCES[source].url,
+                source,
+                2_000_000,
+                signal,
+              )
+            ).toString("utf8"),
+            now,
+          );
     const bytes = await fetchSource(resource.url, source, 10_000_000, signal);
     const fingerprint = createHash("sha256")
       .update("local-data-v1\n")
@@ -43,13 +56,20 @@ export async function collectLocalData(source: LocalSourceKey): Promise<void> {
       .digest("hex");
     const previous = await readLocalDataset(source);
     if (previous?.fingerprint !== fingerprint) {
-      const sheets = await readWorkbook(bytes, signal);
+      const sheets =
+        source === "wa-bond-rents" ? [] : await readWorkbook(bytes, signal);
       const parsed =
         source === "abs-sa2-population"
           ? parseLocalPopulation(sheets, Number(resource.period.slice(0, 4)))
           : source === "nsw-bond-rents"
             ? parseNswBonds(sheets, resource.period)
-            : parseQldBonds(sheets);
+            : source === "qld-bond-rents"
+              ? parseQldBonds(sheets)
+              : source === "sa-bond-rents"
+                ? parseSaBonds(sheets, resource.period)
+                : source === "tas-bond-rents"
+                  ? parseTasBonds(sheets, resource.period)
+                  : await parseWaArchive(bytes, resource.period, signal);
       if (parsed.period >= now.toISOString().slice(0, 10))
         throw new Error("Source reporting period is not complete");
       const data: LocalDataset = {
