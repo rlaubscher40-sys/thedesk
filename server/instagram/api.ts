@@ -1,4 +1,5 @@
 import { validMetricCount } from "../../shared/instagramMeasurement";
+import { assertCaptionStyle, CaptionStyleError } from "./captionStyle";
 /**
  * Instagram Graph API client.
  *
@@ -77,6 +78,7 @@ export function isTransientServerError(err: unknown): boolean {
 }
 
 async function igPost<T>(endpoint: string, params: Record<string, string>): Promise<T> {
+  if (params.caption) assertCaptionStyle(params.caption);
   const body = new URLSearchParams(params);
   const res = await fetch(`${BASE}${endpoint}`, {
     method: "POST",
@@ -136,6 +138,7 @@ async function withIgRetry<T>(
       return await fn();
     } catch (err) {
       lastErr = err;
+      if (err instanceof CaptionStyleError) throw err;
       if (isRateLimitError(err)) {
         console.warn(`[instagram] ${label} hit a rate-limit/integrity block, not retrying.`);
         throw err;

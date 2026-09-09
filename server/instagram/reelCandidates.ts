@@ -1,3 +1,5 @@
+import { getHousingBalanceSnapshot } from "../markets/housingBalance";
+import { verifiedHousingBalanceReel } from "./verifiedHousingBalanceReel";
 import { getCityRents } from "../markets/absRents";
 import { getCityApprovals } from "../markets/absApprovals";
 import { verifiedRentReel } from "./verifiedReel";
@@ -7,7 +9,11 @@ import { verifiedSydneyBeforeBuy, verifiedSydneyRentChange } from "./verifiedSyd
 
 /** Shared editorial registry: scheduled publishing and the admin read use the same recipes. */
 export async function getVerifiedReelProgramme(now = new Date()) {
-  const [rents, approvals] = await Promise.all([getCityRents(), getCityApprovals()]);
+  const [rents, approvals, housingBalance] = await Promise.all([
+    getCityRents(),
+    getCityApprovals(),
+    getHousingBalanceSnapshot(),
+  ]);
   return [
     {
       topic: "Market vs Market · rents",
@@ -39,6 +45,13 @@ export async function getVerifiedReelProgramme(now = new Date()) {
       family: "supply",
       candidate: verifiedSydneyBeforeBuy(approvals, now),
       requirement: "Twelve consecutive valid Greater Sydney approvals; current retrieved evidence.",
+    },
+    {
+      topic: "Australia · housing supply and demand",
+      family: "supply",
+      candidate: verifiedHousingBalanceReel(housingBalance, now),
+      requirement:
+        "Reviewed national net supply and estimated new demand for the same historical period, from the current report vintage.",
     },
   ];
 }

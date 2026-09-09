@@ -19,7 +19,30 @@ export function captionChunks(text: string): string[][] {
     if (wrapped.length <= 2) return [wrapped];
     // Balance phrases rather than leaving a tiny third-line orphan that
     // flashes for half a second (e.g. a lone "returns.").
-    const mid = Math.ceil(group.length / 2);
+    // A count such as "two hundred and thirty-two thousand" must stay in
+    // one cue. Line wrapping inside the cue is fine; a timed cue boundary
+    // halfway through the number forces viewers to reconstruct the amount.
+    const numeric = (word: string | undefined) =>
+      !!word &&
+      /^(?:\d+(?:[.,]\d+)*|(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)(?:-(?:one|two|three|four|five|six|seven|eight|nine))?|hundred|thousand|million|billion)$/i.test(
+        word.replace(/[.,:;!?]$/, "")
+      );
+    const joinsNumber = (at: number) => {
+      const left = group[at - 1],
+        right = group[at];
+      if (/[.!?;:]$/.test(left ?? "")) return false;
+      return (
+        (numeric(left) && numeric(right)) ||
+        (numeric(left) && right?.toLowerCase() === "and" && numeric(group[at + 1])) ||
+        (left?.toLowerCase() === "and" && numeric(group[at - 2]) && numeric(right))
+      );
+    };
+    const preferred = Math.ceil(group.length / 2);
+    const boundaries = Array.from({ length: group.length - 1 }, (_, i) => i + 1)
+      .filter((at) => !joinsNumber(at))
+      .sort((a, b) => Math.abs(a - preferred) - Math.abs(b - preferred));
+    // Very long numbers that cannot fit one cue still preserve every word.
+    const mid = boundaries[0] ?? preferred;
     return [...split(group.slice(0, mid)), ...split(group.slice(mid))];
   }
   return split(words);
@@ -85,7 +108,7 @@ function literal(text: string) {
     .replace(/\}/g, "｝")
     .replace(/[\r\n]/g, " ");
 }
-export function subtitleAss(cues: SubtitleCue[]): string {
+export function subtitleAss(cues: SubtitleCue[], layout: "card" | "story" = "card"): string {
   return (
     `[Script Info]
 ScriptType: v4.00+
@@ -94,14 +117,14 @@ PlayResY: 1920
 WrapStyle: 2
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Desk,JetBrains Mono,44,&H00F6F3EB,&H00F6F3EB,&H00170F0B,&H00170F0B,0,0,0,0,100,100,0,0,3,14,0,5,84,84,0,1
+Style: Desk,JetBrains Mono,${layout === "story" ? "40" : "44"},&H00F6F3EB,&H00F6F3EB,&H00170F0B,&H00170F0B,0,0,0,0,100,100,0,0,${layout === "story" ? "1,3,1" : "3,14,0"},5,84,${layout === "story" ? "156" : "84"},0,1
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 ` +
     cues
       .map(
         (c) =>
-          `Dialogue: 0,${timestamp(c.start)},${timestamp(c.end)},Desk,,0,0,0,,{\\pos(540,210)}${c.lines.map(literal).join("\\N")}`
+          `Dialogue: 0,${timestamp(c.start)},${timestamp(c.end)},Desk,,0,0,0,,{\\pos(${layout === "story" ? "504,1490" : "540,210"})}${c.lines.map(literal).join("\\N")}`
       )
       .join("\n") +
     "\n"

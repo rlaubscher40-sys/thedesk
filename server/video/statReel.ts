@@ -18,6 +18,15 @@ import {
 } from "./narration";
 
 import { subtitleCues, subtitleAss } from "./subtitles";
+import { housingBalanceSubtitleScript } from "./housingBalanceStoryboard";
+import { synthesisePhrases, type MeasuredPhrase } from "./phraseSpeech";
+import {
+  renderStoryFrame,
+  storyboardSections,
+  validateStoryboard,
+  type ReelStoryboard,
+} from "./storyboard";
+import type { SpeechProfile } from "./localVoice";
 
 const run = promisify(execFile);
 
@@ -107,23 +116,17 @@ const FINAL_TAIL_SECONDS = 0.85;
  *  short passage never leaves a frame on screen too briefly to read. */
 const MIN_HOLD = 0.55;
 
-/**
- * The longest a Reel may run.
- *
- * Every beat holds for as long as its passage takes to say, so the clip's
- * length is whatever the script's length is — and the script is written by a
- * model. Per-passage caps bound it in the normal case; this bounds it in the
- * case where they were set wrong, which has already happened once. Over this,
- * the written script is dropped for the deterministic read, which is short by
- * construction.
- *
- * Thirty-two seconds: long enough for a narrated explainer, short enough that
- * someone finishes it.
- */
+/** Default duration budget. The reviewed housing explainer gets six extra
+ * seconds for complete sentences and its source passage, without speeding up
+ * the voice. This is an editorial limit, not a claim about audience retention. */
 export const MAX_REEL_SECONDS = 32;
+export function reelDurationLimit(stat?: Pick<ReelStat, "storyboard">): number {
+  return stat?.storyboard?.kind === "housing-balance" ? 38 : MAX_REEL_SECONDS;
+}
 
 export type ReelStat = ReelStatText & {
-  editorialLabel?: "What Changed" | "Before You Buy";
+  storyboard?: ReelStoryboard;
+  editorialLabel?: "What Changed" | "Before You Buy" | "Supply and Demand";
   asOf?: Date | null;
   series?: SparkPoint[];
   facts?: StatFact[];
@@ -144,6 +147,10 @@ const FACT_SECONDS = 1.25;
 const DRAW_STEPS = 8;
 
 export type Frame = {
+  /** Numeric animation uses crisp cuts so adjacent digits never ghost. */
+  hardCut?: boolean;
+  sceneKey?: string;
+  sceneProgress?: number;
   reveal: number;
   valueText?: string;
   /** 0..1, how much of the history line is drawn on this frame. */
@@ -235,7 +242,7 @@ export function layout(sections: Section[]): {
     const share = elastic > 0 ? Math.max(MIN_HOLD, section.seconds - fixedTotal) / elastic : 0;
 
     section.frames.forEach((frame, i) => {
-      const fade = beats.length === 0 ? 0 : i === 0 ? SECTION_FADE : TICK_FADE;
+      const fade = beats.length === 0 || frame.hardCut ? 0 : i === 0 ? SECTION_FADE : TICK_FADE;
       const seconds = snapToFrame(frame.seconds ?? share);
       beats.push({
         frame,
@@ -304,7 +311,7 @@ export function layout(sections: Section[]): {
  *
  * Exported so the pacing can be asserted without invoking ffmpeg.
  */
-export function buildVideoGraph(beats: Beat[]): string {
+export function buildVideoGraph(beats: Beat[], stationary = false): string {
   const total = beats.reduce((n, b, i) => n + b.seconds - (i === 0 ? 0 : b.fade), 0);
   const parts: string[] = [];
 
@@ -314,7 +321,8 @@ export function buildVideoGraph(beats: Beat[]): string {
   const spans = beats.map((beat, i) => {
     const startAt = i === 0 ? 0 : chain - beat.fade;
     chain = i === 0 ? beat.seconds : chain + beat.seconds - beat.fade;
-    const at = (t: number) => ZOOM_START + (ZOOM_END - ZOOM_START) * (total > 0 ? t / total : 0);
+    const at = (t: number) =>
+      stationary ? 1 : ZOOM_START + (ZOOM_END - ZOOM_START) * (total > 0 ? t / total : 0);
     return { from: at(startAt), to: at(startAt + beat.seconds) };
   });
 
@@ -336,9 +344,14 @@ export function buildVideoGraph(beats: Beat[]): string {
     const beat = beats[i]!;
     const offset = Math.max(0, chained - beat.fade);
     const out = i === beats.length - 1 ? "[vout]" : `[x${i}]`;
+    // xfade with a zero-duration, one-frame input can silently end the video
+    // stream early. A hard cut must use concat, then restore the input timebase
+    // so a later non-zero dissolve still receives compatible streams.
     parts.push(
-      `${label}[v${i}]xfade=transition=fade:duration=${beat.fade.toFixed(3)}:` +
-        `offset=${offset.toFixed(3)}${out}`
+      beat.fade === 0
+        ? `${label}[v${i}]concat=n=2:v=1:a=0,settb=1/${FPS}${out}`
+        : `${label}[v${i}]xfade=transition=fade:duration=${beat.fade.toFixed(3)}:` +
+            `offset=${offset.toFixed(3)}${out}`
     );
     label = out;
     chained = chained + beat.seconds - beat.fade;
@@ -418,8 +431,8 @@ export function estimateScriptSeconds(script: ScriptLine[]): number {
 }
 
 /** Will this script produce a Reel anyone finishes? */
-export function scriptFitsClip(script: ScriptLine[]): boolean {
-  return estimateScriptSeconds(script) <= MAX_REEL_SECONDS;
+export function scriptFitsClip(script: ScriptLine[], stat?: Pick<ReelStat, "storyboard">): boolean {
+  return estimateScriptSeconds(script) <= reelDurationLimit(stat);
 }
 
 /**
@@ -430,7 +443,12 @@ export function scriptFitsClip(script: ScriptLine[]): boolean {
  * — the same render as the claim beat, so it costs nothing — which gives the
  * end of the clip a beat of stillness to be read in.
  */
-export function composeSections(stat: ReelStat, durations: Record<string, number>): Section[] {
+export function composeSections(
+  stat: ReelStat,
+  durations: Record<string, number>,
+  phrases?: Record<string, MeasuredPhrase[]>
+): Section[] {
+  if (stat.storyboard) return storyboardSections(stat.storyboard, durations, phrases);
   const ticks = countUpFrames(stat.value);
   const withTail = (key: string, last = false) =>
     (durations[key] ?? 0) + (last ? FINAL_TAIL_SECONDS : TAIL_SECONDS);
@@ -521,8 +539,19 @@ export function composeSections(stat: ReelStat, durations: Record<string, number
 export async function renderStatReel(
   stat: ReelStat,
   variant: CardVariant = "navy",
-  opts: { narrate?: boolean; script?: ScriptLine[]; subtitles?: boolean } = {}
-): Promise<{ bytes: Buffer; seconds: number; narrated: boolean; subtitled: boolean }> {
+  opts: {
+    narrate?: boolean;
+    script?: ScriptLine[];
+    subtitles?: boolean;
+    voice?: SpeechProfile;
+  } = {}
+): Promise<{
+  bytes: Buffer;
+  seconds: number;
+  narrated: boolean;
+  subtitled: boolean;
+  timeline: Array<{ key: string; start: number; seconds: number; phrases?: MeasuredPhrase[] }>;
+}> {
   if (!ffmpegPath) throw new Error("ffmpeg binary unavailable");
 
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "desk-reel-"));
@@ -534,18 +563,30 @@ export async function renderStatReel(
     //
     // The length check runs on the estimate, before synthesis, so an overlong
     // script costs nothing rather than five TTS calls that are then discarded.
-    let script = opts.script ?? buildScript(stat);
-    if (opts.script && !scriptFitsClip(opts.script)) {
+    let script =
+      opts.script ??
+      (stat.storyboard
+        ? stat.storyboard.scenes.map(({ key, text }) => ({ key, text }))
+        : buildScript(stat));
+    if (stat.storyboard) validateStoryboard(stat.storyboard, script);
+    const maxSeconds = reelDurationLimit(stat);
+    if (opts.script && !scriptFitsClip(opts.script, stat)) {
       throw new Error(
-        `Narration script exceeds the ${MAX_REEL_SECONDS}-second editorial limit. Shorten the story before publishing.`
+        `Narration script exceeds the ${maxSeconds}-second editorial limit. Shorten the story before publishing.`
       );
     }
-    const spoken = opts.narrate === false ? null : await synthesiseScript(script);
+    const spoken =
+      opts.narrate === false
+        ? null
+        : stat.storyboard?.kind === "housing-balance"
+          ? await synthesisePhrases(stat.storyboard.scenes, opts.voice)
+          : await synthesiseScript(script, opts.voice);
     if (opts.narrate !== false && !spoken)
       throw new Error("Narration unavailable. No silent Reel was produced.");
 
     // Measure the voice when we have it; fall back to a news-read estimate.
     const durations: Record<string, number> = {};
+    const phrases: Record<string, MeasuredPhrase[]> = {};
     const audioFiles: Array<{ key: string; file: string }> = [];
     for (const line of script) {
       durations[line.key] = estimateSpeechSeconds(line.text);
@@ -557,15 +598,20 @@ export async function renderStatReel(
         const measured = await probeSeconds(file);
         if (!measured) throw new Error("Narration duration could not be verified.");
         durations[clip.key] = measured;
+        if ("phrases" in clip) phrases[clip.key] = clip.phrases as MeasuredPhrase[];
         audioFiles.push({ key: clip.key, file });
       }
     }
 
-    const sections = composeSections(stat, durations);
+    const sections = composeSections(
+      stat,
+      durations,
+      spoken && stat.storyboard?.kind === "housing-balance" ? phrases : undefined
+    );
     const { beats, starts, total } = layout(sections);
-    if (total > MAX_REEL_SECONDS)
+    if (total > maxSeconds)
       throw new Error(
-        "Recorded narration exceeds the Reel duration limit. Shorten the story before publishing."
+        `Recorded narration is ${total.toFixed(1)} seconds, exceeding the ${maxSeconds}-second Reel limit. Shorten the story before publishing.`
       );
 
     // One still per beat, all from the same card component. Identical frames
@@ -579,19 +625,28 @@ export async function renderStatReel(
         beat.frame.valueText ?? "",
         beat.frame.seriesProgress ?? "",
         beat.frame.factsShown ?? "",
+        beat.frame.sceneKey ?? "",
+        beat.frame.sceneProgress ?? "",
       ].join("|");
       let file = cache.get(key);
       if (!file) {
-        const buf = await renderStatCard(stat, variant, {
-          shape: "vertical",
-          reveal: beat.frame.reveal,
-          valueText: beat.frame.valueText,
-          seriesProgress: beat.frame.seriesProgress,
-          facts: stat.facts,
-          factsShown: beat.frame.factsShown ?? 0,
-          subtitleSpace: opts.subtitles,
-          kicker: stat.editorialLabel ?? "The Number",
-        });
+        const buf = stat.storyboard
+          ? await renderStoryFrame(
+              stat.storyboard,
+              beat.frame.sceneKey!,
+              beat.frame.sceneProgress!,
+              variant
+            )
+          : await renderStatCard(stat, variant, {
+              shape: "vertical",
+              reveal: beat.frame.reveal,
+              valueText: beat.frame.valueText,
+              seriesProgress: beat.frame.seriesProgress,
+              facts: stat.facts,
+              factsShown: beat.frame.factsShown ?? 0,
+              subtitleSpace: opts.subtitles,
+              kicker: stat.editorialLabel ?? "The Number",
+            });
         file = path.join(dir, `frame-${cache.size}.jpg`);
         await fs.writeFile(file, buf);
         cache.set(key, file);
@@ -619,13 +674,27 @@ export async function renderStatReel(
     let subtitleFilter = "";
     if (opts.subtitles) {
       if (!spoken) throw new Error("Subtitles require measured narration.");
+      const display =
+        stat.storyboard?.kind === "housing-balance"
+          ? housingBalanceSubtitleScript(stat.storyboard, script)
+          : undefined;
       const cues = subtitleCues(
-        script,
-        sections.map((section, i) => ({
-          key: section.key,
-          start: starts[i]!,
-          seconds: durations[section.key] ?? 0,
-        }))
+        display
+          ? display.flatMap((s) => s.phrases.map((text, i) => ({ key: `${s.key}:${i}`, text })))
+          : script,
+        display
+          ? sections.flatMap((s, i) =>
+              (phrases[s.key] ?? []).map((p, j) => ({
+                key: `${s.key}:${j}`,
+                start: starts[i]! + p.start,
+                seconds: p.seconds,
+              }))
+            )
+          : sections.map((section, i) => ({
+              key: section.key,
+              start: starts[i]!,
+              seconds: durations[section.key] ?? 0,
+            }))
       );
       const fontDir = path.join(dir, "fonts");
       await fs.mkdir(fontDir);
@@ -634,13 +703,13 @@ export async function renderStatReel(
         await loadReelSubtitleFont()
       );
       const assFile = path.join(dir, "subtitles.ass");
-      await fs.writeFile(assFile, subtitleAss(cues));
+      await fs.writeFile(assFile, subtitleAss(cues, stat.storyboard ? "story" : "card"));
       subtitleFilter = `[vplain]ass=filename=${assFile}:fontsdir=${fontDir}[vout]`;
     }
     const graph = [
       opts.subtitles
-        ? buildVideoGraph(beats).replace(/\[vout\]$/, "[vplain]")
-        : buildVideoGraph(beats),
+        ? buildVideoGraph(beats, Boolean(stat.storyboard)).replace(/\[vout\]$/, "[vplain]")
+        : buildVideoGraph(beats, Boolean(stat.storyboard)),
       subtitleFilter,
       spokenSections.length
         ? buildAudioGraph(
@@ -689,11 +758,41 @@ export async function renderStatReel(
 
     // The encode measures a few seconds; the ceiling is for a cold container.
     await run(ffmpegPath, args, { timeout: 180_000, maxBuffer: 1024 * 1024 * 32 });
+    // A successful encode can still contain a truncated video stream while
+    // audio continues. Measure decoded picture duration, not container duration.
+    const decoded = await run(
+      ffmpegPath,
+      [
+        "-v",
+        "error",
+        "-i",
+        output,
+        "-map",
+        "0:v:0",
+        "-an",
+        "-f",
+        "null",
+        "-",
+        "-progress",
+        "pipe:1",
+      ],
+      { timeout: 60_000, maxBuffer: 1024 * 1024 }
+    );
+    const times = [...decoded.stdout.matchAll(/^out_time_us=(\d+)$/gm)];
+    const actual = Number(times.at(-1)?.[1]) / 1_000_000;
+    if (!Number.isFinite(actual) || Math.abs(actual - total) > 2 / FPS)
+      throw new Error("Encoded pictures do not cover the complete measured Reel timeline.");
     return {
       bytes: await fs.readFile(output),
       seconds: total,
       narrated: spokenSections.length > 0,
       subtitled: Boolean(subtitleFilter),
+      timeline: sections.map((s, i) => ({
+        key: s.key,
+        start: starts[i]!,
+        seconds: durations[s.key]!,
+        ...(phrases[s.key] ? { phrases: phrases[s.key] } : {}),
+      })),
     };
   } finally {
     await fs.rm(dir, { recursive: true, force: true }).catch(() => {});

@@ -25,13 +25,17 @@ const lines = input
   .map((line) => JSON.parse(line));
 if (
   !lines.length ||
-  lines.length > 8 ||
+  lines.length > 9 ||
   lines.some(
     (l) =>
       typeof l.text !== "string" ||
       !l.text.trim() ||
       l.text.length > 1000 ||
-      typeof l.output_file !== "string"
+      typeof l.output_file !== "string" ||
+      !["bm_george", "bm_fable", "bm_daniel"].includes(l.voice ?? "bm_fable") ||
+      !Number.isFinite(l.speed ?? 1.0) ||
+      (l.speed ?? 1.0) < 0.9 ||
+      (l.speed ?? 1.0) > 1.1
   )
 ) {
   throw new Error("Invalid speech passages.");
@@ -46,7 +50,10 @@ try {
   const tokenizer = await AutoTokenizer.from_pretrained(modelPath, { local_files_only: true });
   const tts = new KokoroTTS(model, tokenizer);
   for (const line of lines) {
-    const audio = await tts.generate(line.text, { voice: "bm_george", speed: 1.02 });
+    const audio = await tts.generate(line.text, {
+      voice: line.voice ?? "bm_fable",
+      speed: line.speed ?? 1.0,
+    });
     // Preserve the existing PCM16 validator/mixer contract. No NaNs or silence
     // are accepted downstream; do not hide a model failure with an empty file.
     const samples = audio.audio;

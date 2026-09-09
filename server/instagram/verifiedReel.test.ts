@@ -57,7 +57,7 @@ describe("verified rent Reel", () => {
     expect(story).toContain("Perth's rent index rose faster");
     expect(story).not.toContain("4.6");
     expect(story).not.toContain("5.3");
-    expect(reel.caption).toContain("Kokoro / George");
+    expect(reel.caption).toContain("AI narration.");
     expect(reel.publication).toEqual({
       key: "instagram-reel-abs-rents-brisbane-perth-v1",
       date: "2026-07-01",

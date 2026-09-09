@@ -8,6 +8,7 @@ const m = vi.hoisted(() => ({
   },
   data: vi.fn(),
   approvals: vi.fn(),
+  housing: vi.fn(),
   read: vi.fn(),
   claim: vi.fn(),
   mark: vi.fn(),
@@ -18,6 +19,7 @@ const m = vi.hoisted(() => ({
 vi.mock("../core/env", () => ({ env: m.env }));
 vi.mock("../markets/absRents", () => ({ getCityRents: m.data }));
 vi.mock("../markets/absApprovals", () => ({ getCityApprovals: m.approvals }));
+vi.mock("../markets/housingBalance", () => ({ getHousingBalanceSnapshot: m.housing }));
 vi.mock("../db/jobRuns", () => ({
   readJobRun: m.read,
   claimJobRun: m.claim,
@@ -28,12 +30,14 @@ import { readReelAutomation, runReelAutomation } from "./reelAutomation";
 import { reelPublicationRecord } from "./reelStatus";
 import { RENT_CITIES } from "../../shared/cityRents";
 import { verifiedCapitalRentReel } from "./verifiedCapitalRentReel";
+import { HOUSING_BALANCE_SNAPSHOT } from "../../shared/housingBalance";
 const now = new Date("2026-09-09T08:30:00Z"); // Wednesday 6:30pm Sydney.
 const publicationKey = "instagram-reel-abs-rents-brisbane-perth-v1";
 let published = false;
 beforeEach(() => {
   vi.resetAllMocks();
   published = false;
+  m.housing.mockResolvedValue(null);
   m.approvals.mockResolvedValue({ status: "unavailable", observations: [] });
   m.env.enableScheduler = true;
   m.env.instagramAccessToken = "test";
@@ -268,6 +272,30 @@ describe("automatic verified Reel delivery", () => {
 });
 
 describe("multiple verified topics", () => {
+  const housingKey = "instagram-reel-nhsac-housing-balance-v1";
+  it("advances to verified housing evidence without repeating confirmed rents", async () => {
+    m.housing.mockResolvedValue(structuredClone(HOUSING_BALANCE_SNAPSHOT));
+    published = true;
+    const plan = await readReelAutomation(now);
+    expect(plan.state).toBe("ready");
+    expect(plan.candidate?.publication.key).toBe(housingKey);
+    m.read.mockImplementation(async (key: string) =>
+      key === publicationKey
+        ? { status: "success", detail: "Published media 123456", finishedAt: now }
+        : null
+    );
+    expect(await run()).toEqual({ state: "daily-limit" });
+    expect(m.post).not.toHaveBeenCalled();
+  });
+  it("preserves an uncertain housing publication even when newer rents are available", async () => {
+    m.housing.mockResolvedValue(structuredClone(HOUSING_BALANCE_SNAPSHOT));
+    m.read.mockImplementation(async (key: string) =>
+      key === housingKey ? { status: "running", detail: "Outcome unknown" } : null
+    );
+    expect(await run()).toEqual({ state: "locked" });
+    expect(m.claim).not.toHaveBeenCalled();
+    expect(m.post).not.toHaveBeenCalled();
+  });
   const supplyKey = "instagram-reel-abs-approvals-brisbane-perth-v1";
   function approvals() {
     m.approvals.mockResolvedValue({

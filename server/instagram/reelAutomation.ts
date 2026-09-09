@@ -9,7 +9,7 @@ export const REEL_POLL_MINUTES = 5;
 export const REEL_RETRY_MINUTES = 15;
 export const REEL_STALE_MINUTES = 15;
 export const REEL_MAX_ATTEMPTS = 2;
-export const REEL_SCHEDULE = `Five evidence-gated topics: city comparisons, eight-capital rents, Sydney rent changes and the Sydney buyer supply checklist; at most one automatic Reel per Sydney day, ${REEL_WINDOW.label}, checked every 5 minutes. Monthly evidence, not five guaranteed posts`;
+export const REEL_SCHEDULE = `Six evidence-gated topics: city comparisons, eight-capital rents, Sydney reads and a dated national housing balance; at most one automatic Reel per Sydney day, ${REEL_WINDOW.label}, checked every 5 minutes. Monthly and annual-report evidence, not six guaranteed posts`;
 export const REEL_DELIVERY_KEY = "instagram-reel-delivery-programme-v1";
 
 function sydneyDate(now: Date) {

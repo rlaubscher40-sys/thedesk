@@ -17,12 +17,12 @@ describe("verified approvals story", () => {
     expect(reel.stat.value).toBe("27,628");
     expect(reel.stat.facts?.[1]?.figure).toBe("22,229");
     expect(reel.caption).toContain("Greater Brisbane");
-    expect(reel.caption).toContain("twelve consecutive monthly ABS original counts");
+    expect(reel.caption).toContain("original counts, not seasonally adjusted");
     expect(reel.caption).toContain("Source: ABS Building Approvals");
-    expect(reel.caption).toContain("Bio → Brisbane and Perth supply");
-    expect(reel.caption).toContain("not starts or completed homes");
+    expect(reel.caption).toContain("link in bio → Brisbane and Perth supply");
+    expect(reel.caption).toContain("don't count construction starts or completed homes");
     expect(reel.script.map((line) => line.text).join(" ")).toContain(
-      "Counts alone don't measure a shortage"
+      "supply only makes sense alongside demand"
     );
     expect(scriptFitsClip(reel.script)).toBe(true);
   });

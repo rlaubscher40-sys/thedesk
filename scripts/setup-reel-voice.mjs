@@ -30,5 +30,5 @@ for (const [name, hash] of assets) {
   }
 }
 console.log(
-  "Pinned local Reel voice installed (Kokoro / George, male UK English). No paid speech API."
+  "Pinned local Reel voice installed (Kokoro / Fable, male UK English). No paid speech API."
 );

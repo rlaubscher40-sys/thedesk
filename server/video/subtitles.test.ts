@@ -71,3 +71,19 @@ it("balances long phrases and trims only frame-rounding overlaps", () => {
   expect(cues.flatMap((c) => c.lines).join(" ")).toBe(text + " Next.");
   expect(cues[cues.length - 2]!.end).toBe(3.98);
 });
+
+it("keeps the housing counts together across timed subtitle cues", () => {
+  for (const number of [
+    "two hundred and thirty-two thousand",
+    "two hundred and eighty-seven thousand",
+  ]) {
+    const text = `After demolitions, about ${number} homes were added.`;
+    const cues = subtitleCues([{ key: "value", text }], [{ key: "value", start: 0, seconds: 5.5 }]);
+    expect(cues.some((c) => c.lines.join(" ").includes(number))).toBe(true);
+    expect(cues.flatMap((c) => c.lines).join(" ")).toBe(text);
+    expect(cues.every((c) => c.lines.length <= 2 && c.lines.every((l) => l.length <= 32))).toBe(
+      true
+    );
+    expect(cues.every((c) => c.end - c.start >= 0.6)).toBe(true);
+  }
+});

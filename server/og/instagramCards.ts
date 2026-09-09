@@ -49,6 +49,86 @@ export async function loadReelSubtitleFont(): Promise<Buffer> {
   return Buffer.from((await loadFonts()).mono);
 }
 
+/** A stable 9:16 scene canvas, with room for platform chrome and spoken subtitles. */
+export async function renderEditorialFrame(
+  content: object,
+  variant: CardVariant,
+  meta: { kicker: string; source: string; index: number; count: number; quiet?: boolean }
+): Promise<Buffer> {
+  const c = colorScheme(variant);
+  const div = (style: object, children: unknown) => ({
+    type: "div",
+    props: { style: { display: "flex", ...style }, children },
+  });
+  const mono = (text: string, size: number, color: string) =>
+    div({ fontFamily: "JetBrains Mono", fontSize: size, color }, text);
+  const tree = div({ position: "relative", width: 1080, height: 1920, backgroundColor: c.bg }, [
+    div(
+      {
+        position: "absolute",
+        left: 84,
+        top: 166,
+        right: 156,
+        alignItems: "center",
+        justifyContent: "space-between",
+      },
+      [
+        brandHeader(await loadLogo(variant), 48, { accent: c.amber }),
+        ...(!meta.quiet
+          ? [
+              mono(
+                `${String(meta.index + 1).padStart(2, "0")} / ${String(meta.count).padStart(2, "0")}`,
+                22,
+                c.fgMuted
+              ),
+            ]
+          : []),
+      ]
+    ),
+    div(
+      { position: "absolute", left: 84, top: 258 },
+      mono(meta.kicker, 22, meta.quiet ? c.fgMuted : c.amber)
+    ),
+    div({ position: "absolute", left: 84, top: 355, width: 840, flexDirection: "column" }, content),
+    div(
+      {
+        position: "absolute",
+        left: 84,
+        top: 1375,
+        width: 840,
+        ...(meta.quiet ? {} : { borderTop: `1px solid ${c.fgMuted}` }),
+        paddingTop: 20,
+      },
+      mono(meta.source, 21, c.fgMuted)
+    ),
+    ...(!meta.quiet
+      ? [
+          div(
+            {
+              position: "absolute",
+              left: 84,
+              top: 1570,
+              width: 840,
+              height: 3,
+              backgroundColor: c.amberSoft,
+            },
+            [
+              div(
+                {
+                  width: `${((meta.index + 1) / meta.count) * 100}%`,
+                  height: 3,
+                  backgroundColor: c.amber,
+                },
+                ""
+              ),
+            ]
+          ),
+        ]
+      : []),
+  ]);
+  return renderToJpeg(tree, 1080, 1920);
+}
+
 /**
  * The Desk lockup (logo + wordmark), light colourway on transparent, copied
  * into the fonts dir so the build bundles it next to dist/. Loaded once as a
@@ -81,7 +161,7 @@ async function loadLogo(variant: CardVariant = "navy"): Promise<string | null> {
 /** Load a bundled JPEG/PNG asset (hero photo, headshot) as a data URI,
  *  cached. Returns null if missing so a render never hard-fails. */
 const cachedAssets: Record<string, string | null> = {};
-async function loadAsset(filename: string): Promise<string | null> {
+export async function loadAsset(filename: string): Promise<string | null> {
   const cached = cachedAssets[filename];
   if (cached !== undefined) return cached;
   try {

@@ -1,13 +1,44 @@
 import { SOCIAL_DESTINATIONS } from "../../shared/socialDestinations";
+import { assertCaptionStyle } from "./captionStyle";
 
 export const REEL_READS = {
   rentComparison: SOCIAL_DESTINATIONS[0],
   sydneyRent: SOCIAL_DESTINATIONS[1],
   sydneySupply: SOCIAL_DESTINATIONS[2],
   supplyComparison: SOCIAL_DESTINATIONS[3],
+  housingBalance: SOCIAL_DESTINATIONS[4],
   capitalRents: { label: "All eight capital-city rent figures", path: "/social" },
 } as const;
 export const REEL_CAPTION_LIMIT = 1400;
+
+/** Narrative captions keep the source and material caveats without exposing pipeline metadata. */
+export function buildNarrativeReelCaption(input: {
+  paragraphs: string[];
+  source: string;
+  revision?: string;
+  read: keyof typeof REEL_READS;
+}) {
+  if (!Object.hasOwn(REEL_READS, input.read)) throw new Error("Unknown Reel read");
+  const fields = [...input.paragraphs, input.source, ...(input.revision ? [input.revision] : [])];
+  if (
+    input.paragraphs.length < 3 ||
+    input.paragraphs.length > 6 ||
+    !input.paragraphs[0] ||
+    input.paragraphs[0].length > 110 ||
+    fields.some((p) => !p.trim() || /https?:\/\/|#[\w-]/i.test(p))
+  )
+    throw new Error("Narrative caption requires complete plain-text editorial fields");
+  const caption = [
+    ...input.paragraphs.map((p) => p.trim()),
+    `Full comparison and sources: link in bio → ${REEL_READS[input.read].label}.`,
+    input.source.trim(),
+    ...(input.revision ? [input.revision.trim()] : []),
+    "AI narration.\n#AusProperty #HousingSupply #TheDesk",
+  ].join("\n\n");
+  if (caption.length > REEL_CAPTION_LIMIT)
+    throw new Error("Reel caption exceeds editorial length limit; no factual truncation allowed");
+  return assertCaptionStyle(caption);
+}
 
 /** The spoken ending and video card name the same visible link as the caption. */
 export function reelReadingCta(read: keyof typeof REEL_READS) {
@@ -24,6 +55,7 @@ const CAMPAIGNS = {
   sydneySupply: "sydney_before_buy",
   supplyComparison: "supply_comparison",
   capitalRents: "eight_capital_rents",
+  housingBalance: "national_housing_balance",
 } as const;
 
 /** Fixed editorial copy, not another model call. Never truncate a source claim. */
@@ -59,9 +91,9 @@ export function buildReelCaption(input: {
     ...paragraphs.map((p) => p.trim()),
     `Bio → ${reading.label}. Figures, definitions and ABS source links:\n${url}`,
     "Source pages update; match the post's reference period.",
-    "Synthetic male narration: Kokoro / George.\n#AusProperty #PropertyData #TheDesk",
+    "AI narration.\n#AusProperty #PropertyData #TheDesk",
   ].join("\n\n");
   if (caption.length > REEL_CAPTION_LIMIT)
     throw new Error("Reel caption exceeds editorial length limit; no factual truncation allowed");
-  return caption;
+  return assertCaptionStyle(caption);
 }

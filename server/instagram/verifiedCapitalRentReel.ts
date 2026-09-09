@@ -114,7 +114,7 @@ export function verifiedCapitalRentReel(data: CityRents, now = new Date()) {
       method: "Source: ABS CPI rents actually paid, original capital-city series.",
       revisions: "Revision flags shown above where present. Data can be revised.",
       action:
-        "Share this with someone comparing rent levels and growth—they measure different things.",
+        "Share this with someone comparing rent levels and growth. They measure different things.",
       read: "capitalRents",
     }),
   };
