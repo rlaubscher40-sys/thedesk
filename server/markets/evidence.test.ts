@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+vi.mock("../ask/localFacts", () => ({retrieveLocalFacts: vi.fn(async () => [])}));
 vi.mock("../db", () => ({
   searchPropertyEvidence: vi.fn(async () => []),
   searchMarketContent: vi.fn(),

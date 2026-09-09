@@ -110,6 +110,8 @@ GROUNDING RULES:
 - If the evidence is mixed, say so.
 - If a numeric signal is not explicitly present in the evidence, do not create one.
 - Current metric rows are authoritative only for the value and context explicitly shown. Do not infer a percentage change from current versus previous values unless that change itself is supplied in the evidence.
+- Preserve every fact's geography, reporting period, unit and category. A namesake SA2 or council is not an entire metropolitan city; a postcode is not a suburb. State context cannot answer a missing local statistic.
+- Distinguish CPI rent inflation from median weekly new-tenancy rent. Withheld values and missing coverage are not zero. Never use an older observation as the latest when the latest is suppressed.
 - Signals are optional analytical anchors. Return an empty array rather than manufacture metrics.
 - "The Desk Take" may interpret the evidence, but clearly separate interpretation from fact.
 - "What would change our mind" must identify the observable evidence that would weaken the current conclusion.

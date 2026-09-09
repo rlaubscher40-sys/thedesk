@@ -1,6 +1,7 @@
 import type { ComparisonSource, MarketSide } from "../../shared/marketComparison";
 import * as db from "../db";
 import { hasHousingEvidence } from "../../shared/marketRelevance";
+import { retrieveLocalFacts } from "../ask/localFacts";
 
 export type MarketEvidence = ComparisonSource & { text: string };
 export function normaliseText(value: string): string {
@@ -45,15 +46,17 @@ export async function retrieveMarketEvidence(
   marketB: string
 ): Promise<MarketEvidence[]> {
   // Exact full-name queries keep "Port Macquarie" separate from national Macquarie lending.
-  const [bundles, archives] = await Promise.all([
+  const [bundles, archives, localFacts] = await Promise.all([
     Promise.all([db.searchMarketContent(marketA), db.searchMarketContent(marketB)]),
     Promise.all([db.searchPropertyEvidence(marketA), db.searchPropertyEvidence(marketB)]),
+    Promise.all([marketA, marketB].map(market => retrieveLocalFacts(`Property rents and population outlook for ${market}`))),
   ]);
   const evidence = new Map<string, MarketEvidence>();
   for (const [index, bundle] of bundles.entries()) {
     const side: MarketSide = index === 0 ? "a" : "b";
     const market = index === 0 ? marketA : marketB;
     const candidates = [
+      ...localFacts[index]!.slice(0, 2).map(fact => ({...fact, identity: `${fact.sourceUrl}:${fact.title}`, fact: true})),
       ...archives[index]!.map((item) => ({
         title: item.title,
         text: `${item.title}\n${item.summary}`,
@@ -78,10 +81,10 @@ export async function retrieveMarketEvidence(
         href: `/editions/${item.editionNumber}`,
         identity: `/editions/${item.editionNumber}`,
       })),
-    ].sort((a, b) => b.date.localeCompare(a.date));
+    ].sort((a, b) => Number("fact" in b) - Number("fact" in a) || b.date.localeCompare(a.date));
     let count = 0;
     for (const item of candidates) {
-      const passage = marketHousingPassage(item.text, market);
+      const passage = "fact" in item ? item.text : marketHousingPassage(item.text, market);
       if (!passage) continue;
       const existing = evidence.get(item.identity);
       if (existing?.markets.includes(side)) continue;

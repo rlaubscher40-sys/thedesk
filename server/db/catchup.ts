@@ -19,11 +19,13 @@
  * the database doesn't have yet.
  */
 import { SECURITY_DDL } from "./security";
+import { LOCAL_DATA_DDL } from "./localDataSchema";
 import { sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 
 export const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
   ...SECURITY_DDL,
+  ...LOCAL_DATA_DDL,
   {
     name: "nationwide · property_evidence",
     sql: `CREATE TABLE property_evidence (

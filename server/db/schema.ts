@@ -3,6 +3,7 @@
  * shapes in shared/schemas.ts so the database, server and client all agree on
  * what is in there.
  */
+export { localDataSnapshots, localDataHealth } from "./localDataSchema";
 import {
   boolean,
   bigint,

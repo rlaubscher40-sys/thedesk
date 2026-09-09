@@ -17,6 +17,7 @@ import * as db from "../db";
 import { getDb } from "../db/client";
 import type { Subscriber, DailyMetric } from "../db/schema";
 import { adminProcedure, router } from "../core/trpc";
+import { getLocalCoverage } from "../localData/read";
 
 const envFlag = (name: string) => Boolean(process.env[name]);
 
@@ -49,6 +50,7 @@ type ServiceInfo = {
 };
 
 export const healthRouter = router({
+  localDataCoverage: adminProcedure.query(() => getLocalCoverage()),
   refreshMetrics: adminProcedure.mutation(async () => refreshOfficialMetrics()),
   metricCollection: adminProcedure.query(() => ({
     ...metricRefreshStatus(),

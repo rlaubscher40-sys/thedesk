@@ -9,6 +9,7 @@ vi.mock("../db", () => ({
   listDailyMetrics: vi.fn(),
 }));
 vi.mock("../core/llm", () => ({ invokeLLMJson: vi.fn() }));
+vi.mock("../ask/localFacts", () => ({retrieveLocalFacts: vi.fn()}));
 vi.mock("../og/intelligenceCard", () => ({ renderIntelligenceCard: vi.fn() }));
 vi.mock("../core/intelligenceShare", () => ({
   createIntelligenceShareToken: vi.fn(() => "verified-share-token"),
@@ -18,6 +19,7 @@ import * as db from "../db";
 import { invokeLLMJson } from "../core/llm";
 import { createIntelligenceShareToken } from "../core/intelligenceShare";
 import { askRouter } from "./ask";
+import { retrieveLocalFacts } from "../ask/localFacts";
 
 const ctx = { req: { ip: "192.0.2.71" }, res: {}, user: null } as TrpcContext;
 const input = { question: "What changed in investor lending?" };
@@ -47,6 +49,7 @@ const related = {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.mocked(retrieveLocalFacts).mockResolvedValue([]);
   resetAskQuotaForTests();
   vi.mocked(db.searchAllContent).mockResolvedValue(related);
   vi.mocked(db.listDailyMetrics).mockResolvedValue([]);

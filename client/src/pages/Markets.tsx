@@ -15,6 +15,7 @@ import { MarketComparison } from "@/components/markets/MarketComparison";
 import { MarketDiscovery } from "@/components/markets/MarketDiscovery";
 import { AuctionClearance } from "@/components/markets/AuctionClearance";
 import { MarketRentConditions } from "@/components/markets/MarketRentConditions";
+import { LocalMarketData } from "@/components/markets/LocalMarketData";
 import { ComparisonWatchlist } from "@/components/markets/ComparisonWatchlist";
 import { ShareIntelligenceCardButton } from "@/components/ask/ShareIntelligenceCardButton";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -134,8 +135,11 @@ export default function MarketsPage() {
 
   function buildBrief() {
     if (!market || ask.isPending) return;
+    const params = new URLSearchParams(search);
+    const state = /^(NSW|VIC|QLD|SA|WA|TAS|NT|ACT)$/.test(params.get("state") ?? "") ? params.get("state") : "";
+    const kind = /^(SA2|LGA|suburb|postcode)$/.test(params.get("areaKind") ?? "") ? params.get("areaKind") : /^\d{4}$/.test(market) ? "postcode" : "";
     ask.mutate({
-      question: `Assess ${market.slice(0, 64)}: price momentum, rents, supply, credit, population and risks. Use Desk evidence only; state gaps and what would change the call.`,
+      question: `Assess ${kind} ${market.slice(0, 64)} ${state}: price momentum, rents, supply, credit, population and risks. Use Desk evidence only; state gaps and what would change the call.`,
     });
   }
 
@@ -194,6 +198,7 @@ export default function MarketsPage() {
       <ComparisonWatchlist />
       {!comparisonMode && <AuctionClearance metrics={metrics.data} loading={metrics.isLoading} />}
       {!comparisonMode && market && <MarketRentConditions marketA={market} />}
+      {!comparisonMode && market && <LocalMarketData query={market} state={new URLSearchParams(search).get("state")} kind={new URLSearchParams(search).get("areaKind")} />}
       {comparisonMode ? (
         <MarketComparison
           marketA={initial}

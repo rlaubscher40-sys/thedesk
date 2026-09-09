@@ -3,6 +3,8 @@ import { z } from "zod";
 import { publicMarket } from "../../shared/marketDirectory";
 import { getMarketDirectory } from "../markets/discovery";
 import { getCityRents } from "../markets/absRents";
+import { getLocalData } from "../localData/read";
+import { STATE_CODES } from "../../shared/localData";
 import { comparisonInputSchema } from "../../shared/marketComparison";
 import { consumeAnonymousAsk, consumeAnonymousAskAttempt } from "../core/askQuota";
 import {
@@ -16,6 +18,7 @@ import { groundComparison } from "../markets/grounding";
 import { buildComparisonMessages, comparisonResponseFormat } from "../prompts/marketComparison";
 
 export const marketsRouter = router({
+  localData: publicProcedure.input(z.object({query: z.string().trim().min(2).max(80), state: z.enum(STATE_CODES).optional(), kind: z.enum(["SA2", "postcode", "suburb", "LGA", "state"]).optional()})).query(({input}) => getLocalData(input.query, input.state, input.kind)),
   rentalConditions: publicProcedure.query(() => getCityRents()),
   discovery: publicProcedure.query(() => getMarketDirectory()),
   publicFile: publicProcedure

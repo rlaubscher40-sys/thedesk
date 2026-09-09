@@ -9,6 +9,7 @@ import { jobRuns } from "./schema";
 export function isCollectionJob(key: string): boolean {
   return (
     key === "daily-metrics" ||
+    /^local-data-(?:abs-sa2-population|nsw-bond-rents|qld-bond-rents)$/.test(key) ||
     /^official-metrics-(?:12|18)$/.test(key) ||
     /^official-metrics-recovery-(?:00|04|08|12|16|20)$/.test(key) ||
     /^property-evidence-(?:[01]\d|2[0-3])$/.test(key)
