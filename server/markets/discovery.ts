@@ -9,6 +9,7 @@ import { isDemoMode } from "../demo/store";
 import { marketHousingPassage, normaliseText } from "./evidence";
 import { hasHousingEvidence } from "../../shared/marketRelevance";
 import { foreignHousingHeadline } from "../../shared/australianScope";
+import { propertyNewsHold } from "../../shared/propertyNewsQuality";
 import { getCityRents } from "./absRents";
 import { getCityApprovals } from "./absApprovals";
 import { getStateDemographics } from "./absDemographics";
@@ -68,6 +69,7 @@ export function buildMarketDirectory(
         ) &&
         hasHousingEvidence(`${item.title} ${item.summary ?? ""}`) &&
         !foreignHousingHeadline(item.title, item.sourceUrl, item.source) &&
+        !propertyNewsHold(item, asOf) &&
         validDate(item.feedDate) &&
         item.feedDate >= since &&
         item.feedDate <= asOf

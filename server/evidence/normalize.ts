@@ -3,9 +3,17 @@ import { articleIdentity } from "../../scripts/ingest/lib/dedupe";
 import type { FetchedItem } from "../../scripts/ingest/lib/rss";
 import { evidenceRegions, evidenceTopics } from "../../shared/propertyCoverage";
 import { looksLikeGarbage, looksLikeSiteBoilerplate } from "../../shared/headline";
+import { propertyNewsHold } from "../../shared/propertyNewsQuality";
+import { foreignHousingHeadline } from "../../shared/australianScope";
 
 /** Public feed excerpts only. Never infer a publication date from collection time. */
 export function normaliseEvidence(item: FetchedItem, now = new Date()) {
+  if (
+    !Number.isFinite(now.getTime()) ||
+    propertyNewsHold(item, now.toISOString().slice(0, 10)) ||
+    foreignHousingHeadline(item.title, item.url, item.source)
+  )
+    return null;
   const text = `${item.title} ${item.summary}`;
   const topics = evidenceTopics(text);
   if (!topics.length || looksLikeGarbage(text) || looksLikeSiteBoilerplate(text)) return null;

@@ -26,6 +26,7 @@ import { resolveArticleUrl } from "./lib/gnews";
 import { clusterByTitle } from "./lib/cluster";
 import { dedupeArticles } from "./lib/dedupe";
 import { fetchSource, type FetchedItem } from "./lib/rss";
+import { briefingNewsHold } from "./lib/newsEligibility";
 import { postJSON } from "./lib/post";
 
 /**
@@ -229,7 +230,13 @@ export async function runDailyFeedIngest(rawBaseUrl: string, apiKey: string): Pr
   // headlines. Catches the kind of filler that bundled feeds (ABC News
   // Business, Guardian Business) occasionally leak — MMA bouts under
   // MARKETS, lifestyle essays under ECONOMICS, etc.
+  const policyNow = new Date();
   const relevant = fetched.filter((item) => {
+    const hold = briefingNewsHold(item, policyNow);
+    if (hold) {
+      console.log(`[ingest] held by source policy: ${hold}`);
+      return false;
+    }
     if (isIrrelevant(item)) {
       console.log(`[ingest] dropped (off-beat): ${item.title.slice(0, 80)}`);
       return false;

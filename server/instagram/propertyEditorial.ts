@@ -2,6 +2,7 @@ import type { DailyFeedItem, DailyMetric } from "../db/schema";
 import type { EditionTopic } from "../../shared/schemas";
 import { FEATURED_COMPARISON_PATH } from "../../shared/featuredComparison";
 import { foreignHousingHeadline } from "../../shared/australianScope";
+import { propertyNewsHold } from "../../shared/propertyNewsQuality";
 import { explainNoPick, pickStatOfTheDay, rehearsalStat, type HistoryPoint } from "./statPick";
 
 // Editorial relevance is not a confidence score or a claim about causation.
@@ -56,6 +57,7 @@ export function pickPropertyTopics(topics: EditionTopic[], limit = 4): EditionTo
 export function propertyStoryTier(story: DailyFeedItem): number {
   if (!["AU", "PROPERTY"].includes(story.channel)) return 0;
   if (!story.title?.trim() || !story.source?.trim()) return 0;
+  if (propertyNewsHold(story, story.feedDate)) return 0;
   return australianPropertyTier(story);
 }
 
