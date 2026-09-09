@@ -5,6 +5,7 @@ import {
   localAreaHref,
   localDatasetIsOlder,
   localPeriodLabel,
+  localSampleLabel,
   normaliseArea,
   type LocalArea,
   type LocalDataset,
@@ -232,7 +233,7 @@ export function localFactEvidence(
       `Geography: ${area.name}, ${area.state}; ${area.kind}; ${area.boundaryVersion}. Do not extend these observations to another geographic boundary.`,
       ...observations.map(
         (o) =>
-          `${o.measure}; ${o.category}; ${localPeriodLabel(match.sourceKey, o.period, o.measure)}; ${o.value === null ? "withheld: " + o.status : `${o.value} ${o.unit}`}${o.sample === null ? "" : `; ${match.sourceKey === "nsw-bond-rents" ? "valid rent sample" : "bonds lodged (not necessarily median sample)"}: ${o.sample}`}.`,
+          `${o.measure}; ${o.category}; ${localPeriodLabel(match.sourceKey, o.period, o.measure)}; ${o.value === null ? "withheld: " + o.status : `${o.value} ${o.unit}`}${o.sample === null ? "" : `; ${localSampleLabel(match.sourceKey)}: ${o.sample}`}.`,
       ),
       source.method,
       match.older

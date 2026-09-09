@@ -14,10 +14,12 @@ export function AuctionClearance({
       <p className="bs-label-accent">Auction results</p>
       <h2 className="bs-headline mt-3 text-2xl">Clearance across Australia</h2>
       <p className="mt-3 max-w-3xl text-sm text-[var(--color-fg-muted)]">
-        Australia is the weighted average: total sold divided by total reported
-        outcomes across all eight states and territories for the same week.
-        Preliminary results include sales before, at and after auction, with
-        withdrawn and passed-in properties in the denominator.
+        New auction collection is paused while access to an approved replacement
+        source is arranged. Any retained figures below are historical
+        observations. An Australian result requires compatible counts for the
+        same week from all eight states and territories. Missing states are
+        never treated as zero, and capital-city results cannot stand in for a
+        whole state.
       </p>
       {loading ? (
         <p className="mt-4" role="status">
@@ -62,7 +64,9 @@ export function AuctionClearance({
                       year: "numeric",
                       timeZone: "UTC",
                     })}
-                    {stale ? " · needs update" : " · preliminary"}
+                    {stale
+                      ? " · needs update"
+                      : " · retained preliminary result"}
                   </p>
                 )}
                 {counts && (
@@ -74,8 +78,8 @@ export function AuctionClearance({
                 {!row && (
                   <p className="mt-1 text-sm text-[var(--color-fg-muted)]">
                     {region === "Australia"
-                      ? "Waiting for matching weekly counts from all eight jurisdictions."
-                      : "No verified statewide results collected yet."}
+                      ? "National coverage unavailable while replacement source access is pending."
+                      : "No verified statewide results available. Source access is pending."}
                   </p>
                 )}
                 {row?.sourceUrl && (

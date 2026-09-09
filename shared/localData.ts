@@ -3,6 +3,9 @@ export const LOCAL_SOURCE_KEYS = [
   "abs-sa2-population",
   "nsw-bond-rents",
   "qld-bond-rents",
+  "sa-bond-rents",
+  "wa-bond-rents",
+  "tas-bond-rents",
 ] as const;
 export type LocalSourceKey = (typeof LOCAL_SOURCE_KEYS)[number];
 export const STATE_CODES = [
@@ -89,6 +92,45 @@ export const LOCAL_SOURCES = {
     method:
       "Publisher median weekly rent for new tenancies by source-defined suburb, postcode, LGA or state and dwelling category. Bonds lodged are shown as contextual counts, not a confirmed median sample. Suppressed medians remain missing. Compare year-on-year; do not infer vacancy or all-tenancy rents.",
   },
+  "sa-bond-rents": {
+    label: "South Australia new-bond weekly rents",
+    publisher: "SA Housing Trust",
+    url: "https://data.sa.gov.au/data/dataset/private-rent-report",
+    licence: "https://data.sa.gov.au/data/dataset/private-rent-report",
+    attribution:
+      "SA Housing Trust, Private Rental Report (Creative Commons Attribution)",
+    cadence: "Quarterly",
+    states: ["SA"],
+    maxAgeMonths: 6,
+    method:
+      "Publisher median weekly rents for new bonds by suburb, postcode and dwelling category. Counts are rounded to the nearest five and counts of one to five are suppressed. The Desk withholds medians when the displayed count is below 15 or suppressed. Postcodes split across source regions are excluded because component medians cannot be combined. These are not asking rents or vacancy rates.",
+  },
+  "wa-bond-rents": {
+    label: "WA new-bond weekly rents",
+    publisher: "Government of Western Australia",
+    url: "https://housing-data-exchange.ahdap.org/dataset/west-australia-rental-bonds-data-2023-current",
+    licence: "https://creativecommons.org/licenses/by/4.0/",
+    attribution:
+      "Government of Western Australia rental bonds (CC BY 4.0); medians calculated by The Desk",
+    cadence: "Monthly",
+    states: ["WA"],
+    maxAgeMonths: 3,
+    method:
+      "Median weekly rent calculated from published monthly bond lodgements by postcode. All dwelling types and bedrooms are combined because the source does not distinguish them. At least ten valid rents are required. Postcodes are not suburbs. This is not asking rent, vacancy or rent paid by all existing tenants.",
+  },
+  "tas-bond-rents": {
+    label: "Tasmania new-bond weekly rents",
+    publisher: "Tasmanian Department of Justice",
+    url: "https://data.gov.au/data/organization/department-of-justice-tasmania",
+    licence: "https://creativecommons.org/licenses/by/4.0/",
+    attribution:
+      "Tasmanian Department of Justice rental bond data (CC BY 4.0); medians calculated by The Desk",
+    cadence: "Monthly",
+    states: ["TAS"],
+    maxAgeMonths: 3,
+    method:
+      "Median weekly rent for private-housing bonds in the publisher's monthly Active Bonds sheet, lodged during that month, by postcode, dwelling type and bedrooms. Closed bonds are excluded. At least ten valid rents are required. This is a subset of new bonds, not all active tenancies, asking rents or vacancy.",
+  },
 } satisfies Record<
   LocalSourceKey,
   {
@@ -135,7 +177,7 @@ export function localPeriodLabel(
 ): string {
   const date = new Date(`${period}T00:00:00Z`);
   if (!Number.isFinite(date.getTime())) return period;
-  if (source === "nsw-bond-rents")
+  if (["nsw-bond-rents", "wa-bond-rents", "tas-bond-rents"].includes(source))
     return date.toLocaleDateString("en-AU", {
       month: "long",
       year: "numeric",
@@ -147,9 +189,17 @@ export function localPeriodLabel(
     year: "numeric",
     timeZone: "UTC",
   });
-  return source === "qld-bond-rents"
+  return ["qld-bond-rents", "sa-bond-rents"].includes(source)
     ? `Quarter ended ${label}`
     : measure === "population"
       ? label
       : `Year to ${label}`;
+}
+
+export function localSampleLabel(source: LocalSourceKey): string {
+  if (source === "abs-sa2-population") return "Sample";
+  if (["nsw-bond-rents", "wa-bond-rents", "tas-bond-rents"].includes(source))
+    return "Valid rents";
+  if (source === "sa-bond-rents") return "Bonds (rounded)";
+  return "Bonds lodged";
 }

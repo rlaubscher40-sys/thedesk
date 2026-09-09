@@ -3,6 +3,7 @@ import {
   LOCAL_SOURCES,
   STATE_CODES,
   localPeriodLabel,
+  localSampleLabel,
   type LocalArea,
   type StateCode,
 } from "../../../../shared/localData";
@@ -98,13 +99,7 @@ export function LocalMarketData({
                   <th className="pr-4 py-2">Measure / category</th>
                   <th className="pr-4 py-2">Value</th>
                   <th className="pr-4 py-2">Period</th>
-                  <th className="py-2">
-                    {match.sourceKey === "nsw-bond-rents"
-                      ? "Valid rents"
-                      : match.sourceKey === "qld-bond-rents"
-                        ? "Bonds lodged"
-                        : "Sample"}
-                  </th>
+                  <th className="py-2">{localSampleLabel(match.sourceKey)}</th>
                 </tr>
               </thead>
               <tbody>
@@ -122,7 +117,7 @@ export function LocalMarketData({
                       <td className="py-3 pr-4 whitespace-nowrap">
                         {o.value === null
                           ? o.status === "insufficient-sample"
-                            ? "Fewer than 10 valid rents"
+                            ? "Insufficient sample"
                             : "Not published"
                           : o.unit === "AUD/week"
                             ? `$${o.value.toLocaleString("en-AU")} / week`
