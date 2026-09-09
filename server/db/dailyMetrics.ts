@@ -6,6 +6,7 @@ import { asc, eq, gte } from "drizzle-orm";
 import * as demoQueries from "../demo/queries";
 import { isDemoMode } from "../demo/store";
 import { getDb } from "./client";
+import { withCollectionWrite } from "./collectionRuns";
 import {
   dailyMetricHistory,
   dailyMetrics,
@@ -64,81 +65,89 @@ export async function upsertDailyMetric(input: {
   displayOrder?: number;
 }): Promise<void> {
   if (isDemoMode()) return demoQueries.upsertDailyMetric(input);
-  const db = getDb();
-  if (!db) throw new Error("Metric persistence requires a database");
+  if (!getDb()) throw new Error("Metric persistence requires a database");
+  return withCollectionWrite(async (db) => {
+    const existing = await db
+      .select()
+      .from(dailyMetrics)
+      .where(eq(dailyMetrics.metricKey, input.metricKey))
+      .limit(1);
 
-  const existing = await db
-    .select()
-    .from(dailyMetrics)
-    .where(eq(dailyMetrics.metricKey, input.metricKey))
-    .limit(1);
+    const prior = existing[0];
+    // Only roll the current value into previousValue when this upsert lands on
+    // a NEW Sydney day. A same-day re-run (cron retry, manual refresh) must
+    // keep the existing previousValue — otherwise previousValue collapses to
+    // today's own value and the dashboard delta reads as zero.
+    const sameDay =
+      prior != null &&
+      prior.asOf != null &&
+      sydneyDay(prior.asOf) === sydneyDay(input.asOf);
+    const previousValue = prior
+      ? sameDay
+        ? prior.previousValue
+        : prior.value
+      : null;
 
-  const prior = existing[0];
-  // Only roll the current value into previousValue when this upsert lands on
-  // a NEW Sydney day. A same-day re-run (cron retry, manual refresh) must
-  // keep the existing previousValue — otherwise previousValue collapses to
-  // today's own value and the dashboard delta reads as zero.
-  const sameDay =
-    prior != null && prior.asOf != null && sydneyDay(prior.asOf) === sydneyDay(input.asOf);
-  const previousValue = prior ? (sameDay ? prior.previousValue : prior.value) : null;
+    const row: InsertDailyMetric = {
+      metricKey: input.metricKey,
+      label: input.label,
+      value: input.value,
+      unit: input.unit ?? null,
+      source: input.source ?? null,
+      context: input.context ?? null,
+      groupKey: input.groupKey ?? null,
+      sourceUrl: input.sourceUrl ?? null,
+      asOf: input.asOf,
+      displayOrder: input.displayOrder ?? 100,
+      previousValue,
+      updatedAt: new Date(),
+    };
 
-  const row: InsertDailyMetric = {
-    metricKey: input.metricKey,
-    label: input.label,
-    value: input.value,
-    unit: input.unit ?? null,
-    source: input.source ?? null,
-    context: input.context ?? null,
-    groupKey: input.groupKey ?? null,
-    sourceUrl: input.sourceUrl ?? null,
-    asOf: input.asOf,
-    displayOrder: input.displayOrder ?? 100,
-    previousValue,
-    updatedAt: new Date(),
-  };
-
-  if (existing[0]) {
-    await db
-      .update(dailyMetrics)
-      .set({
-        label: row.label,
-        value: row.value,
-        unit: row.unit,
-        source: row.source,
-        context: row.context,
-        groupKey: row.groupKey,
-        sourceUrl: row.sourceUrl,
-        asOf: row.asOf,
-        displayOrder: row.displayOrder,
-        previousValue,
-        updatedAt: new Date(),
-      })
-      .where(eq(dailyMetrics.metricKey, input.metricKey));
-  } else {
-    await db.insert(dailyMetrics).values(row);
-  }
-
-  // Append the numeric value to the history table so the dashboard can
-  // render sparklines. Best-effort, non-numeric values (very rare) are
-  // skipped silently.
-  const numericValue = parseNumeric(input.value);
-  if (
-    numericValue !== null &&
-    (!prior || prior.asOf.getTime() !== input.asOf.getTime() || prior.value !== input.value)
-  ) {
-    try {
-      await db.insert(dailyMetricHistory).values({
-        metricKey: input.metricKey,
-        numericValue,
-        recordedAt: input.asOf,
-      });
-    } catch (err) {
-      console.warn(
-        `[metrics] history insert failed for ${input.metricKey}:`,
-        (err as Error).message
-      );
+    if (existing[0]) {
+      await db
+        .update(dailyMetrics)
+        .set({
+          label: row.label,
+          value: row.value,
+          unit: row.unit,
+          source: row.source,
+          context: row.context,
+          groupKey: row.groupKey,
+          sourceUrl: row.sourceUrl,
+          asOf: row.asOf,
+          displayOrder: row.displayOrder,
+          previousValue,
+          updatedAt: new Date(),
+        })
+        .where(eq(dailyMetrics.metricKey, input.metricKey));
+    } else {
+      await db.insert(dailyMetrics).values(row);
     }
-  }
+
+    // Append the numeric value to the history table so the dashboard can
+    // render sparklines. Best-effort, non-numeric values (very rare) are
+    // skipped silently.
+    const numericValue = parseNumeric(input.value);
+    if (
+      numericValue !== null &&
+      (!prior ||
+        prior.asOf.getTime() !== input.asOf.getTime() ||
+        prior.value !== input.value)
+    ) {
+      try {
+        await db.insert(dailyMetricHistory).values({
+          metricKey: input.metricKey,
+          numericValue,
+          recordedAt: input.asOf,
+        });
+      } catch (err) {
+        console.warn(
+          `[metrics] history insert failed for ${input.metricKey}:`,
+          (err as Error).message,
+        );
+      }
+    }
+  });
 }
 
 /**
@@ -146,7 +155,7 @@ export async function upsertDailyMetric(input: {
  * metricKey. Empty arrays are omitted so callers can `?.length` safely.
  */
 export async function listMetricHistories(
-  days = 30
+  days = 30,
 ): Promise<Record<string, Array<{ value: number; recordedAt: Date }>>> {
   if (isDemoMode()) return demoQueries.listMetricHistories?.(days) ?? {};
   const db = getDb();

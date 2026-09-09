@@ -36,7 +36,38 @@ reading the shared feed. A small briefing budget cannot truncate the archive's
 health, and never changes article publication dates. Expired entries cannot
 stand in for a failed fresh request; errors remain visible and retryable.
 
-The cache does not replace durable scheduler locks or address interrupted jobs,
-once-per-day recovery claims, missing-source success reporting, or upstream
-feed failures. Those reliability gaps require separate changes. No new paid
-provider or service is introduced by this optimisation.
+## Collection recovery
+
+The 06:33, 12:03 and 18:03 Sydney metric refreshes now validate every active
+metric source and every write. A partial refresh keeps successfully collected
+data but fails the scheduled attempt, retaining a diagnostic for retry. Paused
+auction sources stay visible in Admin and do not trigger futile retries.
+
+Recovery checks have separate four-hour Sydney slots (00, 04, 08, 12, 16, 20).
+An early healthy check cannot suppress a later check that day. Only the current
+slot catches up after a restart; missed slots are not replayed. Healthy coverage
+means a database check only. Old reporting periods remain flagged, but a release
+stored within the past six hours does not by itself trigger another download.
+
+Metric jobs have at most three attempts per slot, with 15 then 30 minutes of
+backoff after failure. Archive jobs keep two attempts per hourly slot. Backoff
+and attempts are durable in the existing job_runs table. In the worst case of
+persistent gaps, recovery allows up to 18 collection attempts per day, plus up
+to nine scheduled metric attempts; it is bounded, not an unlimited retry loop.
+Retries currently recollect the metric batch; per-source selective retries are
+not implemented. These collectors still make no LLM calls.
+
+Only direct metric and hourly archive jobs can reclaim an interrupted running
+attempt after 15 minutes. Each attempt has a ten-minute execution deadline.
+Attempt numbers fence completion and data writes. Writes lock the job record in
+the same transaction as the data, so a superseded worker cannot overwrite its
+replacement's data or status. Metric batches share that transaction to avoid a
+separate lease query per metric. Deadline expiry rolls back an in-flight write
+transaction when it returns; late tasks retain the aborted context. Publication,
+daily briefing enrichment and email jobs do not use expiring collection locks.
+
+Unit tests cover deadlines, late writes, partial results and later-day checks.
+CI also exercises concurrent claims, expiry, rollback and stale completions
+against isolated MySQL. Deployment does not by itself verify recovery across
+every production outage. Upstream access failures, database outages and data
+licensing remain separate constraints. No new paid provider is introduced.

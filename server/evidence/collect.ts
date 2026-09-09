@@ -7,6 +7,7 @@ import { fetchSourceReport } from "../../scripts/ingest/lib/rss";
 import { getDb } from "../db/client";
 import { evidenceSourceStatus, propertyEvidence } from "../db/evidenceSchema";
 import { normaliseEvidence } from "./normalize";
+import { collectionSignal, withCollectionWrite } from "../db/collectionRuns";
 
 /** Bounded I/O, no model calls and no publication/social/email side effects. */
 export async function collectPropertyEvidence(
@@ -16,6 +17,7 @@ export async function collectPropertyEvidence(
   if (!db) throw new Error("Evidence collection requires a database");
   let failures = 0;
   for (let start = 0; start < sources.length; start += 6) {
+    collectionSignal()?.throwIfAborted();
     await Promise.all(
       sources.slice(start, start + 6).map(async (source) => {
         let report = await fetchSourceReport(source);
@@ -29,37 +31,42 @@ export async function collectPropertyEvidence(
         const unique = [
           ...new Map(rows.map((row) => [row.identity, row])).values(),
         ];
-        if (unique.length)
+        await withCollectionWrite(async (db) => {
+          if (unique.length)
+            await db
+              .insert(propertyEvidence)
+              .values(unique)
+              .onDuplicateKeyUpdate({
+                set: { lastSeenAt: checkedAt },
+              });
+          const newestPublishedAt = unique.reduce<Date | null>(
+            (date, row) =>
+              !date || row.publishedAt > date ? row.publishedAt : date,
+            null,
+          );
+          const status = {
+            sourceId: source.id,
+            checkedAt,
+            fetched: report.fetched,
+            accepted: unique.length,
+            newestPublishedAt,
+            error: report.error,
+          };
           await db
-            .insert(propertyEvidence)
-            .values(unique)
-            .onDuplicateKeyUpdate({
-              set: { lastSeenAt: checkedAt },
-            });
-        const newestPublishedAt = unique.reduce<Date | null>(
-          (date, row) =>
-            !date || row.publishedAt > date ? row.publishedAt : date,
-          null,
-        );
-        const status = {
-          sourceId: source.id,
-          checkedAt,
-          fetched: report.fetched,
-          accepted: unique.length,
-          newestPublishedAt,
-          error: report.error,
-        };
-        await db
-          .insert(evidenceSourceStatus)
-          .values({ ...status, lastSuccessAt: report.error ? null : checkedAt })
-          .onDuplicateKeyUpdate({
-            set: {
+            .insert(evidenceSourceStatus)
+            .values({
               ...status,
-              lastSuccessAt: report.error
-                ? sql`${evidenceSourceStatus.lastSuccessAt}`
-                : checkedAt,
-            },
-          });
+              lastSuccessAt: report.error ? null : checkedAt,
+            })
+            .onDuplicateKeyUpdate({
+              set: {
+                ...status,
+                lastSuccessAt: report.error
+                  ? sql`${evidenceSourceStatus.lastSuccessAt}`
+                  : checkedAt,
+              },
+            });
+        });
         if (report.error) failures++;
       }),
     );

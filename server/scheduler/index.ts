@@ -1,5 +1,5 @@
 /**
- * In-process scheduler — the fail-proof replacement for GitHub Actions cron.
+ * In-process scheduler with durable claims and bounded collection recovery.
  *
  * Design: a watermark + catch-up loop, not a fire-at-time-T timer. Every few
  * minutes (and shortly after boot) it asks, per job: "is it past this job's
@@ -7,11 +7,12 @@
  * claims it (atomic, via job_runs) and runs it. That makes it self-healing: a
  * redeploy, a brief outage, or a missed minute can't drop a day; the job runs
  * as soon as the server is up and notices it's overdue. The watermark also
- * means at most one run per day even across replicas or overlapping ticks.
+ * bounds attempts per job/date across replicas. Repeatable data collectors
+ * use fenced, expiring claims; publication jobs retain their own protections.
  *
  * Jobs are driven against the server's own loopback address:
- *   - daily-feed / daily-metrics import the ingest's pure run-function and
- *     point it at 127.0.0.1, so the RSS fetch + enrich happens in-process.
+ *   - daily-feed points its ingest at 127.0.0.1 for enrichment.
+ *   - metric and archive collectors read and persist directly, without AI.
  *   - the rest POST the existing scheduled endpoints on loopback.
  *
  * Gated by env.enableScheduler (ENABLE_SCHEDULER=true). Off by default so it
@@ -23,11 +24,22 @@ import { sendAdminAlertEmail } from "../core/mailer";
 import { recordServerError } from "../db/health";
 import { claimJobRun, markJobRun } from "../db/jobRuns";
 import { runDailyFeedIngest } from "../../scripts/ingest/dailyFeed";
-import { runDailyMetricsIngest } from "../../scripts/ingest/dailyMetrics";
-import { runReelAutomation, REEL_MAX_ATTEMPTS } from "../instagram/reelAutomation";
+import {
+  runReelAutomation,
+  REEL_MAX_ATTEMPTS,
+} from "../instagram/reelAutomation";
 
 import { collectPropertyEvidence } from "../evidence/collect";
-import { recoverMissingMetrics } from "../metrics/recovery";
+import {
+  recoverMissingMetrics,
+  runScheduledMetricRefresh,
+} from "../metrics/recovery";
+import {
+  claimCollectionRun,
+  finishCollectionRun,
+  isCollectionJob,
+  runCollectionAttempt,
+} from "../db/collectionRuns";
 
 const TICK_MINUTES = 5;
 const BOOT_DELAY_MS = 15_000;
@@ -92,7 +104,10 @@ export function isJobDue(job: Job, clock: SchedulerClock): boolean {
   if (job.dom && !job.dom.includes(clock.dom)) return false;
   if (job.excludeDom?.includes(clock.dom)) return false;
   const at = hhmmToMinutes(job.at);
-  return clock.minutes >= at && clock.minutes <= at + (job.graceMinutes ?? GRACE_MINUTES);
+  return (
+    clock.minutes >= at &&
+    clock.minutes <= at + (job.graceMinutes ?? GRACE_MINUTES)
+  );
 }
 
 /**
@@ -105,7 +120,7 @@ async function postLocal(
   baseUrl: string,
   apiKey: string,
   path: string,
-  attempt = 1
+  attempt = 1,
 ): Promise<void> {
   const res = await fetch(`${baseUrl}${path}`, {
     method: "POST",
@@ -133,25 +148,27 @@ export const EVIDENCE_JOBS: Job[] = Array.from({ length: 24 }, (_, hour) => ({
   },
 }));
 
-export const METRIC_RECOVERY_JOB: Job = {
-  key: "official-metrics-recovery",
-  at: "00:00",
-  graceMinutes: 1439,
-  maxAttempts: 3,
-  run: async () => {
-    await recoverMissingMetrics();
-  },
-};
+export const METRIC_RECOVERY_JOBS: Job[] = [0, 4, 8, 12, 16, 20].map(
+  (hour) => ({
+    key: `official-metrics-recovery-${String(hour).padStart(2, "0")}`,
+    at: `${String(hour).padStart(2, "0")}:00`,
+    graceMinutes: 239,
+    maxAttempts: 3,
+    run: async () => {
+      await recoverMissingMetrics();
+    },
+  }),
+);
 
 const JOBS: Job[] = [
-  METRIC_RECOVERY_JOB,
+  ...METRIC_RECOVERY_JOBS,
   ...["12:03", "18:03"].map((at) => ({
     key: `official-metrics-${at.slice(0, 2)}`,
     at,
     graceMinutes: 120,
-    run: (b: string, k: string) => runDailyMetricsIngest(b, k, { extractFromNews: false }),
+    run: () => runScheduledMetricRefresh(),
   })),
-  { key: "daily-metrics", at: "06:33", run: (b, k) => runDailyMetricsIngest(b, k) },
+  { key: "daily-metrics", at: "06:33", run: () => runScheduledMetricRefresh() },
   { key: "daily-feed", at: "06:43", run: (b, k) => runDailyFeedIngest(b, k) },
   {
     key: "instagram-daily",
@@ -213,7 +230,7 @@ async function alertTerminalFailure(
   clock: SchedulerClock,
   detail: string,
   attempt: number,
-  maxAttempts: number
+  maxAttempts: number,
 ): Promise<void> {
   const to = env.adminAlertEmail;
   if (!to) return;
@@ -229,7 +246,10 @@ async function alertTerminalFailure(
       maxAttempts,
     });
   } catch (err) {
-    console.warn(`[scheduler] alert email for ${jobKey} failed:`, (err as Error).message);
+    console.warn(
+      `[scheduler] alert email for ${jobKey} failed:`,
+      (err as Error).message,
+    );
   }
 }
 
@@ -239,23 +259,53 @@ async function tick(baseUrl: string, apiKey: string): Promise<void> {
   if (ticking) return; // a slow run must not overlap the next interval
   ticking = true;
   try {
-    const clock = sydneyClock();
     for (const job of JOBS) {
+      const clock = sydneyClock();
       if (!isJobDue(job, clock)) continue;
       const maxAttempts = job.maxAttempts ?? 3;
-      const attempt = await claimJobRun(job.key, clock.dateISO, maxAttempts);
+      const collection = isCollectionJob(job.key);
+      const lease = collection
+        ? await claimCollectionRun(job.key, clock.dateISO, maxAttempts).catch(
+            (err) => {
+              console.error(
+                `[scheduler] cannot claim ${job.key}:`,
+                (err as Error).message,
+              );
+              return null;
+            },
+          )
+        : null;
+      const attempt = collection
+        ? (lease?.attempt ?? 0)
+        : await claimJobRun(job.key, clock.dateISO, maxAttempts);
       if (!attempt) continue;
       console.log(
-        `[scheduler] running ${job.key} (${clock.dateISO}, attempt ${attempt}/${maxAttempts})`
+        `[scheduler] running ${job.key} (${clock.dateISO}, attempt ${attempt}/${maxAttempts})`,
       );
       try {
-        await job.run(baseUrl, apiKey, attempt);
-        await markJobRun(job.key, clock.dateISO, "success");
+        if (lease) {
+          await runCollectionAttempt(lease, () =>
+            job.run(baseUrl, apiKey, attempt),
+          );
+          if (!(await finishCollectionRun(lease, "success"))) continue;
+        } else {
+          await job.run(baseUrl, apiKey, attempt);
+          await markJobRun(job.key, clock.dateISO, "success");
+        }
         console.log(`[scheduler] ${job.key} ✓`);
       } catch (err) {
         const msg = (err as Error)?.message ?? String(err);
         console.error(`[scheduler] ${job.key} failed:`, msg);
-        await markJobRun(job.key, clock.dateISO, "failed", msg.slice(0, 480));
+        if (lease) {
+          const finished = await finishCollectionRun(
+            lease,
+            "failed",
+            msg,
+          ).catch(() => false);
+          if (!finished) continue;
+        } else {
+          await markJobRun(job.key, clock.dateISO, "failed", msg.slice(0, 480));
+        }
         await recordServerError({
           level: "error",
           message: `[scheduler] ${job.key} failed: ${msg}`.slice(0, 512),
@@ -277,7 +327,10 @@ async function tick(baseUrl: string, apiKey: string): Promise<void> {
       post: async (evidenceHash) => {
         const response = await fetch(`${baseUrl}/api/ingest/instagram-reel`, {
           method: "POST",
-          headers: { "content-type": "application/json", "x-scheduled-key": apiKey },
+          headers: {
+            "content-type": "application/json",
+            "x-scheduled-key": apiKey,
+          },
           body: JSON.stringify({ evidenceHash }),
           signal: AbortSignal.timeout(290_000),
         });
@@ -290,18 +343,32 @@ async function tick(baseUrl: string, apiKey: string): Promise<void> {
           } catch {
             /* Non-JSON proxy errors retain their bounded text. */
           }
-          throw new Error(`Reel delivery ${response.status}: ${String(detail).slice(0, 450)}`);
+          throw new Error(
+            `Reel delivery ${response.status}: ${String(detail).slice(0, 450)}`,
+          );
         }
         return JSON.parse(body);
       },
       alert: (detail, attempt) =>
-        alertTerminalFailure("instagram-reel", clock, detail, attempt, REEL_MAX_ATTEMPTS),
+        alertTerminalFailure(
+          "instagram-reel",
+          sydneyClock(),
+          detail,
+          attempt,
+          REEL_MAX_ATTEMPTS,
+        ),
     }).catch(async (err) => {
-      console.error("[scheduler] Reel delivery check failed:", (err as Error).message);
+      console.error(
+        "[scheduler] Reel delivery check failed:",
+        (err as Error).message,
+      );
       await recordServerError({
         level: "error",
         route: "scheduler/reel",
-        message: `Reel delivery check failed: ${(err as Error).message}`.slice(0, 512),
+        message: `Reel delivery check failed: ${(err as Error).message}`.slice(
+          0,
+          512,
+        ),
       }).catch(() => {});
     });
   } finally {
@@ -325,7 +392,7 @@ export function startScheduler(opts: { port: number }): void {
   }
   if (!env.scheduledApiKey) {
     console.warn(
-      "[scheduler] SCHEDULED_API_KEY not set — cannot authenticate self-calls; not starting"
+      "[scheduler] SCHEDULED_API_KEY not set — cannot authenticate self-calls; not starting",
     );
     return;
   }
@@ -333,7 +400,7 @@ export function startScheduler(opts: { port: number }): void {
   const baseUrl = `http://127.0.0.1:${opts.port}`;
   const apiKey = env.scheduledApiKey;
   console.log(
-    `[scheduler] enabled — ${JOBS.length} jobs, polling every ${TICK_MINUTES}m (Sydney time)`
+    `[scheduler] enabled — ${JOBS.length} jobs, polling every ${TICK_MINUTES}m (Sydney time)`,
   );
   const fire = () => void tick(baseUrl, apiKey);
   setTimeout(fire, BOOT_DELAY_MS); // catch-up shortly after boot
