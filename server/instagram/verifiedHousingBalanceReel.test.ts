@@ -163,7 +163,14 @@ describe("the finding survives the Reel and source destination", () => {
       expect(cues[0]!.start).toBe(12);
       expect(cues.at(-1)!.end).toBeCloseTo(12 + seconds);
       expect(cues.flatMap((c) => c.lines).join(" ")).toBe(line.text);
-      if (number || line.key === "claim") expect(cues).toHaveLength(1);
+      for (const text of line.phrases) {
+        const phraseCues = subtitleCues(
+          [{ key: line.key, text }],
+          [{ key: line.key, start: 0, seconds: Math.max(1, seconds) }]
+        );
+        if (number || line.key === "claim") expect(phraseCues).toHaveLength(1);
+      }
+      expect(line.phrases.join(" ")).toBe(line.text);
     }
     const wrong = c.script.map((s) =>
       s.key === "value" ? { ...s, text: "About a million homes." } : s

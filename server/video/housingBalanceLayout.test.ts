@@ -74,7 +74,7 @@ describe("quiet housing Reel layouts", () => {
   });
   it("retains the completed 81/19 comparison through the explanation and takeaway", () => {
     const ratio = housingBalanceFrameLayout(story, "claim", 1, "navy").content;
-    for (const key of ["signOff", "checkNeed"]) {
+    for (const key of ["signOff"]) {
       const ending = housingBalanceFrameLayout(story, key, 1, "navy").content;
       expect(children(ending)[2]).toEqual(children(ratio)[2]);
       expect(children(ending)[0]!.props.style?.height).toBe(165);

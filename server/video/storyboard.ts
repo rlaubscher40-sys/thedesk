@@ -6,6 +6,7 @@ import {
   validateHousingBalanceStoryboard,
 } from "./housingBalanceStoryboard";
 import type { ScriptLine } from "./narration";
+import type { MeasuredPhrase } from "./phraseSpeech";
 import type { CardVariant } from "../og/instagramCards";
 import { renderEditorialFrame } from "../og/instagramCards";
 import { reelReadingCta } from "../instagram/reelCaption";
@@ -89,11 +90,59 @@ export function validateStoryboard(story: ReelStoryboard, script: ScriptLine[]) 
 }
 
 /** Each visual starts with its measured utterance, never a guessed word offset. */
-export function storyboardSections(story: ReelStoryboard, durations: Record<string, number>) {
+export function storyboardSections(
+  story: ReelStoryboard,
+  durations: Record<string, number>,
+  phrases?: Record<string, MeasuredPhrase[]>
+) {
   return story.scenes.map((scene, index) => {
     const measured = durations[scene.key];
     if (!Number.isFinite(measured) || measured! <= 0)
       throw new Error("Scene has no speech timing.");
+    if (
+      story.kind === "housing-balance" &&
+      phrases &&
+      "motionPhrase" in scene &&
+      scene.motionPhrase !== undefined
+    ) {
+      const phrase = phrases[scene.key]?.[scene.motionPhrase];
+      if (
+        !phrase ||
+        !Number.isFinite(phrase.start) ||
+        !Number.isFinite(phrase.seconds) ||
+        phrase.start < 0 ||
+        phrase.seconds <= 0 ||
+        phrase.start + phrase.seconds > measured! + 0.02
+      )
+        throw new Error("Visual action has no measured speech phrase.");
+      const staged = scene.kind === "balance-opening" || scene.kind === "balance-takeaway";
+      const start = Math.round(phrase.start * 30);
+      const end = Math.round(Math.min(phrase.start + phrase.seconds - 0.08, measured! - 0.45) * 30);
+      if (end <= start) throw new Error("Speech phrase is too short for its visual action.");
+      const count = staged ? 1 : Math.min(30, end - start);
+      const times = Array.from({ length: count + 1 }, (_, i) =>
+        staged ? (i === 0 ? 0 : start) : Math.round(start + ((end - start) * i) / count)
+      );
+      const frames = times.map((at, i) => ({
+        reveal: 1,
+        sceneKey: scene.key,
+        sceneProgress: i / count,
+        ...(i > 0 ? { hardCut: true } : {}),
+        ...(i < count ? { seconds: (times[i + 1]! - at) / 30 } : {}),
+      }));
+      if (!staged && start > 0)
+        frames.unshift({ reveal: 1, sceneKey: scene.key, sceneProgress: 0, seconds: start / 30 });
+      // All internal arrivals are frame-quantised cuts. No dissolves consume
+      // the measured lead-in before a phrase or blur a changing number.
+      frames.slice(1).forEach((f) => {
+        f.hardCut = true;
+      });
+      return {
+        key: scene.key,
+        seconds: measured! + (index === story.scenes.length - 1 ? 0.65 : 0.14),
+        frames,
+      };
+    }
     // A short, legible build within the measured passage, then time to read.
     // Spend frames on changing information; the closing composition is static.
     const ratio = scene.kind === "balance-ratio";

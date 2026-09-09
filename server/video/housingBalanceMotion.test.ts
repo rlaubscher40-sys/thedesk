@@ -49,4 +49,24 @@ describe("synchronised housing count-ups", () => {
     }
     expect(layout(sections).total).toBeLessThan(32);
   });
+  it("waits for the recorded demand phrase and reveals the hook at its recorded pause", () => {
+    const story = housingBalanceStoryboard(HOUSING_BALANCE_SNAPSHOT);
+    const durations = Object.fromEntries(story.scenes.map((s) => [s.key, 5]));
+    const phrases = Object.fromEntries(
+      story.scenes.map((s) => [
+        s.key,
+        s.phrases.map((text, i) => ({ text, start: i * 1.2, seconds: 1 })),
+      ])
+    );
+    const sections = storyboardSections(story, durations, phrases);
+    const demand = sections.find((s) => s.key === "line")!;
+    expect(demand.frames[0]!.sceneProgress).toBe(0);
+    expect(demand.frames[0]!.seconds).toBeCloseTo(1.2);
+    const demandBeats = layout([demand]).beats;
+    expect(demandBeats.slice(1).every((b) => b.fade === 0)).toBe(true);
+    const hook = sections.find((s) => s.key === "label")!;
+    expect(hook.frames.map((f) => f.sceneProgress)).toEqual([0, 1]);
+    expect(hook.frames[0]!.seconds).toBeCloseTo(1.2);
+    expect(() => storyboardSections(story, durations, {})).toThrow("measured");
+  });
 });

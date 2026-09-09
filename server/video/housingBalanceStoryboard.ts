@@ -15,62 +15,65 @@ type Kind =
 export type HousingBalanceStoryboard = {
   kind: "housing-balance";
   evidence: HousingBalanceSnapshot;
-  scenes: Array<{ key: string; text: string; kind: Kind }>;
+  scenes: Array<{
+    key: string;
+    text: string;
+    kind: Kind;
+    phrases: string[];
+    motionPhrase?: number;
+  }>;
 };
 export function housingBalanceStoryboard(
   evidence: HousingBalanceSnapshot
 ): HousingBalanceStoryboard {
   const b = matchedHousingBalance(evidence);
   if (!b || b.shortfall <= 0) throw new Error("No verified housing supply shortfall.");
+  const scene = (key: string, kind: Kind, phrases: string[], motionPhrase?: number) => ({
+    key,
+    kind,
+    text: phrases.join(" "),
+    phrases,
+    ...(motionPhrase === undefined ? {} : { motionPhrase }),
+  });
   return {
     kind: "housing-balance",
     evidence: structuredClone(evidence),
     scenes: [
-      {
-        key: "label",
-        kind: "balance-opening",
-        text: "Over a quarter of a million homes built. Still not enough.",
-      },
-      {
-        key: "contrast",
-        kind: "balance-contrast",
-        text: "The Housing Council shows why.",
-      },
-      {
-        key: "households",
-        kind: "balance-households",
-        text: "Someone moves out. Another home is needed.",
-      },
-      {
-        key: "value",
-        kind: "balance-net",
-        text: `After demolitions, about ${spokenCount(b.net)} homes were added.`,
-      },
-      {
-        key: "line",
-        kind: "balance-demand",
-        text: `Households needed about ${spokenCount(b.demand)} extra homes.`,
-      },
-      {
-        key: "facts",
-        kind: "balance-gap",
-        text: `That's ${spokenCount(b.shortfall)} more than we added.`,
-      },
-      {
-        key: "claim",
-        kind: "balance-ratio",
-        text: `About ${spokenCount(b.netPer100)} added for every hundred needed.`,
-      },
-      {
-        key: "signOff",
-        kind: "balance-takeaway",
-        text: "New homes didn't keep up with new households.",
-      },
-      {
-        key: "checkNeed",
-        kind: "balance-takeaway",
-        text: "Compare homes added with extra homes needed.",
-      },
+      scene(
+        "label",
+        "balance-opening",
+        ["Over a quarter of a million homes built.", "Still not enough."],
+        1
+      ),
+      scene("contrast", "balance-contrast", ["The Housing Council shows why."]),
+      scene(
+        "households",
+        "balance-households",
+        ["You leave home.", "Same people.", "Two households."],
+        0
+      ),
+      scene(
+        "value",
+        "balance-net",
+        ["After demolitions.", `About ${spokenCount(b.net)} homes were added.`],
+        0
+      ),
+      scene(
+        "line",
+        "balance-demand",
+        ["Demand was higher.", `About ${spokenCount(b.demand)} extra homes.`],
+        1
+      ),
+      scene("facts", "balance-gap", [`That's ${spokenCount(b.shortfall)} more than we added.`], 0),
+      scene("claim", "balance-ratio", [
+        `About ${spokenCount(b.netPer100)} added for every hundred needed.`,
+      ]),
+      scene(
+        "signOff",
+        "balance-takeaway",
+        ["Thousands of homes built.", "Yet we still fell further behind."],
+        1
+      ),
     ],
   };
 }
@@ -102,12 +105,19 @@ export function housingBalanceSubtitleScript(
     claim: [b.netPer100, 100],
   };
   return script.map(({ key, text }) => {
+    const replacements: Array<[string, string]> = [];
     for (const count of counts[key] ?? []) {
       const spoken = count === 100 ? "hundred" : spokenCount(count);
       if (!text.includes(spoken)) throw new Error("Verified subtitle count is missing.");
       text = text.replace(spoken, count.toLocaleString("en-AU"));
+      replacements.push([spoken, count.toLocaleString("en-AU")]);
     }
-    return { key, text };
+    const phrases = story.scenes
+      .find((s) => s.key === key)!
+      .phrases.map((phrase) =>
+        replacements.reduce((value, [spoken, digits]) => value.replace(spoken, digits), phrase)
+      );
+    return { key, text, phrases };
   });
 }
 type Node = { type: string; props: Record<string, unknown> };
@@ -244,7 +254,7 @@ export function housingBalanceFrameLayout(
     content = box({ flexDirection: "column", gap: 32, paddingTop: 55 }, [
       text(number(b.gross), 172, c.gold, true),
       text("homes built.", 88, c.fg, true),
-      box({ marginTop: 55, flexDirection: "column", gap: 12 }, [
+      box({ marginTop: 55, flexDirection: "column", gap: 12, opacity: progress }, [
         text("So why did", 76, c.fg, true),
         text("the gap grow?", 88, c.gap, true),
       ]),
@@ -264,7 +274,7 @@ export function housingBalanceFrameLayout(
       ]),
     ]);
   } else if (scene.kind === "balance-households") {
-    const moved = Math.max(0, Math.min(1, (progress - 0.15) / 0.65));
+    const moved = progress;
     const eased = moved * moved * (3 - 2 * moved);
     const person = (x: number, colour: string) =>
       `<g transform="translate(${x} 205)" fill="none" stroke="${colour}" stroke-width="5" stroke-linecap="round"><circle cy="-28" r="12"/><path d="M-20 37V6q0-19 20-19t20 19v31 M-8 18v41 M8 18v41"/></g>`;
@@ -272,8 +282,8 @@ export function housingBalanceFrameLayout(
       `<g transform="translate(${x} 0)" fill="none" stroke="${colour}" stroke-width="5" stroke-linejoin="round"><path d="M0 130 140 30l140 100 M25 115v175h230V115"/></g>`;
     const diagram = `<svg xmlns="http://www.w3.org/2000/svg" width="840" height="350" viewBox="0 0 840 350">${roof(10, c.gold)}<g opacity="${0.15 + eased * 0.85}">${roof(540, c.teal)}</g>${person(95, c.gold)}${person(160, c.gold)}${person(225 + eased * 450, c.teal)}<path d="M340 110h130m-15-15 15 15-15 15" fill="none" stroke="${c.muted}" stroke-width="3"/></svg>`;
     content = box({ flexDirection: "column", gap: 40, paddingTop: 50 }, [
-      text("People move.", 88, c.fg, true),
-      text("Households form.", 80, c.teal, true),
+      text("Moving out.", 88, c.fg, true),
+      text("Same three people.", 64, c.teal, true),
       box(
         { marginTop: 35 },
         {
@@ -286,10 +296,16 @@ export function housingBalanceFrameLayout(
         }
       ),
       box({ width: 840, justifyContent: "space-between" }, [
-        tag("EXISTING HOUSEHOLD"),
-        text("ANOTHER HOME NEEDED", 25, c.teal),
+        tag("PARENTS’ HOME"),
+        box({ opacity: progress }, text("ANOTHER HOME NEEDED", 25, c.teal)),
       ]),
-      text("One example of how housing need grows.", 26, c.muted),
+      text(
+        progress === 1 ? "2 households need 2 homes." : "1 household needs 1 home.",
+        38,
+        c.fg,
+        true
+      ),
+      text("Illustrative example", 24, c.muted),
     ]);
   } else if (["balance-net", "balance-demand", "balance-gap"].includes(scene.kind)) {
     const netScene = scene.kind === "balance-net";
@@ -329,7 +345,7 @@ export function housingBalanceFrameLayout(
     const ratio = scene.kind === "balance-ratio";
     const shown = ratio ? Math.round(b.netPer100 * progress) : b.netPer100;
     const complete = !ratio || progress === 1;
-    const final = key === "checkNeed";
+    const final = !ratio;
     content = box({ flexDirection: "column", gap: 32, paddingTop: 25 }, [
       ratio
         ? box({ alignItems: "baseline", gap: 18, height: 165 }, [
@@ -338,9 +354,9 @@ export function housingBalanceFrameLayout(
           ])
         : box(
             { height: 165, flexDirection: "column", justifyContent: "center" },
-            final
-              ? text("Watch the gap.", 86, c.gold, true)
-              : [text("New homes", 68, c.fg, true), text("fell behind.", 68, c.gap, true)]
+            progress === 0
+              ? [text("More homes", 68, c.fg, true), text("built.", 68, c.gold, true)]
+              : [text("Still falling", 68, c.fg, true), text("behind.", 68, c.gap, true)]
           ),
       text(
         final ? "Homes added vs extra homes needed." : "Net new homes for every 100 needed.",

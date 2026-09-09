@@ -19,6 +19,7 @@ import {
 
 import { subtitleCues, subtitleAss } from "./subtitles";
 import { housingBalanceSubtitleScript } from "./housingBalanceStoryboard";
+import { synthesisePhrases, type MeasuredPhrase } from "./phraseSpeech";
 import {
   renderStoryFrame,
   storyboardSections,
@@ -442,8 +443,12 @@ export function scriptFitsClip(script: ScriptLine[], stat?: Pick<ReelStat, "stor
  * — the same render as the claim beat, so it costs nothing — which gives the
  * end of the clip a beat of stillness to be read in.
  */
-export function composeSections(stat: ReelStat, durations: Record<string, number>): Section[] {
-  if (stat.storyboard) return storyboardSections(stat.storyboard, durations);
+export function composeSections(
+  stat: ReelStat,
+  durations: Record<string, number>,
+  phrases?: Record<string, MeasuredPhrase[]>
+): Section[] {
+  if (stat.storyboard) return storyboardSections(stat.storyboard, durations, phrases);
   const ticks = countUpFrames(stat.value);
   const withTail = (key: string, last = false) =>
     (durations[key] ?? 0) + (last ? FINAL_TAIL_SECONDS : TAIL_SECONDS);
@@ -540,7 +545,13 @@ export async function renderStatReel(
     subtitles?: boolean;
     voice?: SpeechProfile;
   } = {}
-): Promise<{ bytes: Buffer; seconds: number; narrated: boolean; subtitled: boolean }> {
+): Promise<{
+  bytes: Buffer;
+  seconds: number;
+  narrated: boolean;
+  subtitled: boolean;
+  timeline: Array<{ key: string; start: number; seconds: number; phrases?: MeasuredPhrase[] }>;
+}> {
   if (!ffmpegPath) throw new Error("ffmpeg binary unavailable");
 
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "desk-reel-"));
@@ -564,12 +575,18 @@ export async function renderStatReel(
         `Narration script exceeds the ${maxSeconds}-second editorial limit. Shorten the story before publishing.`
       );
     }
-    const spoken = opts.narrate === false ? null : await synthesiseScript(script, opts.voice);
+    const spoken =
+      opts.narrate === false
+        ? null
+        : stat.storyboard?.kind === "housing-balance"
+          ? await synthesisePhrases(stat.storyboard.scenes, opts.voice)
+          : await synthesiseScript(script, opts.voice);
     if (opts.narrate !== false && !spoken)
       throw new Error("Narration unavailable. No silent Reel was produced.");
 
     // Measure the voice when we have it; fall back to a news-read estimate.
     const durations: Record<string, number> = {};
+    const phrases: Record<string, MeasuredPhrase[]> = {};
     const audioFiles: Array<{ key: string; file: string }> = [];
     for (const line of script) {
       durations[line.key] = estimateSpeechSeconds(line.text);
@@ -581,15 +598,20 @@ export async function renderStatReel(
         const measured = await probeSeconds(file);
         if (!measured) throw new Error("Narration duration could not be verified.");
         durations[clip.key] = measured;
+        if ("phrases" in clip) phrases[clip.key] = clip.phrases as MeasuredPhrase[];
         audioFiles.push({ key: clip.key, file });
       }
     }
 
-    const sections = composeSections(stat, durations);
+    const sections = composeSections(
+      stat,
+      durations,
+      spoken && stat.storyboard?.kind === "housing-balance" ? phrases : undefined
+    );
     const { beats, starts, total } = layout(sections);
     if (total > maxSeconds)
       throw new Error(
-        "Recorded narration exceeds the Reel duration limit. Shorten the story before publishing."
+        `Recorded narration is ${total.toFixed(1)} seconds, exceeding the ${maxSeconds}-second Reel limit. Shorten the story before publishing.`
       );
 
     // One still per beat, all from the same card component. Identical frames
@@ -652,15 +674,27 @@ export async function renderStatReel(
     let subtitleFilter = "";
     if (opts.subtitles) {
       if (!spoken) throw new Error("Subtitles require measured narration.");
-      const cues = subtitleCues(
+      const display =
         stat.storyboard?.kind === "housing-balance"
           ? housingBalanceSubtitleScript(stat.storyboard, script)
+          : undefined;
+      const cues = subtitleCues(
+        display
+          ? display.flatMap((s) => s.phrases.map((text, i) => ({ key: `${s.key}:${i}`, text })))
           : script,
-        sections.map((section, i) => ({
-          key: section.key,
-          start: starts[i]!,
-          seconds: durations[section.key] ?? 0,
-        }))
+        display
+          ? sections.flatMap((s, i) =>
+              (phrases[s.key] ?? []).map((p, j) => ({
+                key: `${s.key}:${j}`,
+                start: starts[i]! + p.start,
+                seconds: p.seconds,
+              }))
+            )
+          : sections.map((section, i) => ({
+              key: section.key,
+              start: starts[i]!,
+              seconds: durations[section.key] ?? 0,
+            }))
       );
       const fontDir = path.join(dir, "fonts");
       await fs.mkdir(fontDir);
@@ -753,6 +787,12 @@ export async function renderStatReel(
       seconds: total,
       narrated: spokenSections.length > 0,
       subtitled: Boolean(subtitleFilter),
+      timeline: sections.map((s, i) => ({
+        key: s.key,
+        start: starts[i]!,
+        seconds: durations[s.key]!,
+        ...(phrases[s.key] ? { phrases: phrases[s.key] } : {}),
+      })),
     };
   } finally {
     await fs.rm(dir, { recursive: true, force: true }).catch(() => {});

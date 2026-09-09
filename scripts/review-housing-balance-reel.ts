@@ -3,7 +3,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { HOUSING_BALANCE_SNAPSHOT } from "../shared/housingBalance";
 import { verifiedHousingBalanceReel } from "../server/instagram/verifiedHousingBalanceReel";
-import { renderStatReel } from "../server/video/statReel";
+import { renderStatReel, composeSections, layout } from "../server/video/statReel";
+import { synthesisePhrases } from "../server/video/phraseSpeech";
 import { renderStoryFrame } from "../server/video/storyboard";
 const args = process.argv.slice(2),
   at = args.indexOf("--out");
@@ -27,12 +28,28 @@ for (const scene of candidate.stat.storyboard.scenes)
     await renderStoryFrame(candidate.stat.storyboard, scene.key, 1, "navy")
   );
 if (!args.includes("--frames-only")) {
+  if (candidate.stat.storyboard.kind === "housing-balance") {
+    // This audit also warms the bounded exact-script speech cache. The render
+    // below reuses the same local audio, with no second model run.
+    const speech = await synthesisePhrases(candidate.stat.storyboard.scenes);
+    for (const s of speech) await fs.writeFile(path.join(out, `speech-${s.key}.wav`), s.bytes);
+    const durations = Object.fromEntries(speech.map((s) => [s.key, (s.bytes.length - 44) / 48000]));
+    const phrases = Object.fromEntries(speech.map((s) => [s.key, s.phrases]));
+    const audit = {
+      seconds: layout(composeSections(candidate.stat, durations, phrases)).total,
+      durations,
+      phrases,
+    };
+    await fs.writeFile(path.join(out, "speech-audit.json"), JSON.stringify(audit, null, 2));
+    console.log(JSON.stringify({ measuredSeconds: audit.seconds, durations }));
+  }
   const rendered = await renderStatReel(candidate.stat, "navy", {
     script: candidate.script,
     subtitles: true,
   });
   const file = path.join(out, "The-Desk-Housing-Gap-Reel.mp4");
   await fs.writeFile(file, rendered.bytes);
+  await fs.writeFile(path.join(out, "timing.json"), JSON.stringify(rendered.timeline, null, 2));
   console.log(
     JSON.stringify({
       file,
