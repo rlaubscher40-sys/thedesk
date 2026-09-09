@@ -129,19 +129,21 @@ export function CityRentRead({
           ABS release & methodology ↗
         </a>
         <a
-          href={RENT_DATA_URL}
+          href={data?.sourceUrl ?? RENT_DATA_URL}
           onClick={onSource}
           target="_blank"
           rel="noopener noreferrer"
           className="bs-link"
         >
-          Source observations (CSV) ↗
+          Source observations ({data?.delivery === "workbook" ? "XLSX" : "CSV"}) ↗
         </a>
       </div>
       <p className="text-xs text-[var(--color-fg-muted)] mt-3">
-        {data?.retrievedAt ? `Retrieved ${data.retrievedAt.slice(0, 10)}. ` : ""}The ABS beta API
-        can lag the published release. The reference month above is the observation date; retrieval
-        is not publication.
+        {data?.retrievedAt ? `Retrieved ${data.retrievedAt.slice(0, 10)}. ` : ""}
+        {data?.delivery === "workbook"
+          ? "Read from the published ABS workbook. Revisions may be incorporated in the file without cell-level flags."
+          : "The ABS beta API can lag the published release."}{" "}
+        The reference month above is the observation date; retrieval is not publication.
       </p>
       {a && !marketB && (
         <a

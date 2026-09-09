@@ -28,6 +28,8 @@ import {
   APPROVAL_SOURCE,
   APPROVAL_REGIONS,
 } from "../../shared/cityApprovals";
+import { getCityRents } from "../../server/markets/absRents";
+import { cityRentMetrics } from "../../shared/cityRentMetrics";
 import { rentPeriod } from "../../shared/cityRents";
 import { fetchRbaHousingRateMetrics } from "./lib/rbaHousingRates";
 
@@ -133,6 +135,7 @@ export async function runDailyMetricsIngest(
     absResults,
     approvals,
     demographics,
+    rents,
     auctions,
     releases,
   ] = await Promise.all([
@@ -146,6 +149,7 @@ export async function runDailyMetricsIngest(
     collectionDeadline(fetchAllAbs(), [], 45_000),
     getCityApprovals(),
     getStateDemographics(),
+    getCityRents(),
     fetchAuctionMetrics(options.onSourceError),
     fetchPropertyReleaseMetrics(options.onSourceError),
   ]);
@@ -269,6 +273,8 @@ export async function runDailyMetricsIngest(
   }
 
   metrics.push(...stateDemographicMetrics(demographics, new Date().toISOString().slice(0, 10)));
+
+  metrics.push(...cityRentMetrics(rents));
 
   metrics.push(...auctions, ...releases);
 

@@ -15,25 +15,54 @@ vi.mock("./lib/abs", () => ({ fetchAllAbs: async () => [] }));
 vi.mock("../../server/markets/absDemographics", () => ({
   getStateDemographics: async () => ({ status: "unavailable", observations: [] }),
 }));
+vi.mock("../../server/markets/absRents", () => ({
+  getCityRents: async () => ({
+    status: "available",
+    retrievedAt: "2026-09-09T00:00:00Z",
+    observations: [{ city: "Melbourne", period: "2026-07", annualPercent: 2.5, status: "" }],
+  }),
+}));
 vi.mock("../../server/markets/absApprovals", () => ({
   getCityApprovals: async () => ({ status: "unavailable", observations: [] }),
 }));
 vi.mock("../../shared/stateDemographicMetrics", () => ({ stateDemographicMetrics: () => [] }));
-vi.mock("./lib/post", () => ({ postJSON: vi.fn(() => { throw new Error("Unexpected HTTP write"); }) }));
+vi.mock("./lib/post", () => ({
+  postJSON: vi.fn(() => {
+    throw new Error("Unexpected HTTP write");
+  }),
+}));
 
 afterEach(() => vi.unstubAllGlobals());
 
 it("forwards the cash-rate diagnosis while persisting successful sources without a model call", async () => {
-  vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ chart: { result: [{
-    meta: { regularMarketPrice: 1, regularMarketTime: 1788825600 },
-  }] } }))));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            chart: {
+              result: [
+                {
+                  meta: { regularMarketPrice: 1, regularMarketTime: 1788825600 },
+                },
+              ],
+            },
+          })
+        )
+    )
+  );
   const persist = vi.fn(async () => {});
   const onSourceError = vi.fn();
   await runDailyMetricsIngest("", "", { persist, onSourceError, extractFromNews: false });
   expect(onSourceError).toHaveBeenCalledWith("cash_rate", "RBA F1 HTTP 403");
   expect(persist).toHaveBeenCalledOnce();
   const metrics = persist.mock.calls[0] as unknown as [Array<{ metricKey: string }>];
-  expect(metrics[0]).toHaveLength(5);
+  expect(metrics[0]).toHaveLength(6);
+  expect(metrics[0].find((m) => m.metricKey === "melbourne_rent_growth_annual")).toMatchObject({
+    value: "2.5",
+    unit: "%",
+    asOf: "2026-07-01T00:00:00.000Z",
+  });
   expect(metrics[0].some((metric) => metric.metricKey === "cash_rate")).toBe(false);
 });
-

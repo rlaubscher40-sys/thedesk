@@ -1,5 +1,6 @@
 import { AUCTION_REGIONS } from "./auctionClearance";
 import { PROPERTY_REGIONS } from "./propertyCoverage";
+import { RENT_CITIES } from "./cityRents";
 import { APPROVAL_REGIONS } from "./cityApprovals";
 
 type Expectation = {
@@ -51,6 +52,12 @@ export const METRIC_EXPECTATIONS: Expectation[] = [
       maxAgeDays: 100,
     }),
   ),
+  ...RENT_CITIES.map((city) => ({
+    key: `${city.toLowerCase()}_rent_growth_annual`,
+    label: `${city} annual rent change`,
+    period: "Monthly · annual CPI rent change · capital city",
+    maxAgeDays: 100,
+  })),
   ...Object.values(APPROVAL_REGIONS).map((city) => ({
     key: `${city.toLowerCase()}_approvals_12m`,
     label: `${city} approvals`,
