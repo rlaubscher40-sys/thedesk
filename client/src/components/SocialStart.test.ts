@@ -12,7 +12,9 @@ it("keeps every Reel reading destination visible even on the compact bio page", 
   for (const compact of [true, false]) {
     const html = renderToStaticMarkup(createElement(SocialStart, { compact }));
     for (const read of SOCIAL_DESTINATIONS) {
-      expect(html).toContain(read.label);
+      const encodedLabel = renderToStaticMarkup(createElement("span", null, read.label))
+        .replace(/^<span>|<\/span>$/g, "");
+      expect(html).toContain(encodedLabel);
       expect(html).toContain(`href="${read.path}"`);
     }
     expect(html).toContain("All eight capital-city rent figures");

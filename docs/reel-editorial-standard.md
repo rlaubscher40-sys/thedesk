@@ -92,8 +92,11 @@ The same people can form more households and need more homes. The existing
 reference period, approximate figures, modelled demand definition, full source
 and distinction from total accumulated shortage remain.
 
-Verification note: the local clarity changes passed TypeScript and 119 focused
-tests before the workspace went offline during export. The patch was recovered
-against the last saved PR head through GitHub. The new production build and
-encoded MP4 review remain pending; the last verified MP4 is the measured-phrase
-version, 37.97 seconds. Do not treat the new visual pass as export-verified.
+Verification note: the recovered clarity pass was integrated with main 764edbc
+without conflicts. TypeScript and the production build pass. The new H.264
+1080x1920 MP4 is 37.97 seconds with AAC audio and burned-in subtitles, and passes
+complete-picture-duration verification. Encoded frames were inspected across
+the story and through the closing insight. Automation fixtures now explicitly
+control housing evidence; additional checks preserve the shared daily cap and
+uncertain-publication lock when that topic is available. The bio destination
+assertion accounts for HTML-escaped apostrophes.

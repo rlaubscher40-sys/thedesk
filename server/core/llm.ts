@@ -71,6 +71,8 @@ export type InvokeLlmParams = {
   thinking?: boolean;
   /** Cancel interactive requests without changing background-job retry defaults. */
   signal?: AbortSignal;
+  /** Durable jobs own their retry budget instead of multiplying SDK retries. */
+  maxRetries?: number;
 };
 
 const DEFAULT_MAX_TOKENS = 16000;
@@ -163,24 +165,36 @@ export async function invokeLLM(params: InvokeLlmParams): Promise<string> {
 
   // Stream when output budget is large to avoid SDK HTTP read timeouts.
   if (maxTokens > STREAM_THRESHOLD) {
-    const stream = client.messages.stream({
+    const stream = client.messages.stream(
+      {
+        model,
+        max_tokens: maxTokens,
+        ...thinking,
+        ...(system ? { system } : {}),
+        messages: conversation,
+      },
+      {
+        signal: params.signal,
+        ...(params.maxRetries === undefined ? {} : { maxRetries: params.maxRetries }),
+      }
+    );
+    const finalMessage = await stream.finalMessage();
+    return extractText(finalMessage);
+  }
+
+  const response = await client.messages.create(
+    {
       model,
       max_tokens: maxTokens,
       ...thinking,
       ...(system ? { system } : {}),
       messages: conversation,
-    }, { signal: params.signal });
-    const finalMessage = await stream.finalMessage();
-    return extractText(finalMessage);
-  }
-
-  const response = await client.messages.create({
-    model,
-    max_tokens: maxTokens,
-    ...thinking,
-    ...(system ? { system } : {}),
-    messages: conversation,
-  }, { signal: params.signal });
+    },
+    {
+      signal: params.signal,
+      ...(params.maxRetries === undefined ? {} : { maxRetries: params.maxRetries }),
+    }
+  );
   return extractText(response);
 }
 

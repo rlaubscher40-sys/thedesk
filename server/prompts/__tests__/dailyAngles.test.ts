@@ -162,3 +162,23 @@ describe("generateDailyAngles", () => {
     expect(out.sayThis).toBeNull();
   });
 });
+
+it("strict recovery distinguishes a deliberate empty result from a failed attempt", async () => {
+  mockedInvoke.mockResolvedValueOnce(
+    JSON.stringify({ sayThis: null, partnerTag: null, whyItMatters: null, counterpoint: null })
+  );
+  const signal = AbortSignal.timeout(1000);
+  expect(await generateDailyAngles(input, { strict: true, signal })).toEqual({
+    sayThis: null,
+    partnerTag: null,
+    whyItMatters: null,
+    counterpoint: null,
+  });
+  expect(mockedInvoke).toHaveBeenLastCalledWith(expect.objectContaining({ signal, maxRetries: 0 }));
+  for (const response of ["not JSON", "null", "[]", "{}", '{"sayThis":4}']) {
+    mockedInvoke.mockResolvedValueOnce(response);
+    await expect(generateDailyAngles(input, { strict: true })).rejects.toThrow();
+  }
+  mockedInvoke.mockRejectedValueOnce(new Error("unavailable"));
+  await expect(generateDailyAngles(input, { strict: true })).rejects.toThrow();
+});
