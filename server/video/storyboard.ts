@@ -1,6 +1,7 @@
 import type { ScriptLine } from "./narration";
 import type { CardVariant } from "../og/instagramCards";
 import { renderEditorialFrame } from "../og/instagramCards";
+import { reelReadingCta } from "../instagram/reelCaption";
 
 type SceneKind =
   | "opening"
@@ -79,9 +80,9 @@ export function approvalStoryboard(
     brisbane,
     perth,
     scenes: [
-      { key: "label", kind: "opening", text: "Approved doesn't mean ready to move in." },
-      { key: "value", kind: "comparison", text: `Greater Brisbane: ${a} approvals.` },
-      { key: "line", kind: "comparison", showPerth: true, text: `Greater Perth: ${b}.` },
+      { key: "label", kind: "opening", text: "Approved. But ready to move in?" },
+      { key: "value", kind: "comparison", text: `Brisbane: ${a} approvals.` },
+      { key: "line", kind: "comparison", showPerth: true, text: `Perth: ${b}.` },
       {
         key: "claim",
         kind: "comparison",
@@ -90,11 +91,11 @@ export function approvalStoryboard(
       },
       { key: "facts", kind: "permission", text: "That's permission to build." },
       { key: "construction", kind: "construction", text: "Construction is a separate step." },
-      { key: "completion", kind: "completion", text: "So is a finished home." },
+      { key: "completion", kind: "completion", text: "Check completions against local demand." },
       {
         key: "signOff",
         kind: "takeaway",
-        text: "Check completions and demand before calling a shortage.",
+        text: reelReadingCta("supplyComparison").voice,
       },
     ],
   };
@@ -337,8 +338,8 @@ export async function renderStoryFrame(
         type("don't establish a shortage.", 43, c.fg, true),
       ]),
       box({ flexDirection: "column", gap: 16, marginTop: 18 }, [
-        type("Compare Brisbane and Perth", 27, c.fg),
-        type("Link in bio → Markets", 26, c.accent),
+        type("Open our bio. Choose:", 27, c.fg),
+        type(reelReadingCta("supplyComparison").fact.caption, 26, c.accent),
       ]),
     ]);
   }

@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { annualApprovals, APPROVAL_FLOW, type CityApprovals } from "../../shared/cityApprovals";
 import { rentPeriod } from "../../shared/cityRents";
 import type { verifiedRentReel } from "./verifiedReel";
-import { buildNarrativeReelCaption } from "./reelCaption";
+import { buildNarrativeReelCaption, reelReadingCta } from "./reelCaption";
 import { approvalStoryboard } from "../video/storyboard";
 
 type VerifiedReel = NonNullable<ReturnType<typeof verifiedRentReel>>;
@@ -68,7 +68,7 @@ export function verifiedSupplyReel(data: CityApprovals, now = new Date()): Verif
       facts: [
         { figure: number(a.total), caption: "Greater Brisbane approvals" },
         { figure: number(b.total), caption: "Greater Perth approvals" },
-        { figure: "Compare free", caption: "Bio / Markets" },
+        reelReadingCta("supplyComparison").fact,
       ],
     },
     script: storyboard.scenes.map(({ key, text }) => ({ key, text })),

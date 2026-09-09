@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { rentPeriod, type CityRents } from "../../shared/cityRents";
 import { annualApprovals, APPROVAL_FLOW, type CityApprovals } from "../../shared/cityApprovals";
 import type { verifiedRentReel } from "./verifiedReel";
-import { buildReelCaption } from "./reelCaption";
+import { buildReelCaption, reelReadingCta } from "./reelCaption";
 type VerifiedReel = NonNullable<ReturnType<typeof verifiedRentReel>>;
 const monthIndex = (period: string) => Number(period.slice(0, 4)) * 12 + Number(period.slice(5, 7));
 const validPeriod = (period: string, now: Date) =>
@@ -67,7 +67,7 @@ export function verifiedSydneyRentChange(data: CityRents, now = new Date()): Ver
       facts: [
         { figure: rates, caption: "Annual change · previous to latest" },
         { figure: "Check the period", caption: "Not asking rents or rental yield" },
-        { figure: "Reel sources", caption: "Bio / Sydney rent changes" },
+        reelReadingCta("sydneyRent").fact,
       ],
     },
     script: [
@@ -82,7 +82,7 @@ export function verifiedSydneyRentChange(data: CityRents, now = new Date()): Ver
       },
       { key: "claim", text: meaning },
       { key: "facts", text: "Two annual rates don't tell us this month's rent change." },
-      { key: "signOff", text: "Check the dates before sharing. Bio, then Reel sources." },
+      { key: "signOff", text: reelReadingCta("sydneyRent").voice },
     ],
     publication: { key: "instagram-reel-abs-sydney-rent-change-v1", date: `${current.period}-01` },
     evidenceHash: hash({ series: "ABS:CPI(2.0.0)/3.30014.10.1.M/PCT", rows }),
@@ -147,7 +147,7 @@ export function verifiedSydneyBeforeBuy(
       { key: "line", text: `That's twelve months to ${period}. Not completed homes.` },
       { key: "claim", text: "Before using it, check the building stage and the local area." },
       { key: "facts", text: "A city total can't tell you when homes near you will be ready." },
-      { key: "signOff", text: "Save the three checks. Bio, then Reel sources." },
+      { key: "signOff", text: reelReadingCta("sydneySupply").voice },
     ],
     publication: { key: "instagram-reel-abs-sydney-before-buy-v1", date: `${annual.period}-01` },
     evidenceHash: hash({

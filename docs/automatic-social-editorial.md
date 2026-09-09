@@ -124,6 +124,23 @@ and revision flags stay in the caption. Audio scripts, evidence hashes, schedule
 and permanent publication keys are unchanged; copy edits cannot republish a month.
 This release does not edit existing Instagram captions or establish engagement gains.
 
+### Match the spoken destination to the visible link
+
+The next follow-up uses `reelReadingCta` to share the caption destination label
+with all five spoken endings and the four formats that have a final navigation
+card. Viewers hear “Open our bio. Choose [topic]” instead of the indirect
+“Bio, then Markets” or the invisible “Reel sources” section label. The Sydney
+buyer format retains Stage, Place and Timing on screen and names its destination
+in narration/subtitles. The supply comparison still asks viewers to check
+completions and demand; that line moves into its preceding explanation.
+
+The words and matching subtitles change together through the existing measured
+speech pipeline. Labels must fit the full card-caption limit. No source figures,
+reference months, evidence hashes, permanent publication keys, schedules or
+publication locks change, and no old Reel is republished. Full narrated renders
+must still pass the 32-second limit before release. This reduces navigation
+ambiguity; it does not establish a conversion or retention improvement.
+
 ## Published carousel reading links
 
 The Instagram-tagged homepage and `/social` show up to six recent story links

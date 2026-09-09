@@ -37,6 +37,16 @@ export function buildNarrativeReelCaption(input: {
     throw new Error("Reel caption exceeds editorial length limit; no factual truncation allowed");
   return caption;
 }
+
+/** The spoken ending and video card name the same visible link as the caption. */
+export function reelReadingCta(read: keyof typeof REEL_READS) {
+  const destination = REEL_READS[read];
+  if (!destination || !Object.hasOwn(REEL_READS, read)) throw new Error("Unknown Reel read");
+  return {
+    voice: `Open our bio. Choose ${destination.label}${/[.!?]$/.test(destination.label) ? "" : "."}`,
+    fact: { figure: "Open our bio", caption: destination.label },
+  };
+}
 const CAMPAIGNS = {
   rentComparison: "property_editorial_reel",
   sydneyRent: "sydney_rent_change",
