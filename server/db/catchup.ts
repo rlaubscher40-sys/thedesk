@@ -20,12 +20,14 @@
  */
 import { SECURITY_DDL } from "./security";
 import { LOCAL_DATA_DDL } from "./localDataSchema";
+import { COLLECTION_EFFICIENCY_DDL } from "./collectionEfficiencySchema";
 import { sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 
 export const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
   ...SECURITY_DDL,
   ...LOCAL_DATA_DDL,
+  ...COLLECTION_EFFICIENCY_DDL,
   {
     name: "0026 · daily_feed_items.sourceTiming",
     sql: "ALTER TABLE daily_feed_items ADD sourceTiming json",

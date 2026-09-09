@@ -150,3 +150,20 @@ The caption follows the same question, finding and practical application.
 It retains all three matched figures, the derived gap and ratio, the reference
 period, full attribution and the distinction from total accumulated shortage.
 Australian English and the no-em-dash rule remain enforced.
+
+### Complete sentences and numeric subtitle continuity
+
+The latest read restores complete sentences to the figures and closing
+questions, and names the Housing Council during its source scene. This
+manually reviewed housing explainer has a 38-second maximum, allowing a
+slightly longer source passage and natural Fable delivery at speed 1.0. Other
+Reels retain their 32-second default. Both the script estimate and measured
+encoded timeline are checked against the applicable budget; invalid storyboards
+are still rejected before synthesis. A longer allowance is not a retention
+claim, and the final duration is determined by the actual recorded speech.
+
+Subtitle cue boundaries now avoid splitting the key spoken counts, such as
+“two hundred and thirty-two thousand”, across successive captions. Two-line
+wrapping is retained inside each cue, every word remains unchanged, and the
+existing minimum reading-time and passage-overlap checks remain active.
+Within-passage timing remains length-weighted, not forced word alignment.

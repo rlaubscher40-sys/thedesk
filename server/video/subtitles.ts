@@ -19,7 +19,30 @@ export function captionChunks(text: string): string[][] {
     if (wrapped.length <= 2) return [wrapped];
     // Balance phrases rather than leaving a tiny third-line orphan that
     // flashes for half a second (e.g. a lone "returns.").
-    const mid = Math.ceil(group.length / 2);
+    // A count such as "two hundred and thirty-two thousand" must stay in
+    // one cue. Line wrapping inside the cue is fine; a timed cue boundary
+    // halfway through the number forces viewers to reconstruct the amount.
+    const numeric = (word: string | undefined) =>
+      !!word &&
+      /^(?:\d+(?:[.,]\d+)*|(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)(?:-(?:one|two|three|four|five|six|seven|eight|nine))?|hundred|thousand|million|billion)$/i.test(
+        word.replace(/[.,:;!?]$/, "")
+      );
+    const joinsNumber = (at: number) => {
+      const left = group[at - 1],
+        right = group[at];
+      if (/[.!?;:]$/.test(left ?? "")) return false;
+      return (
+        (numeric(left) && numeric(right)) ||
+        (numeric(left) && right?.toLowerCase() === "and" && numeric(group[at + 1])) ||
+        (left?.toLowerCase() === "and" && numeric(group[at - 2]) && numeric(right))
+      );
+    };
+    const preferred = Math.ceil(group.length / 2);
+    const boundaries = Array.from({ length: group.length - 1 }, (_, i) => i + 1)
+      .filter((at) => !joinsNumber(at))
+      .sort((a, b) => Math.abs(a - preferred) - Math.abs(b - preferred));
+    // Very long numbers that cannot fit one cue still preserve every word.
+    const mid = boundaries[0] ?? preferred;
     return [...split(group.slice(0, mid)), ...split(group.slice(mid))];
   }
   return split(words);

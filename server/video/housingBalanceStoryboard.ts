@@ -34,7 +34,7 @@ export function housingBalanceStoryboard(
       {
         key: "contrast",
         kind: "balance-contrast",
-        text: "Why wasn't it enough?",
+        text: "The Housing Council's figures explain why.",
       },
       {
         key: "households",
@@ -44,17 +44,17 @@ export function housingBalanceStoryboard(
       {
         key: "value",
         kind: "balance-net",
-        text: `After demolitions: ${spokenCount(b.net)} added.`,
+        text: `After demolitions, about ${spokenCount(b.net)} homes were added.`,
       },
       {
         key: "line",
         kind: "balance-demand",
-        text: `We needed about ${spokenCount(b.demand)} homes.`,
+        text: `Households needed about ${spokenCount(b.demand)} extra homes.`,
       },
       {
         key: "facts",
         kind: "balance-gap",
-        text: `${spokenCount(b.shortfall)[0]!.toUpperCase() + spokenCount(b.shortfall).slice(1)} more than we added.`,
+        text: `That's ${spokenCount(b.shortfall)} more than we added.`,
       },
       {
         key: "claim",
@@ -64,12 +64,12 @@ export function housingBalanceStoryboard(
       {
         key: "signOff",
         kind: "balance-takeaway",
-        text: "Next headline: how many homes added?",
+        text: "Next headline, ask: how many homes were actually added?",
       },
       {
         key: "checkNeed",
         kind: "balance-takeaway",
-        text: "And how many needed?",
+        text: "And how many extra homes were needed?",
       },
     ],
   };

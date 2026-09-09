@@ -114,20 +114,13 @@ const FINAL_TAIL_SECONDS = 0.85;
  *  short passage never leaves a frame on screen too briefly to read. */
 const MIN_HOLD = 0.55;
 
-/**
- * The longest a Reel may run.
- *
- * Every beat holds for as long as its passage takes to say, so the clip's
- * length is whatever the script's length is — and the script is written by a
- * model. Per-passage caps bound it in the normal case; this bounds it in the
- * case where they were set wrong, which has already happened once. Over this,
- * the written script is dropped for the deterministic read, which is short by
- * construction.
- *
- * Thirty-two seconds: long enough for a narrated explainer, short enough that
- * someone finishes it.
- */
+/** Default duration budget. The reviewed housing explainer gets six extra
+ * seconds for complete sentences and its source passage, without speeding up
+ * the voice. This is an editorial limit, not a claim about audience retention. */
 export const MAX_REEL_SECONDS = 32;
+export function reelDurationLimit(stat?: Pick<ReelStat, "storyboard">): number {
+  return stat?.storyboard?.kind === "housing-balance" ? 38 : MAX_REEL_SECONDS;
+}
 
 export type ReelStat = ReelStatText & {
   storyboard?: ReelStoryboard;
@@ -436,8 +429,8 @@ export function estimateScriptSeconds(script: ScriptLine[]): number {
 }
 
 /** Will this script produce a Reel anyone finishes? */
-export function scriptFitsClip(script: ScriptLine[]): boolean {
-  return estimateScriptSeconds(script) <= MAX_REEL_SECONDS;
+export function scriptFitsClip(script: ScriptLine[], stat?: Pick<ReelStat, "storyboard">): boolean {
+  return estimateScriptSeconds(script) <= reelDurationLimit(stat);
 }
 
 /**
@@ -564,9 +557,10 @@ export async function renderStatReel(
         ? stat.storyboard.scenes.map(({ key, text }) => ({ key, text }))
         : buildScript(stat));
     if (stat.storyboard) validateStoryboard(stat.storyboard, script);
-    if (opts.script && !scriptFitsClip(opts.script)) {
+    const maxSeconds = reelDurationLimit(stat);
+    if (opts.script && !scriptFitsClip(opts.script, stat)) {
       throw new Error(
-        `Narration script exceeds the ${MAX_REEL_SECONDS}-second editorial limit. Shorten the story before publishing.`
+        `Narration script exceeds the ${maxSeconds}-second editorial limit. Shorten the story before publishing.`
       );
     }
     const spoken = opts.narrate === false ? null : await synthesiseScript(script, opts.voice);
@@ -592,7 +586,7 @@ export async function renderStatReel(
 
     const sections = composeSections(stat, durations);
     const { beats, starts, total } = layout(sections);
-    if (total > MAX_REEL_SECONDS)
+    if (total > maxSeconds)
       throw new Error(
         "Recorded narration exceeds the Reel duration limit. Shorten the story before publishing."
       );

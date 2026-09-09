@@ -257,12 +257,17 @@ function registerDailyFeedRoute(app: Express): void {
     }
 
     let insertedIds: number[];
+    let duplicateCount = 0;
+    let failedCount = 0;
     try {
       // Drop the transient articleText before persisting, the feed table has
       // no column for it. It stays available on `freshItems` for enrichment.
-      insertedIds = await db.createFeedItems(
+      const inserted = await db.createFeedItems(
         freshItems.map(({ articleText: _drop, ...row }) => row)
       );
+      insertedIds = inserted.ids;
+      duplicateCount = inserted.duplicateCount;
+      failedCount = inserted.failedCount;
     } catch (err) {
       console.error("[scheduled] daily-feed insert failed:", err);
       // Surface the underlying DB error so the GitHub Actions log (the only
@@ -287,8 +292,8 @@ function registerDailyFeedRoute(app: Express): void {
       success: true,
       count: insertedCount,
       heldForDate,
-      skipped: skippedCount,
-      dropped: freshItems.length - insertedCount,
+      skipped: skippedCount + duplicateCount,
+      dropped: failedCount,
     });
 
     // ── Background: partnerTag + sayThis + per-item image enrichment ─────

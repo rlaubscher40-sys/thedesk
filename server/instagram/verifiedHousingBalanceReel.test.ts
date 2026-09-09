@@ -5,8 +5,9 @@ import { HOUSING_BALANCE_SNAPSHOT, matchedHousingBalance } from "../../shared/ho
 import { HousingBalanceRead } from "../../shared/HousingBalanceRead";
 import { SOCIAL_DESTINATIONS } from "../../shared/socialDestinations";
 import { verifiedHousingBalanceReel } from "./verifiedHousingBalanceReel";
+import { estimateSpeechSeconds } from "../video/narration";
 import { validateStoryboard } from "../video/storyboard";
-import { composeSections, layout } from "../video/statReel";
+import { composeSections, layout, reelDurationLimit, scriptFitsClip } from "../video/statReel";
 import { subtitleCues } from "../video/subtitles";
 import { isKnownRoute } from "../core/spaShell";
 
@@ -72,6 +73,15 @@ describe("matched historical housing flows", () => {
 });
 
 describe("the finding survives the Reel and source destination", () => {
+  it("allows a bounded complete-sentence read while retaining the default budget", () => {
+    const candidate = verifiedHousingBalanceReel(evidence(), now)!;
+    expect(reelDurationLimit()).toBe(32);
+    expect(reelDurationLimit(candidate.stat)).toBe(38);
+    expect(scriptFitsClip(candidate.script, candidate.stat)).toBe(true);
+    expect(scriptFitsClip([{ key: "tooLong", text: "word ".repeat(150) }], candidate.stat)).toBe(
+      false
+    );
+  });
   it("keeps voice, visuals and subtitles together and rejects changed or reordered claims", () => {
     const c = verifiedHousingBalanceReel(evidence(), now)!;
     const story = c.stat.storyboard!;
@@ -80,7 +90,9 @@ describe("the finding survives the Reel and source destination", () => {
     const changed = structuredClone(story);
     changed.scenes[4]!.text = "A gap of a million homes.";
     expect(() => validateStoryboard(changed, c.script)).toThrow();
-    const durations = Object.fromEntries(c.script.map(({ key }, i) => [key, 2 + i / 10]));
+    const durations = Object.fromEntries(
+      c.script.map(({ key, text }) => [key, estimateSpeechSeconds(text)])
+    );
     const sections = composeSections(c.stat, durations),
       timing = layout(sections);
     expect(sections.map((s) => s.key)).toEqual(c.script.map((s) => s.key));
