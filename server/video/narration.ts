@@ -1,5 +1,5 @@
 /** Deterministic, evidence-backed scripts spoken locally. No paid speech API. */
-import { localSpeech } from "./localVoice";
+import { localSpeech, type SpeechProfile } from "./localVoice";
 import type { ReelScriptLines } from "../prompts/reelScript";
 
 /** Acronyms that must survive de-shouting as acronyms: spoken as letters, not
@@ -186,9 +186,10 @@ export async function synthesise(text: string): Promise<Buffer | null> {
 }
 
 export async function synthesiseScript(
-  lines: ScriptLine[]
+  lines: ScriptLine[],
+  profile?: SpeechProfile
 ): Promise<Array<{ key: string; bytes: Buffer }>> {
   // Preserve the actual failure (timeout, missing assets, process exit or
   // invalid PCM) through the scheduled route and its admin result.
-  return localSpeech(lines);
+  return localSpeech(lines, profile);
 }

@@ -18,6 +18,13 @@ import {
 } from "./narration";
 
 import { subtitleCues, subtitleAss } from "./subtitles";
+import {
+  renderStoryFrame,
+  storyboardSections,
+  validateStoryboard,
+  type ReelStoryboard,
+} from "./storyboard";
+import type { SpeechProfile } from "./localVoice";
 
 const run = promisify(execFile);
 
@@ -123,6 +130,7 @@ const MIN_HOLD = 0.55;
 export const MAX_REEL_SECONDS = 32;
 
 export type ReelStat = ReelStatText & {
+  storyboard?: ReelStoryboard;
   editorialLabel?: "What Changed" | "Before You Buy";
   asOf?: Date | null;
   series?: SparkPoint[];
@@ -144,6 +152,8 @@ const FACT_SECONDS = 1.25;
 const DRAW_STEPS = 8;
 
 export type Frame = {
+  sceneKey?: string;
+  sceneProgress?: number;
   reveal: number;
   valueText?: string;
   /** 0..1, how much of the history line is drawn on this frame. */
@@ -304,7 +314,7 @@ export function layout(sections: Section[]): {
  *
  * Exported so the pacing can be asserted without invoking ffmpeg.
  */
-export function buildVideoGraph(beats: Beat[]): string {
+export function buildVideoGraph(beats: Beat[], stationary = false): string {
   const total = beats.reduce((n, b, i) => n + b.seconds - (i === 0 ? 0 : b.fade), 0);
   const parts: string[] = [];
 
@@ -314,7 +324,8 @@ export function buildVideoGraph(beats: Beat[]): string {
   const spans = beats.map((beat, i) => {
     const startAt = i === 0 ? 0 : chain - beat.fade;
     chain = i === 0 ? beat.seconds : chain + beat.seconds - beat.fade;
-    const at = (t: number) => ZOOM_START + (ZOOM_END - ZOOM_START) * (total > 0 ? t / total : 0);
+    const at = (t: number) =>
+      stationary ? 1 : ZOOM_START + (ZOOM_END - ZOOM_START) * (total > 0 ? t / total : 0);
     return { from: at(startAt), to: at(startAt + beat.seconds) };
   });
 
@@ -431,6 +442,7 @@ export function scriptFitsClip(script: ScriptLine[]): boolean {
  * end of the clip a beat of stillness to be read in.
  */
 export function composeSections(stat: ReelStat, durations: Record<string, number>): Section[] {
+  if (stat.storyboard) return storyboardSections(stat.storyboard, durations);
   const ticks = countUpFrames(stat.value);
   const withTail = (key: string, last = false) =>
     (durations[key] ?? 0) + (last ? FINAL_TAIL_SECONDS : TAIL_SECONDS);
@@ -521,7 +533,12 @@ export function composeSections(stat: ReelStat, durations: Record<string, number
 export async function renderStatReel(
   stat: ReelStat,
   variant: CardVariant = "navy",
-  opts: { narrate?: boolean; script?: ScriptLine[]; subtitles?: boolean } = {}
+  opts: {
+    narrate?: boolean;
+    script?: ScriptLine[];
+    subtitles?: boolean;
+    voice?: SpeechProfile;
+  } = {}
 ): Promise<{ bytes: Buffer; seconds: number; narrated: boolean; subtitled: boolean }> {
   if (!ffmpegPath) throw new Error("ffmpeg binary unavailable");
 
@@ -534,13 +551,18 @@ export async function renderStatReel(
     //
     // The length check runs on the estimate, before synthesis, so an overlong
     // script costs nothing rather than five TTS calls that are then discarded.
-    let script = opts.script ?? buildScript(stat);
+    let script =
+      opts.script ??
+      (stat.storyboard
+        ? stat.storyboard.scenes.map(({ key, text }) => ({ key, text }))
+        : buildScript(stat));
+    if (stat.storyboard) validateStoryboard(stat.storyboard, script);
     if (opts.script && !scriptFitsClip(opts.script)) {
       throw new Error(
         `Narration script exceeds the ${MAX_REEL_SECONDS}-second editorial limit. Shorten the story before publishing.`
       );
     }
-    const spoken = opts.narrate === false ? null : await synthesiseScript(script);
+    const spoken = opts.narrate === false ? null : await synthesiseScript(script, opts.voice);
     if (opts.narrate !== false && !spoken)
       throw new Error("Narration unavailable. No silent Reel was produced.");
 
@@ -579,19 +601,28 @@ export async function renderStatReel(
         beat.frame.valueText ?? "",
         beat.frame.seriesProgress ?? "",
         beat.frame.factsShown ?? "",
+        beat.frame.sceneKey ?? "",
+        beat.frame.sceneProgress ?? "",
       ].join("|");
       let file = cache.get(key);
       if (!file) {
-        const buf = await renderStatCard(stat, variant, {
-          shape: "vertical",
-          reveal: beat.frame.reveal,
-          valueText: beat.frame.valueText,
-          seriesProgress: beat.frame.seriesProgress,
-          facts: stat.facts,
-          factsShown: beat.frame.factsShown ?? 0,
-          subtitleSpace: opts.subtitles,
-          kicker: stat.editorialLabel ?? "The Number",
-        });
+        const buf = stat.storyboard
+          ? await renderStoryFrame(
+              stat.storyboard,
+              beat.frame.sceneKey!,
+              beat.frame.sceneProgress!,
+              variant
+            )
+          : await renderStatCard(stat, variant, {
+              shape: "vertical",
+              reveal: beat.frame.reveal,
+              valueText: beat.frame.valueText,
+              seriesProgress: beat.frame.seriesProgress,
+              facts: stat.facts,
+              factsShown: beat.frame.factsShown ?? 0,
+              subtitleSpace: opts.subtitles,
+              kicker: stat.editorialLabel ?? "The Number",
+            });
         file = path.join(dir, `frame-${cache.size}.jpg`);
         await fs.writeFile(file, buf);
         cache.set(key, file);
@@ -634,13 +665,13 @@ export async function renderStatReel(
         await loadReelSubtitleFont()
       );
       const assFile = path.join(dir, "subtitles.ass");
-      await fs.writeFile(assFile, subtitleAss(cues));
+      await fs.writeFile(assFile, subtitleAss(cues, stat.storyboard ? "story" : "card"));
       subtitleFilter = `[vplain]ass=filename=${assFile}:fontsdir=${fontDir}[vout]`;
     }
     const graph = [
       opts.subtitles
-        ? buildVideoGraph(beats).replace(/\[vout\]$/, "[vplain]")
-        : buildVideoGraph(beats),
+        ? buildVideoGraph(beats, Boolean(stat.storyboard)).replace(/\[vout\]$/, "[vplain]")
+        : buildVideoGraph(beats, Boolean(stat.storyboard)),
       subtitleFilter,
       spokenSections.length
         ? buildAudioGraph(

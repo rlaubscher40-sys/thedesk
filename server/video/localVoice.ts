@@ -8,6 +8,8 @@ export const SPEECH_TIMEOUT_MS = 90_000;
 const CACHE_LIMIT = 4;
 type SpeechLine = { key: string; text: string };
 type SpeechAudio = { key: string; bytes: Buffer };
+export type SpeechProfile = { voice: "bm_george" | "bm_fable" | "bm_daniel"; speed: number };
+export const DEFAULT_SPEECH_PROFILE: SpeechProfile = { voice: "bm_george", speed: 1.02 };
 const cache = new Map<string, SpeechAudio[]>();
 const inFlight = new Map<string, Promise<SpeechAudio[]>>();
 let queue: Promise<unknown> = Promise.resolve();
@@ -64,7 +66,17 @@ export function audibleWave(bytes: Buffer): boolean {
   return audible > rate * 0.05;
 }
 
-export async function localSpeech(lines: SpeechLine[]): Promise<SpeechAudio[]> {
+export async function localSpeech(
+  lines: SpeechLine[],
+  profile: SpeechProfile = DEFAULT_SPEECH_PROFILE
+): Promise<SpeechAudio[]> {
+  if (
+    !["bm_george", "bm_fable", "bm_daniel"].includes(profile.voice) ||
+    !Number.isFinite(profile.speed) ||
+    profile.speed < 0.9 ||
+    profile.speed > 1.1
+  )
+    throw new Error("Invalid local speech profile.");
   if (
     !lines.length ||
     lines.length > 8 ||
@@ -72,7 +84,10 @@ export async function localSpeech(lines: SpeechLine[]): Promise<SpeechAudio[]> {
   )
     throw new Error("Narration script is empty or too long.");
   // Stable exact-script identity. Different numbers never reuse another read.
-  const key = createHash("sha256").update(JSON.stringify(lines)).digest("hex");
+  const selected = { ...profile };
+  const key = createHash("sha256")
+    .update(JSON.stringify({ lines, profile: selected }))
+    .digest("hex");
   const hit = cache.get(key);
   if (hit) return hit;
   const pending = inFlight.get(key);
@@ -83,7 +98,7 @@ export async function localSpeech(lines: SpeechLine[]): Promise<SpeechAudio[]> {
   // to load separate high-quality models concurrently on the same small host.
   const input = lines.map((line) => ({ ...line }));
   const task = queue.then(async () => {
-    const audio = await runLocalSpeech(input);
+    const audio = await runLocalSpeech(input, selected);
     cache.set(key, audio);
     while (cache.size > CACHE_LIMIT) cache.delete(cache.keys().next().value!);
     return audio;
@@ -97,7 +112,7 @@ export async function localSpeech(lines: SpeechLine[]): Promise<SpeechAudio[]> {
   }
 }
 
-async function runLocalSpeech(lines: SpeechLine[]): Promise<SpeechAudio[]> {
+async function runLocalSpeech(lines: SpeechLine[], profile: SpeechProfile): Promise<SpeechAudio[]> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "desk-voice-"));
   try {
     for (const file of [
@@ -129,8 +144,9 @@ async function runLocalSpeech(lines: SpeechLine[]): Promise<SpeechAudio[]> {
       );
       child.stdin?.on("error", () => {});
       child.stdin?.end(
-        lines.map((l, i) => JSON.stringify({ text: l.text, output_file: files[i] })).join("\n") +
-          "\n"
+        lines
+          .map((l, i) => JSON.stringify({ text: l.text, output_file: files[i], ...profile }))
+          .join("\n") + "\n"
       );
     });
     return await Promise.all(

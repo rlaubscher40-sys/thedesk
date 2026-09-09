@@ -84,3 +84,21 @@ it("distinguishes timeout, missing executable, permissions and exit errors", () 
   expect(speechProcessFailure({ code: "EACCES" })).toContain("not permitted");
   expect(speechProcessFailure({ code: 1 })).toContain("code 1");
 });
+
+it("isolates voice auditions in the cache and rejects invalid profiles", async () => {
+  const lines = [{ key: "audition", text: "A new voice should get its own audio." }];
+  const george = localSpeech(lines, { voice: "bm_george", speed: 1 });
+  await vi.waitFor(() => expect(m.exec).toHaveBeenCalledTimes(1));
+  m.callbacks[0]!(null, "", "");
+  await george;
+  const fable = localSpeech(lines, { voice: "bm_fable", speed: 1 });
+  await vi.waitFor(() => expect(m.exec).toHaveBeenCalledTimes(2));
+  m.callbacks[1]!(null, "", "");
+  await fable;
+  await localSpeech(lines, { voice: "bm_george", speed: 1 });
+  expect(m.exec).toHaveBeenCalledTimes(2);
+  await expect(localSpeech(lines, { voice: "bm_fable", speed: NaN })).rejects.toThrow("profile");
+  await expect(localSpeech(lines, { voice: "unknown" as never, speed: 1 })).rejects.toThrow(
+    "profile"
+  );
+});

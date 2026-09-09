@@ -1,6 +1,11 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { buildReelCaption, REEL_CAPTION_LIMIT, REEL_READS } from "./reelCaption";
+import {
+  buildReelCaption,
+  buildNarrativeReelCaption,
+  REEL_CAPTION_LIMIT,
+  REEL_READS,
+} from "./reelCaption";
 import { verifiedRentReel } from "./verifiedReel";
 import { verifiedSupplyReel } from "./verifiedSupplyReel";
 import { verifiedSydneyBeforeBuy, verifiedSydneyRentChange } from "./verifiedSydneyReels";
@@ -48,6 +53,13 @@ describe("repeatable concise Reel captions", () => {
       expect(caption).toContain("Source: ABS");
       expect(caption).toContain("July 2026");
       expect(caption).toContain("can be revised");
+      if (recipe!.stat.storyboard) {
+        expect(caption).toContain("link in bio → Brisbane and Perth supply");
+        expect(caption).not.toMatch(/https?:\/\/|utm_|Kokoro|George|no revision flag/);
+        expect(caption).toContain("AI narration.");
+        expect(caption.match(/#[\w-]+/g)).toEqual(["#AusProperty", "#HousingSupply", "#TheDesk"]);
+        continue;
+      }
       expect(caption).toContain("Source pages update; match the post's reference period.");
       expect(caption.match(/https?:\/\/\S+/g)).toHaveLength(1);
       const url = new URL(caption.match(/https?:\/\/\S+/)![0]);
@@ -97,5 +109,17 @@ describe("repeatable concise Reel captions", () => {
     );
     expect(() => buildReelCaption({ ...valid, read: "toString" as never })).toThrow("Unknown");
     expect(Object.values(REEL_READS).every((read) => read.path.startsWith("/"))).toBe(true);
+  });
+  it("rejects incomplete, overlong or link-injected narrative captions", () => {
+    const input = {
+      paragraphs: ["Hook.", "Finding.", "Meaning."],
+      source: "Source: ABS.",
+      read: "supplyComparison" as const,
+    };
+    expect(() => buildNarrativeReelCaption({ ...input, paragraphs: ["Hook."] })).toThrow();
+    expect(() => buildNarrativeReelCaption({ ...input, source: "https://evil.example" })).toThrow();
+    expect(() =>
+      buildNarrativeReelCaption({ ...input, paragraphs: ["Hook.", "F".repeat(1500), "Meaning."] })
+    ).toThrow("no factual truncation");
   });
 });

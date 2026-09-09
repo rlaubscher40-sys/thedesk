@@ -69,6 +69,16 @@ describe("narrated Reel publication", () => {
     await expect(postStatReel(stat, "https://thedesk.au", options)).rejects.toThrow("silent");
     expect(m.create).not.toHaveBeenCalled();
   });
+  it("preserves the evidence storyboard through the publishing wrapper", async () => {
+    const storyboard = { kind: "approvals-comparison", scenes: [] };
+    const candidate = { ...stat, storyboard };
+    await postStatReel(candidate, "https://thedesk.au", options);
+    expect(m.render).toHaveBeenCalledWith(
+      expect.objectContaining({ storyboard }),
+      "navy",
+      expect.any(Object)
+    );
+  });
   it("requires requested subtitles before creating a Meta container", async () => {
     await expect(
       postStatReel(stat, "https://thedesk.au", { ...options, subtitles: true })
