@@ -22,7 +22,11 @@ export async function recoverSocialPublication(scope: string) {
         typeof value.headline === "string" &&
         ["navy", "light"].includes(value.coverVariant)
       )
-        return value as { postId: string; headline: string; coverVariant: "navy" | "light" };
+        return {
+          postId: value.postId,
+          headline: value.headline,
+          coverVariant: value.coverVariant as "navy" | "light",
+        };
     } catch {
       /* an unreadable receipt is uncertainty, not permission to retry */
     }
@@ -57,6 +61,17 @@ export async function publishSocialOnce(
   const postId = await publish();
   if (!/^\d+$/.test(postId))
     throw new Error("Instagram returned no valid media ID; publication remains locked");
-  await confirmSocialRecords(keys, JSON.stringify({ postId, headline, coverVariant }));
+  const storyIds = stories.map((story) => story.id);
+  await confirmSocialRecords(
+    keys,
+    JSON.stringify({
+      postId,
+      headline,
+      coverVariant,
+      ...(storyIds.length <= 4 && storyIds.every((id) => Number.isSafeInteger(id) && id > 0)
+        ? { storyIds }
+        : {}),
+    })
+  );
   return postId;
 }

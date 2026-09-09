@@ -12,7 +12,9 @@ import { env } from "../core/env";
 import { loopbackBaseUrl } from "../core/loopback";
 import { fetchPublishingLimit, isTransientServerError } from "../instagram/api";
 import { listInstagramPosts } from "../db/instagramPosts";
-import { adminProcedure, router } from "../core/trpc";
+import { adminProcedure, publicProcedure, router } from "../core/trpc";
+import { cached } from "../core/cache";
+import { publishedSocialStories } from "../instagram/publishedStories";
 import { LAUNCH_POST_IDS } from "../../shared/instagramLaunch";
 import { launchPostStatus, previewLaunchPost, publishLaunchPost } from "../instagram/launch";
 
@@ -52,6 +54,9 @@ function describeFailure(status: number, body: string): string {
 }
 
 export const instagramRouter = router({
+  publishedStories: publicProcedure.query(() =>
+    cached("social:published-stories", 60_000, () => publishedSocialStories())
+  ),
   launchStatus: adminProcedure.query(() => launchPostStatus()),
   launchPreview: adminProcedure
     .input(z.object({ id: z.enum(LAUNCH_POST_IDS) }).strict())

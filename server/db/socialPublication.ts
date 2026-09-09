@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, like } from "drizzle-orm";
 import { getDb } from "./client";
 import { jobRuns } from "./schema";
 import { isDemoMode } from "../demo/store";
@@ -16,6 +16,24 @@ export async function readSocialRecords(keys: string[]) {
     .select()
     .from(jobRuns)
     .where(and(inArray(jobRuns.jobKey, keys), eq(jobRuns.runDate, DATE)));
+}
+
+/** Only confirmed slot receipts; no running/uncertain reservations or admin metrics. */
+export async function recentSocialReceipts(now = new Date()) {
+  if (isDemoMode()) return [];
+  return database()
+    .select({ detail: jobRuns.detail, finishedAt: jobRuns.finishedAt })
+    .from(jobRuns)
+    .where(
+      and(
+        eq(jobRuns.runDate, DATE),
+        eq(jobRuns.status, "success"),
+        like(jobRuns.jobKey, "ig-slot-%"),
+        gte(jobRuns.finishedAt, new Date(now.getTime() - 30 * 86400000))
+      )
+    )
+    .orderBy(desc(jobRuns.finishedAt))
+    .limit(12);
 }
 /** One transaction or no reservation. Any duplicate/race/outage fails closed. */
 export async function reserveSocialRecords(keys: string[]) {

@@ -14,6 +14,7 @@ import {
 } from "./socialPublication";
 import { storyPublicationKeys } from "./socialProvenance";
 const story = {
+  id: 42,
   title: "Sydney rents rose 3.5%",
   sourceUrl: "https://abs.gov.au/rents",
 } as DailyFeedItem;
@@ -45,6 +46,9 @@ describe("permanent carousel publication identities", () => {
     });
     expect(await recoverSocialPublication("weekly:2026-09-07")).toBeNull();
     expect(storyPublicationKeys(story).every((key) => key.length === 64)).toBe(true);
+    expect(JSON.parse(records.get(socialSlotKey("daily:2026-09-08"))!.detail).storyIds).toEqual([
+      42,
+    ]);
   });
   it("never retries an uncertain Meta response, including after restart", async () => {
     const publish = vi.fn().mockRejectedValue(new Error("response lost"));

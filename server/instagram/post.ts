@@ -223,7 +223,7 @@ export function buildDailyCaption(stories: DailyFeedItem[]): string {
     "",
     ...rundown,
     "Save this briefing to revisit the evidence before your next property decision.",
-    "Open our bio → Reel sources and enter the Read story number. You can also search the headline in Archive.",
+    "Open our bio → Recent carousel stories and tap the headline. For older posts, enter the Read story number or search Archive.",
     "",
     `${CORE_HASHTAGS} #PropertyMarket`,
   ].join("\n");
