@@ -83,3 +83,16 @@ are animation states, not observations. Numeric ticks use hard cuts to avoid
 ghosted digits. The ratio counter tracks the exact number of illuminated icons.
 The revised design gives the headline number more prominence, shortens chart
 headings and uses fixed-height monospaced counters to prevent layout jumps.
+
+The quiet-layout pass removes page counters, the progress strip, duplicate date
+lines, explanatory paragraphs and decorative comparison icons. Each scene body
+is limited to 25 words of essential copy. Geography, reference period, source,
+approximation and the estimated-demand label remain visible. Full calculation
+and limitations remain in the unchanged caption and public source read. The
+gap is explicitly labelled additional, not total accumulated shortage.
+
+Supply keeps the same row, position and 840px scale when demand enters beneath
+it. The ratio reserves a fixed-width counter to prevent the /100 from shifting
+at the change from one to two digits. Static introductory and closing scenes
+hold without redundant animation ticks; moving data still uses eased count-ups
+and measured narration, with a final reading hold.

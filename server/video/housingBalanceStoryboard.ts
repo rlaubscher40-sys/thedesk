@@ -113,7 +113,7 @@ const houseSvg = (color: string, width: number, height: number) => ({
   },
 });
 
-export async function renderHousingBalanceFrame(
+export function housingBalanceFrameLayout(
   story: HousingBalanceStoryboard,
   key: string,
   progress: number,
@@ -144,16 +144,11 @@ export async function renderHousingBalanceFrame(
           rule: "#344057",
         };
   const number = (n: number) => n.toLocaleString("en-AU");
-  const title = (a: string, z?: string) =>
-    box({ flexDirection: "column", gap: 12 }, [
-      text(a, 84, c.fg, true),
-      ...(z ? [text(z, 84, c.gold, true)] : []),
-    ]);
   const tag = (s: string) => text(s, 25, c.muted);
   const scale = 300000;
   const row = (label: string, target: number, color: string, reveal = 1) => {
     const tick = balanceCountFrame(target, reveal, scale);
-    return box({ flexDirection: "column", gap: 12 }, [
+    return box({ flexDirection: "column", gap: 12, width: 840 }, [
       text(label, 25, color),
       box(
         { height: 108, justifyContent: "flex-end", alignItems: "center" },
@@ -173,71 +168,36 @@ export async function renderHousingBalanceFrame(
   let content: Node;
   if (scene.kind === "balance-opening" || scene.kind === "balance-contrast") {
     const contrast = scene.kind === "balance-contrast";
-    content = box({ flexDirection: "column", gap: 32 }, [
-      tag(contrast ? "THE PROBLEM" : "THE CONSTRUCTION HEADLINE"),
-      text(
-        contrast ? "Still not" : "263,000",
-        contrast ? 112 : 172,
-        contrast ? c.fg : c.gold,
-        true
-      ),
-      text(contrast ? "enough." : "homes built.", 94, contrast ? c.gap : c.fg, true),
+    content = box({ flexDirection: "column", gap: 32, paddingTop: 55 }, [
+      text(number(b.gross), 172, contrast ? c.muted : c.gold, true),
+      text("homes built.", 88, contrast ? c.muted : c.fg, true),
       box(
-        {
-          height: 180,
-          gap: 30,
-          alignItems: "flex-end",
-          borderBottom: `2px solid ${c.rule}`,
-          paddingBottom: 25,
-        },
-        Array.from({ length: 5 }, (_, i) =>
-          houseSvg(contrast && i > 2 ? c.rule : c.gold, 130, 90 + (i % 3) * 24)
-        )
+        { marginTop: 70, height: 220, alignItems: "center" },
+        contrast ? text("Still not enough.", 86, c.gap, true) : houseSvg(c.gold, 220, 190)
       ),
-      text(
-        contrast ? "New supply did not cover new demand." : "July 2024 to December 2025",
-        42,
-        contrast ? c.fg : c.muted,
-        true
+    ]);
+  } else if (scene.kind === "balance-net" || scene.kind === "balance-demand") {
+    const demandScene = scene.kind === "balance-demand";
+    // Shared positions let demand arrive beneath the already-established supply.
+    content = box({ flexDirection: "column", gap: 40, paddingTop: 35 }, [
+      box(
+        { height: 130, alignItems: "flex-start" },
+        text(demandScene ? "Supply vs demand." : "After demolitions.", 72, c.fg, true)
       ),
-      tag("18 months · Approximate completions"),
-    ]);
-  } else if (scene.kind === "balance-net") {
-    content = box({ flexDirection: "column", gap: 32 }, [
-      text("What was actually added?", 62, c.fg, true),
-      box({ justifyContent: "space-between", padding: 26, backgroundColor: c.panel }, [
-        box({ flexDirection: "column", gap: 15 }, [
-          text(number(b.gross), 62, c.fg, true),
-          tag("COMPLETED"),
-        ]),
-        text("-", 65, c.gap),
-        box({ flexDirection: "column", gap: 15 }, [
-          text(number(b.impliedRemovals), 62, c.gap, true),
-          tag("DEMOLITIONS*"),
-        ]),
-      ]),
-      row("NET NEW HOMES", b.net, c.gold, progress),
+      row("NET NEW SUPPLY", b.net, c.gold, demandScene ? 1 : progress),
+      box(
+        { height: 244 },
+        demandScene ? row("ESTIMATED NEW DEMAND", b.demand, c.teal, progress) : ""
+      ),
       axis(),
-      text("Not every new home adds to supply.", 38, c.fg, true),
-      tag("*Approximate difference from rounded figures."),
-    ]);
-  } else if (scene.kind === "balance-demand") {
-    content = box({ flexDirection: "column", gap: 34 }, [
-      text("Demand grew. Supply lagged.", 61, c.fg, true),
-      row("NET NEW SUPPLY", b.net, c.gold),
-      row("ESTIMATED NEW DEMAND", b.demand, c.teal, progress),
-      axis(),
-      text("New households need somewhere to live.", 35, c.fg, true),
-      tag("Same country. Same 18 months."),
     ]);
   } else if (scene.kind === "balance-gap") {
     const tick = balanceCountFrame(b.shortfall, progress, scale);
-    content = box({ flexDirection: "column", gap: 26 }, [
-      tag("NEW DEMAND MINUS NET NEW SUPPLY"),
+    content = box({ flexDirection: "column", gap: 32, paddingTop: 45 }, [
+      text("The additional gap.", 66, c.fg, true),
       box({ height: 192, alignItems: "center" }, text(number(tick.value), 160, c.gap)),
       text("homes short.", 80, c.fg, true),
-      tag("Gap added in 18 months · Approximate"),
-      box({ height: 88, backgroundColor: c.panel }, [
+      box({ height: 88, backgroundColor: c.panel, marginTop: 45 }, [
         box({ width: `${(b.net / scale) * 100}%`, backgroundColor: c.gold }, ""),
         box({ width: `${tick.widthPercent}%`, backgroundColor: c.gap }, ""),
       ]),
@@ -246,15 +206,12 @@ export async function renderHousingBalanceFrame(
         text("ADDED", 23, c.gold),
         text("SHORTFALL", 23, c.gap),
       ]),
-      text(`${number(b.demand)} needed - ${number(b.net)} added`, 29, c.fg),
-      text("New demand outpaced net new supply.", 35, c.fg, true),
-      tag("This is not the total accumulated shortage."),
     ]);
   } else if (scene.kind === "balance-ratio") {
     const shown = Math.round(b.netPer100 * progress);
-    content = box({ flexDirection: "column", gap: 24 }, [
+    content = box({ flexDirection: "column", gap: 32, paddingTop: 25 }, [
       box({ alignItems: "baseline", gap: 18, height: 165 }, [
-        text(String(shown), 150, c.gold),
+        box({ width: 210, justifyContent: "flex-end" }, text(String(shown), 150, c.gold)),
         text("/ 100", 70, c.muted),
       ]),
       text("Net new homes for every 100 needed.", 38, c.fg, true),
@@ -273,31 +230,41 @@ export async function renderHousingBalanceFrame(
           )
         )
       ),
-      box({ justifyContent: "space-between", paddingTop: 12 }, [
-        text("GOLD: NET NEW SUPPLY", 23, c.gold),
-        text("UNFILLED: THE GAP", 23, c.gap),
-      ]),
-      tag("Rounded ratio · Icons are not individual homes"),
+      tag("Approximate ratio"),
     ]);
   } else {
-    content = box({ flexDirection: "column", gap: 35 }, [
-      title("New supply", "didn't keep up."),
-      box({ padding: 30, backgroundColor: c.panel, flexDirection: "column", gap: 22 }, [
-        text(`About ${number(b.shortfall)} homes`, 59, c.gap, true),
-        text("short of new demand.", 42, c.fg, true),
-      ]),
-      text("More construction does not automatically mean catching up.", 42, c.fg, true),
-      tag("Australia · July 2024 to December 2025"),
-      box({ borderTop: `1px solid ${c.rule}`, paddingTop: 22, flexDirection: "column", gap: 14 }, [
-        tag("Figures and calculation: link in bio"),
-        text(REEL_READS.housingBalance.label, 27, c.gold),
-      ]),
-    ]);
+    content = box(
+      { flexDirection: "column", height: 760, justifyContent: "space-between", paddingTop: 80 },
+      [
+        box({ flexDirection: "column", gap: 22 }, [
+          text("New supply", 100, c.fg, true),
+          text("didn't keep up.", 100, c.gold, true),
+        ]),
+        box({ flexDirection: "column", gap: 18 }, [
+          tag("Figures and sources in bio"),
+          text(REEL_READS.housingBalance.label, 27, c.gold),
+        ]),
+      ]
+    );
   }
-  return renderEditorialFrame(content, variant, {
-    kicker: "AUSTRALIA / JUL 2024 TO DEC 2025",
-    source: "Based on NHSAC 2026 data · Historical estimates",
-    index: story.scenes.indexOf(scene),
-    count: story.scenes.length,
-  });
+  return {
+    content,
+    meta: {
+      kicker: "AUSTRALIA / JUL 2024 TO DEC 2025",
+      source: "Based on NHSAC 2026 · Approximate figures",
+      index: story.scenes.indexOf(scene),
+      count: story.scenes.length,
+      quiet: true,
+    },
+  };
+}
+
+export async function renderHousingBalanceFrame(
+  story: HousingBalanceStoryboard,
+  key: string,
+  progress: number,
+  variant: CardVariant
+) {
+  const { content, meta } = housingBalanceFrameLayout(story, key, progress, variant);
+  return renderEditorialFrame(content, variant, meta);
 }

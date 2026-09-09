@@ -108,7 +108,9 @@ export function storyboardSections(story: ReelStoryboard, durations: Record<stri
       ? Math.min(31, Math.max(2, Math.floor(measured! * 0.55 * 15) + 1))
       : ratio
         ? ratioCount
-        : ["takeaway", "balance-takeaway"].includes(scene.kind)
+        : ["takeaway", "balance-takeaway", "balance-opening", "balance-contrast"].includes(
+              scene.kind
+            )
           ? 1
           : ["comparison", "balance-demand"].includes(scene.kind)
             ? 8

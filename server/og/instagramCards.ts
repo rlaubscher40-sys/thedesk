@@ -53,7 +53,7 @@ export async function loadReelSubtitleFont(): Promise<Buffer> {
 export async function renderEditorialFrame(
   content: object,
   variant: CardVariant,
-  meta: { kicker: string; source: string; index: number; count: number }
+  meta: { kicker: string; source: string; index: number; count: number; quiet?: boolean }
 ): Promise<Buffer> {
   const c = colorScheme(variant);
   const div = (style: object, children: unknown) => ({
@@ -74,14 +74,21 @@ export async function renderEditorialFrame(
       },
       [
         brandHeader(await loadLogo(variant), 48, { accent: c.amber }),
-        mono(
-          `${String(meta.index + 1).padStart(2, "0")} / ${String(meta.count).padStart(2, "0")}`,
-          22,
-          c.fgMuted
-        ),
+        ...(!meta.quiet
+          ? [
+              mono(
+                `${String(meta.index + 1).padStart(2, "0")} / ${String(meta.count).padStart(2, "0")}`,
+                22,
+                c.fgMuted
+              ),
+            ]
+          : []),
       ]
     ),
-    div({ position: "absolute", left: 84, top: 258 }, mono(meta.kicker, 22, c.amber)),
+    div(
+      { position: "absolute", left: 84, top: 258 },
+      mono(meta.kicker, 22, meta.quiet ? c.fgMuted : c.amber)
+    ),
     div({ position: "absolute", left: 84, top: 355, width: 840, flexDirection: "column" }, content),
     div(
       {
@@ -89,31 +96,35 @@ export async function renderEditorialFrame(
         left: 84,
         top: 1375,
         width: 840,
-        borderTop: `1px solid ${c.fgMuted}`,
+        ...(meta.quiet ? {} : { borderTop: `1px solid ${c.fgMuted}` }),
         paddingTop: 20,
       },
       mono(meta.source, 21, c.fgMuted)
     ),
-    div(
-      {
-        position: "absolute",
-        left: 84,
-        top: 1570,
-        width: 840,
-        height: 3,
-        backgroundColor: c.amberSoft,
-      },
-      [
-        div(
-          {
-            width: `${((meta.index + 1) / meta.count) * 100}%`,
-            height: 3,
-            backgroundColor: c.amber,
-          },
-          ""
-        ),
-      ]
-    ),
+    ...(!meta.quiet
+      ? [
+          div(
+            {
+              position: "absolute",
+              left: 84,
+              top: 1570,
+              width: 840,
+              height: 3,
+              backgroundColor: c.amberSoft,
+            },
+            [
+              div(
+                {
+                  width: `${((meta.index + 1) / meta.count) * 100}%`,
+                  height: 3,
+                  backgroundColor: c.amber,
+                },
+                ""
+              ),
+            ]
+          ),
+        ]
+      : []),
   ]);
   return renderToJpeg(tree, 1080, 1920);
 }
