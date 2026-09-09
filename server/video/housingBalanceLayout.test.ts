@@ -19,7 +19,9 @@ describe("quiet housing Reel layouts", () => {
     for (const scene of story.scenes) {
       const { content, meta } = housingBalanceFrameLayout(story, scene.key, 1, "navy");
       const words = copy(content).join(" ").split(/\s+/);
-      expect(words.length, scene.key).toBeLessThanOrEqual(scene.key === "contrast" ? 30 : 25);
+      expect(words.length, scene.key).toBeLessThanOrEqual(
+        ["contrast", "signOff"].includes(scene.key) ? 42 : 25
+      );
       expect(meta.quiet).toBe(true);
       expect(meta.kicker).toContain("JUL 2024 TO DEC 2025");
       expect(meta.source).toContain("NHSAC 2026");
@@ -52,12 +54,13 @@ describe("quiet housing Reel layouts", () => {
     const gap = housingBalanceFrameLayout(story, "facts", 1, "navy").content;
     expect(copy(gap)).toContain("THE GAP GREW BY");
   });
-  it("subtracts demolitions from completions and retains the supply endpoint through the gap", () => {
+  it("counts net additions once and retains the supply endpoint through the gap", () => {
     const first = housingBalanceFrameLayout(story, "value", 0, "navy").content;
     const last = housingBalanceFrameLayout(story, "value", 1, "navy").content;
-    expect(copy(children(first)[1])).toContain("263,000");
+    expect(copy(children(first)[1])).not.toContain("0");
     expect(copy(children(last)[1])).toContain("232,000");
-    expect(copy(last)).toContain("~31,000 demolished*");
+    expect(copy(last)).toContain("After demolitions");
+    expect(copy(last).join(" ")).not.toContain("31,000");
     const gap = housingBalanceFrameLayout(story, "facts", 1, "navy").content;
     expect(children(gap)[1]).toEqual(children(last)[1]);
     const demand = children(gap)[2]!.props.children as Element;
@@ -71,14 +74,10 @@ describe("quiet housing Reel layouts", () => {
       children(housingBalanceFrameLayout(story, "claim", p, "navy").content)[2]!;
     const cells = (p: number) => children(grid(p)).flatMap(children);
     expect(cells(1)).toHaveLength(100);
-    const colour = (cell: Element) =>
-      Buffer.from(
-        String((cell.props.children as { props: { src: string } }).props.src).split(",")[1]!,
-        "base64"
-      ).toString();
-    expect(cells(1).filter((c) => colour(c).includes("#D4A853"))).toHaveLength(81);
-    expect(cells(1).filter((c) => colour(c).includes("#E89576"))).toHaveLength(19);
-    expect(cells(0.99).filter((c) => colour(c).includes("#E89576"))).toHaveLength(0);
+    const colour = (cell: Element) => cell.props.style?.backgroundColor;
+    expect(cells(1).filter((c) => colour(c) === "#D4A853")).toHaveLength(81);
+    expect(cells(1).filter((c) => colour(c) === "#E89576")).toHaveLength(19);
+    expect(cells(0.99).filter((c) => colour(c) === "#E89576")).toHaveLength(0);
   });
   it("reserves a fixed counter width so /100 never shifts between one and two digits", () => {
     for (const progress of [0.1, 1]) {
@@ -86,15 +85,13 @@ describe("quiet housing Reel layouts", () => {
       expect(children(children(frame)[0])[0]!.props.style?.width).toBe(210);
     }
   });
-  it("retains the completed 81/19 comparison through the explanation and takeaway", () => {
-    const ratio = housingBalanceFrameLayout(story, "claim", 1, "navy").content;
-    for (const key of ["signOff"]) {
-      const ending = housingBalanceFrameLayout(story, key, 1, "navy").content;
-      expect(children(ending)[2]).toEqual(children(ratio)[2]);
-      expect(children(ending)[3]).toEqual(children(ratio)[3]);
-      expect(copy(children(ending)[3])).toEqual(["81 added", "19 gap"]);
-      expect(children(ending)[0]!.props.style?.height).toBe(165);
-      expect(ending.props.style).toEqual(ratio.props.style);
+  it("distinguishes meeting new need from closing an existing gap without claiming a stock estimate", () => {
+    for (const progress of [0, 1]) {
+      const ending = housingBalanceFrameLayout(story, "signOff", progress, "navy").content;
+      const words = copy(ending);
+      expect(words).toContain("Stop the gap growing");
+      expect(words).toContain("Start closing the gap");
+      expect(words.join(" ")).not.toMatch(/55,000|19 gap/);
     }
   });
   it("holds static opening and closing scenes without redundant animation ticks", () => {

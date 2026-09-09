@@ -39,12 +39,12 @@ export function verifiedHousingBalanceReel(data: HousingBalanceSnapshot | null, 
     publication: { key: "instagram-reel-nhsac-housing-balance-v1", date: balance.end },
     caption: buildNarrativeReelCaption({
       paragraphs: [
-        `Australia built around ${number(balance.gross)} homes. So why did the housing gap grow?`,
-        "Someone moves out of their parents' home. The same people now form two households, needing two homes. Housing need can grow even when the number of people stays the same.",
-        `From July 2024 to December 2025, demolitions reduced that to about ${number(balance.net)} net new homes. Meanwhile, households needed an estimated ${number(balance.demand)} extra homes.`,
-        `The difference: roughly ${number(balance.shortfall)} homes. About ${balance.netPer100} added for every 100 additionally needed.`,
-        "Thousands of homes built, yet we still fell further behind. Next time you see a housing headline, compare homes actually added with extra homes needed, in the same place over the same period.",
-        "This is the additional gap over those 18 months, not Australia's total accumulated shortage or a count of homeless households.",
+        "Building more homes doesn't necessarily mean the housing shortage is shrinking.",
+        "We need to compare homes added with extra homes needed. Someone moving out of their parents' home is one example: the same people now form two households, needing two homes.",
+        `From July 2024 to December 2025, Australia added about ${number(balance.net)} homes after demolitions. Estimated additional need was ${number(balance.demand)} homes.`,
+        `That left an extra gap of about ${number(balance.shortfall)} homes. Roughly ${balance.netPer100} added for every 100 additionally needed.`,
+        "Why it matters: building can continue while a shortage gets worse. Meeting new need stops the gap growing. To close the existing gap, homes added must outpace new need. Ask whether we're catching up, not just whether we're building.",
+        "These figures show the additional gap over those 18 months, not Australia's total accumulated shortage or a count of homeless households.",
       ],
       source:
         "Based on National Housing Supply and Affordability Council data, State of the Housing System 2026, p. 21. National historical estimates; approximate figures. Demand is modelled from household formation. Report released 30 April 2026.",

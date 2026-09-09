@@ -25,16 +25,18 @@ import { weeklyFeatureTree } from "./weeklyFeature";
 
 const FONT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "fonts");
 
-type LoadedFonts = { playfair: ArrayBuffer; mono: ArrayBuffer };
+type LoadedFonts = { playfair: ArrayBuffer; mono: ArrayBuffer; sans: ArrayBuffer };
 let cachedFonts: LoadedFonts | null = null;
 
 async function loadFonts(): Promise<LoadedFonts> {
   if (cachedFonts) return cachedFonts;
-  const [playfair, mono] = await Promise.all([
+  const [playfair, mono, sans] = await Promise.all([
     fs.promises.readFile(path.join(FONT_DIR, "PlayfairDisplay-Bold.woff")),
     fs.promises.readFile(path.join(FONT_DIR, "JetBrainsMono-Regular.woff")),
+    fs.promises.readFile(path.join(FONT_DIR, "DeskSans-Bold.woff")),
   ]);
   cachedFonts = {
+    sans: sans.buffer.slice(sans.byteOffset, sans.byteOffset + sans.byteLength) as ArrayBuffer,
     playfair: playfair.buffer.slice(
       playfair.byteOffset,
       playfair.byteOffset + playfair.byteLength
@@ -392,6 +394,7 @@ async function renderToJpeg(tree: object, width: number, height: number): Promis
         throw new Error("Weekly feature needs editorial review: body overlaps footer clearance");
     },
     fonts: [
+      { name: "Desk Sans", data: fonts.sans, weight: 700, style: "normal" },
       {
         name: "Playfair Display",
         data: fonts.playfair,

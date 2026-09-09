@@ -77,7 +77,7 @@ describe("the finding survives the Reel and source destination", () => {
   it("allows a bounded complete-sentence read while retaining the default budget", () => {
     const candidate = verifiedHousingBalanceReel(evidence(), now)!;
     expect(reelDurationLimit()).toBe(32);
-    expect(reelDurationLimit(candidate.stat)).toBe(38);
+    expect(reelDurationLimit(candidate.stat)).toBe(46);
     expect(scriptFitsClip(candidate.script, candidate.stat)).toBe(true);
     expect(scriptFitsClip([{ key: "tooLong", text: "word ".repeat(150) }], candidate.stat)).toBe(
       false

@@ -121,7 +121,7 @@ const MIN_HOLD = 0.55;
  * the voice. This is an editorial limit, not a claim about audience retention. */
 export const MAX_REEL_SECONDS = 32;
 export function reelDurationLimit(stat?: Pick<ReelStat, "storyboard">): number {
-  return stat?.storyboard?.kind === "housing-balance" ? 38 : MAX_REEL_SECONDS;
+  return stat?.storyboard?.kind === "housing-balance" ? 46 : MAX_REEL_SECONDS;
 }
 
 export type ReelStat = ReelStatText & {
@@ -370,19 +370,25 @@ export function buildVideoGraph(beats: Beat[], stationary = false): string {
  * end is for the loop: Instagram cuts straight back to the first frame, and a
  * voice stopping dead at that seam is audible.
  */
-export function buildAudioGraph(starts: number[], firstInput: number, total: number): string {
+export function buildAudioGraph(
+  starts: number[],
+  firstInput: number,
+  total: number,
+  normalise = false
+): string {
   if (starts.length === 0) return "";
   const parts = starts.map(
     (start, i) => `[${firstInput + i}:a]adelay=delays=${Math.round(start * 1000)}:all=1[a${i}]`
   );
   const mixed = starts.map((_, i) => `[a${i}]`).join("");
+  const voiceLevel = normalise ? "loudnorm=I=-16:TP=-1.5:LRA=11," : "";
   const fadeAt = Math.max(0, total - 0.6).toFixed(3);
   if (starts.length === 1) {
-    parts.push(`[a0]afade=t=out:st=${fadeAt}:d=0.6[aout]`);
+    parts.push(`[a0]${voiceLevel}afade=t=out:st=${fadeAt}:d=0.6[aout]`);
   } else {
     parts.push(
       `${mixed}amix=inputs=${starts.length}:duration=longest:normalize=0,` +
-        `afade=t=out:st=${fadeAt}:d=0.6[aout]`
+        `${voiceLevel}afade=t=out:st=${fadeAt}:d=0.6[aout]`
     );
   }
   return parts.join(";");
@@ -715,7 +721,8 @@ export async function renderStatReel(
         ? buildAudioGraph(
             spokenSections.map((s) => s.start),
             frameFiles.length,
-            total
+            total,
+            stat.storyboard?.kind === "housing-balance"
           )
         : "",
     ]
