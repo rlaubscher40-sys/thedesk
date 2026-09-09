@@ -314,7 +314,7 @@ export default function MarketsPage() {
                   <button
                     type="button"
                     onClick={buildBrief}
-                    disabled={ask.isPending || coverageCount === 0}
+                    disabled={ask.isPending || market.length < 2}
                     className="bs-btn bs-btn-solid inline-flex items-center gap-2 disabled:opacity-40"
                   >
                     <Sparkles className="h-3.5 w-3.5" />
@@ -328,11 +328,11 @@ export default function MarketsPage() {
               ) : coverageCount === 0 ? (
                 <section className="py-12 rule-hair-b">
                   <p className="font-serif text-3xl">
-                    The Desk has not built a file on {market} yet.
+                    No archived reporting for {market} yet.
                   </p>
                   <p className="mt-3 max-w-[58ch] text-[var(--color-fg-muted)]">
-                    That is useful information too. The brief stays evidence-led rather than
-                    inventing a market view where the archive is thin.
+                    You can still build a brief from available local data. If the evidence
+                    is insufficient, The Desk will explain the gap.
                   </p>
                   <Link
                     href="/ask"

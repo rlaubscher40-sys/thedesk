@@ -64,6 +64,23 @@ afterEach(() => {
 });
 
 describe("Ask answer recovery", () => {
+  it("answers from stored local facts when there are no archived stories or headline metrics", async () => {
+    vi.mocked(db.searchAllContent).mockResolvedValue({ feedItems: [], editions: [] });
+    const href = "/markets?q=Aranda&state=ACT&areaKind=SA2#local-data";
+    vi.mocked(retrieveLocalFacts).mockResolvedValue([{
+      title: "Aranda, ACT (SA2): population",
+      date: "2025-06-30",
+      href,
+      publisher: "Australian Bureau of Statistics",
+      sourceUrl: "https://www.abs.gov.au/population.xlsx",
+      text: "Aranda SA2 population: 2,500 people at 30 June 2025. Statistical area, not a metropolitan total.",
+    }]);
+    const result = await askRouter.createCaller(ctx).answer({ question: "What is the population of Aranda SA2 ACT?" });
+    expect(result).toMatchObject({ status: "answered", sources: [{ href, category: "LOCAL DATA" }], shareToken: "verified-share-token" });
+    expect(invokeLLMJson).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(invokeLLMJson).mock.calls[0]![0].messages.map(m => m.content).join(" ")).toContain("Aranda SA2 population: 2,500");
+  });
+
   it("ranks the combined evidence before assigning citations and applying the source cap", async () => {
     const feedItems = [
       ...Array.from({ length: 12 }, (_, index) => ({
