@@ -15,7 +15,7 @@
  * foreign keys on reading queue / notes / conversations but is only ever
  * populated with one row.
  */
-import { createHash, pbkdf2, randomBytes, timingSafeEqual } from "node:crypto";
+import { pbkdf2, randomBytes, timingSafeEqual } from "node:crypto";
 import { COOKIE_NAME, SESSION_TTL_MS } from "../../shared/const";
 import { ForbiddenError } from "../../shared/errors";
 import { parse as parseCookieHeader } from "cookie";
@@ -54,17 +54,39 @@ function getSecret(): Promise<Buffer> {
   return key;
 }
 
+let passwordChecks = 0;
+function passwordKey(password: string, salt: Buffer): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    pbkdf2(password, salt, 600_000, 32, "sha256", (error, value) => {
+      if (error) reject(error);
+      else resolve(value);
+    });
+  });
+}
+
 class AuthSdk {
   /** Verify the password the user typed against env.adminPassword. */
-  verifyPassword(password: string): boolean {
+  async verifyPassword(password: string): Promise<boolean | null> {
     const expected = env.adminPassword;
-    if (!expected) return false;
-    // Hash both sides to a fixed length, then compare in constant time.
-    // Comparing the raw strings needed a length check first, and that
-    // early return leaked the password's length through response timing.
-    const a = createHash("sha256").update(password).digest();
-    const b = createHash("sha256").update(expected).digest();
-    return timingSafeEqual(a, b);
+    if (!expected || !password || Buffer.byteLength(password, "utf8") > 4096) return false;
+    // Bound KDF work across clients as well as the route's per-IP rate limit.
+    // null means temporarily unavailable, never a successful comparison.
+    if (passwordChecks >= 2) return null;
+    passwordChecks++;
+    try {
+      const salt = randomBytes(32);
+      const [actual, configured] = await Promise.allSettled([
+        passwordKey(password, salt),
+        passwordKey(expected, salt),
+      ]);
+      // A configuration change while deriving must not admit the old password.
+      if (actual.status !== "fulfilled" || configured.status !== "fulfilled") return null;
+      return env.adminPassword === expected && timingSafeEqual(actual.value, configured.value);
+    } catch {
+      return null;
+    } finally {
+      passwordChecks--;
+    }
   }
 
   async createSessionToken(opts: { expiresInMs?: number } = {}): Promise<string> {

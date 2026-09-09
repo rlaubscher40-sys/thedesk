@@ -53,6 +53,14 @@ export function canonicalRedirectFor(
 ): string | null {
   if (req.method !== "GET" && req.method !== "HEAD") return null;
 
+  // Only origin-form paths: browsers interpret // and backslashes as hosts.
+  if (
+    !req.originalUrl.startsWith("/") ||
+    req.originalUrl.startsWith("//") ||
+    /[\\\x00-\x20\x7f]/.test(req.originalUrl)
+  )
+    return null;
+
   const [rawPath = "/", ...rest] = req.originalUrl.split("?");
   const query = rest.length > 0 ? `?${rest.join("?")}` : "";
   if (rawPath.startsWith("/api/")) return null;
@@ -77,6 +85,27 @@ export function canonicalRedirectFor(
   return null;
 }
 
+/** Parse once, check the trusted origin, and emit the validated representation. */
+export function validatedCanonicalTarget(target: string, site = siteUrl()): string | null {
+  try {
+    const base = new URL(site);
+    if (!["https:", "http:"].includes(base.protocol)) return null;
+    const destination = new URL(target, base);
+    if (destination.origin !== base.origin) return null;
+    const normalized = destination.href;
+    // The slash after the complete origin is a boundary: a lookalike host
+    // or user-info prefix cannot pass. Derive the output from this value.
+    if (!normalized.startsWith(`${base.origin}/`)) return null;
+    if (!target.startsWith("/")) return normalized;
+    const relative = normalized.slice(base.origin.length);
+    // Dot-segment normalization can reveal // even in an origin-form input.
+    if (relative.startsWith("//")) return null;
+    return relative;
+  } catch {
+    return null;
+  }
+}
+
 export function registerCanonicalRedirects(app: Express): void {
   app.use((req: Request, res: Response, next: NextFunction) => {
     const target = canonicalRedirectFor({
@@ -86,8 +115,9 @@ export function registerCanonicalRedirects(app: Express): void {
       originalUrl: req.originalUrl,
     });
     if (!target) return next();
-    // 301 rather than 302: this is a permanent address change, and it's
-    // what consolidates the duplicate into the canonical URL's ranking.
-    res.redirect(301, target);
+    const validated = validatedCanonicalTarget(target);
+    if (!validated) return next();
+    // Permanent address change, with relative slash fixes preserved on staging.
+    res.redirect(301, validated);
   });
 }

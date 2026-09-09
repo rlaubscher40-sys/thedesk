@@ -2087,7 +2087,7 @@ function registerInstagramRoutes(app: Express): void {
       res.send(buf);
     } catch (err) {
       const e = err as Error;
-      console.error(`[instagram] preview ${kind} failed:`, e.message);
+      console.error("[instagram] preview failed:", kind, e.message);
       res.status(500).json({ error: "Preview failed", message: e.message });
     }
   });

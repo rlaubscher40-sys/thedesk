@@ -57,7 +57,12 @@ export function registerOAuthRoutes(app: Express): void {
       });
       return;
     }
-    if (!sdk.verifyPassword(password)) {
+    const passwordValid = await sdk.verifyPassword(password);
+    if (passwordValid === null) {
+      res.status(503).json({ error: "Login is temporarily busy. Please try again." });
+      return;
+    }
+    if (!passwordValid) {
       res.status(401).json({ error: "Invalid password" });
       return;
     }

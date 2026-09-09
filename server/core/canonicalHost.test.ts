@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canonicalRedirectFor } from "./canonicalHost";
+import { canonicalRedirectFor, validatedCanonicalTarget } from "./canonicalHost";
 
 const SITE = "https://thedesk.au";
 const HOST = "thedesk.au";
@@ -19,6 +19,25 @@ function decide(over: Partial<Parameters<typeof canonicalRedirectFor>[0]>) {
 }
 
 describe("canonicalRedirectFor", () => {
+  it.each([
+    "//outside.example/path/",
+    "/\\outside.example/path/",
+    "https://outside.example/",
+    "/\t/outside.example/",
+    "/\n/outside.example/",
+    "/\r/outside.example/",
+    " /about/",
+  ])("does not turn malformed path %j into a redirect", (originalUrl) => {
+    for (const host of [HOST, "www.thedesk.au", "staging.thedesk.au"])
+      expect(decide({ host, originalUrl })).toBeNull();
+  });
+
+  it("keeps an encoded URL in a query on the same site", () => {
+    expect(decide({ originalUrl: "/about/?next=https%3A%2F%2Foutside.example" })).toBe(
+      "/about?next=https%3A%2F%2Foutside.example"
+    );
+  });
+
   it("leaves a canonical request alone", () => {
     expect(decide({ originalUrl: "/editions/12" })).toBeNull();
     expect(decide({ originalUrl: "/" })).toBeNull();
@@ -96,5 +115,27 @@ describe("canonicalRedirectFor", () => {
 
   it("tolerates a missing Host or proto", () => {
     expect(decide({ host: undefined, proto: undefined, originalUrl: "/about" })).toBeNull();
+  });
+});
+
+describe("validatedCanonicalTarget", () => {
+  it.each([
+    "https://outside.example/about",
+    "https://thedesk.au.outside.example/about",
+    "https://thedesk.au@outside.example/about",
+    "//outside.example/about",
+    "/..//outside.example/",
+    "/%2e%2e//outside.example/",
+    "javascript:alert(1)",
+  ])("rejects unsafe final destination %j", (target) => {
+    expect(validatedCanonicalTarget(target, SITE)).toBeNull();
+  });
+  it("preserves relative staging paths and canonical absolute URLs", () => {
+    expect(validatedCanonicalTarget("/about?ref=li", SITE)).toBe("/about?ref=li");
+    expect(validatedCanonicalTarget(`${SITE}/archive?q=rates`, SITE)).toBe(
+      `${SITE}/archive?q=rates`
+    );
+    expect(validatedCanonicalTarget("/markets/../about", SITE)).toBe("/about");
+    expect(validatedCanonicalTarget("/", "invalid-config")).toBeNull();
   });
 });
