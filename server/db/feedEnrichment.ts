@@ -1,6 +1,6 @@
 import { isEnrichedChannel } from "../../shared/const";
 import { randomUUID } from "node:crypto";
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, getTableColumns, sql } from "drizzle-orm";
 import { getDb } from "./client";
 import { dailyFeedItems } from "./schema";
 import { feedEnrichmentJobs as jobs } from "./feedEnrichmentSchema";
@@ -27,40 +27,57 @@ const owned = (claim: EnrichmentClaim) =>
 /** Five-minute lease, using the database clock. Model calls have a two-minute
  * deadline. No remote work is performed inside a database transaction. */
 export async function claimFeedEnrichment(): Promise<EnrichmentClaim | null> {
-  return database().transaction(async (tx) => {
-    const [job] = await tx
-      .select()
-      .from(jobs)
-      .where(due())
-      .orderBy(asc(jobs.availableAt), asc(jobs.feedItemId))
-      .limit(1)
-      .for("update");
-    if (!job) return null;
-    if (job.attempts >= MAX_ENRICHMENT_ATTEMPTS) {
+  const db = database();
+  // Discover without locks. Locking a status/range scan takes next-key locks
+  // which can deadlock against a neighbour moving its status/due-time index.
+  // The primary-key read below rechecks eligibility using the database clock.
+  const candidates = await db
+    .select({ feedItemId: jobs.feedItemId })
+    .from(jobs)
+    .where(due())
+    .orderBy(asc(jobs.availableAt), asc(jobs.feedItemId))
+    .limit(4);
+  for (const candidate of candidates) {
+    const claimed = await db.transaction(async (tx) => {
+      const [current] = await tx
+        .select({
+          ...getTableColumns(jobs),
+          isDue: sql<number>`${jobs.availableAt} <= CURRENT_TIMESTAMP`,
+        })
+        .from(jobs)
+        .where(eq(jobs.feedItemId, candidate.feedItemId))
+        .for("update");
+      if (!current || !Number(current.isDue) || !["pending", "running"].includes(current.status))
+        return null;
+      const { isDue: _drop, ...job } = current;
+      if (job.attempts >= MAX_ENRICHMENT_ATTEMPTS) {
+        await tx
+          .update(jobs)
+          .set({
+            status: "failed",
+            reason: "attempts_exhausted",
+            owner: null,
+            input: null,
+            finishedAt: sql`CURRENT_TIMESTAMP`,
+          })
+          .where(eq(jobs.feedItemId, job.feedItemId));
+        return null;
+      }
+      const owner = randomUUID();
       await tx
         .update(jobs)
         .set({
-          status: "failed",
-          reason: "attempts_exhausted",
-          owner: null,
-          input: null,
-          finishedAt: sql`CURRENT_TIMESTAMP`,
+          status: "running",
+          owner,
+          attempts: job.attempts + 1,
+          availableAt: sql`DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 5 MINUTE)`,
         })
         .where(eq(jobs.feedItemId, job.feedItemId));
-      return null;
-    }
-    const owner = randomUUID();
-    await tx
-      .update(jobs)
-      .set({
-        status: "running",
-        owner,
-        attempts: job.attempts + 1,
-        availableAt: sql`DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 5 MINUTE)`,
-      })
-      .where(eq(jobs.feedItemId, job.feedItemId));
-    return { ...job, status: "running", owner, attempts: job.attempts + 1 };
-  });
+      return { ...job, status: "running", owner, attempts: job.attempts + 1 };
+    });
+    if (claimed) return claimed;
+  }
+  return null;
 }
 
 export function sameEnrichmentSource(input: DailyAnglesInput, row: DailyAnglesInput) {
