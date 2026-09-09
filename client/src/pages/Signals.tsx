@@ -8,6 +8,8 @@ import { ShareMetricCardButton } from "@/components/trends/ShareMetricCardButton
 import { Skeleton } from "@/components/ui/Skeleton";
 import { trackEvent } from "@/lib/analytics";
 import { trpc } from "@/lib/trpc";
+import { describeMetricObservation, metricObservationAskHref } from "@shared/metricObservation";
+import { SignalObservation } from "@/components/signals/SignalObservation";
 
 const WATCH_KEY = "thedesk:signal-watchlist:v1";
 
@@ -75,11 +77,6 @@ function moveMagnitude(move: number | null): number {
   return move == null || !Number.isFinite(move) ? -1 : Math.abs(move);
 }
 
-function askHref(metric: { label: string; value: string; unit?: string | null }): string {
-  const question = `What does ${metric.label} at ${displayValue(metric)} mean for Australian property right now?`;
-  return `/ask?q=${encodeURIComponent(question)}`;
-}
-
 export default function SignalsPage() {
   const search = useSearch();
   const params = new URLSearchParams(search);
@@ -101,7 +98,7 @@ export default function SignalsPage() {
         typeof first === "number" && typeof last === "number" && series.length >= 2
           ? pctMove(first, last)
           : null;
-      return { metric, series, move };
+      return { metric, series, move, observation: describeMetricObservation(metric) };
     });
   }, [metrics.data, histories.data]);
 
@@ -150,19 +147,20 @@ export default function SignalsPage() {
               className="font-serif font-bold mt-3"
               style={{ fontSize: "clamp(46px, 7vw, 88px)", lineHeight: 0.92, letterSpacing: "-0.045em" }}
             >
-              What is moving now.
+              Read the numbers in context.
             </h1>
             <p
               className="font-serif mt-5 max-w-[58ch] text-[var(--color-fg-muted)]"
               style={{ fontSize: "clamp(19px, 2vw, 26px)", lineHeight: 1.4 }}
             >
-              Live market signals, the number worth carrying into the next conversation, and a
-              simple watchboard for the indicators you care about.
+              Market signals with observation dates, reporting context and a watchboard for
+              the indicators you care about. Publication schedules differ; a recent refresh
+              does not make an older reporting period current.
             </p>
           </div>
           <div className="flex items-center gap-2 bs-label mt-2">
             <Radio className="h-3.5 w-3.5 text-[var(--color-accent-text)]" />
-            {rows.length} live metric{rows.length === 1 ? "" : "s"}
+            {rows.length} recorded metric{rows.length === 1 ? "" : "s"}
           </div>
         </div>
       </header>
@@ -170,7 +168,7 @@ export default function SignalsPage() {
 
       {requestedMetricKey && !requestedHero && rows.length > 0 && (
         <div className="rule-hair rule-hair-b py-3 mt-5 text-sm text-[var(--color-fg-muted)]">
-          That shared signal is no longer live. Showing the strongest current move instead.
+          That shared signal is no longer available. Showing another recorded signal instead.
         </div>
       )}
 
@@ -196,6 +194,8 @@ export default function SignalsPage() {
             <h2 className="font-serif font-bold mt-7" style={{ fontSize: 34, lineHeight: 1.08 }}>
               {hero.metric.label}
             </h2>
+            {hero.metric.source && <p className="bs-label mt-3">Source: {hero.metric.source}</p>}
+            <SignalObservation observation={hero.observation} />
             {hero.metric.context && (
               <p className="font-serif mt-3 max-w-[58ch] text-xl leading-8 text-[var(--color-fg-body)]">
                 {hero.metric.context}
@@ -223,7 +223,7 @@ export default function SignalsPage() {
                 watched={watchlist.some((watch) => watch.metricKey === hero.metric.metricKey)}
                 onClick={() => toggleWatch(hero)}
               />
-              <Link href={askHref(hero.metric)} className="bs-btn bs-btn-outline">
+              <Link href={metricObservationAskHref(hero.metric, displayValue(hero.metric))} className="bs-btn bs-btn-outline">
                 Ask what it means
               </Link>
               {requestedHero && hero.series.length >= 2 && (
@@ -268,7 +268,7 @@ export default function SignalsPage() {
           <div>
             <p className="bs-label-accent">In motion</p>
             <h2 className="font-serif font-bold mt-2" style={{ fontSize: 38, lineHeight: 1 }}>
-              The live board
+              The market board
             </h2>
           </div>
           <Link href="/trends" className="bs-label bs-link">
@@ -297,6 +297,7 @@ export default function SignalsPage() {
                     {row.metric.groupKey ?? "Market"}
                     {row.metric.source ? ` · ${row.metric.source}` : ""}
                   </p>
+                  <SignalObservation observation={row.observation} />
                 </div>
                 <p className="font-serif font-bold tabular-nums text-2xl sm:text-right">
                   {displayValue(row.metric)}
@@ -327,7 +328,7 @@ export default function SignalsPage() {
           <div className="rule-hair rule-hair-b mt-5 py-9">
             <p className="font-serif text-2xl">Nothing on watch yet.</p>
             <p className="mt-2 text-[var(--color-fg-muted)] max-w-[58ch]">
-              Watch any live metric above. The Desk will remember the value from the moment you
+              Watch any recorded metric above. The Desk will remember the value from the moment you
               started watching so you can see what changed next time you return.
             </p>
           </div>
@@ -361,6 +362,7 @@ export default function SignalsPage() {
                   <p className="font-serif font-bold tabular-nums mt-2" style={{ fontSize: 42, lineHeight: 1 }}>
                     {displayValue(row.metric)}
                   </p>
+                  <SignalObservation observation={row.observation} />
                   <p className="font-mono text-xs mt-3 text-[var(--color-fg-muted)]">
                     Started {new Date(watch.startedAt).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
                     {sinceWatch != null ? ` · ${moveLabel(sinceWatch)} since watch` : ""}

@@ -64,6 +64,20 @@ afterEach(() => {
 });
 
 describe("Ask answer recovery", () => {
+  it("does not label an old metric current when its database record was freshly updated", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date("2026-09-09T08:00:00Z"));
+    vi.mocked(db.listDailyMetrics).mockResolvedValue([{
+      metricKey: "cash_rate", label: "RBA cash rate", value: "4.35", unit: "%",
+      asOf: new Date("2025-01-01"), updatedAt: new Date("2026-09-09T07:00:00Z"),
+      source: "RBA", groupKey: "MACRO", context: null, previousValue: null,
+    }] as Awaited<ReturnType<typeof db.listDailyMetrics>>);
+    await askRouter.createCaller(ctx).answer({ question: "What does the RBA cash rate mean?" });
+    const messages = vi.mocked(invokeLLMJson).mock.calls[0]![0].messages.map((m) => m.content).join("\n");
+    expect(messages).toContain("Stored observation: 4.35%");
+    expect(messages).toContain("Older reporting period. This is not a current observation.");
+    expect(messages).toContain("As of: 2025-01-01");
+    expect(messages).not.toContain("Current value: 4.35%");
+  });
   it("answers from stored local facts when there are no archived stories or headline metrics", async () => {
     vi.mocked(db.searchAllContent).mockResolvedValue({ feedItems: [], editions: [] });
     const href = "/markets?q=Aranda&state=ACT&areaKind=SA2#local-data";

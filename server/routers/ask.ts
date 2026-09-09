@@ -3,6 +3,7 @@ import { z } from "zod";
 import { displayMetricValue, rankAskMetrics } from "../ask/metricRetrieval";
 import { askQueryTerms, rankAskRecords } from "../ask/relevance";
 import { retrieveLocalFacts } from "../ask/localFacts";
+import { describeMetricObservation } from "../../shared/metricObservation";
 import * as db from "../db";
 import {
   consumeAnonymousAskAttempt,
@@ -209,9 +210,11 @@ export const askRouter = router({
             const previousValue = metric.previousValue
               ? displayMetricValue(metric.previousValue, metric.unit)
               : null;
-            const date = sourceDate(metric.asOf, "Current");
+            const observation = describeMetricObservation(metric);
+            const date = observation.date ?? "Observation date unavailable";
             const text = compactText([
-              `Current value: ${currentValue}`,
+              `Stored observation: ${currentValue}`,
+              `Reporting status: ${observation.explanation}`,
               previousValue ? `Previous recorded value: ${previousValue}` : null,
               metric.context ? `Context: ${metric.context}` : null,
               metric.source ? `Source: ${metric.source}` : null,
