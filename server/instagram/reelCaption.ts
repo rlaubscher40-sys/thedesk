@@ -14,7 +14,7 @@ export function reelReadingCta(read: keyof typeof REEL_READS) {
   const destination = REEL_READS[read];
   if (!destination || !Object.hasOwn(REEL_READS, read)) throw new Error("Unknown Reel read");
   return {
-    voice: `Open our bio. Choose ${destination.label}.`,
+    voice: `Open our bio. Choose ${destination.label}${/[.!?]$/.test(destination.label) ? "" : "."}`,
     fact: { figure: "Open our bio", caption: destination.label },
   };
 }

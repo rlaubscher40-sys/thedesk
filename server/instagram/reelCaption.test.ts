@@ -53,6 +53,7 @@ describe("repeatable concise Reel captions", () => {
       const read = reads[index]!;
       const label = REEL_READS[read].label;
       expect(recipe!.script.find((line) => line.key === "signOff")?.text).toContain(label);
+      expect(recipe!.script.find((line) => line.key === "signOff")?.text).not.toMatch(/[?!]\./);
       expect(scriptFitsClip(recipe!.script)).toBe(true);
       if (read === "sydneySupply") {
         // Keep the complete educational checklist rather than replacing Timing with a CTA.
