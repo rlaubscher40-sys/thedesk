@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { displayMetricValue, rankAskMetrics } from "../ask/metricRetrieval";
 import { askQueryTerms, rankAskRecords } from "../ask/relevance";
+import { retrieveLocalFacts } from "../ask/localFacts";
 import * as db from "../db";
 import {
   consumeAnonymousAskAttempt,
@@ -71,13 +72,15 @@ async function retrieve(question: string): Promise<{
   archive: Awaited<ReturnType<typeof db.searchPropertyEvidence>>;
   editions: EditionSearchRow[];
   metrics: MetricRow[];
+  facts: Awaited<ReturnType<typeof retrieveLocalFacts>>;
 }> {
   const terms = askQueryTerms(question).slice(0, 7);
   const queries = [...new Set([question.trim(), ...terms])].slice(0, 8);
-  const [bundles, allMetrics, archiveBundles] = await Promise.all([
+  const [bundles, allMetrics, archiveBundles, facts] = await Promise.all([
     Promise.all(queries.map((query) => db.searchAllContent(query))),
     db.listDailyMetrics(),
     Promise.all(queries.map((query) => db.searchPropertyEvidence(query))),
+    retrieveLocalFacts(question),
   ]);
 
   const feed = new Map<number, FeedSearchRow>();
@@ -98,6 +101,7 @@ async function retrieve(question: string): Promise<{
   const feedUrls = new Set([...feed.values()].map((row) => row.sourceUrl));
   const feedTitles = new Set([...feed.values()].map((row) => row.title.trim().toLowerCase()));
   return {
+    facts,
     archive: rankAskRecords(
       question,
       archiveRows.filter(
@@ -169,7 +173,7 @@ export const askRouter = router({
             matches.archive.length === 0 &&
             matches.feed.length === 0 &&
             matches.editions.length === 0 &&
-            matches.metrics.length === 0
+            matches.metrics.length === 0 && matches.facts.length === 0
           ) {
             return {
               status: "insufficient" as const,
@@ -192,6 +196,12 @@ export const askRouter = router({
             publisher: string | null;
             externalUrl: string | null;
           }> = [];
+
+          for (const fact of matches.facts) {
+            const ref = evidence.length + 1;
+            evidence.push({ref, kind: "metric", title: fact.title, date: fact.date, category: "LOCAL DATA", text: fact.text});
+            sourceMeta.push({ref, kind: "metric", title: fact.title, date: fact.date, category: "LOCAL DATA", href: fact.href, publisher: fact.publisher, externalUrl: fact.sourceUrl});
+          }
 
           for (const metric of matches.metrics) {
             const ref = evidence.length + 1;

@@ -30,6 +30,8 @@ import {
 } from "../instagram/reelAutomation";
 
 import { collectPropertyEvidence } from "../evidence/collect";
+import { collectLocalData } from "../localData/collect";
+import { LOCAL_SOURCE_KEYS } from "../../shared/localData";
 import {
   recoverMissingMetrics,
   runScheduledMetricRefresh,
@@ -161,6 +163,13 @@ export const METRIC_RECOVERY_JOBS: Job[] = [0, 4, 8, 12, 16, 20].map(
 );
 
 const JOBS: Job[] = [
+  ...LOCAL_SOURCE_KEYS.map((source, index) => ({
+    key: `local-data-${source}`,
+    at: `00:${15 + index * 5}`,
+    graceMinutes: 23 * 60,
+    maxAttempts: 2,
+    run: async () => collectLocalData(source),
+  })),
   ...METRIC_RECOVERY_JOBS,
   ...["12:03", "18:03"].map((at) => ({
     key: `official-metrics-${at.slice(0, 2)}`,

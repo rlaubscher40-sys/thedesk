@@ -12,6 +12,7 @@
  * just-thrown error appears without a manual refresh.
  */
 import { MetricHealthPanel } from "./MetricHealthPanel";
+import { LocalDataHealth } from "./LocalDataHealth";
 import { PropertyCoveragePanel } from "./PropertyCoveragePanel";
 import { useState } from "react";
 import { AlertTriangle, Heart, RefreshCw, Trash2 } from "lucide-react";
@@ -120,6 +121,7 @@ export function HealthAdminPanel() {
 
       <PropertyCoveragePanel />
       <MetricHealthPanel />
+      <LocalDataHealth />
 
       {/* Uptime sparkline. */}
       {pings.length > 0 && <UptimeSparkline pings={pings} />}
