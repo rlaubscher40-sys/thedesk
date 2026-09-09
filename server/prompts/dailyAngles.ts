@@ -131,8 +131,12 @@ const EMPTY: DailyAngles = {
  * (network, malformed JSON) it returns all-null, matching how the standalone
  * generators each resolve null on error — the caller persists only the
  * non-null fields, so a bad run simply leaves gaps rather than throwing.
+ * Durable workers opt into strict failures and supply a cancellation deadline.
  */
-export async function generateDailyAngles(input: DailyAnglesInput): Promise<DailyAngles> {
+export async function generateDailyAngles(
+  input: DailyAnglesInput,
+  options: { strict?: boolean; signal?: AbortSignal } = {}
+): Promise<DailyAngles> {
   let content: string;
   try {
     content = await invokeLLM({
@@ -141,8 +145,11 @@ export async function generateDailyAngles(input: DailyAnglesInput): Promise<Dail
         { role: "user", content: buildPrompt(input) },
       ],
       maxTokens: 900,
+      signal: options.signal,
+      ...(options.strict ? { maxRetries: 0 } : {}),
     });
   } catch (err) {
+    if (options.strict) throw new Error("Daily angle generation failed");
     console.error("[dailyAngles] generation error:", (err as Error).message);
     return EMPTY;
   }
@@ -160,7 +167,21 @@ export async function generateDailyAngles(input: DailyAnglesInput): Promise<Dail
   try {
     parsed = JSON.parse(json);
   } catch {
-    console.warn("[dailyAngles] invalid JSON, dropping all angles:", content.slice(0, 160));
+    if (options.strict) throw new Error("Invalid daily angle response");
+    console.warn("[dailyAngles] invalid JSON, dropping all angles");
+    return EMPTY;
+  }
+
+  if (
+    !parsed ||
+    typeof parsed !== "object" ||
+    Array.isArray(parsed) ||
+    ["sayThis", "partnerTag", "whyItMatters", "counterpoint"].some((key) => {
+      const value = (parsed as Record<string, unknown>)[key];
+      return value !== null && typeof value !== "string";
+    })
+  ) {
+    if (options.strict) throw new Error("Invalid daily angle response shape");
     return EMPTY;
   }
 

@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { createPool, type Pool } from "mysql2/promise";
 import { drizzle } from "drizzle-orm/mysql2";
+import { FEED_ENRICHMENT_DDL } from "./feedEnrichmentSchema";
 import { COLLECTION_EFFICIENCY_DDL } from "./collectionEfficiencySchema";
 import type { InsertDailyFeedItem } from "./schema";
 
@@ -8,6 +9,10 @@ const testUrl = process.env.SECURITY_TEST_DATABASE_URL;
 let pool: Pool;
 let claims: typeof import("./feedClaims");
 let transfers: typeof import("./localTransfers");
+let recovery: typeof import("./feedEnrichment");
+let worker: typeof import("../feed/enrichmentWorker");
+const emptyAngles = { partnerTag: null, sayThis: null, whyItMatters: null, counterpoint: null };
+const generate = vi.fn(async () => emptyAngles);
 let feed: typeof import("./feed");
 const item: InsertDailyFeedItem = {
   feedDate: "2026-09-09",
@@ -24,7 +29,7 @@ beforeAll(async () => {
   if (!["localhost", "127.0.0.1"].includes(url.hostname) || url.pathname !== "/security_audit_test")
     throw new Error("Use the isolated local test database");
   pool = createPool(testUrl);
-  for (const ddl of COLLECTION_EFFICIENCY_DDL)
+  for (const ddl of [...COLLECTION_EFFICIENCY_DDL, ...FEED_ENRICHMENT_DDL])
     await pool.query(ddl.sql.replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS "));
   await pool.query(`CREATE TABLE IF NOT EXISTS daily_feed_items (
     id INT AUTO_INCREMENT PRIMARY KEY, sourceTiming JSON, feedDate VARCHAR(10) NOT NULL,
@@ -37,9 +42,13 @@ beforeAll(async () => {
   )`);
   await pool.query("DELETE FROM daily_feed_items WHERE source = 'concurrency-test'");
   await pool.query("DELETE FROM feed_ingest_claims");
+  await pool.query("DELETE FROM feed_enrichment_jobs");
   await pool.query("DELETE FROM local_transfer_stats");
   vi.doMock("./client", () => ({ getDb: () => drizzle(pool) }));
   vi.doMock("../demo/store", () => ({ isDemoMode: () => false }));
+  vi.doMock("../prompts/dailyAngles", () => ({ generateDailyAngles: generate }));
+  recovery = await import("./feedEnrichment");
+  worker = await import("../feed/enrichmentWorker");
   claims = await import("./feedClaims");
   transfers = await import("./localTransfers");
   feed = await import("./feed");
@@ -134,5 +143,243 @@ it.skipIf(!testUrl)(
       estimatedAvoidedBytes: 300,
       unknownSize: 1,
     });
+  }
+);
+
+async function freshJob(key: string, extra: Partial<InsertDailyFeedItem> = {}) {
+  await pool.query("DELETE FROM feed_enrichment_jobs");
+  generate.mockReset().mockResolvedValue(emptyAngles);
+  return claims.insertFeedOnce({
+    ...item,
+    sourceUrl: `https://concurrency-test.example/job-${key}`,
+    articleText: "Grounding detail",
+    ...extra,
+  });
+}
+
+it.skipIf(!testUrl)(
+  "commits one durable job with the winning story and rolls both back on failure",
+  async () => {
+    const id = await freshJob("atomic");
+    expect(
+      await claims.insertFeedOnce({
+        ...item,
+        sourceUrl: "https://concurrency-test.example/job-atomic?utm_source=again",
+      })
+    ).toBe(0);
+    const [rows] = await pool.query("SELECT feedItemId, input FROM feed_enrichment_jobs");
+    expect(rows).toHaveLength(1);
+    expect((rows as any[])[0].feedItemId).toBe(id);
+    await expect(
+      claims.insertFeedOnce({
+        ...item,
+        title: "x".repeat(513),
+        sourceUrl: "https://concurrency-test.example/job-rollback",
+      })
+    ).rejects.toThrow();
+    const [after] = await pool.query("SELECT feedItemId FROM feed_enrichment_jobs");
+    expect(after).toHaveLength(1);
+  }
+);
+
+it.skipIf(!testUrl)(
+  "only one worker claims a job and an expired worker cannot write after recovery",
+  async () => {
+    const id = await freshJob("lease");
+    const attempts = await Promise.all(
+      Array.from({ length: 6 }, () => recovery.claimFeedEnrichment())
+    );
+    const winners = attempts.filter((c) => c !== null);
+    expect(winners).toHaveLength(1);
+    const stale = winners[0]!;
+    const before = (await feed.getFeedItemById(id))!;
+    await pool.query(
+      "UPDATE feed_enrichment_jobs SET availableAt=DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 SECOND)"
+    );
+    // Even before takeover, an expired owner's write is fenced.
+    expect(
+      await recovery.completeFeedEnrichment(stale, { ...emptyAngles, sayThis: "stale" }, before)
+    ).toBe(false);
+    const next = (await recovery.claimFeedEnrichment())!;
+    expect(next.owner).not.toBe(stale.owner);
+    expect(next.attempts).toBe(2);
+    expect(
+      await recovery.completeFeedEnrichment(stale, { ...emptyAngles, sayThis: "stale" }, before)
+    ).toBe(false);
+    expect(
+      await recovery.completeFeedEnrichment(next, { ...emptyAngles, sayThis: "Recovered" }, before)
+    ).toBe(true);
+    await recovery.failFeedEnrichment(stale);
+    expect((await feed.getFeedItemById(id))?.sayThis).toBe("Recovered");
+    expect(await recovery.claimFeedEnrichment()).toBeNull();
+  }
+);
+
+it.skipIf(!testUrl)(
+  "resumes a saved job, treats intentional nulls as complete and never calls AI again",
+  async () => {
+    const id = await freshJob("nulls");
+    await worker.drainFeedEnrichment();
+    await worker.drainFeedEnrichment();
+    expect(generate).toHaveBeenCalledTimes(1);
+    expect(generate).toHaveBeenCalledWith(
+      expect.objectContaining({ articleText: "Grounding detail" }),
+      expect.objectContaining({ strict: true, signal: expect.any(AbortSignal) })
+    );
+    const [rows] = await pool.query(
+      "SELECT status, input FROM feed_enrichment_jobs WHERE feedItemId=?",
+      [id]
+    );
+    expect((rows as any[])[0]).toMatchObject({ status: "completed", input: null });
+  }
+);
+
+it.skipIf(!testUrl)(
+  "preserves presets and concurrent manual edits while filling only remaining gaps",
+  async () => {
+    const id = await freshJob("manual", { sayThis: "Source supplied" });
+    const claim = (await recovery.claimFeedEnrichment())!;
+    const before = (await feed.getFeedItemById(id))!;
+    await feed.updateFeedItemWhyItMatters(id, "Editor supplied while model ran");
+    await feed.updateFeedItemPartnerTag(id, "");
+    await recovery.completeFeedEnrichment(
+      claim,
+      {
+        partnerTag: "Generated",
+        sayThis: "Generated",
+        whyItMatters: "Generated",
+        counterpoint: "A second side",
+      },
+      before
+    );
+    expect(await feed.getFeedItemById(id)).toMatchObject({
+      partnerTag: "",
+      sayThis: "Source supplied",
+      whyItMatters: "Editor supplied while model ran",
+      counterpoint: "A second side",
+    });
+  }
+);
+
+it.skipIf(!testUrl)(
+  "discards stale output when the story changes and skips deleted stories",
+  async () => {
+    const id = await freshJob("changed");
+    const claim = (await recovery.claimFeedEnrichment())!;
+    const before = (await feed.getFeedItemById(id))!;
+    await pool.query("UPDATE daily_feed_items SET summary='Edited summary' WHERE id=?", [id]);
+    await recovery.completeFeedEnrichment(
+      claim,
+      { ...emptyAngles, sayThis: "Old story output" },
+      before
+    );
+    expect((await feed.getFeedItemById(id))?.sayThis).toBeNull();
+    expect((await recovery.feedEnrichmentHealth()).counts.skipped).toBe(1);
+    const deleted = await freshJob("deleted");
+    await feed.deleteFeedItem(deleted);
+    await worker.drainFeedEnrichment();
+    expect(generate).not.toHaveBeenCalled();
+    expect((await recovery.feedEnrichmentHealth()).counts.skipped).toBe(1);
+  }
+);
+
+it.skipIf(!testUrl)(
+  "backs off failed generation and stops after three attempts, visible in Admin",
+  async () => {
+    const id = await freshJob("retries");
+    generate.mockRejectedValue(new Error("provider unavailable"));
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      await worker.drainFeedEnrichment();
+      expect(generate).toHaveBeenCalledTimes(attempt);
+      // Immediate polling does not bypass the retry delay.
+      await worker.drainFeedEnrichment();
+      expect(generate).toHaveBeenCalledTimes(attempt);
+      await pool.query(
+        "UPDATE feed_enrichment_jobs SET availableAt=DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 SECOND)"
+      );
+    }
+    await worker.drainFeedEnrichment();
+    expect(generate).toHaveBeenCalledTimes(3);
+    expect(await recovery.feedEnrichmentHealth()).toMatchObject({
+      counts: { failed: 1 },
+      recentFailures: [{ feedItemId: id, attempts: 3, reason: "attempts_exhausted" }],
+    });
+    const [rows] = await pool.query("SELECT input FROM feed_enrichment_jobs");
+    expect((rows as any[])[0].input).toBeNull();
+  }
+);
+
+it.skipIf(!testUrl)("exhausts abandoned leases without a fourth model call", async () => {
+  await freshJob("abandoned");
+  for (let i = 0; i < 3; i++) {
+    expect((await recovery.claimFeedEnrichment())?.attempts).toBe(i + 1);
+    await pool.query(
+      "UPDATE feed_enrichment_jobs SET availableAt=DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 SECOND)"
+    );
+  }
+  expect(await recovery.claimFeedEnrichment()).toBeNull();
+  expect((await recovery.feedEnrichmentHealth()).counts.failed).toBe(1);
+});
+
+it.skipIf(!testUrl)(
+  "makes no model call for fully supplied angles or coverage-only channels",
+  async () => {
+    await freshJob("preset", {
+      partnerTag: "preset",
+      sayThis: "preset",
+      whyItMatters: "preset",
+      counterpoint: "preset",
+    });
+    await worker.drainFeedEnrichment();
+    expect(generate).not.toHaveBeenCalled();
+    await freshJob("coverage", { channel: "BUSINESS" });
+    await worker.drainFeedEnrichment();
+    expect(generate).not.toHaveBeenCalled();
+    expect((await recovery.feedEnrichmentHealth()).counts).toEqual({});
+  }
+);
+
+it.skipIf(!testUrl)("one failed story does not abandon other queued stories", async () => {
+  await freshJob("bad-neighbour");
+  await claims.insertFeedOnce({
+    ...item,
+    sourceUrl: "https://concurrency-test.example/good-neighbour",
+  });
+  generate.mockRejectedValueOnce(new Error("temporary failure")).mockResolvedValue(emptyAngles);
+  await Promise.all([worker.drainFeedEnrichment(), worker.drainFeedEnrichment()]);
+  expect(generate).toHaveBeenCalledTimes(2);
+  expect((await recovery.feedEnrichmentHealth()).counts).toEqual({ pending: 1, completed: 1 });
+});
+
+it.skipIf(!testUrl)(
+  "rolls back the story and identity when persisting its recovery job fails",
+  async () => {
+    await pool.query("DELETE FROM feed_enrichment_jobs");
+    const row = {
+      ...item,
+      title: "Queue rollback test",
+      sourceUrl: "https://concurrency-test.example/queue-failure",
+    };
+    await pool.query(`CREATE TRIGGER test_reject_recovery_job BEFORE INSERT ON feed_enrichment_jobs
+    FOR EACH ROW BEGIN
+      IF JSON_UNQUOTE(JSON_EXTRACT(NEW.input, '$.title')) = 'Queue rollback test' THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Test queue storage failure';
+      END IF;
+    END`);
+    try {
+      await expect(claims.insertFeedOnce(row)).rejects.toThrow();
+      const [stories] = await pool.query("SELECT id FROM daily_feed_items WHERE sourceUrl=?", [
+        row.sourceUrl,
+      ]);
+      const [identities] = await pool.query(
+        "SELECT identity FROM feed_ingest_claims WHERE identity=?",
+        [claims.feedClaimIdentity(row)]
+      );
+      expect(stories).toHaveLength(0);
+      expect(identities).toHaveLength(0);
+    } finally {
+      await pool.query("DROP TRIGGER test_reject_recovery_job");
+    }
+    expect(await claims.insertFeedOnce(row)).toBeGreaterThan(0);
   }
 );

@@ -24,6 +24,7 @@ import { registerSecurityHeaders } from "./core/securityHeaders";
 import { registerSeoRoutes } from "./core/seo";
 import { serveStatic, setupVite } from "./core/vite";
 import { appRouter } from "./routers";
+import { startFeedEnrichmentWorker } from "./feed/enrichmentWorker";
 import { registerScheduledRoutes } from "./scheduledRoutes";
 import { getDb } from "./db/client";
 import { runCatchup } from "./db/catchup";
@@ -232,6 +233,7 @@ async function startServer() {
     // Self-healing in-process scheduler (replaces GitHub cron when enabled).
     // Bound to the actual listening port so its loopback self-calls hit us.
     startScheduler({ port });
+    startFeedEnrichmentWorker();
     const cleanup = () =>
       void import("./db/security")
         .then((m) => m.cleanSecurityState())
