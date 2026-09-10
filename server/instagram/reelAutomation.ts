@@ -4,6 +4,7 @@ import { claimJobRun, markJobRun, readJobRun, expireReelDelivery } from "../db/j
 import { getVerifiedReelCandidates, chooseReelCandidate } from "./reelCandidates";
 import { reelPublicationRecord } from "./reelStatus";
 import { isRateLimitError } from "./api";
+import { logReelPlan } from "./reelPlanSummary";
 
 export const REEL_POLL_MINUTES = 5;
 export const REEL_RETRY_MINUTES = 15;
@@ -110,6 +111,7 @@ export async function runReelAutomation(options: {
   )
     return { state: "disabled" as const };
   const plan = await readReelAutomation(options.now);
+  logReelPlan(plan, true, true, options.now);
   if (plan.state !== "ready") return { state: plan.state };
   if ("expired" in plan && plan.expired)
     await expireReelDelivery(

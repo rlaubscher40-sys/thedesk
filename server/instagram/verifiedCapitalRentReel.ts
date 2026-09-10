@@ -9,6 +9,7 @@ import {
 import type { ReelStat } from "../video/statReel";
 import type { ScriptLine } from "../video/narration";
 import { buildReelCaption, reelReadingCta } from "./reelCaption";
+import { withEvidenceVisual } from "../video/evidenceVisual";
 
 /** Eight matching capital-city observations, not a national average or state proxy. */
 export function verifiedCapitalRentReel(data: CityRents, now = new Date()) {
@@ -94,28 +95,36 @@ export function verifiedCapitalRentReel(data: CityRents, now = new Date()) {
     series: "ABS:CPI(2.0.0)/3.30014.10.1+2+3+4+5+6+7+8.M/PCT",
     rows: evidenceRows,
   };
-  return {
-    stat,
-    script,
-    publication: { key: "instagram-reel-abs-rents-eight-capitals-v1", date: `${reference}-01` },
-    evidenceHash: createHash("sha256").update(JSON.stringify(evidence)).digest("hex"),
-    caption: buildReelCaption({
-      hook: "Are rents changing at the same pace across our capitals?",
-      finding:
-        `Year to ${period}: ${figure} percentage points between highest and lowest annual rent changes.\n` +
-        evidenceRows
-          .map(
-            (row) =>
-              `${row.city}: ${row.annualPercent.toFixed(1)}%${row.status === "r" ? " (revised)" : row.status === "p" ? " (provisional)" : ""}`
-          )
-          .join("\n"),
-      meaning:
-        "The range is not a national average or a state/regional estimate. Higher rent growth doesn't establish higher dollar rents, yields or a better investment, or explain why rents changed.",
-      method: "Source: ABS CPI rents actually paid, original capital-city series.",
-      revisions: "Revision flags shown above where present. Data can be revised.",
-      action:
-        "Share this with someone comparing rent levels and growth. They measure different things.",
-      read: "capitalRents",
-    }),
-  };
+  return withEvidenceVisual(
+    {
+      stat,
+      script,
+      publication: { key: "instagram-reel-abs-rents-eight-capitals-v1", date: `${reference}-01` },
+      evidenceHash: createHash("sha256").update(JSON.stringify(evidence)).digest("hex"),
+      caption: buildReelCaption({
+        hook: "Are rents changing at the same pace across our capitals?",
+        finding:
+          `Year to ${period}: ${figure} percentage points between highest and lowest annual rent changes.\n` +
+          evidenceRows
+            .map(
+              (row) =>
+                `${row.city}: ${row.annualPercent.toFixed(1)}%${row.status === "r" ? " (revised)" : row.status === "p" ? " (provisional)" : ""}`
+            )
+            .join("\n"),
+        meaning:
+          "The range is not a national average or a state/regional estimate. Higher rent growth doesn't establish higher dollar rents, yields or a better investment, or explain why rents changed.",
+        method: "Source: ABS CPI rents actually paid, original capital-city series.",
+        revisions: "Revision flags shown above where present. Data can be revised.",
+        action:
+          "Share this with someone comparing rent levels and growth. They measure different things.",
+        read: "capitalRents",
+      }),
+    },
+    {
+      recipe: "capital-rents",
+      period: `Year to ${period}`,
+      rows: evidenceRows.map((row) => ({ label: row.city, value: row.annualPercent })),
+      readLabel: reelReadingCta("capitalRents").fact.caption,
+    }
+  );
 }

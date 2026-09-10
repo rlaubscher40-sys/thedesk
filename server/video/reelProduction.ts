@@ -4,6 +4,7 @@ import { scriptFitsClip, type ReelStat } from "./statReel";
 import { validateStoryboard } from "./storyboard";
 import { assertCaptionStyle } from "../instagram/captionStyle";
 import { REEL_CAPTION_LIMIT } from "../instagram/reelCaption";
+import { validateEvidenceVisual } from "./evidenceVisual";
 
 /** The approved settings are shared by review, admin preview and publication.
  * Auditions may override the low-level renderer, never the publishing wrapper. */
@@ -39,6 +40,13 @@ export function assertProductionCandidate(candidate: ProductionReelCandidate) {
     throw new Error("Reel needs complete, uniquely keyed narration.");
   if (!scriptFitsClip(script, stat)) throw new Error("Reel script exceeds its duration budget.");
   if (stat.storyboard) validateStoryboard(stat.storyboard, script);
+  if (stat.visualStory) {
+    validateEvidenceVisual(stat.visualStory, script, candidate.evidenceHash);
+    if (stat.source !== stat.visualStory.source)
+      throw new Error("Visual source attribution changed.");
+  } else if (stat.storyboard?.kind !== "housing-balance") {
+    throw new Error("Automatic production requires a reviewed scene recipe.");
+  }
   if (!caption.trim() || caption.length > REEL_CAPTION_LIMIT)
     throw new Error("Reel needs a complete caption within the editorial budget.");
   assertCaptionStyle(caption);

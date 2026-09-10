@@ -60,10 +60,45 @@ export function InstagramReelPanel() {
             {plan.data.schedule}.
           </p>
           <p className="text-sm">
-            The programme selects from five evidence-backed recipes automatically. Each topic posts
-            once per reference month. At most one automatic Reel goes out per Sydney day; a second
+            The programme selects from six evidence-backed recipes automatically. Each topic posts
+            once per evidence period. At most one automatic Reel goes out per Sydney day; a second
             eligible topic waits until tomorrow. Missing evidence, audio or subtitles means no post.
           </p>
+          <div className="rounded border border-[var(--color-border)] p-3 space-y-2 text-sm">
+            <p>
+              <strong>Selected story:</strong>{" "}
+              {plan.data.summary.selectedTopic ?? "No publishable story selected"}
+            </p>
+            <p>
+              <strong>Next eligibility window:</strong>{" "}
+              {new Intl.DateTimeFormat("en-AU", {
+                timeZone: "Australia/Sydney",
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+              }).format(new Date(plan.data.summary.window.start))}
+              , 6:30pm to 8pm Sydney time.
+            </p>
+            {plan.data.summary.retryAt && (
+              <p>
+                Retry after:{" "}
+                {new Intl.DateTimeFormat("en-AU", {
+                  timeZone: "Australia/Sydney",
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                }).format(new Date(plan.data.summary.retryAt))}{" "}
+                Sydney time.
+              </p>
+            )}
+            {plan.data.summary.blockers.length > 0 && (
+              <ul className="list-disc pl-5">
+                {plan.data.summary.blockers.map((blocker) => (
+                  <li key={blocker}>{blocker}</li>
+                ))}
+              </ul>
+            )}
+            <p className="text-xs text-[var(--color-fg-muted)]">{plan.data.summary.timingNote}</p>
+          </div>
           <details>
             <summary className="cursor-pointer text-sm">
               Automatic selection and writing rules
@@ -183,8 +218,8 @@ export function InstagramReelPanel() {
       )}
       <p className="text-xs text-[var(--color-fg-muted)]">
         Previewing does not publish. Spoken captions are included for watching without sound. The
-        voice is a synthetic male UK English voice (George) and runs locally, with no speech API
-        fee. Publishing runs on the server even when this page is closed.
+        voice is the approved synthetic male voice (Fable) and runs locally, with no speech API fee.
+        Publishing runs on the server even when this page is closed.
       </p>
     </section>
   );
