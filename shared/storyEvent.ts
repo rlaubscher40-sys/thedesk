@@ -47,20 +47,20 @@ export function numericClaims(text: string): Set<string> {
     ).map((value) => value.toLowerCase().replace(/\s+/g, ""))
   );
 }
+// Reuse ICU state: clustering can compare thousands of pairs per run.
+const originalDayFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Australia/Sydney",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
 export function originalPublicationDay(story: EventStory): string | null {
   const timing = story.sourceTiming;
   if (timing?.publisherDateStatus !== "available") return null;
   if (timing.publisherPublishedDay) return timing.publisherPublishedDay;
   if (!timing.publisherPublishedAt) return null;
   const date = new Date(timing.publisherPublishedAt);
-  return Number.isFinite(date.getTime())
-    ? new Intl.DateTimeFormat("en-CA", {
-        timeZone: "Australia/Sydney",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      }).format(date)
-    : null;
+  return Number.isFinite(date.getTime()) ? originalDayFormatter.format(date) : null;
 }
 
 /** Similar words do not prove the same event. These are conservative vetoes,
