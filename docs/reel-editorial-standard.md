@@ -120,3 +120,24 @@ Both carry credit and context labels. The voice uses ordinary words such as
 "estimated"; the precise modelling assumptions remain on screen and in the
 caption/source read. Preserve the observed 2015 and 2025 values and their
 measured phrase timing when simplifying the narration.
+
+## Cinematic composition
+
+The opening and construction scene now use the credited photographs across
+the complete 1080x1920 canvas, with controlled pan and zoom and a dark gradient
+behind the headlines and source notes. This is animated archival photography,
+not drone footage, a timelapse or generated evidence. The construction image
+continues behind the final explanatory graphic with a deeper navy overlay.
+
+The comparison numbers are larger and their labels sit above them to avoid
+collisions during count-up. Both bars retain the same zero baseline and scale.
+The gold uncovered segment remains geometrically consistent as it moves into
+the competition explanation. The deposit uses a separate endpoint timeline:
+9.0 in 2015 and 11.2 in 2025. The same rounded value controls its number and
+moving marker. Intermediate values are animation, not annual observations.
+The housing marker no longer appears in the deposit scene, avoiding a floating
+decoration or a visual conversion between different units and periods.
+
+Fable, the reviewed narration, dates, qualifications and publication identity
+remain unchanged. Gemini's supplied 10-second concept informed the expanded
+composition, but its generated numbers and changing logos are not reused.

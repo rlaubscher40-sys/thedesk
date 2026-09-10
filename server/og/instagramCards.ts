@@ -74,6 +74,7 @@ export async function renderEditorialFrame(
     quiet?: boolean;
     documentary?: boolean;
     publisher?: string;
+    background?: object;
   }
 ): Promise<Buffer> {
   const c = colorScheme(variant);
@@ -91,6 +92,7 @@ export async function renderEditorialFrame(
       backgroundColor: meta.documentary && variant !== "light" ? "#0C1117" : c.bg,
     },
     [
+      ...(meta.background ? [meta.background] : []),
       div(
         {
           position: "absolute",
@@ -115,7 +117,7 @@ export async function renderEditorialFrame(
       ),
       div(
         { position: "absolute", left: 84, top: 258 },
-        mono(meta.kicker, 22, meta.quiet ? c.fgMuted : c.amber)
+        mono(meta.kicker, 22, meta.background ? c.fg : meta.quiet ? c.fgMuted : c.amber)
       ),
       div(
         { position: "absolute", left: 84, top: 355, width: 840, flexDirection: "column" },

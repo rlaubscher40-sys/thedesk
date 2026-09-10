@@ -3,9 +3,12 @@
 ## Ready to compare
 
 The question opening asks why buying is harder while homes are being built.
-The consequence opening introduces the longer climb to a deposit. The two
-review exports share every subsequent scene, phrase, visual and source. Their
-opening durations may differ because Fable keeps its natural speed.
+The consequence opening introduces the longer climb to a deposit. Generate both
+review exports from the same code revision before comparing them: they must share
+every subsequent scene, phrase, visual and source. Older preview files are not
+valid comparisons after a design change. Opening durations may differ because
+Fable keeps its natural speed. The cinematic pass is delivered first as the
+default question opening; re-export the alternative before any audience test.
 
 Run `node --import tsx scripts/review-housing-balance-reel.ts --out /absolute/path`
 for the question opening. Add `--opening consequence` for the alternative.

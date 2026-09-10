@@ -6,6 +6,7 @@ import {
   housingBalanceGeometry,
   BALANCE_CHART,
   housingStoryBridge,
+  housingDepositGeometry,
 } from "./housingBalanceStoryboard";
 
 type Element = { type: string; props: { children?: unknown; style?: Record<string, unknown> } };
@@ -64,16 +65,17 @@ describe("documentary housing Reel", () => {
     expect(final.gap).toBe(55000);
     expect(final.gapLeft).toBe(supply.supplyWidth);
   });
-  it("preserves the gold marker at both scene boundaries and scales the deposit extension", () => {
+  it("preserves the housing marker and synchronises the separate deposit timeline", () => {
     expect(housingStoryBridge("competition", 0)).toEqual(housingStoryBridge("gap", 1));
-    expect(housingStoryBridge("deposit", 0)).toEqual(housingStoryBridge("competition", 1));
-    expect(housingStoryBridge("deposit", 0.5).width).toBe(0);
-    expect(housingStoryBridge("deposit", 1).width).toBeCloseTo((11.2 - 9) * 70);
+    expect(housingDepositGeometry(0)).toEqual({ later: false, years: 9, dotX: 90 });
+    expect(housingDepositGeometry(1)).toEqual({ later: true, years: 11.2, dotX: 750 });
+    let previous = 9;
     for (let i = 0; i <= 100; i++) {
-      const marker = housingStoryBridge("deposit", i / 100);
-      // The date/number/years group spans y=310..550. Different-unit markers
-      // must not travel across that reading area, even between inspected holds.
-      if (marker.width > 0) expect(marker.y + marker.height <= 330 || marker.y >= 640).toBe(true);
+      const tick = housingDepositGeometry(i / 100);
+      expect(tick.years).toBeGreaterThanOrEqual(previous);
+      expect(tick.years).toBeLessThanOrEqual(11.2);
+      expect(tick.dotX).toBeCloseTo(90 + ((tick.years - 9) / 2.2) * 660);
+      previous = tick.years;
     }
   });
   it("distinguishes illustrated price pressure from a price forecast", () => {
