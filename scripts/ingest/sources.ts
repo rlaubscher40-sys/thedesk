@@ -50,6 +50,8 @@ export type Source = {
   maxItems?: number;
   kind?: "rss" | "index";
   articlePath?: string;
+  /** Require a publisher-declared article type around index links. */
+  articleContainerClass?: string;
 };
 
 /**
@@ -93,6 +95,7 @@ export const SOURCES: Source[] = [
     url: "https://www.apra.gov.au/news-and-publications",
     kind: "index",
     articlePath: "^/news-and-publications/[^/]+$",
+    articleContainerClass: "node--type-news",
     category: "POLICY",
     channel: "AU",
     maxItems: 8,

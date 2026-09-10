@@ -117,7 +117,9 @@ export function referenceNewsHold(input: EditorialInput): string | null {
     if (
       url.hostname.replace(/^www\./, "") === "apra.gov.au" &&
       (/^\/news-and-publications\/meet-/.test(path) ||
-        /^\/news-and-publications\/(?:quarterly-superannuation-product-statistics|quarterly-superannuation-industry-publication|quarterly-fund-level-statistics)\/?$/.test(path))
+        /^\/news-and-publications\/(?:quarterly-superannuation-product-statistics|quarterly-superannuation-industry-publication|quarterly-fund-level-statistics)\/?$/.test(
+          path
+        ))
     )
       return "reference-or-staff-profile";
     if (/\/tender\/details\/|\/plans-in-nsw\/|\/buy\/|\/rent\//i.test(path))

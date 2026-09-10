@@ -28,6 +28,16 @@ const apraDate = (label = "Published", date = "10 September 2026") =>
   `<div class="basic-page anx-pill--split"><div class="anx-pill__label-first">${label}</div><div class="anx-pill__label-last">${date}</div></div>`;
 
 describe("source audit regressions", () => {
+  it("uses APRA's declared news type, not its matching consultation letter or statistics page", () => {
+    const source = SOURCES.find((s) => s.name === "APRA News")!;
+    const items = parseIndexSource(
+      '<div class="node node--type-news"><h2><a href="/news-and-publications/new-framework">APRA releases a revised reporting framework</a></h2></div><div class="node node--type-letter"><h2><a href="/news-and-publications/framework-letter">Reporting framework consultation and response letter</a></h2></div><div class="node node--type-statistical-publication"><a href="/news-and-publications/statistics">Quarterly reporting statistics publication</a></div>',
+      source
+    );
+    expect(items.map((item) => item.title)).toEqual([
+      "APRA releases a revised reporting framework",
+    ]);
+  });
   it.each([
     ["APRA News", "apra.gov.au", 16],
     ["Cotality Australia", "cotality.com", 12],

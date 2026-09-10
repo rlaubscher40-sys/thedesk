@@ -59,7 +59,7 @@ Useful article-level checks include [Cotality's September chart pack](https://ww
 7. Reading allocation gives each discovered publisher up to two initial opportunities before filling the remainder by rank, within the existing 100-local/32-coverage request budget. An index bonus cannot by itself consume every reading slot.
 8. Undated indexes are no longer advertised as successful hourly excerpt harvests. They are read directly at the three daily editorial runs; RSS additions also enter the hourly evidence path. Crawl time never becomes publication time.
 9. Social property selection recognises home values, property markets and residential approvals while retaining explicit overseas-story rejection. An advice/tax article can be valuable on The Desk without qualifying for a property carousel.
-10. Live dry-run review caught APRA staff profiles and recurring statistics landing pages before release; these are explicitly held, even when the publisher exposes a fresh page date.
+10. Live dry-run review caught APRA staff profiles and recurring statistics landing pages before release; these are explicitly held, even when the publisher exposes a fresh page date. APRA index discovery also requires the publisher's declared news-card type, excluding supporting consultation letters that otherwise duplicate the announcement.
 
 ## Downstream boundaries and remaining work
 
