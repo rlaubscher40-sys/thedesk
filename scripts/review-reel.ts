@@ -1,0 +1,84 @@
+/** Review any registered, currently verified topic. No publication imports or calls. */
+import fs from "node:fs/promises";
+import path from "node:path";
+import { getVerifiedReelProgramme } from "../server/instagram/reelCandidates";
+import { renderStatReel } from "../server/video/statReel";
+import { productionReelOptions } from "../server/video/reelProduction";
+
+const args = process.argv.slice(2);
+const usage =
+  "node --import tsx scripts/review-reel.ts --list\n" +
+  "node --import tsx scripts/review-reel.ts --topic <publication-key> --out /absolute/new-directory";
+if (args.includes("--help")) {
+  console.log(usage);
+  process.exit(0);
+}
+const topic = args[args.indexOf("--topic") + 1];
+const output = args[args.indexOf("--out") + 1];
+if (
+  !args.includes("--list") &&
+  (!args.includes("--topic") ||
+    !topic ||
+    !args.includes("--out") ||
+    !output ||
+    !path.isAbsolute(output))
+)
+  throw new Error(usage);
+const programme = await getVerifiedReelProgramme();
+if (args.includes("--list")) {
+  console.log(
+    JSON.stringify(
+      programme.map((entry) => ({
+        topic: entry.topic,
+        key: entry.candidate?.publication.key ?? null,
+        available: Boolean(entry.candidate),
+        requirement: entry.requirement,
+      })),
+      null,
+      2
+    )
+  );
+} else {
+  const candidate = programme.find(
+    (entry) => entry.candidate?.publication.key === topic
+  )?.candidate;
+  if (!candidate)
+    throw new Error(
+      "No currently verified candidate for this topic. Use --list. No substitute story generated."
+    );
+  // A fresh directory prevents overwriting a prior reviewed export.
+  await fs.mkdir(output!);
+  const rendered = await renderStatReel(
+    candidate.stat,
+    "navy",
+    productionReelOptions(candidate.script)
+  );
+  if (!rendered.narrated || !rendered.subtitled)
+    throw new Error("Review requires voice and subtitles.");
+  await fs.writeFile(path.join(output!, "The-Desk-Reel.mp4"), rendered.bytes);
+  await fs.writeFile(path.join(output!, "The-Desk-Reel-Caption.txt"), candidate.caption + "\n");
+  await fs.writeFile(
+    path.join(output!, "review.json"),
+    JSON.stringify(
+      {
+        status: "Review only. Not posted.",
+        generatedAt: new Date().toISOString(),
+        production: productionReelOptions(),
+        candidate,
+        seconds: rendered.seconds,
+        narrated: rendered.narrated,
+        subtitled: rendered.subtitled,
+        timeline: rendered.timeline,
+      },
+      null,
+      2
+    )
+  );
+  console.log(
+    JSON.stringify({
+      file: path.join(output!, "The-Desk-Reel.mp4"),
+      seconds: rendered.seconds,
+      posted: false,
+    })
+  );
+}

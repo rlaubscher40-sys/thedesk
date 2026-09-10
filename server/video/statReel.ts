@@ -116,12 +116,12 @@ const FINAL_TAIL_SECONDS = 0.85;
  *  short passage never leaves a frame on screen too briefly to read. */
 const MIN_HOLD = 0.55;
 
-/** Default duration budget. The reviewed housing explainer gets six extra
+/** Default duration budget. The reviewed housing explainer gets fourteen extra
  * seconds for complete sentences and its source passage, without speeding up
  * the voice. This is an editorial limit, not a claim about audience retention. */
 export const MAX_REEL_SECONDS = 32;
 export function reelDurationLimit(stat?: Pick<ReelStat, "storyboard">): number {
-  return stat?.storyboard?.kind === "housing-balance" ? 38 : MAX_REEL_SECONDS;
+  return stat?.storyboard?.kind === "housing-balance" ? 46 : MAX_REEL_SECONDS;
 }
 
 export type ReelStat = ReelStatText & {
@@ -370,19 +370,25 @@ export function buildVideoGraph(beats: Beat[], stationary = false): string {
  * end is for the loop: Instagram cuts straight back to the first frame, and a
  * voice stopping dead at that seam is audible.
  */
-export function buildAudioGraph(starts: number[], firstInput: number, total: number): string {
+export function buildAudioGraph(
+  starts: number[],
+  firstInput: number,
+  total: number,
+  normalise = false
+): string {
   if (starts.length === 0) return "";
   const parts = starts.map(
     (start, i) => `[${firstInput + i}:a]adelay=delays=${Math.round(start * 1000)}:all=1[a${i}]`
   );
   const mixed = starts.map((_, i) => `[a${i}]`).join("");
+  const voiceLevel = normalise ? "loudnorm=I=-16:TP=-1.5:LRA=11," : "";
   const fadeAt = Math.max(0, total - 0.6).toFixed(3);
   if (starts.length === 1) {
-    parts.push(`[a0]afade=t=out:st=${fadeAt}:d=0.6[aout]`);
+    parts.push(`[a0]${voiceLevel}afade=t=out:st=${fadeAt}:d=0.6[aout]`);
   } else {
     parts.push(
       `${mixed}amix=inputs=${starts.length}:duration=longest:normalize=0,` +
-        `afade=t=out:st=${fadeAt}:d=0.6[aout]`
+        `${voiceLevel}afade=t=out:st=${fadeAt}:d=0.6[aout]`
     );
   }
   return parts.join(";");
@@ -699,11 +705,21 @@ export async function renderStatReel(
       const fontDir = path.join(dir, "fonts");
       await fs.mkdir(fontDir);
       await fs.writeFile(
-        path.join(fontDir, "JetBrainsMono-Regular.woff"),
-        await loadReelSubtitleFont()
+        path.join(fontDir, "Desk-Subtitle.woff"),
+        await loadReelSubtitleFont(stat.storyboard?.kind === "housing-balance")
       );
       const assFile = path.join(dir, "subtitles.ass");
-      await fs.writeFile(assFile, subtitleAss(cues, stat.storyboard ? "story" : "card"));
+      await fs.writeFile(
+        assFile,
+        subtitleAss(
+          cues,
+          stat.storyboard?.kind === "housing-balance"
+            ? "documentary"
+            : stat.storyboard
+              ? "story"
+              : "card"
+        )
+      );
       subtitleFilter = `[vplain]ass=filename=${assFile}:fontsdir=${fontDir}[vout]`;
     }
     const graph = [
@@ -715,7 +731,8 @@ export async function renderStatReel(
         ? buildAudioGraph(
             spokenSections.map((s) => s.start),
             frameFiles.length,
-            total
+            total,
+            stat.storyboard?.kind === "housing-balance"
           )
         : "",
     ]

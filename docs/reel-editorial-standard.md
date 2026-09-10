@@ -1,102 +1,143 @@
 # The Desk Reel editorial standard
 
-## Benchmark and limits of this review
+## Reference and purpose
 
-The reference is Glasshouse's reel at
-https://www.instagram.com/reel/DcvHmYLAycw/ and Ruben's supplied screenshots.
-The screenshots show bank logos, arrest photographs, seized cars, an attributed
-quote and a narrative caption. Ruben describes the bank icons lighting in
-sequence and photographs appearing during the relevant spoken lines. Instagram
-playback was unavailable during this review, so exact cut timings, voice
-performance and sound design have not been independently assessed.
+Reference: https://www.instagram.com/reel/DcvHmYLAycw/ and Ruben's supplied
+screenshots and descriptions. Direct playback was unavailable. Exact cut timing,
+vocal performance and sound design have not been independently assessed.
 
-The target is a useful story that can be followed immediately. Similar colours,
-serif headings and count-ups alone do not meet that target.
+The target is immediate understanding: what is happening, why it matters and
+what the viewer should remember. Each important spoken fact needs a meaningful
+visual counterpart. More animation alone is insufficient.
 
-## Comparison with the housing supply Reel
+## Story before design
 
-| Area | Glasshouse reference | Housing Reel assessment and response |
-| --- | --- | --- |
-| Story | An investigation develops through concrete discoveries and named roles. | A single statistical comparison has less inherent narrative variety. The opening asks why the gap grew despite substantial construction. The sequence then explains household formation, demolitions, additional dwelling need and the uncovered gap. Every step must answer the question raised by the previous one. |
-| Visual meaning | The banks and people mentioned have recognisable visual counterparts. | The supply bar shrinks as demolitions are deducted. Demand extends beyond it. The excess becomes the highlighted gap. The house grid gives the ratio a visible meaning. |
-| Human relevance | People, property and consequences connect the story to everyday life. | Technical demand language hid what the estimate meant. An explicitly illustrative example now shows someone leaving their parents' home: the same three people form two households needing two homes. This comes before the national figures are compared. Do not equate a dwelling shortfall with a count of homeless people or claim a rent effect the data cannot establish. |
-| Evidence | Photographs and labels make evidence tangible in the supplied frames. | The actual Council report cover, full publisher, title, date and page are visible. The dated reference period and discreet source attribution remain throughout. |
-| Variety | The supplied frames alternate numbers, documentary photographs and selected text. | Our cut remains more chart-led. A future story should use relevant documents, locations or photographs where they explain a fact. Decorative stock footage would not fix this weakness. |
-| Voice | Ruben prefers the reference's newsreader delivery. | Keep the approved Fable voice at speed 1.0. Use complete sentences and allow this reviewed explainer up to 38 seconds so its figures and questions are not compressed into fragments. Use digits for verified counts in subtitles so each numerical sentence fits one cue. Review the actual audio before claiming equivalent delivery. |
-| Takeaway | The caption connects the alleged scheme to an ordinary bidder's experience. | The close states the surprising implication: thousands of homes were built, yet we still fell further behind. The 81/100 house grid stays fixed through the payoff and the practical instruction to compare homes added with extra homes needed, matching place and period. The figures alone cannot support a local market or investment prediction. |
+Write and review four beats before choosing graphics or synthesising speech:
 
-## Gates for every future Reel
+1. Finding: what the evidence shows, with matched geography and period.
+2. Explanation: the mechanism connecting the finding to an outcome, with its
+   own source. A numerical comparison alone does not establish causation.
+3. Consequence: the effect on the viewer's choices or circumstances.
+4. Takeaway: the useful understanding the viewer should leave with.
 
-- State the story in one sentence: what happened, what explains it, and why the viewer should care.
-- Open with a clear question, surprising contrast or consequence supported by the evidence.
-- Give each important spoken fact a visual action with a purpose. A count, removal, comparison or evidence reveal should teach something.
-- Keep established objects in place while the comparison develops. Avoid making viewers relearn the layout on every cut.
-- Use plain words before technical labels. Explain what demand, net supply or approvals actually represent.
-- Make the source recognisable once, keep other credits discreet, and provide a working path to the exact evidence.
-- Finish with one usable insight. A repeated headline figure is not sufficient.
-- Watch the encoded MP4 for reading time, voice pacing, subtitle alignment and the final hold. Check that the central finding is still understandable with sound off.
-- Use Australian English and no em dashes in captions. Write the post caption as a coherent story, with concise attribution and the relevant limitation, rather than a methodology dump.
-- Judge audience response from actual retention, completion, saves and replies once posted. Do not promise performance from a design review.
+Map each beat to an actual scene and record what the evidence cannot establish.
+The housing recipe now carries this brief as structured data and validates it
+before rendering. Missing beats, evidence or scene references fail. Changes to
+its reviewed claims fail the existing exact-story validator. This structural
+gate supports editorial judgement; it cannot prove that arbitrary prose is true
+or compelling. Other formats must adopt the same editorial review standard;
+this change does not claim automatic semantic review of every future post.
 
-## Payoff and readable numeric captions
+## Current housing story
 
-The opening contrast is now spoken as well as shown: substantial building was
-still insufficient for the estimated additional need in this period. The ratio scene and closing scene retain the same house grid. Two measured
-phrases change the closing headline from more homes built to still falling
-behind, while the reusable comparison stays visible. Established objects should
-remain visible while their meaning is explained.
+Open with the buyer's question: Australia is building homes, so why is buying
+one getting harder? Establish
+232,000 additions after demolitions versus 287,000 estimated extra homes needed
+in the same national 18 months. Show the additional 55,000 gap. Then explain
+how limited supply relative to demand puts upward pressure on prices and rents.
+Make the human consequence concrete through the Council's modelled deposit
+benchmark: 9.0 years in 2015 to 11.2 in 2025, with assumptions visible. Explain why high building costs and labour shortages impede a quick
+response. End by resolving the question: building more is not the same as catching up;
+net additions must outpace additional need to reduce the existing shortage.
 
-Housing subtitles replace only the exact, evidence-validated spoken counts
-with Australian-formatted digits (232,000, 287,000, 55,000 and 81/100). All other
-words stay verbatim. Each numerical phrase fits a single measured
-audio cue. This reduces reading load without shortening the narration or
-claiming forced word alignment. Other story formats keep their existing
-verbatim captions.
+Six sequences follow this argument, compressing the figures into one developing
+comparison so the explanation arrives sooner. The previous ratio scene repeated the
+finding without explaining it; it is replaced by competition and price pressure.
+The public source read retains the ratio and the detailed definitions.
+Interest rates, incomes and borrowing power also shape demand. The Reel must
+not imply guaranteed price growth, that construction is always the largest
+price driver, or that the 55,000 gap quantifies people priced out of a market.
 
-## Measured phrase timing
+## Design direction
 
-Use eight scenes for this finding. Spoken phrases are authored at natural
-sentence boundaries, then generated with the approved Fable voice at speed 1.0.
-Excess model silence at phrase edges is trimmed, retaining 100ms before and
-160ms after detectable speech. Interior speech samples stay unchanged and are
-joined with an 80ms separation. Each phrase's actual
-start and duration controls its subtitle and designated visual action.
+The previous bold sans headings, coloured panels and house tiles were rejected
+as too presentation-like and inconsistent with the website. Use its Playfair
+Display editorial forms and Source Sans 3 prose, with JetBrains Mono confined
+to small metadata. Bundled static subsets have separate derivative names and
+retain their original copyright notices and the SIL Open Font License.
 
-The opening question appears with “Still not enough”. The moving-out animation
-runs during “You leave home”. The demolition deduction finishes during its
-phrase, before the net-additions amount is spoken. The demand bar waits for
-its numerical phrase. The shortfall reveal spans its spoken passage, and the
-closing headline changes with “Yet we still fell further behind”. Animation
-endpoints are rounded to the 30fps picture grid; these are phrase cues, not
-word-level forced alignment. The 81-house count retains its existing bounded
-reveal and reading hold.
+Use deep navy, warm ivory and muted gold. Prioritise large serif headlines,
+italic emphasis, fine rules and generous space. Keep bars slim and consistently
+scaled; hold the supply row in place as demand arrives. Mark the uncovered
+part of the demand bar. The competition scene preserves that exact uncovered
+segment and scale, then connects it to price and rent pressure. It does not
+invent a count of households or bidders. The closing additions bar crossing a need marker is
+explicitly illustrative, without invented forecast numbers or dates.
 
-Keep the overall 38-second budget and shorten wording when measured speech
-exceeds it. The helper accepts at most 16 phrases across at most nine scenes
-and uses sequential batches of at most nine through the existing local voice
-queue. A failed phrase is an explicit render failure. Review exports include
-speech-audit.json and timing.json so actual cues can be inspected alongside
-the encoded video. No paid speech or transcription service is involved.
+The rejected white evidence panel and excerpt crops are removed. Show the full
+Council name in a consistent source footer, followed by year and page. Documentary
+footers use 31px and 30px editorial sans at 1080px, with space above subtitles.
+The public source read contains the report title, exact links and methodology.
 
-## Reading the comparison without sound
+Use licensed, credited real imagery where it adds context. Label archive
+publication dates and keep imagery distinct from evidence of the specific
+claim. The gold shortfall marker connects comparison, competition and deposit
+scenes. The modelled deposit example has its own dates and assumptions; do not
+imply that the 18-month housing gap caused its decade-long increase.
 
-Do not show zero demand during the measured lead-in before its number is
-spoken. Keep the space reserved and reveal the amount with the count. Mark
-the net-supply endpoint inside the demand bar so the excess is easy to locate
-on the shared scale. The shortfall headline says the gap grew by 55,000 homes,
-making the flow over this period explicit. Keep the 81 added / 19 gap labels
-beneath the house grid through the ending, so meaning does not rely on colour.
+## Voice, timing and delivery
 
-The post caption now uses the moving-out example before the national figures.
-The same people can form more households and need more homes. The existing
-reference period, approximate figures, modelled demand definition, full source
-and distinction from total accumulated shortage remain.
+Use approved local Fable at speed 1.0. This reviewed story may run up to 46
+seconds; other Reels retain 32 seconds. Never speed up narration to hide an
+overlong script. Six sequences currently use eleven authored phrases (at most sixteen) through the
+bounded local voice queue. Preserve 100ms before and 160ms after detectable
+speech at phrase edges, with an 80ms join gap.
 
-Verification note: the recovered clarity pass was integrated with main 764edbc
-without conflicts. TypeScript and the production build pass. The new H.264
-1080x1920 MP4 is 37.97 seconds with AAC audio and burned-in subtitles, and passes
-complete-picture-duration verification. Encoded frames were inspected across
-the story and through the closing insight. Automation fixtures now explicitly
-control housing evidence; additional checks preserve the shared daily cap and
-uncertain-publication lock when that topic is available. The bio destination
-assertion accounts for HTML-escaped apostrophes.
+Measured phrase starts govern the comparison phases, deposit extension,
+competition, construction constraints and closing takeaway. Use bounded animation steps and reading holds. Count-up
+labels and bars share one eased value; internal geometry changes use hard cuts
+on the 30fps grid. Text changes cut cleanly between sequences; only the gold
+marker carries across. Do not dissolve entire text compositions over each
+other. This is phrase timing, not forced word alignment.
+
+Normalise the housing audio mix and encode stereo AAC at 48kHz in a fast-start
+H.264 MP4. Check complete picture duration, actual encoded frames, subtitle
+readability and decoded audio levels. Supply a direct MP4 download because the
+inline preview has repeatedly failed for this user.
+
+## Editorial gates
+
+- State the story in one sentence before selecting graphics.
+- Explain unfamiliar terms and give a concrete reason to care.
+- Match figures to the same geography and period.
+- Distinguish measured findings, reported context and illustration.
+- Keep source attribution recognisable and the full evidence reachable.
+- End with a usable takeaway rather than another repeated number.
+- Use Australian English and no em dashes in captions.
+- Assess retention, completion, saves and replies after posting. A design review
+  cannot establish parity with Glasshouse's audience performance.
+
+## Current review and research
+
+See `reel-research-and-review.md` for primary references, the decisions they
+informed, and checks on the finished export. Documentary subtitles use the
+bundled editorial sans face rather than the monospaced metadata font. Other
+Reel formats retain their existing subtitle treatment.
+
+The opening uses a separate monochrome architectural photograph by Phillip
+Flores. The construction photograph appears only with the supply constraints.
+Both carry credit and context labels. The voice uses ordinary words such as
+"estimated"; the precise modelling assumptions remain on screen and in the
+caption/source read. Preserve the observed 2015 and 2025 values and their
+measured phrase timing when simplifying the narration.
+
+## Cinematic composition
+
+The opening and construction scene now use the credited photographs across
+the complete 1080x1920 canvas, with controlled pan and zoom and a dark gradient
+behind the headlines and source notes. This is animated archival photography,
+not drone footage, a timelapse or generated evidence. The construction image
+continues behind the final explanatory graphic with a deeper navy overlay.
+
+The comparison numbers are larger and their labels sit above them to avoid
+collisions during count-up. Both bars retain the same zero baseline and scale.
+The gold uncovered segment remains geometrically consistent as it moves into
+the competition explanation. The deposit uses a separate endpoint timeline:
+9.0 in 2015 and 11.2 in 2025. The same rounded value controls its number and
+moving marker. Intermediate values are animation, not annual observations.
+The housing marker no longer appears in the deposit scene, avoiding a floating
+decoration or a visual conversion between different units and periods.
+
+Fable, the reviewed narration, dates, qualifications and publication identity
+remain unchanged. Gemini's supplied 10-second concept informed the expanded
+composition, but its generated numbers and changing logos are not reused.

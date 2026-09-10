@@ -108,7 +108,10 @@ function literal(text: string) {
     .replace(/\}/g, "｝")
     .replace(/[\r\n]/g, " ");
 }
-export function subtitleAss(cues: SubtitleCue[], layout: "card" | "story" = "card"): string {
+export function subtitleAss(
+  cues: SubtitleCue[],
+  layout: "card" | "story" | "documentary" = "card"
+): string {
   return (
     `[Script Info]
 ScriptType: v4.00+
@@ -117,14 +120,14 @@ PlayResY: 1920
 WrapStyle: 2
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Desk,JetBrains Mono,${layout === "story" ? "40" : "44"},&H00F6F3EB,&H00F6F3EB,&H00170F0B,&H00170F0B,0,0,0,0,100,100,0,0,${layout === "story" ? "1,3,1" : "3,14,0"},5,84,${layout === "story" ? "156" : "84"},0,1
+Style: Desk,${layout === "documentary" ? "Desk Editorial Sans" : "JetBrains Mono"},${layout === "documentary" ? "44" : layout === "story" ? "40" : "44"},&H00F6F3EB,&H00F6F3EB,&H00170F0B,&H00170F0B,0,0,0,0,100,100,0,0,${layout === "documentary" ? "1,2,0" : layout === "story" ? "1,3,1" : "3,14,0"},5,84,${layout !== "card" ? "156" : "84"},0,1
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 ` +
     cues
       .map(
         (c) =>
-          `Dialogue: 0,${timestamp(c.start)},${timestamp(c.end)},Desk,,0,0,0,,{\\pos(${layout === "story" ? "504,1490" : "540,210"})}${c.lines.map(literal).join("\\N")}`
+          `Dialogue: 0,${timestamp(c.start)},${timestamp(c.end)},Desk,,0,0,0,,{\\pos(${layout !== "card" ? "504,1490" : "540,210"})}${c.lines.map(literal).join("\\N")}`
       )
       .join("\n") +
     "\n"

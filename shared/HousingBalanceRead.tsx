@@ -1,4 +1,5 @@
 import React from "react";
+import { HOUSING_DEPOSIT } from "./housingAffordability";
 import { HOUSING_BALANCE_SNAPSHOT, matchedHousingBalance } from "./housingBalance";
 
 /** The Reel's source destination uses the very same reviewed evidence as its visuals. */
@@ -11,9 +12,9 @@ export function HousingBalanceRead() {
       <header className="rule-major pt-5">
         <p className="bs-label-accent">Australia · Supply and demand · Historical read</p>
         <h1 className="font-serif text-4xl sm:text-6xl mt-4 leading-tight">
-          263,000 homes built.
+          Why more homes can still leave
           <br />
-          And still behind.
+          affordability under pressure.
         </h1>
         <p className="font-serif text-xl sm:text-2xl mt-5 leading-relaxed">
           Australia added roughly {n(b.net)} homes net of demolitions while new underlying demand
@@ -65,14 +66,77 @@ export function HousingBalanceRead() {
       <section className="rule-hair pt-5 mt-7">
         <h2 className="font-serif text-3xl">Why it matters.</h2>
         <p className="text-base leading-7 mt-4">
-          A large construction total can coexist with housing pressure. Some new construction
-          replaces homes that have been demolished, while household formation creates additional
-          demand. In this matched period, the net addition did not cover that new demand.
+          When housing supply struggles to keep up with demand, competition for available homes puts
+          upward pressure on prices and rents. The Council explicitly identifies weak new supply
+          relative to demand as a contributor to price pressure (printed page 21). Our 55,000-home
+          calculation measures an additional housing gap, not how much prices rose.
+        </p>
+        <p className="text-base leading-7 mt-4">
+          The Council also links high housing and living costs to adult children staying in the
+          parental home longer (printed page 44). This is the report's wider affordability context,
+          not a consequence measured by the 55,000-home gap calculation.
         </p>
         <p className="text-base leading-7 mt-4">
           This is the gap added during these 18 months. It is not Australia's total accumulated
           shortage, a homelessness count, or a forecast of prices and rents. The comparison is
           national and cannot tell us the shortfall in Brisbane, Perth or any particular suburb.
+        </p>
+      </section>
+      <section className="rule-hair pt-5 mt-7">
+        <h2 className="font-serif text-3xl">The deposit moved further away.</h2>
+        <p className="font-serif text-2xl mt-4">
+          {HOUSING_DEPOSIT.startYears} years in {HOUSING_DEPOSIT.startYear}.{" "}
+          {HOUSING_DEPOSIT.endYears} years in {HOUSING_DEPOSIT.endYear}.
+        </p>
+        <p className="text-base leading-7 mt-4">
+          NHSAC reports that the modelled time to save a 20% deposit rose from 9.0 years in 2015 to
+          11.2 years in 2025. The measure assumes saving 15% of gross median household income each
+          year for a median-priced dwelling. It is a benchmark, not an observed waiting time or a
+          required minimum deposit. The extra 2.2 years is derived from those endpoints. The Council
+          attributes the deterioration to rising housing costs. This decade-long affordability
+          measure is separate from the 18-month housing-flow gap; that gap does not establish the
+          cause or size of the deposit change.
+        </p>
+        <a
+          className="bs-link inline-block mt-4"
+          href={`${HOUSING_BALANCE_SNAPSHOT.sourceUrl}#page=14`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          2015 and 2025 deposit comparison, printed page 3 →
+        </a>
+        <br />
+        <a
+          className="bs-link inline-block mt-3"
+          href={`${HOUSING_BALANCE_SNAPSHOT.sourceUrl}#page=65`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Savings assumption, chart 3.2, printed page 54 →
+        </a>
+      </section>
+      <section className="rule-hair pt-5 mt-7">
+        <h2 className="font-serif text-3xl">Building more is not the same as catching up.</h2>
+        <p className="text-base leading-7 mt-4">
+          Adding homes is not enough to reduce an existing shortage if additional need grows faster.
+          Net additions, after demolitions, must exceed new need for the gap to narrow. High
+          construction costs, shortages of skilled labour and project financing affect whether homes
+          can be built profitably. Projects can be delayed or cancelled, and approvals take time to
+          become completed homes. The Council discusses these constraints in chapter 2, section 2.3.
+          An announcement or approval does not immediately add somewhere to live.
+        </p>
+        <h2 className="font-serif text-3xl mt-7">Pressure is not a price forecast.</h2>
+        <p className="text-base leading-7 mt-4">
+          Underlying housing need is different from what buyers can pay. Interest rates, incomes and
+          borrowing power influence effective demand. The Council attributes much of 2025's price
+          growth to interest rate reductions expanding households' spending capacity. RBA research
+          also identifies interest rates, rents and momentum as important influences on housing
+          prices. Prices can fall even while housing remains scarce if demand weakens.
+        </p>
+        <p className="font-serif text-2xl mt-5">
+          The takeaway: building more is not the same as catching up. To close the shortage, homes
+          added after demolitions must outpace additional need, in the places people need them.
+          Delivery takes time.
         </p>
       </section>
       <section className="rule-hair pt-5 mt-7" aria-label="Source and methodology">
@@ -94,8 +158,50 @@ export function HousingBalanceRead() {
           A newer report may revise the estimates.
         </p>
         <div className="flex flex-col items-start gap-3 mt-5">
+          <a
+            className="bs-link"
+            href="https://www.rba.gov.au/publications/rdp/2019/2019-01/full.html"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            RBA: A Model of the Australian Housing Market, 2019 →
+          </a>
+          <a
+            className="bs-link"
+            href={`${HOUSING_BALANCE_SNAPSHOT.sourceUrl}#page=41`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Construction costs and supply constraints, chapter 2 →
+          </a>
+          <a
+            className="bs-link"
+            href="https://unsplash.com/photos/a-very-tall-building-with-a-crane-on-top-of-it-jzEkzVq3Yp0"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Reel archive photograph: Damon Hall, Sydney construction, published December 2019
+            (Unsplash License) →
+          </a>
+          <a
+            className="bs-link"
+            href="https://unsplash.com/photos/mikcmWSjlMw"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Opening architectural photograph: Phillip Flores / Unsplash. Illustrative context; no
+            current sale or resident claim. →
+          </a>
           <a className="bs-link" href={b.source} target="_blank" rel="noopener noreferrer">
             Read the matched source figures, page 21 →
+          </a>
+          <a
+            className="bs-link"
+            href={`${HOUSING_BALANCE_SNAPSHOT.sourceUrl}#page=55`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Affordability and living at home longer, page 44 →
           </a>
           <a
             className="bs-link"

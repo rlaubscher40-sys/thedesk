@@ -99,6 +99,62 @@ export function storyboardSections(
     const measured = durations[scene.key];
     if (!Number.isFinite(measured) || measured! <= 0)
       throw new Error("Scene has no speech timing.");
+    // Authored phrases control successive visual actions. Each phase finishes
+    // before its speech ends and holds through the pause; no guessed word cues.
+    if (
+      story.kind === "housing-balance" &&
+      phrases &&
+      "phrases" in scene &&
+      scene.phrases.length >= 2 &&
+      [
+        "balance-opening",
+        "balance-takeaway",
+        "balance-pressure",
+        "balance-building",
+        "balance-comparison",
+        "balance-households",
+      ].includes(scene.kind)
+    ) {
+      const cues = phrases[scene.key];
+      if (
+        !cues ||
+        cues.length !== scene.phrases.length ||
+        cues.some(
+          (p) =>
+            !Number.isFinite(p.start) ||
+            !Number.isFinite(p.seconds) ||
+            p.start < 0 ||
+            p.seconds < 0.2 ||
+            p.start + p.seconds > measured! + 0.02
+        ) ||
+        cues.some((cue, i) => i > 0 && cue.start < cues[i - 1]!.start + cues[i - 1]!.seconds - 0.02)
+      )
+        throw new Error("Visual phases require valid measured phrases.");
+      const ticks: Array<{ at: number; progress: number }> = [];
+      cues.forEach((cue, phase) => {
+        const start = Math.round(cue.start * 30);
+        const end = Math.round((cue.start + cue.seconds * 0.72) * 30);
+        const steps = Math.min(24, end - start);
+        if (steps < 1) throw new Error("Measured visual phase is too short.");
+        if (phase === 0 && start > 0) ticks.push({ at: 0, progress: 0 });
+        for (let i = 0; i <= steps; i++)
+          ticks.push({
+            at: Math.round(start + ((end - start) * i) / steps),
+            progress: (phase + i / steps) / cues.length,
+          });
+      });
+      return {
+        key: scene.key,
+        seconds: measured! + (index === story.scenes.length - 1 ? 0.65 : 0.14),
+        frames: ticks.map((tick, i) => ({
+          reveal: 1,
+          sceneKey: scene.key,
+          sceneProgress: tick.progress,
+          hardCut: true,
+          ...(i < ticks.length - 1 ? { seconds: (ticks[i + 1]!.at - tick.at) / 30 } : {}),
+        })),
+      };
+    }
     if (
       story.kind === "housing-balance" &&
       phrases &&
@@ -115,7 +171,7 @@ export function storyboardSections(
         phrase.start + phrase.seconds > measured! + 0.02
       )
         throw new Error("Visual action has no measured speech phrase.");
-      const staged = scene.kind === "balance-opening" || scene.kind === "balance-takeaway";
+      const staged = scene.kind === "balance-takeaway";
       const start = Math.round(phrase.start * 30);
       const end = Math.round(Math.min(phrase.start + phrase.seconds - 0.08, measured! - 0.45) * 30);
       if (end <= start) throw new Error("Speech phrase is too short for its visual action.");
@@ -127,11 +183,17 @@ export function storyboardSections(
         reveal: 1,
         sceneKey: scene.key,
         sceneProgress: i / count,
-        ...(i > 0 ? { hardCut: true } : {}),
+        hardCut: true,
         ...(i < count ? { seconds: (times[i + 1]! - at) / 30 } : {}),
       }));
       if (!staged && start > 0)
-        frames.unshift({ reveal: 1, sceneKey: scene.key, sceneProgress: 0, seconds: start / 30 });
+        frames.unshift({
+          reveal: 1,
+          sceneKey: scene.key,
+          sceneProgress: 0,
+          seconds: start / 30,
+          hardCut: true,
+        });
       // All internal arrivals are frame-quantised cuts. No dissolves consume
       // the measured lead-in before a phrase or blur a changing number.
       frames.slice(1).forEach((f) => {
@@ -145,30 +207,19 @@ export function storyboardSections(
     }
     // A short, legible build within the measured passage, then time to read.
     // Spend frames on changing information; the closing composition is static.
-    const ratio = scene.kind === "balance-ratio";
     const household = scene.kind === "balance-households";
-    const counter = ["balance-net", "balance-demand", "balance-gap"].includes(scene.kind);
-    // One house per video frame at normal speech duration, followed by a hold.
-    // A shorter measured passage uses fewer steps, never extends the narration.
-    const ratioCount =
-      ratio && story.kind === "housing-balance"
-        ? Math.min(81, Math.max(2, Math.floor(measured! * 0.72 * 30) + 1))
-        : 0;
+    const counter = scene.kind === "balance-comparison";
     const count = household
       ? Math.min(31, Math.max(2, Math.floor(measured! * 0.55 * 15) + 1))
       : counter
         ? Math.min(31, Math.max(2, Math.floor(measured! * 0.55 * 15) + 1))
-        : ratio
-          ? ratioCount
-          : ["takeaway", "balance-takeaway", "balance-opening", "balance-contrast"].includes(
-                scene.kind
-              )
-            ? 1
-            : ["comparison", "balance-demand"].includes(scene.kind)
-              ? 8
-              : ["permission", "construction", "completion"].includes(scene.kind)
-                ? 6
-                : 4;
+        : ["takeaway", "balance-takeaway", "balance-opening"].includes(scene.kind)
+          ? 1
+          : ["comparison", "balance-demand"].includes(scene.kind)
+            ? 8
+            : ["permission", "construction", "completion"].includes(scene.kind)
+              ? 6
+              : 4;
     const steps = Array.from({ length: count }, (_, i) =>
       counter || household ? i / (count - 1) : (i + 1) / count
     );
@@ -179,10 +230,8 @@ export function storyboardSections(
         reveal: 1,
         sceneKey: scene.key,
         sceneProgress: progress,
-        ...((counter || ratio || household) && i > 0 ? { hardCut: true } : {}),
-        ...(i < steps.length - 1
-          ? { seconds: counter || household ? 2 / 30 : ratio ? 1 / 30 : 0.08 }
-          : {}),
+        ...((counter || household) && i > 0 ? { hardCut: true } : {}),
+        ...(i < steps.length - 1 ? { seconds: counter || household ? 2 / 30 : 0.08 } : {}),
       })),
     };
   });

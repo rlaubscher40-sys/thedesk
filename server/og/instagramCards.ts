@@ -25,16 +25,28 @@ import { weeklyFeatureTree } from "./weeklyFeature";
 
 const FONT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "fonts");
 
-type LoadedFonts = { playfair: ArrayBuffer; mono: ArrayBuffer };
+type LoadedFonts = {
+  playfair: ArrayBuffer;
+  mono: ArrayBuffer;
+  sans: ArrayBuffer;
+  italic: ArrayBuffer;
+};
 let cachedFonts: LoadedFonts | null = null;
 
 async function loadFonts(): Promise<LoadedFonts> {
   if (cachedFonts) return cachedFonts;
-  const [playfair, mono] = await Promise.all([
+  const [playfair, mono, sans, italic] = await Promise.all([
     fs.promises.readFile(path.join(FONT_DIR, "PlayfairDisplay-Bold.woff")),
     fs.promises.readFile(path.join(FONT_DIR, "JetBrainsMono-Regular.woff")),
+    fs.promises.readFile(path.join(FONT_DIR, "DeskEditorialSans-Regular.woff")),
+    fs.promises.readFile(path.join(FONT_DIR, "DeskEditorial-Italic.woff")),
   ]);
   cachedFonts = {
+    italic: italic.buffer.slice(
+      italic.byteOffset,
+      italic.byteOffset + italic.byteLength
+    ) as ArrayBuffer,
+    sans: sans.buffer.slice(sans.byteOffset, sans.byteOffset + sans.byteLength) as ArrayBuffer,
     playfair: playfair.buffer.slice(
       playfair.byteOffset,
       playfair.byteOffset + playfair.byteLength
@@ -45,15 +57,25 @@ async function loadFonts(): Promise<LoadedFonts> {
 }
 
 /** Same bundled font for burned-in Reel subtitles; no system-font dependency. */
-export async function loadReelSubtitleFont(): Promise<Buffer> {
-  return Buffer.from((await loadFonts()).mono);
+export async function loadReelSubtitleFont(documentary = false): Promise<Buffer> {
+  const fonts = await loadFonts();
+  return Buffer.from(documentary ? fonts.sans : fonts.mono);
 }
 
 /** A stable 9:16 scene canvas, with room for platform chrome and spoken subtitles. */
 export async function renderEditorialFrame(
   content: object,
   variant: CardVariant,
-  meta: { kicker: string; source: string; index: number; count: number; quiet?: boolean }
+  meta: {
+    kicker: string;
+    source: string;
+    index: number;
+    count: number;
+    quiet?: boolean;
+    documentary?: boolean;
+    publisher?: string;
+    background?: object;
+  }
 ): Promise<Buffer> {
   const c = colorScheme(variant);
   const div = (style: object, children: unknown) => ({
@@ -62,70 +84,103 @@ export async function renderEditorialFrame(
   });
   const mono = (text: string, size: number, color: string) =>
     div({ fontFamily: "JetBrains Mono", fontSize: size, color }, text);
-  const tree = div({ position: "relative", width: 1080, height: 1920, backgroundColor: c.bg }, [
-    div(
-      {
-        position: "absolute",
-        left: 84,
-        top: 166,
-        right: 156,
-        alignItems: "center",
-        justifyContent: "space-between",
-      },
-      [
-        brandHeader(await loadLogo(variant), 48, { accent: c.amber }),
-        ...(!meta.quiet
-          ? [
-              mono(
-                `${String(meta.index + 1).padStart(2, "0")} / ${String(meta.count).padStart(2, "0")}`,
-                22,
-                c.fgMuted
-              ),
-            ]
-          : []),
-      ]
-    ),
-    div(
-      { position: "absolute", left: 84, top: 258 },
-      mono(meta.kicker, 22, meta.quiet ? c.fgMuted : c.amber)
-    ),
-    div({ position: "absolute", left: 84, top: 355, width: 840, flexDirection: "column" }, content),
-    div(
-      {
-        position: "absolute",
-        left: 84,
-        top: 1375,
-        width: 840,
-        ...(meta.quiet ? {} : { borderTop: `1px solid ${c.fgMuted}` }),
-        paddingTop: 20,
-      },
-      mono(meta.source, 21, c.fgMuted)
-    ),
-    ...(!meta.quiet
-      ? [
-          div(
-            {
-              position: "absolute",
-              left: 84,
-              top: 1570,
-              width: 840,
-              height: 3,
-              backgroundColor: c.amberSoft,
-            },
-            [
-              div(
-                {
-                  width: `${((meta.index + 1) / meta.count) * 100}%`,
-                  height: 3,
-                  backgroundColor: c.amber,
-                },
-                ""
-              ),
-            ]
-          ),
+  const tree = div(
+    {
+      position: "relative",
+      width: 1080,
+      height: 1920,
+      backgroundColor: meta.documentary && variant !== "light" ? "#0C1117" : c.bg,
+    },
+    [
+      ...(meta.background ? [meta.background] : []),
+      div(
+        {
+          position: "absolute",
+          left: 84,
+          top: 166,
+          right: 156,
+          alignItems: "center",
+          justifyContent: "space-between",
+        },
+        [
+          brandHeader(await loadLogo(variant), 48, { accent: c.amber }),
+          ...(!meta.quiet
+            ? [
+                mono(
+                  `${String(meta.index + 1).padStart(2, "0")} / ${String(meta.count).padStart(2, "0")}`,
+                  22,
+                  c.fgMuted
+                ),
+              ]
+            : []),
         ]
-      : []),
-  ]);
+      ),
+      div(
+        { position: "absolute", left: 84, top: 258 },
+        mono(meta.kicker, 22, meta.background ? c.fg : meta.quiet ? c.fgMuted : c.amber)
+      ),
+      div(
+        { position: "absolute", left: 84, top: 355, width: 840, flexDirection: "column" },
+        content
+      ),
+      div(
+        {
+          position: "absolute",
+          left: 84,
+          top: meta.documentary ? 1325 : 1375,
+          width: 840,
+          ...(meta.quiet ? {} : { borderTop: `1px solid ${c.fgMuted}` }),
+          paddingTop: 20,
+          flexDirection: "column",
+          gap: 12,
+        },
+        [
+          ...(meta.publisher
+            ? [
+                div(
+                  {
+                    fontFamily: "Desk Editorial Sans",
+                    fontSize: meta.documentary ? 31 : 26,
+                    color: c.fgMuted,
+                  },
+                  meta.publisher
+                ),
+              ]
+            : []),
+          meta.documentary
+            ? div(
+                { fontFamily: "Desk Editorial Sans", fontSize: 30, color: c.fgMuted },
+                meta.source
+              )
+            : mono(meta.source, 21, c.fgMuted),
+        ]
+      ),
+      ...(!meta.quiet
+        ? [
+            div(
+              {
+                position: "absolute",
+                left: 84,
+                top: 1570,
+                width: 840,
+                height: 3,
+                backgroundColor: c.amberSoft,
+              },
+              [
+                div(
+                  {
+                    width: `${((meta.index + 1) / meta.count) * 100}%`,
+                    height: 3,
+                    backgroundColor: c.amber,
+                  },
+                  ""
+                ),
+              ]
+            ),
+          ]
+        : []),
+    ]
+  );
   return renderToJpeg(tree, 1080, 1920);
 }
 
@@ -392,6 +447,8 @@ async function renderToJpeg(tree: object, width: number, height: number): Promis
         throw new Error("Weekly feature needs editorial review: body overlaps footer clearance");
     },
     fonts: [
+      { name: "Desk Editorial Sans", data: fonts.sans, weight: 400, style: "normal" },
+      { name: "Desk Editorial Italic", data: fonts.italic, weight: 500, style: "italic" },
       {
         name: "Playfair Display",
         data: fonts.playfair,

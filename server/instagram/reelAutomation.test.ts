@@ -272,19 +272,22 @@ describe("automatic verified Reel delivery", () => {
 });
 
 describe("multiple verified topics", () => {
+  const housingNow = new Date("2026-09-10T08:30:00Z");
   const housingKey = "instagram-reel-nhsac-housing-balance-v1";
   it("advances to verified housing evidence without repeating confirmed rents", async () => {
     m.housing.mockResolvedValue(structuredClone(HOUSING_BALANCE_SNAPSHOT));
     published = true;
-    const plan = await readReelAutomation(now);
+    const plan = await readReelAutomation(housingNow);
     expect(plan.state).toBe("ready");
     expect(plan.candidate?.publication.key).toBe(housingKey);
     m.read.mockImplementation(async (key: string) =>
       key === publicationKey
-        ? { status: "success", detail: "Published media 123456", finishedAt: now }
+        ? { status: "success", detail: "Published media 123456", finishedAt: housingNow }
         : null
     );
-    expect(await run()).toEqual({ state: "daily-limit" });
+    expect(await runReelAutomation({ post: m.post, alert: m.alert, now: housingNow })).toEqual({
+      state: "daily-limit",
+    });
     expect(m.post).not.toHaveBeenCalled();
   });
   it("preserves an uncertain housing publication even when newer rents are available", async () => {
@@ -292,7 +295,9 @@ describe("multiple verified topics", () => {
     m.read.mockImplementation(async (key: string) =>
       key === housingKey ? { status: "running", detail: "Outcome unknown" } : null
     );
-    expect(await run()).toEqual({ state: "locked" });
+    expect(await runReelAutomation({ post: m.post, alert: m.alert, now: housingNow })).toEqual({
+      state: "locked",
+    });
     expect(m.claim).not.toHaveBeenCalled();
     expect(m.post).not.toHaveBeenCalled();
   });

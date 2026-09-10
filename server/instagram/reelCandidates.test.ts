@@ -1,7 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { readFileSync } from "node:fs";
+import { parseAbsApprovals } from "../markets/absApprovals";
+import { RENT_CITIES } from "../../shared/cityRents";
 const m = vi.hoisted(() => ({ rents: vi.fn(), approvals: vi.fn(), balance: vi.fn() }));
 vi.mock("../markets/absRents", () => ({ getCityRents: m.rents }));
-vi.mock("../markets/absApprovals", () => ({ getCityApprovals: m.approvals }));
+vi.mock("../markets/absApprovals", async (original) => ({
+  ...(await original<typeof import("../markets/absApprovals")>()),
+  getCityApprovals: m.approvals,
+}));
 vi.mock("../markets/housingBalance", () => ({ getHousingBalanceSnapshot: m.balance }));
 import { HOUSING_BALANCE_SNAPSHOT } from "../../shared/housingBalance";
 import {
@@ -15,6 +21,37 @@ beforeEach(() => {
   m.balance.mockResolvedValue(null);
 });
 describe("repeatable automatic editorial selection", () => {
+  it("passes all six verified recipes through the shared production gate", async () => {
+    const now = new Date("2026-09-10T12:00:00Z");
+    m.rents.mockResolvedValue({
+      status: "available",
+      retrievedAt: now.toISOString(),
+      observations: [
+        ...RENT_CITIES.map((city, i) => ({
+          city,
+          annualPercent: 3 + i / 10,
+          period: "2026-07",
+          status: "",
+        })),
+        { city: "Sydney", annualPercent: 3.8, period: "2026-06", status: "" },
+      ],
+    });
+    const approvals = parseAbsApprovals(
+      readFileSync(new URL("../markets/fixtures/abs-approvals.csv", import.meta.url), "utf8"),
+      now.toISOString()
+    );
+    approvals.observations = [
+      ...approvals.observations.filter((row) => row.city !== "Sydney"),
+      ...approvals.observations
+        .filter((row) => row.city === "Brisbane")
+        .map((row) => ({ ...row, city: "Sydney" as const })),
+    ];
+    m.approvals.mockResolvedValue(approvals);
+    m.balance.mockResolvedValue(HOUSING_BALANCE_SNAPSHOT);
+    const candidates = await getVerifiedReelCandidates(now);
+    expect(candidates).toHaveLength(6);
+    expect(new Set(candidates.map((candidate) => candidate.publication.key)).size).toBe(6);
+  });
   it("explains every withheld recipe without inventing a story", async () => {
     const programme = await getVerifiedReelProgramme();
     expect(programme).toHaveLength(6);
@@ -23,7 +60,8 @@ describe("repeatable automatic editorial selection", () => {
   });
   it("can explain national supply and demand without substituting unavailable city data", async () => {
     m.balance.mockResolvedValue(HOUSING_BALANCE_SNAPSHOT);
-    const candidates = await getVerifiedReelCandidates(new Date("2026-09-09T12:00:00Z"));
+    expect(await getVerifiedReelCandidates(new Date("2026-09-09T12:00:00Z"))).toEqual([]);
+    const candidates = await getVerifiedReelCandidates(new Date("2026-09-10T12:00:00Z"));
     expect(candidates).toHaveLength(1);
     expect(candidates[0]!.stat.value).toBe("~55,000");
     expect(candidates[0]!.stat.storyboard?.kind).toBe("housing-balance");

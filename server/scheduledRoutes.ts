@@ -1922,10 +1922,11 @@ function registerInstagramRoutes(app: Express): void {
           return;
         }
         const { renderStatReel } = await import("./video/statReel");
+        const { productionReelOptions } = await import("./video/reelProduction");
         const reel = await renderStatReel(
           candidate.stat,
           req.query.variant === "light" ? "light" : "navy",
-          { script: candidate.script, subtitles: true }
+          productionReelOptions(candidate.script)
         );
         res.setHeader("Content-Type", "video/mp4");
         res.setHeader("Cache-Control", "no-store");
