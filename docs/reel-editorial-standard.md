@@ -10,20 +10,40 @@ The target is immediate understanding: what is happening, why it matters and
 what the viewer should remember. Each important spoken fact needs a meaningful
 visual counterpart. More animation alone is insufficient.
 
+## Story before design
+
+Write and review four beats before choosing graphics or synthesising speech:
+
+1. Finding: what the evidence shows, with matched geography and period.
+2. Explanation: the mechanism connecting the finding to an outcome, with its
+   own source. A numerical comparison alone does not establish causation.
+3. Consequence: the effect on the viewer's choices or circumstances.
+4. Takeaway: the useful understanding the viewer should leave with.
+
+Map each beat to an actual scene and record what the evidence cannot establish.
+The housing recipe now carries this brief as structured data and validates it
+before rendering. Missing beats, evidence or scene references fail. Changes to
+its reviewed claims fail the existing exact-story validator. This structural
+gate supports editorial judgement; it cannot prove that arbitrary prose is true
+or compelling. Other formats must adopt the same editorial review standard;
+this change does not claim automatic semantic review of every future post.
+
 ## Current housing story
 
-Open with the short contradiction: more homes, a bigger housing gap. Follow
-with about 232,000 additions after demolitions. Keep the same supply bar in view while explaining that this is after
-demolitions, then introduce the 287,000 estimated extra homes needed. Mark the
-55,000 additional gap directly between the endpoints. Translate it to 81 added
-per 100 needed, then explain why housing pressure matters through the Council's
-reported context of adult children staying home longer. Finish with additions
-outpacing new need. The human context is not an effect measured by the flow gap.
+Open with the audience's question: why is a home so hard to afford? Establish
+232,000 additions after demolitions versus 287,000 estimated extra homes needed
+in the same national 18 months. Show the additional 55,000 gap. Then explain
+how limited supply relative to demand puts upward pressure on prices and rents.
+Show the human consequence through the Council's reported living-at-home
+context. Explain why high building costs and labour shortages impede a quick
+response. End with supply catching up to demand to ease scarcity pressure.
 
-Seven scenes follow one argument. No separate source slide interrupts it.
-Figures are national, July 2024 to December 2025, with original definitions and
-full source links on the matching public read. No local price, rent or
-homelessness effect is inferred.
+Eight scenes follow this argument. The previous ratio scene repeated the
+finding without explaining it; it is replaced by competition and price pressure.
+The public source read retains the ratio and the detailed definitions.
+Interest rates, incomes and borrowing power also shape demand. The Reel must
+not imply guaranteed price growth, that construction is always the largest
+price driver, or that the 55,000 gap quantifies people priced out of a market.
 
 ## Design direction
 
@@ -36,8 +56,7 @@ retain their original copyright notices and the SIL Open Font License.
 Use deep navy, warm ivory and muted gold. Prioritise large serif headlines,
 italic emphasis, fine rules and generous space. Keep bars slim and consistently
 scaled; hold the supply row in place as demand arrives. Mark the uncovered
-part of the demand bar. The 100 dots illustrate a rounded ratio rather
-than depicting real households. The closing additions bar crossing a need marker is
+part of the demand bar. The competition illustration is symbolic, not a count of households or bidders. The closing additions bar crossing a need marker is
 explicitly illustrative, without invented forecast numbers or dates.
 
 The rejected white evidence panel and excerpt crops are removed. Show the full
@@ -54,12 +73,12 @@ context label rather than the quantitative chart's reference period.
 
 Use approved local Fable at speed 1.0. This reviewed story may run up to 46
 seconds; other Reels retain 32 seconds. Never speed up narration to hide an
-overlong script. Seven scenes use at most sixteen authored phrases through the
+overlong script. Eight scenes use at most sixteen authored phrases through the
 bounded local voice queue. Preserve 100ms before and 160ms after detectable
 speech at phrase edges, with an 80ms join gap.
 
-Measured phrase starts govern the opening contradiction, demand and gap reveals
-and closing takeaway. Use bounded animation steps and reading holds. Count-up
+Measured phrase starts govern the opening question, demand and gap reveals,
+competition, construction constraints and closing takeaway. Use bounded animation steps and reading holds. Count-up
 labels and bars share one eased value; internal geometry changes use hard cuts
 on the 30fps grid. This is phrase timing, not forced word alignment.
 

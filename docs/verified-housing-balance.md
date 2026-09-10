@@ -39,8 +39,8 @@ raw population growth, a target, approvals or buyer enquiries. Glossary: printed
 page 93 (PDF 104). Model discussion: printed page 73 (PDF 84).
 
 The difference is not Australia's accumulated shortage, a count of homeless
-households, a city comparison or a price/rent forecast. The 100 dots show
-a rounded ratio, not 100 real dwellings. No local shortage is inferred from state
+households, a city comparison or a price/rent forecast. The source read retains
+the rounded 81-per-100 ratio. No local shortage is inferred from state
 population or city approvals. The original approvals recipe stays an approvals
 explanation, while this sixth recipe supplies an independently matched finding.
 
@@ -76,13 +76,13 @@ story, and the original pages remain linked from the public source read.
 node --import tsx scripts/review-housing-balance-reel.ts --out /tmp/desk-housing-gap
 ```
 
-Produces a Fable-narrated, subtitled MP4, caption, seven scene JPEGs, evidence,
+Produces a Fable-narrated, subtitled MP4, caption, eight scene JPEGs, evidence,
 measured phrase audit and final timeline. `--frames-only` skips speech and video.
 It never posts. Housing has a 46-second cap; other formats retain 32 seconds.
 
 The count-up uses one cubic ease-out for both digits and bar width. Intermediate
 figures are animation states, not observations. Net supply, demand and gap use
-a fixed 300,000-home scale. The ratio reveals 81 of 100 dots, then holds.
+a fixed 300,000-home scale. The rounded ratio remains on the source read. The Reel uses that time to explain price pressure.
 Hard-cut frames avoid ghosted numbers. The renderer decodes the finished picture
 stream and checks coverage of the measured timeline within two frames.
 
@@ -90,3 +90,22 @@ Subtitles convert only verified spoken counts to digits, retaining every other
 word and its measured phrase timing. The caption and public source destination
 carry the same finding and distinguish it from accumulated shortage. See
 `reel-editorial-standard.md` for the current design and delivery requirements.
+
+## Affordability explanation, 10 September 2026
+
+The revised story adds the mechanism previously missing between the flow gap
+and the human consequence. NHSAC chapter 2, section 2.1.1, explicitly links weak
+new supply relative to demand to upward pressure on prices. Sections 2.1 and
+2.3 cover rental conditions, construction costs, labour and feasibility.
+The same report also attributes much of 2025 price growth to interest-rate
+reductions expanding spending power. Underlying housing need must not be
+confused with effective demand from buyers able to pay.
+
+RBA's 2019 housing model supports the vacancy/rent mechanism and the importance
+of rates, rents and momentum for prices:
+https://www.rba.gov.au/publications/rdp/2019/2019-01/full.html
+
+The explanation is conditional pressure, not a national or local price forecast.
+No observed price-growth series, percentage effect or affected-person count is
+inferred from the 55,000-home calculation. Original competition and crane line
+illustrations are labelled, with source credit on the relevant scene.

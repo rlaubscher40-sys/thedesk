@@ -104,7 +104,11 @@ export function storyboardSections(
     if (
       story.kind === "housing-balance" &&
       phrases &&
-      ["balance-opening", "balance-takeaway"].includes(scene.kind)
+      "phrases" in scene &&
+      scene.phrases.length === 2 &&
+      ["balance-opening", "balance-takeaway", "balance-pressure", "balance-building"].includes(
+        scene.kind
+      )
     ) {
       const cues = phrases[scene.key];
       if (
@@ -162,7 +166,7 @@ export function storyboardSections(
         phrase.start + phrase.seconds > measured! + 0.02
       )
         throw new Error("Visual action has no measured speech phrase.");
-      const staged = scene.kind === "balance-opening" || scene.kind === "balance-takeaway";
+      const staged = scene.kind === "balance-takeaway";
       const start = Math.round(phrase.start * 30);
       const end = Math.round(Math.min(phrase.start + phrase.seconds - 0.08, measured! - 0.45) * 30);
       if (end <= start) throw new Error("Speech phrase is too short for its visual action.");
@@ -192,28 +196,19 @@ export function storyboardSections(
     }
     // A short, legible build within the measured passage, then time to read.
     // Spend frames on changing information; the closing composition is static.
-    const ratio = scene.kind === "balance-ratio";
     const household = scene.kind === "balance-households";
     const counter = ["balance-net", "balance-demand", "balance-gap"].includes(scene.kind);
-    // One dot per video frame at normal speech duration, followed by a hold.
-    // A shorter measured passage uses fewer steps, never extends the narration.
-    const ratioCount =
-      ratio && story.kind === "housing-balance"
-        ? Math.min(81, Math.max(2, Math.floor(measured! * 0.72 * 30) + 1))
-        : 0;
     const count = household
       ? Math.min(31, Math.max(2, Math.floor(measured! * 0.55 * 15) + 1))
       : counter
         ? Math.min(31, Math.max(2, Math.floor(measured! * 0.55 * 15) + 1))
-        : ratio
-          ? ratioCount
-          : ["takeaway", "balance-takeaway", "balance-opening"].includes(scene.kind)
-            ? 1
-            : ["comparison", "balance-demand"].includes(scene.kind)
-              ? 8
-              : ["permission", "construction", "completion"].includes(scene.kind)
-                ? 6
-                : 4;
+        : ["takeaway", "balance-takeaway", "balance-opening"].includes(scene.kind)
+          ? 1
+          : ["comparison", "balance-demand"].includes(scene.kind)
+            ? 8
+            : ["permission", "construction", "completion"].includes(scene.kind)
+              ? 6
+              : 4;
     const steps = Array.from({ length: count }, (_, i) =>
       counter || household ? i / (count - 1) : (i + 1) / count
     );
@@ -224,10 +219,8 @@ export function storyboardSections(
         reveal: 1,
         sceneKey: scene.key,
         sceneProgress: progress,
-        ...((counter || ratio || household) && i > 0 ? { hardCut: true } : {}),
-        ...(i < steps.length - 1
-          ? { seconds: counter || household ? 2 / 30 : ratio ? 1 / 30 : 0.08 }
-          : {}),
+        ...((counter || household) && i > 0 ? { hardCut: true } : {}),
+        ...(i < steps.length - 1 ? { seconds: counter || household ? 2 / 30 : 0.08 } : {}),
       })),
     };
   });

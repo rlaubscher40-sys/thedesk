@@ -89,7 +89,7 @@ voice comparison or claim to have watched that Reel is made.
   photograph is presented as evidence of an affected household.
 - The shared caption and public source destination, in Australian English.
 
-## Seven-scene direction
+## Previous seven-scene direction (superseded 10 September)
 
 | Scene | What the viewer learns | Principal visual action |
 | --- | --- | --- |
@@ -151,3 +151,37 @@ including the source credit, gap bracket, human illustration and subtitle
 font. No label overlap or source-panel remnants were found. Measured speech
 fits each scene and the closing spoken phrase ends before picture ends.
 TypeScript, the production build and 135 tests across 12 relevant files pass.
+
+## Editorial correction, 10 September 2026
+
+The earlier cut still treated the numerical finding as its takeaway. The new
+version answers why affordability remains under pressure. The reviewed order
+is audience question, net additions, extra need, gap, competition and price
+pressure, human consequence, construction constraints, and supply catching up.
+The ratio is retained in the source read instead of taking another Reel scene.
+
+The source check confirmed that NHSAC directly links weak supply relative to
+demand to price pressure, while also identifying the effect of interest rates
+on spending power. That supports a conditional explanation, not an inevitable
+price rise. A structured four-beat brief now maps finding, explanation,
+consequence and takeaway to evidence and actual scenes before rendering.
+
+The 36.40-second export checks above refer to the earlier cut. New export
+measurements are recorded below.
+
+### Revised production checks
+
+The final script is measured at approximately 39.83 seconds with Fable at
+normal speed. The opening question and price-pressure explanation are each
+synthesised as one complete sentence. The comparison retains matched scales
+and synchronised count-ups. The pressure and construction illustrations were
+reviewed at full size; decorative serif arrows were replaced with plain sans
+arrows. Caption and source read carry the causal explanation and distinguish
+underlying need from spending power. All 115 relevant tests across 10 files,
+TypeScript and the production build pass. The final 39.80-second MP4 passed complete-picture-duration validation and full
+video/audio decoding (1,194 frames, 1080x1920 at 30 fps). Encoded frames from all
+eight scenes were inspected at phone scale. Sources and subtitles remain clear
+of the graphics, with the correct plain arrow glyphs. Audio is stereo AAC at
+48 kHz and measures -16.97 LUFS integrated, -4.30 dBTP and 3.40 LU loudness range.
+These are technical checks, not a claim of perfect vocal performance or audience
+retention. The clip remains an unpublished review preview.

@@ -1,6 +1,7 @@
 import { matchedHousingBalance, type HousingBalanceSnapshot } from "../../shared/housingBalance";
 import { renderEditorialFrame, type CardVariant } from "../og/instagramCards";
 import { spokenCount } from "./spokenNumbers";
+import { assertEditorialStory, type EditorialStory } from "./editorialStory";
 import { REEL_READS } from "../instagram/reelCaption";
 
 type Kind =
@@ -9,11 +10,13 @@ type Kind =
   | "balance-net"
   | "balance-demand"
   | "balance-gap"
-  | "balance-ratio"
+  | "balance-pressure"
+  | "balance-building"
   | "balance-takeaway";
 export type HousingBalanceStoryboard = {
   kind: "housing-balance";
   evidence: HousingBalanceSnapshot;
+  editorial: EditorialStory;
   scenes: Array<{
     key: string;
     text: string;
@@ -34,11 +37,37 @@ export function housingBalanceStoryboard(
     phrases,
     ...(motionPhrase === undefined ? {} : { motionPhrase }),
   });
-  return {
+  const storyboard: HousingBalanceStoryboard = {
     kind: "housing-balance",
     evidence: structuredClone(evidence),
+    editorial: {
+      finding: {
+        sceneKeys: ["value", "line", "facts"],
+        statement: "Net additions fell short of estimated new housing need by about 55,000 homes.",
+        evidence: "NHSAC 2026, p. 21; matched national flows, July 2024 to December 2025.",
+      },
+      explanation: {
+        sceneKeys: ["claim", "construction"],
+        statement:
+          "Limited supply relative to demand puts upward pressure on prices and rents, while high costs and labour shortages restrict the building response.",
+        evidence: "NHSAC 2026, ch. 2, sections 2.1 and 2.3; RBA RDP 2019-01, introduction.",
+      },
+      consequence: {
+        sceneKeys: ["households"],
+        statement: "Housing costs can delay people moving into a home of their own.",
+        evidence: "NHSAC 2026, p. 44, separately reported affordability context.",
+      },
+      takeaway: {
+        sceneKeys: ["signOff"],
+        statement:
+          "Easing scarcity pressure requires supply to catch up with demand; delivery takes time.",
+        evidence: "Editorial synthesis of the matched balance and reported supply constraints.",
+      },
+      limits:
+        "A flow gap is not total shortage or a price forecast. Underlying housing need differs from purchasing power. Rates, incomes and local conditions also matter.",
+    },
     scenes: [
-      scene("label", "balance-opening", ["More homes.", "A bigger housing gap."], 1),
+      scene("label", "balance-opening", ["Why is a home so hard to afford?"], 0),
       scene(
         "value",
         "balance-net",
@@ -48,40 +77,50 @@ export function housingBalanceStoryboard(
       scene(
         "line",
         "balance-demand",
-        [
-          "Over the same eighteen months,",
-          `we needed an estimated ${spokenCount(b.demand)} extra homes.`,
-        ],
+        ["Over eighteen months,", `we needed about ${spokenCount(b.demand)} extra homes.`],
         1
       ),
+      scene("facts", "balance-gap", [`A shortfall of about ${spokenCount(b.shortfall)} homes.`], 0),
       scene(
-        "facts",
-        "balance-gap",
-        [`An extra gap of about ${spokenCount(b.shortfall)} homes.`],
+        "claim",
+        "balance-pressure",
+        ["When demand outpaces supply, it puts upward pressure on prices and rents."],
         0
       ),
-      scene("claim", "balance-ratio", [
-        `About ${spokenCount(b.netPer100)} added for every hundred needed.`,
-      ]),
       scene(
         "households",
         "balance-households",
-        ["The Council links high housing and living costs to adult children staying home longer."],
+        ["Higher housing costs can mean delaying a place of your own."],
         0
+      ),
+      scene(
+        "construction",
+        "balance-building",
+        ["But building takes time.", "High costs and labour shortages hold it back."],
+        1
       ),
       scene(
         "signOff",
         "balance-takeaway",
-        ["To close a shortage,", "homes added must outpace extra homes needed."],
+        ["To ease that pressure,", "supply needs to catch up with demand."],
         1
       ),
     ],
   };
+  assertEditorialStory(
+    storyboard.editorial,
+    storyboard.scenes.map((s) => s.key)
+  );
+  return storyboard;
 }
 export function validateHousingBalanceStoryboard(
   story: HousingBalanceStoryboard,
   script: Array<{ key: string; text: string }>
 ) {
+  assertEditorialStory(
+    story.editorial,
+    story.scenes.map((s) => s.key)
+  );
   const expected = housingBalanceStoryboard(story.evidence);
   if (
     JSON.stringify(expected) !== JSON.stringify(story) ||
@@ -103,7 +142,6 @@ export function housingBalanceSubtitleScript(
     value: [b.net],
     line: [b.demand],
     facts: [b.shortfall],
-    claim: [b.netPer100, 100],
   };
   return script.map(({ key, text }) => {
     const replacements: Array<[string, string]> = [];
@@ -188,8 +226,7 @@ export function housingBalanceGeometry(
   const b = matchedHousingBalance(story.evidence);
   if (!b || !Number.isFinite(progress) || progress < 0 || progress > 1)
     throw new Error("Invalid balance geometry");
-  const supply =
-    key === "label" ? balanceCountFrame(b.net, Math.min(1, progress * 2)).value : b.net;
+  const supply = key === "value" ? balanceCountFrame(b.net, progress).value : b.net;
   const demand = key === "line" ? balanceCountFrame(b.demand, progress).value : b.demand;
   const gap = key === "facts" ? balanceCountFrame(b.shortfall, progress).value : 0;
   return {
@@ -201,6 +238,34 @@ export function housingBalanceGeometry(
     gapLeft: (b.net / BALANCE_CHART.scale) * BALANCE_CHART.width,
     gapWidth: (gap / BALANCE_CHART.scale) * BALANCE_CHART.width,
   };
+}
+
+function lineIllustration(body: string, height = 330): Node {
+  return {
+    type: "img",
+    props: {
+      width: 840,
+      height,
+      src: `data:image/svg+xml;base64,${Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="840" height="${height}" viewBox="0 0 840 ${height}">${body}</svg>`).toString("base64")}`,
+    },
+  };
+}
+function competitionIllustration(p: number, gold: string, ink: string, muted: string) {
+  return lineIllustration(`
+    <g fill="none" stroke="${ink}" stroke-width="2.5"><path d="M302 155L420 60L538 155M327 137V281H514V137M394 281V206H447V281"/></g>
+    <g fill="none" stroke="${gold}" stroke-width="3" opacity="${0.35 + 0.65 * p}">
+    <circle cx="100" cy="140" r="22"/><path d="M64 235V210Q64 177 100 177Q136 177 136 210V235"/>
+    <circle cx="740" cy="140" r="22"/><path d="M704 235V210Q704 177 740 177Q776 177 776 210V235"/>
+    <path d="M165 204H${180 + 100 * p}M${165 + 100 * p} 194L${180 + 100 * p} 204L${165 + 100 * p} 214
+    M675 204H${660 - 100 * p}M${675 - 100 * p} 194L${660 - 100 * p} 204L${675 - 100 * p} 214"/></g>
+    <path d="M40 306H800" stroke="${muted}" stroke-width="1"/>`);
+}
+function buildingIllustration(p: number, gold: string, ink: string, muted: string) {
+  return lineIllustration(`
+    <g fill="none" stroke="${muted}" stroke-width="2"><path d="M50 302H800M160 300V88H715M145 88L260 30L455 88M260 30V300M160 140H455M160 192H455M160 244H455"/></g>
+    <g fill="none" stroke="${ink}" stroke-width="2"><path d="M480 302V189H721V302M480 243H721M536 189V302M602 189V302M665 189V302"/></g>
+    <g fill="none" stroke="${gold}" stroke-width="3"><path d="M648 88V${127 + p * 20}M630 ${127 + p * 20}H666M633 ${137 + p * 20}H663"/>
+    <path d="M330 180V240M352 180V240" opacity="${p}"/></g>`);
 }
 
 /** Original symbolic illustration, not a photograph of an affected household. */
@@ -275,23 +340,16 @@ export function housingBalanceFrameLayout(
   };
   let nodes: unknown[];
   if (["balance-opening", "balance-net", "balance-demand", "balance-gap"].includes(scene.kind)) {
-    nodes = [row(false)];
+    nodes = key === "label" ? [] : [row(false)];
     if (key === "label") {
       const second = ease((progress - 0.5) * 2);
       nodes.push(
-        at(0, 0, text("More homes.", 102, c.fg, true)),
-        at(0, 125, italic("Still behind.", 111, c.gold), {
+        at(0, 0, text("Why is a home", 94, c.fg, true)),
+        at(0, 125, italic("so hard to afford?", 86, c.gold), {
           opacity: second,
           transform: `translateY(${12 * (1 - second)}px)`,
         }),
-        at(
-          0,
-          535,
-          box({ flexDirection: "column", gap: 20 }, [
-            tag("NET ADDITIONS"),
-            text("After demolitions. Over 18 months.", 36, c.muted),
-          ])
-        )
+        at(0, 340, movingOutIllustration(second, c.gold, c.fg, c.muted))
       );
     } else if (key === "value") {
       nodes.push(
@@ -341,59 +399,53 @@ export function housingBalanceFrameLayout(
       );
     }
     // The visual source remains at the same place across this whole passage.
-    nodes.push(
-      at(
-        0,
-        920,
-        box({ width: 840, justifyContent: "space-between" }, [tag("0"), tag("300,000 HOMES")])
-      )
-    );
-  } else if (scene.kind === "balance-ratio") {
-    const shown = Math.round(b.netPer100 * progress);
-    nodes = [
-      at(0, 0, text("For every 100", 89, c.fg, true)),
-      at(0, 112, italic("homes needed.", 91, c.gold)),
-      at(
-        0,
-        330,
-        box(
-          { flexDirection: "column", gap: 27 },
-          Array.from({ length: 10 }, (_, r) =>
-            box(
-              { gap: 27 },
-              Array.from({ length: 10 }, (_, col) => {
-                const i = r * 10 + col;
-                return box(
-                  {
-                    width: 22,
-                    height: 22,
-                    borderRadius: 11,
-                    backgroundColor: i < shown ? c.gold : "transparent",
-                    border: `1.5px solid ${i < shown ? c.gold : c.rule}`,
-                  },
-                  ""
-                );
-              })
-            )
-          )
+    if (key !== "label")
+      nodes.push(
+        at(
+          0,
+          920,
+          box({ width: 840, justifyContent: "space-between" }, [tag("0"), tag("300,000 HOMES")])
         )
-      ),
+      );
+  } else if (scene.kind === "balance-pressure") {
+    const p = ease((progress - 0.5) * 2);
+    nodes = [
+      at(0, 0, text("Too few homes.", 96, c.fg, true)),
+      at(0, 115, italic("More competition.", 87, c.gold)),
+      at(0, 310, competitionIllustration(p, c.gold, c.fg, c.muted)),
       at(
-        545,
-        365,
-        box({ flexDirection: "column", gap: 2 }, [
-          text(String(shown), 172, c.fg, true),
-          text("added", 44, c.gold),
+        0,
+        660,
+        box({ gap: 60, opacity: p }, [
+          box({ gap: 12, alignItems: "baseline" }, [
+            text("↑", 58, c.gold),
+            text("Prices", 58, c.gold, true),
+          ]),
+          box({ gap: 12, alignItems: "baseline" }, [
+            text("↑", 58, c.gold),
+            text("Rents", 58, c.gold, true),
+          ]),
         ])
       ),
+      at(0, 765, text("Upward pressure, not guaranteed rises.", 37, c.fg)),
+      at(0, 830, text("Interest rates and borrowing power also matter.", 33, c.muted)),
+      at(0, 910, tag("ILLUSTRATION / NO PRICE FORECAST")),
+    ];
+  } else if (scene.kind === "balance-building") {
+    const p = ease((progress - 0.5) * 2);
+    nodes = [
+      at(0, 0, text("Building takes", 100, c.fg, true)),
+      at(0, 115, italic("time.", 125, c.gold)),
+      at(0, 320, buildingIllustration(p, c.gold, c.fg, c.muted)),
       at(
-        545,
-        650,
-        box({ flexDirection: "column", gap: 12, opacity: progress === 1 ? 1 : 0 }, [
-          italic("19 short.", 63, c.muted),
+        0,
+        695,
+        box({ flexDirection: "column", gap: 32, opacity: p }, [
+          text("High construction costs", 49, c.fg),
+          text("Shortages of skilled labour", 49, c.fg),
         ])
       ),
-      at(0, 895, text("Approximate ratio, not a count of households.", 32, c.muted)),
+      at(0, 895, tag("ILLUSTRATION / REPORTED CONSTRAINTS")),
     ];
   } else if (scene.kind === "balance-households") {
     nodes = [
@@ -414,14 +466,14 @@ export function housingBalanceFrameLayout(
     const p = ease((progress - 0.5) * 2),
       supply = 470 + 290 * p;
     nodes = [
-      at(0, 0, text("To close the gap,", 90, c.fg, true)),
-      at(0, 120, italic("get ahead.", 115, c.gold), { opacity: p }),
+      at(0, 0, text("To ease the pressure,", 79, c.fg, true)),
+      at(0, 120, italic("catch up.", 115, c.gold), { opacity: p }),
       at(0, 340, text("Homes added", 39, c.gold)),
       at(0, 410, "", { width: supply, height: 22, backgroundColor: c.gold }),
       at(0, 525, text("Extra homes needed", 39, c.fg)),
       at(0, 595, "", { width: 640, height: 22, backgroundColor: c.fg }),
       at(640, 389, "", { height: 250, borderLeft: `1px solid ${c.muted}` }),
-      at(0, 700, text("Add homes faster than new need grows.", 43, c.fg)),
+      at(0, 700, text("Supply must catch up with demand.", 43, c.fg)),
       at(0, 778, tag("ILLUSTRATION / NO FORECAST")),
       at(
         0,
@@ -436,14 +488,17 @@ export function housingBalanceFrameLayout(
   return {
     content: box({ width: 840, height: 980, position: "relative" }, nodes),
     meta: {
-      kicker:
-        key === "households"
-          ? "HOUSING AFFORDABILITY / REPORTED CONTEXT"
-          : "AUSTRALIA / JUL 2024 TO DEC 2025",
+      kicker: ["value", "line", "facts"].includes(key)
+        ? "AUSTRALIA / JUL 2024 TO DEC 2025"
+        : "HOUSING AFFORDABILITY / THE EXPLANATION",
       source:
-        key === "households"
+        key === "households" || key === "label"
           ? "NHSAC 2026 / p. 44 / Reported context"
-          : "NHSAC 2026 / p. 21 / Approximate figures",
+          : key === "construction"
+            ? "NHSAC 2026 / ch. 2 / Supply constraints"
+            : key === "claim" || key === "signOff"
+              ? "NHSAC 2026 / ch. 2 / RBA RDP 2019-01"
+              : "NHSAC 2026 / p. 21 / Approximate figures",
       publisher: "National Housing Supply and Affordability Council",
       index: story.scenes.indexOf(scene),
       count: story.scenes.length,

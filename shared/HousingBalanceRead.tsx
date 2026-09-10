@@ -11,9 +11,9 @@ export function HousingBalanceRead() {
       <header className="rule-major pt-5">
         <p className="bs-label-accent">Australia · Supply and demand · Historical read</p>
         <h1 className="font-serif text-4xl sm:text-6xl mt-4 leading-tight">
-          {n(b.net)} homes added.
+          Why more homes can still leave
           <br />
-          And still behind.
+          affordability under pressure.
         </h1>
         <p className="font-serif text-xl sm:text-2xl mt-5 leading-relaxed">
           Australia added roughly {n(b.net)} homes net of demolitions while new underlying demand
@@ -65,9 +65,10 @@ export function HousingBalanceRead() {
       <section className="rule-hair pt-5 mt-7">
         <h2 className="font-serif text-3xl">Why it matters.</h2>
         <p className="text-base leading-7 mt-4">
-          A large construction total can coexist with housing pressure. Some new construction
-          replaces homes that have been demolished, while household formation creates additional
-          demand. In this matched period, the net addition did not cover that new demand.
+          When housing supply struggles to keep up with demand, competition for available homes puts
+          upward pressure on prices and rents. The Council explicitly identifies weak new supply
+          relative to demand as a contributor to price pressure (printed page 21). Our 55,000-home
+          calculation measures an additional housing gap, not how much prices rose.
         </p>
         <p className="text-base leading-7 mt-4">
           The Council also links high housing and living costs to adult children staying in the
@@ -78,6 +79,27 @@ export function HousingBalanceRead() {
           This is the gap added during these 18 months. It is not Australia's total accumulated
           shortage, a homelessness count, or a forecast of prices and rents. The comparison is
           national and cannot tell us the shortfall in Brisbane, Perth or any particular suburb.
+        </p>
+      </section>
+      <section className="rule-hair pt-5 mt-7">
+        <h2 className="font-serif text-3xl">Why catching up takes time.</h2>
+        <p className="text-base leading-7 mt-4">
+          High construction costs, shortages of skilled labour and project financing affect whether
+          homes can be built profitably. Projects can be delayed or cancelled, and approvals take
+          time to become completed homes. The Council discusses these constraints in chapter 2,
+          section 2.3. An announcement or approval does not immediately add somewhere to live.
+        </p>
+        <h2 className="font-serif text-3xl mt-7">Pressure is not a price forecast.</h2>
+        <p className="text-base leading-7 mt-4">
+          Underlying housing need is different from what buyers can pay. Interest rates, incomes and
+          borrowing power influence effective demand. The Council attributes much of 2025's price
+          growth to interest rate reductions expanding households' spending capacity. RBA research
+          also identifies interest rates, rents and momentum as important influences on housing
+          prices. Prices can fall even while housing remains scarce if demand weakens.
+        </p>
+        <p className="font-serif text-2xl mt-5">
+          The takeaway: easing scarcity pressure requires supply to catch up with demand. That means
+          delivering homes where they are needed, and delivery takes time.
         </p>
       </section>
       <section className="rule-hair pt-5 mt-7" aria-label="Source and methodology">
@@ -99,6 +121,22 @@ export function HousingBalanceRead() {
           A newer report may revise the estimates.
         </p>
         <div className="flex flex-col items-start gap-3 mt-5">
+          <a
+            className="bs-link"
+            href="https://www.rba.gov.au/publications/rdp/2019/2019-01/full.html"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            RBA: A Model of the Australian Housing Market, 2019 →
+          </a>
+          <a
+            className="bs-link"
+            href={`${HOUSING_BALANCE_SNAPSHOT.sourceUrl}#page=41`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Construction costs and supply constraints, chapter 2 →
+          </a>
           <a className="bs-link" href={b.source} target="_blank" rel="noopener noreferrer">
             Read the matched source figures, page 21 →
           </a>

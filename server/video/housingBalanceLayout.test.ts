@@ -27,13 +27,12 @@ describe("documentary housing Reel", () => {
       expect(meta.quiet).toBe(true);
       expect(meta.documentary).toBe(true);
       expect(meta.kicker).toContain(
-        scene.key === "households" ? "REPORTED CONTEXT" : "JUL 2024 TO DEC 2025"
+        ["value", "line", "facts"].includes(scene.key)
+          ? "JUL 2024 TO DEC 2025"
+          : "HOUSING AFFORDABILITY"
       );
       expect(meta.publisher).toBe("National Housing Supply and Affordability Council");
       expect(meta.source).toContain("NHSAC 2026");
-      expect(meta.source).toContain(
-        scene.key === "households" ? "Reported context" : "Approximate"
-      );
     }
     expect(copy(frame("households").content).join(" ")).toContain(
       "Adult children staying home longer."
@@ -48,39 +47,38 @@ describe("documentary housing Reel", () => {
       "facts",
       "claim",
       "households",
+      "construction",
       "signOff",
     ]);
     expect(BALANCE_CHART.scale).toBe(300000);
     const first = housingBalanceGeometry(story, "label", 1);
-    for (const key of ["value", "line", "facts"]) {
+    for (const key of ["line", "facts"]) {
       for (const p of [0, 0.4, 1]) {
         const g = housingBalanceGeometry(story, key, p);
         expect(g.supplyWidth).toBe(first.supplyWidth);
         expect(g.gapLeft).toBe(first.supplyWidth);
       }
     }
+    expect(housingBalanceGeometry(story, "value", 0).supply).toBe(0);
+    expect(housingBalanceGeometry(story, "value", 1).supply).toBe(232000);
     const final = housingBalanceGeometry(story, "facts", 1);
     expect(final.supplyWidth + final.gapWidth).toBeCloseTo(final.demandWidth);
     expect(final.gap).toBe(55000);
     expect(copy(frame("line", 0).content)).not.toContain("0 homes needed");
   });
-  it("shows the rounded 81/100 ratio without suggesting 100 observed households", () => {
-    const root = frame("claim").content;
-    function elements(n: unknown): Element[] {
-      if (Array.isArray(n)) return n.flatMap(elements);
-      if (!n || typeof n !== "object" || !("props" in n)) return [];
-      return [n as Element, ...elements((n as Element).props.children)];
-    }
-    const cells = elements(root).filter((n) => n.props.style?.borderRadius === 11);
-    expect(cells).toHaveLength(100);
-    expect(cells.filter((c) => c.props.style?.backgroundColor === "#C5A267")).toHaveLength(81);
-    expect(copy(root)).toContain("Approximate ratio, not a count of households.");
+  it("distinguishes illustrated price pressure from a price forecast", () => {
+    const words = copy(frame("claim").content).join(" ");
+    expect(words).toContain("Upward pressure, not guaranteed rises.");
+    expect(words).toContain("borrowing power");
+    expect(words).not.toMatch(/55,000|%/);
+    expect(copy(frame("construction").content).join(" ")).toContain("Shortages of skilled labour");
+    expect(frame("construction").meta.source).toContain("Supply constraints");
   });
 
   it("labels the ending as illustration and never reuses the flow gap as a stock estimate", () => {
     for (const p of [0, 1]) {
       const words = copy(frame("signOff", p).content).join(" ");
-      expect(words).toContain("Add homes faster than new need grows.");
+      expect(words).toContain("Supply must catch up with demand.");
       expect(words).toContain("ILLUSTRATION");
       expect(words).not.toMatch(/55,000|19 short/);
     }

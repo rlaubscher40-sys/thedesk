@@ -106,14 +106,8 @@ describe("the finding survives the Reel and source destination", () => {
       }))
     );
     expect(cues.flatMap((c) => c.lines).join(" ")).toBe(c.script.map((s) => s.text).join(" "));
-    expect(c.script.map((s) => s.text).join(" ")).toContain("eighty-one");
-    const fullLength = composeSections(c.stat, { ...durations, claim: 4.5 });
-    const houses = fullLength.find((s) => s.key === "claim")!;
-    expect(houses.frames).toHaveLength(81);
-    expect(houses.frames.map((f) => Math.round(f.sceneProgress! * 81))).toEqual(
-      Array.from({ length: 81 }, (_, i) => i + 1)
-    );
-    expect(layout(fullLength).total).toBeGreaterThan(4.5);
+    expect(c.script.map((s) => s.text).join(" ")).toContain("upward pressure on prices and rents");
+    expect(c.script.map((s) => s.text).join(" ")).toContain("High costs and labour shortages");
   });
   it("provides a readable caption and a resolvable source destination with matching figures", () => {
     const c = verifiedHousingBalanceReel(evidence(), now)!;
@@ -122,7 +116,6 @@ describe("the finding survives the Reel and source destination", () => {
     for (const term of [
       "July 2024 to December 2025",
       "55,000",
-      "81",
       "total accumulated shortage",
       "modelled",
     ])
@@ -158,7 +151,6 @@ describe("the finding survives the Reel and source destination", () => {
       const spoken = c.script.find((s) => s.key === line.key)!;
       const number = expected.get(line.key);
       if (number) expect(line.text.replace(number[1]!, number[0]!)).toBe(spoken.text);
-      else if (line.key === "claim") expect(line.text).toBe("About 81 added for every 100 needed.");
       else expect(line.text).toBe(spoken.text);
       const seconds = estimateSpeechSeconds(spoken.text);
       const cues = subtitleCues([line], [{ key: line.key, start: 12, seconds }]);
@@ -170,7 +162,7 @@ describe("the finding survives the Reel and source destination", () => {
           [{ key: line.key, text }],
           [{ key: line.key, start: 0, seconds: Math.max(1, seconds) }]
         );
-        if (number || line.key === "claim") expect(phraseCues).toHaveLength(1);
+        if (number) expect(phraseCues).toHaveLength(1);
       }
       expect(line.phrases.join(" ")).toBe(line.text);
     }

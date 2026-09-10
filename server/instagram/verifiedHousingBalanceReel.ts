@@ -39,15 +39,15 @@ export function verifiedHousingBalanceReel(data: HousingBalanceSnapshot | null, 
     publication: { key: "instagram-reel-nhsac-housing-balance-v1", date: balance.end },
     caption: buildNarrativeReelCaption({
       paragraphs: [
-        `Australia added about ${number(balance.net)} homes. Yet the housing gap grew.`,
-        `From July 2024 to December 2025, net additions after demolitions fell short of an estimated ${number(balance.demand)} extra homes needed. That widened the gap by about ${number(balance.shortfall)} homes.`,
-        `Roughly ${balance.netPer100} homes added for every 100 additionally needed. Building more can still leave us falling behind.`,
-        "The broader housing pressure affects everyday plans. The Council reports that high housing and living costs contribute to adult children staying in the parental home longer.",
-        "To close a shortage, homes added must outpace extra homes needed. Next time you see a building headline, ask: are we adding homes fast enough to catch up?",
-        "These are approximate national estimates for those 18 months, not Australia's total accumulated shortage or a count of homeless households. Demand is modelled from household formation.",
+        "Why is a home so hard to afford? Part of the answer is that supply is falling behind demand.",
+        `From July 2024 to December 2025, Australia added about ${number(balance.net)} homes after demolitions. Estimated extra need: ${number(balance.demand)}. An additional gap of about ${number(balance.shortfall)} homes.`,
+        "When demand outpaces supply, it puts upward pressure on prices and rents. Higher costs can mean delaying a home of your own. The Council links housing and living costs to adult children staying home longer.",
+        "Catching up takes time. High construction costs and shortages of skilled labour hold building back.",
+        "The takeaway: easing this pressure needs supply to catch up with demand. A shortage does not guarantee rising prices. Interest rates, incomes and borrowing power also shape demand.",
+        "These approximate national flows are not Australia's total accumulated shortage or a count of homeless households. Housing need is modelled from household formation, not buyers' spending power.",
       ],
       source:
-        "Source: National Housing Supply and Affordability Council, State of the Housing System 2026, pp. 21 and 44. Released 30 April 2026.",
+        "Sources: NHSAC, State of the Housing System 2026, ch. 2; RBA, A Model of the Australian Housing Market (2019).",
       read: "housingBalance",
     }),
   };

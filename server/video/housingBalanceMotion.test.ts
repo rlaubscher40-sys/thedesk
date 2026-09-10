@@ -65,7 +65,7 @@ describe("synchronised housing count-ups", () => {
     const demandBeats = layout([demand]).beats;
     expect(demandBeats.slice(1).every((b) => b.fade === 0)).toBe(true);
     const hook = sections.find((s) => s.key === "label")!;
-    for (const key of ["label", "signOff"]) {
+    for (const key of ["construction", "signOff"]) {
       const section = sections.find((s) => s.key === key)!;
       let at = 0;
       for (const frame of section.frames) {
