@@ -2,12 +2,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink, httpLink, splitLink, TRPCClientError } from "@trpc/client";
 import { ASK_CLIENT_TIMEOUT_MS, withDeadline } from "@shared/requestDeadline";
 import { createRoot } from "react-dom/client";
+import { useEffect } from "react";
 import superjson from "superjson";
 import { UNAUTHED_ERR_MSG } from "@shared/const";
 import App from "./App";
 import { getLoginUrl } from "./lib/auth";
 import { initErrorReporter } from "./lib/errorReporter";
-import { initCrashLoopGuard, renderCrashLoopSafeMode } from "./lib/crashLoopDetector";
+import { initCrashLoopGuard, renderCrashLoopSafeMode, watchHealthyBoot } from "./lib/crashLoopDetector";
 import { applyLiteClass } from "./lib/liteMode";
 import { trpc } from "./lib/trpc";
 import { initInstallPrompt } from "./lib/installPrompt";
@@ -22,9 +23,8 @@ initInstallPrompt();
 initErrorReporter();
 
 // Crash-loop guard. Runs before React renders so it records this boot — and,
-// if the page is repeatedly crashing the WebKit tab (the silent OOM/hang that
-// throws no error and shows Safari's "A problem repeatedly occurred"), reports
-// it to /health and tears down a wedged service worker. See crashLoopDetector.
+// if this tab repeatedly restarts before becoming healthy, reports a possible
+// startup loop and attempts recovery. See crashLoopDetector.
 const inCrashLoop = initCrashLoopGuard();
 
 // Put <html class="lite"> in place before first paint so the cheap-paint CSS
@@ -89,17 +89,20 @@ const trpcClient = trpc.createClient({
   ],
 });
 
+function BootHealth() {
+  useEffect(watchHealthyBoot, []);
+  return null;
+}
+
 if (inCrashLoop) {
-  // The page has crashed and reloaded several times in seconds — on iOS that's
-  // almost always the WebKit tab being killed for memory. Don't re-mount the
-  // full app (the thing that keeps OOM-ing); show the lightweight static
-  // safe-mode screen instead, which breaks the loop and guides the visitor.
+  // Pause the full app after repeated interrupted starts in this tab.
   renderCrashLoopSafeMode();
 } else {
   createRoot(document.getElementById("root")!).render(
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
         <App />
+        <BootHealth />
       </QueryClientProvider>
     </trpc.Provider>
   );
