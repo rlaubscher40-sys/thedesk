@@ -4,7 +4,7 @@ import { looksLikeGarbage, looksLikeSiteBoilerplate } from "./headline";
 import { sourceTimingHold, type SourceTiming } from "./sourceTiming";
 import { storyChannel } from "./storyGeography";
 
-export const EDITORIAL_VERSION = "2026-09-10-v1";
+export const EDITORIAL_VERSION = "2026-09-10-v2";
 export type EditorialInput = {
   title: string;
   summary?: string | null;
@@ -48,6 +48,7 @@ const newsroom = new Set([
   "reuters.com",
   "smh.com.au",
   "theage.com.au",
+  "theconversation.com",
   "realestate.com.au",
   "domain.com.au",
 ]);
@@ -67,6 +68,24 @@ export function publisherWeight(input: EditorialInput): number {
 /** Page types are evidence/reference material, not automatically a dated news event. */
 export function referenceNewsHold(input: EditorialInput): string | null {
   const title = input.title.trim();
+  if (
+    /\b(book your (?:hotel|room|ticket)|awards 20\d{2}|register now|early.bird|sponsored|advertorial|webinar)\b/i.test(
+      title
+    )
+  )
+    return "promotion-or-event-marketing";
+  if (
+    /\b(film review|movie review|this Australian film|film takes a swipe|cinema review)\b/i.test(
+      title
+    )
+  )
+    return "culture-not-market-reporting";
+  if (
+    /\b(buy ratings?|best returns|moving average|stocks? to (?:buy|watch)|shares? to (?:buy|watch)|top \d+ .*shares?)\b/i.test(
+      title
+    )
+  )
+    return "stock-pick-roundup";
   if (
     /^(tender details|commission communiqu[eé]|attorney general'?s department|home|news|media releases?)$/i.test(
       title
@@ -95,11 +114,11 @@ export function referenceNewsHold(input: EditorialInput): string | null {
   return null;
 }
 const macro =
-  /\b(inflation|cash rate|interest rates?|rba|reserve bank|gdp|unemployment|wage growth|household spending|consumer (?:sentiment|confidence)|population growth|net overseas migration|lending standards|serviceability)\b/i;
+  /\b(inflation|cash rate|interest rates?|rba|reserve bank|gdp|Australian economy|employment|filled jobs|unemployment|wage growth|household spending|consumer (?:sentiment|confidence)|population growth|net overseas migration|lending standards|serviceability)\b/i;
 const policy =
   /\b(negative gearing|land tax|stamp duty|capital gains|tenancy|rent(?:al)? (?:law|reform|cap)|housing (?:policy|reform)|first.home buyers?|deposit scheme)\b/i;
 const advice =
-  /\b(superannuation|smsf|contribution caps?|financial advis(?:er|or|e)|tax reform|tax deduction|division 7a|capital gains tax|income tax|transfer balance cap|mortgage brokers?|broker commissions?)\b/i;
+  /\b(superannuation|smsf|contribution caps?|financial advis(?:er|or|e)|tax reform|tax deduction|division 7a|capital gains tax|income tax|transfer balance cap|mortgage brokers?|broker commissions?|mortgage fraud|loan fraud)\b/i;
 const markets = /\b(asx|australian shares|australian dollar|bond yields?)\b/i;
 const noise =
   /\b(celebrity|obituary|sexual touching|gangsters?|shooting|murder|dingo|sheep (?:theft|stolen)|poetry|horoscope|casino|promo code)\b/i;
@@ -113,7 +132,14 @@ export function editorialBeat(text: string): string | null {
   )
     return "supply";
   if (/\b(rents?|rental|vacanc(?:y|ies))\b/i.test(text) && hasHousingEvidence(text)) return "rents";
-  if (hasHousingEvidence(text)) return "housing";
+  if (
+    hasHousingEvidence(text) ||
+    /\b(?:homes?|houses?|properties|property|apartments?)\b.{0,50}\b(?:prices?|values?|market|declin(?:e|es|ing)|affordability|supply)\b/i.test(
+      text
+    ) ||
+    /\b[0-9][0-9,]* (?:new |social |affordable )*(?:homes|dwellings|apartments)\b/i.test(text)
+  )
+    return "housing";
   if (macro.test(text)) return "rates-economy";
   return null;
 }
@@ -127,16 +153,26 @@ export function discoveryScore(input: EditorialInput): number {
   return (editorialBeat(text) ? 40 : 0) + publisherWeight(input) + (/\d/.test(input.title) ? 3 : 0);
 }
 
-/** Conservative cleanup of obvious off-beat legacy entries with no beat evidence. */
+/** The subject must be in the headline/dek. Only designated official releases
+ * may use a generic interview/release title and establish their beat in the body. */
+export function subjectBeat(input: EditorialInput): string | null {
+  return (
+    editorialBeat(`${input.title} ${input.summary ?? ""}`) ??
+    (publisherWeight(input) === 16 ? editorialBeat((input.articleText ?? "").slice(0, 4500)) : null)
+  );
+}
+export function localEditorialChannel(input: EditorialInput, beat = subjectBeat(input)): string {
+  return input.channel === "PROPERTY" &&
+    ["advice-tax", "markets", "rates-economy"].includes(beat ?? "")
+    ? "AU"
+    : (input.channel ?? "AU");
+}
+
+/** Repair recent reference/promotional entries and unrelated subjects. */
 export function legacyEditorialHold(input: EditorialInput): string | null {
   const reference = referenceNewsHold(input);
   if (reference) return reference;
-  const reporting = `${input.title} ${input.summary ?? ""}`;
-  if (
-    !editorialBeat(reporting) &&
-    /\b(shooting|obituary|dies aged|court data breach|golf club)\b/i.test(reporting)
-  )
-    return "off-topic";
+  if (!subjectBeat(input) && publisherWeight(input) !== 16) return "off-topic";
   return null;
 }
 
@@ -144,11 +180,11 @@ export function legacyEditorialHold(input: EditorialInput): string | null {
 export function assessStory(input: EditorialInput, now = new Date(), feedDate?: string) {
   const text = (input.articleText ?? "").trim();
   const reporting = `${input.title}\n${input.summary ?? ""}\n${text.slice(0, 4500)}`;
-  const channel = storyChannel({
+  let channel = storyChannel({
     ...input,
     summary: `${input.summary ?? ""}\n${text.slice(0, 4500)}`,
   });
-  const beat = editorialBeat(`${input.title} ${input.summary ?? ""}`) ?? editorialBeat(reporting);
+  const beat = subjectBeat(input);
   const reject = (reason: string) => ({
     eligible: false,
     reason,
@@ -196,6 +232,9 @@ export function assessStory(input: EditorialInput, now = new Date(), feedDate?: 
       (/\d/.test(reporting) ? 4 : 0) +
       (text.length >= 1800 ? 4 : 0)
   );
+  if (local && publisherWeight(input) === 0) return reject("unreviewed-publisher");
+  if (local && score < 73) return reject("below-editorial-priority-floor");
+  if (local) channel = localEditorialChannel({ ...input, channel }, beat);
   return { eligible: true, reason: "eligible", score, beat, channel, category };
 }
 
