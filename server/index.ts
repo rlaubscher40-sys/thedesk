@@ -1,3 +1,4 @@
+import { repairFeedGeography } from "./db/feedGeography";
 /**
  * Express + tRPC + Vite entry point. In dev the Vite middleware serves the
  * client; in production it falls back to the static bundle in dist/public.
@@ -211,6 +212,14 @@ async function startServer() {
   // Self-heal the schema before accepting traffic so newly-shipped code
   // never hits a column the database is missing.
   await applyPendingMigrations();
+  if (!isDemoMode()) {
+    try {
+      const moved = await repairFeedGeography();
+      console.log(`[feed-geography] moved ${moved} overseas stories out of Australian lanes`);
+    } catch (err) {
+      console.error("[feed-geography] repair failed:", err);
+    }
+  }
   // Never mark a release ready while its security tables are unavailable.
   await assertSecuritySchemaReady();
 

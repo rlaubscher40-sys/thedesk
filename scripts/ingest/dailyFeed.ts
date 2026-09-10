@@ -1,3 +1,4 @@
+import { routeStory } from "../../shared/storyGeography";
 import { newsTimestamp } from "../../shared/propertyNewsQuality";
 import { sourceTimingHold, type SourceTiming } from "../../shared/sourceTiming";
 import { missingPublicationDate } from "./lib/publicationDate";
@@ -248,7 +249,12 @@ export async function runDailyFeedIngest(rawBaseUrl: string, apiKey: string): Pr
   });
   console.log(`[ingest] ${relevant.length} after relevance filter`);
 
-  const deduped = dedupeArticles(relevant);
+  // Route before clustering and lane quotas: overseas coverage must not
+  // count toward the minimum Australian briefing size.
+  const routed = relevant.map(routeStory);
+  const rerouted = routed.filter((item, i) => item.channel !== relevant[i]!.channel).length;
+  console.log(`[ingest] rerouted ${rerouted} stories by geography`);
+  const deduped = dedupeArticles(routed);
   console.log(`[ingest] ${deduped.length} after dedup`);
 
   // Cluster same-story coverage across outlets so each representative carries
