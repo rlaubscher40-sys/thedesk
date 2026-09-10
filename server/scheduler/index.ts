@@ -205,7 +205,7 @@ const JOBS: Job[] = [
     run: () => runScheduledMetricRefresh(),
   })),
   { key: "daily-metrics", at: "06:33", run: () => runScheduledMetricRefresh() },
-  { key: "editorial-pipeline-v2", at: "00:00", graceMinutes: 24 * 60, claimDate: "2026-09-10", run: (b, k) => runDailyFeedIngest(b, k) },
+  { key: "editorial-pipeline-v3", at: "00:00", graceMinutes: 24 * 60, claimDate: "2026-09-10", run: (b, k) => runDailyFeedIngest(b, k) },
   { key: "daily-feed", at: "06:43", run: (b, k) => runDailyFeedIngest(b, k) },
   ...["12:43", "18:43"].map(at => ({ key: `daily-feed-update-${at.slice(0, 2)}`, at, run: (b: string, k: string) => runDailyFeedIngest(b, k) })),
   {

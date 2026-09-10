@@ -51,6 +51,26 @@ export type PipelineOptions = {
   resolve?: (url: string | null) => Promise<string | null>;
 };
 
+/** Give each discovered publisher a small reading opportunity before taking
+ * extra articles from the highest-scoring feeds. Index bonuses must not let
+ * a few publishers exhaust the budget before specialist reporting is read. */
+export function readingBudget(items: FetchedItem[], limit: number): FetchedItem[] {
+  const selected = new Set<FetchedItem>();
+  const counts = new Map<string, number>();
+  for (const item of items) {
+    if (selected.size >= limit) break;
+    const count = counts.get(item.source) ?? 0;
+    if (count >= 2) continue;
+    selected.add(item);
+    counts.set(item.source, count + 1);
+  }
+  for (const item of items) {
+    if (selected.size >= limit) break;
+    selected.add(item);
+  }
+  return [...selected];
+}
+
 /** No writes/model calls: the same selection runs in preview, tests and production. */
 export async function buildDailyBrief(options: PipelineOptions = {}) {
   const now = options.now ?? new Date();
@@ -150,8 +170,14 @@ export async function buildDailyBrief(options: PipelineOptions = {}) {
   });
   // Separate reading budgets ensure broad world coverage cannot starve property.
   const selectedToRead = [
-    ...shortlist.filter((i) => ["AU", "PROPERTY"].includes(i.channel)).slice(0, 100),
-    ...shortlist.filter((i) => !["AU", "PROPERTY"].includes(i.channel)).slice(0, 32),
+    ...readingBudget(
+      shortlist.filter((i) => ["AU", "PROPERTY"].includes(i.channel)),
+      100
+    ),
+    ...readingBudget(
+      shortlist.filter((i) => !["AU", "PROPERTY"].includes(i.channel)),
+      32
+    ),
   ];
   const read = await mapLimit(selectedToRead, 6, async (item) => {
     const entry = decisions.get(articleIdentity(item))!;

@@ -10,8 +10,10 @@ import { explainNoPick, pickStatOfTheDay, rehearsalStat, type HistoryPoint } fro
 // Only source headline/summary text counts; generated 'why it matters' copy
 // must not be able to turn an unrelated story into property evidence.
 const PROPERTY =
-  /\b(housing|dwelling\w*|mortgage\w*|home loans?|rental\w*|rents?|renters?|tenan\w*|landlords?|real estate|house prices?|home prices?|auction clearance|building approvals?|housing approvals?|residential development\w*)\b/i;
+  /\b(housing|dwelling\w*|mortgage\w*|home loans?|rental\w*|rents?|renters?|tenan\w*|landlords?|real estate|(?:house|home|property) (?:prices?|values?|sales|market)|auction clearance|building approvals?|housing approvals?|residential (?:development\w*|approvals?))\b/i;
 const FINANCING = /\b(cash rate|interest rates?|RBA|Reserve Bank|housing credit)\b/i;
+const HOUSING_MARKET =
+  /\b(?:homes?|houses?|properties|apartments?)\b.{0,50}\b(?:prices?|values?|market|declin(?:e|es|ing)|affordability|supply)\b/i;
 
 // A channel label is not geographic evidence. Overseas housing headlines
 // require a separate editorial decision, not automatic Australian hashtags.
@@ -30,7 +32,11 @@ export function australianPropertyTier(input: {
   if (!AUSTRALIAN_SCOPE.test(text) && !/\bACT\b/.test(text)) return 0;
   // A passing mention in a broad politics article must not become the lead.
   const subject = NEUTRAL_RELEASE.test(input.title) ? text : input.title;
-  return PROPERTY.test(subject) ? 2 : FINANCING.test(subject) ? 1 : 0;
+  return PROPERTY.test(subject) || HOUSING_MARKET.test(subject)
+    ? 2
+    : FINANCING.test(subject)
+      ? 1
+      : 0;
 }
 
 /** An edition's category or generated takeaway cannot manufacture relevance. */

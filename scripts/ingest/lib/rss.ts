@@ -40,23 +40,15 @@ type RssItemExtras = {
 };
 
 /** Google queries are discovery channels, not independent publishers. */
-export function publisherName(
-  src: Source,
-  source: RssItemExtras["publisherSource"],
-): string {
+export function publisherName(src: Source, source: RssItemExtras["publisherSource"]): string {
   if (new URL(src.url).hostname !== "news.google.com") return src.name;
-  const name = plainText(
-    typeof source === "string" ? source : (source?._ ?? ""),
-    120,
-  ).trim();
+  const name = plainText(typeof source === "string" ? source : (source?._ ?? ""), 120).trim();
   return name || "Google News";
 }
 
 /** Best image URL carried in the RSS item's media extensions, or null. */
 export function pickRssImage(it: RssItemExtras): string | null {
-  const fromNodes = (
-    node: MediaNode | MediaNode[] | undefined,
-  ): string | null => {
+  const fromNodes = (node: MediaNode | MediaNode[] | undefined): string | null => {
     for (const n of Array.isArray(node) ? node : node ? [node] : []) {
       const url = n.$?.url;
       const medium = n.$?.medium;
@@ -70,8 +62,7 @@ export function pickRssImage(it: RssItemExtras): string | null {
     return null;
   };
   const enclosure =
-    it.enclosure?.url &&
-    (!it.enclosure.type || it.enclosure.type.startsWith("image/"))
+    it.enclosure?.url && (!it.enclosure.type || it.enclosure.type.startsWith("image/"))
       ? it.enclosure.url
       : null;
   return (
@@ -110,8 +101,8 @@ export type SourceReport = {
   checkedAt?: Date;
 };
 
-export function createSourceReader() {
-  const read = createFeedCache(async (url: string) => {
+export function createSourceReader(
+  load: (url: string) => Promise<string> = async (url: string) => {
     const response = await publicFetch(url, {
       signal: AbortSignal.timeout(8000),
       maxBytes: 2 * 1024 * 1024,
@@ -119,13 +110,20 @@ export function createSourceReader() {
     });
     if (!response.ok) throw new Error(`RSS HTTP ${response.status}`);
     return response.text();
-  });
+  }
+) {
+  const read = createFeedCache(load);
   return async (src: Source): Promise<SourceReport> => {
     try {
       const { value: xml, checkedAt } = await read(src.url);
       if (src.kind === "index") {
         const items = parseIndexSource(xml, src);
-        return { items, fetched: items.length, checkedAt: new Date(checkedAt), error: items.length ? null : "Publisher index returned no article links" };
+        return {
+          items,
+          fetched: items.length,
+          checkedAt: new Date(checkedAt),
+          error: items.length ? null : "Publisher index returned no article links",
+        };
       }
       const feed = await parser.parseString(xml);
       const items = feed.items ?? [];
@@ -134,11 +132,11 @@ export function createSourceReader() {
           // Strip the " - Publisher" suffix Google News appends; we show the
           // source separately, so the suffix is pure noise (and pollutes the
           // clustering/threading token sets).
-          const title = cleanHeadline(plainText(it.title, 480));
-          const summary = plainText(
-            it.contentSnippet || it.content || it.summary || "",
-            480,
+          const title = cleanHeadline(
+            plainText(it.title, 480),
+            publisherName(src, it.publisherSource)
           );
+          const summary = plainText(it.contentSnippet || it.content || it.summary || "", 480);
           if (!title) return null;
           return {
             source: publisherName(src, it.publisherSource),

@@ -11,6 +11,15 @@ function text(node: Node): string {
     ("childNodes" in node ? node.childNodes.map(text).join(" ") : "")
   );
 }
+function heading(node: Node): string | null {
+  if (/^h[1-6]$/.test(node.nodeName)) return text(node);
+  if ("childNodes" in node)
+    for (const child of node.childNodes) {
+      const title = heading(child);
+      if (title?.trim()) return title;
+    }
+  return null;
+}
 /** Same-origin, explicitly configured article paths only. Index discovery never
  * invents a publication timestamp; the article must supply it before selection. */
 export function parseIndexSource(html: string, source: Source): FetchedItem[] {
@@ -21,7 +30,9 @@ export function parseIndexSource(html: string, source: Source): FetchedItem[] {
       const attrs = Object.fromEntries(node.attrs.map((a) => [a.name, a.value]));
       try {
         const url = new URL(attrs.href ?? "", source.url);
-        const title = cleanHeadline(plainText(text(node), 480));
+        // Cards often wrap a category, headline and "Read now" in one link.
+        // Only the headline may establish the article's subject.
+        const title = cleanHeadline(plainText(heading(node) ?? text(node), 480));
         if (
           url.origin === new URL(source.url).origin &&
           source.articlePath &&
