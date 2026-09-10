@@ -17,10 +17,12 @@ function metricSurface(): "signals" | "trends" {
 
 export function ShareMetricCardButton({
   metricKey,
+  snapshot,
   label,
   canChart = false,
 }: {
   metricKey: string;
+  snapshot?: string;
   label: string;
   canChart?: boolean;
 }) {
@@ -81,7 +83,7 @@ export function ShareMetricCardButton({
   async function shareNumber() {
     setComplete(null);
     try {
-      const rendered = await numberMutation.mutateAsync({ metricKey });
+      const rendered = await numberMutation.mutateAsync({ metricKey, snapshot });
       await deliver("number", rendered);
     } catch {
       // Mutation error is exposed in the button title.
@@ -92,7 +94,7 @@ export function ShareMetricCardButton({
     if (!canChart) return;
     setComplete(null);
     try {
-      const rendered = await chartMutation.mutateAsync({ metricKey });
+      const rendered = await chartMutation.mutateAsync({ metricKey, snapshot });
       await deliver("chart", rendered);
     } catch {
       // Mutation error is exposed in the button title.

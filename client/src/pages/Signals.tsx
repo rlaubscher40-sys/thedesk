@@ -10,6 +10,7 @@ import { trackEvent } from "@/lib/analytics";
 import { trpc } from "@/lib/trpc";
 import { describeMetricObservation, metricObservationAskHref } from "@shared/metricObservation";
 import { SignalObservation } from "@/components/signals/SignalObservation";
+import { selectSignal, signalSharePath, signalSnapshotId } from "@shared/signalSnapshot";
 
 const WATCH_KEY = "thedesk:signal-watchlist:v1";
 
@@ -81,6 +82,11 @@ export default function SignalsPage() {
   const search = useSearch();
   const params = new URLSearchParams(search);
   const requestedMetricKey = params.get("metric");
+  const snapshotId = params.get("snapshot");
+  const validSnapshot = snapshotId !== null && signalSnapshotId.safeParse(snapshotId).success;
+  const shared = trpc.metrics.shared.useQuery({ snapshot: snapshotId ?? "" }, {
+    enabled: validSnapshot, staleTime: Infinity, retry: false,
+  });
   const requestedView = params.get("view") === "chart" ? "chart" : "number";
   const metrics = trpc.metrics.list.useQuery(undefined, { staleTime: 5 * 60_000 });
   const histories = trpc.metrics.histories.useQuery(undefined, { staleTime: 30 * 60_000 });
@@ -106,14 +112,21 @@ export default function SignalsPage() {
     () => [...rows].sort((a, b) => moveMagnitude(b.move) - moveMagnitude(a.move)),
     [rows]
   );
-  const requestedHero = requestedMetricKey
-    ? rows.find((row) => row.metric.metricKey === requestedMetricKey) ?? null
-    : null;
-  const hero = requestedHero ?? ranked.find((row) => row.move != null) ?? rows[0] ?? null;
-  const latestEdition = editions.data?.[0] ?? null;
+  const frozen = shared.data && (!requestedMetricKey || shared.data.metric.metricKey === requestedMetricKey)
+    ? shared.data : null;
+  const frozenHero = frozen ? { metric: frozen.metric, series: frozen.series,
+    move: frozen.series.length >= 2 ? pctMove(frozen.series[0]!.value, frozen.series[frozen.series.length - 1]!.value) : null,
+    observation: describeMetricObservation(frozen.metric) } : null;
+  const requestedHero = snapshotId !== null ? frozenHero
+    : selectSignal(rows, requestedMetricKey, null);
+  const hero = snapshotId !== null ? frozenHero
+    : selectSignal(rows, requestedMetricKey, ranked.find((row) => row.move != null) ?? rows[0] ?? null);
+  const sharedTake = snapshotId !== null ? frozen?.deskTake : undefined;
+  const shownTake = snapshotId !== null ? sharedTake : editions.data?.[0]?.rubensTake;
+  const shownEdition = snapshotId !== null ? frozen?.editionNumber : editions.data?.[0]?.editionNumber;
   const chartView = requestedView === "chart" && Boolean(requestedHero?.series.length && requestedHero.series.length >= 2);
 
-  function toggleWatch(row: (typeof rows)[number]) {
+  function toggleWatch(row: { metric: { metricKey: string; value: string; unit?: string | null } }) {
     const exists = watchlist.some((watch) => watch.metricKey === row.metric.metricKey);
     const next = exists
       ? watchlist.filter((watch) => watch.metricKey !== row.metric.metricKey)
@@ -135,7 +148,7 @@ export default function SignalsPage() {
     .map((watch) => ({ watch, row: rows.find((row) => row.metric.metricKey === watch.metricKey) }))
     .filter((entry): entry is { watch: WatchRecord; row: (typeof rows)[number] } => Boolean(entry.row));
 
-  if (metrics.isLoading || histories.isLoading) return <SignalsSkeleton />;
+  if (snapshotId !== null ? validSnapshot && shared.isLoading : metrics.isLoading || histories.isLoading) return <SignalsSkeleton />;
 
   return (
     <div className={`${GUTTER_X} pb-8`}>
@@ -166,9 +179,11 @@ export default function SignalsPage() {
       </header>
 
 
-      {requestedMetricKey && !requestedHero && rows.length > 0 && (
-        <div className="rule-hair rule-hair-b py-3 mt-5 text-sm text-[var(--color-fg-muted)]">
-          That shared signal is no longer available. Showing another recorded signal instead.
+      {(snapshotId !== null || requestedMetricKey !== null) && !requestedHero && (
+        <div role="status" className="rule-hair rule-hair-b py-3 mt-5 text-sm text-[var(--color-fg-muted)]">
+          {shared.isError ? "The shared observation could not be retrieved. Try reloading this page."
+            : "That shared observation is unavailable."} No newer value or different signal has been substituted.
+          <Link href="/signals" className="bs-link block mt-2">Open the latest Signals board</Link>
         </div>
       )}
 
@@ -185,7 +200,7 @@ export default function SignalsPage() {
               >
                 {displayValue(hero.metric)}
               </p>
-              {hero.move != null && (
+              {snapshotId === null && hero.move != null && (
                 <p className="font-mono text-[13px] pb-2 text-[var(--color-accent-text)]">
                   {moveLabel(hero.move)} across recorded history
                 </p>
@@ -196,6 +211,8 @@ export default function SignalsPage() {
             </h2>
             {hero.metric.source && <p className="bs-label mt-3">Source: {hero.metric.source}</p>}
             <SignalObservation observation={hero.observation} />
+            {snapshotId !== null && <p className="mt-3 text-sm text-[var(--color-fg-muted)]">Saved shared observation. Its value, source and recorded history are preserved from the original share.</p>}
+            {snapshotId !== null && frozen?.move && <p className="mt-2 text-sm">{frozen.move}</p>}
             {hero.metric.context && (
               <p className="font-serif mt-3 max-w-[58ch] text-xl leading-8 text-[var(--color-fg-body)]">
                 {hero.metric.context}
@@ -211,24 +228,26 @@ export default function SignalsPage() {
             )}
 
             <div className="flex flex-wrap items-center gap-3 mt-6">
-              <ShareSignalCardButton metricKey={hero.metric.metricKey} />
+              <ShareSignalCardButton metricKey={hero.metric.metricKey} snapshot={snapshotId ?? undefined} />
               {hero.series.length >= 2 && (
                 <ShareMetricCardButton
                   metricKey={hero.metric.metricKey}
+                  snapshot={snapshotId ?? undefined}
                   label={hero.metric.label}
                   canChart
                 />
               )}
-              <WatchButton
+              {snapshotId === null && <WatchButton
                 watched={watchlist.some((watch) => watch.metricKey === hero.metric.metricKey)}
                 onClick={() => toggleWatch(hero)}
-              />
+              />}
               <Link href={metricObservationAskHref(hero.metric, displayValue(hero.metric))} className="bs-btn bs-btn-outline">
                 Ask what it means
               </Link>
               {requestedHero && hero.series.length >= 2 && (
                 <Link
-                  href={`/signals?metric=${encodeURIComponent(hero.metric.metricKey)}${chartView ? "" : "&view=chart"}`}
+                  href={snapshotId !== null ? signalSharePath(hero.metric.metricKey, snapshotId, !chartView)
+                    : `/signals?metric=${encodeURIComponent(hero.metric.metricKey)}${chartView ? "" : "&view=chart"}`}
                   className="bs-btn bs-btn-outline inline-flex items-center gap-2"
                 >
                   <LineChart className="h-3.5 w-3.5" />
@@ -242,21 +261,22 @@ export default function SignalsPage() {
 
           <aside className="lg:pl-9 mt-10 lg:mt-0">
             <p className="bs-label-accent">The Desk Take</p>
-            {latestEdition?.rubensTake ? (
+            {shownTake ? (
               <>
                 <p className="font-serif mt-3 text-2xl leading-9 text-[var(--color-fg-body)]">
-                  {latestEdition.rubensTake}
+                  {shownTake}
                 </p>
-                <Link
-                  href={`/editions/${latestEdition.editionNumber}`}
+                {shownEdition && <Link
+                  href={`/editions/${shownEdition}`}
                   className="bs-label bs-link mt-5 inline-block"
                 >
-                  Edition {latestEdition.editionNumber} →
-                </Link>
+                  Edition {shownEdition} →
+                </Link>}
               </>
             ) : (
               <p className="mt-3 text-[var(--color-fg-muted)]">
-                The latest editorial take will appear here with the next published edition.
+                {snapshotId !== null ? "No editorial take was attached to this shared observation."
+                  : "The latest editorial take will appear here with the next published edition."}
               </p>
             )}
           </aside>
@@ -268,7 +288,7 @@ export default function SignalsPage() {
           <div>
             <p className="bs-label-accent">In motion</p>
             <h2 className="font-serif font-bold mt-2" style={{ fontSize: 38, lineHeight: 1 }}>
-              The market board
+              {snapshotId !== null ? "Latest market board" : "The market board"}
             </h2>
           </div>
           <Link href="/trends" className="bs-label bs-link">

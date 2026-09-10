@@ -9,6 +9,7 @@ import { renderIntelligenceCard } from "../core/publicRender";
 import { renderSignalCard } from "../core/publicRender";
 import { renderTrendCard } from "../core/publicRender";
 import { readIntelligenceShareToken } from "./intelligenceShare";
+import { signalSharePath } from "../../shared/signalSnapshot";
 
 function siteUrl(): string {
   return (process.env.SITE_URL || DEFAULT_SITE_URL).replace(/\/+$/, "");
@@ -145,7 +146,12 @@ function formatAsOf(value: Date): string {
   }).format(value);
 }
 
-async function getMetricPresentation(metricKey: string) {
+async function getMetricPresentation(metricKey: string, snapshotId?: string) {
+  if (snapshotId !== undefined) {
+    const snapshot = await db.readSignalSnapshot(snapshotId);
+    if (!snapshot || snapshot.metric.metricKey !== metricKey) return null;
+    return { ...snapshot, value: displayValue(snapshot.metric.value, snapshot.metric.unit) };
+  }
   const [metrics, histories, editions] = await Promise.all([
     db.listDailyMetrics(),
     db.listMetricHistories(30),
@@ -208,11 +214,22 @@ async function handleSignalMeta(req: Request, res: Response, next: NextFunction)
   const metricKey = firstQuery(req.query.metric).slice(0, 64);
   if (!metricKey) return next();
   try {
-    const presented = await getMetricPresentation(metricKey);
-    if (!presented) return next();
+    const snapshotId = req.query.snapshot === undefined ? undefined : firstQuery(req.query.snapshot);
+    const presented = await getMetricPresentation(metricKey, snapshotId);
+    if (!presented) {
+      res.status(404);
+      return sendSocialShell(req, res, next, {
+        title: "Shared observation unavailable | The Desk",
+        description: "The requested evidence is unavailable. No newer value or different signal has been substituted.",
+        canonical: `${siteUrl()}/signals`, image: `${siteUrl()}/og-card.png`,
+        imageWidth: 1200, imageHeight: 630, noindex: true,
+      });
+    }
     const { metric, value, move, series } = presented;
     const wantsChart = firstQuery(req.query.view).toLowerCase() === "chart" && series.length >= 2;
-    const basePath = `/signals?metric=${encodeURIComponent(metric.metricKey)}`;
+    const basePath = snapshotId !== undefined ? signalSharePath(metric.metricKey, snapshotId)
+      : `/signals?metric=${encodeURIComponent(metric.metricKey)}`;
+    const imageQuery = snapshotId !== undefined ? `?snapshot=${encodeURIComponent(snapshotId)}` : "";
     const canonical = `${siteUrl()}${basePath}${wantsChart ? "&view=chart" : ""}`;
     const movement = move ? ` ${move}.` : "";
     await sendSocialShell(req, res, next, {
@@ -221,14 +238,14 @@ async function handleSignalMeta(req: Request, res: Response, next: NextFunction)
         : `${value} · ${clean(metric.label, 80)} | The Number`,
       description: clean(
         wantsChart
-          ? `${metric.context ?? "Thirty-day Australian property signal."}${movement}`
-          : `${metric.context ?? "Live Australian property signal."}${movement}`,
+          ? `Observation ${formatAsOf(metric.asOf)}. ${metric.context ?? "Recorded Australian property signal."}${movement}`
+          : `Observation ${formatAsOf(metric.asOf)}. ${metric.context ?? "Recorded Australian property signal."}${movement}`,
         220
       ),
       canonical,
       image: wantsChart
-        ? `${siteUrl()}/og/charts/${encodeURIComponent(metric.metricKey)}.png`
-        : `${siteUrl()}/og/signals/${encodeURIComponent(metric.metricKey)}.png`,
+        ? `${siteUrl()}/og/charts/${encodeURIComponent(metric.metricKey)}.png${imageQuery}`
+        : `${siteUrl()}/og/signals/${encodeURIComponent(metric.metricKey)}.png${imageQuery}`,
       imageWidth: 1080,
       imageHeight: 1350,
       type: "website",
@@ -242,7 +259,7 @@ async function handleSignalMeta(req: Request, res: Response, next: NextFunction)
 async function handleSignalOg(req: Request, res: Response): Promise<void> {
   try {
     const metricKey = decodeURIComponent(String(req.params.metricKey ?? "")).slice(0, 64);
-    const presented = await getMetricPresentation(metricKey);
+    const presented = await getMetricPresentation(metricKey, req.query.snapshot === undefined ? undefined : firstQuery(req.query.snapshot));
     if (!presented) {
       res.redirect(302, "/og-card.png");
       return;
@@ -269,7 +286,7 @@ async function handleSignalOg(req: Request, res: Response): Promise<void> {
 async function handleChartOg(req: Request, res: Response): Promise<void> {
   try {
     const metricKey = decodeURIComponent(String(req.params.metricKey ?? "")).slice(0, 64);
-    const presented = await getMetricPresentation(metricKey);
+    const presented = await getMetricPresentation(metricKey, req.query.snapshot === undefined ? undefined : firstQuery(req.query.snapshot));
     if (!presented || presented.series.length < 2) {
       res.redirect(302, "/og-card.png");
       return;

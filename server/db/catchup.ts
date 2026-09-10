@@ -1,5 +1,6 @@
 import { EDITORIAL_DDL } from "./editorial";
 import { COVERAGE_DDL } from "./editorialCoverage";
+import { SIGNAL_SNAPSHOT_DDL } from "./signalSnapshots";
 /**
  * Idempotent schema catch-up.
  *
@@ -29,6 +30,7 @@ import { sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 
 export const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
+  SIGNAL_SNAPSHOT_DDL,
   ...SECURITY_DDL,
   ...EDITORIAL_DDL,
   ...COVERAGE_DDL,
