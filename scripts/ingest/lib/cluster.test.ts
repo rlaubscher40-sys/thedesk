@@ -9,7 +9,7 @@ function item(source: string, title: string): FetchedItem {
     channel: "AU",
     title,
     summary: title,
-    url: `https://x/${source}/${title}`,
+    url: `https://${source.toLowerCase().replaceAll(" ", "-")}.example/${encodeURIComponent(title)}`,
     imageUrl: null,
     isoDate: null,
   };

@@ -1,3 +1,4 @@
+import { editorialHealth } from "../db/editorial";
 /**
  * Admin-only health router.
  *
@@ -55,6 +56,7 @@ type ServiceInfo = {
 };
 
 export const healthRouter = router({
+  editorial: adminProcedure.query(() => editorialHealth()),
   importVicWorkbook: adminProcedure.input(z.object({
     base64: z.string().min(1).max(2_800_000),
     resourceUrl: z.string().max(300),

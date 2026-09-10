@@ -45,12 +45,17 @@ describe("publisher-declared publication dates", () => {
       )
     ).toMatchObject({ publisherDateStatus: "conflicting", publisherPublishedAt: null });
   });
-  it.each(["2026-09-08", "2026-02-30T00:00:00Z", "tomorrow", ""])(
+  it.each([ "2026-02-30T00:00:00Z", "tomorrow", ""])(
     "does not invent a date or timezone for %j",
     (value) => {
       expect(extractPublicationDate(meta(value))).toMatchObject({ publisherDateStatus: "invalid" });
     }
   );
+  it("retains only day precision when publisher clocks disagree within the same day", () => {
+    expect(extractPublicationDate(meta("2026-09-10T15:04:47+00:00") + ld({ "@type": "NewsArticle", datePublished: "2026-09-10T05:04:47Z" }))).toEqual({ publisherPublishedAt: null, publisherPublishedDay: "2026-09-10", publisherDateStatus: "available" });
+    expect(extractPublicationDate(meta("2026-09-09T20:50:09+1000") + ld({ "@type": "NewsArticle", datePublished: "2026-09-09 20:50:09" }))).toEqual({ publisherPublishedAt: null, publisherPublishedDay: "2026-09-09", publisherDateStatus: "available" });
+    expect(extractPublicationDate(meta("2026-09-08"))).toEqual({ publisherPublishedAt: null, publisherPublishedDay: "2026-09-08", publisherDateStatus: "available" });
+  });
   it("does not use visible dates, comments, or modified-only metadata", () => {
     expect(
       extractPublicationDate(

@@ -79,6 +79,8 @@ function hhmmToMinutes(hhmm: string): number {
 }
 
 type Job = {
+  /** Fixed durable claim date for one-time rollout jobs. */
+  claimDate?: string;
   graceMinutes?: number;
   key: string;
   /** Sydney "HH:MM" — the earliest the job may run that day. */
@@ -203,7 +205,9 @@ const JOBS: Job[] = [
     run: () => runScheduledMetricRefresh(),
   })),
   { key: "daily-metrics", at: "06:33", run: () => runScheduledMetricRefresh() },
+  { key: "editorial-pipeline-v1", at: "00:00", graceMinutes: 24 * 60, claimDate: "2026-09-10", run: (b, k) => runDailyFeedIngest(b, k) },
   { key: "daily-feed", at: "06:43", run: (b, k) => runDailyFeedIngest(b, k) },
+  ...["12:43", "18:43"].map(at => ({ key: `daily-feed-update-${at.slice(0, 2)}`, at, run: (b: string, k: string) => runDailyFeedIngest(b, k) })),
   {
     key: "instagram-daily",
     ...INSTAGRAM_FEED_SLOTS.daily,
@@ -330,7 +334,7 @@ async function tick(baseUrl: string, apiKey: string): Promise<void> {
         : null;
       const attempt = collection
         ? (lease?.attempt ?? 0)
-        : await claimJobRun(job.key, clock.dateISO, maxAttempts);
+        : await claimJobRun(job.key, job.claimDate ?? clock.dateISO, maxAttempts);
       if (!attempt) continue;
       console.log(
         `[scheduler] running ${job.key} (${clock.dateISO}, attempt ${attempt}/${maxAttempts})`,
@@ -343,7 +347,7 @@ async function tick(baseUrl: string, apiKey: string): Promise<void> {
           if (!(await finishCollectionRun(lease, "success"))) continue;
         } else {
           await job.run(baseUrl, apiKey, attempt);
-          await markJobRun(job.key, clock.dateISO, "success");
+          await markJobRun(job.key, job.claimDate ?? clock.dateISO, "success");
         }
         console.log(`[scheduler] ${job.key} ✓`);
       } catch (err) {
@@ -361,7 +365,7 @@ async function tick(baseUrl: string, apiKey: string): Promise<void> {
           ).catch(() => false);
           if (!finished) continue;
         } else {
-          await markJobRun(job.key, clock.dateISO, "failed", msg.slice(0, 480));
+          await markJobRun(job.key, job.claimDate ?? clock.dateISO, "failed", msg.slice(0, 480));
         }
         await recordServerError({
           level: "error",

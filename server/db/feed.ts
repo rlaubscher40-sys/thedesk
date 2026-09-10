@@ -35,7 +35,7 @@ export async function listFeedItems(date?: string): Promise<DailyFeedItem[]> {
     return db
       .select()
       .from(dailyFeedItems)
-      .where(eq(dailyFeedItems.feedDate, date))
+      .where(and(eq(dailyFeedItems.feedDate, date), sql`${dailyFeedItems.channel} <> 'HOLD'`))
       .orderBy(desc(dailyFeedItems.priority), desc(dailyFeedItems.createdAt));
   }
   // No date supplied: try today (Sydney) first; if today has nothing yet
@@ -46,12 +46,13 @@ export async function listFeedItems(date?: string): Promise<DailyFeedItem[]> {
   const todayRows = await db
     .select()
     .from(dailyFeedItems)
-    .where(eq(dailyFeedItems.feedDate, today))
-    .orderBy(desc(dailyFeedItems.createdAt));
+    .where(and(eq(dailyFeedItems.feedDate, today), sql`${dailyFeedItems.channel} <> 'HOLD'`))
+    .orderBy(desc(dailyFeedItems.priority), desc(dailyFeedItems.createdAt), desc(dailyFeedItems.id));
   if (todayRows.length > 0) return todayRows;
   const recentDate = await db
     .selectDistinct({ feedDate: dailyFeedItems.feedDate })
     .from(dailyFeedItems)
+    .where(sql`${dailyFeedItems.channel} <> 'HOLD'`)
     .orderBy(desc(dailyFeedItems.feedDate))
     .limit(1);
   const fallback = recentDate[0]?.feedDate;
@@ -59,8 +60,8 @@ export async function listFeedItems(date?: string): Promise<DailyFeedItem[]> {
   return db
     .select()
     .from(dailyFeedItems)
-    .where(eq(dailyFeedItems.feedDate, fallback))
-    .orderBy(desc(dailyFeedItems.createdAt));
+    .where(and(eq(dailyFeedItems.feedDate, fallback), sql`${dailyFeedItems.channel} <> 'HOLD'`))
+    .orderBy(desc(dailyFeedItems.priority), desc(dailyFeedItems.createdAt), desc(dailyFeedItems.id));
 }
 
 export async function getFeedItemById(id: number): Promise<DailyFeedItem | undefined> {
@@ -101,8 +102,8 @@ export async function listArchive(opts: {
   if (!db) return [];
   const base = db.select().from(dailyFeedItems);
   const filtered = opts.category
-    ? base.where(eq(dailyFeedItems.category, opts.category.toUpperCase()))
-    : base;
+    ? base.where(and(eq(dailyFeedItems.category, opts.category.toUpperCase()), sql`${dailyFeedItems.channel} <> 'HOLD'`))
+    : base.where(sql`${dailyFeedItems.channel} <> 'HOLD'`);
   return filtered.orderBy(desc(dailyFeedItems.createdAt)).limit(opts.limit).offset(opts.offset);
 }
 
@@ -113,6 +114,7 @@ export async function getRecentFeedDates(limit = 14): Promise<string[]> {
   const rows = await db
     .selectDistinct({ feedDate: dailyFeedItems.feedDate })
     .from(dailyFeedItems)
+    .where(sql`${dailyFeedItems.channel} <> 'HOLD'`)
     .orderBy(desc(dailyFeedItems.feedDate))
     .limit(limit);
   return rows.map((r) => r.feedDate);
@@ -275,9 +277,9 @@ export async function listFeedItemsBetween(
     .select()
     .from(dailyFeedItems)
     .where(
-      sql`${dailyFeedItems.feedDate} >= ${startDate} AND ${dailyFeedItems.feedDate} <= ${endDate}`
+      sql`${dailyFeedItems.feedDate} >= ${startDate} AND ${dailyFeedItems.feedDate} <= ${endDate} AND ${dailyFeedItems.channel} <> 'HOLD'`
     )
-    .orderBy(desc(dailyFeedItems.createdAt));
+    .orderBy(desc(dailyFeedItems.priority), desc(dailyFeedItems.createdAt), desc(dailyFeedItems.id));
 }
 
 /** Small public discovery sample, not an unbounded copy of the archive. */

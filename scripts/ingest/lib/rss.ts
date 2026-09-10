@@ -1,3 +1,4 @@
+import { parseIndexSource } from "./indexSource";
 import { publicFetch } from "./publicFetch";
 /**
  * Thin wrapper around rss-parser. Returns normalised items plus the source's
@@ -93,6 +94,7 @@ export type FetchedItem = {
    *  a fallback when the on-page og:image scrape returns nothing. */
   imageUrl: string | null;
   isoDate: string | null;
+  discovery?: "publisher-index" | "evidence-pool";
   /** How many distinct sources reported this story (set by the clustering
    *  pass; absent/1 means a single outlet). */
   corroborationCount?: number;
@@ -116,11 +118,16 @@ export function createSourceReader() {
       headers: { "User-Agent": `TheDesk/1.0 (+${SITE_URL})` },
     });
     if (!response.ok) throw new Error(`RSS HTTP ${response.status}`);
-    return parser.parseString(await response.text());
+    return response.text();
   });
   return async (src: Source): Promise<SourceReport> => {
     try {
-      const { value: feed, checkedAt } = await read(src.url);
+      const { value: xml, checkedAt } = await read(src.url);
+      if (src.kind === "index") {
+        const items = parseIndexSource(xml, src);
+        return { items, fetched: items.length, checkedAt: new Date(checkedAt), error: items.length ? null : "Publisher index returned no article links" };
+      }
+      const feed = await parser.parseString(xml);
       const items = feed.items ?? [];
       const usable = items
         .map((it): FetchedItem | null => {
@@ -149,7 +156,7 @@ export function createSourceReader() {
       return {
         items: usable,
         fetched: items.length,
-        error: null,
+        error: items.length ? null : "Feed returned no items",
         checkedAt: new Date(checkedAt),
       };
     } catch (err) {

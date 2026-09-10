@@ -1,4 +1,5 @@
-import { routeStory } from "../shared/storyGeography";
+import { assessStory, editorialReportSchema } from "../shared/editorial";
+import { recentEditorialCandidates, recordEditorialReport } from "./db/editorial";
 import { drainFeedEnrichment } from "./feed/enrichmentWorker";
 import { sourceTimingHold } from "../shared/sourceTiming";
 import {
@@ -22,7 +23,6 @@ import { refreshOfficialMetrics } from "./metrics/recovery";
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { COOKIE_NAME, isEnrichedChannel } from "../shared/const";
-import { defaultFeedPriority } from "../shared/feedPriority";
 import { bestMatch, titleTokens } from "../shared/textSimilarity";
 import { parse as parseCookieHeader } from "cookie";
 import type { Express, Request, Response } from "express";
@@ -137,6 +137,18 @@ function sanitiseText<T extends string | null | undefined>(text: T): T {
 // ─── Daily feed ─────────────────────────────────────────────────────────────
 
 function registerDailyFeedRoute(app: Express): void {
+  app.post("/api/ingest/editorial-candidates", scheduledLimiter, async (req, res) => {
+    if (!(await authenticateScheduled(req))) return void res.status(401).json({ error: "Unauthorized" });
+    try { res.json({ items: await recentEditorialCandidates(), recentUrls: [...await db.getRecentSourceUrls(14)] }); }
+    catch { res.status(503).json({ error: "Evidence pool unavailable" }); }
+  });
+  app.post("/api/ingest/editorial-report", scheduledLimiter, async (req, res) => {
+    if (!(await authenticateScheduled(req))) return void res.status(401).json({ error: "Unauthorized" });
+    const parsed = editorialReportSchema.safeParse(req.body);
+    if (!parsed.success) return void res.status(400).json({ error: "Invalid editorial report" });
+    await recordEditorialReport(parsed.data);
+    res.json({ success: true });
+  });
   const handler = async (req: Request, res: Response) => {
     if (!(await authenticateScheduled(req))) {
       res.status(401).json({ error: "Unauthorized" });
@@ -152,8 +164,10 @@ function registerDailyFeedRoute(app: Express): void {
       return;
     }
 
-    const items = parsed.data.items.map((item) => {
-      const category = item.category.toUpperCase();
+    const assessed = parsed.data.items.map(item => ({ item, decision: assessStory(item, new Date(), item.feedDate) }));
+    const heldForQuality = assessed.filter(row => !row.decision.eligible).length;
+    const items = assessed.filter(row => row.decision.eligible).map(({ item, decision }) => {
+      const category = decision.category;
       const source = sanitiseText(item.source);
       return {
         feedDate: item.feedDate,
@@ -165,7 +179,7 @@ function registerDailyFeedRoute(app: Express): void {
         category,
         // Content lane. Defaults to the Australian flagship when the ingest
         // doesn't tag one, so legacy/untagged payloads keep their old home.
-        channel: item.channel ?? "AU",
+        channel: decision.channel,
         imageUrl: item.imageUrl ?? null,
         partnerTag: sanitiseText(item.partnerTag ?? null),
         sayThis: sanitiseText(item.sayThis ?? null),
@@ -177,7 +191,7 @@ function registerDailyFeedRoute(app: Express): void {
         promotedToEdition: false,
         // Editorial-impact baseline. The admin can override per-item via
         // feed.setPriority, manual control always wins.
-        priority: defaultFeedPriority({ category, source }),
+        priority: decision.score,
         // Persisted in the recovery job, capped to the prompt input length.
         articleText: item.articleText ?? null,
       };
@@ -190,7 +204,7 @@ function registerDailyFeedRoute(app: Express): void {
     );
     const heldForDate = items.length - timingChecked.length;
     if (timingChecked.length === 0) {
-      res.status(422).json({ error: "No stories passed source-date checks", heldForDate });
+      res.status(422).json({ error: "No stories passed editorial/date checks", heldForDate, heldForQuality });
       return;
     }
 
@@ -202,7 +216,7 @@ function registerDailyFeedRoute(app: Express): void {
       db.getRecentFeedItems(10),
     ]);
     // Recheck at the API boundary, including old or manual ingest clients.
-    const freshItemsRaw = unseenFeedItems(timingChecked.map(routeStory), recentUrls);
+    const freshItemsRaw = unseenFeedItems(timingChecked, recentUrls);
     const skippedCount = timingChecked.length - freshItemsRaw.length;
     if (skippedCount > 0) {
       console.log(
@@ -264,6 +278,7 @@ function registerDailyFeedRoute(app: Express): void {
       success: true,
       count: insertedCount,
       heldForDate,
+      heldForQuality,
       skipped: skippedCount + duplicateCount,
       dropped: failedCount,
     });

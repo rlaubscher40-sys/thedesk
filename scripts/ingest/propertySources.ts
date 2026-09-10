@@ -34,7 +34,7 @@ export const STATE_PROPERTY_SOURCES: EvidenceSource[] = PROPERTY_REGIONS.flatMap
       name: `${region.name} government housing`,
       region: region.code,
       beat: "policy",
-      query: `site:${region.domain} (housing OR planning OR "land tax" OR tenancy OR infrastructure)`,
+      query: `site:${region.domain} (housing OR "residential planning" OR "land tax" OR tenancy) -tender -"traffic changes" -"road closure"`,
     },
   ].map(({ query, ...source }) => ({
     ...source,
