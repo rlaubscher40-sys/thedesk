@@ -1,0 +1,139 @@
+{
+  "success": true,
+  "result": {
+    "name": "rental-report-quarterly-quarterly-median-rents-by-lga",
+    "license_id": "cc-by",
+    "resources": [
+      {
+        "url": "https://www.dffh.vic.gov.au/quarterly-median-rents-local-government-area-march-quarter-2019",
+        "format": "XLSX",
+        "name": "Rental Report - Quarterly: Median Rents by LGA Mar 2019"
+      },
+      {
+        "url": "https://www.dffh.vic.gov.au/quarterly-median-rents-local-government-area-june-quarter-2019",
+        "format": "XLSX",
+        "name": "Rental Report - Quarterly: Quarterly Median Rents by LGA"
+      },
+      {
+        "url": "https://www.dffh.vic.gov.au/quarterly-median-rents-local-government-area-september-quarter-2019",
+        "format": "XLSX",
+        "name": "Rental Report - Quarterly: Median Rents by LGA Sep 2019"
+      },
+      {
+        "url": "https://www.dffh.vic.gov.au/quarterly-median-rents-local-government-area-december-quarter-2019",
+        "format": "XLSX",
+        "name": "Rental Report - Quarterly: Median Rents by LGA Dec 2019"
+      },
+      {
+        "url": "https://www.dffh.vic.gov.au/quarterly-median-rents-local-government-area-march-quarter-2020",
+        "format": "XLSX",
+        "name": "Rental Report - Quarterly: Median Rents by LGA Mar 2020"
+      },
+      {
+        "url": "https://www.dffh.vic.gov.au/quarterly-median-rents-local-government-area-june-quarter-2020",
+        "format": "XLSX",
+        "name": "Rental Report - Quarterly: Median Rents by LGA Jun 2020"
+      },
+      {
+        "url": "https://www.dhhs.vic.gov.au/sites/default/files/documents/202011/Quarterly%20median%20rents%20by%20local%20government%20area%20September%20quarter%202020.xlsx",
+        "format": "XLSX",
+        "name": "Rental Report - Quarterly: Median Rents by LGA Sep 2020"
+      },
+      {
+        "url": "https://www.dffh.vic.gov.au/quarterly-median-rents-local-government-area-december-quarter-2020",
+        "format": "XLSX",
+        "name": "Rental Report - Quarterly: Median Rents by LGA Dec 2020"
+      },
+      {
+        "url": "https://www.dffh.vic.gov.au/quarterly-median-rents-local-government-area-march-quarter-2021",
+        "format": "XLSX",
+        "name": "Rental Report - Quarterly: Median Rents by LGA Mar 2021"
+      },
+      {
+        "url": "https://www.dffh.vic.gov.au/moving-annual-rents-suburb-june-quarter-2021-excel",
+        "format": "XLSX",
+        "name": "Rental Report - Quarterly: Median Rents by LGA June 2021"
+      },
+      {
+        "url": "https://www.dffh.vic.gov.au/quarterly-median-rents-local-government-area-september-quarter-2021-excel",
+        "format": "XLSX",
+        "name": "Rental Report - Quarterly: Median Rents by LGA Sept 2021"
+      },
+      {
+        "url": "https://www.dffh.vic.gov.au/quarterly-median-rents-local-government-area-december-quarter-2021-excel",
+        "format": "XLSX",
+        "name": "Rental Report - Quarterly: Median Rents by LGA Dec 2021"
+      },
+      {
+        "url": "https://www.dffh.vic.gov.au/quarterly-median-rents-local-government-area-march-quarter-2022-excel",
+        "format": "XLSX",
+        "name": "Rental Report - Quarterly: Median Rents by LGA Mar 2022"
+      },
+      {
+        "url": "https://www.dffh.vic.gov.au/quarterly-median-rents-local-government-area-june-quarter-2022-excel",
+        "format": "XLSX",
+        "name": "Rental Report - Quarterly: Median Rents by LGA June 2022"
+      },
+      {
+        "url": "https://www.dffh.vic.gov.au/moving-annual-rents-suburb-september-quarter-2022-excel",
+        "format": "XLSX",
+        "name": "Rental Report - Quarterly: Median Rents by LGA Sept 2022"
+      },
+      {
+        "url": "https://www.dffh.vic.gov.au/quarterly-median-rents-local-government-area-december-quarter-2022-excel",
+        "format": "XLSX",
+        "name": "Rental Report - Quarterly: Median Rents by LGA Dec 2022"
+      },
+      {
+        "url": "https://www.dffh.vic.gov.au/quarterly-median-rents-local-government-area-march-quarter-2023-excel",
+        "format": "XLSX",
+        "name": "Rental Report - Quarterly: Median Rents by LGA Mar 2023"
+      },
+      {
+        "url": "https://www.dffh.vic.gov.au/quarterly-median-rents-local-government-area-june-quarter-2023-excel",
+        "format": "XLSX",
+        "name": "Rental Report - Quarterly: Median Rents by LGA June 2023"
+      },
+      {
+        "url": "https://www.dffh.vic.gov.au/quarterly-median-rent-local-government-area-march-quarter-2024-excel",
+        "format": "XLSX",
+        "name": "Rental Report - Quarterly: Median Rents by LGA Sep 2023"
+      },
+      {
+        "url": "https://www.dffh.vic.gov.au/quarterly-median-rents-local-government-area-december-quarter-2023-excel",
+        "format": "XLSX",
+        "name": "Rental Report - Quarterly: Median Rents by LGA Dec 2023"
+      },
+      {
+        "url": "https://www.dffh.vic.gov.au/quarterly-median-rent-local-government-area-march-quarter-2024-excel",
+        "format": "XLSX",
+        "name": "Rental Report - Quarterly: Median Rents by LGA Mar 2024"
+      },
+      {
+        "url": "https://www.dffh.vic.gov.au/quarterly-median-rent-local-government-area-september-quarter-2024-excel",
+        "format": "XLSX",
+        "name": "Quarterly: Median Rents by LGA Sept 2024"
+      },
+      {
+        "url": "https://www.dffh.vic.gov.au/quarterly-median-rents-local-government-area-december-quarter-2024-excel",
+        "format": "XLSX",
+        "name": "Quarterly: Median Rents by LGA Dec 2024"
+      },
+      {
+        "url": "https://www.dffh.vic.gov.au/quarterly-median-rents-local-government-area-march-quarter-2025-excel",
+        "format": "XLSX",
+        "name": "Quarterly: Median Rents by LGA Mar 2025"
+      },
+      {
+        "url": "https://www.dffh.vic.gov.au/quarterly-median-rents-local-government-area-june-quarter-2025-excel",
+        "format": "XLSX",
+        "name": "Quarterly: Median Rents by LGA Jun 2025"
+      },
+      {
+        "url": "https://www.dffh.vic.gov.au/quarterly-median-rents-local-government-area-september-quarter-2025-excel",
+        "format": "XLSX",
+        "name": " Quarterly: Median Rents by LGA Sep 2025"
+      }
+    ]
+  }
+}

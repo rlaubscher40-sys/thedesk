@@ -19,7 +19,7 @@ import {
   reviewedVicReleasePending,
 } from "./reviewedRelease";
 import { isCollectionJob } from "../db/collectionRuns";
-import { collectLocalData } from "./collect";
+
 const source = () => structuredClone(fixture) as Sheet[];
 const parse = (s = source()) => parseVicRents(s, "2025-09-30");
 const now = new Date("2026-09-10T00:00:00Z");
@@ -218,10 +218,9 @@ it("imports once under the durable lease without recording successful publisher 
   await importReviewedVicRelease();
   expect(writeLocalDataset).toHaveBeenCalledTimes(1);
 });
-it("keeps failed writes retryable and leaves unverified automatic downloads disabled", async () => {
+it("keeps reviewed writes retryable alongside catalogue-based updates", async () => {
   vi.mocked(writeLocalDataset).mockRejectedValueOnce(new Error("Lease expired"));
   await expect(importReviewedVicRelease()).rejects.toThrow("Lease expired");
   expect(markLocalDataCheck).not.toHaveBeenCalled();
-  expect(AUTOMATIC_LOCAL_SOURCE_KEYS).not.toContain("vic-bond-rents");
-  await expect(collectLocalData("vic-bond-rents")).rejects.toThrow("reviewed publisher file");
+  expect(AUTOMATIC_LOCAL_SOURCE_KEYS).toContain("vic-bond-rents");
 });

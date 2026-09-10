@@ -1,3 +1,4 @@
+import { VicWorkbookUpload } from "./VicWorkbookUpload";
 import { trpc } from "@/lib/trpc";
 import { LocalTransferHealth } from "./LocalTransferHealth";
 export function LocalDataHealth() {
@@ -29,7 +30,7 @@ export function LocalDataHealth() {
               · Period: {source.period ?? "Not collected"}
             </p>
             <p className="mt-2 text-sm">
-              Last check: {source.checkedAt ?? "Never"}
+              {source.sourceKey === "vic-bond-rents" ? "Last catalogue/update check" : "Last check"}: {source.checkedAt ?? "Never"}
             </p>
             <p className="mt-2 text-sm">
               Across stored reporting periods: {source.observationCoverage.published} published figures ·{" "}
@@ -39,7 +40,10 @@ export function LocalDataHealth() {
               Missing records are not proof that a publisher did not publish them.
             </p>
             {source.sourceKey === "vic-bond-rents" && (
-              <p className="mt-2 text-sm">Reviewed file import only. Automatic publisher downloads are not enabled; a new release requires a validated file.</p>
+              <div className="mt-2 text-sm">
+                <p>DataVic is checked daily. A newer listed quarter triggers a validated download. An unchanged catalogue does not prove workbook download access or mean these rents are current. Same-quarter corrections require a reviewed upload.</p>
+                <VicWorkbookUpload onImported={() => { void query.refetch(); }} />
+              </div>
             )}
             {source.accessPaused ? (
               <p className="mt-2 text-sm font-semibold">

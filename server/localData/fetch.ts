@@ -111,6 +111,9 @@ export async function fetchSourceResponse(
 
 export function sourceHostAllowed(url: URL, source: LocalSourceKey): boolean {
   if (url.hostname === new URL(LOCAL_SOURCES[source].url).hostname) return true;
+  if (source === "vic-bond-rents" && url.hostname === "discover.data.vic.gov.au" &&
+      url.pathname === "/api/3/action/package_show" &&
+      url.search === "?id=rental-report-quarterly-quarterly-median-rents-by-lga") return true;
   return (
     source === "wa-bond-rents" &&
     url.hostname === "ahdap-public-data.s3.ap-southeast-2.amazonaws.com" &&

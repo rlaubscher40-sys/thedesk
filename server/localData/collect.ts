@@ -12,6 +12,8 @@ import { readWorkbook } from "./workbook";
 import { parseLocalPopulation, parseNswBonds, parseQldBonds } from "./parsers";
 import { discoverRentResource } from "./rentResources";
 import { parseSaBonds, parseTasBonds } from "./stateRents";
+import { VIC_CATALOGUE, selectVicResource } from "./vicResources";
+import { parseVicRents } from "./vicRents";
 import { parseWaArchive } from "./waArchive";
 import { localSourceAccessDenied } from "../../shared/localSourceAccess";
 import { LocalSourceAccessPaused } from "./access";
@@ -38,7 +40,6 @@ export function reusableDownloadCache(
 }
 
 export async function collectLocalData(source: LocalSourceKey): Promise<void> {
-  if (source === "vic-bond-rents") throw new Error("Victoria requires a reviewed publisher file; automatic downloads are not enabled");
   const signal = collectionSignal();
   const measure = async (transfer: LocalTransfer) => {
     try { await recordLocalTransfer(source, transfer); }
@@ -56,7 +57,9 @@ export async function collectLocalData(source: LocalSourceKey): Promise<void> {
   try {
     const now = new Date();
     const resource =
-      source === "sa-bond-rents" || source === "wa-bond-rents" || source === "tas-bond-rents"
+      source === "vic-bond-rents"
+        ? selectVicResource((await fetchSource(VIC_CATALOGUE, source, 2_000_000, signal)).toString("utf8"), now)
+        : source === "sa-bond-rents" || source === "wa-bond-rents" || source === "tas-bond-rents"
         ? await discoverRentResource(source, now, signal)
         : selectResource(
             source,
@@ -67,6 +70,14 @@ export async function collectLocalData(source: LocalSourceKey): Promise<void> {
           );
     stage = "Data download";
     const previous = await readLocalDataset(source);
+    // A catalogue check does not establish that the workbook download works.
+    // Do not re-download a reviewed release just because it is old.
+    if (source === "vic-bond-rents" && previous && resource.period <= previous.period) {
+      signal?.throwIfAborted();
+      await markLocalDataCheck(source, null);
+      console.info(`[local-data] VIC catalogue checked: listed ${resource.period}, stored ${previous.period}; no download needed`);
+      return;
+    }
     const cached = reusableDownloadCache(previous, resource.url, now);
     const downloaded = await fetchSourceResponse(resource.url, source, 10_000_000, signal, cached);
     if (downloaded.status === "unchanged") {
@@ -97,9 +108,11 @@ export async function collectLocalData(source: LocalSourceKey): Promise<void> {
       .update(bytes)
       .digest("hex");
     if (previous?.fingerprint !== fingerprint) {
-      const sheets = source === "wa-bond-rents" ? [] : await readWorkbook(bytes, signal);
+      const sheets = source === "wa-bond-rents" ? [] : await readWorkbook(bytes, signal, source === "vic-bond-rents" ? "vic-rents" : undefined);
       const parsed =
-        source === "abs-sa2-population"
+        source === "vic-bond-rents"
+          ? parseVicRents(sheets, resource.period)
+          : source === "abs-sa2-population"
           ? parseLocalPopulation(sheets, Number(resource.period.slice(0, 4)))
           : source === "nsw-bond-rents"
             ? parseNswBonds(sheets, resource.period)

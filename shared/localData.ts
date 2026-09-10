@@ -8,8 +8,8 @@ export const LOCAL_SOURCE_KEYS = [
   "tas-bond-rents",
   "vic-bond-rents",
 ] as const;
-/** Reviewed VIC file only: automatic publisher downloads have not succeeded. */
-export const AUTOMATIC_LOCAL_SOURCE_KEYS = LOCAL_SOURCE_KEYS.filter(source => source !== "vic-bond-rents");
+/** VIC checks its catalogue first; only a newer release triggers a download. */
+export const AUTOMATIC_LOCAL_SOURCE_KEYS = LOCAL_SOURCE_KEYS;
 export type LocalSourceKey = (typeof LOCAL_SOURCE_KEYS)[number];
 export const STATE_CODES = [
   "NSW",
@@ -85,11 +85,11 @@ export const LOCAL_SOURCES = {
     publisher: "Homes Victoria / Department of Families, Fairness and Housing",
     url: "https://www.dffh.vic.gov.au/publications/rental-report",
     licence: "https://discover.data.vic.gov.au/dataset/rental-report-quarterly-quarterly-median-rents-by-lga",
-    attribution: "Homes Victoria, Quarterly median rents by Local Government Area, September 2025 (CC BY 4.0); supplied publisher workbook",
+    attribution: "Homes Victoria, Quarterly median rents by Local Government Area (CC BY 4.0); reporting period and acquisition shown with each release",
     cadence: "Quarterly",
     states: ["VIC"],
     maxAgeMonths: 6,
-    method: "Publisher median weekly rents for new rental lettings by council and the stated dwelling/bedroom category. Reported counts are contextual. Source dashes mean no numeric figure is supplied; the specific reason is not stated in this workbook. Do not infer zero or reconstruct missing values from totals. Published small counts can be volatile. Five quarters from September 2024 to September 2025 are stored. These historical figures are not current asking rents, vacancy rates or rents paid by all existing tenants. Council boundaries are not suburbs; Melbourne LGA is not metropolitan Melbourne. Changes in medians are affected by the mix of lettings and are not the publisher's rent index.",
+    method: "Publisher median weekly rents for new rental lettings by council and the stated dwelling/bedroom category. Reported counts are contextual. Source dashes mean no numeric figure is supplied; the specific reason is not stated in this workbook. Do not infer zero or reconstruct missing values from totals. Published small counts can be volatile. The last five quarters of the stored release are retained. These figures are not current asking rents, vacancy rates or rents paid by all existing tenants. Council boundaries are not suburbs; Melbourne LGA is not metropolitan Melbourne. Changes in medians are affected by the mix of lettings and are not the publisher's rent index.",
   },
   "nsw-bond-rents": {
     label: "NSW new-bond weekly rents",
