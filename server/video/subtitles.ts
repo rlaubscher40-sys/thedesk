@@ -4,19 +4,39 @@ export type SubtitleCue = { start: number; end: number; lines: string[] };
 const LINE_CHARS = 32;
 
 /** Preserve every word/number, with no model rewriting or transcription. */
-export function captionChunks(text: string): string[][] {
+export function captionChunks(text: string, lineChars = LINE_CHARS): string[][] {
   const words = text.trim().split(/\s+/).filter(Boolean);
-  if (!words.length || words.some((w) => w.length > LINE_CHARS))
+  if (!words.length || words.some((w) => w.length > lineChars))
     throw new Error("Subtitle text cannot fit the readable layout.");
   function split(group: string[]): string[][] {
     const wrapped: string[] = [];
     for (const word of group) {
       const last = wrapped.at(-1);
-      if (last && last.length + word.length + 1 <= LINE_CHARS)
+      if (last && last.length + word.length + 1 <= lineChars)
         wrapped[wrapped.length - 1] += ` ${word}`;
       else wrapped.push(word);
     }
-    if (wrapped.length <= 2) return [wrapped];
+    if (wrapped.length === 1) return [wrapped];
+    if (wrapped.length === 2) {
+      // Prefer complete sentences, then balanced line lengths. Keep every word
+      // in its existing measured cue; this changes wrapping, not speech timing.
+      const breaks = group
+        .slice(1)
+        .map((_, index) => {
+          const at = index + 1;
+          const left = group.slice(0, at).join(" ");
+          const right = group.slice(at).join(" ");
+          return {
+            left,
+            right,
+            score: Math.abs(left.length - right.length) - (/[.!?]$/.test(left) ? 32 : 0),
+          };
+        })
+        .filter(({ left, right }) => left.length <= lineChars && right.length <= lineChars);
+      breaks.sort((a, b) => a.score - b.score);
+      const best = breaks[0];
+      return [best ? [best.left, best.right] : wrapped];
+    }
     // Balance phrases rather than leaving a tiny third-line orphan that
     // flashes for half a second (e.g. a lone "returns.").
     // A count such as "two hundred and thirty-two thousand" must stay in
@@ -52,7 +72,8 @@ export function captionChunks(text: string): string[][] {
  * is length-weighted, not claimed to be word-level forced alignment. */
 export function subtitleCues(
   script: ScriptLine[],
-  passages: Array<{ key: string; start: number; seconds: number }>
+  passages: Array<{ key: string; start: number; seconds: number }>,
+  lineChars = LINE_CHARS
 ): SubtitleCue[] {
   if (!script.length || new Set(script.map((l) => l.key)).size !== script.length)
     throw new Error("Subtitle script keys are missing or duplicated.");
@@ -69,7 +90,7 @@ export function subtitleCues(
       p.seconds <= 0
     )
       throw new Error("Subtitle passage has no verified audio timing.");
-    const chunks = captionChunks(line.text);
+    const chunks = captionChunks(line.text, lineChars);
     const weights = chunks.map((c) => c.join(" ").length);
     const total = weights.reduce((a, b) => a + b, 0);
     let used = 0;
@@ -120,14 +141,14 @@ PlayResY: 1920
 WrapStyle: 2
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Desk,${layout === "documentary" ? "Desk Editorial Sans" : "JetBrains Mono"},${layout === "documentary" ? "44" : layout === "story" ? "40" : "44"},&H00F6F3EB,&H00F6F3EB,&H00170F0B,&H00170F0B,0,0,0,0,100,100,0,0,${layout === "documentary" ? "1,2,0" : layout === "story" ? "1,3,1" : "3,14,0"},5,84,${layout !== "card" ? "156" : "84"},0,1
+Style: Desk,${layout === "documentary" ? "Desk Editorial Sans" : "JetBrains Mono"},${layout === "documentary" ? "54" : layout === "story" ? "40" : "44"},&H00F6F3EB,&H00F6F3EB,&H00170F0B,&H00170F0B,${layout === "documentary" ? "-1" : "0"},0,0,0,100,100,0,0,${layout === "documentary" ? "1,1.5,0" : layout === "story" ? "1,3,1" : "3,14,0"},5,84,${layout !== "card" ? "156" : "84"},0,1
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 ` +
     cues
       .map(
         (c) =>
-          `Dialogue: 0,${timestamp(c.start)},${timestamp(c.end)},Desk,,0,0,0,,{\\pos(${layout !== "card" ? "504,1490" : "540,210"})}${c.lines.map(literal).join("\\N")}`
+          `Dialogue: 0,${timestamp(c.start)},${timestamp(c.end)},Desk,,0,0,0,,{\\pos(${layout === "documentary" ? "540,1540" : layout === "story" ? "504,1490" : "540,210"})}${c.lines.map(literal).join("\\N")}`
       )
       .join("\n") +
     "\n"
