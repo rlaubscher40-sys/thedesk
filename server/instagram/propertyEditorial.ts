@@ -12,7 +12,7 @@ import { explainNoPick, pickStatOfTheDay, rehearsalStat, type HistoryPoint } fro
 const PROPERTY =
   /\b(housing|dwelling\w*|mortgage\w*|home loans?|rental\w*|rents?|renters?|tenan\w*|landlords?|real estate|(?:house|home|property) (?:prices?|values?|sales|listings?|market)|auction clearance|building approvals?|housing approvals?|residential (?:development\w*|approvals?))\b/i;
 const HOUSING_SUPPLY =
-  /\b(?:new|social|affordable) homes\b|\b(?:unlock(?:s|ed|ing)?|deliver(?:s|ed|ing)?) [0-9][0-9,]* homes\b|\b[0-9][0-9,]* homes (?:unlocked|fast.tracked)\b/i;
+  /\b(?:new|social|affordable) homes\b|\bhomes (?:built|delivered)\b|\bmaking way for more homes\b|\b(?:unlock(?:s|ed|ing)?|deliver(?:s|ed|ing)?) [0-9][0-9,]* homes\b|\b[0-9][0-9,]* homes (?:unlocked|fast.tracked)\b/i;
 const FINANCING = /\b(cash rate|interest rates?|RBA|Reserve Bank|housing credit)\b/i;
 const HOUSING_MARKET =
   /\b(?:homes?|houses?|properties|apartments?)\b.{0,50}\b(?:prices?|values?|market|declin(?:e|es|ing)|affordability|supply)\b/i;
@@ -20,7 +20,7 @@ const HOUSING_MARKET =
 // A channel label is not geographic evidence. Overseas housing headlines
 // require a separate editorial decision, not automatic Australian hashtags.
 const AUSTRALIAN_SCOPE =
-  /\b(Australia\w*|Sydney|Melbourne|Brisbane|Perth|Adelaide|Hobart|Darwin|Canberra|Townsville|Newcastle|Wollongong|Geelong|Gold Coast|Sunshine Coast|NSW|New South Wales|Queensland(?:ers?)?|Victoria|Tasmania|Western Australia|South Australia|Northern Territory|RBA|Reserve Bank of Australia)\b/i;
+  /\b(Australia\w*|Sydney|Melbourne|Brisbane|Perth|Adelaide|Hobart|Darwin|Canberra|Townsville|Newcastle|Wollongong|Geelong|Shepparton|Gold Coast|Sunshine Coast|NSW|New South Wales|Queensland(?:ers?)?|Victoria|Tasmania|Western Australia|South Australia|Northern Territory|RBA|Reserve Bank of Australia)\b/i;
 const NEUTRAL_RELEASE = /^(new |latest |official |ABS )?(data|figures|statistics|report|update)\b/i;
 
 export function australianPropertyTier(input: {

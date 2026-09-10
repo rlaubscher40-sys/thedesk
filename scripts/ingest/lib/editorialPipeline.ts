@@ -92,7 +92,10 @@ export async function buildDailyBrief(options: PipelineOptions = {}) {
   const reports = await mapLimit(sources, 6, async (source) => {
     // Read a useful pool before relevance, rather than the first 2–5 entries.
     const maxItems =
-      source.kind === "index" || source.kind === "nsw-index"
+      source.kind === "index" ||
+      source.kind === "nsw-index" ||
+      source.kind === "asic-index" ||
+      source.kind === "victoria-index"
         ? source.maxItems
         : ["AU", "PROPERTY"].includes(source.channel)
           ? 20

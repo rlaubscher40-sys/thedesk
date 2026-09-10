@@ -152,6 +152,12 @@ export function editorialBeat(text: string): string | null {
   if (markets.test(text)) return "markets";
   if (policy.test(text)) return "policy";
   if (
+    /\b(?:(?:new|social|affordable) homes|homes (?:built|delivered)|making way for more homes)\b/i.test(
+      text
+    )
+  )
+    return "supply";
+  if (
     /\b(supply|approvals|completions|construction|rezoning|builder|housing target)\b/i.test(text) &&
     hasHousingEvidence(text)
   )
