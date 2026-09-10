@@ -2,6 +2,8 @@
 
 ## Verdict
 
+The follow-up below adds five further direct routes (81 total inputs, 39 direct), repairs nested article extraction, and supports bounded SQM PDF releases. Earlier findings in this report describe the first release; resolved gaps are explicitly updated in the follow-up.
+
 Add nine direct discovery sources, with article-level gates and regression tests. This materially improves direct property-data, prudential, lending, advice, tax and construction coverage. It does **not** establish a 10/10 briefing or comprehensive recall of the day's best stories.
 
 The audit tested 34 candidate publisher endpoints (including The Conversation's existing feed as a control), followed two advertised feed alternatives, checked all 67 existing discovery inputs, and sampled three articles from each of the nine additions. HTTP success alone was not an acceptance criterion. Publisher HTML was downloaded read-only and evaluated with the production parsing and selection functions; no model calls, database writes or social posts were used for the audit preview.
@@ -75,3 +77,27 @@ Useful article-level checks include [Cotality's September chart pack](https://ww
 `node --import tsx scripts/ingest/preview.ts` performs read-only production selection with source outcomes and held reasons. `node_modules/.bin/vitest run scripts/ingest/lib/sourceAudit.test.ts` runs deterministic audit regressions without network requests. Admin → Health → Story sourcing and selection retains actual production reports; inspect failed sources and reading-budget exclusions as well as published counts.
 
 Local validation covered TypeScript, the frontend production build and the focused source/extraction/geography/social tests. The wider non-video local run passed 1,604 tests, with 30 database-dependent tests skipped; final release CI is the authority for the complete database/video suite. See the associated pull request for its exact result and deployment status.
+
+## Follow-up: regional releases and research
+
+Eleven regional/official/research discovery pages were probed, with article and PDF samples downloaded read-only. Five verified routes are enabled. Static discovery from those pages returned 40 configured candidate links (12 NSW, 12 Queensland, 8 Housing Australia, 2 AHURI, 6 SQM); these are discovery counts, not 40 publishable stories.
+
+| Added route | Verified contribution and limits |
+| --- | --- |
+| [NSW ministerial releases](https://www.nsw.gov.au/ministerial-releases) | Its publicly advertised anonymous search endpoint exposes ministerial release links. Query housing/rent/planning/homes headlines, require published ministerial records and sort by the publisher's display date. Validate the type and same-origin release path again in the adapter. Search timestamps never become article publication evidence. The September 10 Western Sydney social-homes sample produced 2,569 readable characters and passed the actual editorial assessor. |
+| [Queensland housing search](https://statements.qld.gov.au/?Search=True&Text=housing) | Uses the site's native search form, preserving links to individual releases. The leading riverfront housing release supplied 4,679 characters and its original September 6 timestamp; it was correctly too old at the time of checking. This is a future monitoring route, not a reason to republish old news. |
+| [Housing Australia](https://www.housingaustralia.gov.au/media) | The HTML reader's closing-tag regex stopped at nested introduction sections. Selecting and serializing the complete DOM article restores the underlying body: the three previously short samples now contain 3,282, 3,762 and 1,383 characters. Original dates remain intact; the chair appointment is held as a staff announcement. |
+| [AHURI research news](https://www.ahuri.edu.au/insights/latest-news) | Correct verified route replaces the earlier unsuccessful candidate. The children's rental-housing research sample supplied 3,805 characters and the visible original day, August 27. Recognise its `page-date` field only on AHURI; retain day precision and hold old research and board appointments. |
+| [SQM Research media](https://sqmresearch.com.au/media) | Follow only dated `/uploads/` PDF releases on the audited host. Two real PDFs were parsed, and the listings release's first page was visually inspected. Listings: September 1 release concerning August, 1,911 retained characters. Vacancy: August 13 release concerning July, 679 characters. Both are old today and must remain so. |
+
+Additional protections and corrections:
+
+- NSW's visible Sydney-local calendar day can legitimately differ from the date portion of a UTC timestamp. Compare those declarations in `Australia/Sydney`, including daylight saving, while preserving genuine conflicts and precision limits. This also helps existing search-discovered NSW releases.
+- SQM extraction runs in a terminable worker with a four-second parsing deadline, 2MB input limit, eight-page document limit and bounded memory. Read only opening-page narrative; later chart/table values are not flattened into article evidence. Retain at most 6,000 characters. No new PDF dependency is needed.
+- Require the printed standalone release date to agree with the dated PDF filename. Handle split day glyphs such as `1 3 August` without interpreting the reporting month, document creation metadata or crawl clock as a release date.
+- HTML and PDF articles continue through the same freshness, evidence-length, subject, geography, duplicate and priority gates. Index sources remain excluded from the timestamp-dependent hourly RSS excerpt archive; they enter scheduled editorial discovery.
+- Property-listings research is recognised as a housing subject. The social selector also recognises explicit new/social/affordable homes and numbered housing-delivery headlines, including Queenslanders as a geographic cue. Overseas headlines, absent Australian evidence, passing body mentions and individual property advertisements remain held.
+
+Local regression validation passed 513 tests across 54 files, TypeScript and the frontend production build. Coverage includes real parsing of an original synthetic PDF, malformed/oversized/overlong PDFs, worker termination, later-page exclusion, direct fetch dispatch, nested articles, NSW timezone agreement/conflict, AHURI dates, discovery schema/link checks and downstream housing-supply selection. Real publisher observations used bounded read-only downloads; this workspace's Node DNS lookup failed for a direct network preview, so production availability must be judged from deployment reports rather than this environment's transport result. Release CI and deployment results are recorded in the associated pull request.
+
+Remaining direct regional gaps: Victoria and WA return JavaScript-driven listings without usable static release links in this check; SA, Tasmania, ACT and NT returned 403. No access-denial workaround was attempted. Existing state search discovery remains. Other first-release blockers, unsupported official adapters, licensed/paywalled access and the multi-day human-labelled recall benchmark remain unresolved. Five more sources and passing tests do not establish 10/10 editorial quality.

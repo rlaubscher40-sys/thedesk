@@ -10,7 +10,9 @@ import { explainNoPick, pickStatOfTheDay, rehearsalStat, type HistoryPoint } fro
 // Only source headline/summary text counts; generated 'why it matters' copy
 // must not be able to turn an unrelated story into property evidence.
 const PROPERTY =
-  /\b(housing|dwelling\w*|mortgage\w*|home loans?|rental\w*|rents?|renters?|tenan\w*|landlords?|real estate|(?:house|home|property) (?:prices?|values?|sales|market)|auction clearance|building approvals?|housing approvals?|residential (?:development\w*|approvals?))\b/i;
+  /\b(housing|dwelling\w*|mortgage\w*|home loans?|rental\w*|rents?|renters?|tenan\w*|landlords?|real estate|(?:house|home|property) (?:prices?|values?|sales|listings?|market)|auction clearance|building approvals?|housing approvals?|residential (?:development\w*|approvals?))\b/i;
+const HOUSING_SUPPLY =
+  /\b(?:new|social|affordable) homes\b|\b(?:unlock(?:s|ed|ing)?|deliver(?:s|ed|ing)?) [0-9][0-9,]* homes\b|\b[0-9][0-9,]* homes (?:unlocked|fast.tracked)\b/i;
 const FINANCING = /\b(cash rate|interest rates?|RBA|Reserve Bank|housing credit)\b/i;
 const HOUSING_MARKET =
   /\b(?:homes?|houses?|properties|apartments?)\b.{0,50}\b(?:prices?|values?|market|declin(?:e|es|ing)|affordability|supply)\b/i;
@@ -18,7 +20,7 @@ const HOUSING_MARKET =
 // A channel label is not geographic evidence. Overseas housing headlines
 // require a separate editorial decision, not automatic Australian hashtags.
 const AUSTRALIAN_SCOPE =
-  /\b(Australia\w*|Sydney|Melbourne|Brisbane|Perth|Adelaide|Hobart|Darwin|Canberra|Townsville|Newcastle|Wollongong|Geelong|Gold Coast|Sunshine Coast|NSW|New South Wales|Queensland|Victoria|Tasmania|Western Australia|South Australia|Northern Territory|RBA|Reserve Bank of Australia)\b/i;
+  /\b(Australia\w*|Sydney|Melbourne|Brisbane|Perth|Adelaide|Hobart|Darwin|Canberra|Townsville|Newcastle|Wollongong|Geelong|Gold Coast|Sunshine Coast|NSW|New South Wales|Queensland(?:ers?)?|Victoria|Tasmania|Western Australia|South Australia|Northern Territory|RBA|Reserve Bank of Australia)\b/i;
 const NEUTRAL_RELEASE = /^(new |latest |official |ABS )?(data|figures|statistics|report|update)\b/i;
 
 export function australianPropertyTier(input: {
@@ -32,7 +34,7 @@ export function australianPropertyTier(input: {
   if (!AUSTRALIAN_SCOPE.test(text) && !/\bACT\b/.test(text)) return 0;
   // A passing mention in a broad politics article must not become the lead.
   const subject = NEUTRAL_RELEASE.test(input.title) ? text : input.title;
-  return PROPERTY.test(subject) || HOUSING_MARKET.test(subject)
+  return PROPERTY.test(subject) || HOUSING_MARKET.test(subject) || HOUSING_SUPPLY.test(subject)
     ? 2
     : FINANCING.test(subject)
       ? 1

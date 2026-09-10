@@ -48,7 +48,7 @@ export type Source = {
   /** The Discover content lane this source feeds. */
   channel: FeedChannel;
   maxItems?: number;
-  kind?: "rss" | "index";
+  kind?: "rss" | "index" | "nsw-index";
   articlePath?: string;
   /** Require a publisher-declared article type around index links. */
   articleContainerClass?: string;
@@ -88,6 +88,59 @@ function googleNewsGlobal(query: string): string {
 }
 
 export const SOURCES: Source[] = [
+  {
+    name: "NSW Housing Releases",
+    // Anonymous search endpoint advertised by the ministerial-releases page.
+    // Search metadata is discovery only; the release supplies publication evidence.
+    url:
+      "https://www.nsw.gov.au/api/v1/elasticsearch/prod_content/_search?" +
+      new URLSearchParams({
+        q: "status:true AND subtype:ministerialmediarelease AND (title:housing OR title:rent* OR title:planning OR title:homes)",
+        sort: "display_date:desc",
+        size: "12",
+        _source: "url,title,subtype,status",
+      }).toString(),
+    kind: "nsw-index",
+    category: "PROPERTY",
+    channel: "PROPERTY",
+    maxItems: 12,
+  },
+  {
+    name: "Queensland Housing Releases",
+    url: "https://statements.qld.gov.au/?Search=True&Text=housing",
+    kind: "index",
+    articlePath: "^/statements/[0-9]+$",
+    category: "PROPERTY",
+    channel: "PROPERTY",
+    maxItems: 12,
+  },
+  {
+    name: "Housing Australia",
+    url: "https://www.housingaustralia.gov.au/media",
+    kind: "index",
+    articlePath: "^/media/[^/]+$",
+    category: "PROPERTY",
+    channel: "PROPERTY",
+    maxItems: 8,
+  },
+  {
+    name: "AHURI Research News",
+    url: "https://www.ahuri.edu.au/insights/latest-news",
+    kind: "index",
+    articlePath: "^/(?:analysis/news|news)/[^/]+$",
+    category: "PROPERTY",
+    channel: "PROPERTY",
+    maxItems: 8,
+  },
+  {
+    name: "SQM Research Releases",
+    url: "https://sqmresearch.com.au/media",
+    kind: "index",
+    articlePath: "^/uploads/[0-9]{2}-[0-9]{2}-[0-9]{2}-[^/]+\\.pdf$",
+    category: "PROPERTY",
+    channel: "PROPERTY",
+    maxItems: 6,
+  },
   // Audited 2026-09-10: direct discovery; every article still needs original
   // publication evidence, readable reporting, Australian scope and beat fit.
   {

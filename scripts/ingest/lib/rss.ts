@@ -1,4 +1,5 @@
 import { parseIndexSource } from "./indexSource";
+import { parseNswSource } from "./nswSource";
 import { publicFetch } from "./publicFetch";
 /**
  * Thin wrapper around rss-parser. Returns normalised items plus the source's
@@ -116,8 +117,9 @@ export function createSourceReader(
   return async (src: Source): Promise<SourceReport> => {
     try {
       const { value: xml, checkedAt } = await read(src.url);
-      if (src.kind === "index") {
-        const items = parseIndexSource(xml, src);
+      if (src.kind === "index" || src.kind === "nsw-index") {
+        const items =
+          src.kind === "nsw-index" ? parseNswSource(xml, src) : parseIndexSource(xml, src);
         return {
           items,
           fetched: items.length,

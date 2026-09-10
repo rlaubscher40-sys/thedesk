@@ -1,7 +1,8 @@
 import { extractPublicationDate, missingPublicationDate } from "./publicationDate";
 import type { SourceTiming } from "../../../shared/sourceTiming";
 import { publicFetch } from "./publicFetch";
-import { readableHtml } from "./htmlText";
+import { readableArticleHtml } from "./htmlText";
+import { extractResearchPdf, isResearchPdfUrl } from "./researchPdf";
 /**
  * Fetches an article page once and returns BOTH the og:image and the
  * extracted body text. This replaces the old image-only scrape: the daily
@@ -36,21 +37,9 @@ export type FetchedArticle = {
   >;
 };
 
-function matchFirst(s: string, re: RegExp): string | null {
-  const m = s.match(re);
-  return m && m[1] ? m[1] : null;
-}
-
 /** Pull readable body text out of raw article HTML, capped at `maxChars`. */
 export function extractArticleText(html: string, maxChars: number): string | null {
-  const cleaned = readableHtml(html);
-
-  // Prefer a semantic container, the article body lives here on most news
-  // sites and this strips chrome (nav, footer, "more stories" rails).
-  const container =
-    matchFirst(cleaned, /<article\b[^>]*>([\s\S]*?)<\/article>/i) ??
-    matchFirst(cleaned, /<main\b[^>]*>([\s\S]*?)<\/main>/i) ??
-    cleaned;
+  const container = readableArticleHtml(html);
 
   const paras: string[] = [];
   // Research releases often put their actual findings in lists. Retain those
@@ -102,16 +91,22 @@ export async function fetchArticle(
   let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
   try {
     const res = await publicFetch(url, {
-      maxBytes: 5 * 1024 * 1024,
+      maxBytes: (isResearchPdfUrl(url) ? 2 : 5) * 1024 * 1024,
       signal: controller.signal,
       redirect: "follow",
       headers: {
         "User-Agent": `Mozilla/5.0 (compatible; TheDeskBot/1.0; +${SITE_URL})`,
-        Accept: "text/html,application/xhtml+xml",
+        Accept: "text/html,application/xhtml+xml,application/pdf",
       },
     });
     if (!res.ok) return empty;
     const contentType = (res.headers.get("content-type") ?? "").split(";")[0]!.trim().toLowerCase();
+    if (contentType === "application/pdf" && isResearchPdfUrl(url)) {
+      const result = await extractResearchPdf(new Uint8Array(await res.arrayBuffer()), url, {
+        maxChars,
+      });
+      return { imageUrl: null, ...result };
+    }
     if (!["text/html", "application/xhtml+xml"].includes(contentType)) {
       await res.body?.cancel();
       return empty;

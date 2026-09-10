@@ -87,6 +87,27 @@ export function extractPublicationDate(html: string, sourceUrl?: string): Public
     const node = nodes.pop()!;
     if ("tagName" in node) {
       const attrs = Object.fromEntries(node.attrs.map((a) => [a.name, a.value]));
+      if (host === "ahuri.edu.au" && (attrs.class ?? "").split(/\s+/).includes("page-date")) {
+        const months: Record<string, string> = {
+          Jan: "January",
+          Feb: "February",
+          Mar: "March",
+          Apr: "April",
+          May: "May",
+          Jun: "June",
+          Jul: "July",
+          Aug: "August",
+          Sep: "September",
+          Oct: "October",
+          Nov: "November",
+          Dec: "December",
+        };
+        namedDay(
+          collect(node)
+            .trim()
+            .replace(/\b[A-Z][a-z]{2}\b/, (month) => months[month] ?? month)
+        );
+      }
       if (
         host === "ministers.treasury.gov.au" &&
         node.tagName === "meta" &&
@@ -180,7 +201,19 @@ export function extractPublicationDate(html: string, sourceUrl?: string): Public
       )
         return null;
     }
-    return { timestamp, day };
+    // NSW's visible day is Sydney-local; its JSON-LD clock is often UTC.
+    // Compare calendar days in the publisher's timezone, retaining the actual
+    // timestamp only when every declaration supports that precision.
+    const comparisonDay =
+      host === "nsw.gov.au" && timestamp
+        ? new Intl.DateTimeFormat("en-CA", {
+            timeZone: "Australia/Sydney",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          }).format(new Date(timestamp))
+        : day;
+    return { timestamp, day: comparisonDay };
   });
   if (invalid || parsed.some((value) => !value))
     return { publisherPublishedAt: null, publisherDateStatus: "invalid" };

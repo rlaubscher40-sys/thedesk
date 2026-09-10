@@ -4,7 +4,7 @@ import { looksLikeGarbage, looksLikeSiteBoilerplate } from "./headline";
 import { sourceTimingHold, type SourceTiming } from "./sourceTiming";
 import { storyChannel } from "./storyGeography";
 
-export const EDITORIAL_VERSION = "2026-09-10-v3";
+export const EDITORIAL_VERSION = "2026-09-10-v4";
 export type EditorialInput = {
   title: string;
   summary?: string | null;
@@ -43,6 +43,7 @@ const specialist = new Set([
   "corelogic.com.au",
   "sqmresearch.com.au",
   "housingaustralia.gov.au",
+  "ahuri.edu.au",
   "nhsac.gov.au",
 ]);
 const newsroom = new Set([
@@ -75,6 +76,12 @@ export function publisherWeight(input: EditorialInput): number {
 /** Page types are evidence/reference material, not automatically a dated news event. */
 export function referenceNewsHold(input: EditorialInput): string | null {
   const title = input.title.trim();
+  if (
+    /\b(?:appoint(?:ed|ment)|welcomes)\b.*\b(?:chair|board member|chief executive|CEO)\b/i.test(
+      title
+    )
+  )
+    return "reference-or-staff-profile";
   if (
     /\b(book your (?:hotel|room|ticket)|awards 20\d{2}|audit day 20\d{2}|register now|early.bird|sponsored|advertorial|webinar)\b/i.test(
       title
