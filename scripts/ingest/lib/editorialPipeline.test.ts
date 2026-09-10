@@ -63,6 +63,41 @@ function preview(items: FetchedItem[], overrides: Parameters<typeof buildDailyBr
 }
 
 describe("editorial regression benchmark", () => {
+  it("records total decision count even when early exclusions exceed the retained sample", async () => {
+    const items = Array.from({ length: 320 }, (_, i) =>
+      item({ url: `https://www.abc.net.au/news/old-${i}`, isoDate: "2025-01-01T00:00:00Z" })
+    );
+    const result = await preview(items);
+    expect(result.report.decisionCount).toBe(320);
+    expect(result.report.decisions).toHaveLength(300);
+    expect(result.report.read).toBe(0);
+  });
+  it("distinguishes a publisher reading cap from the overall reading budget", async () => {
+    const result = await preview(
+      Array.from({ length: 12 }, (_, i) => item({ url: `https://www.abc.net.au/news/story-${i}` }))
+    );
+    expect(
+      result.report.decisions.filter((d) => d.reason === "publisher-reading-limit")
+    ).toHaveLength(2);
+    expect(result.report.read).toBe(10);
+  });
+  it("records the publisher publication cap separately from a lane cap", async () => {
+    const titles = [
+      "Australian mortgage serviceability limits revised",
+      "Sydney rental vacancy research released",
+      "Melbourne residential construction workforce shortages increase",
+      "Brisbane housing supply policy changed",
+    ];
+    const result = await preview(
+      titles.map((title, i) =>
+        item({ title, summary: "", url: `https://www.abc.net.au/news/distinct-${i}` })
+      )
+    );
+    expect(result.items).toHaveLength(3);
+    expect(
+      result.report.decisions.filter((d) => d.reason === "publisher-publication-limit")
+    ).toHaveLength(1);
+  });
   it.each([
     ["Australian Mortgage Awards 2026: Book your hotel room now", "promotion-or-event-marketing"],
     [

@@ -1,4 +1,5 @@
 import { EditorialHealth } from "./EditorialHealth";
+import { CoverageReview } from "./CoverageReview";
 /**
  * Admin health dashboard.
  *
@@ -125,6 +126,7 @@ export function HealthAdminPanel() {
       <PropertyCoveragePanel />
       <MetricHealthPanel />
       <EditorialHealth />
+      <CoverageReview />
       <FeedEnrichmentHealth />
       <DailyBriefHealth />
       <LocalDataHealth />
