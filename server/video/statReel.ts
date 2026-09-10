@@ -700,7 +700,8 @@ export async function renderStatReel(
               key: section.key,
               start: starts[i]!,
               seconds: durations[section.key] ?? 0,
-            }))
+            })),
+        display ? 34 : 32
       );
       const fontDir = path.join(dir, "fonts");
       await fs.mkdir(fontDir);

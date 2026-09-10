@@ -138,6 +138,17 @@ moving marker. Intermediate values are animation, not annual observations.
 The housing marker no longer appears in the deposit scene, avoiding a floating
 decoration or a visual conversion between different units and periods.
 
+## Subtitle readability correction
+
+The documentary subtitle band is centred on the full canvas at x540/y1540,
+below the source notes. Use the bundled editorial sans at 54px with bold
+weight and a restrained 1.5px outline. The former 44px regular face at x504/y1490
+looked weak, off-centre and too close to the evidence footer on a phone.
+Keep at most two lines, with up to 34 characters per documentary line. Prefer
+sentence boundaries and balanced line lengths within a cue. Other layouts keep
+their 32-character limit and positions. Preserve the narration and measured
+cue intervals; do not add word-by-word highlighting or rewrite the spoken copy.
+
 Fable, the reviewed narration, dates, qualifications and publication identity
 remain unchanged. Gemini's supplied 10-second concept informed the expanded
 composition, but its generated numbers and changing logos are not reused.

@@ -91,7 +91,13 @@ it("keeps the housing counts together across timed subtitle cues", () => {
 it("uses the bundled editorial sans face for documentary captions and keeps their safe position", () => {
   const cues = [{ start: 0, end: 2, lines: ["Homes added must outpace new need."] }];
   const out = subtitleAss(cues, "documentary");
-  expect(out).toContain("Style: Desk,Desk Editorial Sans,44");
-  expect(out).toContain("504,1490");
+  expect(out).toContain("Style: Desk,Desk Editorial Sans,54");
+  expect(out).toContain("540,1540");
   expect(subtitleAss(cues, "story")).toContain("Style: Desk,JetBrains Mono,40");
+});
+
+it("wraps the opening at its sentence boundary without changing the spoken words", () => {
+  expect(
+    captionChunks("Australia is building homes. Why is buying one getting harder?", 34)
+  ).toEqual([["Australia is building homes.", "Why is buying one getting harder?"]]);
 });
