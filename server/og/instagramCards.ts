@@ -136,12 +136,21 @@ export async function renderEditorialFrame(
           ...(meta.publisher
             ? [
                 div(
-                  { fontFamily: "Desk Editorial Sans", fontSize: 26, color: c.fgMuted },
+                  {
+                    fontFamily: "Desk Editorial Sans",
+                    fontSize: meta.documentary ? 31 : 26,
+                    color: c.fgMuted,
+                  },
                   meta.publisher
                 ),
               ]
             : []),
-          mono(meta.source, 21, c.fgMuted),
+          meta.documentary
+            ? div(
+                { fontFamily: "Desk Editorial Sans", fontSize: 30, color: c.fgMuted },
+                meta.source
+              )
+            : mono(meta.source, 21, c.fgMuted),
         ]
       ),
       ...(!meta.quiet

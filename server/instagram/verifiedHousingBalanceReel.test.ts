@@ -74,6 +74,18 @@ describe("matched historical housing flows", () => {
 });
 
 describe("the finding survives the Reel and source destination", () => {
+  it("changes only the opening for the controlled hook comparison", () => {
+    const question = verifiedHousingBalanceReel(evidence(), now, "question")!;
+    const consequence = verifiedHousingBalanceReel(evidence(), now, "consequence")!;
+    expect(question.script[0]).not.toEqual(consequence.script[0]);
+    expect(question.script.slice(1)).toEqual(consequence.script.slice(1));
+    expect(question.publication).toEqual(consequence.publication);
+    expect(question.evidenceHash).toEqual(consequence.evidenceHash);
+    expect(() =>
+      validateStoryboard(consequence.stat.storyboard!, consequence.script)
+    ).not.toThrow();
+    expect(() => validateStoryboard(consequence.stat.storyboard!, question.script)).toThrow();
+  });
   it("allows a bounded complete-sentence read while retaining the default budget", () => {
     const candidate = verifiedHousingBalanceReel(evidence(), now)!;
     expect(reelDurationLimit()).toBe(32);
@@ -154,7 +166,7 @@ describe("the finding survives the Reel and source destination", () => {
       if (number) expect(line.text.replace(number[1]!, number[0]!)).toBe(spoken.text);
       else if (line.key === "households") {
         expect(line.text).toBe(
-          "Saving a 20% deposit meant an estimated 9 years in 2015. By 2025, that had stretched to 11.2 years."
+          "For buyers, the estimated deposit-saving time was 9 years in 2015. By 2025, 11.2 years."
         );
       } else expect(line.text).toBe(spoken.text);
       const seconds = estimateSpeechSeconds(spoken.text);

@@ -9,11 +9,15 @@ import { renderStoryFrame } from "../server/video/storyboard";
 const args = process.argv.slice(2),
   at = args.indexOf("--out");
 if (at < 0 || !args[at + 1])
-  throw new Error("Use --out /absolute/review-directory [--frames-only]");
+  throw new Error("Use --out /absolute/review-directory [--frames-only] [--opening consequence]");
 const out = path.resolve(args[at + 1]!);
+const openingAt = args.indexOf("--opening");
+const opening = openingAt < 0 ? "question" : args[openingAt + 1];
+if (opening !== "question" && opening !== "consequence") throw new Error("Unknown opening.");
 const candidate = verifiedHousingBalanceReel(
   HOUSING_BALANCE_SNAPSHOT,
-  new Date("2026-09-10T12:00:00Z")
+  new Date("2026-09-10T12:00:00Z"),
+  opening
 );
 if (!candidate?.stat.storyboard) throw new Error("No verified housing balance story.");
 await fs.mkdir(out, { recursive: true });

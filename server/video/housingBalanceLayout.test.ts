@@ -89,11 +89,11 @@ describe("documentary housing Reel", () => {
   it("does not overlay outgoing and incoming headings during visual bridges", () => {
     for (const progress of [0, 0.08, 0.15, 0.5, 1]) {
       const pressure = copy(frame("claim", progress).content).join(" ");
-      expect(pressure).toContain("Too few homes.");
+      expect(pressure).toContain("The squeeze.");
       expect(pressure).not.toContain("Falling behind.");
       const deposit = copy(frame("households", progress).content).join(" ");
       expect(deposit).toContain("The deposit");
-      expect(deposit).not.toContain("More competition.");
+      expect(deposit).not.toContain("The squeeze.");
     }
   });
   it("identifies archive imagery and the modelled deposit assumptions", () => {

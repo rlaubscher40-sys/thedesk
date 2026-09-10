@@ -59,11 +59,14 @@ retain their original copyright notices and the SIL Open Font License.
 Use deep navy, warm ivory and muted gold. Prioritise large serif headlines,
 italic emphasis, fine rules and generous space. Keep bars slim and consistently
 scaled; hold the supply row in place as demand arrives. Mark the uncovered
-part of the demand bar. The competition illustration is symbolic, not a count of households or bidders. The closing additions bar crossing a need marker is
+part of the demand bar. The competition scene preserves that exact uncovered
+segment and scale, then connects it to price and rent pressure. It does not
+invent a count of households or bidders. The closing additions bar crossing a need marker is
 explicitly illustrative, without invented forecast numbers or dates.
 
 The rejected white evidence panel and excerpt crops are removed. Show the full
-Council name in a quiet, consistent source footer, followed by year and page.
+Council name in a consistent source footer, followed by year and page. Documentary
+footers use 31px and 30px editorial sans at 1080px, with space above subtitles.
 The public source read contains the report title, exact links and methodology.
 
 Use licensed, credited real imagery where it adds context. Label archive
@@ -104,14 +107,12 @@ inline preview has repeatedly failed for this user.
 - Assess retention, completion, saves and replies after posting. A design review
   cannot establish parity with Glasshouse's audience performance.
 
-
 ## Current review and research
 
 See `reel-research-and-review.md` for primary references, the decisions they
 informed, and checks on the finished export. Documentary subtitles use the
 bundled editorial sans face rather than the monospaced metadata font. Other
 Reel formats retain their existing subtitle treatment.
-
 
 The opening uses a separate monochrome architectural photograph by Phillip
 Flores. The construction photograph appears only with the supply constraints.
