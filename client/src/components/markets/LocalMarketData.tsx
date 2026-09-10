@@ -1,4 +1,5 @@
 import { trpc } from "@/lib/trpc";
+import { planningPeriodWindow, planningEvidenceHref } from "@shared/nswPlanning";
 import {
   LOCAL_SOURCES,
   STATE_CODES,
@@ -43,8 +44,11 @@ export function LocalMarketData({
   const planningQuery = /^(?:city of sydney|sydney council|sydney lga)$/i.test(
     query.trim(),
   );
-  const planning = trpc.metrics.planningPilot.useQuery(undefined, {
-    enabled: planningQuery,
+  const planningPinned = period !== undefined && period !== null;
+  const planningMonth = period?.slice(0, 7) ?? "";
+  const planningPeriodValid = !planningPinned || planningPeriodWindow(planningMonth)?.to === period;
+  const planning = trpc.metrics.planningPilot.useQuery(planningPinned && planningPeriodValid ? {period: planningMonth} : undefined, {
+    enabled: planningQuery && planningPeriodValid,
     staleTime: 60_000,
     retry: false,
   });
@@ -188,7 +192,8 @@ export function LocalMarketData({
           <h3 className="font-serif text-2xl">
             City of Sydney council planning
           </h3>
-          {planning.data?.snapshot ? (
+          {planningPinned && <p className="mt-3 text-sm">Requested stored planning period. No latest-period substitution.</p>}
+          {planningPeriodValid && planning.data?.snapshot ? (
             <>
               <p className="mt-3">
                 {planning.data.snapshot.originalApplications} original
@@ -206,12 +211,13 @@ export function LocalMarketData({
                 applications omit dwelling counts. Proposed dwellings are not
                 approvals or completions.
               </p>
+              <a className="bs-link text-sm inline-block mt-3" href={planningEvidenceHref(planning.data.snapshot)}>Open this dated planning snapshot →</a>
             </>
           ) : (
             <p className="mt-3">
-              {planning.isLoading
+              {planningPeriodValid && planning.isLoading
                 ? "Loading the planning snapshot…"
-                : "No complete planning snapshot is available."}
+                : planningPinned ? "No complete snapshot is available for the requested month-end period. A newer period has not been substituted." : "No complete planning snapshot is available."}
             </p>
           )}
           <p className="text-sm mt-3">

@@ -4,7 +4,7 @@ The original scope was to make collected data reliable across Ask, Markets and S
 
 | Area | Implemented and checked |
 | --- | --- |
-| Geography and evidence | State-specific retrieval checks across all eight jurisdictions; postcode/state disambiguation; dated local-rent answers and citations. This does not imply local rental feeds exist for every jurisdiction. |
+| Geography and evidence | State-specific retrieval checks across all eight jurisdictions; postcode/state disambiguation; dated local-rent answers and citations. CPI citations select an exact month; planning citations pin the stored month and revision. Missing requested evidence does not fall back to latest. This does not imply local rental feeds exist for every jurisdiction. |
 | Freshness | Reporting periods remain distinct from retrieval/check dates. Older observations cannot become current merely because a collection succeeds. Exact building-approval Signal links use validated, dated structured answers. |
 | Source grounding | Structured metric questions select matching metric evidence; citation bounds and an independent evidence review fail closed when unavailable. General generated answers still require monitoring because model review is probabilistic. |
 | Collection efficiency | Persistent cooldowns; conditional HTTP validation; changed files parsed once; conservative article identities; transactional duplicate claims; actual downloads and estimated avoided bodies shown separately. Savings are not claimed before measured responses occur. |

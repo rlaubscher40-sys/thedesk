@@ -3,7 +3,7 @@
  * editor can add or override metrics that aren't covered by the automated
  * ingest (CPI, unemployment, auction clearance, etc.).
  */
-import { getNswPlanningPilot } from "../planning/read";
+import { getNswPlanningPilot, getStoredPlanningPilot } from "../planning/read";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { consumeAnonymousCard } from "../core/askQuota";
@@ -56,7 +56,10 @@ async function enforceCardQuota(
 }
 
 export const metricsRouter = router({
-  planningPilot: publicProcedure.query(() => getNswPlanningPilot()),
+  planningPilot: publicProcedure.input(z.object({
+    period: z.string().regex(/^20\d{2}-(0[1-9]|1[0-2])$/),
+    fingerprint: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+  }).optional()).query(({ input }) => input ? getStoredPlanningPilot(input.period, input.fingerprint) : getNswPlanningPilot()),
   list: publicProcedure.query(async () => {
     return db.listDailyMetrics();
   }),

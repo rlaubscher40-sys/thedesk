@@ -138,7 +138,7 @@ export default function MarketsPage() {
     const params = new URLSearchParams(search);
     const state = /^(NSW|VIC|QLD|SA|WA|TAS|NT|ACT)$/.test(params.get("state") ?? "") ? params.get("state") : "";
     const kind = /^(SA2|LGA|suburb|postcode)$/.test(params.get("areaKind") ?? "") ? params.get("areaKind") : /^\d{4}$/.test(market) ? "postcode" : "";
-    const period = /^20\d{2}-\d{2}-\d{2}$/.test(params.get("period") ?? "") ? params.get("period") : "";
+    const period = /^20\d{2}-\d{2}-\d{2}$/.test(params.get("period") ?? "") ? params.get("period") : /^20\d{2}-(0[1-9]|1[0-2])$/.test(params.get("rentPeriod") ?? "") ? params.get("rentPeriod") : "";
     ask.mutate({
       question: `Assess ${kind} ${market.slice(0, 64)} ${state}${period ? ` for reporting period ${period}` : ""}: price momentum, rents, supply, credit, population and risks. Use Desk evidence only; state gaps and what would change the call.`,
     });
@@ -198,7 +198,7 @@ export default function MarketsPage() {
 
       <ComparisonWatchlist />
       {!comparisonMode && <AuctionClearance metrics={metrics.data} loading={metrics.isLoading} />}
-      {!comparisonMode && market && <MarketRentConditions marketA={market} />}
+      {!comparisonMode && market && <MarketRentConditions marketA={market} period={new URLSearchParams(search).get("rentPeriod")} />}
       {!comparisonMode && market && <LocalMarketData query={market} state={new URLSearchParams(search).get("state")} kind={new URLSearchParams(search).get("areaKind")} period={new URLSearchParams(search).get("period")} />}
       {comparisonMode ? (
         <MarketComparison

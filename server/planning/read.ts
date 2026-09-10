@@ -4,9 +4,26 @@ import { readPlanningSnapshots, savePlanningSnapshot } from "../db/planningSnaps
 import {
   NSW_PILOT_COUNCIL,
   nswPlanningWindow,
+  planningPeriodWindow,
   type NswPlanningRead,
 } from "../../shared/nswPlanning";
 import { fetchNswPlanningSnapshot } from "./nswDa";
+
+/** Evidence links read retained records only. Never fetch or silently substitute latest. */
+export async function getStoredPlanningPilot(period: string, fingerprint?: string): Promise<NswPlanningRead> {
+  const unavailable: NswPlanningRead = {status: "unavailable", snapshot: null, previous: []};
+  const window = planningPeriodWindow(period);
+  if (!window || window.to > nswPlanningWindow(new Date()).to ||
+      (fingerprint !== undefined && !/^[a-f0-9]{64}$/.test(fingerprint)) || isDemoMode()) return unavailable;
+  try {
+    const rows = await readPlanningSnapshots(NSW_PILOT_COUNCIL, window.from, window.to, fingerprint);
+    const matching = rows.filter(row => row.councilName === NSW_PILOT_COUNCIL &&
+      row.from === window.from && row.to === window.to && row.completePagination &&
+      (!fingerprint || row.fingerprint === fingerprint));
+    if (!matching[0]) return unavailable;
+    return {status: "available", snapshot: matching[0], previous: fingerprint ? [] : matching.slice(1)};
+  } catch { return unavailable; }
+}
 
 /** Fixed council and month: public visitors cannot turn this into an arbitrary API proxy.
  * Single-flight caching bounds both API traffic and stored vintages. No LLM or paid API. */

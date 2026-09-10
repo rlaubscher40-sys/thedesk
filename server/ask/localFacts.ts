@@ -3,11 +3,14 @@ import {
   RENT_SOURCE,
   latestRent,
   rentIsOlder,
+  cityRentHref,
 } from "../../shared/cityRents";
 import {
   NSW_PILOT_COUNCIL,
   NSW_PLANNING_DATASET,
   nswPlanningWindow,
+  planningPeriodWindow,
+  planningEvidenceHref,
 } from "../../shared/nswPlanning";
 import { getCityRents } from "../markets/absRents";
 import { readPlanningSnapshots } from "../db/planningSnapshots";
@@ -71,34 +74,31 @@ export async function retrieveLocalFacts(
     work.push(
       getCityRents().then((data) =>
         cities.flatMap((city) => {
-          const row = latestRent(data, city);
-          if (
-            !row ||
-            rentIsOlder(row, new Date().toISOString()) ||
-            !data.retrievedAt
-          )
-            return [];
-          if (
-            requestedPeriods.length &&
-            !requestedPeriods.some((period) => row.period.startsWith(period))
-          )
-            return [];
-          return [
-            {
+          if (data.status !== "available" || !data.retrievedAt) return [];
+          const latest = latestRent(data, city);
+          const rows = requestedPeriods.length
+            ? data.observations.filter(row => row.city === city && requestedPeriods.some(period => row.period.startsWith(period)))
+                .sort((a, b) => b.period.localeCompare(a.period)).slice(0, 6)
+            : latest && !rentIsOlder(latest, new Date().toISOString()) ? [latest] : [];
+          return rows.map(row => ({
               title: `${city}: annual CPI rent change`,
               date: row.period,
-              href: `/markets/${city.toLowerCase()}#rental-conditions`,
+              href: cityRentHref(city, row.period),
               publisher: "Australian Bureau of Statistics",
               sourceUrl: data.sourceUrl ?? RENT_SOURCE,
-              text: `Capital-city CPI rent series for ${city}. Annual change in rents paid: ${row.annualPercent}%, year to ${row.period}. Status: ${row.status || "published"}. This is not monthly growth, median weekly rent, advertised rent, vacancy or a suburb observation. Retrieved ${data.retrievedAt}; retrieval is not publication.`,
-            },
-          ];
+              text: `Capital-city CPI rent series for ${city}. Annual change in rents paid: ${row.annualPercent}%, year to ${row.period}. Status: ${row.status || "published"}. ${row.period !== latest?.period || rentIsOlder(row, new Date().toISOString()) ? "Historical observation; do not present as current conditions. " : ""}This is not monthly growth, median weekly rent, advertised rent, vacancy or a suburb observation. Retrieved ${data.retrievedAt}; retrieval is not publication.`,
+            }));
         }),
       ),
     );
   }
   if (planning) {
-    const window = nswPlanningWindow(new Date());
+    const currentWindow = nswPlanningWindow(new Date());
+    const windows = requestedPeriods.length
+      ? [...new Set(requestedPeriods.map(period => period.length >= 7 ? period.slice(0, 7) : currentWindow.from.startsWith(period) ? currentWindow.from.slice(0, 7) : ""))]
+          .map(planningPeriodWindow).filter((window): window is {from: string; to: string} => Boolean(window) && window!.to <= currentWindow.to).slice(0, 6)
+      : [currentWindow];
+    for (const window of windows)
     work.push(
       readPlanningSnapshots(NSW_PILOT_COUNCIL, window.from, window.to).then(
         (rows) => {
@@ -106,19 +106,20 @@ export async function retrieveLocalFacts(
           if (
             !row ||
             !row.completePagination ||
+            row.from !== window.from || row.to !== window.to || row.councilName !== NSW_PILOT_COUNCIL ||
             (requestedPeriods.length &&
               !requestedPeriods.some((period) => row.to.startsWith(period))) ||
-            Date.now() - Date.parse(row.retrievedAt) > 7 * 86400_000
+            (!requestedPeriods.length && Date.now() - Date.parse(row.retrievedAt) > 7 * 86400_000)
           )
             return [];
           return [
             {
               title: "City of Sydney council: development applications",
               date: row.to,
-              href: "/markets?q=City%20of%20Sydney#local-data",
+              href: planningEvidenceHref(row),
               publisher: "NSW Planning Portal",
               sourceUrl: NSW_PLANNING_DATASET,
-              text: `Council of the City of Sydney LGA only, not Greater Sydney or NSW. Lodged ${row.from} to ${row.to}: ${row.originalApplications} original development applications, ${row.modifications} modifications, ${row.reviews} reviews. Reported proposed dwellings on original applications: ${row.dwellings.reported ?? "unavailable"}; ${row.dwellings.missingApplications} applications omit dwelling counts. Proposed dwellings are not approvals or completions. Complete pagination. Snapshot retrieved ${row.retrievedAt}.`,
+              text: `Council of the City of Sydney LGA only, not Greater Sydney or NSW. Lodged ${row.from} to ${row.to}: ${row.originalApplications} original development applications, ${row.modifications} modifications, ${row.reviews} reviews. Reported proposed dwellings on original applications: ${row.dwellings.reported ?? "unavailable"}; ${row.dwellings.missingApplications} applications omit dwelling counts. Proposed dwellings are not approvals or completions. Complete pagination. ${row.to !== currentWindow.to ? "Historical lodgement period; not current activity. " : ""}Snapshot retrieved ${row.retrievedAt}; revision ${row.fingerprint}.`,
             },
           ];
         },

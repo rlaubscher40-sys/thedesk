@@ -5,7 +5,8 @@ import { planningSnapshots } from "./schema";
 export async function readPlanningSnapshots(
   councilName: string,
   from: string,
-  to: string
+  to: string,
+  fingerprint?: string,
 ): Promise<NswPlanningSnapshot[]> {
   const db = getDb();
   if (!db) throw new Error("Planning snapshot storage unavailable");
@@ -16,7 +17,8 @@ export async function readPlanningSnapshots(
       and(
         eq(planningSnapshots.councilName, councilName),
         eq(planningSnapshots.periodFrom, from),
-        eq(planningSnapshots.periodTo, to)
+        eq(planningSnapshots.periodTo, to),
+        ...(fingerprint ? [eq(planningSnapshots.fingerprint, fingerprint)] : [])
       )
     )
     .orderBy(desc(planningSnapshots.id))

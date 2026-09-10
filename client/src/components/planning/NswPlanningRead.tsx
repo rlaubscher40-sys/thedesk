@@ -1,16 +1,26 @@
 import { trpc } from "@/lib/trpc";
+import { useSearch } from "wouter";
 import {
   NSW_PLANNING_ATTRIBUTION,
   NSW_PLANNING_DATASET,
+  planningPeriodWindow,
+  planningEvidenceHref,
   type NswPlanningRead as PlanningRead,
 } from "../../../../shared/nswPlanning";
 
 export function NswPlanningPanel() {
-  const query = trpc.metrics.planningPilot.useQuery(undefined, {
+  const search = new URLSearchParams(useSearch());
+  const period = search.get("planningPeriod");
+  const fingerprint = search.get("planningRevision");
+  const pinned = period !== null || fingerprint !== null;
+  const valid = !pinned || (period !== null && Boolean(planningPeriodWindow(period)) &&
+    (fingerprint === null || /^[a-f0-9]{64}$/.test(fingerprint)));
+  const query = trpc.metrics.planningPilot.useQuery(pinned && valid ? {period: period!, ...(fingerprint ? {fingerprint} : {})} : undefined, {
+    enabled: valid,
     staleTime: 60 * 60_000,
     retry: false,
   });
-  return <NswPlanningRead data={query.data} loading={query.isLoading} />;
+  return <NswPlanningRead data={valid ? query.data : undefined} loading={valid && query.isLoading} pinned={pinned} invalid={!valid} />;
 }
 function periodLabel(from: string): string {
   return new Date(`${from}T12:00:00Z`).toLocaleDateString("en-AU", {
@@ -32,9 +42,13 @@ function checkedAt(at: string): string {
 export function NswPlanningRead({
   data,
   loading = false,
+  pinned = false,
+  invalid = false,
 }: {
   data?: PlanningRead;
   loading?: boolean;
+  pinned?: boolean;
+  invalid?: boolean;
 }) {
   const snapshot = data?.snapshot;
   return (
@@ -48,13 +62,14 @@ export function NswPlanningRead({
       <p className="font-serif text-lg text-[var(--color-fg-muted)] mt-3 max-w-[72ch]">
         City of Sydney council area only. This is one local government area within Greater Sydney.
       </p>
+      {pinned && <p role="status" className="mt-3 text-sm">{invalid ? "Invalid planning evidence link. No latest snapshot has been substituted." : "Dated evidence view. Only the requested stored period and, where specified, revision are shown. This is not a live count."}</p>}
       {loading ? (
         <p className="mt-4" role="status">
           Checking the official planning feed…
         </p>
       ) : data?.status !== "available" || !snapshot ? (
         <p className="mt-4 text-[var(--color-fg-muted)]">
-          The planning snapshot is unavailable right now. Missing data does not mean no
+          {pinned ? "The requested stored planning snapshot is unavailable. A different period or revision has not been substituted." : "The planning snapshot is unavailable right now."} Missing data does not mean no
           applications.
         </p>
       ) : (
@@ -126,7 +141,7 @@ export function NswPlanningRead({
                   they are not publication dates.
                 </p>
               )}
-              {data.previous.length > 0 ? (
+              {pinned ? <p>Showing retained evidence for the requested period. The snapshot link below also pins this revision.</p> : data.previous.length > 0 ? (
                 <>
                   <p>
                     Earlier checks of the same lodgement period are retained. Changes below are
@@ -150,6 +165,7 @@ export function NswPlanningRead({
               )}
             </div>
           </details>
+          <a className="bs-link text-sm inline-block mt-3" href={planningEvidenceHref(snapshot)}>Link to this planning snapshot →</a>
         </>
       )}
       <p className="mt-5 text-xs text-[var(--color-fg-muted)] max-w-[90ch]">

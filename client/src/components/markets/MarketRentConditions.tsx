@@ -2,7 +2,7 @@ import { CityRentRead } from "@shared/CityRentRead";
 import { rentCity } from "@shared/cityRents";
 import { trpc } from "@/lib/trpc";
 
-export function MarketRentConditions({ marketA, marketB }: { marketA: string; marketB?: string }) {
+export function MarketRentConditions({ marketA, marketB, period }: { marketA: string; marketB?: string; period?: string | null }) {
   const enabled = Boolean(rentCity(marketA) || (marketB && rentCity(marketB)));
   const query = trpc.markets.rentalConditions.useQuery(undefined, {
     enabled,
@@ -21,6 +21,7 @@ export function MarketRentConditions({ marketA, marketB }: { marketA: string; ma
       data={query.data}
       marketA={marketA}
       marketB={marketB}
+      period={period}
       asOf={new Date().toISOString().slice(0, 10)}
     />
   );

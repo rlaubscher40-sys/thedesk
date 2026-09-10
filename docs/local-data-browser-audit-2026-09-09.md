@@ -70,3 +70,30 @@ conditional workbook requests before large downloads; more detailed Admin
 coverage-gap reasons; and permitted VIC/ACT/NT rental sources. Automatic local
 rent-driven Signals remain unimplemented. The council planning pilot remains
 scoped to proposals, not approvals or completions.
+
+## CPI and planning evidence links — 10 September 2026
+
+The live Melbourne search with `rentPeriod=2026-06` reproduced another date
+mismatch: the panel headlined July's 2.5% annual CPI rent change and showed June's
+2.6% only as the previous rate. New CPI evidence links now carry the exact month
+to the Markets search panel. The selector never substitutes another month;
+missing/invalid requested months produce an explicit gap. The market-brief action
+preserves a valid requested CPI month. CPI history is limited to the observations
+retained in the retrieved series; this change does not create an indefinite CPI
+archive or freeze later ABS revisions to the same observation.
+
+New City of Sydney planning citations link to Signals with the lodgement month
+and stored snapshot fingerprint. That path reads the exact stored council/month/
+revision, without collecting the live source or creating a new snapshot. Missing
+or invalid pins never call the latest-period collector. Planning panels show a
+dated-evidence notice and a link to the displayed revision; local Markets also
+honours a requested planning month-end period. Default unpinned panels keep their
+existing live behaviour. Old answers' previously unpinned URLs are not rewritten.
+
+Ask can retrieve explicitly requested CPI months still present in the series and
+historical planning months retained in storage, with separate dated citations.
+Historical evidence is not described as current activity. Source geography and
+the distinction between proposed dwellings, approvals and completions remain
+unchanged. Parser, reader, router and rendered-panel regressions cover exact,
+missing, invalid, old and revised evidence. No migration, paid source, new model
+call or historical collection backfill is introduced by the implementation.

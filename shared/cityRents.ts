@@ -37,6 +37,16 @@ export function latestRent(data: CityRents | undefined, name: string): RentObser
     .filter((row) => row.city === city)
     .sort((a, b) => b.period.localeCompare(a.period))[0];
 }
+/** A requested period must never fall back to a newer observation. */
+export function rentForPeriod(data: CityRents | undefined, name: string, period?: string | null) {
+  if (period === undefined || period === null) return latestRent(data, name);
+  if (!/^20\d{2}-(0[1-9]|1[0-2])$/.test(period) || data?.status !== "available") return undefined;
+  const city = rentCity(name);
+  return data.observations.find(row => row.city === city && row.period === period);
+}
+export function cityRentHref(city: string, period: string): string {
+  return `/markets?q=${encodeURIComponent(city)}&rentPeriod=${encodeURIComponent(period)}#rental-conditions`;
+}
 export function rentIsOlder(row: RentObservation, asOf: string): boolean {
   // More than three calendar months behind the read date is explicitly labelled older.
   const months = (value: string) => Number(value.slice(0, 4)) * 12 + Number(value.slice(5, 7));

@@ -91,11 +91,38 @@ describe("optional local evidence", () => {
       ),
     ).toHaveLength(1);
   });
+  it("returns separate period-pinned CPI citations for an explicit month comparison", async () => {
+    vi.mocked(getCityRents).mockResolvedValue({status:"available",retrievedAt:"2026-09-09T07:00:00Z", observations:[
+      {city:"Sydney",period:"2026-06",annualPercent:3.1,status:""},
+      {city:"Sydney",period:"2026-07",annualPercent:3,status:""},
+    ]});
+    const facts = await retrieveLocalFacts("Compare Sydney rent growth in June 2026 and July 2026");
+    expect(facts.map(f => f.href)).toEqual([
+      "/markets?q=Sydney&rentPeriod=2026-07#rental-conditions",
+      "/markets?q=Sydney&rentPeriod=2026-06#rental-conditions",
+    ]);
+    expect(facts[1]!.text).toContain("Historical observation");
+    expect(facts[1]!.text).toContain("3.1%");
+  });
+  it("can cite an old stored planning month without relabelling its age as current activity", async () => {
+    vi.mocked(readPlanningSnapshots).mockResolvedValue([{
+      councilName:"Council of the City of Sydney",from:"2025-08-01",to:"2025-08-31",completePagination:true,
+      fingerprint:"b".repeat(64),retrievedAt:"2025-09-01T00:00:00Z",originalApplications:90,modifications:2,reviews:0,
+      dwellings:{reported:200,missingApplications:20},
+    }] as Awaited<ReturnType<typeof readPlanningSnapshots>>);
+    const facts = await retrieveLocalFacts("City of Sydney planning applications in August 2025");
+    expect(facts).toHaveLength(1);
+    expect(facts[0]!.href).toBe(`/signals?planningPeriod=2025-08&planningRevision=${"b".repeat(64)}#nsw-planning`);
+    expect(facts[0]!.text).toContain("not current activity");
+    expect(readPlanningSnapshots).toHaveBeenCalledWith("Council of the City of Sydney","2025-08-01","2025-08-31");
+  });
   it("does not substitute the current planning window for a historical request", async () => {
     vi.mocked(readPlanningSnapshots).mockResolvedValue([
       {
         from: "2026-08-01",
         to: "2026-08-31",
+        councilName: "Council of the City of Sydney",
+        fingerprint: "a".repeat(64),
         completePagination: true,
         retrievedAt: "2026-09-09T07:00:00Z",
         originalApplications: 92,
@@ -113,6 +140,7 @@ describe("optional local evidence", () => {
       "City of Sydney planning applications in August 2026",
     );
     expect(facts[0]!.text).toContain("not approvals or completions");
+    expect(facts[0]!.href).toBe(`/signals?planningPeriod=2026-08&planningRevision=${"a".repeat(64)}#nsw-planning`);
   });
   it.each([
     "Sydney median weekly rent",
