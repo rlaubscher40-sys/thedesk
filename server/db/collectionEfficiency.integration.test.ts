@@ -64,6 +64,7 @@ afterAll(async () => {
   await pool?.end();
 });
 
+
 it.skipIf(!testUrl)(
   "gives only one simultaneous worker an inserted ID, including tracking variants",
   async () => {
@@ -486,3 +487,21 @@ it.skipIf(!testUrl)(
     ).toEqual(stories);
   }
 );
+
+it.skipIf(!testUrl)("repairs overseas lanes without changing saved story identity or editorial text", async () => {
+  const url = "https://concurrency-test.example/geography";
+  const id = await claims.insertFeedOnce({
+    ...item, sourceUrl: url, channel: "AU",
+    title: "Home prices fall in most major US cities as housing market cools: See where",
+    summary: "Single-family homes in San Diego, California.",
+    whyItMatters: "An Australian comparison must not decide the section.",
+  });
+  const { repairFeedGeography } = await import("./feedGeography");
+  expect(await repairFeedGeography()).toBeGreaterThanOrEqual(1);
+  const [rows] = await pool.query("SELECT * FROM daily_feed_items WHERE id=?", [id]);
+  expect(rows).toEqual([expect.objectContaining({
+    id, sourceUrl: url, channel: "BUSINESS", category: "PROPERTY",
+    whyItMatters: "An Australian comparison must not decide the section.",
+  })]);
+  expect(await repairFeedGeography()).toBe(0);
+});

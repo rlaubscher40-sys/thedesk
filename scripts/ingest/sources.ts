@@ -6,8 +6,7 @@
  *   - `channel`  — the Discover content lane it feeds (the Today-page tabs).
  *
  * Channels (see shared/const.ts FEED_CHANNELS):
- *   - AU       — Australia's Top Stories (flagship). Australian sources PLUS
- *                the partner-relevant global macro/markets lens. Enriched.
+ *   - AU       — Australia's Top Stories (flagship). Australian reporting, checked story by story. Enriched.
  *   - PROPERTY — Australian property specifically. Enriched.
  *   - BUSINESS — global business/markets coverage. Coverage-only.
  *   - TECH     — global tech & science coverage. Coverage-only.
@@ -244,29 +243,27 @@ export const SOURCES: Source[] = [
     maxItems: 2,
   },
 
-  // ── Partner-relevant global lens (stays in the AU flagship per brief) ────
-  // Globally-set rates, US property and world markets move regardless of
-  // border but are core to partner conversations, so they're enriched here
-  // rather than dropped into the coverage lanes.
+  // ── International finance belongs in Business, including US housing. ────
+  // An Australian reader angle does not change the geography of the news.
   {
     name: "Global · Central banks",
     url: googleNewsGlobal('Federal Reserve OR ECB OR "Bank of England" OR "Bank of Japan" rates'),
     category: "MACRO",
-    channel: "AU",
+    channel: "BUSINESS",
     maxItems: 2,
   },
   {
     name: "Global · Markets & rates",
     url: googleNewsGlobal('"10-year yield" OR "S&P 500" OR "dollar index"'),
     category: "MARKETS",
-    channel: "AU",
+    channel: "BUSINESS",
     maxItems: 2,
   },
   {
     name: "Global · US property & mortgage",
     url: googleNewsGlobal('US "housing market" OR "mortgage rates" OR "home prices"'),
     category: "PROPERTY",
-    channel: "AU",
+    channel: "BUSINESS",
     maxItems: 2,
   },
 

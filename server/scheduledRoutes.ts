@@ -1,3 +1,4 @@
+import { routeStory } from "../shared/storyGeography";
 import { drainFeedEnrichment } from "./feed/enrichmentWorker";
 import { sourceTimingHold } from "../shared/sourceTiming";
 import {
@@ -200,7 +201,8 @@ function registerDailyFeedRoute(app: Express): void {
       db.getRecentSourceUrls(14),
       db.getRecentFeedItems(10),
     ]);
-    const freshItemsRaw = unseenFeedItems(timingChecked, recentUrls);
+    // Recheck at the API boundary, including old or manual ingest clients.
+    const freshItemsRaw = unseenFeedItems(timingChecked.map(routeStory), recentUrls);
     const skippedCount = timingChecked.length - freshItemsRaw.length;
     if (skippedCount > 0) {
       console.log(
