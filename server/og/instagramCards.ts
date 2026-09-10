@@ -75,6 +75,8 @@ export async function renderEditorialFrame(
     documentary?: boolean;
     publisher?: string;
     background?: object;
+    /** Transparent, grain-free layer for the per-frame video compositor. */
+    transparent?: boolean;
   }
 ): Promise<Buffer> {
   const c = colorScheme(variant);
@@ -89,7 +91,11 @@ export async function renderEditorialFrame(
       position: "relative",
       width: 1080,
       height: 1920,
-      backgroundColor: meta.documentary && variant !== "light" ? "#0C1117" : c.bg,
+      backgroundColor: meta.transparent
+        ? "transparent"
+        : meta.documentary && variant !== "light"
+          ? "#0C1117"
+          : c.bg,
     },
     [
       ...(meta.background ? [meta.background] : []),
@@ -181,7 +187,7 @@ export async function renderEditorialFrame(
         : []),
     ]
   );
-  return renderToJpeg(tree, 1080, 1920);
+  return meta.transparent ? renderEditorialLayer(tree, 1080, 1920) : renderToJpeg(tree, 1080, 1920);
 }
 
 /**
@@ -436,7 +442,12 @@ export function fitValueSize(
   return `${Math.floor(Math.max(opts.minPx, Math.min(opts.maxPx, fits)))}px`;
 }
 
-async function renderToJpeg(tree: object, width: number, height: number): Promise<Buffer> {
+/** Rasterise authored typography once, independently of moving video layers. */
+export async function renderEditorialLayer(
+  tree: object,
+  width: number,
+  height: number
+): Promise<Buffer> {
   const fonts = await loadFonts();
   const svg = await satori(tree as never, {
     width,
@@ -464,7 +475,11 @@ async function renderToJpeg(tree: object, width: number, height: number): Promis
     ],
   });
   const resvg = new Resvg(svg, { fitTo: { mode: "width", value: width } });
-  const png = Buffer.from(resvg.render().asPng());
+  return Buffer.from(resvg.render().asPng());
+}
+
+async function renderToJpeg(tree: object, width: number, height: number): Promise<Buffer> {
+  const png = await renderEditorialLayer(tree, width, height);
   // Fine film grain over the flat fills, so the cards read as printed
   // editorial stock rather than a flat export. A mid-grey gaussian noise
   // layer in 'overlay' leaves tones unchanged and only its deviations

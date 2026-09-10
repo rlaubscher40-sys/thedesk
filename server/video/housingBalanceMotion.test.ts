@@ -13,9 +13,11 @@ describe("synchronised housing count-ups", () => {
       expect(tick.value).toBeGreaterThanOrEqual(ticks[Math.max(0, i - 1)]!.value);
       expect(tick.value).toBeLessThanOrEqual(target);
       expect(tick.value % 1000).toBe(0);
-      expect(tick.widthPercent).toBeCloseTo((tick.value / 300000) * 100, 10);
+      // The bar uses the underlying eased value; the label rounds to 1,000.
+      expect(Math.abs(tick.widthPercent * 3000 - tick.value)).toBeLessThanOrEqual(500.00001);
     });
-    expect(ticks[15]!.value).toBeGreaterThan(target / 2);
+    expect(ticks[15]!.widthPercent).toBeCloseTo((target / 2 / 300000) * 100);
+    expect(new Set(ticks.map((t) => t.widthPercent)).size).toBe(ticks.length);
   });
   it.each([-1, 1.01, NaN, Infinity])("rejects invalid progress %s", (p) => {
     expect(() => balanceCountFrame(232000, p)).toThrow();

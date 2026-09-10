@@ -74,7 +74,9 @@ describe("documentary housing Reel", () => {
       const tick = housingDepositGeometry(i / 100);
       expect(tick.years).toBeGreaterThanOrEqual(previous);
       expect(tick.years).toBeLessThanOrEqual(11.2);
-      expect(tick.dotX).toBeCloseTo(90 + ((tick.years - 9) / 2.2) * 660);
+      expect(Math.abs(9 + ((tick.dotX - 90) / 660) * 2.2 - tick.years)).toBeLessThanOrEqual(
+        0.050001
+      );
       previous = tick.years;
     }
   });

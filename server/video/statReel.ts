@@ -625,7 +625,8 @@ export async function renderStatReel(
     // picture, and satori is the expensive part of this function.
     const cache = new Map<string, string>();
     const frameFiles: string[] = [];
-    for (const beat of beats) {
+    const continuous = stat.storyboard?.kind === "housing-balance" && Boolean(spoken);
+    for (const beat of continuous ? [] : beats) {
       const key = [
         beat.frame.reveal,
         beat.frame.valueText ?? "",
@@ -673,6 +674,19 @@ export async function renderStatReel(
 
     const output = path.join(dir, "reel.mp4");
     const args: string[] = ["-y", "-loglevel", "error"];
+    if (continuous)
+      args.push(
+        "-f",
+        "rawvideo",
+        "-pixel_format",
+        "rgba",
+        "-video_size",
+        "1080x1920",
+        "-framerate",
+        String(FPS),
+        "-i",
+        "pipe:0"
+      );
     // One still per input, never a looped stream — see buildVideoGraph.
     for (const file of frameFiles) args.push("-i", file);
     for (const s of spokenSections) args.push("-i", s.file);
@@ -723,15 +737,16 @@ export async function renderStatReel(
       );
       subtitleFilter = `[vplain]ass=filename=${assFile}:fontsdir=${fontDir}[vout]`;
     }
+    const videoGraph = continuous
+      ? "[0:v]format=yuv420p[vout]"
+      : buildVideoGraph(beats, Boolean(stat.storyboard));
     const graph = [
-      opts.subtitles
-        ? buildVideoGraph(beats, Boolean(stat.storyboard)).replace(/\[vout\]$/, "[vplain]")
-        : buildVideoGraph(beats, Boolean(stat.storyboard)),
+      opts.subtitles ? videoGraph.replace(/\[vout\]$/, "[vplain]") : videoGraph,
       subtitleFilter,
       spokenSections.length
         ? buildAudioGraph(
             spokenSections.map((s) => s.start),
-            frameFiles.length,
+            continuous ? 1 : frameFiles.length,
             total,
             stat.storyboard?.kind === "housing-balance"
           )
@@ -775,7 +790,22 @@ export async function renderStatReel(
     );
 
     // The encode measures a few seconds; the ceiling is for a cold container.
-    await run(ffmpegPath, args, { timeout: 180_000, maxBuffer: 1024 * 1024 * 32 });
+    if (continuous && stat.storyboard?.kind === "housing-balance") {
+      const { createHousingMotionRenderer, encodeMotionFrames } =
+        await import("./housingMotionRenderer");
+      const draw = await createHousingMotionRenderer(
+        stat.storyboard,
+        variant,
+        sections.map((s, i) => ({
+          key: s.key,
+          start: starts[i]!,
+          seconds: durations[s.key]!,
+          phrases: phrases[s.key]!,
+        })),
+        total
+      );
+      await encodeMotionFrames(args, total, draw);
+    } else await run(ffmpegPath, args, { timeout: 180_000, maxBuffer: 1024 * 1024 * 32 });
     // A successful encode can still contain a truncated video stream while
     // audio continues. Measure decoded picture duration, not container duration.
     const decoded = await run(
