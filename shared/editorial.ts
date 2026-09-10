@@ -274,6 +274,8 @@ export const editorialReportSchema = z.object({
   inserted: z.number().int().nonnegative(),
   read: z.number().int().nonnegative(),
   selected: z.number().int().nonnegative(),
+  /** Total decisions before the retained 300-entry sample; absent on older runs. */
+  decisionCount: z.number().int().nonnegative().optional(),
   sources: z
     .array(
       z.object({

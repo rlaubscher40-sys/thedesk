@@ -1,4 +1,6 @@
 import { editorialHealth } from "../db/editorial";
+import { readCoverage, saveCoverage } from "../db/editorialCoverage";
+import { coverageDaySchema, coverageSaveSchema } from "../../shared/editorialCoverage";
 /**
  * Admin-only health router.
  *
@@ -56,6 +58,8 @@ type ServiceInfo = {
 };
 
 export const healthRouter = router({
+  coverageReview: adminProcedure.input(z.object({day:coverageDaySchema})).query(({input})=>readCoverage(input.day)),
+  saveCoverageReview: adminProcedure.input(coverageSaveSchema).mutation(({input,ctx})=>saveCoverage(input,ctx.user.id)),
   editorial: adminProcedure.query(() => editorialHealth()),
   importVicWorkbook: adminProcedure.input(z.object({
     base64: z.string().min(1).max(2_800_000),

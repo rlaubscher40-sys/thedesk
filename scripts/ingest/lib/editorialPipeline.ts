@@ -164,7 +164,10 @@ export async function buildDailyBrief(options: PipelineOptions = {}) {
   const perSource = new Map<string, number>();
   const shortlist = candidates.filter((item) => {
     const count = perSource.get(item.source) ?? 0;
-    if (count >= 10) return false;
+    if (count >= 10) {
+      decisions.get(articleIdentity(item))!.reason = "publisher-reading-limit";
+      return false;
+    }
     perSource.set(item.source, count + 1);
     return true;
   });
@@ -256,7 +259,10 @@ export async function buildDailyBrief(options: PipelineOptions = {}) {
       if (picked.filter((p) => p.channel === channel).length >= CHANNEL_TARGETS[channel]) break;
       const item = cluster.item as PreparedStory;
       const publisher = new URL(item.url!).hostname.replace(/^www\./, "");
-      if ((publisherCounts.get(publisher) ?? 0) >= 3) continue;
+      if ((publisherCounts.get(publisher) ?? 0) >= 3) {
+        unique.find((r) => r.prepared === item)!.entry.reason = "publisher-publication-limit";
+        continue;
+      }
       publisherCounts.set(publisher, (publisherCounts.get(publisher) ?? 0) + 1);
       const entry = unique.find((r) => r.prepared === item)!.entry;
       entry.selected = true;
@@ -271,6 +277,7 @@ export async function buildDailyBrief(options: PipelineOptions = {}) {
   report.selected = picked.length;
   report.finishedAt = (options.now ?? new Date()).toISOString();
   // Keep all read decisions plus a bounded sample of pre-reading holds.
+  report.decisionCount = decisions.size;
   report.decisions = [...decisions.values()]
     .sort(
       (a, b) =>
