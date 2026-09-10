@@ -134,3 +134,34 @@ The scheduler emits a `[reel-plan]` runtime log when that status changes, includ
 the publication key and period, without credentials or a new public admin route.
 Use this to confirm what is actually selected after deployment. Do not infer a
 story's posting time merely from a merge or a successful preview.
+
+## Connected rent comparison and newer voice auditions
+
+The rent comparison now reads the two source observations in separate measured
+phrases. The first bar finishes on Brisbane's utterance; Perth starts on its own.
+Completed bars remain through the gap explanation and move into a compact
+comparison as weekly price and investment inputs are introduced. Unknown dollar
+figures are shown as unknown, never invented examples. The opening and ending
+reuse the credited architectural illustration as context, not as a photograph
+of either named market. The caption includes its credit.
+
+The user asked to audition newer voices on 10 September 2026. Kokoro `bm_fable`
+and OpenAI `fable` are different voices. The existing approved production voice
+remains Kokoro while a replacement is auditioned. The current OpenAI Speech guide
+recommends `cedar` and `marin` with `gpt-4o-mini-tts`:
+https://developers.openai.com/api/docs/guides/text-to-speech
+
+With OPENAI_API_KEY securely available in the authorised review environment:
+
+```bash
+node --import tsx scripts/review-reel.ts --topic instagram-reel-abs-rents-brisbane-perth-v1 --audition-voice cedar --out /absolute/new-audition-directory
+```
+
+Use `marin` for the same-script comparison. The explicit audition option uses
+Australian editorial direction, measures returned PCM and rebuilds the complete
+MP4 around the new audio. It never speeds up an existing recording, substitutes
+Fable on error, exposes the key, or changes the automatic publisher. Its metadata
+identifies the actual provider and voice. Missing access is a clear failure.
+Listen for accent consistency, natural stress, correct numbers and the complete
+story before promoting a new voice into production. Do not claim this audition
+was heard or approved merely because the code or mocked tests passed.

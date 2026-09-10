@@ -6,10 +6,17 @@ import { renderStatReel } from "../server/video/statReel";
 import { productionReelOptions } from "../server/video/reelProduction";
 
 const args = process.argv.slice(2);
+const audition = args.includes("--audition-voice")
+  ? args[args.indexOf("--audition-voice") + 1]
+  : undefined;
+if (audition && audition !== "cedar" && audition !== "marin")
+  throw new Error("Audition voice must be cedar or marin.");
+if (args.includes("--audition-voice") && (!audition || args.includes("--all")))
+  throw new Error("Choose one topic and an explicit audition voice.");
 const usage =
   "node --import tsx scripts/review-reel.ts --list\n" +
   "node --import tsx scripts/review-reel.ts --topic <publication-key> --out /absolute/new-directory\n" +
-  "node --import tsx scripts/review-reel.ts --all --out /absolute/new-directory";
+  "node --import tsx scripts/review-reel.ts --all --out /absolute/new-directory\nOptional single-topic audition: --audition-voice cedar|marin";
 if (args.includes("--help")) {
   console.log(usage);
   process.exit(0);
@@ -61,11 +68,11 @@ if (args.includes("--list")) {
     if (destination !== output) await fs.mkdir(destination);
     const startedAt = Date.now();
     console.log(JSON.stringify({ topic: entry.topic, status: "rendering" }));
-    const rendered = await renderStatReel(
-      candidate.stat,
-      "navy",
-      productionReelOptions(candidate.script)
-    );
+    const production = {
+      ...productionReelOptions(candidate.script),
+      ...(audition ? { auditionVoice: audition as "cedar" | "marin" } : {}),
+    };
+    const rendered = await renderStatReel(candidate.stat, "navy", production);
     if (!rendered.narrated || !rendered.subtitled)
       throw new Error("Review requires voice and subtitles.");
     await fs.writeFile(path.join(destination, "The-Desk-Reel.mp4"), rendered.bytes);
@@ -79,7 +86,16 @@ if (args.includes("--list")) {
         {
           status: "Review only. Not posted.",
           generatedAt: new Date().toISOString(),
-          production: productionReelOptions(),
+          production: audition
+            ? {
+                narrate: true,
+                subtitles: true,
+                provider: "OpenAI",
+                model: "gpt-4o-mini-tts",
+                voice: audition,
+                reviewOnly: true,
+              }
+            : productionReelOptions(),
           candidate,
           seconds: rendered.seconds,
           narrated: rendered.narrated,

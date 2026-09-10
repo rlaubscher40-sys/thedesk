@@ -1,3 +1,4 @@
+import { rentComparisonLayout } from "./rentComparisonLayout";
 import type { CardVariant } from "../og/instagramCards";
 import { evidenceBarGeometry, type EvidenceVisual } from "./evidenceVisual";
 import { moving, smooth, type MotionNode } from "./reelMotion";
@@ -14,6 +15,13 @@ export function evidenceVisualLayout(
   progress: number,
   variant: CardVariant
 ) {
+  if (v.recipe === "rent-comparison")
+    return rentComparisonLayout(
+      v,
+      key,
+      { progress, rates: [smooth(progress * 2), smooth(progress * 2 - 1)] },
+      variant
+    );
   const c =
     variant === "light"
       ? { fg: "#171B21", muted: "#66635C", gold: "#946C29", track: "#DED8CD" }

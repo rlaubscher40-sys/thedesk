@@ -563,6 +563,8 @@ export async function renderStatReel(
     script?: ScriptLine[];
     subtitles?: boolean;
     voice?: SpeechProfile;
+    /** Explicit local review command only; publishing never supplies this option. */
+    auditionVoice?: "cedar" | "marin";
   } = {}
 ): Promise<{
   bytes: Buffer;
@@ -599,9 +601,23 @@ export async function renderStatReel(
     const spoken =
       opts.narrate === false
         ? null
-        : stat.storyboard?.kind === "housing-balance"
-          ? await synthesisePhrases(stat.storyboard.scenes, opts.voice)
-          : await synthesiseScript(script, opts.voice);
+        : opts.auditionVoice
+          ? await (
+              await import("./openAiVoiceAudition")
+            ).auditionOpenAiPhrases(
+              stat.storyboard?.kind === "housing-balance"
+                ? stat.storyboard.scenes
+                : script.map((s) => ({ ...s, phrases: s.text.split(/(?<=[.!?])\s+(?=[A-Z])/u) })),
+              opts.auditionVoice
+            )
+          : stat.storyboard?.kind === "housing-balance"
+            ? await synthesisePhrases(stat.storyboard.scenes, opts.voice)
+            : stat.visualStory?.recipe === "rent-comparison"
+              ? await synthesisePhrases(
+                  (await import("./rentComparisonLayout")).rentPhrasePlan(stat.visualStory),
+                  opts.voice
+                )
+              : await synthesiseScript(script, opts.voice);
     if (opts.narrate !== false && !spoken)
       throw new Error("Narration unavailable. No silent Reel was produced.");
 
@@ -726,7 +742,12 @@ export async function renderStatReel(
       const display =
         stat.storyboard?.kind === "housing-balance"
           ? housingBalanceSubtitleScript(stat.storyboard, script)
-          : undefined;
+          : Object.keys(phrases).length
+            ? script.map((s) => ({
+                key: s.key,
+                phrases: (phrases[s.key] ?? []).map((p) => p.text),
+              }))
+            : undefined;
       const cues = subtitleCues(
         display
           ? display.flatMap((s) => s.phrases.map((text, i) => ({ key: `${s.key}:${i}`, text })))
@@ -818,7 +839,12 @@ export async function renderStatReel(
       const draw = await createEvidenceMotionRenderer(
         stat.visualStory,
         variant,
-        sections.map((s, i) => ({ key: s.key, start: starts[i]!, seconds: durations[s.key]! })),
+        sections.map((s, i) => ({
+          key: s.key,
+          start: starts[i]!,
+          seconds: durations[s.key]!,
+          phrases: phrases[s.key],
+        })),
         total
       );
       await encodeMotionFrames(args, total, draw);
