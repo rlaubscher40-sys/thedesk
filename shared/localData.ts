@@ -6,7 +6,10 @@ export const LOCAL_SOURCE_KEYS = [
   "sa-bond-rents",
   "wa-bond-rents",
   "tas-bond-rents",
+  "vic-bond-rents",
 ] as const;
+/** Reviewed VIC file only: automatic publisher downloads have not succeeded. */
+export const AUTOMATIC_LOCAL_SOURCE_KEYS = LOCAL_SOURCE_KEYS.filter(source => source !== "vic-bond-rents");
 export type LocalSourceKey = (typeof LOCAL_SOURCE_KEYS)[number];
 export const STATE_CODES = [
   "NSW",
@@ -33,7 +36,7 @@ export type LocalObservation = {
   period: string;
   category: string;
   sample: number | null;
-  status: "published" | "suppressed" | "insufficient-sample";
+  status: "published" | "suppressed" | "insufficient-sample" | "source-unavailable";
 };
 export type LocalArea = {
   id: string;
@@ -59,6 +62,7 @@ export type LocalDataset = {
     lastModified?: string;
   };
   provenance?: "reviewed-release";
+  acquisition?: "user-upload";
   areas: LocalArea[];
   excludedRows: number;
 };
@@ -75,6 +79,17 @@ export const LOCAL_SOURCES = {
     maxAgeMonths: 27,
     method:
       "Estimated resident population on ASGS Edition 3 (2021) SA2 boundaries. SA2s are statistical areas, not necessarily suburbs. Migration components cover the financial year ending in the reference year. Do not substitute an SA2 for a whole city or suburb.",
+  },
+  "vic-bond-rents": {
+    label: "Victoria quarterly LGA weekly rents",
+    publisher: "Homes Victoria / Department of Families, Fairness and Housing",
+    url: "https://www.dffh.vic.gov.au/publications/rental-report",
+    licence: "https://discover.data.vic.gov.au/dataset/rental-report-quarterly-quarterly-median-rents-by-lga",
+    attribution: "Homes Victoria, Quarterly median rents by Local Government Area, September 2025 (CC BY 4.0); supplied publisher workbook",
+    cadence: "Quarterly",
+    states: ["VIC"],
+    maxAgeMonths: 6,
+    method: "Publisher median weekly rents for new rental lettings by council and the stated dwelling/bedroom category. Reported counts are contextual. Source dashes mean no numeric figure is supplied; the specific reason is not stated in this workbook. Do not infer zero or reconstruct missing values from totals. Published small counts can be volatile. Five quarters from September 2024 to September 2025 are stored. These historical figures are not current asking rents, vacancy rates or rents paid by all existing tenants. Council boundaries are not suburbs; Melbourne LGA is not metropolitan Melbourne. Changes in medians are affected by the mix of lettings and are not the publisher's rent index.",
   },
   "nsw-bond-rents": {
     label: "NSW new-bond weekly rents",
@@ -200,7 +215,7 @@ export function localPeriodLabel(
     year: "numeric",
     timeZone: "UTC",
   });
-  return ["qld-bond-rents", "sa-bond-rents"].includes(source)
+  return ["qld-bond-rents", "sa-bond-rents", "vic-bond-rents"].includes(source)
     ? `Quarter ended ${label}`
     : measure === "population"
       ? label
@@ -209,6 +224,7 @@ export function localPeriodLabel(
 
 export function localSampleLabel(source: LocalSourceKey): string {
   if (source === "abs-sa2-population") return "Sample";
+  if (source === "vic-bond-rents") return "Reported count";
   if (["nsw-bond-rents", "wa-bond-rents", "tas-bond-rents"].includes(source))
     return "Valid rents";
   if (source === "sa-bond-rents") return "Bonds (rounded)";

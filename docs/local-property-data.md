@@ -101,3 +101,12 @@ about to populate the missing cells. A future approved partial feed must show
 its actual geographic coverage; a combined reported-markets rate is not a
 national rate. Derive aggregates only from compatible same-week counts and the
 approved publisher methodology, never by averaging rounded state percentages.
+
+## Victorian supplied release — 10 September 2026
+
+The official LGA workbook was supplied by the user and validated. This release
+adds 79 councils and five quarters ending September 2025 through a fenced reviewed
+import. It supersedes the earlier statement that no Victorian parser is enabled.
+It does not enable automatic downloads or provide suburb rents. See
+[victoria-reviewed-rents.md](victoria-reviewed-rents.md) for source provenance,
+missing-value semantics, validation and the remaining delivery limitation.

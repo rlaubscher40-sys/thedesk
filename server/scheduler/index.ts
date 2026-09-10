@@ -33,13 +33,16 @@ import { collectPropertyEvidence } from "../evidence/collect";
 import { collectLocalData } from "../localData/collect";
 import {
   REVIEWED_SA_JOB,
+  REVIEWED_VIC_JOB,
+  reviewedVicReleasePending,
+  importReviewedVicRelease,
   reviewedSaReleasePending,
   importReviewedSaRelease,
 } from "../localData/reviewedRelease";
 import { readLocalDataHealth } from "../db/localData";
 import { pausedLocalSourceJobs } from "../../shared/localSourceAccess";
 import { LocalSourceAccessPaused } from "../localData/access";
-import { LOCAL_SOURCE_KEYS } from "../../shared/localData";
+import { AUTOMATIC_LOCAL_SOURCE_KEYS } from "../../shared/localData";
 import {
   recoverMissingMetrics,
   runScheduledMetricRefresh,
@@ -172,13 +175,20 @@ export const METRIC_RECOVERY_JOBS: Job[] = [0, 4, 8, 12, 16, 20].map(
 
 const JOBS: Job[] = [
   {
+    key: REVIEWED_VIC_JOB,
+    at: "00:00",
+    graceMinutes: 24 * 60 - 1,
+    maxAttempts: 2,
+    run: importReviewedVicRelease,
+  },
+  {
     key: REVIEWED_SA_JOB,
     at: "00:00",
     graceMinutes: 24 * 60 - 1,
     maxAttempts: 2,
     run: importReviewedSaRelease,
   },
-  ...LOCAL_SOURCE_KEYS.map((source, index) => ({
+  ...AUTOMATIC_LOCAL_SOURCE_KEYS.map((source, index) => ({
     key: `local-data-${source}`,
     at: `00:${15 + index * 5}`,
     graceMinutes: 23 * 60,
@@ -287,6 +297,10 @@ async function tick(baseUrl: string, apiKey: string): Promise<void> {
       await readLocalDataHealth().catch(() => []),
     );
     for (const job of JOBS) {
+      if (job.key === REVIEWED_VIC_JOB && !(await reviewedVicReleasePending().catch(err => {
+        console.warn("[scheduler] cannot check reviewed VIC import:", (err as Error).message);
+        return false;
+      }))) continue;
       if (
         job.key === REVIEWED_SA_JOB &&
         !(await reviewedSaReleasePending().catch((err) => {

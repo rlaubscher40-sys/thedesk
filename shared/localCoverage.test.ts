@@ -25,10 +25,12 @@ it("labels only explicit source suppression as not published", () => {
     published: 1,
     notPublished: 1,
     insufficientSample: 1,
+    sourceUnavailable: 0,
   });
   expect(localObservationCoverage(undefined)).toEqual({
     published: 0,
     notPublished: 0,
     insufficientSample: 0,
+    sourceUnavailable: 0,
   });
 });

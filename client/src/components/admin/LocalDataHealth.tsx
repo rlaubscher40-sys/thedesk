@@ -8,7 +8,7 @@ export function LocalDataHealth() {
     <section className="mt-8 border-t border-[var(--color-rule)] pt-6">
       <h3 className="font-serif text-2xl">Local dataset coverage</h3>
       <p className="text-sm mt-3">
-        Daily source checks; changed workbooks are parsed once. These collectors
+        Enabled sources are checked daily; reviewed imports are labelled separately. Changed workbooks are parsed once. These collectors
         use no LLM. A reporting period is separate from the last successful
         check.
       </p>
@@ -34,9 +34,13 @@ export function LocalDataHealth() {
             <p className="mt-2 text-sm">
               Across stored reporting periods: {source.observationCoverage.published} published figures ·{" "}
               {source.observationCoverage.notPublished} not published (source suppression) ·{" "}
-              {source.observationCoverage.insufficientSample} withheld under sample rules.
+              {source.observationCoverage.insufficientSample} withheld under sample rules ·{" "}
+              {source.observationCoverage.sourceUnavailable} unavailable with no reason stated in the source.
               Missing records are not proof that a publisher did not publish them.
             </p>
+            {source.sourceKey === "vic-bond-rents" && (
+              <p className="mt-2 text-sm">Reviewed file import only. Automatic publisher downloads are not enabled; a new release requires a validated file.</p>
+            )}
             {source.accessPaused ? (
               <p className="mt-2 text-sm font-semibold">
                 Collection paused: the publisher denied access. Automatic
@@ -60,8 +64,8 @@ export function LocalDataHealth() {
             {source.provenance === "reviewed-release" && (
               <p className="mt-2 text-sm">
                 Reviewed release imported from the openly licensed publisher
-                workbook retrieved {source.retrievedAt?.slice(0, 10)}. The
-                import does not clear the automatic collection error.
+                workbook {source.acquisition === "user-upload" ? "supplied for review" : "retrieved"} {source.retrievedAt?.slice(0, 10)}. The
+                import does not establish a successful automatic source check.
               </p>
             )}
             <p className="mt-2 text-sm">

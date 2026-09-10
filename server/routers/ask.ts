@@ -344,7 +344,7 @@ export const askRouter = router({
             return {
               status: "insufficient" as const,
               question: input.question,
-              message: "The matching local rent values are withheld or suppressed for the reporting periods shown in the sources. No numeric rent is available for the requested category. The records do not establish a reason beyond their stated suppression or sample-size status. A different category, place or period would not answer the same question.",
+              message: "The matching local rent values are unavailable for the reporting periods shown in the sources. No numeric rent is available for the requested category. A reason is known only where the source explicitly states suppression or a sample-size rule. A different category, place or period would not answer the same question.",
               sources: sourceMeta.slice(0, Math.min(matches.facts.length, 3, sourceLimit)),
               anonymousRemaining: null,
             };

@@ -16,7 +16,7 @@ Existing external gaps remain explicit:
 
 - Auction imports require an approved source. A Domain help link is not a data licence or API approval.
 - SA automated rental collection is paused after publisher HTTP 403. The reviewed release remains available; automated freshness is not claimed.
-- VIC, ACT and NT local rental feeds are not configured in this deployment. Other available jurisdiction evidence is not presented as a substitute local rental measurement.
+- VIC has a reviewed historical LGA rental import ending September 2025; automatic VIC downloads and ACT/NT local rental feeds remain unconfigured. See `victoria-reviewed-rents.md`. Other available jurisdiction evidence is not presented as a substitute local rental measurement.
 - Conditional download savings and production recovery counters populate through normal eligible scheduled runs. Cooldowns, access pauses and subscriber consent are not bypassed to manufacture verification results.
 
 This closes the implementation work in this reliability pass, including the daily-delivery handoff discovered during the final check. It does not claim every source is available, every generated answer is infallible, or every stage of the wider publishing system has durable recovery. No paid provider, new trial, historical AI backfill or artificial production email was added for this pass.

@@ -38,6 +38,7 @@ export function reusableDownloadCache(
 }
 
 export async function collectLocalData(source: LocalSourceKey): Promise<void> {
+  if (source === "vic-bond-rents") throw new Error("Victoria requires a reviewed publisher file; automatic downloads are not enabled");
   const signal = collectionSignal();
   const measure = async (transfer: LocalTransfer) => {
     try { await recordLocalTransfer(source, transfer); }
