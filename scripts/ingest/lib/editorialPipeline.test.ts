@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { buildDailyBrief, briefingSummary } from "./editorialPipeline";
-import { assessStory, editorialReportSchema, publisherWeight, legacyEditorialHold } from "../../../shared/editorial";
+import {
+  assessStory,
+  editorialReportSchema,
+  publisherWeight,
+  legacyEditorialHold,
+} from "../../../shared/editorial";
 import { parseIndexSource } from "./indexSource";
 import { extractPublicationDate } from "./publicationDate";
 import { sourceTimingHold, sourceTimingLabel } from "../../../shared/sourceTiming";
@@ -58,6 +63,79 @@ function preview(items: FetchedItem[], overrides: Parameters<typeof buildDailyBr
 }
 
 describe("editorial regression benchmark", () => {
+  it.each([
+    ["Australian Mortgage Awards 2026: Book your hotel room now", "promotion-or-event-marketing"],
+    [
+      "Made for $1500, this Australian film takes a swipe at greedy landlords",
+      "culture-not-market-reporting",
+    ],
+    ["9 ASX 200 shares earning strengthened buy ratings this week", "stock-pick-roundup"],
+    ["Top 3 ASX 200 shares now below their 200-day moving average", "stock-pick-roundup"],
+  ])("holds live rollout failure: %s", (title, reason) => {
+    expect(
+      assessStory({ ...item({ title }), articleText: body, sourceTiming: timing }, now).reason
+    ).toBe(reason);
+  });
+  it.each([
+    "Australia's most expensive homes decline in value",
+    "Property experts name spring market winners and losers",
+  ])("recognises a housing subject without requiring one exact phrase: %s", (title) => {
+    expect(
+      assessStory(
+        {
+          ...item({ title, summary: "New Australian research was released today." }),
+          articleText: body,
+          sourceTiming: timing,
+        },
+        now
+      ).eligible
+    ).toBe(true);
+  });
+  it("does not borrow housing relevance from unrelated page text", () => {
+    expect(
+      assessStory(
+        {
+          ...item({
+            title: "Another Australian found safe after Nepal-Tibet floods",
+            summary: "An Australian traveller has been found safe following floods.",
+          }),
+          articleText: body,
+          sourceTiming: timing,
+        },
+        now
+      ).reason
+    ).toBe("no-property-or-economic-consequence");
+  });
+  it("routes general broker reporting to Australia, not Property", () => {
+    for (const title of [
+      "What do mortgage brokers think about diversity, equity and inclusion?",
+      "Accountants charged as mortgage fraud arrests hit 33",
+    ]) {
+      const result = assessStory(
+        {
+          ...item({ title, summary: "New Australian broker research was released today." }),
+          articleText: body,
+          sourceTiming: timing,
+        },
+        now
+      );
+      expect(result.eligible).toBe(true);
+      expect(result.channel).toBe("AU");
+    }
+  });
+  it("does not fill spare slots with a low-priority unreviewed publisher", () => {
+    expect(
+      assessStory(
+        {
+          ...item({ url: "https://example.com/housing" }),
+          articleText: body,
+          sourceTiming: timing,
+        },
+        now
+      ).reason
+    ).toBe("unreviewed-publisher");
+  });
+
   it("removes obvious legacy off-beat stories while retaining housing consequences", () => {
     expect(
       legacyEditorialHold({

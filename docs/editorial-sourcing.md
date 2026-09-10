@@ -10,15 +10,15 @@ Each run reads a bounded shortlist of up to 100 Australian candidates and 32 cov
 
 ## Publication gates
 
-A source must resolve to a publisher. Australian stories need a relevant beat, Australian geography, a confirmed publisher date and sufficient readable text: 300 characters for designated official publishers, 650 otherwise. RSS summaries cannot replace missing reporting. Published summaries come from extracted article text, avoiding Google headline roundups. These are minimum evidence checks, not a guarantee of factual accuracy.
+A source must resolve to a publisher. Australian stories need a relevant beat, Australian geography, a confirmed publisher date and sufficient readable text: 300 characters for designated official publishers, 650 otherwise. RSS summaries cannot replace missing reporting. Published summaries come from extracted article text, avoiding Google headline roundups. The headline and dek must establish the subject; unrelated page text cannot supply relevance. Designated official releases can establish the subject in their body when the title is generic. These are minimum evidence checks, not a guarantee of factual accuracy.
 
 Publisher timestamps must be recent. An explicit release day, or conflicting clocks that agree on one calendar day, is retained as day-only evidence without an invented time. Contradictory calendar days, malformed metadata, future dates and old releases are held. A fresh Google timestamp cannot refresh an undated static page.
 
-Traffic notices, tender details, static planning pages and individual property promotions are held. Existing obvious reference and unrelated crime/obituary entries from the last 30 days are moved to an internal hold lane while preserving IDs and saved links. Public daily feeds, archive lists and weekly synthesis exclude that lane.
+Traffic notices, tender details, static planning pages, event marketing, film reviews, stock-pick roundups and individual property promotions are held. General broker/advice and market reporting is routed to Australia rather than Property. Existing obvious reference and unrelated crime/obituary entries from the last 30 days are moved to an internal hold lane while preserving IDs and saved links. Public daily feeds, archive lists and weekly synthesis exclude that lane.
 
 ## Ranking and diversity
 
-Eligible stories receive a deterministic significance score based on their beat, concrete developments, numerical reporting, available text and verified publisher domain. Search query names such as “Treasury” receive no source bonus. This score measures editorial priority, not confidence or truth. Headline and summary identify the main beat before body text is used as a fallback.
+Eligible stories receive a deterministic significance score based on their beat, concrete developments, numerical reporting, available text and verified publisher domain. Search query names such as “Treasury” receive no source bonus. Australian publication requires a reviewed publisher domain and a score of at least 73. This prevents unreviewed publisher domains and low-consequence fillers from earning slots simply because the better stories were already published. This score measures editorial priority, not confidence or truth. Headline and summary identify the main beat before body text is used as a fallback.
 
 Canonical duplicates are removed; conservative headline clustering selects the strongest readable representative of each event. Different feeds from the same publisher domain count once. Each lane has a maximum and each publisher has at most three stories per lane per run. No quota can rescue an ineligible story. A run without a relevant local story retains the existing briefing. Existing source URLs are excluded for 14 days.
 

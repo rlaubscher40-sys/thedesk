@@ -3,7 +3,11 @@ import { json, mysqlTable, timestamp, varchar } from "drizzle-orm/mysql-core";
 import { getDb } from "./client";
 import { propertyEvidence } from "./evidenceSchema";
 import { dailyFeedItems } from "./schema";
-import { legacyEditorialHold, type EditorialReport } from "../../shared/editorial";
+import {
+  legacyEditorialHold,
+  localEditorialChannel,
+  type EditorialReport,
+} from "../../shared/editorial";
 import type { FetchedItem } from "../../scripts/ingest/lib/rss";
 
 export const editorialRuns = mysqlTable("editorial_runs", {
@@ -88,6 +92,10 @@ export async function repairEditorialReferences(): Promise<number> {
         .set({ channel: "HOLD", priority: 0 })
         .where(eq(dailyFeedItems.id, row.id));
       held++;
+    } else {
+      const channel = localEditorialChannel(row);
+      if (channel !== row.channel)
+        await db.update(dailyFeedItems).set({ channel }).where(eq(dailyFeedItems.id, row.id));
     }
   }
   return held;
