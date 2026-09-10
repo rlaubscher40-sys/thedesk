@@ -7,7 +7,7 @@ vi.mock("../db/planningSnapshots", () => ({
 }));
 vi.mock("./nswDa", () => ({ fetchNswPlanningSnapshot: mocks.fetch }));
 vi.mock("../demo/store", () => ({ isDemoMode: mocks.demo }));
-import { getNswPlanningPilot } from "./read";
+import { getNswPlanningPilot, getStoredPlanningPilot } from "./read";
 beforeEach(() => {
   vi.resetAllMocks();
   invalidate("nsw:");
@@ -15,6 +15,28 @@ beforeEach(() => {
   mocks.read.mockResolvedValue([]);
 });
 describe("planning publication and revision storage", () => {
+  it("reads the exact stored historical month and fingerprint without source collection", async () => {
+    const snapshot = {councilName:"Council of the City of Sydney", from:"2025-08-01",to:"2025-08-31",completePagination:true,fingerprint:"a".repeat(64),retrievedAt:"2025-09-01T00:00:00Z"};
+    mocks.read.mockResolvedValue([snapshot]);
+    expect(await getStoredPlanningPilot("2025-08", "a".repeat(64))).toEqual({status:"available",snapshot,previous:[]});
+    expect(mocks.read).toHaveBeenCalledWith(snapshot.councilName,snapshot.from,snapshot.to,snapshot.fingerprint);
+    expect(mocks.fetch).not.toHaveBeenCalled();
+    expect(mocks.save).not.toHaveBeenCalled();
+  });
+  it("does not substitute another revision or month for missing evidence", async () => {
+    mocks.read.mockResolvedValue([{councilName:"Council of the City of Sydney",from:"2025-08-01",to:"2025-08-31",completePagination:true,fingerprint:"b".repeat(64)}]);
+    expect((await getStoredPlanningPilot("2025-08","a".repeat(64))).status).toBe("unavailable");
+    expect((await getStoredPlanningPilot("2025-07")).status).toBe("unavailable");
+    expect(mocks.fetch).not.toHaveBeenCalled();
+  });
+  it("fails closed on invalid dates, incomplete months, invalid hashes and storage failures", async () => {
+    for (const period of ["", "2026-13", "2025-01-01", "2099-01"]) expect((await getStoredPlanningPilot(period)).status).toBe("unavailable");
+    expect((await getStoredPlanningPilot("2025-08","x")).status).toBe("unavailable");
+    expect(mocks.read).not.toHaveBeenCalled();
+    mocks.read.mockRejectedValue(new Error("DB unavailable"));
+    expect((await getStoredPlanningPilot("2025-08")).status).toBe("unavailable");
+    expect(mocks.fetch).not.toHaveBeenCalled();
+  });
   it("single-flights requests, persists the complete snapshot and exposes no individual records", async () => {
     const snapshot = { retrievedAt: new Date().toISOString(), applications: 161 };
     const records = [{ applicationId: "PAN-1" }];

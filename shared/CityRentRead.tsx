@@ -1,6 +1,8 @@
 import React from "react";
 import {
   latestRent,
+  rentForPeriod,
+  cityRentHref,
   rentCity,
   rentGap,
   rentIsOlder,
@@ -17,16 +19,20 @@ export function CityRentRead({
   marketB,
   asOf,
   onSource,
+  period,
 }: {
   data?: CityRents;
   marketA: string;
   marketB?: string;
   asOf: string;
   onSource?: () => void;
+  period?: string | null;
 }) {
   if (!rentCity(marketA) && (!marketB || !rentCity(marketB))) return null;
-  const a = latestRent(data, marketA),
-    b = marketB ? latestRent(data, marketB) : undefined;
+  const pinned = period !== undefined && period !== null;
+  const validPeriod = !pinned || /^20\d{2}-(0[1-9]|1[0-2])$/.test(period);
+  const a = rentForPeriod(data, marketA, period),
+    b = marketB ? rentForPeriod(data, marketB, period) : undefined;
   const gap = marketB ? rentGap(a, b, asOf) : null;
   return (
     <section
@@ -39,6 +45,9 @@ export function CityRentRead({
       <p className="text-sm mt-3 text-[var(--color-fg-muted)]">
         Annual change in rents actually paid · CPI capital-city series · Original
       </p>
+      {pinned && <p className="text-sm mt-3" role="status">
+        {validPeriod ? `Requested observation: year to ${rentPeriod(period)}. No other month is substituted.` : "Invalid requested reporting month. Use YYYY-MM; latest figures have not been substituted."}
+      </p>}
       <div className={`grid gap-6 mt-6 ${marketB ? "sm:grid-cols-2" : ""}`}>
         {[{ name: marketA, row: a }, ...(marketB ? [{ name: marketB, row: b }] : [])].map(
           ({ name, row }) => (
@@ -81,7 +90,9 @@ export function CityRentRead({
                       </p>
                     ))}
                   <p className="text-sm mt-2">
-                    {rentIsOlder(row, asOf)
+                    {pinned && row.period !== latestRent(data, name)?.period
+                      ? "Historical observation · not the latest available month"
+                      : rentIsOlder(row, asOf)
                       ? "Older observation · more than three months behind"
                       : "Latest available in the retrieved series"}
                     {row.status === "p" ? " · Preliminary" : row.status === "r" ? " · Revised" : ""}
@@ -90,7 +101,7 @@ export function CityRentRead({
               ) : (
                 <p className="text-sm mt-3 text-[var(--color-fg-muted)]">
                   {rentCity(name)
-                    ? "Official rent data is temporarily unavailable for this city."
+                    ? pinned ? "The requested month's observation is not available in the retained series. A newer figure has not been substituted." : "Official rent data is temporarily unavailable for this city."
                     : "This series covers capital cities. No regional or suburb estimate is substituted."}
                 </p>
               )}
@@ -114,7 +125,7 @@ export function CityRentRead({
       </p>
       {marketB && (
         <p className="text-sm mt-3 text-[var(--color-fg-muted)]">
-          This live data panel is separate from the dated intelligence brief and its saved or shared
+          This data panel is separate from the dated intelligence brief and its saved or shared
           snapshot.
         </p>
       )}
@@ -160,7 +171,7 @@ export function CityRentRead({
             .map((row) => (
               <a
                 key={row.city}
-                href={`/markets/${row.city.toLowerCase()}`}
+                href={cityRentHref(row.city, row.period)}
                 className="bs-link text-sm"
               >
                 Open & share {row.city}'s market file →

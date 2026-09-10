@@ -51,6 +51,15 @@ export type NswPlanningRead = {
   snapshot: NswPlanningSnapshot | null;
   previous: NswPlanningSnapshot[];
 };
+/** Historical reads are bounded to one complete calendar month, never an API date range. */
+export function planningPeriodWindow(period: string): { from: string; to: string } | null {
+  if (!/^20\d{2}-(0[1-9]|1[0-2])$/.test(period)) return null;
+  const [year, month] = period.split("-").map(Number);
+  return { from: `${period}-01`, to: new Date(Date.UTC(year!, month!, 0)).toISOString().slice(0, 10) };
+}
+export function planningEvidenceHref(snapshot: NswPlanningSnapshot): string {
+  return `/signals?planningPeriod=${encodeURIComponent(snapshot.from.slice(0, 7))}&planningRevision=${encodeURIComponent(snapshot.fingerprint)}#nsw-planning`;
+}
 /** Use the previous complete calendar month in Sydney, including at UTC month boundaries. */
 export function nswPlanningWindow(now: Date): { from: string; to: string } {
   const parts = new Intl.DateTimeFormat("en-AU", {
