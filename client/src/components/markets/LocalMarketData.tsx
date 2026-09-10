@@ -132,7 +132,9 @@ export function LocalMarketData({
                       </td>
                       <td className="py-3 pr-4 whitespace-nowrap">
                         {o.value === null
-                          ? o.status === "insufficient-sample"
+                          ? o.status === "source-unavailable"
+                            ? "Unavailable in source"
+                            : o.status === "insufficient-sample"
                             ? "Insufficient sample"
                             : "Not published"
                           : o.unit === "AUD/week"
@@ -152,7 +154,7 @@ export function LocalMarketData({
             {LOCAL_SOURCES[match.sourceKey].method}
           </p>
           <p className="text-xs mt-3 text-[var(--color-fg-muted)]">
-            {LOCAL_SOURCES[match.sourceKey].attribution}. Retrieved{" "}
+            {LOCAL_SOURCES[match.sourceKey].attribution}. {match.acquisition === "user-upload" ? "Supplied workbook received" : "Retrieved"}{" "}
             {match.retrievedAt.slice(0, 10)}.
           </p>
           {match.provenance === "reviewed-release" && (

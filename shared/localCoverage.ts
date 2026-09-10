@@ -16,10 +16,11 @@ export function localCoverageState(
 }
 
 export function localObservationCoverage(data: LocalDataset | undefined) {
-  const counts = { published: 0, notPublished: 0, insufficientSample: 0 };
+  const counts = { published: 0, notPublished: 0, insufficientSample: 0, sourceUnavailable: 0 };
   for (const area of data?.areas ?? [])
     for (const row of area.observations) {
-      if (row.status === "suppressed") counts.notPublished++;
+      if (row.status === "source-unavailable") counts.sourceUnavailable++;
+      else if (row.status === "suppressed") counts.notPublished++;
       else if (row.status === "insufficient-sample") counts.insufficientSample++;
       else if (row.value !== null) counts.published++;
     }

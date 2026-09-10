@@ -48,6 +48,7 @@ export type LocalMatch = {
   resourceUrl: string;
   retrievedAt: string;
   provenance?: "reviewed-release";
+  acquisition?: "user-upload";
   older: boolean;
 };
 export function matchLocalAreas(
@@ -89,6 +90,7 @@ export function matchLocalAreas(
         (options.kind && options.kind !== area.kind)
       )
         continue;
+      if (options.question && area.kind === "LGA" && /\b(suburb|postcode)\b/i.test(query) && !/\b(lga|council|local government|city of)\b/i.test(query)) continue;
       const alias = normaliseArea(area.name).replace(
         / \((?:c|s|r|rc|m)\)$/i,
         "",
@@ -114,6 +116,7 @@ export function matchLocalAreas(
         period: data.period,
         resourceUrl: data.resourceUrl,
         retrievedAt: data.retrievedAt,
+        ...(data.acquisition ? { acquisition: data.acquisition } : {}),
         ...(data.provenance ? { provenance: data.provenance } : {}),
         older: localDatasetIsOlder(data, now),
         alias,
@@ -182,6 +185,7 @@ export async function getLocalCoverage() {
       period: data?.period ?? null,
       retrievedAt: data?.retrievedAt ?? null,
       provenance: data?.provenance ?? null,
+      acquisition: data?.acquisition ?? null,
       checkedAt: check?.checkedAt.toISOString() ?? null,
       error: check?.error ?? null,
       accessPaused: localSourceAccessDenied(check?.error),
@@ -205,7 +209,7 @@ export type FactEvidence = {
   publisher: string;
   sourceUrl: string;
   text: string;
-  /** All selected weekly-rent observations are explicitly withheld, not absent. */
+  /** All selected weekly-rent observations have an explicit unavailable source status. */
   withheldRent?: boolean;
   localRent?: {
     method: string;
@@ -264,12 +268,12 @@ export function localFactEvidence(
         `Geography: ${area.name}, ${area.state}; ${area.kind}; ${area.boundaryVersion}. Do not extend these observations to another geographic boundary.`,
         ...rows.map(
           (o) =>
-            `${o.measure}; ${o.category}; ${localPeriodLabel(match.sourceKey, o.period, o.measure)}; ${o.value === null ? "withheld: " + o.status : `${o.value} ${o.unit}`}${o.sample === null ? "" : `; ${localSampleLabel(match.sourceKey)}: ${o.sample}`}.`,
+            `${o.measure}; ${o.category}; ${localPeriodLabel(match.sourceKey, o.period, o.measure)}; ${o.value === null ? (o.status === "source-unavailable" ? "unavailable in source; reason not stated" : "withheld: " + o.status) : `${o.value} ${o.unit}`}${o.sample === null ? "" : `; ${localSampleLabel(match.sourceKey)}: ${o.sample}`}.`,
         ),
         source.method,
         ...(rows.every((o) => o.value === null)
           ? [
-              "The requested values are withheld in this release. No numeric answer is available; do not substitute zero, another category or an older value.",
+              "The requested values are unavailable in this release. No numeric answer is available; do not substitute zero, another category or an older value.",
             ]
           : []),
         ...(match.provenance === "reviewed-release"
@@ -282,7 +286,7 @@ export function localFactEvidence(
           : match.older
             ? "Older reporting period; do not describe as current market conditions."
             : "Latest available in this stored source release.",
-        `Retrieved: ${match.retrievedAt}. Retrieval is not publication. ${source.attribution}.`,
+        `${match.acquisition === "user-upload" ? "Supplied workbook received for review" : "Retrieved"}: ${match.retrievedAt}. This is not publication. ${source.attribution}.`,
       ].join("\n"),
     };
   });

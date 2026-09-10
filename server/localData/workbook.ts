@@ -108,7 +108,7 @@ export function inspectZip(data: Buffer, maxEntries = 256) {
 export async function readWorkbook(
   data: Buffer,
   signal?: AbortSignal,
-  profile?: "abs-cpi",
+  profile?: "abs-cpi" | "vic-rents",
 ): Promise<Sheet[]> {
   validateWorkbookZip(data);
   signal?.throwIfAborted();
@@ -134,8 +134,8 @@ export async function readWorkbook(
         execArgv: [],
         workerData: {
           data, moduleUrl,
-          maxRows: profile === "abs-cpi" ? 2000 : 100000,
-          maxColumns: profile === "abs-cpi" ? 256 : 128,
+          maxRows: profile === "vic-rents" ? 200 : profile === "abs-cpi" ? 2000 : 100000,
+          maxColumns: profile ? 256 : 128,
         },
         resourceLimits: { maxOldGenerationSizeMb: 384 },
       },
