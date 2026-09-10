@@ -3,7 +3,7 @@ import { json, mysqlTable, timestamp, varchar } from "drizzle-orm/mysql-core";
 import { getDb } from "./client";
 import { propertyEvidence } from "./evidenceSchema";
 import { dailyFeedItems } from "./schema";
-import { referenceNewsHold, type EditorialReport } from "../../shared/editorial";
+import { legacyEditorialHold, type EditorialReport } from "../../shared/editorial";
 import type { FetchedItem } from "../../scripts/ingest/lib/rss";
 
 export const editorialRuns = mysqlTable("editorial_runs", {
@@ -81,7 +81,7 @@ export async function repairEditorialReferences(): Promise<number> {
     );
   let held = 0;
   for (const row of rows) {
-    const reason = referenceNewsHold(row);
+    const reason = legacyEditorialHold(row);
     if (reason) {
       await db
         .update(dailyFeedItems)

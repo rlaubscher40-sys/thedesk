@@ -10,11 +10,11 @@ Each run reads a bounded shortlist of up to 100 Australian candidates and 32 cov
 
 ## Publication gates
 
-A source must resolve to a publisher. Australian stories need a relevant beat, Australian geography, a confirmed publisher date and sufficient readable text: 300 characters for designated official publishers, 650 otherwise. RSS summaries cannot replace missing reporting. These are minimum evidence checks, not a guarantee of factual accuracy.
+A source must resolve to a publisher. Australian stories need a relevant beat, Australian geography, a confirmed publisher date and sufficient readable text: 300 characters for designated official publishers, 650 otherwise. RSS summaries cannot replace missing reporting. Published summaries come from extracted article text, avoiding Google headline roundups. These are minimum evidence checks, not a guarantee of factual accuracy.
 
 Publisher timestamps must be recent. An explicit release day, or conflicting clocks that agree on one calendar day, is retained as day-only evidence without an invented time. Contradictory calendar days, malformed metadata, future dates and old releases are held. A fresh Google timestamp cannot refresh an undated static page.
 
-Traffic notices, tender details, static planning pages and individual property promotions are held. Existing obvious reference entries from the last 30 days are moved to an internal hold lane while preserving IDs and saved links. Public daily feeds, archive lists and weekly synthesis exclude that lane.
+Traffic notices, tender details, static planning pages and individual property promotions are held. Existing obvious reference and unrelated crime/obituary entries from the last 30 days are moved to an internal hold lane while preserving IDs and saved links. Public daily feeds, archive lists and weekly synthesis exclude that lane.
 
 ## Ranking and diversity
 

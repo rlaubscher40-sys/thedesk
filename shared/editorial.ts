@@ -127,6 +127,19 @@ export function discoveryScore(input: EditorialInput): number {
   return (editorialBeat(text) ? 40 : 0) + publisherWeight(input) + (/\d/.test(input.title) ? 3 : 0);
 }
 
+/** Conservative cleanup of obvious off-beat legacy entries with no beat evidence. */
+export function legacyEditorialHold(input: EditorialInput): string | null {
+  const reference = referenceNewsHold(input);
+  if (reference) return reference;
+  const reporting = `${input.title} ${input.summary ?? ""}`;
+  if (
+    !editorialBeat(reporting) &&
+    /\b(shooting|obituary|dies aged|court data breach|golf club)\b/i.test(reporting)
+  )
+    return "off-topic";
+  return null;
+}
+
 /** Deterministic eligibility and significance, not a truth/confidence score. */
 export function assessStory(input: EditorialInput, now = new Date(), feedDate?: string) {
   const text = (input.articleText ?? "").trim();

@@ -16,7 +16,6 @@ import { fetchArticle, type FetchedArticle } from "./article";
 import { resolveArticleUrl } from "./gnews";
 import { articleIdentity } from "./dedupe";
 import { clusterByTitle } from "./cluster";
-import { isRedundantSummary, looksLikeSiteBoilerplate } from "../../../shared/headline";
 
 async function mapLimit<T, R>(
   items: T[],
@@ -257,13 +256,8 @@ export async function buildDailyBrief(options: PipelineOptions = {}) {
   return { items: picked, report };
 }
 
+/** Use extracted reporting, never a Google roundup masquerading as a summary. */
 export function briefingSummary(item: PreparedStory): string {
-  if (
-    item.summary &&
-    !looksLikeSiteBoilerplate(item.summary) &&
-    !isRedundantSummary(item.title, item.summary)
-  )
-    return item.summary;
   const opening = item.articleText.split(/\n\n/).find((p) => p.length >= 80) ?? item.articleText;
   return opening.length > 380 ? opening.slice(0, 377).trimEnd() + "…" : opening;
 }

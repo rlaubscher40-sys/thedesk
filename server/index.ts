@@ -217,7 +217,7 @@ async function startServer() {
     try {
       const moved = await repairFeedGeography();
       const held = await repairEditorialReferences();
-      console.log(`[editorial] quarantined ${held} reference entries`);
+      console.log(`[editorial] quarantined ${held} reference or off-beat entries`);
       console.log(`[feed-geography] moved ${moved} overseas stories out of Australian lanes`);
     } catch (err) {
       console.error("[feed-geography] repair failed:", err);

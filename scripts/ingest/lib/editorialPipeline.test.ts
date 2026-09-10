@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildDailyBrief } from "./editorialPipeline";
-import { assessStory, editorialReportSchema, publisherWeight } from "../../../shared/editorial";
+import { buildDailyBrief, briefingSummary } from "./editorialPipeline";
+import { assessStory, editorialReportSchema, publisherWeight, legacyEditorialHold } from "../../../shared/editorial";
 import { parseIndexSource } from "./indexSource";
 import { extractPublicationDate } from "./publicationDate";
 import { sourceTimingHold, sourceTimingLabel } from "../../../shared/sourceTiming";
@@ -58,6 +58,31 @@ function preview(items: FetchedItem[], overrides: Parameters<typeof buildDailyBr
 }
 
 describe("editorial regression benchmark", () => {
+  it("removes obvious legacy off-beat stories while retaining housing consequences", () => {
+    expect(
+      legacyEditorialHold({
+        title: "True to her own life, a writer leaves a rule to live by",
+        summary: "The Australian writer dies aged 82",
+      })
+    ).toBe("off-topic");
+    expect(
+      legacyEditorialHold({ title: "Man dies after shooting near community centre in Sydney" })
+    ).toBe("off-topic");
+    expect(
+      legacyEditorialHold({ title: "Golf club rezoning unlocks new housing supply" })
+    ).toBeNull();
+  });
+  it("uses reporting instead of a Google roundup as the published summary", async () => {
+    const result = await preview([
+      item({
+        summary:
+          "A headline ABC News Another headline The Guardian See more headlines and perspectives on Google News",
+      }),
+    ]);
+    expect(briefingSummary(result.items[0]!)).toContain("Australian housing supply");
+    expect(briefingSummary(result.items[0]!)).not.toContain("Google News");
+  });
+
   it.each([
     [
       "Home prices fall in most major US cities as housing market cools: See where",
@@ -126,7 +151,7 @@ describe("editorial regression benchmark", () => {
     const result = await preview([thin, item()], {
       readArticle: async (url) => ({
         ...article,
-        text: url.includes("afr.com") ? body.slice(0, 553) : body,
+        text: new URL(url).hostname === "www.afr.com" ? body.slice(0, 553) : body,
       }),
     });
     expect(result.items).toHaveLength(1);
