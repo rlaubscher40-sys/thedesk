@@ -69,6 +69,12 @@ describe("documentary housing Reel", () => {
     expect(housingStoryBridge("deposit", 0)).toEqual(housingStoryBridge("competition", 1));
     expect(housingStoryBridge("deposit", 0.5).width).toBe(0);
     expect(housingStoryBridge("deposit", 1).width).toBeCloseTo((11.2 - 9) * 70);
+    for (let i = 0; i <= 100; i++) {
+      const marker = housingStoryBridge("deposit", i / 100);
+      // The date/number/years group spans y=310..550. Different-unit markers
+      // must not travel across that reading area, even between inspected holds.
+      if (marker.width > 0) expect(marker.y + marker.height <= 330 || marker.y >= 640).toBe(true);
+    }
   });
   it("distinguishes illustrated price pressure from a price forecast", () => {
     const words = copy(frame("claim").content).join(" ");

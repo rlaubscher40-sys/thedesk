@@ -284,17 +284,18 @@ export function housingStoryBridge(stage: "gap" | "competition" | "deposit", pro
   const gap = { x: 649.6, y: 683, width: 154, height: 22 };
   const pressure = { x: 649.6, y: 300, width: 154, height: 22 };
   const ruler = { x: 630, y: 690, width: 154, height: 3 };
-  const a = stage === "competition" ? gap : stage === "deposit" ? pressure : gap;
-  const b = stage === "competition" ? pressure : stage === "deposit" ? ruler : gap;
+  // These are different units and periods. Retire the housing marker in place
+  // before revealing the time extension; never sweep it through the year label.
+  if (stage === "deposit")
+    return progress <= 0.5
+      ? { ...pressure, width: pressure.width * (1 - p) }
+      : { ...ruler, width: ruler.width * ease(progress * 2 - 1) };
+  const a = gap;
+  const b = stage === "competition" ? pressure : gap;
   return {
     x: a.x + (b.x - a.x) * p,
     y: a.y + (b.y - a.y) * p,
-    width:
-      stage === "deposit"
-        ? progress <= 0.5
-          ? a.width * (1 - p)
-          : 154 * ease(progress * 2 - 1)
-        : a.width + (b.width - a.width) * p,
+    width: a.width + (b.width - a.width) * p,
     height: a.height + (b.height - a.height) * p,
   };
 }
@@ -524,7 +525,7 @@ export function housingBalanceFrameLayout(
               ? "AUSTRALIA / HOUSING AFFORDABILITY"
               : "HOUSING AFFORDABILITY / THE EXPLANATION",
       source:
-        key === "households"
+        key === "households" || (key === "label" && story.opening === "consequence")
           ? "NHSAC 2026 / pp. 3, 54, 57 / Modelled deposit"
           : key === "facts"
             ? "NHSAC 2026 / p. 21 / Approximate figures"
