@@ -12,6 +12,11 @@
  */
 import type { FetchedItem } from "./rss";
 import { titlesMatch, titleTokens } from "../../../shared/textSimilarity";
+import { conflictingEvents } from "../../../shared/storyEvent";
+import {
+  createEvidenceDuplicateIndex,
+  type EvidenceStory,
+} from "../../../shared/storyEvidenceDuplicate";
 
 export { titleTokens };
 
@@ -23,6 +28,7 @@ export type Cluster = {
   /** Distinct source names across the cluster. */
   corroboratingSources: string[];
 };
+type EvidenceItem = FetchedItem & EvidenceStory;
 
 /**
  * Greedy single-pass clustering. Returns one Cluster per distinct story, in
@@ -30,7 +36,7 @@ export type Cluster = {
  * distinct outlets covered it.
  */
 export function clusterByTitle(
-  items: FetchedItem[],
+  items: EvidenceItem[],
   opts: { minJaccard?: number; minShared?: number } = {}
 ): Cluster[] {
   // Conservative on purpose: a false merge shows the reader a wrong
@@ -42,28 +48,49 @@ export function clusterByTitle(
   const minJaccard = opts.minJaccard ?? 0.4;
   const minShared = opts.minShared ?? 4;
 
-  const groups: { rep: FetchedItem; tokens: Set<string>; members: FetchedItem[] }[] = [];
+  const groups: {
+    rep: EvidenceItem;
+    tokens: Set<string>;
+    members: EvidenceItem[];
+    evidence: ReturnType<typeof createEvidenceDuplicateIndex>;
+  }[] = [];
   for (const item of items) {
     const tokens = titleTokens(item.title);
     let placed = false;
     for (const g of groups) {
-      if (titlesMatch(tokens, g.tokens, minShared, minJaccard)) {
+      if (
+        !conflictingEvents(item, g.rep) &&
+        titlesMatch(tokens, g.tokens, minShared, minJaccard) &&
+        // Once originals have been read, headline overlap alone must not
+        // discard a changed claim or substantive follow-up in the same run.
+        (!(item.articleText || g.rep.articleText) || !!g.evidence.find(item))
+      ) {
         g.members.push(item);
         placed = true;
         break;
       }
     }
-    if (!placed) groups.push({ rep: item, tokens, members: [item] });
+    if (!placed)
+      groups.push({
+        rep: item,
+        tokens,
+        members: [item],
+        evidence: createEvidenceDuplicateIndex([item]),
+      });
   }
 
   return groups.map((g) => {
     const sources = [
       ...new Map(
         g.members
-          .filter(m => m.source.trim().toLowerCase() !== "google news")
-          .map(m => {
+          .filter((m) => m.source.trim().toLowerCase() !== "google news")
+          .map((m) => {
             let identity = m.source.trim().toLowerCase();
-            try { identity = new URL(m.url!).hostname.replace(/^www\./, ""); } catch { /* Legacy fixtures may lack URLs. */ }
+            try {
+              identity = new URL(m.url!).hostname.replace(/^www\./, "");
+            } catch {
+              /* Legacy fixtures may lack URLs. */
+            }
             return [identity, m.source.trim()];
           })
       ).values(),

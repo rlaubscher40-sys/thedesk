@@ -2,6 +2,7 @@ import { extractPublicationDate, missingPublicationDate } from "./publicationDat
 import type { SourceTiming } from "../../../shared/sourceTiming";
 import { publicFetch } from "./publicFetch";
 import { readableArticleHtml } from "./htmlText";
+import { articleDisclosureHold } from "./articleDisclosure";
 import { extractResearchPdf, isResearchPdfUrl } from "./researchPdf";
 /**
  * Fetches an article page once and returns BOTH the og:image and the
@@ -29,6 +30,7 @@ import { pickOgImage } from "./og";
 const SITE_URL = process.env.SITE_URL ?? DEFAULT_SITE_URL;
 
 export type FetchedArticle = {
+  editorialHold?: string | null;
   imageUrl: string | null;
   text: string | null;
   publicationDate: Pick<
@@ -130,6 +132,9 @@ export async function fetchArticle(
       received += chunk.byteLength;
     }
     html += decoder.decode();
+
+    const editorialHold = articleDisclosureHold(html, url);
+    if (editorialHold) return { ...empty, editorialHold };
 
     return {
       publicationDate: extractPublicationDate(html, url),

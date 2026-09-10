@@ -16,6 +16,10 @@ import { fetchArticle, type FetchedArticle } from "./article";
 import { resolveArticleUrl } from "./gnews";
 import { articleIdentity } from "./dedupe";
 import { clusterByTitle } from "./cluster";
+import {
+  createEvidenceDuplicateIndex,
+  type EvidenceStory,
+} from "../../../shared/storyEvidenceDuplicate";
 
 async function mapLimit<T, R>(
   items: T[],
@@ -45,6 +49,7 @@ export type PipelineOptions = {
   sources?: Source[];
   extraCandidates?: FetchedItem[];
   recentUrls?: string[];
+  recentStories?: EvidenceStory[];
   now?: Date;
   readSource?: (source: Source) => Promise<SourceReport>;
   readArticle?: (url: string) => Promise<FetchedArticle>;
@@ -200,6 +205,11 @@ export async function buildDailyBrief(options: PipelineOptions = {}) {
         return null;
       }
       const article = await (options.readArticle ?? fetchArticle)(url);
+      if (article.editorialHold) {
+        entry.reason = article.editorialHold;
+        entry.url = url;
+        return null;
+      }
       const sourceTiming: SourceTiming = {
         feedReportedAt: newsTimestamp(item.isoDate),
         ...article.publicationDate,
@@ -242,7 +252,12 @@ export async function buildDailyBrief(options: PipelineOptions = {}) {
         b.prepared.articleText.length - a.prepared.articleText.length
     );
   const canonical = new Set<string>();
+  const publishedEvidence = createEvidenceDuplicateIndex(options.recentStories);
   const unique = eligible.filter(({ prepared, entry }) => {
+    if (publishedEvidence.find(prepared)) {
+      entry.reason = "already-covered-evidence";
+      return false;
+    }
     const id = articleIdentity(prepared);
     if (canonical.has(id)) {
       entry.reason = "canonical-duplicate";

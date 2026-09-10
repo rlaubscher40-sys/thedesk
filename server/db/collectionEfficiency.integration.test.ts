@@ -3,6 +3,8 @@ import { createPool, type Pool } from "mysql2/promise";
 import { drizzle } from "drizzle-orm/mysql2";
 import { DAILY_BRIEF_DDL } from "./dailyBriefSchema";
 import { FEED_ENRICHMENT_DDL } from "./feedEnrichmentSchema";
+import { FEED_EVIDENCE_DDL } from "./feedEvidenceSchema";
+import { createEvidenceDuplicateIndex } from "../../shared/storyEvidenceDuplicate";
 import { COLLECTION_EFFICIENCY_DDL } from "./collectionEfficiencySchema";
 import type { InsertDailyFeedItem } from "./schema";
 
@@ -31,7 +33,12 @@ beforeAll(async () => {
   if (!["localhost", "127.0.0.1"].includes(url.hostname) || url.pathname !== "/security_audit_test")
     throw new Error("Use the isolated local test database");
   pool = createPool(testUrl);
-  for (const ddl of [...COLLECTION_EFFICIENCY_DDL, ...FEED_ENRICHMENT_DDL, ...DAILY_BRIEF_DDL])
+  for (const ddl of [
+    ...COLLECTION_EFFICIENCY_DDL,
+    ...FEED_ENRICHMENT_DDL,
+    ...FEED_EVIDENCE_DDL,
+    ...DAILY_BRIEF_DDL,
+  ])
     await pool.query(ddl.sql.replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS "));
   await pool.query(`CREATE TABLE IF NOT EXISTS daily_feed_items (
     id INT AUTO_INCREMENT PRIMARY KEY, sourceTiming JSON, feedDate VARCHAR(10) NOT NULL,
@@ -64,6 +71,53 @@ afterAll(async () => {
   await pool?.end();
 });
 
+it.skipIf(!testUrl)(
+  "keeps private evidence fingerprints after enrichment input cleanup and excludes held rows",
+  async () => {
+    const stamp = new Date().toISOString();
+    const row = {
+      ...item,
+      feedDate: stamp.slice(0, 10),
+      title: "Australian housing approvals fall as builders face delays",
+      sourceUrl: "https://concurrency-test.example/evidence",
+      articleText: Array.from({ length: 160 }, (_, i) => `evidenceword${i}`).join(" "),
+      sourceTiming: {
+        publisherDateStatus: "available" as const,
+        publisherPublishedAt: stamp,
+        feedReportedAt: null,
+        retrievedAt: stamp,
+      },
+    };
+    const id = await claims.insertFeedOnce(row);
+    try {
+      expect(id).toBeGreaterThan(0);
+      const [stored] = await pool.query(
+        "SELECT fingerprint FROM feed_evidence_fingerprints WHERE feedItemId=?",
+        [id]
+      );
+      expect(stored).toHaveLength(1);
+      expect(JSON.stringify(stored)).not.toContain("evidenceword");
+      await pool.query(
+        "UPDATE feed_enrichment_jobs SET input=NULL, status='completed' WHERE feedItemId=?",
+        [id]
+      );
+      const { recentEditorialStories } = await import("./editorial");
+      const history = await recentEditorialStories();
+      const previous = history.find((entry) => entry.id === id)!;
+      expect(previous.evidenceFingerprint).toBeTruthy();
+      expect(previous).not.toHaveProperty("articleText");
+      expect(createEvidenceDuplicateIndex(history).find(row)?.id).toBe(id);
+      await pool.query("UPDATE daily_feed_items SET channel='HOLD' WHERE id=?", [id]);
+      expect((await recentEditorialStories()).some((entry) => entry.id === id)).toBe(false);
+    } finally {
+      // This fixture must not affect the existing concurrency row-count test.
+      await pool.query("DELETE FROM feed_evidence_fingerprints WHERE feedItemId=?", [id]);
+      await pool.query("DELETE FROM feed_enrichment_jobs WHERE feedItemId=?", [id]);
+      await pool.query("DELETE FROM feed_ingest_claims WHERE feedItemId=?", [id]);
+      await pool.query("DELETE FROM daily_feed_items WHERE id=?", [id]);
+    }
+  }
+);
 
 it.skipIf(!testUrl)(
   "gives only one simultaneous worker an inserted ID, including tracking variants",
@@ -488,20 +542,30 @@ it.skipIf(!testUrl)(
   }
 );
 
-it.skipIf(!testUrl)("repairs overseas lanes without changing saved story identity or editorial text", async () => {
-  const url = "https://concurrency-test.example/geography";
-  const id = await claims.insertFeedOnce({
-    ...item, sourceUrl: url, channel: "AU",
-    title: "Home prices fall in most major US cities as housing market cools: See where",
-    summary: "Single-family homes in San Diego, California.",
-    whyItMatters: "An Australian comparison must not decide the section.",
-  });
-  const { repairFeedGeography } = await import("./feedGeography");
-  expect(await repairFeedGeography()).toBeGreaterThanOrEqual(1);
-  const [rows] = await pool.query("SELECT * FROM daily_feed_items WHERE id=?", [id]);
-  expect(rows).toEqual([expect.objectContaining({
-    id, sourceUrl: url, channel: "BUSINESS", category: "PROPERTY",
-    whyItMatters: "An Australian comparison must not decide the section.",
-  })]);
-  expect(await repairFeedGeography()).toBe(0);
-});
+it.skipIf(!testUrl)(
+  "repairs overseas lanes without changing saved story identity or editorial text",
+  async () => {
+    const url = "https://concurrency-test.example/geography";
+    const id = await claims.insertFeedOnce({
+      ...item,
+      sourceUrl: url,
+      channel: "AU",
+      title: "Home prices fall in most major US cities as housing market cools: See where",
+      summary: "Single-family homes in San Diego, California.",
+      whyItMatters: "An Australian comparison must not decide the section.",
+    });
+    const { repairFeedGeography } = await import("./feedGeography");
+    expect(await repairFeedGeography()).toBeGreaterThanOrEqual(1);
+    const [rows] = await pool.query("SELECT * FROM daily_feed_items WHERE id=?", [id]);
+    expect(rows).toEqual([
+      expect.objectContaining({
+        id,
+        sourceUrl: url,
+        channel: "BUSINESS",
+        category: "PROPERTY",
+        whyItMatters: "An Australian comparison must not decide the section.",
+      }),
+    ]);
+    expect(await repairFeedGeography()).toBe(0);
+  }
+);

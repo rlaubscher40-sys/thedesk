@@ -6,6 +6,8 @@ import { dailyFeedItems, type InsertDailyFeedItem } from "./schema";
 import { isEnrichedChannel } from "../../shared/const";
 import { feedEnrichmentJobs } from "./feedEnrichmentSchema";
 import { feedIngestClaims } from "./collectionEfficiencySchema";
+import { feedEvidenceFingerprints } from "./feedEvidenceSchema";
+import { fingerprintStory } from "../../shared/storyEvidenceDuplicate";
 
 export function feedClaimIdentity(
   item: Pick<InsertDailyFeedItem, "title" | "sourceUrl" | "feedDate" | "source" | "channel">
@@ -48,6 +50,9 @@ export async function insertFeedOnce(input: FeedIngestItem, now = new Date()): P
       .set({ feedItemId: id, acceptedAt: now })
       .where(eq(feedIngestClaims.identity, identity));
     if (isEnrichedChannel(item.channel ?? "AU")) {
+      const fingerprint = fingerprintStory({ ...input, channel: item.channel ?? "AU" });
+      if (fingerprint)
+        await tx.insert(feedEvidenceFingerprints).values({ feedItemId: id, fingerprint });
       await tx.insert(feedEnrichmentJobs).values({
         feedItemId: id,
         input: {

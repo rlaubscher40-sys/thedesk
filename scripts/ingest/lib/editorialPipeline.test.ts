@@ -63,6 +63,46 @@ function preview(items: FetchedItem[], overrides: Parameters<typeof buildDailyBr
 }
 
 describe("editorial regression benchmark", () => {
+  it("keeps publisher-declared sponsored content out of enrichment", async () => {
+    const result = await preview([item()], {
+      readArticle: async () => ({
+        ...article,
+        editorialHold: "publisher-disclosed-sponsored-content",
+      }),
+    });
+    expect(result.items).toHaveLength(0);
+    expect(result.report.decisions[0]!.reason).toBe("publisher-disclosed-sponsored-content");
+  });
+  it("suppresses near-verbatim evidence already published in a previous run", async () => {
+    const candidate = item();
+    const result = await preview([candidate], {
+      recentStories: [
+        { ...candidate, title: candidate.title, articleText: body, sourceTiming: timing },
+      ],
+    });
+    expect(result.items).toHaveLength(0);
+    expect(result.report.decisions[0]!.reason).toBe("already-covered-evidence");
+  });
+  it.each([
+    "From development to design: What sets this luxury Kangaroo Point landmark apart for buyers",
+    "Amid the property gloom comes a snappy $25m sale in Bellevue Hill",
+  ])("holds audited individual-property promotion: %s", (title) => {
+    expect(legacyEditorialHold({ title })).toBe("individual-property-promotion");
+  });
+  it("recognises fraudulent lending in the original dek, while requiring Australian evidence", () => {
+    const input = {
+      ...item({
+        title: "Perfect storm: How banks allegedly defrauded of up to $600m",
+        summary: "NSW police allege fraudulent loans were used to obtain bank finance.",
+      }),
+      articleText: body,
+      sourceTiming: timing,
+    };
+    expect(assessStory(input, now).eligible).toBe(true);
+    expect(
+      assessStory({ ...input, title: "US banks allegedly defrauded of $600m" }, now).eligible
+    ).toBe(false);
+  });
   it("records total decision count even when early exclusions exceed the retained sample", async () => {
     const items = Array.from({ length: 320 }, (_, i) =>
       item({ url: `https://www.abc.net.au/news/old-${i}`, isoDate: "2025-01-01T00:00:00Z" })
