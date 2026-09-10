@@ -68,7 +68,7 @@ function prepare(story: EvidenceStory) {
     numbers: new Set(parsed.data.numbers),
   };
 }
-/** Near-verbatim evidence only, with original dates and unchanged numeric
+/** Unchanged normalised evidence only, with original dates and numeric
  * claims. Do not suppress rewritten reporting, a new release day, added data,
  * or a short common quote. No generated summary/angle enters this comparison. */
 export function createEvidenceDuplicateIndex(initial: EvidenceStory[] = []) {
@@ -101,7 +101,7 @@ export function createEvidenceDuplicateIndex(initial: EvidenceStory[] = []) {
           continue;
         let shared = 0;
         for (const shingle of next.shingles) if (prior.shingles.has(shingle)) shared++;
-        if (shared >= 80 && shared / Math.max(prior.shingles.size, next.shingles.size) >= 0.9)
+        if (shared >= 80 && shared === prior.shingles.size && shared === next.shingles.size)
           return prior.story;
       }
       return null;

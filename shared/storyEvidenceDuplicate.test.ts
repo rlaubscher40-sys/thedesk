@@ -20,7 +20,7 @@ const story: EvidenceStory = {
   },
 };
 describe("original-evidence duplicate checks", () => {
-  it("matches near-verbatim reporting from a persisted private fingerprint", () => {
+  it("matches unchanged reporting with formatting differences from a private fingerprint", () => {
     const evidenceFingerprint = fingerprintStory(story)!;
     expect(evidenceFingerprint.hashes.length).toBeGreaterThanOrEqual(80);
     expect(evidenceFingerprint.hashes.every((hash) => /^[a-f0-9]{16}$/.test(hash))).toBe(true);
@@ -30,7 +30,7 @@ describe("original-evidence duplicate checks", () => {
       index.find({
         ...story,
         title: "Sydney housing approvals fall while builders face delays",
-        articleText: body.replace("The agency said", "Officials explained"),
+        articleText: body.replace("The agency said", "THE   AGENCY SAID"),
       })
     ).toBe(previous);
   });
@@ -41,6 +41,7 @@ describe("original-evidence duplicate checks", () => {
     { sourceTiming: null },
     { articleText: "Short shared quote." },
     { articleText: body + " The revised tally is 42 additional projects." },
+    { articleText: body + " The regulator subsequently withdrew the notice." },
     { channel: "BUSINESS" },
   ])("retains distinct regions, dates, directions, new facts and missing evidence", (change) => {
     expect(createEvidenceDuplicateIndex([story]).find({ ...story, ...change })).toBeNull();
