@@ -3,6 +3,7 @@ import { hasHousingEvidence } from "./marketRelevance";
 import { looksLikeGarbage, looksLikeSiteBoilerplate } from "./headline";
 import { sourceTimingHold, type SourceTiming } from "./sourceTiming";
 import { storyChannel } from "./storyGeography";
+import { storySignificance } from "./editorialSignificance";
 
 export const EDITORIAL_VERSION = "2026-09-10-v4";
 export type EditorialInput = {
@@ -187,7 +188,14 @@ export function discoveryScore(input: EditorialInput): number {
     (["AU", "PROPERTY"].includes(input.channel ?? "AU") && noise.test(input.title))
   )
     return -100;
+  if (["AU", "PROPERTY"].includes(input.channel ?? "AU"))
+    return editorialBeat(text) ? editorialPriority(input) : publisherWeight(input);
   return (editorialBeat(text) ? 40 : 0) + publisherWeight(input) + (/\d/.test(input.title) ? 3 : 0);
+}
+
+/** Publisher reputation breaks close ties; it cannot outweigh a stronger event. */
+export function editorialPriority(input: EditorialInput): number {
+  return storySignificance(input.title).baseline + Math.floor(publisherWeight(input) / 4);
 }
 
 /** The subject must be in the headline/dek. Only designated official releases
@@ -260,7 +268,7 @@ export function assessStory(input: EditorialInput, now = new Date(), feedDate?: 
     /\b(announc|rais|cut|fell|fall|ris|releas|chang|approv|reject|warn|new |launch|collapse)/i.test(
       reporting
     );
-  const score = Math.min(
+  const evidenceScore = Math.min(
     95,
     45 +
       publisherWeight(input) +
@@ -270,8 +278,9 @@ export function assessStory(input: EditorialInput, now = new Date(), feedDate?: 
       (text.length >= 1800 ? 4 : 0)
   );
   if (local && publisherWeight(input) === 0) return reject("unreviewed-publisher");
-  if (local && score < 73) return reject("below-editorial-priority-floor");
+  if (local && evidenceScore < 73) return reject("below-editorial-priority-floor");
   if (local) channel = localEditorialChannel({ ...input, channel }, beat);
+  const score = local ? editorialPriority(input) : evidenceScore;
   return { eligible: true, reason: "eligible", score, beat, channel, category };
 }
 

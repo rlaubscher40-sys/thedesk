@@ -16,6 +16,7 @@ import { fetchArticle, type FetchedArticle } from "./article";
 import { resolveArticleUrl } from "./gnews";
 import { articleIdentity } from "./dedupe";
 import { clusterByTitle } from "./cluster";
+import { originalPublicationDay } from "../../../shared/storyEvent";
 import {
   createEvidenceDuplicateIndex,
   type EvidenceStory,
@@ -163,7 +164,7 @@ export async function buildDailyBrief(options: PipelineOptions = {}) {
     })
     .sort((a, b) => {
       const score = (item: FetchedItem) =>
-        discoveryScore(item) + (item.discovery === "publisher-index" ? 40 : 0);
+        discoveryScore(item) + (item.discovery === "publisher-index" ? 4 : 0);
       return (
         score(b) - score(a) ||
         Date.parse(b.isoDate ?? "1970-01-01") - Date.parse(a.isoDate ?? "1970-01-01")
@@ -243,13 +244,16 @@ export async function buildDailyBrief(options: PipelineOptions = {}) {
       return null;
     }
   });
-  // Prefer the strongest readable original before canonical dedup and event clustering.
+  // Prefer significance, then original publication day. Length is evidence
+  // for eligibility, not a reason to lead with a longer article.
   const eligible = read
     .filter((r): r is NonNullable<typeof r> => !!r)
     .sort(
       (a, b) =>
         b.prepared.score - a.prepared.score ||
-        b.prepared.articleText.length - a.prepared.articleText.length
+        (originalPublicationDay(b.prepared) ?? "").localeCompare(
+          originalPublicationDay(a.prepared) ?? ""
+        )
     );
   const canonical = new Set<string>();
   const publishedEvidence = createEvidenceDuplicateIndex(options.recentStories);
