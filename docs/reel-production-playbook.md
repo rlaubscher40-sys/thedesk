@@ -14,8 +14,8 @@ the post before a Meta container is created. The default voice is immutable.
 
 All six registered topics pass `assertProductionCandidate` before selection:
 visible source/reference context, evidence identity, complete uniquely keyed
-narration, duration budget, caption style/length and exact storyboard binding
-where available. These are structural checks, not automatic fact-checking or
+narration, duration budget, caption style/length and mandatory visual/script binding.
+These are structural checks, not automatic fact-checking or
 an engagement score. The deterministic adapters retain their source checks.
 
 ## A new episode from an existing topic
@@ -32,6 +32,16 @@ The directory must not already exist. The command produces a narrated MP4,
 the exact post caption and review metadata with the evidence, script, voice
 settings and measured timeline. It never publishes. It uses current verified
 evidence rather than changing dates on an old episode.
+
+To review every currently eligible story in one run:
+
+```bash
+node --import tsx scripts/review-reel.ts --all --out /absolute/new-review-directory
+```
+
+This renders serially, checkpoints each completed MP4 and records withheld topics
+and their evidence requirements in `manifest.json`. It does not fill missing data
+with fixtures or publish anything. Synthetic edge cases stay in the test suite.
 
 The existing housing review command remains a pinned historical regression
 preview, not a live-data selection command. Its approved cinematic export is
@@ -59,14 +69,31 @@ preview, not a live-data selection command. Its approved cinematic export is
    topics at the same age using available watch time, shares and saves per reach.
    Do not substitute a design rating for audience evidence.
 
-The cinematic housing design is a reviewed recipe, not a universal template
-already applied to every topic. Other existing topics retain their own visual
-recipes. New narrative formats require editorial and full-render review before
-registration. The reusable production settings and technical checks apply to all.
+All six registered topics now use scene-based continuous motion and the approved
+documentary subtitle styling. They retain different visual explanations:
+
+| Topic                        | Visual explanation                                                                  |
+| ---------------------------- | ----------------------------------------------------------------------------------- |
+| Brisbane and Perth rents     | Shared-scale signed bars, growth versus price, return checklist                     |
+| Eight-capital rents          | All eight observations, shared zero baseline, range versus average                  |
+| Sydney rent change           | Previous and latest annual rates, correct rising/falling/unchanged meaning          |
+| Brisbane and Perth approvals | Matched counts, permission/construction/completion, delivery versus need            |
+| Sydney supply checklist      | Approval count, building stages, stage/place/timing questions                       |
+| National housing balance     | Net supply versus need, uncovered segment, separate deposit context, archive camera |
+
+`withEvidenceVisual` binds the first five source adapters' observations, script and
+attribution to their evidence hash. Editing a number or utterance afterwards
+invalidates the binding. This is an integrity check, not independent evidence.
+The national housing storyboard retains its existing strict source binding.
+Future episodes within these recipes are automatic when current data qualify.
+An entirely new story type still needs a verified adapter, a reviewed recipe and
+a full export review before registration. Never claim arbitrary news automatically
+receives a finished documentary treatment.
 
 ## Continuous motion
 
-Narrated housing exports use the frame compositor in `housingMotionRenderer.ts`.
+Narrated housing exports use `housingMotionRenderer.ts`; the other five use
+`evidenceMotionRenderer.ts` and `evidenceVisualLayout.ts`.
 Every picture is evaluated on the 30 fps clock, with stationary Satori typography
 cached separately from photos, bars, the timeline marker and phrase reveals.
 Frames stream to the final encoder with backpressure instead of repeating a small
@@ -86,6 +113,12 @@ the exported MP4 frame by frame during active motion, as a 30 fps container can
 still contain duplicated animation positions. Compare positions in a moving
 region, not compression noise or an intentional reading hold.
 
+Narration owns scene duration. Numbers finish before the sentence ends and remain
+available to read. Adjacent scenes retaining a chart keep its completed values.
+Body text has explicit widths, and marked text outside the viewport or its
+individual layer bounds fails rendering rather than silently publishing a crop.
+Validate tied, zero and negative rates as well as ordinary positive examples.
+
 ## Publishing
 
 Existing scheduler and Meta delivery remain in charge. At most one automatic
@@ -93,3 +126,11 @@ Reel per Sydney day, in the existing 6:30pm to 8pm window, subject to current
 evidence, credentials and readiness. Confirmed or uncertain publication slots
 are never reset to repost after a design/voice change. This rollout does not
 manually post the preview or change the schedule.
+
+The admin Reel panel shows the selected story, Sydney eligibility window, retry
+time and blockers separately from a confirmed Instagram media ID. A window is
+not a reservation. DST comes from the Australia/Sydney timezone database.
+The scheduler emits a `[reel-plan]` runtime log when that status changes, including
+the publication key and period, without credentials or a new public admin route.
+Use this to confirm what is actually selected after deployment. Do not infer a
+story's posting time merely from a merge or a successful preview.

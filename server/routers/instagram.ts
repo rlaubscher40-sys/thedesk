@@ -96,6 +96,7 @@ export const instagramRouter = router({
 
   reelPlan: adminProcedure.query(async () => {
     const { readReelAutomation, REEL_SCHEDULE } = await import("../instagram/reelAutomation");
+    const { describeReelPlan } = await import("../instagram/reelPlanSummary");
     const { latestGridCoverVariant } = await import("../db/instagramPosts");
     const plan = await readReelAutomation();
     const { getVerifiedReelProgramme } = await import("../instagram/reelCandidates");
@@ -114,6 +115,11 @@ export const instagramRouter = router({
       }))
     );
     return {
+      summary: describeReelPlan(
+        plan,
+        env.enableScheduler && Boolean(env.scheduledApiKey),
+        Boolean(env.instagramAccessToken && env.instagramBusinessAccountId)
+      ),
       editorialQueue,
       script: plan.candidate?.script ?? null,
       schedulerEnabled: env.enableScheduler && Boolean(env.scheduledApiKey),

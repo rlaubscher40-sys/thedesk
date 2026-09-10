@@ -4,6 +4,7 @@ import { rentPeriod } from "../../shared/cityRents";
 import type { verifiedRentReel } from "./verifiedReel";
 import { buildNarrativeReelCaption, reelReadingCta } from "./reelCaption";
 import { approvalStoryboard } from "../video/storyboard";
+import { withEvidenceVisual } from "../video/evidenceVisual";
 
 type VerifiedReel = NonNullable<ReturnType<typeof verifiedRentReel>>;
 
@@ -56,36 +57,47 @@ export function verifiedSupplyReel(data: CityApprovals, now = new Date()): Verif
       .sort((x, y) => `${x.city}:${x.period}`.localeCompare(`${y.city}:${y.period}`)),
   };
   const storyboard = approvalStoryboard(a.total, b.total, period);
-  return {
-    stat: {
-      storyboard,
-      editorialLabel: "Supply and Demand",
-      label: "Greater Brisbane approvals",
-      value: number(a.total),
-      line: "Greater Brisbane dwelling approvals over 12 months.",
-      subtext: `Year to ${period} · Approved, not completed`,
-      source: `ABS Building Approvals · Year to ${period}`,
-      facts: [
-        { figure: number(a.total), caption: "Greater Brisbane approvals" },
-        { figure: number(b.total), caption: "Greater Perth approvals" },
-        reelReadingCta("supplyComparison").fact,
-      ],
+  return withEvidenceVisual(
+    {
+      stat: {
+        storyboard,
+        editorialLabel: "Supply and Demand",
+        label: "Greater Brisbane approvals",
+        value: number(a.total),
+        line: "Greater Brisbane dwelling approvals over 12 months.",
+        subtext: `Year to ${period} · Approved, not completed`,
+        source: `ABS Building Approvals · Year to ${period}`,
+        facts: [
+          { figure: number(a.total), caption: "Greater Brisbane approvals" },
+          { figure: number(b.total), caption: "Greater Perth approvals" },
+          reelReadingCta("supplyComparison").fact,
+        ],
+      },
+      script: storyboard.scenes.map(({ key, text }) => ({ key, text })),
+      publication: {
+        key: "instagram-reel-abs-approvals-brisbane-perth-v1",
+        date: `${a.period}-01`,
+      },
+      evidenceHash: createHash("sha256").update(JSON.stringify(evidence)).digest("hex"),
+      caption: buildNarrativeReelCaption({
+        paragraphs: [
+          "More homes approved. But are we building enough?",
+          `Greater Brisbane recorded ${number(a.total)} dwelling approvals in the year to ${period}. Greater Perth recorded ${number(b.total)}.`,
+          "Supply only makes sense alongside demand. The question is whether homes being delivered are keeping pace with households needing somewhere to live.",
+          "An approval is permission to build. Construction still has to happen before there is a finished home. These figures don't count construction starts or completed homes.",
+          "So a bigger approval count doesn't tell us which city has enough housing. These are different-sized cities. We need to compare completions and household demand in the same area and period before drawing that conclusion.",
+        ],
+        source:
+          "Source: ABS Building Approvals. All dwelling types and sectors; original counts, not seasonally adjusted. Figures can be revised.",
+        revision: flags ? `${flags}.` : undefined,
+        read: "supplyComparison",
+      }),
     },
-    script: storyboard.scenes.map(({ key, text }) => ({ key, text })),
-    publication: { key: "instagram-reel-abs-approvals-brisbane-perth-v1", date: `${a.period}-01` },
-    evidenceHash: createHash("sha256").update(JSON.stringify(evidence)).digest("hex"),
-    caption: buildNarrativeReelCaption({
-      paragraphs: [
-        "More homes approved. But are we building enough?",
-        `Greater Brisbane recorded ${number(a.total)} dwelling approvals in the year to ${period}. Greater Perth recorded ${number(b.total)}.`,
-        "Supply only makes sense alongside demand. The question is whether homes being delivered are keeping pace with households needing somewhere to live.",
-        "An approval is permission to build. Construction still has to happen before there is a finished home. These figures don't count construction starts or completed homes.",
-        "So a bigger approval count doesn't tell us which city has enough housing. These are different-sized cities. We need to compare completions and household demand in the same area and period before drawing that conclusion.",
-      ],
-      source:
-        "Source: ABS Building Approvals. All dwelling types and sectors; original counts, not seasonally adjusted. Figures can be revised.",
-      revision: flags ? `${flags}.` : undefined,
-      read: "supplyComparison",
-    }),
-  };
+    {
+      recipe: "approval-comparison",
+      period: `Year to ${period}`,
+      rows: [a, b].map((row) => ({ label: `Greater ${row.city}`, value: row.total })),
+      readLabel: reelReadingCta("supplyComparison").fact.caption,
+    }
+  );
 }

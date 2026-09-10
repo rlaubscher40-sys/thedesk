@@ -27,6 +27,7 @@ import {
   type ReelStoryboard,
 } from "./storyboard";
 import type { SpeechProfile } from "./localVoice";
+import { validateEvidenceVisual, type EvidenceVisual } from "./evidenceVisual";
 
 const run = promisify(execFile);
 
@@ -125,6 +126,7 @@ export function reelDurationLimit(stat?: Pick<ReelStat, "storyboard">): number {
 }
 
 export type ReelStat = ReelStatText & {
+  visualStory?: EvidenceVisual;
   storyboard?: ReelStoryboard;
   editorialLabel?: "What Changed" | "Before You Buy" | "Supply and Demand";
   asOf?: Date | null;
@@ -454,6 +456,17 @@ export function composeSections(
   durations: Record<string, number>,
   phrases?: Record<string, MeasuredPhrase[]>
 ): Section[] {
+  if (stat.visualStory)
+    return stat.visualStory.script.map((scene, i, all) => {
+      const seconds = durations[scene.key];
+      if (!Number.isFinite(seconds) || seconds! <= 0)
+        throw new Error("Scene has no speech timing.");
+      return {
+        key: scene.key,
+        seconds: seconds! + (i === all.length - 1 ? 0.65 : 0.18),
+        frames: [{ reveal: 1, sceneKey: scene.key, sceneProgress: 1, hardCut: true }],
+      };
+    });
   if (stat.storyboard) return storyboardSections(stat.storyboard, durations, phrases);
   const ticks = countUpFrames(stat.value);
   const withTail = (key: string, last = false) =>
@@ -571,10 +584,12 @@ export async function renderStatReel(
     // script costs nothing rather than five TTS calls that are then discarded.
     let script =
       opts.script ??
+      stat.visualStory?.script ??
       (stat.storyboard
         ? stat.storyboard.scenes.map(({ key, text }) => ({ key, text }))
         : buildScript(stat));
     if (stat.storyboard) validateStoryboard(stat.storyboard, script);
+    if (stat.visualStory) validateEvidenceVisual(stat.visualStory, script);
     const maxSeconds = reelDurationLimit(stat);
     if (opts.script && !scriptFitsClip(opts.script, stat)) {
       throw new Error(
@@ -625,7 +640,9 @@ export async function renderStatReel(
     // picture, and satori is the expensive part of this function.
     const cache = new Map<string, string>();
     const frameFiles: string[] = [];
-    const continuous = stat.storyboard?.kind === "housing-balance" && Boolean(spoken);
+    const continuous =
+      Boolean(spoken) && (stat.storyboard?.kind === "housing-balance" || Boolean(stat.visualStory));
+    const documentary = stat.storyboard?.kind === "housing-balance" || Boolean(stat.visualStory);
     for (const beat of continuous ? [] : beats) {
       const key = [
         beat.frame.reveal,
@@ -637,23 +654,35 @@ export async function renderStatReel(
       ].join("|");
       let file = cache.get(key);
       if (!file) {
-        const buf = stat.storyboard
-          ? await renderStoryFrame(
-              stat.storyboard,
-              beat.frame.sceneKey!,
-              beat.frame.sceneProgress!,
-              variant
-            )
-          : await renderStatCard(stat, variant, {
-              shape: "vertical",
-              reveal: beat.frame.reveal,
-              valueText: beat.frame.valueText,
-              seriesProgress: beat.frame.seriesProgress,
-              facts: stat.facts,
-              factsShown: beat.frame.factsShown ?? 0,
-              subtitleSpace: opts.subtitles,
-              kicker: stat.editorialLabel ?? "The Number",
-            });
+        const buf = stat.visualStory
+          ? await (async () => {
+              const { evidenceVisualLayout } = await import("./evidenceVisualLayout");
+              const { renderEditorialFrame } = await import("../og/instagramCards");
+              const page = evidenceVisualLayout(
+                stat.visualStory!,
+                beat.frame.sceneKey!,
+                1,
+                variant
+              );
+              return renderEditorialFrame(page.content, variant, page.meta);
+            })()
+          : stat.storyboard
+            ? await renderStoryFrame(
+                stat.storyboard,
+                beat.frame.sceneKey!,
+                beat.frame.sceneProgress!,
+                variant
+              )
+            : await renderStatCard(stat, variant, {
+                shape: "vertical",
+                reveal: beat.frame.reveal,
+                valueText: beat.frame.valueText,
+                seriesProgress: beat.frame.seriesProgress,
+                facts: stat.facts,
+                factsShown: beat.frame.factsShown ?? 0,
+                subtitleSpace: opts.subtitles,
+                kicker: stat.editorialLabel ?? "The Number",
+              });
         file = path.join(dir, `frame-${cache.size}.jpg`);
         await fs.writeFile(file, buf);
         cache.set(key, file);
@@ -715,25 +744,18 @@ export async function renderStatReel(
               start: starts[i]!,
               seconds: durations[section.key] ?? 0,
             })),
-        display ? 34 : 32
+        documentary ? 34 : 32
       );
       const fontDir = path.join(dir, "fonts");
       await fs.mkdir(fontDir);
       await fs.writeFile(
         path.join(fontDir, "Desk-Subtitle.woff"),
-        await loadReelSubtitleFont(stat.storyboard?.kind === "housing-balance")
+        await loadReelSubtitleFont(documentary)
       );
       const assFile = path.join(dir, "subtitles.ass");
       await fs.writeFile(
         assFile,
-        subtitleAss(
-          cues,
-          stat.storyboard?.kind === "housing-balance"
-            ? "documentary"
-            : stat.storyboard
-              ? "story"
-              : "card"
-        )
+        subtitleAss(cues, documentary ? "documentary" : stat.storyboard ? "story" : "card")
       );
       subtitleFilter = `[vplain]ass=filename=${assFile}:fontsdir=${fontDir}[vout]`;
     }
@@ -748,7 +770,7 @@ export async function renderStatReel(
             spokenSections.map((s) => s.start),
             continuous ? 1 : frameFiles.length,
             total,
-            stat.storyboard?.kind === "housing-balance"
+            documentary
           )
         : "",
     ]
@@ -790,7 +812,17 @@ export async function renderStatReel(
     );
 
     // The encode measures a few seconds; the ceiling is for a cold container.
-    if (continuous && stat.storyboard?.kind === "housing-balance") {
+    if (continuous && stat.visualStory) {
+      const { createEvidenceMotionRenderer } = await import("./evidenceMotionRenderer");
+      const { encodeMotionFrames } = await import("./housingMotionRenderer");
+      const draw = await createEvidenceMotionRenderer(
+        stat.visualStory,
+        variant,
+        sections.map((s, i) => ({ key: s.key, start: starts[i]!, seconds: durations[s.key]! })),
+        total
+      );
+      await encodeMotionFrames(args, total, draw);
+    } else if (continuous && stat.storyboard?.kind === "housing-balance") {
       const { createHousingMotionRenderer, encodeMotionFrames } =
         await import("./housingMotionRenderer");
       const draw = await createHousingMotionRenderer(

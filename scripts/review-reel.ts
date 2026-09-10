@@ -8,7 +8,8 @@ import { productionReelOptions } from "../server/video/reelProduction";
 const args = process.argv.slice(2);
 const usage =
   "node --import tsx scripts/review-reel.ts --list\n" +
-  "node --import tsx scripts/review-reel.ts --topic <publication-key> --out /absolute/new-directory";
+  "node --import tsx scripts/review-reel.ts --topic <publication-key> --out /absolute/new-directory\n" +
+  "node --import tsx scripts/review-reel.ts --all --out /absolute/new-directory";
 if (args.includes("--help")) {
   console.log(usage);
   process.exit(0);
@@ -17,8 +18,7 @@ const topic = args[args.indexOf("--topic") + 1];
 const output = args[args.indexOf("--out") + 1];
 if (
   !args.includes("--list") &&
-  (!args.includes("--topic") ||
-    !topic ||
+  ((!args.includes("--all") && (!args.includes("--topic") || !topic)) ||
     !args.includes("--out") ||
     !output ||
     !path.isAbsolute(output))
@@ -39,46 +39,81 @@ if (args.includes("--list")) {
     )
   );
 } else {
-  const candidate = programme.find(
-    (entry) => entry.candidate?.publication.key === topic
-  )?.candidate;
-  if (!candidate)
+  const selected = args.includes("--all")
+    ? programme
+    : programme.filter((entry) => entry.candidate?.publication.key === topic);
+  if (!selected.some((entry) => entry.candidate))
     throw new Error(
       "No currently verified candidate for this topic. Use --list. No substitute story generated."
     );
   // A fresh directory prevents overwriting a prior reviewed export.
   await fs.mkdir(output!);
-  const rendered = await renderStatReel(
-    candidate.stat,
-    "navy",
-    productionReelOptions(candidate.script)
-  );
-  if (!rendered.narrated || !rendered.subtitled)
-    throw new Error("Review requires voice and subtitles.");
-  await fs.writeFile(path.join(output!, "The-Desk-Reel.mp4"), rendered.bytes);
-  await fs.writeFile(path.join(output!, "The-Desk-Reel-Caption.txt"), candidate.caption + "\n");
-  await fs.writeFile(
-    path.join(output!, "review.json"),
-    JSON.stringify(
-      {
-        status: "Review only. Not posted.",
-        generatedAt: new Date().toISOString(),
-        production: productionReelOptions(),
-        candidate,
+  const manifest: Array<Record<string, unknown>> = [];
+  for (const entry of selected) {
+    const candidate = entry.candidate;
+    if (!candidate) {
+      manifest.push({ topic: entry.topic, status: "withheld", requirement: entry.requirement });
+      continue;
+    }
+    const destination = args.includes("--all")
+      ? path.join(output!, candidate.publication.key.replace(/[^a-z0-9-]/gi, "-"))
+      : output!;
+    if (destination !== output) await fs.mkdir(destination);
+    const startedAt = Date.now();
+    console.log(JSON.stringify({ topic: entry.topic, status: "rendering" }));
+    const rendered = await renderStatReel(
+      candidate.stat,
+      "navy",
+      productionReelOptions(candidate.script)
+    );
+    if (!rendered.narrated || !rendered.subtitled)
+      throw new Error("Review requires voice and subtitles.");
+    await fs.writeFile(path.join(destination, "The-Desk-Reel.mp4"), rendered.bytes);
+    await fs.writeFile(
+      path.join(destination, "The-Desk-Reel-Caption.txt"),
+      candidate.caption + "\n"
+    );
+    await fs.writeFile(
+      path.join(destination, "review.json"),
+      JSON.stringify(
+        {
+          status: "Review only. Not posted.",
+          generatedAt: new Date().toISOString(),
+          production: productionReelOptions(),
+          candidate,
+          seconds: rendered.seconds,
+          narrated: rendered.narrated,
+          subtitled: rendered.subtitled,
+          timeline: rendered.timeline,
+        },
+        null,
+        2
+      )
+    );
+    console.log(
+      JSON.stringify({
+        file: path.join(destination, "The-Desk-Reel.mp4"),
         seconds: rendered.seconds,
-        narrated: rendered.narrated,
-        subtitled: rendered.subtitled,
-        timeline: rendered.timeline,
-      },
-      null,
-      2
-    )
-  );
-  console.log(
-    JSON.stringify({
-      file: path.join(output!, "The-Desk-Reel.mp4"),
+        posted: false,
+      })
+    );
+    manifest.push({
+      topic: entry.topic,
+      status: "rendered",
+      file: path.join(destination, "The-Desk-Reel.mp4"),
       seconds: rendered.seconds,
-      posted: false,
-    })
+      renderSeconds: (Date.now() - startedAt) / 1000,
+      narrated: rendered.narrated,
+      subtitled: rendered.subtitled,
+    });
+    // Checkpoint each expensive completed render; no candidate is substituted for a withheld topic.
+    await fs.writeFile(
+      path.join(output!, "manifest.json"),
+      JSON.stringify({ status: "Review only. Not posted.", entries: manifest }, null, 2)
+    );
+  }
+  await fs.writeFile(
+    path.join(output!, "manifest.json"),
+    JSON.stringify({ status: "Review only. Not posted.", entries: manifest }, null, 2)
   );
 }

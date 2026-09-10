@@ -3,6 +3,7 @@ import { latestRent, rentGap, rentPeriod, type CityRents } from "../../shared/ci
 import type { ReelStat } from "../video/statReel";
 import type { ScriptLine } from "../video/narration";
 import { buildReelCaption, reelReadingCta } from "./reelCaption";
+import { withEvidenceVisual } from "../video/evidenceVisual";
 
 /** One comparable official release, not a daily market-movement claim. */
 export function verifiedRentReel(data: CityRents, now = new Date()) {
@@ -56,21 +57,29 @@ export function verifiedRentReel(data: CityRents, now = new Date()) {
   ];
   const evidence = { series: "ABS:CPI(2.0.0)/3.30014.10.3+5.M/PCT", a, b };
   const hash = createHash("sha256").update(JSON.stringify(evidence)).digest("hex");
-  return {
-    stat,
-    script,
-    // The month is reserved once even if revised: revisions stay in the source
-    // read, without quietly republishing the same topic after a restart.
-    publication: { key: "instagram-reel-abs-rents-brisbane-perth-v1", date: `${a.period}-01` },
-    evidenceHash: hash,
-    caption: buildReelCaption({
-      hook: "Brisbane or Perth: where did rents change faster?",
-      finding: `Brisbane ${a.annualPercent.toFixed(1)}% vs Perth ${b.annualPercent.toFixed(1)}%. Year to ${period}. Gap: ${figure} percentage points.`,
-      meaning: `${line} This is the pace of change, not dollar rents, rental yield or a better-investment verdict. It does not explain why rents changed.`,
-      method: "Source: ABS CPI rents actually paid, original capital-city series.",
-      revisions: revision + ". Data can be revised.",
-      action: "Save this comparison. Check purchase prices and costs before comparing returns.",
-      read: "rentComparison",
-    }),
-  };
+  return withEvidenceVisual(
+    {
+      stat,
+      script,
+      // The month is reserved once even if revised: revisions stay in the source
+      // read, without quietly republishing the same topic after a restart.
+      publication: { key: "instagram-reel-abs-rents-brisbane-perth-v1", date: `${a.period}-01` },
+      evidenceHash: hash,
+      caption: buildReelCaption({
+        hook: "Brisbane or Perth: where did rents change faster?",
+        finding: `Brisbane ${a.annualPercent.toFixed(1)}% vs Perth ${b.annualPercent.toFixed(1)}%. Year to ${period}. Gap: ${figure} percentage points.`,
+        meaning: `${line} This is the pace of change, not dollar rents, rental yield or a better-investment verdict. It does not explain why rents changed.`,
+        method: "Source: ABS CPI rents actually paid, original capital-city series.",
+        revisions: revision + ". Data can be revised.",
+        action: "Save this comparison. Check purchase prices and costs before comparing returns.",
+        read: "rentComparison",
+      }),
+    },
+    {
+      recipe: "rent-comparison",
+      period: `Year to ${period}`,
+      rows: [a, b].map((row) => ({ label: row.city, value: row.annualPercent })),
+      readLabel: reelReadingCta("rentComparison").fact.caption,
+    }
+  );
 }

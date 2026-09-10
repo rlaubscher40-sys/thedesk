@@ -453,6 +453,18 @@ export async function renderEditorialLayer(
     width,
     height,
     onNodeDetected: (node) => {
+      if (
+        node.props["data-reel-safe-text"] &&
+        (node.left < -0.5 ||
+          node.top < -0.5 ||
+          node.left + node.width > Math.min(width, 924) + 0.5 ||
+          node.top + node.height > height + 0.5 ||
+          (typeof node.props["data-reel-max-height"] === "number" &&
+            node.height > node.props["data-reel-max-height"]))
+      )
+        throw new Error(
+          "Reel text exceeds its authored bounds. Review the scene before publishing."
+        );
       const maxBottom = node.props["data-max-bottom"];
       if (typeof maxBottom === "number" && node.top + node.height > maxBottom)
         throw new Error("Weekly feature needs editorial review: body overlaps footer clearance");
