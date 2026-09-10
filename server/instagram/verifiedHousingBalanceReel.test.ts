@@ -154,7 +154,7 @@ describe("the finding survives the Reel and source destination", () => {
       if (number) expect(line.text.replace(number[1]!, number[0]!)).toBe(spoken.text);
       else if (line.key === "households") {
         expect(line.text).toBe(
-          "A modelled 20% deposit took 9 years to save in 2015. By 2025, 11.2 years."
+          "Saving a 20% deposit meant an estimated 9 years in 2015. By 2025, that had stretched to 11.2 years."
         );
       } else expect(line.text).toBe(spoken.text);
       const seconds = estimateSpeechSeconds(spoken.text);

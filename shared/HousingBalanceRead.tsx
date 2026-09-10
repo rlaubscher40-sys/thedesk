@@ -116,12 +116,14 @@ export function HousingBalanceRead() {
         </a>
       </section>
       <section className="rule-hair pt-5 mt-7">
-        <h2 className="font-serif text-3xl">Why catching up takes time.</h2>
+        <h2 className="font-serif text-3xl">Building more is not the same as catching up.</h2>
         <p className="text-base leading-7 mt-4">
-          High construction costs, shortages of skilled labour and project financing affect whether
-          homes can be built profitably. Projects can be delayed or cancelled, and approvals take
-          time to become completed homes. The Council discusses these constraints in chapter 2,
-          section 2.3. An announcement or approval does not immediately add somewhere to live.
+          Adding homes is not enough to reduce an existing shortage if additional need grows faster.
+          Net additions, after demolitions, must exceed new need for the gap to narrow. High
+          construction costs, shortages of skilled labour and project financing affect whether homes
+          can be built profitably. Projects can be delayed or cancelled, and approvals take time to
+          become completed homes. The Council discusses these constraints in chapter 2, section 2.3.
+          An announcement or approval does not immediately add somewhere to live.
         </p>
         <h2 className="font-serif text-3xl mt-7">Pressure is not a price forecast.</h2>
         <p className="text-base leading-7 mt-4">
@@ -132,8 +134,9 @@ export function HousingBalanceRead() {
           prices. Prices can fall even while housing remains scarce if demand weakens.
         </p>
         <p className="font-serif text-2xl mt-5">
-          The takeaway: easing scarcity pressure requires supply to catch up with demand. That means
-          delivering homes where they are needed, and delivery takes time.
+          The takeaway: building more is not the same as catching up. To close the shortage, homes
+          added after demolitions must outpace additional need, in the places people need them.
+          Delivery takes time.
         </p>
       </section>
       <section className="rule-hair pt-5 mt-7" aria-label="Source and methodology">
@@ -179,6 +182,15 @@ export function HousingBalanceRead() {
           >
             Reel archive photograph: Damon Hall, Sydney construction, published December 2019
             (Unsplash License) →
+          </a>
+          <a
+            className="bs-link"
+            href="https://unsplash.com/photos/mikcmWSjlMw"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Opening architectural photograph: Phillip Flores / Unsplash. Illustrative context; no
+            current sale or resident claim. →
           </a>
           <a className="bs-link" href={b.source} target="_blank" rel="noopener noreferrer">
             Read the matched source figures, page 21 →

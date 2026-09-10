@@ -97,12 +97,12 @@ describe("documentary housing Reel", () => {
     }
   });
   it("identifies archive imagery and the modelled deposit assumptions", () => {
-    for (const key of ["label", "construction"]) {
-      const words = copy(frame(key).content).join(" ");
-      expect(words).toContain("ARCHIVE PUBLISHED 2019");
-      expect(words.toLowerCase()).toContain("damon hall");
-      expect(words.toLowerCase()).toContain("unsplash");
-    }
+    const opening = copy(frame("label").content).join(" ");
+    expect(opening).toContain("ILLUSTRATIVE PHOTO");
+    expect(opening).toContain("Phillip Flores / Unsplash");
+    const construction = copy(frame("construction").content).join(" ");
+    expect(construction).toContain("ARCHIVE PUBLISHED 2019");
+    expect(construction).toContain("DAMON HALL");
     const words = copy(frame("households").content).join(" ");
     for (const phrase of [
       "11.2",
@@ -115,7 +115,7 @@ describe("documentary housing Reel", () => {
   it("labels the ending as illustration and never reuses the flow gap as a stock estimate", () => {
     for (const p of [0, 1]) {
       const words = copy(frame("signOff", p).content).join(" ");
-      expect(words).toContain("Supply must catch up with demand.");
+      expect(words).toContain("Add homes faster than need grows.");
       expect(words).toContain("ILLUSTRATION");
       expect(words).not.toMatch(/55,000|19 short/);
     }

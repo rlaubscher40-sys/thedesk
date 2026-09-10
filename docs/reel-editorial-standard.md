@@ -30,13 +30,15 @@ this change does not claim automatic semantic review of every future post.
 
 ## Current housing story
 
-Open with the affordability contradiction: more homes, still out of reach. Establish
+Open with the buyer's question: Australia is building homes, so why is buying
+one getting harder? Establish
 232,000 additions after demolitions versus 287,000 estimated extra homes needed
 in the same national 18 months. Show the additional 55,000 gap. Then explain
 how limited supply relative to demand puts upward pressure on prices and rents.
 Make the human consequence concrete through the Council's modelled deposit
 benchmark: 9.0 years in 2015 to 11.2 in 2025, with assumptions visible. Explain why high building costs and labour shortages impede a quick
-response. End with supply catching up to demand to ease scarcity pressure.
+response. End by resolving the question: building more is not the same as catching up;
+net additions must outpace additional need to reduce the existing shortage.
 
 Six sequences follow this argument, compressing the figures into one developing
 comparison so the explanation arrives sooner. The previous ratio scene repeated the
@@ -109,3 +111,11 @@ See `reel-research-and-review.md` for primary references, the decisions they
 informed, and checks on the finished export. Documentary subtitles use the
 bundled editorial sans face rather than the monospaced metadata font. Other
 Reel formats retain their existing subtitle treatment.
+
+
+The opening uses a separate monochrome architectural photograph by Phillip
+Flores. The construction photograph appears only with the supply constraints.
+Both carry credit and context labels. The voice uses ordinary words such as
+"estimated"; the precise modelling assumptions remain on screen and in the
+caption/source read. Preserve the observed 2015 and 2025 values and their
+measured phrase timing when simplifying the narration.

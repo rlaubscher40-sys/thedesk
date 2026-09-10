@@ -253,3 +253,58 @@ production build pass. The broad 118-test suite passed before the final year
 change; all 34 affected tests passed after it. This remains an unpublished
 review preview, with vocal-performance listening and audience response outside
 these technical checks.
+
+
+## Buyer question and narrative resolution, 10 September 2026
+
+The next refinement preserves the approved six-sequence structure and design.
+The opening now asks why buying a home is getting harder despite construction.
+A distinct monochrome architectural photograph by Phillip Flores replaces the
+repeated construction tower at the opening. The tower stays with the account
+of construction constraints. Neither image represents a specific current sale,
+priced-out resident or evidence of delay at a particular project.
+
+The deposit narration uses "estimated" rather than leading with "modelled" and
+explains that the benchmark had stretched to 11.2 years. The 20% deposit,
+15%-of-gross-median-income saving assumption, separate decade and modelled
+benchmark label remain visible. The caption and source read preserve them.
+The ending resolves the opening by distinguishing more building from catching
+up: additions after demolitions must outpace additional need to close the gap.
+The closing animation remains an illustration rather than a forecast.
+
+The new photograph was selected after inspecting the downloaded candidates.
+Bakery, food and cycle-lane images were unsuitable. Wikimedia image descriptions
+were accessible but the image transfers failed; those images are not bundled.
+The selected Unsplash search result linked a free image under Phillip Flores,
+and its public image bytes were retrieved. The individual metadata page was
+unavailable, so no capture date or exact address is asserted. Provenance and
+licence details are in `reel-archive-photography.md`.
+
+Opening and ending frames were inspected at full size before the full render.
+The 119-test relevant suite and TypeScript passed. A listening judgement remains
+separate from technical checks, and no Glasshouse parity score is claimed.
+
+
+### Delivered buyer-question export
+
+The final MP4 is 41.37 seconds, 1080x1920 at 30 fps, with H.264 picture,
+stereo AAC Fable narration at 48 kHz and burned-in subtitles. All 1,241 frames
+and the complete audio stream decode without error. The picture-duration gate
+passes. Audio measures -17.34 LUFS integrated, -4.32 dBTP and 3.20 LU loudness
+range. The last spoken passage ends at 40.70 seconds, before picture ends.
+
+The price-pressure explanation begins at 12.00 seconds. The longer opening
+question, plainer deposit sentence and explicit ending account for the added
+running time; Fable remains at speed 1.0. Encoded frames from all six scenes
+and the initial 2015 deposit phase were inspected at phone size. The opening
+subtitle fits, dates follow the measured phrases, and the ending visibly
+outpaces additional need. Source notes and photo credits remain unobstructed.
+These checks do not establish vocal-performance quality or audience retention.
+
+
+The preceding CI run exposed three stale-date failures in candidate selection
+and automation tests. Their housing scenarios used 9 September, before the
+10 September deposit verification gate. Updated those housing-only fixtures
+to 10 September without weakening the production gate or changing other
+scheduling tests. The candidate test also explicitly asserts withholding on
+9 September. All 44 candidate, automation and verified-housing tests pass.

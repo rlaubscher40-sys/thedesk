@@ -126,7 +126,8 @@ included in the evidence hash and publication verification-date gate.
 
 ## Connected six-sequence cut
 
-1. More homes, still out of reach: Sydney archive construction photography.
+1. Australia is building homes, so why is buying one getting harder? A separate
+   monochrome architectural photograph frames the affordability question.
 2. One developing comparison: 232,000 net additions, 287,000 extra need,
    then the 55,000 additional gap. Three measured phrases own the three reveals.
 3. The gold gap marker travels into an explicitly illustrative competition
@@ -136,7 +137,8 @@ included in the evidence hash and publication verification-date gate.
    are visible separately from the housing-flow reference period.
 5. Credited archive construction photograph, with a restrained crop pan,
    accompanies the explanation of high costs and labour shortages.
-6. Homes completed, not just promised. Illustrative supply catches up with need.
+6. Building more is not the same as catching up. Illustrative net additions
+   outpace new need, explaining what must happen to reduce the shortage.
 
 The original photograph and licence/provenance record are bundled with the
 renderer. See `reel-archive-photography.md`. It is contextual archive imagery,

@@ -61,14 +61,19 @@ export function housingBalanceStoryboard(
       takeaway: {
         sceneKeys: ["signOff"],
         statement:
-          "Easing scarcity pressure requires supply to catch up with demand; delivery takes time.",
+          "Closing the shortage requires completed homes after demolitions to outpace additional housing need; delivery takes time.",
         evidence: "Editorial synthesis of the matched balance and reported supply constraints.",
       },
       limits:
         "A flow gap is not total shortage or a price forecast. Underlying housing need differs from purchasing power. Rates, incomes and local conditions also matter.",
     },
     scenes: [
-      scene("label", "balance-opening", ["More homes. Still out of reach."], 0),
+      scene(
+        "label",
+        "balance-opening",
+        ["Australia is building homes. Why is buying one getting harder?"],
+        0
+      ),
       scene(
         "facts",
         "balance-comparison",
@@ -89,8 +94,8 @@ export function housingBalanceStoryboard(
         "households",
         "balance-households",
         [
-          "A modelled twenty per cent deposit took nine years to save in twenty fifteen.",
-          "By twenty twenty-five, eleven point two years.",
+          "Saving a twenty per cent deposit meant an estimated nine years in twenty fifteen.",
+          "By twenty twenty-five, that had stretched to eleven point two years.",
         ],
         1
       ),
@@ -103,7 +108,10 @@ export function housingBalanceStoryboard(
       scene(
         "signOff",
         "balance-takeaway",
-        ["Watch homes completed, not just promised.", "Supply must catch up with demand."],
+        [
+          "Building more isn't the same as catching up.",
+          "Completed homes must outpace new demand to close the gap.",
+        ],
         1
       ),
     ],
@@ -316,12 +324,12 @@ export function housingBalanceFrameLayout(
                 type: "img",
                 props: {
                   src: photo,
-                  width: 840,
-                  height: 1260,
+                  width: key === "label" ? 1040 : 840,
+                  height: key === "label" ? 732.46 : 1260,
                   style: {
                     position: "absolute",
-                    left: 0,
-                    top: -300 - 18 * ease(p),
+                    left: key === "label" ? -180 : 0,
+                    top: (key === "label" ? -60 : -300) - 18 * ease(p),
                     objectFit: "cover",
                   },
                 },
@@ -407,10 +415,10 @@ export function housingBalanceFrameLayout(
   if (key === "label")
     nodes = [
       at(0, 0, text("More homes.", 102, c.fg, true)),
-      at(0, 125, italic("Still out of reach.", 90, c.gold)),
+      at(0, 125, italic("Harder to buy?", 98, c.gold)),
       archive(310, 510, progress),
-      at(0, 855, tag("SYDNEY / ARCHIVE PUBLISHED 2019")),
-      at(0, 905, text("Damon Hall / Unsplash", 28, c.muted)),
+      at(0, 855, tag("ARCHITECTURE / ILLUSTRATIVE PHOTO")),
+      at(0, 905, text("Phillip Flores / Unsplash", 28, c.muted)),
     ];
   else if (key === "facts") nodes = comparison(progress);
   else if (key === "claim") {
@@ -472,15 +480,15 @@ export function housingBalanceFrameLayout(
     const p = ease(progress * 2 - 1),
       width = 470 + 290 * p;
     nodes = [
-      at(0, 0, text("Completed.", 99, c.fg, true)),
-      at(0, 116, italic("Not just promised.", 86, c.gold)),
+      at(0, 0, text("More homes.", 102, c.fg, true)),
+      at(0, 116, italic("Enough to catch up.", 83, c.gold)),
       at(0, 355, text("Homes added", 39, c.gold)),
       at(0, 420, "", { width, height: 22, backgroundColor: c.gold }),
       at(0, 535, text("Extra homes needed", 39, c.fg)),
       at(0, 600, "", { width: 640, height: 22, backgroundColor: c.fg }),
       at(640, 398, "", { height: 245, borderLeft: `1px solid ${c.muted}` }),
-      at(0, 725, text("Supply must catch up with demand.", 43, c.fg)),
-      at(0, 800, tag("ILLUSTRATION / NO FORECAST")),
+      at(0, 725, text("Add homes faster than need grows.", 43, c.fg)),
+      at(0, 800, tag("NET ADDITIONS / ILLUSTRATION / NO FORECAST")),
       at(0, 900, text(`Link in bio / ${REEL_READS.housingBalance.label}`, 28, c.gold)),
     ];
   }
@@ -492,7 +500,9 @@ export function housingBalanceFrameLayout(
           ? "AUSTRALIA / JUL 2024 TO DEC 2025"
           : key === "households"
             ? "AUSTRALIA / 2015 TO 2025"
-            : "HOUSING AFFORDABILITY / THE EXPLANATION",
+            : key === "label"
+              ? "AUSTRALIA / HOUSING AFFORDABILITY"
+              : "HOUSING AFFORDABILITY / THE EXPLANATION",
       source:
         key === "households"
           ? "NHSAC 2026 / pp. 3, 54, 57 / Modelled deposit"
@@ -515,7 +525,9 @@ export async function renderHousingBalanceFrame(
   progress: number,
   variant: CardVariant
 ) {
-  const photo = await loadAsset("sydney-construction-damon-hall.jpg");
+  const photo = await loadAsset(
+    key === "label" ? "architecture-phillip-flores.jpg" : "sydney-construction-damon-hall.jpg"
+  );
   if (!photo) throw new Error("Reviewed archive photograph is missing.");
   const { content, meta } = housingBalanceFrameLayout(story, key, progress, variant, photo);
   return renderEditorialFrame(content, variant, meta);

@@ -23,7 +23,8 @@ describe("repeatable automatic editorial selection", () => {
   });
   it("can explain national supply and demand without substituting unavailable city data", async () => {
     m.balance.mockResolvedValue(HOUSING_BALANCE_SNAPSHOT);
-    const candidates = await getVerifiedReelCandidates(new Date("2026-09-09T12:00:00Z"));
+    expect(await getVerifiedReelCandidates(new Date("2026-09-09T12:00:00Z"))).toEqual([]);
+    const candidates = await getVerifiedReelCandidates(new Date("2026-09-10T12:00:00Z"));
     expect(candidates).toHaveLength(1);
     expect(candidates[0]!.stat.value).toBe("~55,000");
     expect(candidates[0]!.stat.storyboard?.kind).toBe("housing-balance");
