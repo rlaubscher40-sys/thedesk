@@ -23,7 +23,7 @@ describe("verified rent Reel", () => {
     expect(reel.caption).toContain("https://thedesk.au/markets/compare/brisbane-vs-perth?");
     expect(reel.stat.series).toBeUndefined(); // Two cities are not a time series.
     expect(scriptFitsClip(reel.script)).toBe(true);
-    expect(reel.script.at(-1)!.text).toContain("Brisbane vs Perth rents");
+    expect(reel.script.at(-1)!.text).toContain("Full comparison in our bio");
   });
   it("withholds missing, stale, mismatched and future observations", () => {
     expect(verifiedRentReel({ ...data(), status: "unavailable" }, now)).toBeNull();
@@ -49,14 +49,14 @@ describe("verified rent Reel", () => {
     expect(revised.publication).toEqual(before.publication);
     expect(revised.evidenceHash).not.toBe(before.evidenceHash);
   });
-  it("explains the measure and decision inputs instead of reading the displayed rates", () => {
+  it("reads the evidence before explaining the missing decision inputs", () => {
     const reel = verifiedRentReel(data(), now)!;
     const story = reel.script.map((l) => l.text).join(" ");
-    expect(story).toContain("pace of change, not how expensive rents are");
-    expect(story).toContain("purchase prices and costs");
-    expect(story).toContain("Perth's rent index rose faster");
-    expect(story).not.toContain("4.6");
-    expect(story).not.toContain("5.3");
+    expect(story).toContain("Not which city costs more to rent");
+    expect(story).toContain("purchase price and ownership costs");
+    expect(story).toContain("Perth's annual rate was 0.7 percentage points higher");
+    expect(story).toContain("4.6 percent");
+    expect(story).toContain("5.3 percent");
     expect(reel.caption).toContain("AI narration.");
     expect(reel.publication).toEqual({
       key: "instagram-reel-abs-rents-brisbane-perth-v1",
@@ -76,9 +76,9 @@ describe("verified rent Reel", () => {
     const reel = verifiedRentReel(d, now)!;
     const story = reel.script.map((l) => l.text).join(" ");
     expect(scriptFitsClip(reel.script)).toBe(true);
-    if (risingCity) expect(story).toContain(`${risingCity}'s rent index rose faster`);
+    if (risingCity) expect(story).toContain(`${risingCity}'s annual rate was`);
     else expect(story).not.toContain("rose faster");
-    if (brisbane < 0 || perth < 0) expect(story).toContain("including falls");
+    if (brisbane < 0 || perth < 0) expect(story).toContain("minus");
     if (Math.abs(brisbane - perth) < 0.05) expect(story).toContain("Neither city's");
   });
 });

@@ -57,7 +57,7 @@ describe("repeatable concise Reel captions", () => {
       expect(recipe).not.toBeNull();
       const read = reads[index]!;
       const label = REEL_READS[read].label;
-      if (!recipe!.stat.storyboard)
+      if (!recipe!.stat.storyboard && recipe!.stat.visualStory?.recipe !== "rent-comparison")
         expect(recipe!.script.find((line) => line.key === "signOff")?.text).toContain(label);
       expect(recipe!.script.find((line) => line.key === "signOff")?.text).not.toMatch(/[?!]\./);
       expect(scriptFitsClip(recipe!.script)).toBe(true);
@@ -71,6 +71,10 @@ describe("repeatable concise Reel captions", () => {
       } else {
         expect(recipe!.stat.facts?.at(-1)).toEqual({ figure: "Open our bio", caption: label });
         expect(label.length).toBeLessThanOrEqual(44); // Card renderer's full-caption limit.
+      }
+      if (read === "rentComparison") {
+        expect(recipe!.stat.visualStory!.readLabel).toBe(label);
+        expect(recipe!.script.at(-1)!.text).toContain("in our bio");
       }
       const caption = recipe!.caption;
       expect(caption.toLowerCase()).toContain(`bio → ${label.toLowerCase()}`);

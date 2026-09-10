@@ -36,24 +36,26 @@ export function verifiedRentReel(data: CityRents, now = new Date()) {
       reelReadingCta("rentComparison").fact,
     ],
   };
-  // Interpret the measure, not its cause. The screen carries the individual
-  // rates; the voice explains the comparison and the missing decision inputs.
+  // The measured utterances introduce each observed rate before revealing the
+  // gap. Directional copy also handles zero, tied and falling observations.
   const meaning =
     gap === 0
-      ? "Neither city's rent index changed faster over the year."
-      : a.annualPercent >= 0 && b.annualPercent >= 0
-        ? `${leading}'s rent index rose faster. That's rents actually paid.`
-        : "This compares changes in rents actually paid, including falls.";
+      ? "Neither city's annual rate was higher."
+      : `${leading}'s annual rate was ${figure} percentage points higher.`;
+  const rate = (n: number) => `${n < 0 ? "minus " : ""}${Math.abs(n).toFixed(1)} percent`;
   const script: ScriptLine[] = [
-    { key: "label", text: "Brisbane or Perth: where did rents change faster?" },
-    { key: "value", text: `The rent growth gap: ${figure} percentage points.` },
+    { key: "label", text: "What does rent growth tell a buyer?" },
+    { key: "value", text: `Brisbane, ${rate(a.annualPercent)}. Perth, ${rate(b.annualPercent)}.` },
     { key: "line", text: meaning },
+    { key: "claim", text: "That is the change. Not which city costs more to rent." },
     {
-      key: "claim",
-      text: `Year to ${period}. That's the pace of change, not how expensive rents are.`,
+      key: "facts",
+      text: "Your return also depends on purchase price and ownership costs.",
     },
-    { key: "facts", text: "A buyer still needs purchase prices and costs to compare returns." },
-    { key: "signOff", text: reelReadingCta("rentComparison").voice },
+    {
+      key: "signOff",
+      text: "Rent growth is not yield. Full comparison in our bio.",
+    },
   ];
   const evidence = { series: "ABS:CPI(2.0.0)/3.30014.10.3+5.M/PCT", a, b };
   const hash = createHash("sha256").update(JSON.stringify(evidence)).digest("hex");
@@ -66,12 +68,14 @@ export function verifiedRentReel(data: CityRents, now = new Date()) {
       publication: { key: "instagram-reel-abs-rents-brisbane-perth-v1", date: `${a.period}-01` },
       evidenceHash: hash,
       caption: buildReelCaption({
-        hook: "Brisbane or Perth: where did rents change faster?",
+        hook: "Faster rent growth. A better investment?",
         finding: `Brisbane ${a.annualPercent.toFixed(1)}% vs Perth ${b.annualPercent.toFixed(1)}%. Year to ${period}. Gap: ${figure} percentage points.`,
-        meaning: `${line} This is the pace of change, not dollar rents, rental yield or a better-investment verdict. It does not explain why rents changed.`,
-        method: "Source: ABS CPI rents actually paid, original capital-city series.",
+        meaning: `${line} These percentages track rents actually paid. They do not tell you which city has higher weekly rents, or which property offers the better return. Purchase price and ownership costs matter too.`,
+        method:
+          "Source: ABS CPI rents actually paid, original capital-city series. Illustrative architecture: Phillip Flores / Unsplash.",
         revisions: revision + ". Data can be revised.",
-        action: "Save this comparison. Check purchase prices and costs before comparing returns.",
+        action:
+          "Use growth to understand the change. Check rent levels, purchase prices and costs to compare returns.",
         read: "rentComparison",
       }),
     },
