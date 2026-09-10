@@ -89,25 +89,33 @@ it.skipIf(!testUrl)(
       },
     };
     const id = await claims.insertFeedOnce(row);
-    expect(id).toBeGreaterThan(0);
-    const [stored] = await pool.query(
-      "SELECT fingerprint FROM feed_evidence_fingerprints WHERE feedItemId=?",
-      [id]
-    );
-    expect(stored).toHaveLength(1);
-    expect(JSON.stringify(stored)).not.toContain("evidenceword");
-    await pool.query(
-      "UPDATE feed_enrichment_jobs SET input=NULL, status='completed' WHERE feedItemId=?",
-      [id]
-    );
-    const { recentEditorialStories } = await import("./editorial");
-    const history = await recentEditorialStories();
-    const previous = history.find((entry) => entry.id === id)!;
-    expect(previous.evidenceFingerprint).toBeTruthy();
-    expect(previous).not.toHaveProperty("articleText");
-    expect(createEvidenceDuplicateIndex(history).find(row)?.id).toBe(id);
-    await pool.query("UPDATE daily_feed_items SET channel='HOLD' WHERE id=?", [id]);
-    expect((await recentEditorialStories()).some((entry) => entry.id === id)).toBe(false);
+    try {
+      expect(id).toBeGreaterThan(0);
+      const [stored] = await pool.query(
+        "SELECT fingerprint FROM feed_evidence_fingerprints WHERE feedItemId=?",
+        [id]
+      );
+      expect(stored).toHaveLength(1);
+      expect(JSON.stringify(stored)).not.toContain("evidenceword");
+      await pool.query(
+        "UPDATE feed_enrichment_jobs SET input=NULL, status='completed' WHERE feedItemId=?",
+        [id]
+      );
+      const { recentEditorialStories } = await import("./editorial");
+      const history = await recentEditorialStories();
+      const previous = history.find((entry) => entry.id === id)!;
+      expect(previous.evidenceFingerprint).toBeTruthy();
+      expect(previous).not.toHaveProperty("articleText");
+      expect(createEvidenceDuplicateIndex(history).find(row)?.id).toBe(id);
+      await pool.query("UPDATE daily_feed_items SET channel='HOLD' WHERE id=?", [id]);
+      expect((await recentEditorialStories()).some((entry) => entry.id === id)).toBe(false);
+    } finally {
+      // This fixture must not affect the existing concurrency row-count test.
+      await pool.query("DELETE FROM feed_evidence_fingerprints WHERE feedItemId=?", [id]);
+      await pool.query("DELETE FROM feed_enrichment_jobs WHERE feedItemId=?", [id]);
+      await pool.query("DELETE FROM feed_ingest_claims WHERE feedItemId=?", [id]);
+      await pool.query("DELETE FROM daily_feed_items WHERE id=?", [id]);
+    }
   }
 );
 
