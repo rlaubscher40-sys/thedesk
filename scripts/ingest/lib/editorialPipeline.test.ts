@@ -63,6 +63,128 @@ function preview(items: FetchedItem[], overrides: Parameters<typeof buildDailyBr
 }
 
 describe("editorial regression benchmark", () => {
+  it("reads a substantive RSS item before routine index entries exhaust the source cap", async () => {
+    const routine = Array.from({ length: 10 }, (_, i) =>
+      item({
+        title: `Australian mortgage broker ${i} partners with a lender`,
+        url: `https://www.abc.net.au/news/index-partner-${i}`,
+        discovery: "publisher-index",
+      })
+    );
+    const important = item({
+      title: "Australian dwelling values fall",
+      url: "https://www.abc.net.au/news/important-data",
+    });
+    const result = await preview([...routine, important]);
+    expect(result.report.read).toBe(10);
+    expect(result.items.some((row) => row.url === important.url)).toBe(true);
+    expect(result.report.decisions.find((row) => row.url === important.url)?.readAttempted).toBe(
+      true
+    );
+    expect(
+      result.report.decisions.filter((row) => row.reason === "publisher-reading-limit")
+    ).toHaveLength(1);
+  });
+
+  it("keeps publication times and day-only originals on the same Sydney day tied", async () => {
+    const first = item({
+      title: "Australian housing construction remains constrained",
+      url: "https://www.abc.net.au/news/timestamp",
+    });
+    const second = item({
+      title: "Queensland rental outlook concerns tenants",
+      url: "https://www.abc.net.au/news/day-only",
+    });
+    const result = await preview([first, second], {
+      readArticle: async (url) => ({
+        ...article,
+        publicationDate: url.endsWith("timestamp")
+          ? { publisherDateStatus: "available", publisherPublishedAt: "2026-09-08T20:00:00Z" }
+          : {
+              publisherDateStatus: "available",
+              publisherPublishedAt: null,
+              publisherPublishedDay: "2026-09-09",
+            },
+      }),
+    });
+    expect(result.items.map((row) => row.url)).toEqual([first.url, second.url]);
+  });
+
+  it("does not let a long product partnership displace an actual housing development at a publisher cap", async () => {
+    const routine = Array.from({ length: 3 }, (_, i) =>
+      item({
+        title: `Australian mortgage broker ${["Alpha", "Beta", "Gamma"][i]} partners with a new lender`,
+        url: `https://www.abc.net.au/news/partner-${i}`,
+        channel: "AU",
+      })
+    );
+    const important = item({
+      title: "226 new social homes for Western Sydney families",
+      url: "https://www.abc.net.au/news/new-homes",
+      channel: "AU",
+    });
+    const result = await preview([...routine, important], {
+      readArticle: async (url) => ({
+        ...article,
+        text: url.endsWith("new-homes")
+          ? body
+          : `This separate announcement concerns ${url}. ${body.repeat(4)}`,
+      }),
+    });
+    expect(result.items[0]!.title).toBe(important.title);
+    expect(result.items).toHaveLength(3);
+    expect(
+      result.report.decisions.filter((d) => d.reason === "publisher-publication-limit")
+    ).toHaveLength(1);
+  });
+
+  it("uses original publication recency instead of length to break equal impact ties", async () => {
+    const older = item({
+      title: "Australian housing construction remains constrained",
+      url: "https://www.abc.net.au/news/older",
+    });
+    const newer = item({
+      title: "Queensland rental outlook concerns tenants",
+      url: "https://www.abc.net.au/news/newer",
+    });
+    const result = await preview([older, newer], {
+      readArticle: async (url) => ({
+        ...article,
+        text: url.endsWith("older") ? body.repeat(4) : body,
+        publicationDate: {
+          publisherDateStatus: "available",
+          publisherPublishedAt: url.endsWith("older") ? "2026-09-08T01:00:00Z" : published,
+        },
+      }),
+    });
+    expect(result.items[0]!.title).toBe(newer.title);
+  });
+
+  it("separates ranking from unchanged eligibility checks", () => {
+    const input = {
+      ...item({ title: "Australian mortgage broker partners with a new lender" }),
+      articleText: body,
+      sourceTiming: timing,
+    };
+    const result = assessStory(input, now);
+    expect(result.eligible).toBe(true);
+    expect(result.score).toBeLessThan(73);
+    expect(assessStory({ ...input, articleText: "RBA cuts rates" }, now).eligible).toBe(false);
+    expect(
+      assessStory(
+        {
+          ...input,
+          sourceTiming: {
+            ...timing,
+            publisherPublishedAt: null,
+            publisherDateStatus: "missing",
+          },
+        },
+        now
+      ).eligible
+    ).toBe(false);
+  });
+
   it("keeps publisher-declared sponsored content out of enrichment", async () => {
     const result = await preview([item()], {
       readArticle: async () => ({
