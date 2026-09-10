@@ -7,6 +7,7 @@ import { parseIndexSource } from "./indexSource";
 import { extractArticleText } from "./article";
 import { extractPublicationDate } from "./publicationDate";
 import { editorialBeat, referenceNewsHold } from "../../../shared/editorial";
+import { australianPropertyTier } from "../../../server/instagram/propertyEditorial";
 
 const nsw = SOURCES.find((s) => s.name === "NSW Housing Releases")!;
 const release = {
@@ -19,6 +20,25 @@ const release = {
 const search = (rows: unknown[]) =>
   JSON.stringify({ hits: { hits: rows.map((_source) => ({ _source })) } });
 describe("regional discovery and evidence", () => {
+  it.each([
+    "226 new social homes for Western Sydney families",
+    "Riverfront transformation to unlock 2,200 homes for Queenslanders",
+    "4,900 new homes fast tracked across North Queensland",
+    "Australian property listings research released",
+  ])("carries verified housing-supply subjects into social selection: %s", (title) => {
+    expect(australianPropertyTier({ title })).toBe(2);
+  });
+  it.each([
+    { title: "US delivers 2,200 new homes", summary: "Australia could draw comparisons." },
+    { title: "New social homes announced" },
+    {
+      title: "Australian film festival opens",
+      summary: "New social homes are being built nearby.",
+    },
+    { title: "Dream home for sale in Sydney" },
+  ])("does not let supply vocabulary waive geography or headline relevance", (input) => {
+    expect(australianPropertyTier(input)).toBe(0);
+  });
   it("reads the native NSW response without promoting search timestamps or reference pages", async () => {
     const json = search([
       release,
