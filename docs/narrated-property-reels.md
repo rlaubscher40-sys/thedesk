@@ -1,5 +1,9 @@
 # Narrated property Reel programme
 
+Current production workflow: see `reel-production-playbook.md`. The registry
+now has six evidence-gated topics. The early rollout history below describes
+the initial two-topic programme; it is not the current topic inventory.
+
 The scheduled Reel now reads the same verified ABS CPI rent feed as the free
 Brisbane–Perth comparison. It requires matching, recent reference months and
 preserves city boundaries, original-series identity, revisions and source links.
@@ -34,7 +38,7 @@ to form a checkerboard. Manual/out-of-band posts can also change the grid.
 ## Voice and reproducible installation
 
 `pnpm setup:voice` is included in the production build and CI. It installs
-Kokoro-82M v1.0 (8-bit CPU model), with the stock **George** British male voice
+Kokoro-82M v1.0 (8-bit CPU model), with the approved **Fable** British male voice at speed 1.0
 from pinned `kokoro-js` 1.2.1. Model/tokenizer downloads are revision- and
 SHA-256-pinned; voice vectors and the phonemizer ship in locked npm packages.
 The killable Node child process uses one ONNX CPU thread. Remote model access

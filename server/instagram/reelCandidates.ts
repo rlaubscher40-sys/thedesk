@@ -6,6 +6,7 @@ import { verifiedRentReel } from "./verifiedReel";
 import { verifiedSupplyReel } from "./verifiedSupplyReel";
 import { verifiedCapitalRentReel } from "./verifiedCapitalRentReel";
 import { verifiedSydneyBeforeBuy, verifiedSydneyRentChange } from "./verifiedSydneyReels";
+import { assertProductionCandidate } from "../video/reelProduction";
 
 /** Shared editorial registry: scheduled publishing and the admin read use the same recipes. */
 export async function getVerifiedReelProgramme(now = new Date()) {
@@ -53,7 +54,10 @@ export async function getVerifiedReelProgramme(now = new Date()) {
       requirement:
         "Reviewed national net supply and estimated new demand for the same historical period, from the current report vintage.",
     },
-  ];
+  ].map((entry) => {
+    if (entry.candidate) assertProductionCandidate(entry.candidate);
+    return entry;
+  });
 }
 
 export async function getVerifiedReelCandidates(now = new Date()) {

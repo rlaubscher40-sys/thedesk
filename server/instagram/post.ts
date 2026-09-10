@@ -48,6 +48,7 @@ import {
 import { removeTempImage, storeTempImage } from "./tempStore";
 import type { ScriptLine } from "../video/narration";
 import { renderStatReel } from "../video/statReel";
+import { productionReelOptions } from "../video/reelProduction";
 import {
   pickPropertyStories,
   pickPropertyTopics,
@@ -1102,7 +1103,7 @@ export async function postStatReel(
   const renderStartedAt = Date.now();
   try {
     const [video, cover] = await Promise.all([
-      renderStatReel(sanitized, variant, { script: opts.script, subtitles: opts.subtitles }),
+      renderStatReel(sanitized, variant, productionReelOptions(opts.script)),
       renderStatCard(sanitized, variant, {
         shape: "vertical",
         kicker: sanitized.editorialLabel ?? "The Number",
@@ -1115,7 +1116,7 @@ export async function postStatReel(
         `${video.narrated ? "narrated" : "SILENT"})`
     );
     if (!video.narrated) throw new Error("Narration unavailable. No silent Reel was published.");
-    if (opts.subtitles && !video.subtitled)
+    if (!video.subtitled)
       throw new Error("Required Reel subtitles are unavailable. No Reel was published.");
     videoUuid = storeTempImage(video.bytes, "video/mp4");
     coverUuid = storeTempImage(cover);

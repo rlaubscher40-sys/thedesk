@@ -38,7 +38,12 @@ const options = {
 beforeEach(() => {
   vi.resetAllMocks();
   m.quota.mockResolvedValue({ usage: 1, quota: 100 });
-  m.render.mockResolvedValue({ bytes: Buffer.from("video"), seconds: 25, narrated: true });
+  m.render.mockResolvedValue({
+    bytes: Buffer.from("video"),
+    seconds: 25,
+    narrated: true,
+    subtitled: true,
+  });
   m.cover.mockResolvedValue(Buffer.from("cover"));
   m.store.mockReturnValue("temp");
   m.create.mockResolvedValue("container");
@@ -79,9 +84,10 @@ describe("narrated Reel publication", () => {
       expect.any(Object)
     );
   });
-  it("requires requested subtitles before creating a Meta container", async () => {
+  it("requires subtitles even when a caller omits or disables them", async () => {
+    m.render.mockResolvedValue({ bytes: Buffer.from("uncaptioned"), seconds: 25, narrated: true });
     await expect(
-      postStatReel(stat, "https://thedesk.au", { ...options, subtitles: true })
+      postStatReel(stat, "https://thedesk.au", { ...options, subtitles: false })
     ).rejects.toThrow("subtitles");
     expect(m.create).not.toHaveBeenCalled();
     m.render.mockResolvedValue({
@@ -96,7 +102,11 @@ describe("narrated Reel publication", () => {
     expect(m.render).toHaveBeenLastCalledWith(
       expect.any(Object),
       "navy",
-      expect.objectContaining({ subtitles: true })
+      expect.objectContaining({
+        subtitles: true,
+        narrate: true,
+        voice: { voice: "bm_fable", speed: 1 },
+      })
     );
   });
   it("refuses unavailable quota, missing identity and a lost reservation", async () => {

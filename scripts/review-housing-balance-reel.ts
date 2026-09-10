@@ -6,6 +6,7 @@ import { verifiedHousingBalanceReel } from "../server/instagram/verifiedHousingB
 import { renderStatReel, composeSections, layout } from "../server/video/statReel";
 import { synthesisePhrases } from "../server/video/phraseSpeech";
 import { renderStoryFrame } from "../server/video/storyboard";
+import { productionReelOptions } from "../server/video/reelProduction";
 const args = process.argv.slice(2),
   at = args.indexOf("--out");
 if (at < 0 || !args[at + 1])
@@ -47,10 +48,11 @@ if (!args.includes("--frames-only")) {
     await fs.writeFile(path.join(out, "speech-audit.json"), JSON.stringify(audit, null, 2));
     console.log(JSON.stringify({ measuredSeconds: audit.seconds, durations }));
   }
-  const rendered = await renderStatReel(candidate.stat, "navy", {
-    script: candidate.script,
-    subtitles: true,
-  });
+  const rendered = await renderStatReel(
+    candidate.stat,
+    "navy",
+    productionReelOptions(candidate.script)
+  );
   const file = path.join(out, "The-Desk-Housing-Gap-Reel.mp4");
   await fs.writeFile(file, rendered.bytes);
   await fs.writeFile(path.join(out, "timing.json"), JSON.stringify(rendered.timeline, null, 2));
