@@ -32,6 +32,43 @@ describe("titleTokens", () => {
 });
 
 describe("clusterByTitle", () => {
+  it.each([
+    [
+      "Sydney housing prices fall as buyers retreat",
+      "Melbourne housing prices fall as buyers retreat",
+    ],
+    [
+      "Sydney housing prices fall as buyers retreat",
+      "Sydney housing prices rise as buyers retreat",
+    ],
+    [
+      "New housing approvals fall 4 percent in Sydney",
+      "New housing approvals fall 9 percent in Sydney",
+    ],
+    [
+      "Australian housing approvals fall in January report",
+      "Australian housing approvals fall in February report",
+    ],
+  ])("keeps distinct events despite headline overlap: %s", (first, second) => {
+    expect(clusterByTitle([item("ABC", first), item("Guardian", second)])).toHaveLength(2);
+  });
+  it("does not collapse a later release of the same recurring series", () => {
+    const a = {
+      ...item("ABC", "Australian housing approvals fall as builders face delays"),
+      sourceTiming: {
+        publisherDateStatus: "available" as const,
+        publisherPublishedDay: "2026-09-09",
+        feedReportedAt: null,
+        retrievedAt: "2026-09-10T00:00:00Z",
+      },
+    };
+    const b = {
+      ...a,
+      source: "Guardian",
+      sourceTiming: { ...a.sourceTiming, publisherPublishedDay: "2026-09-10" },
+    };
+    expect(clusterByTitle([a, b])).toHaveLength(2);
+  });
   it("does not count an unknown Google publisher or name variants as corroboration", () => {
     const title = "RBA holds cash rate at 4.35 percent for third straight meeting";
     const cluster = clusterByTitle([

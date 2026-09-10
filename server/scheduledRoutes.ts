@@ -1,5 +1,10 @@
 import { assessStory, editorialReportSchema } from "../shared/editorial";
-import { recentEditorialCandidates, recordEditorialReport } from "./db/editorial";
+import {
+  recentEditorialCandidates,
+  recentEditorialStories,
+  recordEditorialReport,
+} from "./db/editorial";
+import { createEvidenceDuplicateIndex } from "../shared/storyEvidenceDuplicate";
 import { drainFeedEnrichment } from "./feed/enrichmentWorker";
 import { sourceTimingHold } from "../shared/sourceTiming";
 import {
@@ -138,12 +143,21 @@ function sanitiseText<T extends string | null | undefined>(text: T): T {
 
 function registerDailyFeedRoute(app: Express): void {
   app.post("/api/ingest/editorial-candidates", scheduledLimiter, async (req, res) => {
-    if (!(await authenticateScheduled(req))) return void res.status(401).json({ error: "Unauthorized" });
-    try { res.json({ items: await recentEditorialCandidates(), recentUrls: [...await db.getRecentSourceUrls(14)] }); }
-    catch { res.status(503).json({ error: "Evidence pool unavailable" }); }
+    if (!(await authenticateScheduled(req)))
+      return void res.status(401).json({ error: "Unauthorized" });
+    try {
+      res.json({
+        items: await recentEditorialCandidates(),
+        recentUrls: [...(await db.getRecentSourceUrls(14))],
+        recentStories: await recentEditorialStories(),
+      });
+    } catch {
+      res.status(503).json({ error: "Evidence pool unavailable" });
+    }
   });
   app.post("/api/ingest/editorial-report", scheduledLimiter, async (req, res) => {
-    if (!(await authenticateScheduled(req))) return void res.status(401).json({ error: "Unauthorized" });
+    if (!(await authenticateScheduled(req)))
+      return void res.status(401).json({ error: "Unauthorized" });
     const parsed = editorialReportSchema.safeParse(req.body);
     if (!parsed.success) return void res.status(400).json({ error: "Invalid editorial report" });
     await recordEditorialReport(parsed.data);
@@ -164,38 +178,43 @@ function registerDailyFeedRoute(app: Express): void {
       return;
     }
 
-    const assessed = parsed.data.items.map(item => ({ item, decision: assessStory(item, new Date(), item.feedDate) }));
-    const heldForQuality = assessed.filter(row => !row.decision.eligible).length;
-    const items = assessed.filter(row => row.decision.eligible).map(({ item, decision }) => {
-      const category = decision.category;
-      const source = sanitiseText(item.source);
-      return {
-        feedDate: item.feedDate,
-        sourceTiming: item.sourceTiming ?? null,
-        title: sanitiseText(item.title),
-        source,
-        sourceUrl: item.sourceUrl ?? null,
-        summary: sanitiseText(item.summary),
-        category,
-        // Content lane. Defaults to the Australian flagship when the ingest
-        // doesn't tag one, so legacy/untagged payloads keep their old home.
-        channel: decision.channel,
-        imageUrl: item.imageUrl ?? null,
-        partnerTag: sanitiseText(item.partnerTag ?? null),
-        sayThis: sanitiseText(item.sayThis ?? null),
-        whyItMatters: sanitiseText(item.whyItMatters ?? null),
-        // Corroboration is computed at ingest (clustering) and persisted so
-        // the card can show how many outlets ran the story.
-        corroborationCount: item.corroborationCount ?? 1,
-        corroboratingSources: item.corroboratingSources ?? null,
-        promotedToEdition: false,
-        // Editorial-impact baseline. The admin can override per-item via
-        // feed.setPriority, manual control always wins.
-        priority: decision.score,
-        // Persisted in the recovery job, capped to the prompt input length.
-        articleText: item.articleText ?? null,
-      };
-    });
+    const assessed = parsed.data.items.map((item) => ({
+      item,
+      decision: assessStory(item, new Date(), item.feedDate),
+    }));
+    const heldForQuality = assessed.filter((row) => !row.decision.eligible).length;
+    const items = assessed
+      .filter((row) => row.decision.eligible)
+      .map(({ item, decision }) => {
+        const category = decision.category;
+        const source = sanitiseText(item.source);
+        return {
+          feedDate: item.feedDate,
+          sourceTiming: item.sourceTiming ?? null,
+          title: sanitiseText(item.title),
+          source,
+          sourceUrl: item.sourceUrl ?? null,
+          summary: sanitiseText(item.summary),
+          category,
+          // Content lane. Defaults to the Australian flagship when the ingest
+          // doesn't tag one, so legacy/untagged payloads keep their old home.
+          channel: decision.channel,
+          imageUrl: item.imageUrl ?? null,
+          partnerTag: sanitiseText(item.partnerTag ?? null),
+          sayThis: sanitiseText(item.sayThis ?? null),
+          whyItMatters: sanitiseText(item.whyItMatters ?? null),
+          // Corroboration is computed at ingest (clustering) and persisted so
+          // the card can show how many outlets ran the story.
+          corroborationCount: item.corroborationCount ?? 1,
+          corroboratingSources: item.corroboratingSources ?? null,
+          promotedToEdition: false,
+          // Editorial-impact baseline. The admin can override per-item via
+          // feed.setPriority, manual control always wins.
+          priority: decision.score,
+          // Persisted in the recovery job, capped to the prompt input length.
+          articleText: item.articleText ?? null,
+        };
+      });
 
     const timingChecked = items.filter(
       (item) =>
@@ -204,7 +223,9 @@ function registerDailyFeedRoute(app: Express): void {
     );
     const heldForDate = items.length - timingChecked.length;
     if (timingChecked.length === 0) {
-      res.status(422).json({ error: "No stories passed editorial/date checks", heldForDate, heldForQuality });
+      res
+        .status(422)
+        .json({ error: "No stories passed editorial/date checks", heldForDate, heldForQuality });
       return;
     }
 
@@ -216,7 +237,13 @@ function registerDailyFeedRoute(app: Express): void {
       db.getRecentFeedItems(10),
     ]);
     // Recheck at the API boundary, including old or manual ingest clients.
-    const freshItemsRaw = unseenFeedItems(timingChecked, recentUrls);
+    const evidenceIndex = createEvidenceDuplicateIndex(await recentEditorialStories());
+    const freshItemsRaw = unseenFeedItems(timingChecked, recentUrls).filter((item) => {
+      if (!["AU", "PROPERTY"].includes(item.channel)) return true;
+      if (evidenceIndex.find(item)) return false;
+      evidenceIndex.add(item);
+      return true;
+    });
     const skippedCount = timingChecked.length - freshItemsRaw.length;
     if (skippedCount > 0) {
       console.log(

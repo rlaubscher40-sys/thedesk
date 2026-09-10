@@ -12,6 +12,7 @@
  */
 import type { FetchedItem } from "./rss";
 import { titlesMatch, titleTokens } from "../../../shared/textSimilarity";
+import { conflictingEvents } from "../../../shared/storyEvent";
 
 export { titleTokens };
 
@@ -47,7 +48,7 @@ export function clusterByTitle(
     const tokens = titleTokens(item.title);
     let placed = false;
     for (const g of groups) {
-      if (titlesMatch(tokens, g.tokens, minShared, minJaccard)) {
+      if (!conflictingEvents(item, g.rep) && titlesMatch(tokens, g.tokens, minShared, minJaccard)) {
         g.members.push(item);
         placed = true;
         break;
@@ -60,10 +61,14 @@ export function clusterByTitle(
     const sources = [
       ...new Map(
         g.members
-          .filter(m => m.source.trim().toLowerCase() !== "google news")
-          .map(m => {
+          .filter((m) => m.source.trim().toLowerCase() !== "google news")
+          .map((m) => {
             let identity = m.source.trim().toLowerCase();
-            try { identity = new URL(m.url!).hostname.replace(/^www\./, ""); } catch { /* Legacy fixtures may lack URLs. */ }
+            try {
+              identity = new URL(m.url!).hostname.replace(/^www\./, "");
+            } catch {
+              /* Legacy fixtures may lack URLs. */
+            }
             return [identity, m.source.trim()];
           })
       ).values(),

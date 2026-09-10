@@ -1,4 +1,5 @@
 import { EDITORIAL_DDL } from "./editorial";
+import { FEED_EVIDENCE_DDL } from "./feedEvidenceSchema";
 import { COVERAGE_DDL } from "./editorialCoverage";
 import { SIGNAL_SNAPSHOT_DDL } from "./signalSnapshots";
 /**
@@ -33,6 +34,7 @@ export const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
   SIGNAL_SNAPSHOT_DDL,
   ...SECURITY_DDL,
   ...EDITORIAL_DDL,
+  ...FEED_EVIDENCE_DDL,
   ...COVERAGE_DDL,
   ...FEED_ENRICHMENT_DDL,
   ...DAILY_BRIEF_DDL,

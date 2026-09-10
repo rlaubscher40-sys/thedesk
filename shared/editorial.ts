@@ -77,6 +77,12 @@ export function publisherWeight(input: EditorialInput): number {
 export function referenceNewsHold(input: EditorialInput): string | null {
   const title = input.title.trim();
   if (
+    (/\bwhat sets this\b.{0,100}\bapart for buyers\b/i.test(title) &&
+      /\b(?:luxury|landmark|apartments?|development)\b/i.test(title)) ||
+    /\bsnappy \$[\d,.]+\s*(?:m|million)\s+sale in\b/i.test(title)
+  )
+    return "individual-property-promotion";
+  if (
     /\b(?:appoint(?:ed|ment)|welcomes)\b.*\b(?:chair|board member|chief executive|CEO)\b/i.test(
       title
     )
@@ -141,7 +147,7 @@ const macro =
 const policy =
   /\b(negative gearing|land tax|stamp duty|capital gains|tenancy|rent(?:al)? (?:law|reform|cap)|housing (?:policy|reform)|first.home buyers?|deposit scheme)\b/i;
 const advice =
-  /\b(superannuation|smsfs?|contribution caps?|financial advi(?:sers?|sors?|ce)|advice (?:fees|firms)|tax (?:reform|deductions?|residency|system)|discretionary trusts?|division 7a|capital gains tax|income tax|CGT|GST|PAYG|transfer balance cap|mortgage brokers?|broker commissions?|mortgage fraud|loan fraud)\b/i;
+  /\b(superannuation|smsfs?|contribution caps?|financial advi(?:sers?|sors?|ce)|advice (?:fees|firms)|tax (?:reform|deductions?|residency|system)|discretionary trusts?|division 7a|capital gains tax|income tax|CGT|GST|PAYG|transfer balance cap|mortgage brokers?|broker commissions?|mortgage fraud|loan fraud|fraudulent (?:home |mortgage )?loans?)\b/i;
 const conduct =
   /\b(?:ASIC|Tax Practitioners Board|TPB)\b.{0,70}\b(?:ban\w*|sanctions?|licen\w*|enforc\w*)\b|\b(?:ban\w*|sanctions?|licen\w*|enforc\w*)\b.{0,70}\b(?:ASIC|Tax Practitioners Board|TPB)\b/i;
 const markets = /\b(asx|australian shares|australian dollar|bond yields?)\b/i;

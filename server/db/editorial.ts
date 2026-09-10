@@ -9,6 +9,36 @@ import {
   type EditorialReport,
 } from "../../shared/editorial";
 import type { FetchedItem } from "../../scripts/ingest/lib/rss";
+import type { EvidenceStory } from "../../shared/storyEvidenceDuplicate";
+import { feedEvidenceFingerprints } from "./feedEvidenceSchema";
+
+/** Authenticated ingest context only: private hashes, never article text.
+ * Bounded recent, visible rows; held rows cannot block news. */
+export async function recentEditorialStories(): Promise<EvidenceStory[]> {
+  const db = getDb();
+  if (!db) return [];
+  return db
+    .select({
+      id: dailyFeedItems.id,
+      title: dailyFeedItems.title,
+      channel: dailyFeedItems.channel,
+      evidenceFingerprint: feedEvidenceFingerprints.fingerprint,
+      sourceTiming: dailyFeedItems.sourceTiming,
+    })
+    .from(dailyFeedItems)
+    .innerJoin(feedEvidenceFingerprints, eq(feedEvidenceFingerprints.feedItemId, dailyFeedItems.id))
+    .where(
+      and(
+        gte(
+          dailyFeedItems.feedDate,
+          new Date(Date.now() - 4 * 86400000).toISOString().slice(0, 10)
+        ),
+        sql`${dailyFeedItems.channel} IN ('AU','PROPERTY')`
+      )
+    )
+    .orderBy(desc(dailyFeedItems.priority), dailyFeedItems.id)
+    .limit(500);
+}
 
 export const editorialRuns = mysqlTable("editorial_runs", {
   id: varchar("id", { length: 36 }).primaryKey(),
@@ -31,6 +61,9 @@ export async function recordEditorialReport(report: EditorialReport) {
   await db
     .delete(editorialRuns)
     .where(lt(editorialRuns.createdAt, new Date(Date.now() - 30 * 86_400_000)));
+  await db
+    .delete(feedEvidenceFingerprints)
+    .where(lt(feedEvidenceFingerprints.createdAt, new Date(Date.now() - 14 * 86400000)));
 }
 export async function editorialHealth() {
   const db = getDb();
