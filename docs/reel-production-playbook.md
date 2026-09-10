@@ -64,6 +64,28 @@ already applied to every topic. Other existing topics retain their own visual
 recipes. New narrative formats require editorial and full-render review before
 registration. The reusable production settings and technical checks apply to all.
 
+## Continuous motion
+
+Narrated housing exports use the frame compositor in `housingMotionRenderer.ts`.
+Every picture is evaluated on the 30 fps clock, with stationary Satori typography
+cached separately from photos, bars, the timeline marker and phrase reveals.
+Frames stream to the final encoder with backpressure instead of repeating a small
+stack of full-page JPEGs. Subtitles and Fable audio use the same measured timeline.
+
+Use `reelMotion.ts` for new reviewed motion recipes: explicit layer bounds,
+speech-led progress, smooth acceleration and deceleration, and a reading hold
+after each arrival. A bar uses the continuous underlying value while its label
+rounds to the evidence's display precision. Intermediate animation frames are
+not extra observations. Do not interpolate data text with optical flow or apply
+a camera zoom to an entire page of typography.
+
+The construction photograph continues through the ending on one camera path.
+The uncovered housing segment carries into the competition explanation. Other
+scene cuts stay clean so outgoing and incoming headings never overlap. Check
+the exported MP4 frame by frame during active motion, as a 30 fps container can
+still contain duplicated animation positions. Compare positions in a moving
+region, not compression noise or an intentional reading hold.
+
 ## Publishing
 
 Existing scheduler and Meta delivery remain in charge. At most one automatic

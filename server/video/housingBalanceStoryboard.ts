@@ -4,6 +4,7 @@ import { HOUSING_DEPOSIT } from "../../shared/housingAffordability";
 import { spokenCount } from "./spokenNumbers";
 import { assertEditorialStory, type EditorialStory } from "./editorialStory";
 import { REEL_READS } from "../instagram/reelCaption";
+import { moving, smooth } from "./reelMotion";
 
 type Kind =
   | "balance-opening"
@@ -184,7 +185,7 @@ export function housingBalanceSubtitleScript(
   });
 }
 type Node = { type: string; props: Record<string, unknown> };
-/** One eased, rounded value drives both the label and its bar. Intermediate
+/** One eased value drives the bar and its rounded label. Intermediate
  * frames are animation, not additional observations or spurious precision. */
 export function balanceCountFrame(target: number, progress: number, scale = 300000) {
   if (
@@ -196,10 +197,10 @@ export function balanceCountFrame(target: number, progress: number, scale = 3000
     scale <= 0
   )
     throw new Error("Invalid count-up frame");
-  const eased = 1 - Math.pow(1 - progress, 3);
+  const eased = smooth(progress);
   const value =
     progress === 1 ? target : Math.min(target, Math.round((target * eased) / 1000) * 1000);
-  return { value, widthPercent: (value / scale) * 100 };
+  return { value, widthPercent: ((target * eased) / scale) * 100 };
 }
 const box = (style: Record<string, unknown>, children: unknown): Node => ({
   type: "div",
@@ -230,7 +231,7 @@ const italic = (value: string, size: number, color: string): Node =>
   );
 
 const clamp = (v: number) => Math.max(0, Math.min(1, v));
-const ease = (v: number) => 1 - Math.pow(1 - clamp(v), 3);
+const ease = smooth;
 const at = (left: number, top: number, children: unknown, extra: Record<string, unknown> = {}) =>
   box({ position: "absolute", left, top, ...extra }, children);
 
@@ -259,10 +260,15 @@ export function housingBalanceGeometry(
     supply,
     demand,
     gap,
-    supplyWidth: (supply / BALANCE_CHART.scale) * BALANCE_CHART.width,
-    demandWidth: (demand / BALANCE_CHART.scale) * BALANCE_CHART.width,
+    supplyWidth:
+      ((b.net * (staged ? ease(progress * 3) : 1)) / BALANCE_CHART.scale) * BALANCE_CHART.width,
+    demandWidth:
+      ((b.demand * (staged ? ease(progress * 3 - 1) : 1)) / BALANCE_CHART.scale) *
+      BALANCE_CHART.width,
     gapLeft: (b.net / BALANCE_CHART.scale) * BALANCE_CHART.width,
-    gapWidth: (gap / BALANCE_CHART.scale) * BALANCE_CHART.width,
+    gapWidth:
+      ((b.shortfall * (staged ? ease(progress * 3 - 2) : 1)) / BALANCE_CHART.scale) *
+      BALANCE_CHART.width,
   };
 }
 
@@ -298,7 +304,7 @@ export function housingStoryBridge(stage: "gap" | "competition", progress: numbe
   };
 }
 
-/** One rounded display value controls the marker. Intermediate frames are
+/** The marker moves continuously; its label rounds to one decimal. Frames are
  * animation between the two observations, never annual deposit estimates. */
 export function housingDepositGeometry(progress: number) {
   if (!Number.isFinite(progress) || progress < 0 || progress > 1)
@@ -307,7 +313,7 @@ export function housingDepositGeometry(progress: number) {
   const start = HOUSING_DEPOSIT.startYears,
     end = HOUSING_DEPOSIT.endYears;
   const years = Math.round((start + (end - start) * p) * 10) / 10;
-  return { later: progress >= 0.5, years, dotX: 90 + ((years - start) / (end - start)) * 660 };
+  return { later: progress >= 0.5, years, dotX: 90 + p * 660 };
 }
 
 export function housingBalanceFrameLayout(
@@ -372,17 +378,37 @@ export function housingBalanceFrameLayout(
         0,
         need ? BALANCE_CHART.demandTop : BALANCE_CHART.supplyTop,
         [
-          at(0, 0, text(need ? "Extra homes needed" : "Net homes added", 38, c.muted)),
-          at(0, 45, text(n(need ? g.demand : g.supply), 134, c.fg, true), {
-            width: 840,
-            justifyContent: "flex-end",
-          }),
-          at(0, BALANCE_CHART.barTop, "", { width: 840, height: 22, backgroundColor: c.track }),
-          at(0, BALANCE_CHART.barTop, "", {
-            width: need ? g.demandWidth : g.supplyWidth,
-            height: 22,
-            backgroundColor: need ? c.fg : c.gold,
-          }),
+          moving(
+            `${need ? "demand" : "supply"}-label`,
+            at(0, 0, text(need ? "Extra homes needed" : "Net homes added", 38, c.muted)),
+            840,
+            50
+          ),
+          moving(
+            `${need ? "demand" : "supply"}-value`,
+            at(0, 45, text(n(need ? g.demand : g.supply), 134, c.fg, true), {
+              width: 840,
+              justifyContent: "flex-end",
+            })
+          ),
+          moving(
+            `${need ? "demand" : "supply"}-track`,
+            at(0, BALANCE_CHART.barTop, "", { width: 840, height: 22, backgroundColor: c.track }),
+            840,
+            22,
+            "rect"
+          ),
+          moving(
+            `${need ? "demand" : "supply"}-fill`,
+            at(0, BALANCE_CHART.barTop, "", {
+              width: need ? g.demandWidth : g.supplyWidth,
+              height: 22,
+              backgroundColor: need ? c.fg : c.gold,
+            }),
+            840,
+            22,
+            "rect"
+          ),
         ],
         { width: 840, height: 240, opacity: need ? clamp(p * 3 - 1) : 1 }
       );
@@ -391,18 +417,28 @@ export function housingBalanceFrameLayout(
       at(0, 117, italic("Falling behind.", 97, c.gold)),
       row(false),
       row(true),
-      at(g.gapLeft, BALANCE_CHART.demandTop + BALANCE_CHART.barTop, "", {
-        width: g.gapWidth,
-        height: 22,
-        backgroundColor: c.gold,
-      }),
-      at(
-        0,
-        820,
-        box({ gap: 20, alignItems: "baseline", opacity: clamp(p * 3 - 2) }, [
-          text(n(g.gap), 100, c.gold, true),
-          text("more homes needed", 36, c.fg),
-        ])
+      moving(
+        "gap-fill",
+        at(g.gapLeft, BALANCE_CHART.demandTop + BALANCE_CHART.barTop, "", {
+          width: g.gapWidth,
+          height: 22,
+          backgroundColor: c.gold,
+        }),
+        840,
+        22,
+        "rect"
+      ),
+      moving(
+        "gap-caption",
+        at(
+          0,
+          820,
+          box({ gap: 20, alignItems: "baseline" }, [
+            text(n(g.gap), 100, c.gold, true),
+            text("more homes needed", 36, c.fg),
+          ]),
+          { opacity: ease(p * 3 - 2) }
+        )
       ),
       at(0, 949, tag("NET OF DEMOLITIONS / SAME 18 MONTHS")),
     ];
@@ -414,34 +450,62 @@ export function housingBalanceFrameLayout(
     return [
       at(0, 0, tag("WHAT THE SHORTFALL MEANS")),
       at(0, 75, text("The squeeze.", 132, c.fg, true)),
-      at(0, bridge.y, "", { width: g.supplyWidth, height: 22, backgroundColor: c.rule }),
-      marker(bridge),
-      at(0, 240, text("Homes added", 34, c.muted), { opacity: reveal }),
-      at(630, 240, text("Unmet need", 32, c.gold), { opacity: reveal }),
-      at(
-        0,
-        330,
-        svgNode(
-          `<path d="M727 0V64H24V108" fill="none" stroke="${c.gold}" stroke-width="2" opacity="${reveal}"/>`,
-          840,
-          110
-        )
+      moving(
+        "supply-bridge",
+        at(0, bridge.y, "", { width: g.supplyWidth, height: 22, backgroundColor: c.rule }),
+        840,
+        22,
+        "rect"
       ),
-      at(0, 450, text("More", 119, c.fg, true), { opacity: reveal }),
-      at(0, 570, italic("competition.", 119, c.gold), { opacity: reveal }),
-      at(
-        0,
-        750,
-        box({ gap: 60, opacity: reveal }, [
-          box({ gap: 12, alignItems: "baseline" }, [
-            text("↑", 58, c.gold),
-            text("Prices", 58, c.gold, true),
+      moving("gap-bridge", marker(bridge), 840, 22, "rect"),
+      moving(
+        "supply-label",
+        at(0, 240, text("Homes added", 34, c.muted), { opacity: reveal }),
+        300,
+        50
+      ),
+      moving(
+        "need-label",
+        at(630, 240, text("Unmet need", 32, c.gold), { opacity: reveal }),
+        210,
+        50
+      ),
+      moving(
+        "connector",
+        at(
+          0,
+          330,
+          svgNode(
+            `<path d="M727 0V64H24V108" fill="none" stroke="${c.gold}" stroke-width="2"/>`,
+            840,
+            110
+          ),
+          { opacity: reveal }
+        ),
+        840,
+        110
+      ),
+      moving("more", at(0, 450, text("More", 119, c.fg, true), { opacity: reveal })),
+      moving("competition", at(0, 570, italic("competition.", 119, c.gold), { opacity: reveal })),
+      moving(
+        "prices-rents",
+        at(
+          0,
+          750,
+          box({ gap: 60 }, [
+            box({ gap: 12, alignItems: "baseline" }, [
+              text("↑", 58, c.gold),
+              text("Prices", 58, c.gold, true),
+            ]),
+            box({ gap: 12, alignItems: "baseline" }, [
+              text("↑", 58, c.gold),
+              text("Rents", 58, c.gold, true),
+            ]),
           ]),
-          box({ gap: 12, alignItems: "baseline" }, [
-            text("↑", 58, c.gold),
-            text("Rents", 58, c.gold, true),
-          ]),
-        ])
+          { opacity: reveal }
+        ),
+        840,
+        85
       ),
       at(0, 850, text("Pressure, not guaranteed price rises.", 36, c.fg)),
       at(0, 920, tag("RATES AND INCOMES ALSO MATTER")),
@@ -475,27 +539,45 @@ export function housingBalanceFrameLayout(
         [
           at(0, 0, text("The deposit", 98, c.fg, true)),
           at(0, 118, italic("moved further away.", 76, c.gold)),
-          at(100, 290, text(later ? "2025" : "2015", 34, c.gold)),
-          at(
-            90,
-            340,
-            box({ alignItems: "baseline", gap: 15 }, [
-              text(years.toFixed(1), 200, c.fg, true),
-              italic("years", 65, c.gold),
-            ])
+          moving("deposit-year", at(100, 290, text(later ? "2025" : "2015", 34, c.gold)), 200, 50),
+          moving(
+            "deposit-number",
+            at(
+              90,
+              340,
+              box({ alignItems: "baseline", gap: 15 }, [
+                text(years.toFixed(1), 200, c.fg, true),
+                italic("years", 65, c.gold),
+              ])
+            ),
+            750,
+            250
           ),
           at(0, 590, text("To save a modelled 20% deposit", 44, c.fg)),
-          at(
-            0,
-            650,
-            svgNode(
-              `<path d="M90 50H750" stroke="${c.rule}" stroke-width="3"/><path d="M90 50H${dotX}" stroke="${c.gold}" stroke-width="4"/><path d="M90 34V66M750 34V66" stroke="${c.muted}" stroke-width="2"/><circle cx="${dotX}" cy="50" r="28" fill="${c.gold}" opacity="0.12"/><circle cx="${dotX}" cy="50" r="15" fill="${c.gold}"/><circle cx="${dotX}" cy="50" r="5" fill="${c.fg}"/>`,
-              840,
-              90
-            )
+          moving(
+            "deposit-ruler",
+            at(
+              0,
+              650,
+              svgNode(
+                `<path d="M90 50H750" stroke="${c.rule}" stroke-width="3"/><path d="M90 50H${dotX}" stroke="${c.gold}" stroke-width="4"/><path d="M90 34V66M750 34V66" stroke="${c.muted}" stroke-width="2"/><circle cx="${dotX}" cy="50" r="28" fill="${c.gold}" opacity="0.12"/><circle cx="${dotX}" cy="50" r="15" fill="${c.gold}"/><circle cx="${dotX}" cy="50" r="5" fill="${c.fg}"/>`,
+                840,
+                90
+              )
+            ),
+            840,
+            90,
+            "timeline"
           ),
-          at(40, 750, text(later ? "2015 / 9.0" : "2015", 32, c.muted)),
-          ...(later ? [at(690, 750, text("2025", 32, c.gold))] : []),
+          moving(
+            "deposit-start",
+            at(40, 750, text(later ? "2015 / 9.0" : "2015", 32, c.muted)),
+            300,
+            50
+          ),
+          ...(later
+            ? [moving("deposit-end", at(690, 750, text("2025", 32, c.gold)), 150, 50)]
+            : []),
           at(0, 835, text("Saving 15% of gross median household income", 31, c.muted)),
           at(0, 883, text("each year. Median-priced dwelling.", 31, c.muted)),
           at(0, 945, tag("SEPARATE DECADE / NOT AN OBSERVED WAIT")),
@@ -508,8 +590,13 @@ export function housingBalanceFrameLayout(
     nodes = [
       at(0, 295, text("Catching up", 126, c.fg, true)),
       at(0, 450, italic("takes years.", 134, c.gold)),
-      at(0, 680, text("High costs.", 48, c.fg), { opacity: p }),
-      at(0, 750, text("Shortages of skilled labour.", 48, c.fg), { opacity: p }),
+      moving("costs", at(0, 680, text("High costs.", 48, c.fg), { opacity: p }), 840, 70),
+      moving(
+        "labour",
+        at(0, 750, text("Shortages of skilled labour.", 48, c.fg), { opacity: p }),
+        840,
+        70
+      ),
       at(0, 860, tag("SYDNEY / ARCHIVE PUBLISHED 2019 / DAMON HALL")),
       at(0, 920, tag("ILLUSTRATIVE ARCHIVE / UNSPLASH")),
     ];
@@ -520,7 +607,13 @@ export function housingBalanceFrameLayout(
       at(0, 0, text("More homes.", 102, c.fg, true)),
       at(0, 116, italic("Enough to catch up.", 83, c.gold)),
       at(0, 355, text("Homes added", 39, c.gold)),
-      at(0, 420, "", { width, height: 22, backgroundColor: c.gold }),
+      moving(
+        "catch-up",
+        at(0, 420, "", { width, height: 22, backgroundColor: c.gold }),
+        840,
+        22,
+        "rect"
+      ),
       at(0, 535, text("Extra homes needed", 39, c.fg)),
       at(0, 600, "", { width: 640, height: 22, backgroundColor: c.fg }),
       at(640, 398, "", { height: 245, borderLeft: `1px solid ${c.muted}` }),
