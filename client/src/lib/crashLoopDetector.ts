@@ -9,8 +9,10 @@
  * a broken shell. Either way the symptom is the same: the page boots, dies, and
  * the browser silently reloads, over and over.
  *
- * This module drops a breadcrumb on every boot. When it sees too many boots
- * inside a short window it concludes the page is crash-looping and:
+ * This module tracks interrupted starts in sessionStorage, scoped to one tab.
+ * Normal page exits and a healthy React start clear the trail. Repeated starts
+ * without either signal suggest a loop; they cannot prove an OOM or its cause.
+ * When that heuristic reaches the threshold it:
  *
  *   1. Reports a synthetic error to /api/errors/client (via the existing
  *      reporter) so the otherwise-invisible crash finally shows up in the admin
@@ -28,13 +30,15 @@
 import { reportError } from "./errorReporter";
 import { enableLiteMode } from "./liteMode";
 
-const BOOTS_KEY = "thedesk:boots";
+const BOOTS_KEY = "thedesk:pending-boots:v2";
 const RECOVERY_KEY = "thedesk:crash-recovery-at";
 
-/** Boots within this window count toward a loop. */
+/** Interrupted starts within this window count toward a possible loop. */
 export const WINDOW_MS = 20_000;
-/** This many boots inside the window is treated as a crash loop. */
+/** This many consecutive interrupted starts trigger recovery. */
 export const LOOP_THRESHOLD = 4;
+/** Keep the early-start recovery window open after React commits. */
+export const HEALTHY_BOOT_MS = 5_000;
 /** Don't tear the service worker down more than once per this interval. */
 const RECOVERY_COOLDOWN_MS = 5 * 60_000;
 
@@ -54,7 +58,7 @@ export function evaluateBoots(
 
 function readBoots(): number[] {
   try {
-    const raw = localStorage.getItem(BOOTS_KEY);
+    const raw = sessionStorage.getItem(BOOTS_KEY);
     if (!raw) return [];
     const arr = JSON.parse(raw);
     return Array.isArray(arr) ? arr.filter((n): n is number => typeof n === "number") : [];
@@ -65,7 +69,7 @@ function readBoots(): number[] {
 
 function writeBoots(boots: number[]): void {
   try {
-    localStorage.setItem(BOOTS_KEY, JSON.stringify(boots));
+    sessionStorage.setItem(BOOTS_KEY, JSON.stringify(boots));
   } catch {
     /* storage unavailable — degrade to no-loop detection */
   }
@@ -73,9 +77,27 @@ function writeBoots(boots: number[]): void {
 
 function clearBoots(): void {
   try {
-    localStorage.removeItem(BOOTS_KEY);
+    sessionStorage.removeItem(BOOTS_KEY);
   } catch {
     /* ignore */
+  }
+}
+
+/** Called from a React commit effect. Cleanup prevents an unmounted tree from
+ * marking a failed start healthy (and supports StrictMode's effect replay). */
+export function watchHealthyBoot(): () => void {
+  const timer = setTimeout(clearBoots, HEALTHY_BOOT_MS);
+  return () => clearTimeout(timer);
+}
+
+function isFreshNavigation(): boolean {
+  try {
+    // New tabs can inherit an opener's sessionStorage. A fresh navigation must
+    // not inherit its interrupted starts. Reloads retain the recovery trail.
+    const navigation = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
+    return navigation?.type === "navigate" || navigation?.type === "back_forward";
+  } catch {
+    return false;
   }
 }
 
@@ -85,7 +107,7 @@ function diagnostics(bootCount: number): string {
   const nav = typeof navigator !== "undefined" ? navigator : undefined;
   const lines = [
     "crash-loop-detector",
-    `boots: ${bootCount} within ${WINDOW_MS / 1000}s`,
+    `interrupted starts in this tab: ${bootCount} within ${WINDOW_MS / 1000}s`,
     `ua: ${nav?.userAgent ?? "n/a"}`,
     // deviceMemory is Chromium-only; absent on Safari but worth capturing when present.
     `deviceMemory: ${(nav as { deviceMemory?: number } | undefined)?.deviceMemory ?? "n/a"}`,
@@ -129,15 +151,19 @@ async function attemptRecovery(now: number): Promise<void> {
  * Record this boot and, if we've crossed into a crash loop, report it and fire
  * the recovery kill switch. Call once, as early as possible in app boot.
  *
- * Returns true when a crash loop is in progress, so the caller can render the
+ * Returns true when a crash loop is suspected, so the caller can render the
  * lightweight safe-mode screen (see renderCrashLoopSafeMode) instead of
- * re-mounting the full app — which is the thing that keeps OOM-ing the tab.
+ * re-mounting the full app.
  */
 export function initCrashLoopGuard(now: number = Date.now()): boolean {
   if (typeof window === "undefined") return false;
 
   let looping = false;
   try {
+    if (isFreshNavigation()) clearBoots();
+    // Reloads, links and back/forward exits are not evidence of a crash. Unlike
+    // unload/beforeunload, pagehide also permits the browser's back/forward cache.
+    window.addEventListener("pagehide", clearBoots, { once: true });
     const { boots, looping: isLooping } = evaluateBoots(readBoots(), now);
     looping = isLooping;
     if (looping) {
@@ -154,14 +180,14 @@ export function initCrashLoopGuard(now: number = Date.now()): boolean {
 
   if (!looping) return false;
 
-  // Surface the silent crash in /health, with the URL that keeps dying.
-  const err = new Error("Crash loop detected (silent WebKit/OOM crash?)");
+  // Report the heuristic, without claiming a confirmed crash or device cause.
+  const err = new Error("Possible startup loop: repeated interrupted starts in one tab");
   err.stack = diagnostics(LOOP_THRESHOLD);
   reportError(err);
 
   // Persist lite mode so the next full-app load (via the safe-mode retry, or a
   // browser auto-reload) comes back stripped of the heavy animations and blur
-  // that likely tipped this device over.
+  // while the visitor retries.
   enableLiteMode();
 
   // Best-effort shell teardown for the wedged-service-worker case.
@@ -191,12 +217,11 @@ export function renderCrashLoopSafeMode(): void {
     <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:#0c1220;color:#e8e2d4;font:16px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;box-sizing:border-box">
       <div style="max-width:420px;text-align:left">
         <p style="font:11px/1 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.22em;text-transform:uppercase;color:#d4a853;margin:0 0 14px">The Desk</p>
-        <h1 style="font-size:22px;font-weight:600;margin:0 0 12px;color:#f3efe6">This page keeps crashing on your device</h1>
-        <p style="margin:0 0 10px;color:#b9b2a4">That's almost always your browser running low on memory — not a fault with The Desk. A few things usually fix it:</p>
+        <h1 style="font-size:22px;font-weight:600;margin:0 0 12px;color:#f3efe6">The Desk had trouble starting</h1>
+        <p style="margin:0 0 10px;color:#b9b2a4">This tab restarted several times before startup completed. We've paused loading and enabled a lighter view for your next attempt. The cause could be an app or browser issue.</p>
         <ul style="margin:0 0 18px;padding-left:20px;color:#b9b2a4">
-          <li style="margin-bottom:4px">Update iOS and your browser to the latest version</li>
-          <li style="margin-bottom:4px">Close other tabs and apps, then restart your phone</li>
-          <li style="margin-bottom:4px">Turn off Low Power Mode</li>
+          <li style="margin-bottom:4px">Try again to reload The Desk</li>
+          <li style="margin-bottom:4px">If the problem continues, try closing this tab and opening The Desk again</li>
         </ul>
         <button id="thedesk-safe-retry" type="button" style="appearance:none;border:1px solid #d4a853;background:#d4a853;color:#241a06;font-weight:600;font-size:15px;padding:10px 18px;border-radius:6px;cursor:pointer">Try again</button>
       </div>
