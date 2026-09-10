@@ -60,9 +60,12 @@ export function clusterByTitle(
     const sources = [
       ...new Map(
         g.members
-          .map((m) => m.source.trim())
-          .filter((source) => source.toLowerCase() !== "google news")
-          .map((source) => [source.toLowerCase(), source])
+          .filter(m => m.source.trim().toLowerCase() !== "google news")
+          .map(m => {
+            let identity = m.source.trim().toLowerCase();
+            try { identity = new URL(m.url!).hostname.replace(/^www\./, ""); } catch { /* Legacy fixtures may lack URLs. */ }
+            return [identity, m.source.trim()];
+          })
       ).values(),
     ];
     return {

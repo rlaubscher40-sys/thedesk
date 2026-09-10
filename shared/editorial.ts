@@ -1,0 +1,226 @@
+import { z } from "zod";
+import { hasHousingEvidence } from "./marketRelevance";
+import { looksLikeGarbage, looksLikeSiteBoilerplate } from "./headline";
+import { sourceTimingHold, type SourceTiming } from "./sourceTiming";
+import { storyChannel } from "./storyGeography";
+
+export const EDITORIAL_VERSION = "2026-09-10-v1";
+export type EditorialInput = {
+  title: string;
+  summary?: string | null;
+  source?: string | null;
+  sourceUrl?: string | null;
+  url?: string | null;
+  category?: string | null;
+  channel?: string | null;
+  articleText?: string | null;
+  sourceTiming?: SourceTiming | null;
+};
+export function publisherHost(input: EditorialInput): string {
+  try {
+    return new URL(input.sourceUrl ?? input.url ?? "").hostname.replace(/^www\./, "").toLowerCase();
+  } catch {
+    return "";
+  }
+}
+const primary = new Set([
+  "rba.gov.au",
+  "abs.gov.au",
+  "apra.gov.au",
+  "asic.gov.au",
+  "treasury.gov.au",
+  "ato.gov.au",
+]);
+const specialist = new Set([
+  "theadviser.com.au",
+  "mpamag.com",
+  "proptrack.com.au",
+  "cotality.com",
+  "corelogic.com.au",
+  "sqmresearch.com.au",
+  "housingaustralia.gov.au",
+  "nhsac.gov.au",
+]);
+const newsroom = new Set([
+  "abc.net.au",
+  "theguardian.com",
+  "afr.com",
+  "reuters.com",
+  "smh.com.au",
+  "theage.com.au",
+  "realestate.com.au",
+  "domain.com.au",
+]);
+export function publisherWeight(input: EditorialInput): number {
+  const host = publisherHost(input);
+  return primary.has(host)
+    ? 16
+    : specialist.has(host)
+      ? 12
+      : newsroom.has(host)
+        ? 8
+        : host.endsWith(".gov.au")
+          ? 5
+          : 0;
+}
+
+/** Page types are evidence/reference material, not automatically a dated news event. */
+export function referenceNewsHold(input: EditorialInput): string | null {
+  const title = input.title.trim();
+  if (
+    /^(tender details|commission communiqu[eé]|attorney general'?s department|home|news|media releases?)$/i.test(
+      title
+    )
+  )
+    return "reference-page";
+  if (
+    /\b(for sale|dream home|inside (?:the|a)|luxury (?:home|mansion|penthouse)|celebrity home)\b/i.test(
+      title
+    ) &&
+    !/\b(market|median|affordability|clearance|policy|tax)\b/i.test(title)
+  )
+    return "individual-property-promotion";
+  if (
+    /\b(temporary traffic changes|road closures?|roadworks|traffic diversions?)\b/i.test(title) &&
+    !hasHousingEvidence(title)
+  )
+    return "traffic-not-housing";
+  try {
+    const path = new URL(input.sourceUrl ?? input.url ?? "").pathname;
+    if (/\/tender\/details\/|\/plans-in-nsw\/|\/buy\/|\/rent\//i.test(path))
+      return "reference-or-listing";
+  } catch {
+    /* The URL check at publication handles missing links. */
+  }
+  return null;
+}
+const macro =
+  /\b(inflation|cash rate|interest rates?|rba|reserve bank|gdp|unemployment|wage growth|household spending|consumer (?:sentiment|confidence)|population growth|net overseas migration|lending standards|serviceability)\b/i;
+const policy =
+  /\b(negative gearing|land tax|stamp duty|capital gains|tenancy|rent(?:al)? (?:law|reform|cap)|housing (?:policy|reform)|first.home buyers?|deposit scheme)\b/i;
+const advice =
+  /\b(superannuation|smsf|contribution caps?|financial advis(?:er|or|e)|tax reform|tax deduction|division 7a|capital gains tax|income tax|transfer balance cap|mortgage brokers?|broker commissions?)\b/i;
+const markets = /\b(asx|australian shares|australian dollar|bond yields?)\b/i;
+const noise =
+  /\b(celebrity|obituary|sexual touching|gangsters?|shooting|murder|dingo|sheep (?:theft|stolen)|poetry|horoscope|casino|promo code)\b/i;
+export function editorialBeat(text: string): string | null {
+  if (advice.test(text)) return "advice-tax";
+  if (markets.test(text)) return "markets";
+  if (policy.test(text)) return "policy";
+  if (
+    /\b(supply|approvals|completions|construction|rezoning|builder|housing target)\b/i.test(text) &&
+    hasHousingEvidence(text)
+  )
+    return "supply";
+  if (/\b(rents?|rental|vacanc(?:y|ies))\b/i.test(text) && hasHousingEvidence(text)) return "rents";
+  if (hasHousingEvidence(text)) return "housing";
+  if (macro.test(text)) return "rates-economy";
+  return null;
+}
+export function discoveryScore(input: EditorialInput): number {
+  const text = `${input.title} ${input.summary ?? ""}`;
+  if (
+    referenceNewsHold(input) ||
+    (["AU", "PROPERTY"].includes(input.channel ?? "AU") && noise.test(input.title))
+  )
+    return -100;
+  return (editorialBeat(text) ? 40 : 0) + publisherWeight(input) + (/\d/.test(input.title) ? 3 : 0);
+}
+
+/** Deterministic eligibility and significance, not a truth/confidence score. */
+export function assessStory(input: EditorialInput, now = new Date(), feedDate?: string) {
+  const text = (input.articleText ?? "").trim();
+  const reporting = `${input.title}\n${input.summary ?? ""}\n${text.slice(0, 4500)}`;
+  const channel = storyChannel({
+    ...input,
+    summary: `${input.summary ?? ""}\n${text.slice(0, 4500)}`,
+  });
+  const beat = editorialBeat(`${input.title} ${input.summary ?? ""}`) ?? editorialBeat(reporting);
+  const reject = (reason: string) => ({
+    eligible: false,
+    reason,
+    score: 0,
+    beat,
+    channel,
+    category: input.category ?? "OTHER",
+  });
+  const reference = referenceNewsHold(input);
+  if (reference) return reject(reference);
+  if (!publisherHost(input) || publisherHost(input) === "news.google.com")
+    return reject("unresolved-publisher");
+  const local = ["AU", "PROPERTY"].includes(input.channel ?? "AU");
+  if (local && noise.test(input.title)) return reject("off-topic");
+  if (local && !["AU", "PROPERTY"].includes(channel)) return reject("outside-australian-brief");
+  if (local && !beat) return reject("no-property-or-economic-consequence");
+  const dateHold = sourceTimingHold(input.sourceTiming, now, feedDate);
+  if (dateHold) return reject(dateHold);
+  // A fresh search timestamp is not proof that a static webpage is new.
+  if (local && input.sourceTiming?.publisherDateStatus !== "available")
+    return reject("unconfirmed-publication-date");
+  if (text.length < (publisherWeight(input) === 16 ? 300 : 650))
+    return reject("insufficient-article-text");
+  if (looksLikeGarbage(text) || looksLikeSiteBoilerplate(text))
+    return reject("unusable-article-text");
+  const category = local
+    ? beat === "rates-economy"
+      ? "MACRO"
+      : beat === "markets"
+        ? "MARKETS"
+        : ["policy", "advice-tax"].includes(beat ?? "")
+          ? "POLICY"
+          : "PROPERTY"
+    : (input.category ?? "OTHER");
+  const material =
+    /\b(announc|rais|cut|fell|fall|ris|releas|chang|approv|reject|warn|new |launch|collapse)/i.test(
+      reporting
+    );
+  const score = Math.min(
+    95,
+    45 +
+      publisherWeight(input) +
+      (beat ? 12 : 0) +
+      (material ? 8 : 0) +
+      (/\d/.test(reporting) ? 4 : 0) +
+      (text.length >= 1800 ? 4 : 0)
+  );
+  return { eligible: true, reason: "eligible", score, beat, channel, category };
+}
+
+export const editorialReportSchema = z.object({
+  version: z.literal(EDITORIAL_VERSION),
+  runId: z.string().uuid(),
+  startedAt: z.string().datetime(),
+  finishedAt: z.string().datetime(),
+  status: z.enum(["preview", "published", "empty", "failed"]),
+  discovered: z.number().int().nonnegative(),
+  evidencePool: z.number().int().nonnegative(),
+  inserted: z.number().int().nonnegative(),
+  read: z.number().int().nonnegative(),
+  selected: z.number().int().nonnegative(),
+  sources: z
+    .array(
+      z.object({
+        name: z.string().max(160),
+        url: z.string().url().max(2048),
+        fetched: z.number().int(),
+        error: z.string().max(240).nullable(),
+      })
+    )
+    .max(100),
+  decisions: z
+    .array(
+      z.object({
+        title: z.string().max(512),
+        url: z.string().max(2048).nullable(),
+        source: z.string().max(256),
+        reason: z.string().max(100),
+        score: z.number(),
+        selected: z.boolean(),
+        readAttempted: z.boolean(),
+        beat: z.string().nullable(),
+        textChars: z.number().int(),
+      })
+    )
+    .max(300),
+});
+export type EditorialReport = z.infer<typeof editorialReportSchema>;

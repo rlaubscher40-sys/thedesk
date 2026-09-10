@@ -48,6 +48,8 @@ export type Source = {
   /** The Discover content lane this source feeds. */
   channel: FeedChannel;
   maxItems?: number;
+  kind?: "rss" | "index";
+  articlePath?: string;
 };
 
 /**
@@ -84,6 +86,11 @@ function googleNewsGlobal(query: string): string {
 }
 
 export const SOURCES: Source[] = [
+  { name: "The Adviser", url: "https://www.theadviser.com.au/news?format=feed&type=rss", category: "MARKETS", channel: "AU", maxItems: 20 },
+  { name: "Mortgage Professional Australia", url: "https://www.mpamag.com/au/rss", category: "PROPERTY", channel: "PROPERTY", maxItems: 20 },
+  { name: "RBA Interviews & Speeches", url: `https://www.rba.gov.au/speeches/${new Date().getUTCFullYear()}/`, kind: "index", articlePath: "^/speeches/20[0-9]{2}/sp-[a-z-]+20[0-9]{2}-[0-9]{2}-[0-9]{2}\\.html$", category: "MACRO", channel: "AU", maxItems: 12 },
+  { name: "ABS Media Releases", url: "https://www.abs.gov.au/media-centre/media-releases", kind: "index", articlePath: "^/media-centre/media-releases/[^/]+$", category: "ECONOMICS", channel: "AU", maxItems: 20 },
+  { name: "realestate.com.au News", url: "https://www.realestate.com.au/news/feed/", category: "PROPERTY", channel: "PROPERTY", maxItems: 25 },
   // ══ AU FLAGSHIP ═══════════════════════════════════════════════════════════
   // ── Tier 1: Official / regulators ────────────────────────────────────────
   {
@@ -100,18 +107,12 @@ export const SOURCES: Source[] = [
     channel: "AU",
     maxItems: 3,
   },
-  {
-    name: "Treasury",
-    url: "https://treasury.gov.au/rss.xml",
-    category: "POLICY",
-    channel: "AU",
-    maxItems: 3,
-  },
+
 
   // ── Tier 2: Australian newsrooms with reliable RSS ───────────────────────
   {
     name: "ABC News Business",
-    url: "https://www.abc.net.au/news/feed/51120/rss.xml",
+    url: "https://www.abc.net.au/news/feed/51892/rss.xml",
     category: "MARKETS",
     channel: "AU",
     maxItems: 4,
@@ -130,13 +131,7 @@ export const SOURCES: Source[] = [
     channel: "AU",
     maxItems: 2,
   },
-  {
-    name: "Guardian AU Economy",
-    url: "https://www.theguardian.com/australia-news/australian-economy/rss",
-    category: "ECONOMICS",
-    channel: "AU",
-    maxItems: 3,
-  },
+
   {
     name: "The Conversation · Business",
     url: "https://theconversation.com/au/business/articles.atom",
@@ -144,13 +139,7 @@ export const SOURCES: Source[] = [
     channel: "AU",
     maxItems: 2,
   },
-  {
-    name: "The Conversation · Economy",
-    url: "https://theconversation.com/au/topics/australian-economy-9/articles.atom",
-    category: "ECONOMICS",
-    channel: "AU",
-    maxItems: 2,
-  },
+
 
   // ── Tier 3: Google News topic queries (laser-targeted, AU beat) ──────────
   {
@@ -168,8 +157,8 @@ export const SOURCES: Source[] = [
     maxItems: 3,
   },
   // ASIC has its own beat — adviser-side conduct, licensing, enforcement —
-  // distinct from APRA's lending/prudential brief. Listed as a PRIMARY
-  // source bonus in feedPriority, so items here ride a +15 priority lift.
+  // distinct from APRA's lending/prudential brief. Publisher weighting uses
+  // the resolved domain, never the search query or display name.
   {
     name: "ASIC & Conduct",
     url: googleNews(
@@ -215,8 +204,7 @@ export const SOURCES: Source[] = [
     maxItems: 3,
   },
   // ATO & tax — accountant-channel centre of gravity. Pairs with super
-  // above as the wealth-strategy beat. ATO is added to the primary-source
-  // bonus list in feedPriority for the same reason ASIC is.
+  // above as the wealth-strategy beat.
   {
     name: "ATO & Tax",
     url: googleNews(
@@ -281,7 +269,7 @@ export const SOURCES: Source[] = [
   {
     name: "Australian Property Market",
     url: googleNews(
-      'Australia property prices OR "housing market" OR "house prices" -realestate.com.au/buy'
+      'Australia ("property prices" OR "housing market" OR "house prices") -realestate.com.au/buy'
     ),
     category: "PROPERTY",
     channel: "PROPERTY",
@@ -308,7 +296,7 @@ export const SOURCES: Source[] = [
   {
     name: "AU Rental & Construction",
     url: googleNews(
-      'Australia "rental market" OR "housing supply" OR "dwelling approvals" OR construction'
+      'Australia ("rental market" OR "housing supply" OR "dwelling approvals" OR "residential construction")'
     ),
     category: "PROPERTY",
     channel: "PROPERTY",
@@ -454,8 +442,7 @@ export const CHANNEL_TARGETS: Record<FeedChannel, number> = {
 };
 
 /**
- * Minimum AU-flagship stories for a run to ship. The flagship is the product;
- * if it comes up thin the run aborts rather than publishing a hollow Today
- * page padded out with coverage-lane filler.
+ * Minimum relevant local stories for a run to ship. Quality checks come first;
+ * never pad a quiet day to meet a numerical quota.
  */
-export const DAILY_ITEM_MIN = 8;
+export const DAILY_ITEM_MIN = 1;

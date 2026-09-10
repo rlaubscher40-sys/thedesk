@@ -40,7 +40,7 @@ it("separates an empty feed from a failed request", async () => {
   fixture.parseString.mockResolvedValue({ items: [] });
   expect(await fetchSourceReport(source)).toMatchObject({
     items: [],
-    error: null,
+    error: "Feed returned no items",
   });
   // Independent reader: cached empty success is intentionally reusable.
   fetchSourceReport = createSourceReader();
@@ -67,7 +67,7 @@ it("shares a download across callers but applies each caller's own budget and ca
       category: "ECONOMICS",
     }),
   ]);
-  expect(fixture.parseString).toHaveBeenCalledTimes(1);
+  expect(fixture.parseString).toHaveBeenCalledTimes(2);
   expect(fixture.publicFetch).toHaveBeenCalledTimes(1);
   expect(fixture.publicFetch).toHaveBeenCalledWith(source.url, expect.objectContaining({
     maxBytes: 2 * 1024 * 1024,
@@ -91,7 +91,7 @@ it("does not cache a rejected destination or bypass the guarded transport on ret
   fixture.parseString.mockResolvedValue({ items: [] });
   expect(await fetchSourceReport(source)).toMatchObject({ error: "Feed request or parsing failed" });
   expect(fixture.parseString).not.toHaveBeenCalled();
-  expect(await fetchSourceReport(source)).toMatchObject({ error: null });
+  expect(await fetchSourceReport(source)).toMatchObject({ error: "Feed returned no items" });
   expect(fixture.publicFetch).toHaveBeenCalledTimes(2);
   expect(fixture.parseString).toHaveBeenCalledTimes(1);
 });

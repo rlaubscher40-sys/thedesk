@@ -1,6 +1,6 @@
 import { parse, serialize, type DefaultTreeAdapterMap } from "parse5";
 type Node = DefaultTreeAdapterMap["node"];
-const excluded = new Set(["script", "style", "noscript", "template"]);
+const excluded = new Set(["script", "style", "noscript", "template", "nav", "aside", "footer", "form", "figure", "figcaption"]);
 function documentWithoutInactiveContent(html: string) {
   const document = parse(html);
   function prune(node: Node) {

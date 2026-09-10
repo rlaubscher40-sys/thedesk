@@ -18,7 +18,7 @@ import { readableHtml } from "./htmlText";
  *   - fall back to a blanket tag-strip if a site builds paragraphs from divs
  *
  * Times out fast and returns nulls on any failure, the caller falls back to
- * the gradient placeholder for the image and to the RSS summary for context.
+ * the gradient placeholder for the image. Briefing selection holds missing text.
  */
 import { DEFAULT_SITE_URL } from "../../../shared/const";
 import { looksLikeGarbage, looksLikeSiteBoilerplate } from "../../../shared/headline";
@@ -30,7 +30,7 @@ const SITE_URL = process.env.SITE_URL ?? DEFAULT_SITE_URL;
 export type FetchedArticle = {
   imageUrl: string | null;
   text: string | null;
-  publicationDate: Pick<SourceTiming, "publisherPublishedAt" | "publisherDateStatus">;
+  publicationDate: Pick<SourceTiming, "publisherPublishedAt" | "publisherPublishedDay" | "publisherDateStatus">;
 };
 
 function matchFirst(s: string, re: RegExp): string | null {
@@ -82,7 +82,7 @@ export async function fetchArticle(
   url: string,
   {
     timeoutMs = 6_000,
-    maxBytes = 500 * 1024,
+    maxBytes = 1024 * 1024,
     maxChars = 6_000,
   }: { timeoutMs?: number; maxBytes?: number; maxChars?: number } = {}
 ): Promise<FetchedArticle> {
@@ -113,7 +113,7 @@ export async function fetchArticle(
     }
 
     // Read up to maxBytes, the og tags sit in <head> (early) and most news
-    // bodies fit comfortably inside 500KB. Unlike the image-only scrape we
+    // bodies fit inside the bounded 1MB extraction budget. Unlike the image-only scrape we
     // can't stop at </head>, the body is what we're here for.
     reader = res.body?.getReader();
     if (!reader) return empty;

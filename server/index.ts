@@ -1,3 +1,4 @@
+import { repairEditorialReferences } from "./db/editorial";
 import { repairFeedGeography } from "./db/feedGeography";
 /**
  * Express + tRPC + Vite entry point. In dev the Vite middleware serves the
@@ -215,6 +216,8 @@ async function startServer() {
   if (!isDemoMode()) {
     try {
       const moved = await repairFeedGeography();
+      const held = await repairEditorialReferences();
+      console.log(`[editorial] quarantined ${held} reference entries`);
       console.log(`[feed-geography] moved ${moved} overseas stories out of Australian lanes`);
     } catch (err) {
       console.error("[feed-geography] repair failed:", err);

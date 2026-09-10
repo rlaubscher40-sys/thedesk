@@ -1,3 +1,4 @@
+import { publisherWeight } from "./editorial";
 /**
  * Editorial priority defaults for a freshly-ingested feed item.
  *
@@ -30,51 +31,7 @@ const CATEGORY_BASELINE: Record<string, number> = {
   OTHER: 20,
 };
 
-/**
- * Source-name fragments that bump priority. Match is substring-insensitive
- * so "ABC News Business" picks up the ABC bonus and "Google · Top headlines"
- * doesn't get one.
- */
-const PRIMARY_SOURCE_FRAGMENTS = [
-  "rba",
-  "treasury",
-  "apra",
-  "asic",
-  "ato",
-  "australian taxation",
-  "abs ",
-  "australian bureau",
-  "afr",
-  "financial review",
-  "abc news",
-  "reserve bank",
-];
-
-const SECONDARY_SOURCE_FRAGMENTS = [
-  "guardian",
-  "the conversation",
-  "domain",
-  "corelogic",
-  "westpac",
-  "anz research",
-];
-
-/**
- * Compute a default priority for a freshly-ingested item. Capped at 95
- * so manual admin overrides at 100 always trump the heuristic.
- */
-export function defaultFeedPriority(args: {
-  category: string;
-  source: string;
-}): number {
-  const key = args.category?.toUpperCase() ?? "OTHER";
-  const baseline = CATEGORY_BASELINE[key] ?? CATEGORY_BASELINE.OTHER!;
-  const haystack = (args.source ?? "").toLowerCase();
-  let bonus = 0;
-  if (PRIMARY_SOURCE_FRAGMENTS.some((f) => haystack.includes(f))) {
-    bonus = 15;
-  } else if (SECONDARY_SOURCE_FRAGMENTS.some((f) => haystack.includes(f))) {
-    bonus = 7;
-  }
-  return Math.min(95, baseline + bonus);
+/** Legacy callers without story evidence receive no publisher-name bonus. */
+export function defaultFeedPriority(args: { category: string; source: string; sourceUrl?: string | null; title?: string; summary?: string | null }): number {
+  return Math.min(95, (CATEGORY_BASELINE[args.category?.toUpperCase()] ?? 20) + publisherWeight({ ...args, title: args.title ?? "" }));
 }

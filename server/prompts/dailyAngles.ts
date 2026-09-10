@@ -45,7 +45,7 @@ const COUNTERPOINT_MAX_CHARS = 280;
 function articleBlock(articleText: string | null | undefined): string {
   const text = articleText?.trim();
   if (!text) return "";
-  return `\n\nFull article text (mine this for the specific detail the headline buries — a figure, a named party, a rule change, a stated consequence — and ground every angle in it, not the generic headline):\n${text.slice(0, 6000)}\n`;
+  return `\n\nExtracted publisher text (may be an excerpt, never assume it is complete; mine this for the specific detail the headline buries — a figure, a named party, a rule change, a stated consequence — and ground every angle in it, not the generic headline):\n${text.slice(0, 6000)}\n`;
 }
 
 function buildPrompt(input: DailyAnglesInput): string {
