@@ -11,6 +11,8 @@ import * as db from "../db";
 import { renderSignalCard } from "../core/publicRender";
 import { renderTrendCard } from "../core/publicRender";
 import { adminProcedure, publicProcedure, router } from "../core/trpc";
+import { signalSharePath, signalSnapshotId } from "../../shared/signalSnapshot";
+import { loadSharedSignal } from "../metrics/sharedSignal";
 
 function safeFilename(value: string, prefix = "the-number"): string {
   const slug = value
@@ -56,6 +58,8 @@ async function enforceCardQuota(
 }
 
 export const metricsRouter = router({
+  shared: publicProcedure.input(z.object({ snapshot: signalSnapshotId }))
+    .query(({ input }) => db.readSignalSnapshot(input.snapshot)),
   planningPilot: publicProcedure.input(z.object({
     period: z.string().regex(/^20\d{2}-(0[1-9]|1[0-2])$/),
     fingerprint: z.string().regex(/^[a-f0-9]{64}$/).optional(),
@@ -78,33 +82,31 @@ export const metricsRouter = router({
    * a Trends share is guaranteed to reflect a currently stored Desk metric.
    */
   shareCard: publicProcedure
-    .input(z.object({ metricKey: z.string().min(1).max(64) }))
+    .input(z.object({ metricKey: z.string().min(1).max(64), snapshot: signalSnapshotId.optional() }))
     .mutation(async ({ input, ctx }) => {
       await enforceCardQuota(Boolean(ctx.user), ctx.req);
 
-      const metrics = await db.listDailyMetrics();
-      const metric = metrics.find((row) => row.metricKey === input.metricKey);
-      if (!metric) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "That metric is no longer available." });
-      }
+      const snapshot = await loadSharedSignal(input.metricKey, input.snapshot);
+      const { metric } = snapshot;
+      if (!input.snapshot) snapshot.move = metric.previousValue
+        ? `Previous recorded value ${displayValue(metric.previousValue, metric.unit)}` : null;
 
       try {
         const png = await renderSignalCard({
           label: metric.label,
           value: displayValue(metric.value, metric.unit),
           context: metric.context ?? null,
-          move: metric.previousValue
-            ? `Previous recorded value ${displayValue(metric.previousValue, metric.unit)}`
-            : null,
-          deskTake: null,
+          move: snapshot.move,
+          deskTake: snapshot.deskTake,
           source: metric.source ?? null,
           asOf: formatAsOf(metric.asOf),
         });
+        const snapshotId = input.snapshot ?? await db.storeSignalSnapshot(snapshot);
         return {
           mimeType: "image/png" as const,
           filename: safeFilename(metric.label),
           base64: png.toString("base64"),
-          sharePath: `/signals?metric=${encodeURIComponent(metric.metricKey)}`,
+          sharePath: signalSharePath(metric.metricKey, snapshotId),
         };
       } catch (error) {
         console.error("[metrics] number card render failed", error);
@@ -121,19 +123,12 @@ export const metricsRouter = router({
    * the browser, which prevents a branded chart being fabricated client-side.
    */
   shareTrendCard: publicProcedure
-    .input(z.object({ metricKey: z.string().min(1).max(64) }))
+    .input(z.object({ metricKey: z.string().min(1).max(64), snapshot: signalSnapshotId.optional() }))
     .mutation(async ({ input, ctx }) => {
       await enforceCardQuota(Boolean(ctx.user), ctx.req);
 
-      const [metrics, histories] = await Promise.all([
-        db.listDailyMetrics(),
-        db.listMetricHistories(30),
-      ]);
-      const metric = metrics.find((row) => row.metricKey === input.metricKey);
-      if (!metric) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "That metric is no longer available." });
-      }
-      const series = histories[metric.metricKey] ?? [];
+      const snapshot = await loadSharedSignal(input.metricKey, input.snapshot);
+      const { metric, series } = snapshot;
       if (series.length < 2) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -151,11 +146,12 @@ export const metricsRouter = router({
           asOf: formatAsOf(metric.asOf),
           series,
         });
+        const snapshotId = input.snapshot ?? await db.storeSignalSnapshot(snapshot);
         return {
           mimeType: "image/png" as const,
           filename: safeFilename(metric.label, "the-chart"),
           base64: png.toString("base64"),
-          sharePath: `/signals?metric=${encodeURIComponent(metric.metricKey)}&view=chart`,
+          sharePath: signalSharePath(metric.metricKey, snapshotId, true),
         };
       } catch (error) {
         console.error("[metrics] trend card render failed", error);

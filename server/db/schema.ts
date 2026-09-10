@@ -634,6 +634,12 @@ export const planningSnapshots = mysqlTable(
   ]
 );
 
+export const signalSnapshots = mysqlTable("signal_snapshots", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  snapshot: json("snapshot").$type<import("../../shared/signalSnapshot").SignalSnapshot>().notNull(),
+  storedAt: timestamp("storedAt").defaultNow().notNull(),
+});
+
 export * from "./evidenceSchema";
 
 // Security state is durable and separate from editorial data.

@@ -10,6 +10,7 @@ export * from "./queue";
 export * from "./subscribers";
 export * from "./featuredLinkedIn";
 export * from "./dailyMetrics";
+export * from "./signalSnapshots";
 export * from "./editionAssets";
 export * from "./heroLibrary";
 export * from "./feedback";

@@ -6,6 +6,7 @@ import { trpc } from "@/lib/trpc";
 type Props = {
   /** Preferred path for new callers. */
   metricKey?: string;
+  snapshot?: string;
   /** Legacy display props kept while Signals moves to metricKey-only calls. */
   label?: string;
   value?: string;
@@ -44,7 +45,7 @@ export function ShareSignalCardButton(props: Props) {
   async function share() {
     if (!resolvedMetricKey) return;
     setComplete(false);
-    const rendered = await card.mutateAsync({ metricKey: resolvedMetricKey });
+    const rendered = await card.mutateAsync({ metricKey: resolvedMetricKey, snapshot: props.snapshot });
     const file = base64ToFile(rendered.base64, rendered.mimeType, rendered.filename);
     const publicUrl = new URL(rendered.sharePath, window.location.origin).toString();
 
@@ -99,7 +100,7 @@ export function ShareSignalCardButton(props: Props) {
   return (
     <button
       type="button"
-      onClick={() => void share()}
+      onClick={() => { void share().catch(() => { /* Mutation error remains on the button. */ }); }}
       disabled={card.isPending || pendingMetric || unavailable}
       title={card.error?.message ?? (unavailable ? "This live metric is no longer available." : undefined)}
       className="bs-btn bs-btn-solid inline-flex items-center gap-2 disabled:opacity-50"

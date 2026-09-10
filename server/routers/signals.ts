@@ -4,6 +4,8 @@ import { consumeAnonymousCard } from "../core/askQuota";
 import * as db from "../db";
 import { renderSignalCard } from "../core/publicRender";
 import { publicProcedure, router } from "../core/trpc";
+import { signalSharePath, signalSnapshotId } from "../../shared/signalSnapshot";
+import { loadSharedSignal } from "../metrics/sharedSignal";
 
 function displayValue(value: string, unit: string | null): string {
   const cleanValue = value.trim();
@@ -48,7 +50,7 @@ export const signalsRouter = router({
    * Take, so a public caller cannot manufacture a branded statistic or source.
    */
   shareCard: publicProcedure
-    .input(z.object({ metricKey: z.string().min(1).max(64) }))
+    .input(z.object({ metricKey: z.string().min(1).max(64), snapshot: signalSnapshotId.optional() }))
     .mutation(async ({ input, ctx }) => {
       if (!ctx.user) {
         const quota = await consumeAnonymousCard(ctx.req);
@@ -60,32 +62,32 @@ export const signalsRouter = router({
         }
       }
 
-      const [metrics, histories, editions] = await Promise.all([
-        db.listDailyMetrics(),
-        db.listMetricHistories(30),
-        db.listEditionSummaries(),
-      ]);
-      const metric = metrics.find((row) => row.metricKey === input.metricKey);
-      if (!metric) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "That signal is no longer available." });
+      const snapshot = await loadSharedSignal(input.metricKey, input.snapshot);
+      const { metric } = snapshot;
+      if (!input.snapshot) {
+        const editions = await db.listEditionSummaries();
+        const edition = editions.find((item) => item.rubensTake?.trim());
+        snapshot.deskTake = edition?.rubensTake ?? null;
+        snapshot.editionNumber = edition?.editionNumber ?? null;
+        snapshot.move = formatMove(snapshot.series);
       }
-      const latestTake = editions.find((edition) => edition.rubensTake?.trim())?.rubensTake ?? null;
 
       try {
         const png = await renderSignalCard({
           label: metric.label,
           value: displayValue(metric.value, metric.unit),
           context: metric.context ?? null,
-          move: formatMove(histories[metric.metricKey] ?? []),
-          deskTake: latestTake,
+          move: snapshot.move,
+          deskTake: snapshot.deskTake,
           source: metric.source ?? null,
           asOf: formatAsOf(metric.asOf),
         });
+        const snapshotId = input.snapshot ?? await db.storeSignalSnapshot(snapshot);
         return {
           mimeType: "image/png" as const,
           filename: "the-desk-the-number.png",
           base64: png.toString("base64"),
-          sharePath: `/signals?metric=${encodeURIComponent(metric.metricKey)}`,
+          sharePath: signalSharePath(metric.metricKey, snapshotId),
           label: metric.label,
           value: displayValue(metric.value, metric.unit),
         };
