@@ -22,22 +22,9 @@ describe("synchronised housing count-ups", () => {
   });
   it("allocates a bounded reveal and reading hold inside the spoken passage", () => {
     const story = housingBalanceStoryboard(HOUSING_BALANCE_SNAPSHOT);
-    const durations = Object.fromEntries(
-      story.scenes.map((s) => [
-        s.key,
-        s.key === "households"
-          ? 3
-          : s.key === "contrast"
-            ? 2.7
-            : s.key === "signOff"
-              ? 2.3
-              : s.key === "checkNeed"
-                ? 1.7
-                : 4,
-      ])
-    );
+    const durations = Object.fromEntries(story.scenes.map((s) => [s.key, 4]));
     const sections = storyboardSections(story, durations);
-    for (const key of ["value", "line", "facts", "households"]) {
+    for (const key of ["facts", "households"]) {
       const s = sections.find((s) => s.key === key)!;
       expect(s.frames[0]!.sceneProgress).toBe(0);
       expect(s.frames.at(-1)!.sceneProgress).toBe(1);
@@ -45,11 +32,11 @@ describe("synchronised housing count-ups", () => {
       expect(s.frames.reduce((sum, f) => sum + (f.seconds ?? 0), 0)).toBeLessThan(2.1);
       const beats = layout([s]).beats;
       expect(beats.slice(1).every((b) => b.fade === 0)).toBe(true);
-      expect(beats.at(-1)!.seconds).toBeGreaterThan(key === "households" ? 1 : 1.5);
+      expect(beats.at(-1)!.seconds).toBeGreaterThan(1.5);
     }
     expect(layout(sections).total).toBeLessThan(32);
   });
-  it("waits for the recorded demand phrase and reveals the hook at its recorded pause", () => {
+  it("starts each of the three comparison phases at its measured phrase", () => {
     const story = housingBalanceStoryboard(HOUSING_BALANCE_SNAPSHOT);
     const durations = Object.fromEntries(story.scenes.map((s) => [s.key, 5]));
     const phrases = Object.fromEntries(
@@ -59,24 +46,30 @@ describe("synchronised housing count-ups", () => {
       ])
     );
     const sections = storyboardSections(story, durations, phrases);
-    const demand = sections.find((s) => s.key === "line")!;
-    expect(demand.frames[0]!.sceneProgress).toBe(0);
-    expect(demand.frames[0]!.seconds).toBeCloseTo(1.2);
-    const demandBeats = layout([demand]).beats;
-    expect(demandBeats.slice(1).every((b) => b.fade === 0)).toBe(true);
-    const hook = sections.find((s) => s.key === "label")!;
-    for (const key of ["construction", "signOff"]) {
+    for (const key of ["facts", "households", "construction", "signOff"]) {
       const section = sections.find((s) => s.key === key)!;
+      expect(section.frames[0]!.hardCut).toBe(true);
+      const count = phrases[key]!.length;
       let at = 0;
       for (const frame of section.frames) {
-        if (at < 1.2 - 0.001) expect(frame.sceneProgress).toBeLessThanOrEqual(0.5);
-        if (frame.sceneProgress! > 0.5) expect(at).toBeGreaterThanOrEqual(1.2);
-        expect((frame.seconds ?? 1) > 0).toBe(true);
+        for (let phase = 1; phase < count; phase++) {
+          if (at < phase * 1.2 - 0.001)
+            expect(frame.sceneProgress).toBeLessThanOrEqual(phase / count);
+          if (frame.sceneProgress! > phase / count) expect(at).toBeGreaterThanOrEqual(phase * 1.2);
+        }
+        expect(frame.seconds ?? 1).toBeGreaterThan(0);
         at += frame.seconds ?? 0;
       }
       expect(section.frames.at(-1)!.sceneProgress).toBe(1);
       expect(at).toBeLessThan(5);
+      expect(
+        layout([section])
+          .beats.slice(1)
+          .every((b) => b.fade === 0)
+      ).toBe(true);
     }
     expect(() => storyboardSections(story, durations, {})).toThrow("measured");
+    phrases.facts![2]!.start = 1.5;
+    expect(() => storyboardSections(story, durations, phrases)).toThrow("measured");
   });
 });

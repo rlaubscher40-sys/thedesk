@@ -13,7 +13,7 @@ import { housingBalanceSubtitleScript } from "../video/housingBalanceStoryboard"
 import { isKnownRoute } from "../core/spaShell";
 
 const evidence = () => structuredClone(HOUSING_BALANCE_SNAPSHOT);
-const now = new Date("2026-09-09T12:00:00Z");
+const now = new Date("2026-09-10T12:00:00Z");
 describe("matched historical housing flows", () => {
   it("subtracts net additions from new demand in the same national 18 months", () => {
     expect(matchedHousingBalance(evidence())).toMatchObject({
@@ -68,7 +68,7 @@ describe("matched historical housing flows", () => {
     const later = verifiedHousingBalanceReel(rechecked, new Date("2026-10-02"))!;
     expect(later.publication).toEqual(first.publication);
     expect(later.evidenceHash).not.toBe(first.evidenceHash);
-    for (const date of ["2026-04-29", "2026-09-08", "2027-04-30", "invalid"])
+    for (const date of ["2026-04-29", "2026-09-08", "2026-09-09", "2027-04-30", "invalid"])
       expect(verifiedHousingBalanceReel(evidence(), new Date(date))).toBeNull();
   });
 });
@@ -134,6 +134,11 @@ describe("the finding survives the Reel and source destination", () => {
       "#page=104",
       "#page=55",
       "parental home longer",
+      "11.2",
+      "15%",
+      "#page=65",
+      "separate",
+      "Damon Hall",
     ])
       expect(html).toContain(term);
   });
@@ -142,16 +147,16 @@ describe("the finding survives the Reel and source destination", () => {
     const story = c.stat.storyboard!;
     if (story.kind !== "housing-balance") throw new Error("Unexpected storyboard");
     const display = housingBalanceSubtitleScript(story, c.script);
-    const expected = new Map([
-      ["value", ["two hundred and thirty-two thousand", "232,000"]],
-      ["line", ["two hundred and eighty-seven thousand", "287,000"]],
-      ["facts", ["fifty-five thousand", "55,000"]],
-    ]);
+    const expected = new Map([["facts", ["fifty-five thousand", "55,000"]]]);
     for (const line of display) {
       const spoken = c.script.find((s) => s.key === line.key)!;
       const number = expected.get(line.key);
       if (number) expect(line.text.replace(number[1]!, number[0]!)).toBe(spoken.text);
-      else expect(line.text).toBe(spoken.text);
+      else if (line.key === "households") {
+        expect(line.text).toBe(
+          "A modelled 20% deposit took 9 years to save in 2015. By 2025, 11.2 years."
+        );
+      } else expect(line.text).toBe(spoken.text);
       const seconds = estimateSpeechSeconds(spoken.text);
       const cues = subtitleCues([line], [{ key: line.key, start: 12, seconds }]);
       expect(cues[0]!.start).toBe(12);
@@ -167,7 +172,7 @@ describe("the finding survives the Reel and source destination", () => {
       expect(line.phrases.join(" ")).toBe(line.text);
     }
     const wrong = c.script.map((s) =>
-      s.key === "value" ? { ...s, text: "About a million homes." } : s
+      s.key === "facts" ? { ...s, text: "About a million homes." } : s
     );
     expect(() => housingBalanceSubtitleScript(story, wrong)).toThrow("evidence");
   });

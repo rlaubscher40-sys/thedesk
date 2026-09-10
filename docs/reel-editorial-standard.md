@@ -30,15 +30,16 @@ this change does not claim automatic semantic review of every future post.
 
 ## Current housing story
 
-Open with the audience's question: why is a home so hard to afford? Establish
+Open with the affordability contradiction: more homes, still out of reach. Establish
 232,000 additions after demolitions versus 287,000 estimated extra homes needed
 in the same national 18 months. Show the additional 55,000 gap. Then explain
 how limited supply relative to demand puts upward pressure on prices and rents.
-Show the human consequence through the Council's reported living-at-home
-context. Explain why high building costs and labour shortages impede a quick
+Make the human consequence concrete through the Council's modelled deposit
+benchmark: 9.0 years in 2015 to 11.2 in 2025, with assumptions visible. Explain why high building costs and labour shortages impede a quick
 response. End with supply catching up to demand to ease scarcity pressure.
 
-Eight scenes follow this argument. The previous ratio scene repeated the
+Six sequences follow this argument, compressing the figures into one developing
+comparison so the explanation arrives sooner. The previous ratio scene repeated the
 finding without explaining it; it is replaced by competition and price pressure.
 The public source read retains the ratio and the detailed definitions.
 Interest rates, incomes and borrowing power also shape demand. The Reel must
@@ -63,24 +64,26 @@ The rejected white evidence panel and excerpt crops are removed. Show the full
 Council name in a quiet, consistent source footer, followed by year and page.
 The public source read contains the report title, exact links and methodology.
 
-A key approaching a doorway and pausing symbolises delayed moving-out plans.
-It is original vector artwork explicitly labelled as an illustration, with the
-Council context attributed separately. It is not an observed household or a
-reconstruction of a specific person's experience. Give this scene its own
-context label rather than the quantitative chart's reference period.
+Use licensed, credited real imagery where it adds context. Label archive
+publication dates and keep imagery distinct from evidence of the specific
+claim. The gold shortfall marker connects comparison, competition and deposit
+scenes. The modelled deposit example has its own dates and assumptions; do not
+imply that the 18-month housing gap caused its decade-long increase.
 
 ## Voice, timing and delivery
 
 Use approved local Fable at speed 1.0. This reviewed story may run up to 46
 seconds; other Reels retain 32 seconds. Never speed up narration to hide an
-overlong script. Eight scenes use at most sixteen authored phrases through the
+overlong script. Six sequences currently use eleven authored phrases (at most sixteen) through the
 bounded local voice queue. Preserve 100ms before and 160ms after detectable
 speech at phrase edges, with an 80ms join gap.
 
-Measured phrase starts govern the opening question, demand and gap reveals,
+Measured phrase starts govern the comparison phases, deposit extension,
 competition, construction constraints and closing takeaway. Use bounded animation steps and reading holds. Count-up
 labels and bars share one eased value; internal geometry changes use hard cuts
-on the 30fps grid. This is phrase timing, not forced word alignment.
+on the 30fps grid. Text changes cut cleanly between sequences; only the gold
+marker carries across. Do not dissolve entire text compositions over each
+other. This is phrase timing, not forced word alignment.
 
 Normalise the housing audio mix and encode stereo AAC at 48kHz in a fast-start
 H.264 MP4. Check complete picture duration, actual encoded frames, subtitle

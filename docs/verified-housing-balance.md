@@ -65,10 +65,9 @@ children staying in the parental home longer. This is separately attributed
 context, not a consequence measured by the housing-flow calculation.
 https://nhsac.gov.au/sites/nhsac.gov.au/files/2026-04/ar-state-housing-system-2026.pdf#page=55
 
-The human scene now paraphrases this context alongside an explicitly labelled
-original key-and-door illustration. It does not show a real household. The
-former white excerpt panel has been removed; source credit stays beside the
-story, and the original pages remain linked from the public source read.
+The earlier key-and-door scene is superseded by the modelled deposit comparison
+below. The reported living-at-home context remains on the source read. The
+former white excerpt panel stays removed; source credit sits beside the story.
 
 ## Reproduce review
 
@@ -76,7 +75,7 @@ story, and the original pages remain linked from the public source read.
 node --import tsx scripts/review-housing-balance-reel.ts --out /tmp/desk-housing-gap
 ```
 
-Produces a Fable-narrated, subtitled MP4, caption, eight scene JPEGs, evidence,
+Produces a Fable-narrated, subtitled MP4, caption, six scene JPEGs, evidence,
 measured phrase audit and final timeline. `--frames-only` skips speech and video.
 It never posts. Housing has a 46-second cap; other formats retain 32 seconds.
 
@@ -107,5 +106,38 @@ https://www.rba.gov.au/publications/rdp/2019/2019-01/full.html
 
 The explanation is conditional pressure, not a national or local price forecast.
 No observed price-growth series, percentage effect or affected-person count is
-inferred from the 55,000-home calculation. Original competition and crane line
-illustrations are labelled, with source credit on the relevant scene.
+inferred from the 55,000-home calculation. The competition graphic is labelled as illustration. Construction now uses
+a credited archive photograph, labelled with its publication year.
+
+
+## Modelled deposit hurdle, verified 10 September 2026
+
+The same pinned report gives 9.0 years in 2015 and 11.2 years in 2025 to save a
+20% deposit on a median-priced dwelling. Printed page 3 (PDF 14) gives the pair;
+Chart 3.2 on printed page 54 (PDF 65) specifies annual saving of 15% of gross
+median household income. Printed page 57 (PDF 68) discusses the 2025 result.
+
+This is a modelled benchmark, not observed saving behaviour or a required
+minimum deposit. Its decade differs from the 18-month supply/need comparison.
+The Reel does not attribute the 2.2-year difference to the 55,000 flow gap.
+The 9.6-year ten-year average is not the 2015 observation and must not replace
+9.0. The shared reviewed values are in `shared/housingAffordability.ts` and
+included in the evidence hash and publication verification-date gate.
+
+## Connected six-sequence cut
+
+1. More homes, still out of reach: Sydney archive construction photography.
+2. One developing comparison: 232,000 net additions, 287,000 extra need,
+   then the 55,000 additional gap. Three measured phrases own the three reveals.
+3. The gold gap marker travels into an explicitly illustrative competition
+   diagram; the voice explains upward pressure on prices and rents.
+4. The marker moves to a years ruler. The modelled deposit benchmark extends
+   from 9.0 to 11.2 during the second measured phrase. Its dates and assumptions
+   are visible separately from the housing-flow reference period.
+5. Credited archive construction photograph, with a restrained crop pan,
+   accompanies the explanation of high costs and labour shortages.
+6. Homes completed, not just promised. Illustrative supply catches up with need.
+
+The original photograph and licence/provenance record are bundled with the
+renderer. See `reel-archive-photography.md`. It is contextual archive imagery,
+not evidence of a current building project or of delay at that particular site.

@@ -13,7 +13,7 @@ if (at < 0 || !args[at + 1])
 const out = path.resolve(args[at + 1]!);
 const candidate = verifiedHousingBalanceReel(
   HOUSING_BALANCE_SNAPSHOT,
-  new Date("2026-09-09T12:00:00Z")
+  new Date("2026-09-10T12:00:00Z")
 );
 if (!candidate?.stat.storyboard) throw new Error("No verified housing balance story.");
 await fs.mkdir(out, { recursive: true });

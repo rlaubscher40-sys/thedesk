@@ -5,6 +5,7 @@ import {
   housingBalanceStoryboard,
   housingBalanceGeometry,
   BALANCE_CHART,
+  housingStoryBridge,
 } from "./housingBalanceStoryboard";
 
 type Element = { type: string; props: { children?: unknown; style?: Record<string, unknown> } };
@@ -27,23 +28,21 @@ describe("documentary housing Reel", () => {
       expect(meta.quiet).toBe(true);
       expect(meta.documentary).toBe(true);
       expect(meta.kicker).toContain(
-        ["value", "line", "facts"].includes(scene.key)
+        scene.key === "facts"
           ? "JUL 2024 TO DEC 2025"
-          : "HOUSING AFFORDABILITY"
+          : scene.key === "households"
+            ? "2015 TO 2025"
+            : "HOUSING AFFORDABILITY"
       );
       expect(meta.publisher).toBe("National Housing Supply and Affordability Council");
       expect(meta.source).toContain("NHSAC 2026");
     }
-    expect(copy(frame("households").content).join(" ")).toContain(
-      "Adult children staying home longer."
-    );
-    expect(frame("households").meta.source).toContain("44");
+    expect(copy(frame("households").content).join(" ")).toContain("To save a modelled 20% deposit");
+    expect(frame("households").meta.source).toContain("54, 57");
   });
-  it("retains one supply endpoint and one scale through the comparison", () => {
+  it("develops supply, need and their difference on one consistent scale", () => {
     expect(story.scenes.map((s) => s.key)).toEqual([
       "label",
-      "value",
-      "line",
       "facts",
       "claim",
       "households",
@@ -51,30 +50,68 @@ describe("documentary housing Reel", () => {
       "signOff",
     ]);
     expect(BALANCE_CHART.scale).toBe(300000);
-    const first = housingBalanceGeometry(story, "label", 1);
-    for (const key of ["line", "facts"]) {
-      for (const p of [0, 0.4, 1]) {
-        const g = housingBalanceGeometry(story, key, p);
-        expect(g.supplyWidth).toBe(first.supplyWidth);
-        expect(g.gapLeft).toBe(first.supplyWidth);
-      }
-    }
-    expect(housingBalanceGeometry(story, "value", 0).supply).toBe(0);
-    expect(housingBalanceGeometry(story, "value", 1).supply).toBe(232000);
+    const first = housingBalanceGeometry(story, "facts", 0);
+    expect(first.supply).toBe(0);
+    expect(first.demand).toBe(0);
+    const supply = housingBalanceGeometry(story, "facts", 1 / 3);
+    expect(supply.supply).toBe(232000);
+    expect(supply.demand).toBe(0);
+    const demand = housingBalanceGeometry(story, "facts", 2 / 3);
+    expect(demand.demand).toBe(287000);
+    expect(demand.gap).toBe(0);
     const final = housingBalanceGeometry(story, "facts", 1);
     expect(final.supplyWidth + final.gapWidth).toBeCloseTo(final.demandWidth);
     expect(final.gap).toBe(55000);
-    expect(copy(frame("line", 0).content)).not.toContain("0 homes needed");
+    expect(final.gapLeft).toBe(supply.supplyWidth);
+  });
+  it("preserves the gold marker at both scene boundaries and scales the deposit extension", () => {
+    expect(housingStoryBridge("competition", 0)).toEqual(housingStoryBridge("gap", 1));
+    expect(housingStoryBridge("deposit", 0)).toEqual(housingStoryBridge("competition", 1));
+    expect(housingStoryBridge("deposit", 0.5).width).toBe(0);
+    expect(housingStoryBridge("deposit", 1).width).toBeCloseTo((11.2 - 9) * 70);
   });
   it("distinguishes illustrated price pressure from a price forecast", () => {
     const words = copy(frame("claim").content).join(" ");
-    expect(words).toContain("Upward pressure, not guaranteed rises.");
-    expect(words).toContain("borrowing power");
+    expect(words).toContain("Pressure, not guaranteed price rises.");
+    expect(words).toContain("RATES AND INCOMES ALSO MATTER");
     expect(words).not.toMatch(/55,000|%/);
     expect(copy(frame("construction").content).join(" ")).toContain("Shortages of skilled labour");
-    expect(frame("construction").meta.source).toContain("Supply constraints");
+    expect(frame("construction").meta.source).toContain("Housing supply");
   });
 
+  it("keeps the 2015 value labelled 2015 until the 2025 phrase begins", () => {
+    const before = copy(frame("households", 0.49).content).join(" ");
+    expect(before).toContain("2015");
+    expect(before).not.toContain("2025");
+    const after = copy(frame("households", 1).content).join(" ");
+    for (const label of ["2015", "2025", "9.0", "11.2"]) expect(after).toContain(label);
+  });
+  it("does not overlay outgoing and incoming headings during visual bridges", () => {
+    for (const progress of [0, 0.08, 0.15, 0.5, 1]) {
+      const pressure = copy(frame("claim", progress).content).join(" ");
+      expect(pressure).toContain("Too few homes.");
+      expect(pressure).not.toContain("Falling behind.");
+      const deposit = copy(frame("households", progress).content).join(" ");
+      expect(deposit).toContain("The deposit");
+      expect(deposit).not.toContain("More competition.");
+    }
+  });
+  it("identifies archive imagery and the modelled deposit assumptions", () => {
+    for (const key of ["label", "construction"]) {
+      const words = copy(frame(key).content).join(" ");
+      expect(words).toContain("ARCHIVE PUBLISHED 2019");
+      expect(words.toLowerCase()).toContain("damon hall");
+      expect(words.toLowerCase()).toContain("unsplash");
+    }
+    const words = copy(frame("households").content).join(" ");
+    for (const phrase of [
+      "11.2",
+      "9.0",
+      "15% of gross median household income",
+      "NOT AN OBSERVED WAIT",
+    ])
+      expect(words).toContain(phrase);
+  });
   it("labels the ending as illustration and never reuses the flow gap as a stock estimate", () => {
     for (const p of [0, 1]) {
       const words = copy(frame("signOff", p).content).join(" ");

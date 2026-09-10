@@ -185,3 +185,71 @@ of the graphics, with the correct plain arrow glyphs. Audio is stereo AAC at
 48 kHz and measures -16.97 LUFS integrated, -4.30 dBTP and 3.40 LU loudness range.
 These are technical checks, not a claim of perfect vocal performance or audience
 retention. The clip remains an unpublished review preview.
+
+
+## Connected documentary cut, 10 September 2026
+
+The five remaining production gaps drove this revision: the long numerical
+setup, generic imagery, isolated-slide transitions, an abstract human
+consequence, and narration phrasing. The eight-scene cut is superseded by six
+sequences. Supply, need and shortfall develop within one composition, timed to
+three recorded utterances. The shared gold marker moves into the competition
+graphic, then becomes the extension of a deposit-saving ruler.
+
+The new human measure is independently grounded in the same pinned report:
+9.0 years in 2015 versus 11.2 years in 2025 to save a modelled 20% deposit.
+Printed pages 3, 54 and 57 provide the pair, assumptions and current-year detail.
+Saving 15% of gross median household income annually is visible on screen and
+in the caption/source read. The decade-long comparison is explicitly separate
+from the 18-month housing flow. It is not an observed wait, required minimum
+deposit or measured consequence caused solely by that flow gap.
+
+Damon Hall's Sydney construction photograph, published in December 2019, now
+provides contextual archive imagery in the opening and construction passage.
+The Unsplash source and commercial-use licence were checked and recorded in
+`reel-archive-photography.md`. Publication year and credit remain visible. This
+is not current footage or evidence of delay at the photographed building.
+
+Fable remains at speed 1.0. Eleven complete authored utterances preserve natural
+sentence boundaries. The measured phrase audit places each animation phase
+against its actual recorded passage. The final deposit number has a reading
+hold after its count-up. No speed-up or guessed word timing is used.
+
+The six complete compositions were inspected at phone size. A technical audio
+review can establish presence, timing, headroom and decoding, but does not
+establish natural vocal performance. No direct listening or Glasshouse playback
+comparison was available in this environment. A viewer listening to the new
+MP4 is still needed to judge that part. No parity or retention score is claimed.
+
+
+The first export of this revision exposed overlapping headings during full-
+composition dissolves. Those dissolves were removed before delivery. Text now
+cuts cleanly; the gold marker alone preserves positional continuity. Regression
+checks cover both intermediate layouts and the measured section entry cuts.
+
+
+The deposit year now changes with the second recorded phrase. During the first
+phrase, the large 9.0-year benchmark is labelled 2015. At the second phrase,
+2015 becomes the comparison reference and the 2025 figure counts towards 11.2.
+This prevents a held 9.0 value appearing as if it were the 2025 observation.
+The targeted source, layout and timing suite passes all 34 tests after this fix.
+
+
+### Delivered connected export
+
+The final MP4 is 37.03 seconds, 1080x1920 at 30 fps, H.264 with stereo AAC
+narration at 48 kHz and burned-in subtitles. All 1,111 frames and the full audio
+stream decode without error. Complete-picture-duration validation passes.
+Encoded audio measures -16.94 LUFS integrated, -4.28 dBTP and 2.20 LU loudness
+range. The final spoken passage ends at 36.36 seconds, before the picture ends.
+
+The price explanation starts at 10.33 seconds, compared with about 19 seconds
+in the earlier cut. Encoded frames were reviewed for all six compositions,
+then the corrected scene transitions and the final 2015/2025 phrase sequence
+were inspected separately. No overlapping text remains in the revised bridges.
+The final year labels correspond to the recorded passages. Caption, source
+read and photographic attribution remain consistent. TypeScript and the
+production build pass. The broad 118-test suite passed before the final year
+change; all 34 affected tests passed after it. This remains an unpublished
+review preview, with vocal-performance listening and audience response outside
+these technical checks.

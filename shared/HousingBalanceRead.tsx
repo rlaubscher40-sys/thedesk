@@ -1,4 +1,5 @@
 import React from "react";
+import { HOUSING_DEPOSIT } from "./housingAffordability";
 import { HOUSING_BALANCE_SNAPSHOT, matchedHousingBalance } from "./housingBalance";
 
 /** The Reel's source destination uses the very same reviewed evidence as its visuals. */
@@ -82,6 +83,39 @@ export function HousingBalanceRead() {
         </p>
       </section>
       <section className="rule-hair pt-5 mt-7">
+        <h2 className="font-serif text-3xl">The deposit moved further away.</h2>
+        <p className="font-serif text-2xl mt-4">
+          {HOUSING_DEPOSIT.startYears} years in {HOUSING_DEPOSIT.startYear}.{" "}
+          {HOUSING_DEPOSIT.endYears} years in {HOUSING_DEPOSIT.endYear}.
+        </p>
+        <p className="text-base leading-7 mt-4">
+          NHSAC reports that the modelled time to save a 20% deposit rose from 9.0 years in 2015 to
+          11.2 years in 2025. The measure assumes saving 15% of gross median household income each
+          year for a median-priced dwelling. It is a benchmark, not an observed waiting time or a
+          required minimum deposit. The extra 2.2 years is derived from those endpoints. The Council
+          attributes the deterioration to rising housing costs. This decade-long affordability
+          measure is separate from the 18-month housing-flow gap; that gap does not establish the
+          cause or size of the deposit change.
+        </p>
+        <a
+          className="bs-link inline-block mt-4"
+          href={`${HOUSING_BALANCE_SNAPSHOT.sourceUrl}#page=14`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          2015 and 2025 deposit comparison, printed page 3 →
+        </a>
+        <br />
+        <a
+          className="bs-link inline-block mt-3"
+          href={`${HOUSING_BALANCE_SNAPSHOT.sourceUrl}#page=65`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Savings assumption, chart 3.2, printed page 54 →
+        </a>
+      </section>
+      <section className="rule-hair pt-5 mt-7">
         <h2 className="font-serif text-3xl">Why catching up takes time.</h2>
         <p className="text-base leading-7 mt-4">
           High construction costs, shortages of skilled labour and project financing affect whether
@@ -136,6 +170,15 @@ export function HousingBalanceRead() {
             rel="noopener noreferrer"
           >
             Construction costs and supply constraints, chapter 2 →
+          </a>
+          <a
+            className="bs-link"
+            href="https://unsplash.com/photos/a-very-tall-building-with-a-crane-on-top-of-it-jzEkzVq3Yp0"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Reel archive photograph: Damon Hall, Sydney construction, published December 2019
+            (Unsplash License) →
           </a>
           <a className="bs-link" href={b.source} target="_blank" rel="noopener noreferrer">
             Read the matched source figures, page 21 →
