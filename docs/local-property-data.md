@@ -107,6 +107,6 @@ approved publisher methodology, never by averaging rounded state percentages.
 The official LGA workbook was supplied by the user and validated. This release
 adds 79 councils and five quarters ending September 2025 through a fenced reviewed
 import. It supersedes the earlier statement that no Victorian parser is enabled.
-It does not enable automatic downloads or provide suburb rents. See
+The subsequent release-update path checks DataVic daily, downloads only newer listed quarters, and accepts validated Admin uploads. It does not provide suburb rents or establish a newer release. See
 [victoria-reviewed-rents.md](victoria-reviewed-rents.md) for source provenance,
 missing-value semantics, validation and the remaining delivery limitation.

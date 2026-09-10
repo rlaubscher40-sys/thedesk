@@ -3,7 +3,7 @@
 The user supplied the official September-quarter 2025 LGA workbook on 10 September
 2026 after normal publisher downloads failed. This release adds its reviewed
 historical observations to local Markets, comparisons, Ask and Admin. It does not
-establish current local rents, suburb data or working automatic Victorian downloads.
+establish current local rents or suburb data. The subsequent update path below separates catalogue availability from file-download success.
 
 ## Source and meaning
 
@@ -61,11 +61,34 @@ exists, never overwrites a newer release, and never marks a publisher check as
 successful. Failed writes remain retryable. No migration, external request,
 email or model call is part of the import.
 
-VIC is a registered read source but excluded from automatic download jobs and
-the live source probe. Direct collection calls reject it explicitly. Admin says
-that the source is a reviewed import and that another validated file is needed
-for a new release. Automatic publisher delivery remains separate outstanding
-work, so a supplied file does not trigger known failing daily downloads.
+VIC is now included in the daily collector, using the specific DataVic CKAN
+catalogue endpoint first. The catalogue identity and CC BY licence are checked,
+and the latest completed quarterly LGA resource is selected from strict DFFH
+URLs. The actual catalogue was retrieved successfully on 10 September 2026 and
+still listed September 2025. An existing equal or newer snapshot prevents a
+workbook download. This success means catalogue discovery succeeded, not that
+the file endpoint is reachable or that the rents are current. Admin labels the
+check accordingly. Same-quarter file corrections are not discovered by this
+period-only check and require reviewed upload.
+
+Only a newer listed quarter triggers a bounded download and the existing strict
+VIC parser. A changed layout or failed request retains the last good snapshot
+and records failure. VIC gets one scheduled attempt per day; publisher access
+denials retain the existing pause policy. No browser workaround, paid proxy or
+access-control bypass is used. Normal direct downloads returned HTTP 502 or
+timed out during this review; successful future automatic file delivery remains
+to be demonstrated when a new release is available.
+
+Admin also supports original-file upload with an exact official workbook link.
+Preview validates the complete workbook using the bounded worker and displays
+quarter, councils and missing/published counts. Import requires the previewed
+file hash and repeats validation. Server-side inputs are capped at 2 MB decoded;
+only one upload parser runs at a time. The admin procedure retains existing
+session and CSRF protections. No older release can replace a newer snapshot,
+identical reviewed files are a no-op, storage failures remain visible, and an
+upload never marks publisher health successful. Files remain attributed as
+user-supplied, with receipt date separate from observation period. New quarterly
+files fitting the validated schema no longer require a code change/deployment.
 
 ## Validation
 

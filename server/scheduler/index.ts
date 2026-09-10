@@ -192,7 +192,7 @@ const JOBS: Job[] = [
     key: `local-data-${source}`,
     at: `00:${15 + index * 5}`,
     graceMinutes: 23 * 60,
-    maxAttempts: 2,
+    maxAttempts: source === "vic-bond-rents" ? 1 : 2,
     run: async () => collectLocalData(source),
   })),
   ...METRIC_RECOVERY_JOBS,

@@ -19,6 +19,7 @@ import * as db from "../db";
 import { getDb } from "../db/client";
 import type { Subscriber, DailyMetric } from "../db/schema";
 import { adminProcedure, router } from "../core/trpc";
+import { uploadVicWorkbook } from "../localData/vicUpload";
 import { getLocalCoverage } from "../localData/read";
 import { feedEnrichmentHealth } from "../db/feedEnrichment";
 import { readLocalTransfers } from "../db/localTransfers";
@@ -54,6 +55,12 @@ type ServiceInfo = {
 };
 
 export const healthRouter = router({
+  importVicWorkbook: adminProcedure.input(z.object({
+    base64: z.string().min(1).max(2_800_000),
+    resourceUrl: z.string().max(300),
+    commit: z.boolean(),
+    expectedHash: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+  })).mutation(({ input }) => uploadVicWorkbook(input)),
   localDataCoverage: adminProcedure.query(() => getLocalCoverage()),
   dailyBriefDelivery: adminProcedure.query(() => dailyBriefHealth(sydneySocialClock().dateISO)),
   feedEnrichment: adminProcedure.query(() => feedEnrichmentHealth()),
