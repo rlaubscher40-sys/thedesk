@@ -46,7 +46,12 @@ export const STATE_PROPERTY_SOURCES: EvidenceSource[] = PROPERTY_REGIONS.flatMap
 );
 
 export const EVIDENCE_SOURCES: EvidenceSource[] = [
-  ...SOURCES.filter((source) => ["AU", "PROPERTY"].includes(source.channel)).map((source) => ({
+  // Undated index links are read directly by the daily editorial pipeline.
+  // Do not report a successful hourly evidence harvest for links which cannot
+  // enter its timestamped RSS-excerpt store. Never date them from crawl time.
+  ...SOURCES.filter(
+    (source) => source.kind !== "index" && ["AU", "PROPERTY"].includes(source.channel)
+  ).map((source) => ({
     ...source,
     id: `national-${source.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
     region: "AU",

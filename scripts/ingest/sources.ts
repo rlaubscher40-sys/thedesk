@@ -50,6 +50,8 @@ export type Source = {
   maxItems?: number;
   kind?: "rss" | "index";
   articlePath?: string;
+  /** Require a publisher-declared article type around index links. */
+  articleContainerClass?: string;
 };
 
 /**
@@ -86,11 +88,118 @@ function googleNewsGlobal(query: string): string {
 }
 
 export const SOURCES: Source[] = [
-  { name: "The Adviser", url: "https://www.theadviser.com.au/news?format=feed&type=rss", category: "MARKETS", channel: "AU", maxItems: 20 },
-  { name: "Mortgage Professional Australia", url: "https://www.mpamag.com/au/rss", category: "PROPERTY", channel: "PROPERTY", maxItems: 20 },
-  { name: "RBA Interviews & Speeches", url: `https://www.rba.gov.au/speeches/${new Date().getUTCFullYear()}/`, kind: "index", articlePath: "^/speeches/20[0-9]{2}/sp-[a-z-]+20[0-9]{2}-[0-9]{2}-[0-9]{2}\\.html$", category: "MACRO", channel: "AU", maxItems: 12 },
-  { name: "ABS Media Releases", url: "https://www.abs.gov.au/media-centre/media-releases", kind: "index", articlePath: "^/media-centre/media-releases/[^/]+$", category: "ECONOMICS", channel: "AU", maxItems: 20 },
-  { name: "realestate.com.au News", url: "https://www.realestate.com.au/news/feed/", category: "PROPERTY", channel: "PROPERTY", maxItems: 25 },
+  // Audited 2026-09-10: direct discovery; every article still needs original
+  // publication evidence, readable reporting, Australian scope and beat fit.
+  {
+    name: "APRA News",
+    url: "https://www.apra.gov.au/news-and-publications",
+    kind: "index",
+    articlePath: "^/news-and-publications/[^/]+$",
+    articleContainerClass: "node--type-news",
+    category: "POLICY",
+    channel: "AU",
+    maxItems: 8,
+  },
+  {
+    name: "Cotality Australia",
+    url: "https://www.cotality.com/au/insights",
+    kind: "index",
+    articlePath: "^/au/insights/articles/[^/]+$",
+    category: "PROPERTY",
+    channel: "PROPERTY",
+    maxItems: 8,
+  },
+  {
+    name: "Treasury Ministerial Releases",
+    url: "https://ministers.treasury.gov.au/ministers/jim-chalmers-2022/media-releases",
+    kind: "index",
+    articlePath: "^/ministers/jim-chalmers-2022/media-releases/[^/]+$",
+    category: "POLICY",
+    channel: "AU",
+    maxItems: 6,
+  },
+  {
+    name: "Australian Broker",
+    url: "https://www.brokernews.com.au/rss",
+    category: "PROPERTY",
+    channel: "PROPERTY",
+    maxItems: 20,
+  },
+  {
+    name: "Professional Planner",
+    url: "https://www.professionalplanner.com.au/feed/",
+    category: "POLICY",
+    channel: "AU",
+    maxItems: 20,
+  },
+  {
+    name: "Accountants Daily",
+    url: "https://www.accountantsdaily.com.au/news?format=feed&type=rss",
+    category: "POLICY",
+    channel: "AU",
+    maxItems: 20,
+  },
+  // Industry bodies are attributed advocacy, not independent confirmation.
+  {
+    name: "SMSF Association",
+    url: "https://www.smsfassociation.com/feed",
+    category: "POLICY",
+    channel: "AU",
+    maxItems: 10,
+  },
+  {
+    name: "UDIA National",
+    url: "https://udia.com.au/feed/",
+    category: "PROPERTY",
+    channel: "PROPERTY",
+    maxItems: 10,
+  },
+  {
+    name: "Master Builders Australia",
+    url: "https://masterbuilders.com.au/feed/",
+    category: "PROPERTY",
+    channel: "PROPERTY",
+    maxItems: 10,
+  },
+  {
+    name: "The Adviser",
+    url: "https://www.theadviser.com.au/news?format=feed&type=rss",
+    category: "MARKETS",
+    channel: "AU",
+    maxItems: 20,
+  },
+  {
+    name: "Mortgage Professional Australia",
+    url: "https://www.mpamag.com/au/rss",
+    category: "PROPERTY",
+    channel: "PROPERTY",
+    maxItems: 20,
+  },
+  {
+    name: "RBA Interviews & Speeches",
+    url: `https://www.rba.gov.au/speeches/${new Date().getUTCFullYear()}/`,
+    kind: "index",
+    articlePath: "^/speeches/20[0-9]{2}/sp-[a-z-]+20[0-9]{2}-[0-9]{2}-[0-9]{2}\\.html$",
+    category: "MACRO",
+    channel: "AU",
+    maxItems: 12,
+  },
+  {
+    name: "ABS Media Releases",
+    url: "https://www.abs.gov.au/media-centre/media-releases",
+    kind: "index",
+    articlePath: "^/media-centre/media-releases/[^/]+$",
+    category: "ECONOMICS",
+    channel: "AU",
+    maxItems: 20,
+  },
+  {
+    name: "realestate.com.au News",
+    url: "https://www.realestate.com.au/news/feed/",
+    category: "PROPERTY",
+    channel: "PROPERTY",
+    maxItems: 25,
+  },
   // ══ AU FLAGSHIP ═══════════════════════════════════════════════════════════
   // ── Tier 1: Official / regulators ────────────────────────────────────────
   {
@@ -107,7 +216,6 @@ export const SOURCES: Source[] = [
     channel: "AU",
     maxItems: 3,
   },
-
 
   // ── Tier 2: Australian newsrooms with reliable RSS ───────────────────────
   {
@@ -140,7 +248,6 @@ export const SOURCES: Source[] = [
     maxItems: 2,
   },
 
-
   // ── Tier 3: Google News topic queries (laser-targeted, AU beat) ──────────
   {
     name: "RBA & Cash Rate",
@@ -151,7 +258,7 @@ export const SOURCES: Source[] = [
   },
   {
     name: "APRA & Lending",
-    url: googleNews('APRA Australia lending OR serviceability OR banks'),
+    url: googleNews("APRA Australia lending OR serviceability OR banks"),
     category: "POLICY",
     channel: "AU",
     maxItems: 3,
@@ -170,9 +277,7 @@ export const SOURCES: Source[] = [
   },
   {
     name: "Mortgage Brokers & Lending",
-    url: googleNews(
-      'Australia "mortgage broker" OR "broker channel" OR "fixed rate" mortgage'
-    ),
+    url: googleNews('Australia "mortgage broker" OR "broker channel" OR "fixed rate" mortgage'),
     category: "MARKETS",
     channel: "AU",
     maxItems: 3,
@@ -223,9 +328,7 @@ export const SOURCES: Source[] = [
   },
   {
     name: "Inflation & Economy",
-    url: googleNews(
-      'Australia inflation OR CPI OR "Reserve Bank" GDP OR unemployment'
-    ),
+    url: googleNews('Australia inflation OR CPI OR "Reserve Bank" GDP OR unemployment'),
     category: "ECONOMICS",
     channel: "AU",
     maxItems: 2,
@@ -277,18 +380,14 @@ export const SOURCES: Source[] = [
   },
   {
     name: "Sydney & Melbourne Auctions",
-    url: googleNews(
-      '("auction clearance" OR "auction results") Sydney OR Melbourne'
-    ),
+    url: googleNews('("auction clearance" OR "auction results") Sydney OR Melbourne'),
     category: "PROPERTY",
     channel: "PROPERTY",
     maxItems: 3,
   },
   {
     name: "Buyer's Agents & Investors",
-    url: googleNews(
-      '"buyer\'s agent" Australia OR "property investor" Australia'
-    ),
+    url: googleNews('"buyer\'s agent" Australia OR "property investor" Australia'),
     category: "PROPERTY",
     channel: "PROPERTY",
     maxItems: 3,

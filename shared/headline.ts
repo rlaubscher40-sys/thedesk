@@ -23,7 +23,10 @@ export const MAX_HELPER_INPUT = 20_000;
 
 /** Normalise to lowercase alphanumeric words for comparison. */
 function norm(s: string): string {
-  return s.toLowerCase().replace(/[^a-z0-9]+/gu, " ").trim();
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/gu, " ")
+    .trim();
 }
 
 /**
@@ -136,10 +139,7 @@ export function looksLikeSiteBoilerplate(text: string | null | undefined): boole
  * consistent — and the reason a boilerplate row already in the database
  * stops rendering without needing a re-ingest.
  */
-export function shouldShowSummary(
-  title: string,
-  summary: string | null | undefined
-): boolean {
+export function shouldShowSummary(title: string, summary: string | null | undefined): boolean {
   if (!summary) return false;
   if (isRedundantSummary(title, summary)) return false;
   if (looksLikeGarbage(summary)) return false;
@@ -149,11 +149,11 @@ export function shouldShowSummary(
 
 /**
  * Strip a trailing " - Publisher" / " – Publisher" suffix that Google News
- * appends to headlines. Conservative: only strips when the tail looks like a
- * source name (short, no terminal sentence punctuation), so real title clauses
- * survive. The publisher is shown separately via the source byline.
+ * appends to headlines. A short trailing clause is not proof of a masthead:
+ * preserve reporting periods and substantive clauses unless the suffix is
+ * an explicit publisher name or a recognised legacy masthead/domain.
  */
-export function cleanHeadline(title: string): string {
+export function cleanHeadline(title: string, publisher?: string): string {
   if (title.length > MAX_HELPER_INPUT) return title;
   const m = title.match(/^(.*\S)\s+[-–—]\s+([^-–—]{1,40})$/u);
   if (!m || !m[1] || !m[2]) return title;
@@ -162,6 +162,15 @@ export function cleanHeadline(title: string): string {
   if (!head) return title;
   if (/[.!?:]$/u.test(tail)) return title; // looks like a clause, not a source
   if (tail.split(/\s+/u).length > 6) return title; // too long to be a masthead
+  const known =
+    /^(Reuters|Politico|ABC News|BBC(?: News)?|The Guardian|The Adviser|Australian Broker|Accountants Daily|Professional Planner|The Australian|Australian Financial Review|Sydney Morning Herald|The Age|CNBC|MarketWatch|TechCrunch|Ars Technica|NPR|Al Jazeera)$/iu;
+  const domain = /^(?:www\.)?[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|net|org|au|uk|nz|io)$/iu;
+  if (
+    tail.toLowerCase() !== publisher?.trim().toLowerCase() &&
+    !known.test(tail) &&
+    !domain.test(tail)
+  )
+    return title;
   return head;
 }
 
@@ -170,10 +179,7 @@ export function cleanHeadline(title: string): string {
  * repeated (optionally with the source appended), as Google News descriptions
  * are. Callers drop the subline in that case rather than show a double-up.
  */
-export function isRedundantSummary(
-  title: string,
-  summary: string | null | undefined
-): boolean {
+export function isRedundantSummary(title: string, summary: string | null | undefined): boolean {
   if (!summary) return true;
   // A summary longer than the helper ceiling can't be a redundant echo of a
   // (short) headline, and normalising it would mean a full regex pass over the

@@ -30,7 +30,10 @@ const SITE_URL = process.env.SITE_URL ?? DEFAULT_SITE_URL;
 export type FetchedArticle = {
   imageUrl: string | null;
   text: string | null;
-  publicationDate: Pick<SourceTiming, "publisherPublishedAt" | "publisherPublishedDay" | "publisherDateStatus">;
+  publicationDate: Pick<
+    SourceTiming,
+    "publisherPublishedAt" | "publisherPublishedDay" | "publisherDateStatus"
+  >;
 };
 
 function matchFirst(s: string, re: RegExp): string | null {
@@ -50,10 +53,12 @@ export function extractArticleText(html: string, maxChars: number): string | nul
     cleaned;
 
   const paras: string[] = [];
-  const re = /<p\b[^>]*>([\s\S]*?)<\/p>/gi;
+  // Research releases often put their actual findings in lists. Retain those
+  // within the same cleaned article container, not just surrounding prose.
+  const re = /<(p|li)\b[^>]*>([\s\S]*?)<\/\1>/gi;
   let m: RegExpExecArray | null;
   while ((m = re.exec(container)) !== null) {
-    const txt = decodeEntities(stripHtml(m[1] ?? "")).trim();
+    const txt = decodeEntities(stripHtml(m[2] ?? "")).trim();
     // Drop scraps: share prompts, captions, bylines, single words.
     if (txt.length >= 40 && !looksLikeSiteBoilerplate(txt) && !looksLikeGarbage(txt))
       paras.push(txt);
@@ -132,7 +137,7 @@ export async function fetchArticle(
     html += decoder.decode();
 
     return {
-      publicationDate: extractPublicationDate(html),
+      publicationDate: extractPublicationDate(html, url),
       imageUrl: pickOgImage(html),
       text: extractArticleText(html, maxChars),
     };

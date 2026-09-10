@@ -4,7 +4,7 @@ import { looksLikeGarbage, looksLikeSiteBoilerplate } from "./headline";
 import { sourceTimingHold, type SourceTiming } from "./sourceTiming";
 import { storyChannel } from "./storyGeography";
 
-export const EDITORIAL_VERSION = "2026-09-10-v2";
+export const EDITORIAL_VERSION = "2026-09-10-v3";
 export type EditorialInput = {
   title: string;
   summary?: string | null;
@@ -29,11 +29,15 @@ const primary = new Set([
   "apra.gov.au",
   "asic.gov.au",
   "treasury.gov.au",
+  "ministers.treasury.gov.au",
   "ato.gov.au",
 ]);
 const specialist = new Set([
   "theadviser.com.au",
   "mpamag.com",
+  "brokernews.com.au",
+  "professionalplanner.com.au",
+  "accountantsdaily.com.au",
   "proptrack.com.au",
   "cotality.com",
   "corelogic.com.au",
@@ -52,13 +56,16 @@ const newsroom = new Set([
   "realestate.com.au",
   "domain.com.au",
 ]);
+// Useful original statements, but an industry position is not corroboration
+// of its own claims. Keep below official releases and specialist reporting.
+const industryBody = new Set(["smsfassociation.com", "udia.com.au", "masterbuilders.com.au"]);
 export function publisherWeight(input: EditorialInput): number {
   const host = publisherHost(input);
   return primary.has(host)
     ? 16
     : specialist.has(host)
       ? 12
-      : newsroom.has(host)
+      : newsroom.has(host) || industryBody.has(host)
         ? 8
         : host.endsWith(".gov.au")
           ? 5
@@ -69,7 +76,7 @@ export function publisherWeight(input: EditorialInput): number {
 export function referenceNewsHold(input: EditorialInput): string | null {
   const title = input.title.trim();
   if (
-    /\b(book your (?:hotel|room|ticket)|awards 20\d{2}|register now|early.bird|sponsored|advertorial|webinar)\b/i.test(
+    /\b(book your (?:hotel|room|ticket)|awards 20\d{2}|audit day 20\d{2}|register now|early.bird|sponsored|advertorial|webinar)\b/i.test(
       title
     )
   )
@@ -105,7 +112,16 @@ export function referenceNewsHold(input: EditorialInput): string | null {
   )
     return "traffic-not-housing";
   try {
-    const path = new URL(input.sourceUrl ?? input.url ?? "").pathname;
+    const url = new URL(input.sourceUrl ?? input.url ?? "");
+    const path = url.pathname;
+    if (
+      url.hostname.replace(/^www\./, "") === "apra.gov.au" &&
+      (/^\/news-and-publications\/meet-/.test(path) ||
+        /^\/news-and-publications\/(?:quarterly-superannuation-product-statistics|quarterly-superannuation-industry-publication|quarterly-fund-level-statistics)\/?$/.test(
+          path
+        ))
+    )
+      return "reference-or-staff-profile";
     if (/\/tender\/details\/|\/plans-in-nsw\/|\/buy\/|\/rent\//i.test(path))
       return "reference-or-listing";
   } catch {
@@ -114,16 +130,18 @@ export function referenceNewsHold(input: EditorialInput): string | null {
   return null;
 }
 const macro =
-  /\b(inflation|cash rate|interest rates?|rba|reserve bank|gdp|Australian economy|employment|filled jobs|unemployment|wage growth|household spending|consumer (?:sentiment|confidence)|population growth|net overseas migration|lending standards|serviceability)\b/i;
+  /\b(inflation|cash rate|interest rates?|rba|reserve bank|gdp|Australian economy|national accounts|productivity|construction workforce|employment|filled jobs|unemployment|wage growth|household spending|consumer (?:sentiment|confidence)|population growth|net overseas migration|lending standards|serviceability)\b/i;
 const policy =
   /\b(negative gearing|land tax|stamp duty|capital gains|tenancy|rent(?:al)? (?:law|reform|cap)|housing (?:policy|reform)|first.home buyers?|deposit scheme)\b/i;
 const advice =
-  /\b(superannuation|smsf|contribution caps?|financial advis(?:er|or|e)|tax reform|tax deduction|division 7a|capital gains tax|income tax|transfer balance cap|mortgage brokers?|broker commissions?|mortgage fraud|loan fraud)\b/i;
+  /\b(superannuation|smsfs?|contribution caps?|financial advi(?:sers?|sors?|ce)|advice (?:fees|firms)|tax (?:reform|deductions?|residency|system)|discretionary trusts?|division 7a|capital gains tax|income tax|CGT|GST|PAYG|transfer balance cap|mortgage brokers?|broker commissions?|mortgage fraud|loan fraud)\b/i;
+const conduct =
+  /\b(?:ASIC|Tax Practitioners Board|TPB)\b.{0,70}\b(?:ban\w*|sanctions?|licen\w*|enforc\w*)\b|\b(?:ban\w*|sanctions?|licen\w*|enforc\w*)\b.{0,70}\b(?:ASIC|Tax Practitioners Board|TPB)\b/i;
 const markets = /\b(asx|australian shares|australian dollar|bond yields?)\b/i;
 const noise =
   /\b(celebrity|obituary|sexual touching|gangsters?|shooting|murder|dingo|sheep (?:theft|stolen)|poetry|horoscope|casino|promo code)\b/i;
 export function editorialBeat(text: string): string | null {
-  if (advice.test(text)) return "advice-tax";
+  if (advice.test(text) || conduct.test(text)) return "advice-tax";
   if (markets.test(text)) return "markets";
   if (policy.test(text)) return "policy";
   if (

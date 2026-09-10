@@ -6,7 +6,11 @@ The Australian briefing serves property, lending, economics, advice, tax and mar
 
 The collector reads up to 20 entries from each Australian RSS feed before applying relevance and quotas. RBA interview/speech and ABS release indexes supplement RSS omissions. Direct realestate.com.au, Mortgage Professional Australia and The Adviser feeds supplement the existing ABC and Guardian feeds. Google queries remain discovery inputs, not publisher identities. The hourly evidence archive supplies additional candidates through the same checks.
 
+The [10 September source audit](source-audit-2026-09-10.md) adds APRA, Cotality Australia, Treasury ministerial releases, Australian Broker, Professional Planner, Accountants Daily, SMSF Association, UDIA and Master Builders. Industry bodies are attributed advocacy with lower weighting than official releases and specialist reporting. Undated indexes run directly through daily article reading; only timestamped RSS excerpts enter the hourly archive.
+
 Each run reads a bounded shortlist of up to 100 Australian candidates and 32 coverage candidates, six concurrent requests. This is an operational budget, not a claim that every available article was reviewed. Fetches retain the existing public-address validation, redirect checks, timeouts and download limits. Article extraction removes navigation and inactive content and retains up to 6,000 characters from a bounded 1MB page sample.
+
+Each discovered publisher gets up to two initial reading opportunities before the remaining budget is filled in rank order. Article list findings are retained alongside paragraphs. Card headings exclude category/button text; headline cleanup preserves substantive clauses and reporting periods. Host-scoped publication-day adapters cover APRA and Treasury without treating modified/event dates as new publication.
 
 ## Publication gates
 
