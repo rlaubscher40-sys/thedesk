@@ -28,6 +28,7 @@
  * is the default; the LLM enrichment downstream can refine.
  */
 import type { FeedChannel } from "../../shared/const";
+import { VICTORIA_SEARCH_URL } from "./lib/victoriaSource";
 
 export type SourceCategory =
   | "MACRO"
@@ -48,7 +49,7 @@ export type Source = {
   /** The Discover content lane this source feeds. */
   channel: FeedChannel;
   maxItems?: number;
-  kind?: "rss" | "index" | "nsw-index";
+  kind?: "rss" | "index" | "nsw-index" | "asic-index" | "victoria-index";
   articlePath?: string;
   /** Require a publisher-declared article type around index links. */
   articleContainerClass?: string;
@@ -88,6 +89,24 @@ function googleNewsGlobal(query: string): string {
 }
 
 export const SOURCES: Source[] = [
+  {
+    name: "Victoria Housing Releases",
+    url: VICTORIA_SEARCH_URL,
+    kind: "victoria-index",
+    category: "PROPERTY",
+    channel: "PROPERTY",
+    maxItems: 12,
+  },
+  {
+    name: "ASIC Media Releases",
+    // Public JSON used by ASIC's newsroom. Dates/snippets here are discovery
+    // metadata only; selection requires evidence from the original release.
+    url: "https://download.asic.gov.au/asic-nga/data/newsroom/newsroom-mr-latest.json",
+    kind: "asic-index",
+    category: "POLICY",
+    channel: "AU",
+    maxItems: 12,
+  },
   {
     name: "NSW Housing Releases",
     // Anonymous search endpoint advertised by the ministerial-releases page.

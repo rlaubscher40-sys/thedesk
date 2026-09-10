@@ -1,5 +1,7 @@
 import { parseIndexSource } from "./indexSource";
 import { parseNswSource } from "./nswSource";
+import { parseAsicSource } from "./asicSource";
+import { parseVictoriaSource, VICTORIA_SEARCH_URL, VICTORIA_SEARCH_BODY } from "./victoriaSource";
 import { publicFetch } from "./publicFetch";
 /**
  * Thin wrapper around rss-parser. Returns normalised items plus the source's
@@ -105,9 +107,13 @@ export type SourceReport = {
 export function createSourceReader(
   load: (url: string) => Promise<string> = async (url: string) => {
     const response = await publicFetch(url, {
+      ...(url === VICTORIA_SEARCH_URL ? { method: "POST", body: VICTORIA_SEARCH_BODY } : {}),
       signal: AbortSignal.timeout(8000),
       maxBytes: 2 * 1024 * 1024,
-      headers: { "User-Agent": `TheDesk/1.0 (+${SITE_URL})` },
+      headers: {
+        "User-Agent": `TheDesk/1.0 (+${SITE_URL})`,
+        ...(url === VICTORIA_SEARCH_URL ? { "Content-Type": "application/json" } : {}),
+      },
     });
     if (!response.ok) throw new Error(`RSS HTTP ${response.status}`);
     return response.text();
@@ -117,9 +123,20 @@ export function createSourceReader(
   return async (src: Source): Promise<SourceReport> => {
     try {
       const { value: xml, checkedAt } = await read(src.url);
-      if (src.kind === "index" || src.kind === "nsw-index") {
+      if (
+        src.kind === "index" ||
+        src.kind === "nsw-index" ||
+        src.kind === "asic-index" ||
+        src.kind === "victoria-index"
+      ) {
         const items =
-          src.kind === "nsw-index" ? parseNswSource(xml, src) : parseIndexSource(xml, src);
+          src.kind === "victoria-index"
+            ? parseVictoriaSource(xml, src)
+            : src.kind === "asic-index"
+              ? parseAsicSource(xml, src)
+              : src.kind === "nsw-index"
+                ? parseNswSource(xml, src)
+                : parseIndexSource(xml, src);
         return {
           items,
           fetched: items.length,

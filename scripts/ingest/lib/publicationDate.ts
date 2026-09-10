@@ -1,6 +1,7 @@
 import { parse, type DefaultTreeAdapterMap } from "parse5";
 import { newsTimestamp } from "../../../shared/propertyNewsQuality";
 import type { SourceTiming } from "../../../shared/sourceTiming";
+import { ASIC_RELEASE_PATH } from "./asicSource";
 type Node = DefaultTreeAdapterMap["node"];
 type PublicationDate = Pick<
   SourceTiming,
@@ -18,8 +19,10 @@ export function extractPublicationDate(html: string, sourceUrl?: string): Public
   let invalid = false;
   let visited = 0;
   let host = "";
+  let path = "";
   try {
     host = new URL(sourceUrl ?? "").hostname.replace(/^www\./, "");
+    path = new URL(sourceUrl ?? "").pathname;
   } catch {
     /* generic metadata only */
   }
@@ -87,6 +90,13 @@ export function extractPublicationDate(html: string, sourceUrl?: string): Public
     const node = nodes.pop()!;
     if ("tagName" in node) {
       const attrs = Object.fromEntries(node.attrs.map((a) => [a.name, a.value]));
+      if (
+        host === "asic.gov.au" &&
+        ASIC_RELEASE_PATH.test(path) &&
+        node.tagName === "meta" &&
+        attrs.name === "displayDate"
+      )
+        namedDay(attrs.content ?? "");
       if (host === "ahuri.edu.au" && (attrs.class ?? "").split(/\s+/).includes("page-date")) {
         const months: Record<string, string> = {
           Jan: "January",
