@@ -3,6 +3,7 @@ import { insightAttemptLabel } from "@shared/instagramMeasurement";
 import { useState } from "react";
 import { InstagramLaunchPanel } from "./InstagramLaunchPanel";
 import { InstagramReelPanel } from "./InstagramReelPanel";
+import { PublicationAudit } from "./PublicationAudit";
 import { SocialPerformance } from "./SocialPerformance";
 import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
@@ -460,6 +461,7 @@ export function InstagramAdminPanel() {
 
       <FormatPerformance posts={posts} ready={!isLoading} />
       <SocialPerformance />
+      <PublicationAudit />
 
       {isLoading ? (
         <Skeleton className="h-40 w-full rounded" />
@@ -502,8 +504,11 @@ export function InstagramAdminPanel() {
                   <td className="py-2.5 pr-4 font-mono uppercase tracking-[0.12em] text-[var(--color-fg-subtle)] whitespace-nowrap">
                     {p.postType}
                   </td>
-                  <td className="py-2.5 pr-4 max-w-[260px] truncate text-[var(--color-fg)]">
-                    {p.headline ?? "—"}
+                  <td className="py-2.5 pr-4 max-w-[260px] text-[var(--color-fg)]">
+                    <div className="truncate">{p.headline ?? "—"}</div>
+                    <div className="font-mono text-[10px] text-[var(--color-fg-muted)]">
+                      {p.mediaId}
+                    </div>
                   </td>
                   <td className="py-2.5 pr-4 tabular-nums text-right text-[var(--color-fg-muted)]">
                     {fmt(p.likes)}
