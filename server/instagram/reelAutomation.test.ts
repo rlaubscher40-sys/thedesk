@@ -74,6 +74,58 @@ beforeEach(() => {
 const run = () => runReelAutomation({ post: m.post, alert: m.alert, now });
 
 describe("automatic verified Reel delivery", () => {
+  it("retains the exact latest receipt after rotation and loss of all current evidence", async () => {
+    const receipt = {
+      key: "instagram-reel-rba-new-loan-rates-v1",
+      date: "2026-07-01",
+      postId: "18099779348127741",
+      publishedAt: now,
+    };
+    m.history.mockResolvedValue([
+      receipt,
+      {
+        key: publicationKey,
+        date: "2026-06-01",
+        postId: "999",
+        publishedAt: new Date("2026-09-08T08:30:00Z"),
+      },
+    ]);
+    const plan = await readReelAutomation(now);
+    expect(plan.state).toBe("daily-limit");
+    expect(plan.candidate?.family).toBe("rents");
+    expect(plan.lastConfirmedPublication).toEqual({
+      publication: { key: receipt.key, date: receipt.date },
+      family: "borrowing",
+      postId: receipt.postId,
+      publishedAt: now,
+    });
+    m.data.mockResolvedValue({ status: "unavailable", observations: [] });
+    const unavailableEvidence = await readReelAutomation(now);
+    expect(unavailableEvidence.state).toBe("no-evidence");
+    expect(unavailableEvidence.lastConfirmedPublication).toEqual(plan.lastConfirmedPublication);
+    expect(m.claim).not.toHaveBeenCalled();
+    expect(m.mark).not.toHaveBeenCalled();
+    expect(m.post).not.toHaveBeenCalled();
+    expect(m.history).toHaveBeenCalledTimes(2);
+  });
+  it("retains earlier confirmation without clearing a different uncertain publication", async () => {
+    m.history.mockResolvedValue([
+      {
+        key: "instagram-reel-rba-new-loan-rates-v1",
+        date: "2026-07-01",
+        postId: "123",
+        publishedAt: now,
+      },
+    ]);
+    m.read.mockResolvedValue({ status: "failed", detail: "Outcome unknown; locked." });
+    const plan = await readReelAutomation(now);
+    expect(plan.state).toBe("locked");
+    expect(plan.lastConfirmedPublication?.postId).toBe("123");
+    expect(await run()).toEqual({ state: "locked" });
+    expect(m.mark).not.toHaveBeenCalled();
+    expect(m.claim).not.toHaveBeenCalled();
+    expect(m.post).not.toHaveBeenCalled();
+  });
   it("pauses without claiming or posting when durable rotation history is unavailable", async () => {
     m.history.mockRejectedValue(new Error("DB unavailable"));
     expect(await run()).toEqual({ state: "unavailable" });

@@ -44,6 +44,16 @@ it.skipIf(!testUrl)(
           "2026-09-09 08:30:00",
           "2026-09-09 08:31:00",
         ],
+        // Same timestamp: the deterministic period tie-break must keep the
+        // media ID attached to that exact row. Never use MAX(detail).
+        [
+          "rents",
+          "2026-05-01",
+          "success",
+          "Published media 999999",
+          "2026-09-09 08:30:00",
+          "2026-09-09 08:31:00",
+        ],
         ["rents", "2026-08-01", "success", "Skipped", "2026-09-10 08:30:00", "2026-09-10 08:31:00"],
         ["population", "2025-12-01", "success", "Published media 789", "2026-09-02 08:30:00", null],
         ["population", "2026-03-01", "running", "Published media 999", "2026-09-10 08:30:00", null],
@@ -80,8 +90,18 @@ it.skipIf(!testUrl)(
           await readReelPublicationHistory(["rents", "population", "supply", "borrowing", "rents"])
         ).sort((a, b) => a.key.localeCompare(b.key))
       ).toEqual([
-        { key: "population", publishedAt: new Date("2026-09-02T08:30:00Z") },
-        { key: "rents", publishedAt: new Date("2026-09-09T08:31:00Z") },
+        {
+          key: "population",
+          date: "2025-12-01",
+          postId: "789",
+          publishedAt: new Date("2026-09-02T08:30:00Z"),
+        },
+        {
+          key: "rents",
+          date: "2026-07-01",
+          postId: "456",
+          publishedAt: new Date("2026-09-09T08:31:00Z"),
+        },
       ]);
     } finally {
       state.db = null;

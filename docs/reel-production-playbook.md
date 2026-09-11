@@ -153,6 +153,15 @@ the publication key and period, without credentials or a new public admin route.
 Use this to confirm what is actually selected after deployment. Do not infer a
 story's posting time merely from a merge or a successful preview.
 
+The status panel and `[reel-plan]` log also retain `lastConfirmedPublication`,
+separate from the next selection: permanent topic key, source period, family,
+numeric media ID and publication timestamp. The bounded history query ranks
+whole confirmed receipts, so IDs cannot be mixed with another period's time.
+This remains available after rotation, restarts and loss of current source
+evidence. A confirmed historical post does not clear another uncertain lock or
+prove the next selected story was posted. History-read failures still block
+publication. No extra Meta request, scheduler or publication write is added.
+
 ## Connected rent comparison and newer voice auditions
 
 The rent comparison now reads the two source observations in separate measured

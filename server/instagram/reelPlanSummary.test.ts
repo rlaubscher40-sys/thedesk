@@ -41,4 +41,27 @@ describe("honest Sydney posting status", () => {
     );
     expect(result.earliestCheckAt).toBe("2026-09-12T08:30:00.000Z");
   });
+  it.each(["daily-limit", "scheduled", "no-evidence", "locked", "published"])(
+    "keeps a dated historical receipt separate from the %s selection",
+    (state) => {
+      const lastConfirmedPublication = {
+        publication: { key: "loans", date: "2026-07-01" },
+        family: "borrowing",
+        postId: "18099779348127741",
+        publishedAt: new Date("2026-09-11T08:32:02Z"),
+      };
+      const summary = describeReelPlan(
+        { state, candidate, lastConfirmedPublication },
+        true,
+        true,
+        new Date("2026-09-11T09:00:00Z")
+      );
+      expect(summary.lastConfirmedPublication).toEqual({
+        ...lastConfirmedPublication,
+        publishedAt: "2026-09-11T08:32:02.000Z",
+      });
+      expect(summary.confirmedPostId).toBeNull();
+      expect(summary.selectedPublication?.key).not.toBe("loans");
+    }
+  );
 });
