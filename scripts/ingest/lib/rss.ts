@@ -13,7 +13,13 @@ import { DEFAULT_SITE_URL } from "../../../shared/const";
 import { cleanHeadline } from "../../../shared/headline";
 import type { Source } from "../sources";
 import { plainText } from "./text";
-import { createFeedCache } from "./feedCache";
+import { createFeedCache, FeedCooldownError } from "./feedCache";
+
+export class FeedHttpError extends Error {
+  constructor(public readonly status: number, public readonly retryAfterMs = 0) {
+    super(`RSS HTTP ${status}`);
+  }
+}
 
 const SITE_URL = process.env.SITE_URL ?? DEFAULT_SITE_URL;
 
@@ -115,11 +121,24 @@ export function createSourceReader(
         ...(url === VICTORIA_SEARCH_URL ? { "Content-Type": "application/json" } : {}),
       },
     });
-    if (!response.ok) throw new Error(`RSS HTTP ${response.status}`);
+    if (!response.ok) {
+      const retry = response.headers.get("retry-after");
+      const delay = retry && /^\d+$/.test(retry) ? Number(retry) * 1000
+        : retry ? Math.max(0, Date.parse(retry) - Date.now()) : 0;
+      throw new FeedHttpError(response.status, Number.isFinite(delay) ? delay : 0);
+    }
     return response.text();
-  }
+  },
+  options: { now?: () => number } = {}
 ) {
-  const read = createFeedCache(load);
+  const read = createFeedCache(load, {
+    ...options,
+    failureTtlMs: (err) => err instanceof FeedHttpError
+      ? Math.max(err.retryAfterMs, [401, 403].includes(err.status) ? 6 * 3600_000
+        : err.status === 429 ? 3600_000 : 60_000)
+      : err instanceof Error && ["AbortError", "TimeoutError"].includes(err.name) ? 60_000 : 0,
+    failureReason: (err) => err instanceof FeedHttpError ? err.message : "Feed request timed out",
+  });
   return async (src: Source): Promise<SourceReport> => {
     try {
       const { value: xml, checkedAt } = await read(src.url);
@@ -177,8 +196,10 @@ export function createSourceReader(
         checkedAt: new Date(checkedAt),
       };
     } catch (err) {
-      console.warn(`[rss] ${src.name} failed: ${(err as Error).message}`);
-      return { items: [], fetched: 0, error: "Feed request or parsing failed" };
+      if (!(err instanceof FeedCooldownError))
+        console.warn(`[rss] ${src.name} failed: ${(err as Error).message}`);
+      return { items: [], fetched: 0, error: err instanceof FeedCooldownError || err instanceof FeedHttpError
+        ? err.message : "Feed request or parsing failed" };
     }
   };
 }

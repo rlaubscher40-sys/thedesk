@@ -17,3 +17,7 @@ describe("stripBannedChars", () => {
     );
   });
 });
+
+it("preserves fiscal years and forecast ranges as numeric ranges", () => {
+ expect(stripBannedChars("2026–27 to 2029–30; 45–54%" )).toBe("2026-27 to 2029-30; 45-54%");
+});

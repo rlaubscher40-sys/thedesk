@@ -7,6 +7,7 @@ import { rankResults } from "./searchRank";
 import { hasHousingEvidence, HOUSING_TOPIC_PATTERN } from "../../shared/marketRelevance";
 import { dailyFeedItems, editions, type DailyFeedItem, type InsertDailyFeedItem } from "./schema";
 import { insertFeedOnce, type FeedIngestItem } from "./feedClaims";
+import type { RelatedStory } from "../../shared/relatedCoverage";
 
 /** Most recent 30 items if no date specified, otherwise everything for that day. */
 /**
@@ -145,7 +146,7 @@ export async function getRecentSourceUrls(windowDays: number): Promise<Set<strin
  */
 export async function getRecentFeedItems(
   windowDays: number
-): Promise<Array<{ id: number; title: string }>> {
+): Promise<Array<RelatedStory & { id: number }>> {
   if (isDemoMode()) return [];
   const db = getDb();
   if (!db) return [];
@@ -153,10 +154,11 @@ export async function getRecentFeedItems(
   cutoff.setDate(cutoff.getDate() - windowDays);
   const cutoffStr = cutoff.toISOString().slice(0, 10);
   return db
-    .select({ id: dailyFeedItems.id, title: dailyFeedItems.title })
+    .select({ id: dailyFeedItems.id, title: dailyFeedItems.title, summary: dailyFeedItems.summary,
+      channel: dailyFeedItems.channel, sourceTiming: dailyFeedItems.sourceTiming })
     .from(dailyFeedItems)
-    .where(gte(dailyFeedItems.feedDate, cutoffStr))
-    .orderBy(desc(dailyFeedItems.feedDate), desc(dailyFeedItems.id));
+    .where(and(gte(dailyFeedItems.feedDate, cutoffStr), sql`${dailyFeedItems.channel} <> 'HOLD'`))
+    .orderBy(desc(dailyFeedItems.feedDate), desc(dailyFeedItems.id)).limit(500);
 }
 
 /**

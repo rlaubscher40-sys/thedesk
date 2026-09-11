@@ -16,6 +16,7 @@
  */
 import { READER_ANGLE_LABELS, parseReaderAngles } from "../../shared/schemas";
 import { invokeLLM } from "../core/llm";
+import { editorialTimeContext, validEditorialAngle } from "../../shared/editorialTiming";
 
 export type PartnerTagInput = {
   title: string;
@@ -75,7 +76,7 @@ export async function generatePartnerTag(input: PartnerTagInput): Promise<string
           content:
             "You are a commercially sharp writer for a briefing on Australian property. Output the 3-line reader-angles block OR the literal token SKIP when the story has no genuine bearing on the property market.",
         },
-        { role: "user", content: buildPrompt(input) },
+        { role: "user", content: `${editorialTimeContext()}\n\n${buildPrompt(input)}` },
       ],
       maxTokens: 600,
     });
@@ -89,7 +90,7 @@ export async function generatePartnerTag(input: PartnerTagInput): Promise<string
       console.warn("[partnerTag] missing personas in output:", content.slice(0, 120));
       return null;
     }
-    return content;
+    return validEditorialAngle(content);
   } catch (err) {
     console.error("[partnerTag] generation error:", err);
     return null;

@@ -1,6 +1,11 @@
 /** Short, process-local reuse for overlapping hourly archive / daily briefing
  * reads. No model, disk, database, timer or background-fetch side effects.
  * Expired entries never substitute for a failed fresh request. */
+export class FeedCooldownError extends Error {
+  constructor(public readonly retryAt: number, public readonly reason: string) {
+    super(`${reason}; retry after ${new Date(retryAt).toISOString()}`);
+  }
+}
 export function createFeedCache<T>(
   load: (url: string) => Promise<T>,
   options: {
@@ -8,6 +13,8 @@ export function createFeedCache<T>(
     ttlMs?: number;
     maxEntries?: number;
     maxBytes?: number;
+    failureTtlMs?: (error: unknown) => number;
+    failureReason?: (error: unknown) => string;
   } = {},
 ) {
   const now = options.now ?? Date.now;
@@ -17,6 +24,7 @@ export function createFeedCache<T>(
   type Result = { value: T; checkedAt: number };
   const cache = new Map<string, Result & { bytes: number }>();
   const pending = new Map<string, Promise<Result>>();
+  const failures = new Map<string, { failedAt: number; retryAt: number; reason: string }>();
   let bytes = 0;
 
   function remove(url: string) {
@@ -26,6 +34,10 @@ export function createFeedCache<T>(
   }
 
   return async (url: string): Promise<Result> => {
+    const failure = failures.get(url);
+    if (failure && now() >= failure.failedAt && now() < failure.retryAt)
+      throw new FeedCooldownError(failure.retryAt, failure.reason);
+    failures.delete(url);
     for (const [key, entry] of cache) {
       if (now() - entry.checkedAt >= ttlMs || now() < entry.checkedAt)
         remove(key);
@@ -39,7 +51,18 @@ export function createFeedCache<T>(
     const active = pending.get(url);
     if (active) return active;
     const request = (async () => {
-      const value = await load(url);
+      let value: T;
+      try {
+        value = await load(url);
+      } catch (error) {
+        const delay = options.failureTtlMs?.(error) ?? 0;
+        if (Number.isFinite(delay) && delay > 0 && maxEntries > 0) {
+          while (failures.size >= maxEntries) failures.delete(failures.keys().next().value!);
+          failures.set(url, { failedAt: now(), retryAt: Math.min(8.64e15, now() + delay),
+            reason: options.failureReason?.(error) ?? "Feed request failed" });
+        }
+        throw error;
+      }
       const result = { value, checkedAt: now() };
       // Parsing failures are rejected by load; do not cache them or serve an
       // older successful response. Oversized feeds work but are not retained.

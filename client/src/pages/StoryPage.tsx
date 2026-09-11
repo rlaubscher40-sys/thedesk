@@ -1,3 +1,4 @@
+import { ThreadLink } from "@/components/feed/ThreadLink";
 import { sourceTimingLabel } from "@shared/sourceTiming";
 /**
  * Story — the surface a LinkedIn link lands on, so it has to convert a
@@ -151,6 +152,8 @@ export default function StoryPage() {
               {dek}
             </p>
           )}
+
+          <div className="mt-4"><ThreadLink parentId={story.threadParentId} parentTitle={story.threadParentTitle} /></div>
 
           {/* Byline row, bounded by hairlines above and below. */}
           <div className="rule-hair rule-hair-b mt-7 py-4 flex items-center gap-4 flex-wrap">

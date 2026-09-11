@@ -63,16 +63,19 @@ export function originalPublicationDay(story: EventStory): string | null {
   return Number.isFinite(date.getTime()) ? originalDayFormatter.format(date) : null;
 }
 
+export function conflictingLocations(a: string, b: string): boolean {
+  const region = (s: string) => new Set(places.filter(([, p]) => p.test(s)).map(([name]) => name));
+  const ap = region(a), bp = region(b);
+  return !!(ap.size && bp.size && !setEqual(ap, bp));
+}
+
 /** Similar words do not prove the same event. These are conservative vetoes,
  * not an entity extractor or a claim that every remaining pair is identical. */
 export function conflictingEvents(a: EventStory, b: EventStory): boolean {
   const aDay = originalPublicationDay(a),
     bDay = originalPublicationDay(b);
   if (aDay && bDay && aDay !== bDay) return true;
-  const region = (s: string) => new Set(places.filter(([, p]) => p.test(s)).map(([name]) => name));
-  const ap = region(a.title),
-    bp = region(b.title);
-  if (ap.size && bp.size && !setEqual(ap, bp)) return true;
+  if (conflictingLocations(a.title, b.title)) return true;
   const an = numericClaims(a.title),
     bn = numericClaims(b.title);
   if (an.size && bn.size && !setEqual(an, bn)) return true;

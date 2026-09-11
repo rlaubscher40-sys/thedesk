@@ -95,3 +95,31 @@ it("does not cache a rejected destination or bypass the guarded transport on ret
   expect(fixture.publicFetch).toHaveBeenCalledTimes(2);
   expect(fixture.parseString).toHaveBeenCalledTimes(1);
 });
+
+it("backs off an actual 403 across hourly readers, reports the denial, and retries after expiry", async () => {
+  let now = Date.now();
+  const reader = createSourceReader(undefined, {now: () => now});
+  fixture.publicFetch.mockResolvedValue(new Response("Denied", {status:403}));
+  const first = await Promise.all([reader(source), reader(source)]);
+  expect(first[0]).toMatchObject({items:[],error:"RSS HTTP 403"});
+  expect(fixture.publicFetch).toHaveBeenCalledTimes(1);
+  now += 3600_000;
+  expect((await reader(source)).error).toMatch(/RSS HTTP 403; retry after/);
+  expect(fixture.publicFetch).toHaveBeenCalledTimes(1);
+  now += 5 * 3600_000;
+  await reader(source);
+  expect(fixture.publicFetch).toHaveBeenCalledTimes(2);
+});
+
+it("honours a publisher Retry-After longer than the default cooldown", async () => {
+  let now = Date.now();
+  const reader = createSourceReader(undefined, {now: () => now});
+  fixture.publicFetch.mockResolvedValue(new Response("Limited", {status:429,headers:{"retry-after":"7200"}}));
+  await reader(source);
+  now += 3600_000;
+  expect((await reader(source)).error).toMatch(/RSS HTTP 429; retry after/);
+  expect(fixture.publicFetch).toHaveBeenCalledTimes(1);
+  now += 3600_000;
+  await reader(source);
+  expect(fixture.publicFetch).toHaveBeenCalledTimes(2);
+});

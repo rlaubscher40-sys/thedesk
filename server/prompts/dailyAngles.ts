@@ -20,6 +20,7 @@
  */
 import { READER_ANGLE_LABELS, parseReaderAngles } from "../../shared/schemas";
 import { invokeLLM } from "../core/llm";
+import { editorialTimeContext, validEditorialAngle } from "../../shared/editorialTiming";
 import { rubenSystemPrompt, stripBannedChars, voiceRules } from "./voice";
 
 export type DailyAnglesInput = {
@@ -142,7 +143,7 @@ export async function generateDailyAngles(
     content = await invokeLLM({
       messages: [
         { role: "system", content: rubenSystemPrompt },
-        { role: "user", content: buildPrompt(input) },
+        { role: "user", content: `${editorialTimeContext()}\n\n${buildPrompt(input)}` },
       ],
       maxTokens: 900,
       signal: options.signal,
@@ -191,9 +192,9 @@ export async function generateDailyAngles(
   // own, matching the standalone generators (which persist independently and
   // let the card render whichever survived).
   return {
-    sayThis: cleanLine(parsed.sayThis, SAY_THIS_MAX_CHARS),
-    partnerTag: cleanTag(parsed.partnerTag),
-    whyItMatters: cleanLine(parsed.whyItMatters, WHY_MAX_CHARS),
-    counterpoint: cleanLine(parsed.counterpoint, COUNTERPOINT_MAX_CHARS),
+    sayThis: validEditorialAngle(cleanLine(parsed.sayThis, SAY_THIS_MAX_CHARS)),
+    partnerTag: validEditorialAngle(cleanTag(parsed.partnerTag)),
+    whyItMatters: validEditorialAngle(cleanLine(parsed.whyItMatters, WHY_MAX_CHARS)),
+    counterpoint: validEditorialAngle(cleanLine(parsed.counterpoint, COUNTERPOINT_MAX_CHARS)),
   };
 }

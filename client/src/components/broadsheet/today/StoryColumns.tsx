@@ -1,3 +1,4 @@
+import { ThreadLink } from "@/components/feed/ThreadLink";
 /**
  * "More from today" — three hairline-divided columns.
  *
@@ -148,6 +149,7 @@ function StoryColumn({ item, className }: { item: DailyFeedItem; className?: str
           {cleanHeadline(item.title)}
         </h3>
       </Link>
+        <div className="mt-3"><ThreadLink parentId={item.threadParentId} parentTitle={item.threadParentTitle} /></div>
 
       {dek && (
         <p
