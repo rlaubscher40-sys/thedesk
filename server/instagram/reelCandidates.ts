@@ -11,6 +11,18 @@ import { verifiedCapitalRentReel } from "./verifiedCapitalRentReel";
 import { verifiedSydneyBeforeBuy, verifiedSydneyRentChange } from "./verifiedSydneyReels";
 import { assertProductionCandidate } from "../video/reelProduction";
 
+/** Stable identities also retain rotation history when a topic's data is withheld. */
+export const REEL_PUBLICATION_FAMILIES: Readonly<Record<string, string>> = Object.freeze({
+  "instagram-reel-abs-rents-brisbane-perth-v1": "rents",
+  "instagram-reel-abs-approvals-brisbane-perth-v1": "supply",
+  "instagram-reel-abs-rents-eight-capitals-v1": "rents",
+  "instagram-reel-abs-sydney-rent-change-v1": "rents",
+  "instagram-reel-abs-sydney-before-buy-v1": "supply",
+  "instagram-reel-nhsac-housing-balance-v1": "supply",
+  "instagram-reel-rba-new-loan-rates-v1": "borrowing",
+  "instagram-reel-abs-interstate-qld-wa-v1": "population",
+});
+
 /** Shared editorial registry: scheduled publishing and the admin read use the same recipes. */
 export async function getVerifiedReelProgramme(now = new Date()) {
   const [rents, approvals, housingBalance, demographics, lending] = await Promise.all([
@@ -74,7 +86,11 @@ export async function getVerifiedReelProgramme(now = new Date()) {
         "Four consecutive net interstate quarters for both states, same current reference quarter and recent verified retrieval.",
     },
   ].map((entry) => {
-    if (entry.candidate) assertProductionCandidate(entry.candidate);
+    if (entry.candidate) {
+      assertProductionCandidate(entry.candidate);
+      if (REEL_PUBLICATION_FAMILIES[entry.candidate.publication.key] !== entry.family)
+        throw new Error("The Reel publication family is not registered.");
+    }
     return entry;
   });
 }
@@ -85,33 +101,35 @@ export async function getVerifiedReelCandidates(now = new Date()) {
   );
 }
 
-/** Newest evidence first; for matching months prefer a different evidence family
- * from the most recently confirmed topic. Stable registry order breaks ties.
- * This is an editorial rule, not an engagement prediction. */
+/** Evidence adapters own freshness, including each source's release cadence.
+ * Prefer the eligible family least recently published (unfeatured first), then
+ * newest evidence and registry order. Monthly dates must not crowd out current
+ * quarterly stories. This is editorial rotation, not an engagement prediction. */
 export function chooseReelCandidate<T extends { publication: { date: string }; family: string }>(
   candidates: T[],
-  records: { state: string; publishedAt?: Date | null }[]
+  records: { state: string; publishedAt?: Date | null }[],
+  history: { family: string; publishedAt: Date }[] = []
 ): number {
-  const last = records
-    .map((record, index) => ({ record, index }))
-    .filter(
-      ({ record }) =>
-        record.state === "published" &&
-        record.publishedAt &&
-        Number.isFinite(record.publishedAt.getTime())
-    )
-    .sort((a, b) => b.record.publishedAt!.getTime() - a.record.publishedAt!.getTime())[0];
+  const lastByFamily = new Map<string, number>();
+  const confirmed = records.flatMap((record, index) =>
+    record.state === "published" && record.publishedAt && candidates[index]
+      ? [{ family: candidates[index]!.family, publishedAt: record.publishedAt }]
+      : []
+  );
+  for (const item of [...history, ...confirmed]) {
+    const time = item.publishedAt.getTime();
+    if (Number.isFinite(time))
+      lastByFamily.set(item.family, Math.max(lastByFamily.get(item.family) ?? 0, time));
+  }
   return (
     candidates
       .map((candidate, index) => ({ candidate, index }))
       .filter(({ index }) => records[index]?.state === "available")
       .sort(
         (a, b) =>
+          (lastByFamily.get(a.candidate.family) ?? 0) -
+            (lastByFamily.get(b.candidate.family) ?? 0) ||
           b.candidate.publication.date.localeCompare(a.candidate.publication.date) ||
-          (last
-            ? Number(a.candidate.family === candidates[last.index]?.family) -
-              Number(b.candidate.family === candidates[last.index]?.family)
-            : 0) ||
           a.index - b.index
       )[0]?.index ?? -1
   );

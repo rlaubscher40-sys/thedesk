@@ -129,6 +129,22 @@ evidence, credentials and readiness. Confirmed or uncertain publication slots
 are never reset to repost after a design/voice change. This rollout does not
 manually post the preview or change the schedule.
 
+Eligible stories rotate by the least recently published evidence family. Families
+without a confirmed publication come first; equal histories use the newest
+reference date, then stable registry order. Freshness is checked by each source
+adapter before this comparison, so a current quarterly population release can
+get a turn before another monthly rent story. This is editorial variety, not a
+prediction of engagement or a promise of a fixed daily sequence.
+
+Rotation reads the permanent confirmed publication history for all registered
+topic keys across reference periods, including temporarily withheld topics.
+Failed attempts, skips and uncertain responses do
+not count as audience exposure. The most recent confirmed post within a family
+owns that family's position. A new observation month does not erase that history.
+The same read protects the daily cap when a new source period arrives after a
+post that day. If history cannot be read, the programme waits. No additional
+database table, history reset or external scheduler is required.
+
 The admin Reel panel shows the selected story, Sydney eligibility window, retry
 time and blockers separately from a confirmed Instagram media ID. A window is
 not a reservation. DST comes from the Australia/Sydney timezone database.

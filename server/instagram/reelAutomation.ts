@@ -1,16 +1,21 @@
 import { inReelWindow, REEL_WINDOW } from "../../shared/instagramSchedule";
 import { env } from "../core/env";
 import { claimJobRun, markJobRun, readJobRun, expireReelDelivery } from "../db/jobRuns";
-import { getVerifiedReelCandidates, chooseReelCandidate } from "./reelCandidates";
+import {
+  getVerifiedReelCandidates,
+  chooseReelCandidate,
+  REEL_PUBLICATION_FAMILIES,
+} from "./reelCandidates";
 import { reelPublicationRecord } from "./reelStatus";
 import { isRateLimitError } from "./api";
 import { logReelPlan } from "./reelPlanSummary";
+import { readReelPublicationHistory } from "../db/reelHistory";
 
 export const REEL_POLL_MINUTES = 5;
 export const REEL_RETRY_MINUTES = 15;
 export const REEL_STALE_MINUTES = 15;
 export const REEL_MAX_ATTEMPTS = 2;
-export const REEL_SCHEDULE = `Six evidence-gated topics: city comparisons, eight-capital rents, Sydney reads and a dated national housing balance; at most one automatic Reel per Sydney day, ${REEL_WINDOW.label}, checked every 5 minutes. Monthly and annual-report evidence, not six guaranteed posts`;
+export const REEL_SCHEDULE = `Eight evidence-gated topics across rents, supply, borrowing costs and population movement; at most one automatic Reel per Sydney day, ${REEL_WINDOW.label}, checked every 5 minutes. Eligible families rotate by least recent confirmed publication, then newest evidence. Monthly, quarterly and annual-report releases determine availability; daily posts are not guaranteed`;
 export const REEL_DELIVERY_KEY = "instagram-reel-delivery-programme-v1";
 
 function sydneyDate(now: Date) {
@@ -42,13 +47,27 @@ export async function readReelAutomation(now = new Date()) {
       candidate: candidates[blocked]!,
       date,
     };
-  const available = chooseReelCandidate(candidates, records);
+  let history;
+  try {
+    history = await readReelPublicationHistory(Object.keys(REEL_PUBLICATION_FAMILIES));
+  } catch {
+    return { state: "unavailable" as const, candidate, date };
+  }
+  const available = chooseReelCandidate(
+    candidates,
+    records,
+    history.flatMap((item) => {
+      const family = REEL_PUBLICATION_FAMILIES[item.key];
+      return family ? [{ family, publishedAt: item.publishedAt }] : [];
+    })
+  );
   if (available < 0)
     return { state: "published" as const, candidate, date, postId: records[0]!.postId };
   candidate = candidates[available]!;
   // Also recover the daily cap from the permanent publication record if the
   // delivery response or the best-effort day watermark was lost after posting.
   if (
+    history.some((record) => sydneyDate(record.publishedAt) === date) ||
     records.some(
       (record) =>
         "publishedAt" in record && record.publishedAt && sydneyDate(record.publishedAt) === date
