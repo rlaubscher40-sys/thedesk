@@ -8,6 +8,11 @@ import {
 import type { ScriptLine } from "../video/narration";
 import { withEvidenceVisual } from "../video/evidenceVisual";
 import { buildReelCaption, reelReadingCta } from "./reelCaption";
+import {
+  LOAN_REPAYMENT_EXAMPLE,
+  exampleRepayments,
+  loanDollars,
+} from "../../shared/loanRepaymentExample";
 
 const hash = (data: unknown) => createHash("sha256").update(JSON.stringify(data)).digest("hex");
 const day = 86_400_000;
@@ -49,12 +54,15 @@ export function verifiedNewLoanRates(rates: RbaHousingRate[], now = new Date()) 
   }).format(a.period);
   const textRate = (n: number) => `${n.toFixed(1)} percent`;
   const script: ScriptLine[] = [
-    { key: "label", text: "What are new home borrowers paying?" },
+    { key: "label", text: "A home loan is more than its rate." },
     { key: "value", text: `Owner occupiers, ${textRate(a.rate)}. Investors, ${textRate(b.rate)}.` },
-    { key: "line", text: "These are average rates on new loans, not personal offers." },
-    { key: "claim", text: "Repayments also depend on how much you borrow and for how long." },
-    { key: "facts", text: "Compare the rate, fees and repayments together." },
-    { key: "signOff", text: "The rate is only part of the cost. Figures in our bio." },
+    { key: "line", text: "New-loan averages, not personal offers." },
+    {
+      key: "claim",
+      text: "Example: five hundred thousand at six percent. Thirty years, about three thousand monthly.",
+    },
+    { key: "facts", text: "Twenty-five years: higher repayments, less total interest." },
+    { key: "signOff", text: "Compare the amount, term and fees. Details in our bio." },
   ];
   const source = `RBA / APRA · F6 new loans · ${label}`;
   return withEvidenceVisual(
@@ -72,15 +80,18 @@ export function verifiedNewLoanRates(rates: RbaHousingRate[], now = new Date()) 
         ],
       },
       script,
-      evidenceHash: hash({ table: "RBA:F6", rates: [a, b] }),
+      evidenceHash: hash({ table: "RBA:F6", rates: [a, b], example: LOAN_REPAYMENT_EXAMPLE }),
       publication: { key: "instagram-reel-rba-new-loan-rates-v1", date: `${period}-01` },
       caption: buildReelCaption({
         hook: "A home loan costs more than its headline rate.",
         finding: `${label}: new owner-occupier loans averaged ${a.rate.toFixed(1)}% a year; investor loans ${b.rate.toFixed(1)}%. Australia, all institutions.`,
         meaning:
           "These averages cover loans funded during the month, including fixed and variable rates. Different borrower and loan mixes mean the gap is not a like-for-like price premium or a rate everyone can get.",
-        method:
-          "Source: RBA / APRA, Housing Lending Rates F6, FLRHOFTA and FLRHIFTA. Loan comparison context: ASIC Moneysmart, Choosing a home loan.",
+        method: `Source: RBA / APRA F6, FLRHOFTA and FLRHIFTA. Illustration: $500,000 at an unchanged 6% a year, monthly principal and interest, no fees or extra payments. ${exampleRepayments()
+          .map((r) => `${r.years} years: ${loanDollars(r.monthly)}/month`)
+          .join(
+            "; "
+          )}. The Desk calculation, rounded dollars; not an offer or forecast. Method and context: ASIC Moneysmart mortgage calculator and loan guide.`,
         revisions:
           "Original monthly series. RBA tables can be revised. Figures are not the cash rate.",
         action:
@@ -90,6 +101,7 @@ export function verifiedNewLoanRates(rates: RbaHousingRate[], now = new Date()) 
     },
     {
       recipe: "new-loan-rates",
+      repaymentExample: LOAN_REPAYMENT_EXAMPLE,
       period: label,
       rows: [
         { label: "Owner-occupiers", value: a.rate },

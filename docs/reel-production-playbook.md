@@ -207,6 +207,17 @@ source-driven episodes, not a promise of daily fresh news or daily Reels.
   `/social#new-loan-rates` reads the same source observations, rounded to one decimal place, provides the
   definition and links to RBA F6 and ASIC Moneysmart. Publication identity is one
   episode per source month, unchanged by revisions or visual edits.
+  The consequence now develops one explicitly hypothetical $500,000 loan at
+  an unchanged 6% annual rate: 30 years costs $2,998/month, 25 years $3,222/month
+  (rounded). Shortening the term raises repayments but lowers total interest.
+  Monthly principal-and-interest amortisation assumes no fees, offset or extra
+  payments. Assumptions stay visible; scene footers attribute The Desk calculation
+  and ASIC Moneysmart's calculator methodology, never these dollar results to RBA.
+  The observed rates and illustration have separate charts. The first repayment
+  starts with its second measured speech phrase, stays in place across the cut,
+  and the shorter-term bar fills on the same zero baseline and scale. The public
+  reading companion gives both unrounded-calculation totals and full assumptions.
+  Fable bm_fable at speed 1.0, 32-second cap and all publication locks are unchanged.
 - **Queensland and WA interstate migration:** annual sums of four consecutive
   ABS net internal migration quarters for both states. Counts are signed; net
   losses and zero have their own spoken wording. The animation explains arrivals

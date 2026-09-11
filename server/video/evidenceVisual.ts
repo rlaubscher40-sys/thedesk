@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type { ReelStat } from "./statReel";
 import type { ScriptLine } from "./narration";
+import { LOAN_REPAYMENT_EXAMPLE } from "../../shared/loanRepaymentExample";
 
 export type EvidenceRecipe =
   | "new-loan-rates"
@@ -15,6 +16,7 @@ export type EvidenceVisualInput = {
   period: string;
   rows: Array<{ label: string; value: number }>;
   readLabel: string;
+  repaymentExample?: typeof LOAN_REPAYMENT_EXAMPLE;
 };
 export type EvidenceVisual = EvidenceVisualInput & {
   version: 1;
@@ -49,6 +51,12 @@ export function validateEvidenceVisual(
   evidenceHash = visual.evidenceHash
 ) {
   const { binding, ...data } = visual;
+  if (
+    visual.recipe === "new-loan-rates"
+      ? JSON.stringify(visual.repaymentExample) !== JSON.stringify(LOAN_REPAYMENT_EXAMPLE)
+      : visual.repaymentExample !== undefined
+  )
+    throw new Error("Unreviewed repayment illustration.");
   const count = {
     "new-loan-rates": 2,
     "interstate-migration": 2,

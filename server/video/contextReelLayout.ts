@@ -1,6 +1,21 @@
 import type { CardVariant } from "../og/instagramCards";
 import { evidenceBarGeometry, type EvidenceVisual } from "./evidenceVisual";
 import { moving, smooth, type MotionNode } from "./reelMotion";
+import { exampleRepayments, loanDollars } from "../../shared/loanRepaymentExample";
+import { rentCueProgress } from "./rentComparisonLayout";
+import type { MeasuredPhrase } from "./phraseSpeech";
+
+/** Keep the first result in place while the shorter term is spoken. The first
+ * claim phrase introduces assumptions; only the second starts the dollar count. */
+export function repaymentCueProgress(
+  key: string,
+  time: number,
+  phrases: MeasuredPhrase[]
+): [number, number] {
+  if (key === "claim") return [rentCueProgress(time, phrases, 1), 0];
+  if (key === "facts") return [1, rentCueProgress(time, phrases, 0)];
+  return [0, 0];
+}
 
 const box = (style: Record<string, unknown>, children: unknown): MotionNode => ({
   type: "div",
@@ -9,12 +24,12 @@ const box = (style: Record<string, unknown>, children: unknown): MotionNode => (
 const at = (x: number, y: number, children: unknown, style: Record<string, unknown> = {}) =>
   box({ position: "absolute", left: x, top: y, width: 840 - x, ...style }, children);
 
-/** Two reviewed context stories. Numbers stay tied to measured speech while
- * diagram actions explain the meaning, without invented dollar or flow counts. */
+/** Observed series and explicitly labelled repayment illustration never share
+ * a chart. Counts and bars use the same eased, measured-speech progress. */
 export function contextReelLayout(
   v: EvidenceVisual,
   key: string,
-  motion: { progress: number; rates: [number, number] },
+  motion: { progress: number; rates: [number, number]; repayment?: [number, number] },
   variant: CardVariant
 ) {
   const migration = v.recipe === "interstate-migration";
@@ -148,14 +163,75 @@ export function contextReelLayout(
       at(0, 720, text("Net change", 70, c.gold, true)),
       at(0, 855, text("Not the total number of arrivals", 32, c.muted))
     );
-  } else if (key === "claim") {
-    nodes = title(
-      migration ? "A change of address." : "From rate to repayment.",
-      migration ? "A different place to live." : "Three inputs matter."
+  } else if (!migration && (key === "claim" || key === "facts")) {
+    nodes = title("Same loan.", "Different term.");
+    const rows = exampleRepayments();
+    const amounts = rows.map((r) => r.monthly);
+    const progress = motion.repayment ?? [1, key === "facts" ? 1 : 0];
+    nodes.push(
+      at(0, 190, text("ILLUSTRATION / NOT AN OFFER", 28, c.gold)),
+      at(0, 240, text("$500,000 / 6% a year", 42)),
+      ...rows.flatMap((r, i) => {
+        const p = progress[i]!;
+        const y = 335 + i * 220;
+        const colour = i ? c.gold : c.fg;
+        const show = i === 0 || key === "facts" ? 1 : 0;
+        return [
+          moving(
+            `term-${i}`,
+            at(0, y, text(`${r.years} years`, 36, c.muted), { opacity: show }),
+            840,
+            50
+          ),
+          moving(
+            `repayment-${i}`,
+            at(0, y + 45, text(loanDollars(r.monthly * p), 92, colour, true), {
+              width: 425,
+              opacity: p > 0 ? 1 : 0,
+            }),
+            425,
+            120
+          ),
+          moving(
+            `monthly-${i}`,
+            at(455, y + 93, text("/ month", 36, c.muted), { opacity: p > 0 ? 1 : 0 }),
+            385,
+            60
+          ),
+          moving(
+            `repayment-track-${i}`,
+            at(0, y + 173, "", { width: 840, height: 10, backgroundColor: c.track, opacity: show }),
+            840,
+            10,
+            "rect"
+          ),
+          moving(
+            `repayment-bar-${i}`,
+            at(0, y + 173, "", {
+              width: evidenceBarGeometry(amounts, p, 840).bars[i]!.width,
+              height: 10,
+              backgroundColor: colour,
+            }),
+            840,
+            10,
+            "rect"
+          ),
+        ];
+      }),
+      moving(
+        "term-tradeoff",
+        at(0, 795, text("Shorter term. Less total interest.", 40, c.gold), {
+          opacity: key === "facts" ? progress[1] : 0,
+        }),
+        840,
+        70
+      ),
+      at(0, 875, text("Principal + interest / monthly / rounded $", 30, c.muted)),
+      at(0, 925, text("Unchanged rate / no fees or extra payments", 30, c.muted))
     );
-    const labels = migration
-      ? ["Leaves one state", "Moves across a border", "Needs a home in another"]
-      : ["Amount borrowed", "Interest rate", "Loan term"];
+  } else if (key === "claim") {
+    nodes = title("A change of address.", "A different place to live.");
+    const labels = ["Leaves one state", "Moves across a border", "Needs a home in another"];
     nodes.push(
       ...labels.flatMap((s, i) => [
         moving(
@@ -178,44 +254,14 @@ export function contextReelLayout(
         ),
       ])
     );
-    nodes.push(
-      at(
-        0,
-        890,
-        text(
-          migration
-            ? "Conceptual flow / not a measured route"
-            : "Your loan terms determine your repayments",
-          28,
-          c.muted
-        )
-      )
-    );
+    nodes.push(at(0, 890, text("Conceptual flow / not a measured route", 28, c.muted)));
   } else if (key === "facts") {
-    nodes = title(
-      migration ? "A state is not a suburb." : "Read the full cost.",
-      migration ? "Look where homes are needed." : "Rate. Fees. Repayments."
-    );
+    nodes = title("A state is not a suburb.", "Look where homes are needed.");
     nodes.push(
-      reveal("check-1", 310, migration ? "Local household growth" : "Compare rates and fees"),
+      reveal("check-1", 310, "Local household growth"),
       rule("check-rule", 460),
-      reveal(
-        "check-2",
-        540,
-        migration ? "Vacant and completed homes" : "Check the comparison rate",
-        0.5
-      ),
-      at(
-        0,
-        805,
-        text(
-          migration
-            ? "State migration alone cannot establish a local shortage."
-            : "Check what is included and the assumed loan terms.",
-          40,
-          c.muted
-        )
-      )
+      reveal("check-2", 540, "Vacant and completed homes", 0.5),
+      at(0, 805, text("State migration alone cannot establish a local shortage.", 40, c.muted))
     );
   } else if (key === "signOff") {
     nodes = title(
@@ -244,8 +290,15 @@ export function contextReelLayout(
     content: box({ width: 840, height: 980, position: "relative" }, nodes),
     meta: {
       kicker: migration ? "POPULATION / INTERSTATE MIGRATION" : "BORROWING / NEW HOME LOANS",
-      source: v.source,
-      publisher: migration ? "Australian Bureau of Statistics" : "Reserve Bank of Australia / APRA",
+      source:
+        !migration && ["claim", "facts"].includes(key)
+          ? "The Desk calculation / hypothetical loan"
+          : v.source,
+      publisher: migration
+        ? "Australian Bureau of Statistics"
+        : ["claim", "facts"].includes(key)
+          ? "Method / ASIC Moneysmart mortgage calculator"
+          : "Reserve Bank of Australia / APRA",
       documentary: true,
       quiet: true,
       index: v.script.findIndex((s) => s.key === key),

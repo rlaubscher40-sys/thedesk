@@ -1,4 +1,4 @@
-import { contextReelLayout } from "./contextReelLayout";
+import { contextReelLayout, repaymentCueProgress } from "./contextReelLayout";
 import { createCanvas, loadImage, type Image } from "@napi-rs/canvas";
 import {
   loadAsset,
@@ -59,6 +59,9 @@ export async function createEvidenceMotionRenderer(
           scene.key,
           {
             progress: p,
+            ...(v.recipe === "new-loan-rates" && ["claim", "facts"].includes(scene.key)
+              ? { repayment: repaymentCueProgress(scene.key, time - scene.start, scene.phrases!) }
+              : {}),
             rates:
               scene.key === "value"
                 ? [

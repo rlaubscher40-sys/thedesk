@@ -1,4 +1,5 @@
 import React from "react";
+import { exampleRepayments, loanDollars } from "./loanRepaymentExample";
 
 /** Public reading companion uses the same unrounded F6 observations as the Reel. */
 export function NewLoanRatesRead({
@@ -63,7 +64,41 @@ export function NewLoanRatesRead({
         Original monthly series FLRHOFTA and FLRHIFTA. Rates shown to one decimal place. Figures can
         be revised. Match the reference period shown in the post; this page updates with the source.
       </p>
+      <h3 className="font-serif text-xl mt-6">Illustration: same loan, different term</h3>
+      <p className="text-sm leading-6 mt-3">
+        This is a hypothetical $500,000 loan at an unchanged 6% a year, not the observed RBA
+        averages above, a personal offer or a forecast. Monthly principal and interest repayments,
+        with no fees, offset or extra payments. Only the term changes.
+      </p>
+      <table className="w-full text-sm text-left mt-4">
+        <thead>
+          <tr>
+            <th className="py-3">Term</th>
+            <th>Monthly repayment</th>
+            <th>Total interest</th>
+          </tr>
+        </thead>
+        <tbody>
+          {exampleRepayments().map((r) => (
+            <tr key={r.years} className="border-t border-[var(--color-border)]">
+              <th className="py-4 font-normal">{r.years} years</th>
+              <td>{loanDollars(r.monthly)}</td>
+              <td>{loanDollars(r.interest)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="text-sm leading-6 mt-3">
+        A shorter term raises the monthly repayment but reduces total interest under these
+        assumptions. Actual loan costs and affordability depend on your circumstances and terms. The
+        Desk calculation uses monthly amortisation: the annual rate divided by 12, equal payments at
+        month end, and an unchanged rate throughout. Displayed dollars are rounded; total interest
+        is calculated before rounding the monthly payment.
+      </p>
       <div className="flex flex-wrap gap-4 mt-4">
+        <a className="bs-link" href="https://moneysmart.gov.au/home-loans/mortgage-calculator">
+          ASIC Moneysmart calculator and assumptions
+        </a>
         <a className="bs-link" href="https://www.rba.gov.au/statistics/interest-rates/">
           RBA lending rates and definitions
         </a>
