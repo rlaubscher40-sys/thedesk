@@ -74,6 +74,7 @@ export async function renderEditorialFrame(
     quiet?: boolean;
     documentary?: boolean;
     publisher?: string;
+    photoCredit?: string;
     background?: object;
     /** Transparent, grain-free layer for the per-frame video compositor. */
     transparent?: boolean;
@@ -159,6 +160,14 @@ export async function renderEditorialFrame(
                 meta.source
               )
             : mono(meta.source, 21, c.fgMuted),
+          ...(meta.photoCredit
+            ? [
+                div(
+                  { fontFamily: "Desk Editorial Sans", fontSize: 24, color: c.fgMuted },
+                  meta.photoCredit
+                ),
+              ]
+            : []),
         ]
       ),
       ...(!meta.quiet
