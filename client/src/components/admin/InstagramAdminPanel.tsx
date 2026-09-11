@@ -339,9 +339,9 @@ function FormatPerformance({ posts, ready }: { posts: InsightRow[]; ready: boole
           First-day format review
         </p>
         <p className="text-xs text-[var(--color-fg-muted)] mt-1.5 max-w-[68ch] leading-relaxed">
-          Readings captured 24–48 hours after publication. Medians per 1,000 reached accounts; each
-          rate shows its own sample size. Missing metrics stay unknown. Zero reach is included in
-          reach but cannot produce a rate.
+          First usable readings captured 24–48 hours after publication, preserved when later metrics
+          recover. Medians per 1,000 reached accounts; each rate shows its own sample size. Missing
+          metrics stay unknown. Zero reach is included in reach but cannot produce a rate.
         </p>
       </div>
 

@@ -13,6 +13,47 @@ const row = (o: Partial<InsightRow> = {}): InsightRow => ({
 });
 const summary = (rows: InsightRow[]) => summariseFormats(rows).find((s) => s.postType === "reel")!;
 describe("first-day format review", () => {
+  it("keeps the first-day cohort after late recovery without mixing observation ages", () => {
+    const s = summary([
+      row({
+        metricsFetchedAt: "2026-09-05T00:00:00Z",
+        reach: 9000,
+        saved: 100,
+        shares: 80,
+        firstDayMetrics: {
+          capturedAtMs: Date.parse("2026-09-02T06:00:00Z"),
+          reach: 100,
+          saved: 2,
+          shares: null,
+          likes: 0,
+          comments: null,
+        },
+      }),
+    ]);
+    expect(s).toMatchObject({
+      measured: 1,
+      medianReach: 100,
+      savesPer1k: 20,
+      sharesPer1k: null,
+      sharesSamples: 0,
+      engagementSamples: 0,
+    });
+  });
+  it("rejects malformed or out-of-window archived readings and keeps legacy readings usable", () => {
+    for (const firstDayMetrics of [
+      null,
+      {},
+      "invalid",
+      [],
+      { capturedAtMs: Date.parse("2026-09-04T00:00:00Z"), reach: 100 },
+      { capturedAtMs: Date.parse("2026-09-02T06:00:00Z"), reach: -1 },
+    ]) {
+      expect(summary([row({ firstDayMetrics })]).medianReach).toBe(1000);
+      expect(
+        summary([row({ firstDayMetrics, metricsFetchedAt: "2026-09-05T00:00:00Z" })]).measured
+      ).toBe(0);
+    }
+  });
   it("includes every format without manufacturing data", () => {
     expect(summariseFormats([])).toHaveLength(7);
     expect(summary([])).toMatchObject({

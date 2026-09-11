@@ -56,6 +56,7 @@ it("records an inaccessible attempt without erasing a valid historical snapshot"
     )
   ).toBe(true);
   expect(m.set).toHaveBeenCalledWith({
+    firstDayMetrics: expect.anything(),
     metricsAttemptedAt: expect.any(Date),
     metricsStatus: "unavailable",
     metricsError: "media_unavailable",
@@ -78,6 +79,7 @@ it("surfaces a diagnostic query failure instead of claiming zero posts need metr
 it("stores a single coherent snapshot and preserves zero versus missing", async () => {
   await updateInstagramPostMetrics("123", { likes: 0, reach: 10, saved: NaN });
   expect(m.set).toHaveBeenCalledWith({
+    firstDayMetrics: expect.anything(),
     likes: 0,
     comments: null,
     reach: 10,

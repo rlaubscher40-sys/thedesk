@@ -10,7 +10,7 @@
  * has not been applied) or the DB is unavailable, these no-op rather than throw,
  * so posting is never blocked by analytics.
  */
-import { and, desc, gte, lte, inArray, isNotNull, eq } from "drizzle-orm";
+import { and, desc, gte, lte, inArray, isNotNull, eq, sql } from "drizzle-orm";
 import {
   INSIGHT_BATCH_LIMIT,
   INSIGHT_MIN_AGE_HOURS,
@@ -110,10 +110,27 @@ export async function updateInstagramPostMetrics(
   const hasCounts = Object.values(snapshot).some(validMetricCount);
   if (!hasCounts && !attempt) return false;
   const now = new Date();
+  // MySQL evaluates single-table assignments left to right. Capture the old
+  // reading BEFORE replacing any raw counts or timestamp, in the same atomic
+  // update. Existing first-day evidence is never reconstructed from late counts.
+  const firstDayMetrics = sql`COALESCE(${instagramPosts.firstDayMetrics}, CASE
+    WHEN ${instagramPosts.reach} >= 0
+      AND TIMESTAMPDIFF(SECOND, ${instagramPosts.createdAt}, ${instagramPosts.metricsFetchedAt}) >= 86400
+      AND TIMESTAMPDIFF(SECOND, ${instagramPosts.createdAt}, ${instagramPosts.metricsFetchedAt}) < 172800
+    THEN JSON_OBJECT('capturedAtMs', UNIX_TIMESTAMP(${instagramPosts.metricsFetchedAt}) * 1000,
+      'likes', ${instagramPosts.likes}, 'comments', ${instagramPosts.comments},
+      'reach', ${instagramPosts.reach}, 'saved', ${instagramPosts.saved},
+      'shares', ${instagramPosts.shares}, 'totalInteractions', ${instagramPosts.totalInteractions})
+    WHEN ${validMetricCount(metrics.reach)}
+      AND ${now.getTime()} - UNIX_TIMESTAMP(${instagramPosts.createdAt}) * 1000 >= 86400000
+      AND ${now.getTime()} - UNIX_TIMESTAMP(${instagramPosts.createdAt}) * 1000 < 172800000
+    THEN CAST(${JSON.stringify({ ...snapshot, capturedAtMs: now.getTime() })} AS JSON)
+    ELSE NULL END)`;
   try {
     await db
       .update(instagramPosts)
       .set({
+        firstDayMetrics,
         ...(hasCounts ? { ...snapshot, metricsFetchedAt: now } : {}),
         ...(attempt
           ? { metricsAttemptedAt: now, metricsStatus: attempt.status, metricsError: attempt.reason }

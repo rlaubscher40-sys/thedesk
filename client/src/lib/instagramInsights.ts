@@ -4,7 +4,7 @@ import {
   INSTAGRAM_POST_TYPE_LABELS,
   type InstagramPostType,
 } from "@shared/const";
-import { inInsightWindow, validMetricCount } from "@shared/instagramMeasurement";
+import { firstDayReading, inInsightWindow, validMetricCount } from "@shared/instagramMeasurement";
 export type InsightRow = {
   postType: string;
   likes: number | null;
@@ -14,6 +14,7 @@ export type InsightRow = {
   shares: number | null;
   createdAt?: string | Date | null;
   metricsFetchedAt: string | Date | null;
+  firstDayMetrics?: unknown;
 };
 export type FormatSummary = {
   postType: InstagramPostType;
@@ -46,7 +47,7 @@ function rates(rows: InsightRow[], metric: (row: InsightRow) => number | null) {
 }
 export function summariseFormats(rows: InsightRow[]): FormatSummary[] {
   return INSTAGRAM_POST_TYPES.map((postType) => {
-    const mine = rows.filter((row) => row.postType === postType);
+    const mine = rows.filter((row) => row.postType === postType).map(firstDayReading);
     const measured = mine.filter((row) => inInsightWindow(row) && validMetricCount(row.reach));
     const awaiting = mine.filter((row) => !row.metricsFetchedAt).length;
     const saves = rates(measured, (row) => row.saved);

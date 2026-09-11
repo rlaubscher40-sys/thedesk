@@ -1,4 +1,5 @@
 import type { SourceTiming } from "../../shared/sourceTiming";
+import type { FirstDayInsight } from "../../shared/instagramMeasurement";
 /**
  * Drizzle schema for The Desk. JSON columns are typed against the Zod-derived
  * shapes in shared/schemas.ts so the database, server and client all agree on
@@ -561,6 +562,9 @@ export const instagramPosts = mysqlTable("instagram_posts", {
    *  from it and keep the profile checkerboard clean across daily, coverage
    *  AND weekly posts. Null on rows written before this column existed. */
   coverVariant: varchar("coverVariant", { length: 8 }),
+  // Must precede raw metrics: Drizzle emits UPDATE assignments in schema order,
+  // and MySQL must capture the previous reading before replacing those fields.
+  firstDayMetrics: json("firstDayMetrics").$type<FirstDayInsight>(),
   // Engagement metrics, null until the insights job backfills them.
   likes: int("likes"),
   comments: int("comments"),
@@ -639,7 +643,9 @@ export const planningSnapshots = mysqlTable(
 
 export const signalSnapshots = mysqlTable("signal_snapshots", {
   id: varchar("id", { length: 64 }).primaryKey(),
-  snapshot: json("snapshot").$type<import("../../shared/signalSnapshot").SignalSnapshot>().notNull(),
+  snapshot: json("snapshot")
+    .$type<import("../../shared/signalSnapshot").SignalSnapshot>()
+    .notNull(),
   storedAt: timestamp("storedAt").defaultNow().notNull(),
 });
 

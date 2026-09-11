@@ -156,3 +156,21 @@ IDs are not reconstructed from rankings or fuzzy headline matching. The story
 number form and archive remain available for those posts. The index is based
 on saved confirmation, not a live Meta deletion check; manually removing a post
 does not remove its still-public source story. It adds no Meta or model call.
+# Preserving first-day audience evidence
+
+The format comparison uses the earliest usable reading captured 24–48 hours
+after publication. `instagram_posts.firstDayMetrics` keeps that coherent
+snapshot independently of subsequent lifetime-count recovery. A usable reading
+has a known reach, including zero. Unavailable saves, shares, likes and comments
+remain null; later counts are never spliced into first-day rates.
+
+The existing insights write atomically preserves an eligible previous reading
+before replacing raw metrics, or captures the incoming reading if it is in the
+window. Once saved, the snapshot is fixed. Older rows continue to use their
+existing eligible reading until preservation occurs. No historical reading is
+invented for a row whose only evidence is outside the window. The raw post list
+continues to show the latest recovered counts and attempt status.
+
+This uses one nullable JSON column and the existing scheduled writes. There are
+no additional Meta requests, model calls or publishing changes. Partial
+first-day evidence stays partial, and descriptive comparisons remain exploratory.
