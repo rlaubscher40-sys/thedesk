@@ -53,6 +53,8 @@ export type Source = {
   articlePath?: string;
   /** Require a publisher-declared article type around index links. */
   articleContainerClass?: string;
+  /** Restrict discovery to the publisher's actual headline links. */
+  articleLinkClass?: string;
 };
 
 /**
@@ -270,7 +272,11 @@ export const SOURCES: Source[] = [
   },
   {
     name: "realestate.com.au News",
-    url: "https://www.realestate.com.au/news/feed/",
+    // RSS returns 403; the public newsroom exposes ordinary headline links.
+    url: "https://www.realestate.com.au/news/",
+    kind: "index",
+    articlePath: "^/news/[^/]+/$",
+    articleLinkClass: "article-summary-title-link",
     category: "PROPERTY",
     channel: "PROPERTY",
     maxItems: 25,

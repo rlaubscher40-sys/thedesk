@@ -148,3 +148,20 @@ it("discovers dated Professional Planner articles through the public newsroom wi
  expect(q).not.toContain("NSW");
  expect(SOURCES.find(s=>s.name==="Australian Market Close")?.maxItems).toBe(6);
 });
+
+it("reads realestate.com.au headline cards without spending the budget on menus or image links", () => {
+ const source=SOURCES.find(s=>s.name==="realestate.com.au News")!;
+ expect(source.kind).toBe("index");
+ expect(source.url).toBe("https://www.realestate.com.au/news/");
+ const html=`
+  <a href="/news/property-market-trends/">Australian Housing Market</a>
+  <a href="/news/old-story/"><img alt="Old housing report"></a>
+  <a class="not-article-summary-title-link" href="/news/lookalike/">Unrelated navigation label</a>
+  <a class="article-summary-title-link active" href="/news/canberra-homes/">The Canberra suburb getting 6000 homes and a stadium revamp</a>
+  <a class="article-summary-title-link" href="https://elsewhere.example/news/foreign/">An external sponsored article</a>
+  <a class="article-summary-title-link" href="/news/canberra-homes/">Repeated article headline</a>`;
+ const items=parseIndexSource(html,{...source,maxItems:1});
+ expect(items).toHaveLength(1);
+ expect(items[0]).toMatchObject({url:"https://www.realestate.com.au/news/canberra-homes/",isoDate:null,discovery:"publisher-index"});
+ expect(EVIDENCE_SOURCES.some(s=>s.url==="https://www.realestate.com.au/news/feed/")).toBe(false);
+});
