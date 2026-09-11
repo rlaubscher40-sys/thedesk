@@ -4,6 +4,7 @@ import { moving, smooth, type MotionNode } from "./reelMotion";
 import { exampleRepayments, loanDollars } from "../../shared/loanRepaymentExample";
 import { rentCueProgress } from "./rentComparisonLayout";
 import type { MeasuredPhrase } from "./phraseSpeech";
+import { LOAN_SHOTS, loanShot } from "./loanStoryPhotography";
 
 /** Keep the first result in place while the shorter term is spoken. The first
  * claim phrase introduces assumptions; only the second starts the dollar count. */
@@ -75,26 +76,35 @@ export function contextReelLayout(
     return v.rows.flatMap((r, i) => {
       const p = key === "value" ? motion.rates[i]! : 1;
       const bar = evidenceBarGeometry(values, p, 840).bars[i]!;
-      const y = 260 + i * 245;
+      const y = migration ? 260 + i * 245 : 540 + i * 175;
       return [
         at(0, y, text(r.label, 36, c.muted)),
         moving(
           `number-${i}`,
-          at(0, y + 48, text(amount(r.value, p), 104, i ? c.fg : c.gold, true), {
-            opacity: key === "value" && p === 0 ? 0 : 1,
-          }),
+          at(
+            0,
+            y + (migration ? 48 : 36),
+            text(amount(r.value, p), migration ? 104 : 80, i ? c.fg : c.gold, true),
+            {
+              opacity: key === "value" && p === 0 ? 0 : 1,
+            }
+          ),
           840,
           130
         ),
-        at(0, y + 177, "", { width: 840, height: 10, backgroundColor: c.track }),
-        at(evidenceBarGeometry(values, 1, 840).zero, y + 169, "", {
+        at(0, y + (migration ? 177 : 137), "", {
+          width: 840,
+          height: 10,
+          backgroundColor: c.track,
+        }),
+        at(evidenceBarGeometry(values, 1, 840).zero, y + (migration ? 169 : 129), "", {
           width: 1,
           height: 26,
           backgroundColor: c.muted,
         }),
         moving(
           `bar-${i}`,
-          at(bar.left, y + 177, "", {
+          at(bar.left, y + (migration ? 177 : 137), "", {
             width: bar.width,
             height: 10,
             backgroundColor: i ? c.fg : c.gold,
@@ -108,40 +118,52 @@ export function contextReelLayout(
   };
   let nodes: MotionNode[];
   if (key === "label") {
-    nodes = title(
-      migration ? "People move." : "The cost of a loan.",
-      migration ? "Demand changes places." : "What borrowers are paying."
-    );
-    nodes.push(
-      rule("hook", 290),
-      at(
-        0,
-        355,
-        text(migration ? "Queensland / Western Australia" : "Owner-occupiers / Investors", 42)
-      ),
-      at(
-        0,
-        510,
-        text(
-          migration ? "Two states. One measure." : "Two averages. Your own costs.",
-          64,
-          c.fg,
-          true
-        )
-      ),
-      at(0, 800, text(v.period, 30, c.muted))
-    );
+    if (!migration)
+      nodes = [
+        at(0, 610, text("A home loan.", 88, c.fg, true)),
+        at(0, 725, text("More than its rate.", 64, c.gold, true)),
+      ];
+    else {
+      nodes = title(
+        migration ? "People move." : "The cost of a loan.",
+        migration ? "Demand changes places." : "What borrowers are paying."
+      );
+      nodes.push(
+        rule("hook", 290),
+        at(
+          0,
+          355,
+          text(migration ? "Queensland / Western Australia" : "Owner-occupiers / Investors", 42)
+        ),
+        at(
+          0,
+          510,
+          text(
+            migration ? "Two states. One measure." : "Two averages. Your own costs.",
+            64,
+            c.fg,
+            true
+          )
+        ),
+        at(0, 800, text(v.period, 30, c.muted))
+      );
+    }
   } else if (key === "value" || (!migration && key === "line")) {
-    nodes = title(
-      migration ? "The net movement." : "New home loans.",
-      migration ? "Arrivals minus departures." : "Average rate per year."
-    );
+    nodes = migration
+      ? title(
+          migration ? "The net movement." : "New home loans.",
+          migration ? "Arrivals minus departures." : "Average rate per year."
+        )
+      : [
+          at(0, 340, text("New home loans.", 76, c.fg, true)),
+          at(0, 445, text(`Average annual rate / ${v.period}`, 36, c.gold)),
+        ];
     nodes.push(
       ...chart(),
-      at(0, 800, text(v.period, 30, c.muted)),
+      ...(migration ? [at(0, 800, text(v.period, 30, c.muted))] : []),
       at(
         0,
-        870,
+        migration ? 870 : 900,
         text(
           migration
             ? "PEOPLE / STATE TOTALS"
@@ -164,16 +186,18 @@ export function contextReelLayout(
       at(0, 855, text("Not the total number of arrivals", 32, c.muted))
     );
   } else if (!migration && (key === "claim" || key === "facts")) {
-    nodes = title("Same loan.", "Different term.");
+    nodes = [
+      at(0, 270, text("Same loan. Different term.", 62, c.fg, true)),
+      at(0, 365, text("$500,000 / 6% a year", 42, c.gold)),
+    ];
     const rows = exampleRepayments();
     const amounts = rows.map((r) => r.monthly);
     const progress = motion.repayment ?? [1, key === "facts" ? 1 : 0];
     nodes.push(
-      at(0, 190, text("ILLUSTRATION / NOT AN OFFER", 28, c.gold)),
-      at(0, 240, text("$500,000 / 6% a year", 42)),
+      at(0, 435, text("ILLUSTRATION / NOT AN OFFER", 28, c.muted)),
       ...rows.flatMap((r, i) => {
         const p = progress[i]!;
-        const y = 335 + i * 220;
+        const y = 510 + i * 175;
         const colour = i ? c.gold : c.fg;
         const show = i === 0 || key === "facts" ? 1 : 0;
         return [
@@ -185,7 +209,7 @@ export function contextReelLayout(
           ),
           moving(
             `repayment-${i}`,
-            at(0, y + 45, text(loanDollars(r.monthly * p), 92, colour, true), {
+            at(0, y + 35, text(loanDollars(r.monthly * p), 80, colour, true), {
               width: 425,
               opacity: p > 0 ? 1 : 0,
             }),
@@ -194,20 +218,20 @@ export function contextReelLayout(
           ),
           moving(
             `monthly-${i}`,
-            at(455, y + 93, text("/ month", 36, c.muted), { opacity: p > 0 ? 1 : 0 }),
+            at(455, y + 73, text("/ month", 36, c.muted), { opacity: p > 0 ? 1 : 0 }),
             385,
             60
           ),
           moving(
             `repayment-track-${i}`,
-            at(0, y + 173, "", { width: 840, height: 10, backgroundColor: c.track, opacity: show }),
+            at(0, y + 140, "", { width: 840, height: 10, backgroundColor: c.track, opacity: show }),
             840,
             10,
             "rect"
           ),
           moving(
             `repayment-bar-${i}`,
-            at(0, y + 173, "", {
+            at(0, y + 140, "", {
               width: evidenceBarGeometry(amounts, p, 840).bars[i]!.width,
               height: 10,
               backgroundColor: colour,
@@ -220,14 +244,14 @@ export function contextReelLayout(
       }),
       moving(
         "term-tradeoff",
-        at(0, 795, text("Shorter term. Less total interest.", 40, c.gold), {
+        at(0, 860, text("Shorter term. Less total interest.", 36, c.gold), {
           opacity: key === "facts" ? progress[1] : 0,
         }),
         840,
         70
       ),
-      at(0, 875, text("Principal + interest / monthly / rounded $", 30, c.muted)),
-      at(0, 925, text("Unchanged rate / no fees or extra payments", 30, c.muted))
+      at(0, 915, text("Monthly P&I / rounded $ / unchanged rate", 28, c.muted)),
+      at(0, 945, text("No fees or extra payments", 28, c.muted))
     );
   } else if (key === "claim") {
     nodes = title("A change of address.", "A different place to live.");
@@ -264,27 +288,35 @@ export function contextReelLayout(
       at(0, 805, text("State migration alone cannot establish a local shortage.", 40, c.muted))
     );
   } else if (key === "signOff") {
-    nodes = title(
-      migration ? "People and homes." : "More than a rate.",
-      migration ? "Check the local balance." : "Compare the whole loan."
-    );
-    nodes.push(
-      rule("finish", 295),
-      at(
-        0,
-        370,
-        text(
-          migration
-            ? "Migration is one part of the housing demand story."
-            : "Use the average as context. Read the terms of your own loan.",
-          58,
-          c.fg,
-          true
-        )
-      ),
-      at(0, 760, text("Read the evidence", 36, c.gold)),
-      at(0, 830, text(`Link in bio / ${v.readLabel}`, 30, c.muted))
-    );
+    if (!migration)
+      nodes = [
+        at(0, 590, text("Compare the whole loan.", 72, c.fg, true)),
+        at(0, 800, text("Amount. Term. Fees.", 50, c.gold)),
+        at(0, 890, text("Read the evidence / link in bio", 32, c.muted)),
+      ];
+    else {
+      nodes = title(
+        migration ? "People and homes." : "More than a rate.",
+        migration ? "Check the local balance." : "Compare the whole loan."
+      );
+      nodes.push(
+        rule("finish", 295),
+        at(
+          0,
+          370,
+          text(
+            migration
+              ? "Migration is one part of the housing demand story."
+              : "Use the average as context. Read the terms of your own loan.",
+            58,
+            c.fg,
+            true
+          )
+        ),
+        at(0, 760, text("Read the evidence", 36, c.gold)),
+        at(0, 830, text(`Link in bio / ${v.readLabel}`, 30, c.muted))
+      );
+    }
   } else throw new Error(`Unreviewed context scene: ${key}`);
   return {
     content: box({ width: 840, height: 980, position: "relative" }, nodes),
@@ -303,6 +335,7 @@ export function contextReelLayout(
       quiet: true,
       index: v.script.findIndex((s) => s.key === key),
       count: v.script.length,
+      ...(!migration ? { photoCredit: LOAN_SHOTS[loanShot(key)].credit } : {}),
     },
   };
 }

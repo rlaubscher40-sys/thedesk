@@ -1,5 +1,42 @@
 # Housing Reel archive photograph
 
+## Borrowing film sequence, 11 September 2026
+
+The new-loan story cuts from a bank facade to Australian money, then a home
+entrance. These are full-canvas illustrative photographs with restrained camera
+movement. The opening and closing leave the upper image clear; evidence graphics
+sit lower in the frame. The photographs do not establish financial facts.
+
+Bank opening:
+- Photographer: Etienne Martin.
+- Source: https://unsplash.com/photos/grey-concrete-building-2_K82gx9Uk8
+- Source describes columns on a building in Montréal, Canada, published 27 July
+  2017. The visible credit identifies Montréal; this is not presented as an
+  Australian lender, the RBA building, or an endorsement.
+- Download: https://images.unsplash.com/photo-1501167786227-4cba60f6d58f?fm=jpg&q=85&w=1400
+- Free Unsplash licence verified on the photo page and https://unsplash.com/license
+  on 11 September 2026.
+- Asset: `server/og/fonts/bank-etienne-martin.jpg` (download bytes unchanged).
+- SHA-256: `c5c3813b3ea7e3ece390a0a03e40ef669f7b4e2236af2ea1de6efb33b3b9c01e`.
+
+Australian money:
+- Creator: Pixabay, published through Pexels.
+- Source: https://www.pexels.com/video/australian-money-855198/
+- The source identifies Australian banknotes and explicitly labels this item
+  “Free to use (CC0)”, checked 11 September 2026.
+- Download: https://videos.pexels.com/video-files/855198/855198-uhd_3840_2160_30fps.mp4
+- Asset: `server/og/fonts/australian-money-pixabay.jpg` is a still extracted at
+  4 seconds using FFmpeg, scaled to 1400 pixels wide, JPEG quality 2. It is used
+  with a camera move, not represented as moving banknote footage.
+- SHA-256: `f3d46ebc5355cb5e49569d56dbcf7bec1197e5212df209e8eb852402a5b2ec62`.
+
+Home context uses the existing Phillip Flores architecture photograph credited
+below. No particular property's price, location or loan is asserted. Every shot
+has a visible credit below the financial source. Images are bundled at build
+time; publication does not download media or call another service. Missing
+reviewed images stop the render. Camera progress continues across adjacent
+scenes retaining the same photograph, including the two repayment terms.
+
 - Photographer: Damon Hall.
 - Source: https://unsplash.com/photos/a-very-tall-building-with-a-crane-on-top-of-it-jzEkzVq3Yp0
 - Source description: tower in construction in Sydney Harbour.
