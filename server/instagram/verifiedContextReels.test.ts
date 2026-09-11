@@ -24,6 +24,12 @@ describe("new verified evidence families", () => {
     });
     expect(loans.caption).toContain("not a like-for-like price premium");
     expect(loans.stat.visualStory!.rows.map((r) => r.value)).toEqual([6.24, 6.41]);
+    expect(loans.caption).toContain("$2,998/month");
+    expect(loans.caption).toContain("$3,222/month");
+    expect(loans.caption).toContain("not an offer or forecast");
+    const altered = structuredClone(loans.stat.visualStory!);
+    altered.repaymentExample = { ...altered.repaymentExample!, annualPercent: 7 } as any;
+    expect(() => validateEvidenceVisual(altered, loans.script)).toThrow("Unreviewed repayment");
     expect(migration.publication.date).toBe("2025-12-01");
     expect(migration.stat.visualStory!.rows.map((r) => r.value)).toEqual([16000, 10000]);
     expect(migration.caption).toContain("not Brisbane or Perth figures");

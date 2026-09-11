@@ -5,7 +5,8 @@ import {
   verifiedInterstateMigration,
 } from "../instagram/verifiedContextReels";
 import { testLoanRates, testMigration, contextNow } from "../instagram/fixtures/contextReels";
-import { contextReelLayout } from "./contextReelLayout";
+import { contextReelLayout, repaymentCueProgress } from "./contextReelLayout";
+import { exampleRepayments, loanDollars } from "../../shared/loanRepaymentExample";
 import { splitMotion } from "./reelMotion";
 import { renderEditorialFrame, renderEditorialLayer } from "../og/instagramCards";
 import { voiceModel } from "./localVoice";
@@ -18,6 +19,43 @@ const candidate = (kind: string) =>
     : verifiedInterstateMigration(testMigration(), contextNow)!;
 
 describe("context stories preserve numerical meaning", () => {
+  it("starts repayments at their measured phrase, then holds the first term on the same scale", () => {
+    const phrases = [
+      { text: "Assumptions.", start: 0, seconds: 3 },
+      { text: "Thirty years.", start: 3.08, seconds: 3 },
+    ];
+    expect(repaymentCueProgress("claim", 3, phrases)).toEqual([0, 0]);
+    expect(repaymentCueProgress("claim", 6, phrases)).toEqual([1, 0]);
+    expect(() => repaymentCueProgress("claim", 1, phrases.slice(0, 1))).toThrow();
+    const v = candidate("loans").stat.visualStory!;
+    const render = (key: string, repayment: [number, number]) =>
+      splitMotion(
+        contextReelLayout(v, key, { progress: 1, rates: [1, 1], repayment }, "navy").content
+      );
+    const before = render("claim", [1, 0]);
+    const after = render("facts", [1, 1]);
+    expect(before.staticTree).toEqual(after.staticTree);
+    for (const id of ["term-0", "repayment-0", "repayment-bar-0"])
+      expect(before.layers.find((l) => l.id === id)).toEqual(after.layers.find((l) => l.id === id));
+    expect(before.layers.find((l) => l.id === "repayment-1")!.opacity).toBe(0);
+    const [long, short] = exampleRepayments();
+    for (const p of [0, 0.1, 0.5, 1]) {
+      const layers = render("facts", [1, p]).layers;
+      expect(layers.find((l) => l.id === "repayment-bar-0")!.node.props.style.width).toBeCloseTo(
+        (840 * long!.monthly) / short!.monthly
+      );
+      expect(layers.find((l) => l.id === "repayment-bar-1")!.node.props.style.width).toBeCloseTo(
+        840 * p
+      );
+      expect(JSON.stringify(layers.find((l) => l.id === "repayment-1"))).toContain(
+        loanDollars(short!.monthly * p)
+      );
+    }
+    const meta = contextReelLayout(v, "facts", { progress: 1, rates: [1, 1] }, "navy").meta;
+    expect(meta.source).toContain("hypothetical");
+    expect(meta.publisher).toContain("Moneysmart");
+    expect(meta.publisher).not.toContain("Reserve Bank");
+  });
   it("waits for the second utterance and retains completed loan bars through the explanation", () => {
     const v = candidate("loans").stat.visualStory!;
     const render = (key: string, rates: [number, number]) =>

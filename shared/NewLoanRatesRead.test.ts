@@ -14,6 +14,12 @@ it("shows exact Reel rates, the reference month, meaning and primary source link
     "f6-data.csv",
     "moneysmart.gov.au",
     'id="new-loan-rates"',
+    "hypothetical $500,000",
+    "$2,998",
+    "$3,222",
+    "Total interest",
+    "before rounding",
+    "mortgage-calculator",
   ])
     expect(html).toContain(text);
   const missing = renderToStaticMarkup(createElement(NewLoanRatesRead, { rates: [] }));
