@@ -569,6 +569,9 @@ export const instagramPosts = mysqlTable("instagram_posts", {
   shares: int("shares"),
   totalInteractions: int("totalInteractions"),
   metricsFetchedAt: timestamp("metricsFetchedAt"),
+  metricsAttemptedAt: timestamp("metricsAttemptedAt"),
+  metricsStatus: varchar("metricsStatus", { length: 16 }),
+  metricsError: varchar("metricsError", { length: 32 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

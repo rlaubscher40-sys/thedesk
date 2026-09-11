@@ -6,6 +6,7 @@ import {
   claimFeedEnrichment,
   completeFeedEnrichment,
   failFeedEnrichment,
+  feedEnrichmentStates,
   sameEnrichmentSource,
   skipFeedEnrichment,
 } from "../db/feedEnrichment";
@@ -26,11 +27,13 @@ export function drainFeedEnrichment(): Promise<void> {
   if (isDemoMode()) return Promise.resolve();
   if (active) return active;
   active = (async () => {
+    const touched = new Set<number>();
     const results = await Promise.allSettled(
       Array.from({ length: 4 }, async () => {
         for (let i = 0; i < 10; i++) {
           const claim = await claimFeedEnrichment();
           if (!claim) return;
+          touched.add(claim.feedItemId);
           try {
             const row = await getFeedItemById(claim.feedItemId);
             if (!row) {
@@ -62,6 +65,15 @@ export function drainFeedEnrichment(): Promise<void> {
         }
       })
     );
+    if (touched.size) {
+      try {
+        console.log(
+          "[feed-enrichment] outcomes " + JSON.stringify(await feedEnrichmentStates([...touched]))
+        );
+      } catch {
+        console.warn("[feed-enrichment] outcome read unavailable; completion not verified");
+      }
+    }
     const failed = results.find((result) => result.status === "rejected");
     if (failed?.status === "rejected") throw failed.reason;
   })().finally(() => {

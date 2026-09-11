@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { needsInsightRefresh, inInsightWindow, type MeasuredPost } from "./instagramMeasurement";
+import {
+  needsInsightRefresh,
+  inInsightWindow,
+  insightAttemptLabel,
+  type MeasuredPost,
+} from "./instagramMeasurement";
 const now = new Date("2026-09-08T12:00:00Z");
 const row = (o: Partial<MeasuredPost> = {}): MeasuredPost => ({
   createdAt: "2026-09-07T00:00:00Z",
@@ -13,6 +18,18 @@ const row = (o: Partial<MeasuredPost> = {}): MeasuredPost => ({
 });
 const complete = { reach: 10, likes: 0, comments: 0, saved: 0, shares: 0 };
 describe("bounded insights collection", () => {
+  it("backs off failed reads without permanently suppressing recovery", () => {
+    expect(needsInsightRefresh(row({ metricsAttemptedAt: "2026-09-08T07:00:00Z" }), now)).toBe(
+      false
+    );
+    expect(needsInsightRefresh(row({ metricsAttemptedAt: "2026-09-07T23:00:00Z" }), now)).toBe(
+      true
+    );
+    expect(needsInsightRefresh(row({ metricsAttemptedAt: "invalid" }), now)).toBe(true);
+    expect(insightAttemptLabel("unavailable", "media_unavailable")).toBe(
+      "Media unavailable or permission missing"
+    );
+  });
   it("waits for a full day, retries missing data for seven days and rejects invalid/future dates", () => {
     expect(needsInsightRefresh(row(), now)).toBe(true);
     for (const createdAt of [

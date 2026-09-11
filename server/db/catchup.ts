@@ -343,6 +343,18 @@ export const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
     name: "0022 · page_views.campaign",
     sql: "ALTER TABLE page_views ADD campaign varchar(64)",
   },
+  {
+    name: "insights · last attempt",
+    sql: "ALTER TABLE instagram_posts ADD metricsAttemptedAt TIMESTAMP NULL",
+  },
+  {
+    name: "insights · read status",
+    sql: "ALTER TABLE instagram_posts ADD metricsStatus VARCHAR(16) NULL",
+  },
+  {
+    name: "insights · safe failure code",
+    sql: "ALTER TABLE instagram_posts ADD metricsError VARCHAR(32) NULL",
+  },
 ];
 
 /** MySQL/TiDB error message fragments that mean "already applied". */

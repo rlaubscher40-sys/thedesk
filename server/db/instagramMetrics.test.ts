@@ -47,6 +47,34 @@ it("does not erase a prior reading or mark a wholly failed request as fetched", 
   });
   expect(m.set).not.toHaveBeenCalled();
 });
+it("records an inaccessible attempt without erasing a valid historical snapshot", async () => {
+  expect(
+    await updateInstagramPostMetrics(
+      "123",
+      {},
+      { status: "unavailable", reason: "media_unavailable" }
+    )
+  ).toBe(true);
+  expect(m.set).toHaveBeenCalledWith({
+    metricsAttemptedAt: expect.any(Date),
+    metricsStatus: "unavailable",
+    metricsError: "media_unavailable",
+  });
+});
+it("does not report a failed database write as persisted", async () => {
+  m.where.mockRejectedValueOnce(new Error("database unavailable"));
+  expect(
+    await updateInstagramPostMetrics(
+      "123",
+      {},
+      { status: "failed", reason: "provider_unavailable" }
+    )
+  ).toBe(false);
+});
+it("surfaces a diagnostic query failure instead of claiming zero posts need metrics", async () => {
+  m.limit.mockRejectedValueOnce(new Error("database unavailable"));
+  await expect(listInstagramPostsNeedingMetrics(undefined, true)).rejects.toThrow("query failed");
+});
 it("stores a single coherent snapshot and preserves zero versus missing", async () => {
   await updateInstagramPostMetrics("123", { likes: 0, reach: 10, saved: NaN });
   expect(m.set).toHaveBeenCalledWith({

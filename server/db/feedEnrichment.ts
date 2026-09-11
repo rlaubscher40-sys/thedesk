@@ -1,6 +1,6 @@
 import { isEnrichedChannel } from "../../shared/const";
 import { randomUUID } from "node:crypto";
-import { and, asc, desc, eq, getTableColumns, sql } from "drizzle-orm";
+import { and, asc, desc, eq, getTableColumns, inArray, sql } from "drizzle-orm";
 import { getDb } from "./client";
 import { dailyFeedItems } from "./schema";
 import { feedEnrichmentJobs as jobs } from "./feedEnrichmentSchema";
@@ -178,4 +178,19 @@ export async function feedEnrichmentHealth() {
     counts: Object.fromEntries(counts.map((r) => [r.status, Number(r.count)])),
     recentFailures,
   };
+}
+
+/** Private diagnostic state only. Missing jobs remain unknown to the caller. */
+export async function feedEnrichmentStates(ids: number[]) {
+  if (!ids.length) return [];
+  return database()
+    .select({
+      feedItemId: jobs.feedItemId,
+      status: jobs.status,
+      attempts: jobs.attempts,
+      reason: jobs.reason,
+      finishedAt: jobs.finishedAt,
+    })
+    .from(jobs)
+    .where(inArray(jobs.feedItemId, ids));
 }

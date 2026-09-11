@@ -12,9 +12,25 @@ export const INSIGHT_FIELDS = [
   "totalInteractions",
 ] as const;
 export type MetricCounts = Partial<Record<(typeof INSIGHT_FIELDS)[number], number | null>>;
+
+/** Operator-facing wording must preserve Meta's ambiguity and old snapshots. */
+export function insightAttemptLabel(
+  status: string | null | undefined,
+  reason: string | null | undefined
+): string {
+  if (reason === "media_unavailable") return "Media unavailable or permission missing";
+  if (reason === "access_denied") return "Account access needs attention";
+  if (reason === "rate_limited") return "Rate limited; retry later";
+  if (status === "complete") return "Complete";
+  if (status === "partial") return "Partial; some counts unavailable";
+  if (status === "unavailable") return "Metrics unavailable";
+  if (status === "failed") return "Read failed; retry later";
+  return "No attempt recorded";
+}
 export type MeasuredPost = MetricCounts & {
   createdAt?: Date | string | null;
   metricsFetchedAt: Date | string | null;
+  metricsAttemptedAt?: Date | string | null;
 };
 export function validMetricCount(value: unknown): value is number {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
@@ -35,6 +51,12 @@ export function completeInsightCounts(row: MetricCounts): boolean {
 }
 export function needsInsightRefresh(row: MeasuredPost, now = new Date()): boolean {
   if (!row.createdAt) return false;
+  // Failed/partial reads can recover, but scheduler retries must not hammer
+  // an inaccessible media ID or repeatedly replace an incomplete snapshot.
+  if (row.metricsAttemptedAt) {
+    const sinceAttempt = now.getTime() - new Date(row.metricsAttemptedAt).getTime();
+    if (Number.isFinite(sinceAttempt) && sinceAttempt < 12 * 3_600_000) return false;
+  }
   const age = (now.getTime() - new Date(row.createdAt).getTime()) / 3_600_000;
   if (!Number.isFinite(age) || age < INSIGHT_MIN_AGE_HOURS || age > INSIGHT_RETRY_DAYS * 24)
     return false;
