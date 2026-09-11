@@ -85,7 +85,7 @@ describe("repeatable automatic editorial selection", () => {
     expect(candidates[0]!.stat.storyboard?.kind).toBe("housing-balance");
     expect(candidates[0]!.publication.date).toBe("2025-12-31");
   });
-  it("selects freshest evidence then varies families without consuming a lock", () => {
+  it("rotates eligible families before comparing observation dates", () => {
     const candidates = [
       { family: "rents", publication: { date: "2026-07-01" } },
       { family: "rents", publication: { date: "2026-07-01" } },
@@ -98,9 +98,56 @@ describe("repeatable automatic editorial selection", () => {
     ];
     expect(chooseReelCandidate(candidates, records)).toBe(2);
     candidates[1]!.publication.date = "2026-08-01";
-    expect(chooseReelCandidate(candidates, records)).toBe(1);
+    expect(chooseReelCandidate(candidates, records)).toBe(2);
     records[1]!.state = "locked";
     records[2]!.state = "published";
     expect(chooseReelCandidate(candidates, records)).toBe(-1);
+  });
+  it("gives all four families a turn before repeating one despite quarterly observation lag", () => {
+    const candidates = [
+      { family: "rents", publication: { date: "2026-07-01" } },
+      { family: "rents", publication: { date: "2026-07-01" } },
+      { family: "supply", publication: { date: "2026-07-01" } },
+      { family: "supply", publication: { date: "2026-07-01" } },
+      { family: "borrowing", publication: { date: "2026-07-01" } },
+      { family: "population", publication: { date: "2025-12-01" } },
+    ];
+    const records: { state: string; publishedAt?: Date }[] = candidates.map(() => ({
+      state: "available",
+    }));
+    const sequence: string[] = [];
+    for (let day = 0; day < candidates.length; day++) {
+      const index = chooseReelCandidate(candidates, records);
+      sequence.push(candidates[index]!.family);
+      records[index] = { state: "published", publishedAt: new Date(Date.UTC(2026, 8, 1 + day)) };
+    }
+    expect(sequence).toEqual(["rents", "supply", "borrowing", "population", "rents", "supply"]);
+    expect(chooseReelCandidate(candidates, records)).toBe(-1);
+  });
+  it("uses earlier reference periods' history and the latest publication anywhere in a family", () => {
+    const candidates = [
+      { family: "rents", publication: { date: "2026-08-01" } },
+      { family: "population", publication: { date: "2026-03-01" } },
+    ];
+    const records = candidates.map(() => ({ state: "available" }));
+    const history = [
+      { family: "rents", publishedAt: new Date("2026-08-01") },
+      { family: "population", publishedAt: new Date("2026-08-02") },
+      { family: "rents", publishedAt: new Date("2026-09-01") },
+    ];
+    expect(chooseReelCandidate(candidates, records, history)).toBe(1);
+    expect(chooseReelCandidate(candidates, records, [...history].reverse())).toBe(1);
+    records[1]!.state = "locked";
+    expect(chooseReelCandidate(candidates, records, history)).toBe(0);
+  });
+  it("uses newest evidence within a family and stable order for an unseen programme", () => {
+    const candidates = [
+      { family: "supply", publication: { date: "2025-12-31" } },
+      { family: "supply", publication: { date: "2026-07-01" } },
+      { family: "rents", publication: { date: "2026-07-01" } },
+    ];
+    const records = candidates.map(() => ({ state: "available" }));
+    expect(chooseReelCandidate(candidates, records)).toBe(1);
+    expect(chooseReelCandidate([], [])).toBe(-1);
   });
 });

@@ -18,7 +18,9 @@ const m = vi.hoisted(() => ({
   post: vi.fn(),
   alert: vi.fn(),
   expire: vi.fn(),
+  history: vi.fn(),
 }));
+vi.mock("../db/reelHistory", () => ({ readReelPublicationHistory: m.history }));
 vi.mock("../markets/absDemographics", () => ({ getStateDemographics: m.demographics }));
 vi.mock("../markets/reelLendingRates", () => ({ getReelLendingRates: m.lending }));
 vi.mock("../core/env", () => ({ env: m.env }));
@@ -41,6 +43,7 @@ const publicationKey = "instagram-reel-abs-rents-brisbane-perth-v1";
 let published = false;
 beforeEach(() => {
   vi.resetAllMocks();
+  m.history.mockResolvedValue([]);
   published = false;
   m.housing.mockResolvedValue(null);
   m.demographics.mockResolvedValue({ status: "unavailable", retrievedAt: null, observations: [] });
@@ -71,6 +74,42 @@ beforeEach(() => {
 const run = () => runReelAutomation({ post: m.post, alert: m.alert, now });
 
 describe("automatic verified Reel delivery", () => {
+  it("pauses without claiming or posting when durable rotation history is unavailable", async () => {
+    m.history.mockRejectedValue(new Error("DB unavailable"));
+    expect(await run()).toEqual({ state: "unavailable" });
+    expect(m.claim).not.toHaveBeenCalled();
+    expect(m.post).not.toHaveBeenCalled();
+  });
+  it("keeps the daily cap after a source period advances on the day of a confirmed post", async () => {
+    m.history.mockResolvedValue([{ key: publicationKey, publishedAt: now }]);
+    expect(await run()).toEqual({ state: "daily-limit" });
+    expect(m.claim).not.toHaveBeenCalled();
+    expect(m.post).not.toHaveBeenCalled();
+  });
+  it("keeps the daily cap even when the topic posted earlier no longer has qualifying evidence", async () => {
+    m.history.mockResolvedValue([
+      { key: "instagram-reel-rba-new-loan-rates-v1", publishedAt: now },
+    ]);
+    expect(await run()).toEqual({ state: "daily-limit" });
+    expect(m.history).toHaveBeenCalledWith(
+      expect.arrayContaining(["instagram-reel-rba-new-loan-rates-v1"])
+    );
+    expect(m.post).not.toHaveBeenCalled();
+  });
+  it("selects current quarterly evidence before repeating a recently published monthly family", async () => {
+    const checkTime = new Date("2026-09-11T08:00:00Z");
+    m.demographics.mockResolvedValue(testMigration());
+    m.history.mockResolvedValue([
+      { key: publicationKey, publishedAt: new Date("2026-09-10T09:00:00Z") },
+    ]);
+    const plan = await readReelAutomation(checkTime);
+    expect(plan.state).toBe("scheduled");
+    expect(plan.candidate?.family).toBe("population");
+    expect(m.history).toHaveBeenCalledWith(
+      expect.arrayContaining([publicationKey, "instagram-reel-abs-interstate-qld-wa-v1"])
+    );
+    expect(m.post).not.toHaveBeenCalled();
+  });
   it("advances to the eight-capital topic without clearing earlier publication locks", async () => {
     const data = {
       status: "available" as const,
