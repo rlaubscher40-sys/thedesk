@@ -1,3 +1,4 @@
+import { contextReelLayout } from "./contextReelLayout";
 import { createCanvas, loadImage, type Image } from "@napi-rs/canvas";
 import {
   loadAsset,
@@ -30,8 +31,10 @@ export async function createEvidenceMotionRenderer(
   )
     throw new Error("Evidence motion requires the complete measured script.");
   const isRent = v.recipe === "rent-comparison";
-  if (isRent && scenes.some((s) => !s.phrases?.length))
-    throw new Error("Rent scenes need measured phrases.");
+  const isContext = ["new-loan-rates", "interstate-migration"].includes(v.recipe);
+  const measured = isRent || isContext;
+  if (measured && scenes.some((s) => !s.phrases?.length))
+    throw new Error("Comparison scenes need measured phrases.");
   const archive = isRent ? await loadAsset("architecture-phillip-flores.jpg") : null;
   if (isRent && !archive) throw new Error("Reviewed architectural illustration is missing.");
   const photo = archive ? await loadImage(archive) : null;
@@ -50,8 +53,8 @@ export async function createEvidenceMotionRenderer(
     const p = unit((time - scene.start) / Math.max(0.3, scene.seconds * 0.65));
     const photographic = isRent && ["label", "signOff"].includes(scene.key);
     const sceneVariant = photographic ? "navy" : variant;
-    const layout = isRent
-      ? rentComparisonLayout(
+    const layout = measured
+      ? (isContext ? contextReelLayout : rentComparisonLayout)(
           v,
           scene.key,
           {

@@ -70,6 +70,13 @@ describe("RBA F6 housing lending rates", () => {
     ).toThrow();
   });
 
+  it("rejects duplicate observation dates instead of choosing an arbitrary row", () => {
+    const observation = CSV.split(/\r?\n/).find((row) => /^31\/07\/2026,/.test(row))!;
+    expect(observation).toBeTruthy();
+    expect(() => parseRbaHousingRates(CSV + "\n" + observation, new Date("2026-09-08"))).toThrow(
+      "Duplicate"
+    );
+  });
   it("withholds stale and future observations", () => {
     expect(() => parseRbaHousingRates(CSV, new Date("2027-01-01"))).toThrow("Stale");
     expect(() => parseRbaHousingRates(CSV, new Date("2026-07-01"))).toThrow("future");

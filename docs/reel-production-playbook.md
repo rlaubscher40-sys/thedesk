@@ -12,7 +12,7 @@ commands. Narration and burned-in subtitles are mandatory for publishing,
 even if a caller tries to disable subtitles. Missing audio or captions blocks
 the post before a Meta container is created. The default voice is immutable.
 
-All six registered topics pass `assertProductionCandidate` before selection:
+All eight registered topics pass `assertProductionCandidate` before selection:
 visible source/reference context, evidence identity, complete uniquely keyed
 narration, duration budget, caption style/length and mandatory visual/script binding.
 These are structural checks, not automatic fact-checking or
@@ -69,7 +69,7 @@ preview, not a live-data selection command. Its approved cinematic export is
    topics at the same age using available watch time, shares and saves per reach.
    Do not substitute a design rating for audience evidence.
 
-All six registered topics now use scene-based continuous motion and the approved
+All eight registered topics now use scene-based continuous motion and the approved
 documentary subtitle styling. They retain different visual explanations:
 
 | Topic                        | Visual explanation                                                                  |
@@ -79,9 +79,11 @@ documentary subtitle styling. They retain different visual explanations:
 | Sydney rent change           | Previous and latest annual rates, correct rising/falling/unchanged meaning          |
 | Brisbane and Perth approvals | Matched counts, permission/construction/completion, delivery versus need            |
 | Sydney supply checklist      | Approval count, building stages, stage/place/timing questions                       |
+| New home-loan rates          | New-loan averages, then amount, term, fees and repayments                           |
+| Queensland and WA migration   | Signed net counts, arrivals minus departures, then local housing balance             |
 | National housing balance     | Net supply versus need, uncovered segment, separate deposit context, archive camera |
 
-`withEvidenceVisual` binds the first five source adapters' observations, script and
+`withEvidenceVisual` binds the seven numerical source adapters' observations, script and
 attribution to their evidence hash. Editing a number or utterance afterwards
 invalidates the binding. This is an integrity check, not independent evidence.
 The national housing storyboard retains its existing strict source binding.
@@ -92,7 +94,7 @@ receives a finished documentary treatment.
 
 ## Continuous motion
 
-Narrated housing exports use `housingMotionRenderer.ts`; the other five use
+Narrated housing exports use `housingMotionRenderer.ts`; the other seven use
 `evidenceMotionRenderer.ts` and `evidenceVisualLayout.ts`.
 Every picture is evaluated on the 30 fps clock, with stationary Satori typography
 cached separately from photos, bars, the timeline marker and phrase reveals.
@@ -165,3 +167,50 @@ identifies the actual provider and voice. Missing access is a clear failure.
 Listen for accent consistency, natural stress, correct numbers and the complete
 story before promoting a new voice into production. Do not claim this audition
 was heard or approved merely because the code or mocked tests passed.
+
+## Borrowing costs and population movement
+
+The programme now includes eight reviewed recipes across four evidence families:
+existing rents and supply, plus borrowing and population. These are additional
+source-driven episodes, not a promise of daily fresh news or daily Reels.
+
+- **New home-loan rates:** monthly RBA F6 FLRHOFTA/FLRHIFTA, average rates on new
+  owner-occupier and investor loans funded in the same month. All institutions,
+  fixed and variable rates. Both exact rates are spoken and animated separately.
+  The comparison leads into loan amount, term, fees and repayments. Do not label
+  the difference a matched-borrower premium, an available offer or the cash rate.
+  `/social#new-loan-rates` reads the same source observations, rounded to one decimal place, provides the
+  definition and links to RBA F6 and ASIC Moneysmart. Publication identity is one
+  episode per source month, unchanged by revisions or visual edits.
+- **Queensland and WA interstate migration:** annual sums of four consecutive
+  ABS net internal migration quarters for both states. Counts are signed; net
+  losses and zero have their own spoken wording. The animation explains arrivals
+  minus departures, then a conceptual change of residence. It must never show an
+  invented measured route, gross arrival count, city population or homes required.
+  The takeaway is to check local household growth, vacancies and completions.
+  One episode per source quarter; not a forecast of prices or a new monthly read
+  of unchanged quarterly data. Bio links go to the comparison's state context.
+
+`verifiedContextReels.ts` owns source eligibility and meaning. `contextReelLayout.ts`
+provides the reviewed six-scene treatments. Actual Fable phrases own count-up and
+bar timing, and the loan bars remain complete through their explanatory scene.
+The shared production gate, captions, subtitles, scheduler and permanent locks
+apply to both. The RBA review/public read caches one source attempt per hour,
+including failures. ABS uses its existing cache. No additional LLM or speech API
+is used; production remains local Kokoro Fable at speed 1.0.
+
+The RBA parser remains pinned to original monthly new-loan series, units,
+publication metadata and freshness. Missing/mismatched/future/stale observations
+are withheld. Migration additionally rejects duplicate rows, unknown statuses,
+non-integer counts, mismatched quarters and old retrievals. Revised observations
+can change the evidence hash but not reopen their publication identity.
+
+Source and explanation review:
+- https://www.rba.gov.au/statistics/interest-rates/
+- https://www.rba.gov.au/statistics/tables/csv/f6-data.csv
+- https://moneysmart.gov.au/home-loans/choosing-a-home-loan
+- https://www.abs.gov.au/statistics/people/population/national-state-and-territory-population/latest-release
+
+Fable was reconfirmed by the user on 11 September 2026. Newer-voice auditions
+are deferred and are not a task prerequisite. Keep the review-only code dormant
+until the user reopens that choice.

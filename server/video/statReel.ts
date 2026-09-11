@@ -612,7 +612,10 @@ export async function renderStatReel(
             )
           : stat.storyboard?.kind === "housing-balance"
             ? await synthesisePhrases(stat.storyboard.scenes, opts.voice)
-            : stat.visualStory?.recipe === "rent-comparison"
+            : stat.visualStory &&
+                ["rent-comparison", "new-loan-rates", "interstate-migration"].includes(
+                  stat.visualStory.recipe
+                )
               ? await synthesisePhrases(
                   (await import("./rentComparisonLayout")).rentPhrasePlan(stat.visualStory),
                   opts.voice

@@ -1,3 +1,4 @@
+import { contextReelLayout } from "./contextReelLayout";
 import { rentComparisonLayout } from "./rentComparisonLayout";
 import type { CardVariant } from "../og/instagramCards";
 import { evidenceBarGeometry, type EvidenceVisual } from "./evidenceVisual";
@@ -15,6 +16,13 @@ export function evidenceVisualLayout(
   progress: number,
   variant: CardVariant
 ) {
+  if (["new-loan-rates", "interstate-migration"].includes(v.recipe))
+    return contextReelLayout(
+      v,
+      key,
+      { progress, rates: [smooth(progress * 2), smooth(progress * 2 - 1)] },
+      variant
+    );
   if (v.recipe === "rent-comparison")
     return rentComparisonLayout(
       v,

@@ -9,6 +9,8 @@ export const SOCIAL_CAMPAIGNS = [
   "supply_comparison",
   "rent_change",
   "before_buy",
+  "borrowing",
+  "population",
   "other",
 ] as const;
 export type SocialCampaign = (typeof SOCIAL_CAMPAIGNS)[number];
@@ -21,6 +23,8 @@ export function socialCampaign(
   if (/^property_story_\d+$/.test(value) || value === "property_daily") return "daily";
   if (/^property_edition_\d+$/.test(value) || value === "property_weekly") return "weekly";
   const known: Record<string, SocialCampaign> = {
+    new_home_loan_rates: "borrowing",
+    interstate_migration: "population",
     property_market_data: "stat",
     property_editorial_reel: "rent_comparison",
     eight_capital_rents: "capital_rents",

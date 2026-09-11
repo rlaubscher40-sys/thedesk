@@ -1,3 +1,6 @@
+import { getStateDemographics } from "../markets/absDemographics";
+import { getReelLendingRates } from "../markets/reelLendingRates";
+import { verifiedInterstateMigration, verifiedNewLoanRates } from "./verifiedContextReels";
 import { getHousingBalanceSnapshot } from "../markets/housingBalance";
 import { verifiedHousingBalanceReel } from "./verifiedHousingBalanceReel";
 import { getCityRents } from "../markets/absRents";
@@ -10,10 +13,12 @@ import { assertProductionCandidate } from "../video/reelProduction";
 
 /** Shared editorial registry: scheduled publishing and the admin read use the same recipes. */
 export async function getVerifiedReelProgramme(now = new Date()) {
-  const [rents, approvals, housingBalance] = await Promise.all([
+  const [rents, approvals, housingBalance, demographics, lending] = await Promise.all([
     getCityRents(),
     getCityApprovals(),
     getHousingBalanceSnapshot(),
+    getStateDemographics(),
+    getReelLendingRates(),
   ]);
   return [
     {
@@ -53,6 +58,20 @@ export async function getVerifiedReelProgramme(now = new Date()) {
       candidate: verifiedHousingBalanceReel(housingBalance, now),
       requirement:
         "Reviewed national net supply and estimated new demand for the same historical period, from the current report vintage.",
+    },
+    {
+      topic: "Borrowing costs · new home loans",
+      family: "borrowing",
+      candidate: verifiedNewLoanRates(lending, now),
+      requirement:
+        "Matching current RBA F6 owner-occupier and investor new-loan rates; one episode per observation month.",
+    },
+    {
+      topic: "Population movement · Queensland and WA",
+      family: "population",
+      candidate: verifiedInterstateMigration(demographics, now),
+      requirement:
+        "Four consecutive net interstate quarters for both states, same current reference quarter and recent verified retrieval.",
     },
   ].map((entry) => {
     if (entry.candidate) assertProductionCandidate(entry.candidate);

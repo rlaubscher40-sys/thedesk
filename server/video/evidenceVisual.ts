@@ -3,6 +3,8 @@ import type { ReelStat } from "./statReel";
 import type { ScriptLine } from "./narration";
 
 export type EvidenceRecipe =
+  | "new-loan-rates"
+  | "interstate-migration"
   | "rent-comparison"
   | "capital-rents"
   | "rent-change"
@@ -48,6 +50,8 @@ export function validateEvidenceVisual(
 ) {
   const { binding, ...data } = visual;
   const count = {
+    "new-loan-rates": 2,
+    "interstate-migration": 2,
     "rent-comparison": 2,
     "capital-rents": 8,
     "rent-change": 2,
@@ -78,7 +82,13 @@ export function validateEvidenceVisual(
     throw new Error("Unreviewed visual scene sequence.");
   if (
     visual.rows.some((r) =>
-      counts ? !Number.isSafeInteger(r.value) || r.value < 0 : r.value < -100
+      counts
+        ? !Number.isSafeInteger(r.value) || r.value < 0
+        : visual.recipe === "interstate-migration"
+          ? !Number.isSafeInteger(r.value)
+          : visual.recipe === "new-loan-rates"
+            ? r.value < 0 || r.value > 30
+            : r.value < -100
     )
   )
     throw new Error("Invalid visual observation.");
