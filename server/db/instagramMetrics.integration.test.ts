@@ -27,7 +27,9 @@ beforeAll(async () => {
         if (!isHarmless(err)) throw err;
       }
     }
-  await pool.query("DELETE FROM instagram_posts WHERE mediaId = 'metrics-diagnostic-test'");
+  await pool.query(
+    "DELETE FROM instagram_posts WHERE mediaId IN ('metrics-diagnostic-test', 'metrics-first-day-test')"
+  );
   vi.doMock("./client", () => ({ getDb: () => drizzle(pool) }));
   vi.doMock("../demo/store", () => ({ isDemoMode: () => false }));
   metrics = await import("./instagramPosts");
@@ -86,5 +88,55 @@ it.skipIf(!testUrl)(
       saved: 2,
       shares: 1,
     });
+  }
+);
+
+it.skipIf(!testUrl)(
+  "preserves an existing partial first-day reading before late recovery atomically",
+  async () => {
+    await pool.query(`INSERT INTO instagram_posts (mediaId, postType, reach, saved, likes, metricsFetchedAt, createdAt)
+    VALUES ('metrics-first-day-test', 'reel', 100, 2, 0, DATE_SUB(NOW(), INTERVAL 42 HOUR), DATE_SUB(NOW(), INTERVAL 72 HOUR))`);
+    await metrics.updateInstagramPostMetrics(
+      "metrics-first-day-test",
+      { reach: 9000, saved: 100, shares: 80, likes: 50, comments: 3 },
+      { status: "complete", reason: null }
+    );
+    const read = async () =>
+      (await metrics.listInstagramPosts()).find((row) => row.mediaId === "metrics-first-day-test")!;
+    const recovered = await read();
+    expect(recovered).toMatchObject({ reach: 9000, saved: 100, shares: 80 });
+    expect(recovered.firstDayMetrics).toMatchObject({
+      reach: 100,
+      saved: 2,
+      shares: null,
+      likes: 0,
+      comments: null,
+    });
+    expect(recovered.firstDayMetrics!.capturedAtMs - recovered.createdAt.getTime()).toBe(
+      30 * 3600000
+    );
+    await metrics.updateInstagramPostMetrics("metrics-first-day-test", {
+      reach: 12000,
+      saved: 120,
+    });
+    expect((await read()).firstDayMetrics).toEqual(recovered.firstDayMetrics);
+
+    // A post without a saved first-day reading cannot acquire one from late counts.
+    await pool.query(
+      "UPDATE instagram_posts SET firstDayMetrics = NULL WHERE mediaId = 'metrics-first-day-test'"
+    );
+    await metrics.updateInstagramPostMetrics("metrics-first-day-test", { reach: 15000 });
+    expect((await read()).firstDayMetrics).toBeNull();
+
+    // A new in-window reading is captured, including genuine zeros.
+    await pool.query(
+      "UPDATE instagram_posts SET createdAt = DATE_SUB(NOW(), INTERVAL 30 HOUR), metricsFetchedAt = NULL, reach = NULL WHERE mediaId = 'metrics-first-day-test'"
+    );
+    await metrics.updateInstagramPostMetrics("metrics-first-day-test", {
+      reach: 0,
+      saved: 0,
+      shares: 0,
+    });
+    expect((await read()).firstDayMetrics).toMatchObject({ reach: 0, saved: 0, shares: 0 });
   }
 );

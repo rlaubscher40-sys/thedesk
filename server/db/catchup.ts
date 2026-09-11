@@ -355,6 +355,10 @@ export const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
     name: "insights · safe failure code",
     sql: "ALTER TABLE instagram_posts ADD metricsError VARCHAR(32) NULL",
   },
+  {
+    name: "insights · first-day snapshot",
+    sql: "ALTER TABLE instagram_posts ADD firstDayMetrics JSON NULL",
+  },
 ];
 
 /** MySQL/TiDB error message fragments that mean "already applied". */

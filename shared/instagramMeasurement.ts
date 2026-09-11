@@ -13,6 +13,24 @@ export const INSIGHT_FIELDS = [
 ] as const;
 export type MetricCounts = Partial<Record<(typeof INSIGHT_FIELDS)[number], number | null>>;
 
+/** One coherent, earliest usable first-day reading, independent of later retries. */
+export type FirstDayInsight = MetricCounts & { capturedAtMs: number };
+
+export function firstDayReading<T extends MeasuredPost & { firstDayMetrics?: unknown }>(row: T): T {
+  const saved = row.firstDayMetrics;
+  if (!saved || typeof saved !== "object" || Array.isArray(saved)) return row;
+  const snapshot = saved as Record<string, unknown>;
+  if (!Number.isSafeInteger(snapshot.capturedAtMs) || !validMetricCount(snapshot.reach)) return row;
+  const reading = {
+    ...row,
+    ...Object.fromEntries(
+      INSIGHT_FIELDS.map((key) => [key, validMetricCount(snapshot[key]) ? snapshot[key] : null])
+    ),
+    metricsFetchedAt: new Date(snapshot.capturedAtMs as number),
+  };
+  return inInsightWindow(reading) ? reading : row;
+}
+
 /** Operator-facing wording must preserve Meta's ambiguity and old snapshots. */
 export function insightAttemptLabel(
   status: string | null | undefined,
