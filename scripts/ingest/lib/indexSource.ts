@@ -50,6 +50,8 @@ export function parseIndexSource(html: string, source: Source): FetchedItem[] {
           url.origin === new URL(source.url).origin &&
           source.articlePath &&
           new RegExp(source.articlePath).test(url.pathname) &&
+          (!source.articleLinkClass ||
+            (attrs.class ?? "").split(/\s+/).includes(source.articleLinkClass)) &&
           inArticleContainer(node, source.articleContainerClass) &&
           title.length >= 18 &&
           !links.has(url.href)
