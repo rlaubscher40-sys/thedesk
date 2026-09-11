@@ -60,10 +60,33 @@ export function InstagramReelPanel() {
             {plan.data.schedule}.
           </p>
           <p className="text-sm">
-            The programme selects from six evidence-backed recipes automatically. Each topic posts
-            once per evidence period. At most one automatic Reel goes out per Sydney day; a second
-            eligible topic waits until tomorrow. Missing evidence, audio or subtitles means no post.
+            The programme selects from {plan.data.editorialQueue.length} evidence-backed recipes
+            automatically. Each topic posts once per evidence period. At most one automatic Reel
+            goes out per Sydney day; a second eligible topic waits until tomorrow. Missing evidence,
+            audio or subtitles means no post.
           </p>
+          {plan.data.summary.lastConfirmedPublication && (
+            <div className="rounded border border-[var(--color-border)] p-3 space-y-1 text-sm">
+              <p>
+                <strong>Last confirmed Reel</strong>
+              </p>
+              <p className="capitalize">{plan.data.summary.lastConfirmedPublication.family}</p>
+              <p>
+                Published{" "}
+                {new Intl.DateTimeFormat("en-AU", {
+                  timeZone: "Australia/Sydney",
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                }).format(new Date(plan.data.summary.lastConfirmedPublication.publishedAt))}{" "}
+                Sydney time.
+              </p>
+              <p>Source period: {plan.data.summary.lastConfirmedPublication.publication.date}.</p>
+              <p>Confirmed media ID: {plan.data.summary.lastConfirmedPublication.postId}</p>
+              <p className="text-xs text-[var(--color-fg-muted)]">
+                From the saved publication receipt. This is separate from the next selected story.
+              </p>
+            </div>
+          )}
           <div className="rounded border border-[var(--color-border)] p-3 space-y-2 text-sm">
             <p>
               <strong>Selected story:</strong>{" "}
@@ -105,10 +128,11 @@ export function InstagramReelPanel() {
             </summary>
             <p className="text-sm mt-3">
               Validate source, geography, units, periods and freshness → exclude published or locked
-              topics → prefer the newest reference month, then vary rents/supply → write the
-              recipe's hook, finding, meaning, limitation and next step → render the same script as
-              male narration and subtitles → publish in the Sydney window. Captions add the
-              definitions and source trail. No model call runs on the five-minute selection check.
+              topics → rotate to the family least recently published, with unfeatured families first
+              → break ties using the newest evidence → write the recipe's hook, finding, meaning,
+              limitation and next step → render the same script as male narration and subtitles →
+              publish in the Sydney window. Captions add the definitions and source trail. No model
+              call runs on the five-minute selection check.
             </p>
             <ul className="space-y-3 mt-3 text-sm">
               {plan.data.editorialQueue.map((entry) => (
@@ -146,7 +170,7 @@ export function InstagramReelPanel() {
                             : plan.data.publication === "locked"
                               ? "Publication needs inspection. The outcome may be uncertain, so automatic reposting is locked."
                               : plan.data.publication === "no-evidence"
-                                ? "No current matching ABS evidence is available."
+                                ? "No current matching evidence is available."
                                 : "The publication record is unavailable; publishing is blocked."}
           </p>
           {plan.data.detail && (

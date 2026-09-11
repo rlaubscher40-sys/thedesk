@@ -29,6 +29,37 @@ function sydneyDate(now: Date) {
 
 /** Content identity owns publication; a calendar watermark must not consume it. */
 export async function readReelAutomation(now = new Date()) {
+  let history;
+  try {
+    history = await readReelPublicationHistory(Object.keys(REEL_PUBLICATION_FAMILIES));
+  } catch {
+    return {
+      state: "unavailable" as const,
+      candidate: null,
+      date: sydneyDate(now),
+      lastConfirmedPublication: null,
+    };
+  }
+  const latest = [...history].sort(
+    (a, b) => b.publishedAt.getTime() - a.publishedAt.getTime() || a.key.localeCompare(b.key)
+  )[0];
+  // History is independent of today's evidence and selection. Keep the receipt
+  // visible after rotation, source withdrawal, and restarts, even while blocked.
+  const lastConfirmedPublication = latest
+    ? {
+        publication: { key: latest.key, date: latest.date },
+        family: REEL_PUBLICATION_FAMILIES[latest.key]!,
+        postId: latest.postId,
+        publishedAt: latest.publishedAt,
+      }
+    : null;
+  return { ...(await readReelSelection(now, history)), lastConfirmedPublication };
+}
+
+async function readReelSelection(
+  now: Date,
+  history: Awaited<ReturnType<typeof readReelPublicationHistory>>
+) {
   const candidates = await getVerifiedReelCandidates(now);
   const date = sydneyDate(now);
   let candidate = candidates[0] ?? null;
@@ -47,12 +78,6 @@ export async function readReelAutomation(now = new Date()) {
       candidate: candidates[blocked]!,
       date,
     };
-  let history;
-  try {
-    history = await readReelPublicationHistory(Object.keys(REEL_PUBLICATION_FAMILIES));
-  } catch {
-    return { state: "unavailable" as const, candidate, date };
-  }
   const available = chooseReelCandidate(
     candidates,
     records,

@@ -31,6 +31,12 @@ type Plan = {
   candidate?: { topic?: string; publication: { key: string; date: string } } | null;
   retryAt?: Date;
   postId?: string | null;
+  lastConfirmedPublication?: {
+    publication: { key: string; date: string };
+    family: string;
+    postId: string;
+    publishedAt: Date;
+  } | null;
 };
 export function describeReelPlan(
   plan: Plan,
@@ -65,6 +71,12 @@ export function describeReelPlan(
     selectedTopic: selection?.topic ?? null,
     selectedPublication: selection?.publication ?? null,
     confirmedPostId: plan.state === "published" ? (plan.postId ?? null) : null,
+    lastConfirmedPublication: plan.lastConfirmedPublication
+      ? {
+          ...plan.lastConfirmedPublication,
+          publishedAt: plan.lastConfirmedPublication.publishedAt.toISOString(),
+        }
+      : null,
     retryAt: plan.retryAt?.toISOString() ?? null,
     earliestCheckAt:
       enabled &&
@@ -94,6 +106,7 @@ export function logReelPlan(plan: Plan, enabled: boolean, configured: boolean, n
     blockers: summary.blockers,
     retryAt: summary.retryAt,
     confirmedPostId: summary.confirmedPostId,
+    lastConfirmedPublication: summary.lastConfirmedPublication,
   };
   const serialised = JSON.stringify(record);
   if (serialised !== previous) {

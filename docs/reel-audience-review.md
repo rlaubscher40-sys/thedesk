@@ -1,5 +1,29 @@
 # Housing Reel: audience review
 
+## Programme observation, 11 September 2026
+
+The scheduled new-home-loan-rates Reel was visible at
+https://www.instagram.com/p/DdI_NeUlEtG/ with the reviewed July 2026 caption.
+Runtime recorded media ID 18099779348127741 at 08:32:02 UTC (18:32 Sydney),
+then enforced the daily cap and selected interstate migration for 12 September.
+Instagram's insights panel showed 9 views, 5 viewers, 3 likes, no comments,
+saves, shares or follows, and 66.7% non-follower views. The panel labelled the
+post three hours old; no watch time, retention curve or completion was exposed.
+This is a small observational snapshot, not evidence of improved engagement.
+Our own inspection may affect such small counts. No reaction or post was sent.
+
+Reviewed the existing actual-source 27.6-second borrowing and 28.33-second
+migration MP4s: full video decode, scene samples and burned-in subtitles,
+with AAC narration (mean/max -22.2/-4.3 dB and -21.8/-4.4 dB respectively).
+Also inspected the borrowing Reel's published light layout. This was not an
+independent listening panel or a full Glasshouse audiovisual comparison.
+Keep the current Fable scripts and visual recipes pending stronger evidence.
+
+The concrete gap addressed in this follow-up is operational: the confirmed
+media ID disappeared from plan status when another family was selected.
+The latest durable receipt now stays separate from the next selected story.
+Current account-wide metrics do not justify a causal claim about this change.
+
 ## Ready to compare
 
 The question opening asks why buying is harder while homes are being built.

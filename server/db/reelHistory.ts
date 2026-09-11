@@ -9,13 +9,22 @@ export async function readReelPublicationHistory(keys: string[]) {
   if (!keys.length) return [];
   const db = getDb();
   if (!db || isDemoMode()) throw new Error("The durable Reel history is unavailable.");
-  const rows = await db
+  // Rank whole receipts, not individual columns: MAX(detail) could attach a
+  // different media ID/reference period to the most recent publication time.
+  const ranked = db
     .select({
       key: jobRuns.jobKey,
+      date: jobRuns.runDate,
+      detail: jobRuns.detail,
       publishedAt:
-        sql<number>`max(unix_timestamp(coalesce(${jobRuns.finishedAt}, ${jobRuns.startedAt}))) * 1000`.mapWith(
-          Number
-        ),
+        sql<number>`unix_timestamp(coalesce(${jobRuns.finishedAt}, ${jobRuns.startedAt})) * 1000`
+          .mapWith(Number)
+          .as("published_at"),
+      position: sql<number>`row_number() over (
+        partition by ${jobRuns.jobKey}
+        order by coalesce(${jobRuns.finishedAt}, ${jobRuns.startedAt}) desc,
+          ${jobRuns.runDate} desc, ${jobRuns.detail} desc
+      )`.as("receipt_position"),
     })
     .from(jobRuns)
     .where(
@@ -25,6 +34,12 @@ export async function readReelPublicationHistory(keys: string[]) {
         sql`${jobRuns.detail} regexp '^Published media [0-9]+$'`
       )
     )
-    .groupBy(jobRuns.jobKey);
-  return rows.map((row) => ({ key: row.key, publishedAt: new Date(row.publishedAt) }));
+    .as("ranked_reel_receipts");
+  const rows = await db.select().from(ranked).where(eq(ranked.position, 1));
+  return rows.map((row) => {
+    const postId = row.detail?.match(/^Published media (\d+)$/)?.[1];
+    if (!postId || !Number.isFinite(row.publishedAt) || row.publishedAt <= 0)
+      throw new Error("The durable Reel receipt is invalid.");
+    return { key: row.key, date: row.date, postId, publishedAt: new Date(row.publishedAt) };
+  });
 }
