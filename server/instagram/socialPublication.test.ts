@@ -15,6 +15,8 @@ import {
 import { storyPublicationKeys } from "./socialProvenance";
 const story = {
   id: 42,
+  feedDate: "2026-09-08",
+  createdAt: new Date("2026-09-07T20:43:00Z"),
   title: "Sydney rents rose 3.5%",
   sourceUrl: "https://abs.gov.au/rents",
 } as DailyFeedItem;
@@ -48,6 +50,16 @@ describe("permanent carousel publication identities", () => {
     expect(storyPublicationKeys(story).every((key) => key.length === 64)).toBe(true);
     expect(JSON.parse(records.get(socialSlotKey("daily:2026-09-08"))!.detail).storyIds).toEqual([
       42,
+    ]);
+    expect(
+      JSON.parse(records.get(socialSlotKey("daily:2026-09-08"))!.detail).storyEvidence
+    ).toEqual([
+      {
+        id: 42,
+        feedDate: "2026-09-08",
+        importedAt: "2026-09-07T20:43:00.000Z",
+        sourceTiming: null,
+      },
     ]);
   });
   it("never retries an uncertain Meta response, including after restart", async () => {

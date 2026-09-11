@@ -15,6 +15,7 @@ import { listInstagramPosts } from "../db/instagramPosts";
 import { adminProcedure, publicProcedure, router } from "../core/trpc";
 import { cached } from "../core/cache";
 import { publishedSocialStories } from "../instagram/publishedStories";
+import { publicationAudit } from "../instagram/publicationAudit";
 import { LAUNCH_POST_IDS } from "../../shared/instagramLaunch";
 import { launchPostStatus, previewLaunchPost, publishLaunchPost } from "../instagram/launch";
 
@@ -54,6 +55,7 @@ function describeFailure(status: number, body: string): string {
 }
 
 export const instagramRouter = router({
+  publicationAudit: adminProcedure.query(() => publicationAudit()),
   publishedStories: publicProcedure.query(() =>
     cached("social:published-stories", 60_000, () => publishedSocialStories())
   ),

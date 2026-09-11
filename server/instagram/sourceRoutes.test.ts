@@ -7,7 +7,9 @@ const m = vi.hoisted(() => ({
   metrics: vi.fn(),
   weekly: vi.fn(),
   record: vi.fn(),
+  insights: vi.fn(),
 }));
+vi.mock("./collectInsights", () => ({ collectInstagramInsights: m.insights }));
 vi.mock("../core/env", () => ({
   env: {
     scheduledApiKey: "fixture",
@@ -57,6 +59,27 @@ beforeEach(() => {
 });
 afterEach(() => vi.useRealTimers());
 describe("actual scheduled social entrypoints", () => {
+  it("waits for insights collection and returns its real partial result", async () => {
+    const summary = {
+      selected: 2,
+      complete: 1,
+      unavailable: 1,
+      partial: 0,
+      failed: 0,
+      deferred: 0,
+      persistenceFailed: 0,
+    };
+    m.insights.mockResolvedValue(summary);
+    const res = await request("/api/ingest/instagram-insights");
+    expect(m.insights).toHaveBeenCalledOnce();
+    expect(res.json).toHaveBeenCalledWith({ success: true, ...summary });
+  });
+  it("reports a failed insights collection instead of acknowledging queued work", async () => {
+    m.insights.mockRejectedValue(new Error("database unavailable"));
+    const res = await request("/api/ingest/instagram-insights");
+    expect(res.status).toHaveBeenCalledWith(503);
+    expect(m.publish).not.toHaveBeenCalled();
+  });
   it.each(["scheduled", "ingest"])(
     "%s daily does not fall back to yesterday or publish an empty run",
     async (prefix) => {

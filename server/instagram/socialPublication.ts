@@ -6,6 +6,7 @@ import {
   confirmSocialRecords,
 } from "../db/socialPublication";
 import { storyPublicationKeys } from "./socialProvenance";
+import { sourceTimingSchema } from "../../shared/sourceTiming";
 
 export function socialSlotKey(scope: string) {
   return "ig-slot-" + createHash("sha256").update(scope).digest("hex").slice(0, 56);
@@ -62,16 +63,30 @@ export async function publishSocialOnce(
   if (!/^\d+$/.test(postId))
     throw new Error("Instagram returned no valid media ID; publication remains locked");
   const storyIds = stories.map((story) => story.id);
+  const storyEvidence = stories.slice(0, 4).map((story) => ({
+    id: story.id,
+    feedDate: story.feedDate,
+    importedAt:
+      story.createdAt instanceof Date && Number.isFinite(story.createdAt.getTime())
+        ? story.createdAt.toISOString()
+        : null,
+    // A publisher timestamp is a claim. Feed-only dates remain unconfirmed.
+    sourceTiming: sourceTimingSchema.safeParse(story.sourceTiming).data ?? null,
+  }));
   await confirmSocialRecords(
     keys,
     JSON.stringify({
       postId,
       headline,
       coverVariant,
+      storyEvidence,
       ...(storyIds.length <= 4 && storyIds.every((id) => Number.isSafeInteger(id) && id > 0)
         ? { storyIds }
         : {}),
     })
+  );
+  console.log(
+    "[instagram-publication] confirmed " + JSON.stringify({ scope, mediaId: postId, storyEvidence })
   );
   return postId;
 }

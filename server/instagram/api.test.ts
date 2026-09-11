@@ -10,7 +10,7 @@
  * it must retry at all, and it must not retry forever.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchMediaMetrics, fetchPublishingLimit } from "./api";
+import { fetchMediaMetrics, fetchMediaMetricsResult, fetchPublishingLimit } from "./api";
 
 const QUOTA_BODY = {
   data: [{ quota_usage: 3, config: { quota_total: 50, quota_duration: 86400 } }],
@@ -39,6 +39,48 @@ afterEach(() => {
 });
 
 describe("fetchMediaMetrics", () => {
+  it("classifies an inaccessible media ID without claiming deletion or making a second read", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        errorResponse(400, JSON.stringify({ error: { code: 100, error_subcode: 33 } }))
+      );
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await fetchMediaMetricsResult({ mediaId: "123", accessToken: "tok" });
+    expect(result).toMatchObject({ status: "unavailable", reason: "media_unavailable" });
+    expect(Object.values(result.metrics).every((value) => value === null)).toBe(true);
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    [190, "unavailable", "access_denied"],
+    [4, "failed", "rate_limited"],
+  ])("stops reads on account-wide error %s", async (code, status, reason) => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(errorResponse(400, JSON.stringify({ error: { code } })));
+    vi.stubGlobal("fetch", fetchMock);
+    expect(await fetchMediaMetricsResult({ mediaId: "123", accessToken: "tok" })).toMatchObject({
+      status,
+      reason,
+    });
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("keeps good node counts when only insights are denied", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(okResponse({ like_count: 0, comments_count: 2 }))
+        .mockResolvedValueOnce(errorResponse(400, JSON.stringify({ error: { code: 10 } })))
+    );
+    expect(await fetchMediaMetricsResult({ mediaId: "123", accessToken: "tok" })).toMatchObject({
+      status: "partial",
+      reason: "access_denied",
+      metrics: { likes: 0, comments: 2, saved: null },
+    });
+  });
   it("keeps missing and malformed counts unknown, accepts zero, and bounds both reads", async () => {
     const fetchMock = vi
       .fn()

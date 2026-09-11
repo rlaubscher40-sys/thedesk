@@ -1,4 +1,5 @@
 import { INSTAGRAM_FEED_SLOTS } from "@shared/instagramSchedule";
+import { insightAttemptLabel } from "@shared/instagramMeasurement";
 import { useState } from "react";
 import { InstagramLaunchPanel } from "./InstagramLaunchPanel";
 import { InstagramReelPanel } from "./InstagramReelPanel";
@@ -469,16 +470,24 @@ export function InstagramAdminPanel() {
           <table className="w-full text-xs border-collapse min-w-[680px]">
             <thead>
               <tr className="border-b border-[var(--color-border)]">
-                {["Date", "Type", "Headline", "Likes", "Comments", "Reach", "Saved", "Shares"].map(
-                  (h) => (
-                    <th
-                      key={h}
-                      className="pb-2 text-left font-mono uppercase tracking-[0.16em] text-[var(--color-fg-subtle)] pr-4 whitespace-nowrap"
-                    >
-                      {h}
-                    </th>
-                  )
-                )}
+                {[
+                  "Date",
+                  "Type",
+                  "Headline",
+                  "Likes",
+                  "Comments",
+                  "Reach",
+                  "Saved",
+                  "Shares",
+                  "Latest metrics attempt",
+                ].map((h) => (
+                  <th
+                    key={h}
+                    className="pb-2 text-left font-mono uppercase tracking-[0.16em] text-[var(--color-fg-subtle)] pr-4 whitespace-nowrap"
+                  >
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -510,6 +519,22 @@ export function InstagramAdminPanel() {
                   </td>
                   <td className="py-2.5 tabular-nums text-right text-[var(--color-fg-muted)]">
                     {fmt(p.shares)}
+                  </td>
+                  <td className="py-2.5 pl-4 text-[var(--color-fg-muted)] min-w-[190px]">
+                    {insightAttemptLabel(p.metricsStatus, p.metricsError)}
+                    {p.metricsAttemptedAt && (
+                      <span className="block font-mono text-[10px]">
+                        {new Date(p.metricsAttemptedAt).toLocaleString("en-AU", {
+                          timeZone: "Australia/Sydney",
+                        })}{" "}
+                        Sydney
+                      </span>
+                    )}
+                    {p.metricsAttemptedAt &&
+                      p.metricsFetchedAt &&
+                      new Date(p.metricsFetchedAt) < new Date(p.metricsAttemptedAt) && (
+                        <span className="block">Counts retained from an earlier reading.</span>
+                      )}
                   </td>
                 </tr>
               ))}

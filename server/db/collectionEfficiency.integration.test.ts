@@ -223,6 +223,7 @@ it.skipIf(!testUrl)(
   "commits one durable job with the winning story and rolls both back on failure",
   async () => {
     const id = await freshJob("atomic");
+    expect(await recovery.feedEnrichmentStates([id])).toMatchObject([{ feedItemId: id, status: "pending", attempts: 0 }]);
     expect(
       await claims.insertFeedOnce({
         ...item,

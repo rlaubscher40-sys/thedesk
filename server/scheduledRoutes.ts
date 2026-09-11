@@ -301,6 +301,31 @@ function registerDailyFeedRoute(app: Express): void {
     // was dropped during the row-by-row fallback, so the honest count is the
     // number of non-zero ids, not the input length.
     const insertedCount = insertedIds.filter((id) => id > 0).length;
+    // Correlate the actual inserted rows with enrichment outcomes and the
+    // later confirmed social receipt. Never log article text or credentials.
+    console.log(
+      "[daily-feed] receipt " +
+        JSON.stringify({
+          received: parsed.data.items.length,
+          accepted: timingChecked.length,
+          inserted: insertedCount,
+          heldForDate,
+          heldForQuality,
+          duplicates: skippedCount + duplicateCount,
+          dropped: failedCount,
+          rows: freshItems.flatMap((item, index) =>
+            insertedIds[index]! > 0
+              ? [
+                  {
+                    id: insertedIds[index],
+                    feedDate: item.feedDate,
+                    enrichment: isEnrichedChannel(item.channel) ? "queued" : "not_required",
+                  },
+                ]
+              : []
+          ),
+        })
+    );
     res.json({
       success: true,
       count: insertedCount,
@@ -2005,28 +2030,16 @@ function registerInstagramRoutes(app: Express): void {
       res.status(503).json({ error: "Instagram credentials not configured" });
       return;
     }
-    res.json({ success: true, message: "Instagram insights refresh queued" });
-
-    setImmediate(async () => {
-      try {
-        const { fetchMediaMetrics } = await import("./instagram/api");
-        const posts = await db.listInstagramPostsNeedingMetrics();
-        let attempted = 0;
-        for (const post of posts) {
-          const metrics = await fetchMediaMetrics({
-            mediaId: post.mediaId,
-            accessToken: instagramAccessToken,
-          });
-          await db.updateInstagramPostMetrics(post.mediaId, metrics);
-          attempted++;
-        }
-        console.log(
-          `[instagram] insights collection attempted for ${attempted}/${posts.length} posts`
-        );
-      } catch (err) {
-        console.error("[instagram] insights refresh failed:", (err as Error).message);
-      }
-    });
+    try {
+      const { collectInstagramInsights } = await import("./instagram/collectInsights");
+      const summary = await collectInstagramInsights(instagramAccessToken);
+      // A completed collection may contain unavailable/partial posts. Report
+      // those explicitly; scheduler completion is never proof of valid metrics.
+      res.json({ success: true, ...summary });
+    } catch {
+      console.error("[instagram-insights] collection unavailable");
+      res.status(503).json({ error: "Instagram insights collection unavailable" });
+    }
   };
   app.post("/api/scheduled/instagram-insights", scheduledLimiter, insightsHandler);
   app.post("/api/ingest/instagram-insights", scheduledLimiter, insightsHandler);

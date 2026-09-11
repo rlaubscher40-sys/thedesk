@@ -24,6 +24,7 @@ import { isDemoMode } from "../demo/store";
 import { getDb } from "./client";
 import { INSTAGRAM_POST_TYPES, type InstagramPostType } from "../../shared/const";
 import { instagramPosts, type InsertInstagramPost, type InstagramPost } from "./schema";
+import type { MediaMetricsResult } from "../instagram/api";
 
 export type InstagramPostMetrics = {
   likes?: number | null;
@@ -63,11 +64,15 @@ export async function recordInstagramPost(
  * can recover for seven days; late recovery stays out of format comparisons.
  */
 export async function listInstagramPostsNeedingMetrics(
-  withinDays = INSIGHT_RETRY_DAYS
+  withinDays = INSIGHT_RETRY_DAYS,
+  strict = false
 ): Promise<InstagramPost[]> {
   if (isDemoMode()) return [];
   const db = getDb();
-  if (!db) return [];
+  if (!db) {
+    if (strict) throw new Error("Instagram metrics database unavailable");
+    return [];
+  }
   try {
     const now = new Date();
     const since = new Date(
@@ -82,6 +87,7 @@ export async function listInstagramPostsNeedingMetrics(
       .limit(200);
     return rows.filter((row) => needsInsightRefresh(row, now)).slice(0, INSIGHT_BATCH_LIMIT);
   } catch (err) {
+    if (strict) throw new Error("Instagram metrics query failed");
     console.warn("[instagramPosts] needing-metrics query failed:", (err as Error).message);
     return [];
   }
@@ -90,24 +96,34 @@ export async function listInstagramPostsNeedingMetrics(
 /** Backfill engagement metrics for a post. Never throws. */
 export async function updateInstagramPostMetrics(
   mediaId: string,
-  metrics: InstagramPostMetrics
-): Promise<void> {
-  if (isDemoMode()) return;
+  metrics: InstagramPostMetrics,
+  attempt?: Pick<MediaMetricsResult, "status" | "reason">
+): Promise<boolean> {
+  if (isDemoMode()) return false;
   const db = getDb();
-  if (!db) return;
+  if (!db) return false;
   // Never erase a prior snapshot when both provider reads failed. Partial
   // snapshots replace all fields together so different observation ages cannot mix.
   const snapshot = Object.fromEntries(
     INSIGHT_FIELDS.map((key) => [key, validMetricCount(metrics[key]) ? metrics[key] : null])
   );
-  if (!Object.values(snapshot).some(validMetricCount)) return;
+  const hasCounts = Object.values(snapshot).some(validMetricCount);
+  if (!hasCounts && !attempt) return false;
+  const now = new Date();
   try {
     await db
       .update(instagramPosts)
-      .set({ ...snapshot, metricsFetchedAt: new Date() })
+      .set({
+        ...(hasCounts ? { ...snapshot, metricsFetchedAt: now } : {}),
+        ...(attempt
+          ? { metricsAttemptedAt: now, metricsStatus: attempt.status, metricsError: attempt.reason }
+          : {}),
+      })
       .where(eq(instagramPosts.mediaId, mediaId));
+    return true;
   } catch (err) {
     console.warn(`[instagramPosts] metrics update failed for ${mediaId}:`, (err as Error).message);
+    return false;
   }
 }
 

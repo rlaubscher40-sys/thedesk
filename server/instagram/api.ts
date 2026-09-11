@@ -1,4 +1,4 @@
-import { validMetricCount } from "../../shared/instagramMeasurement";
+import { completeInsightCounts, validMetricCount } from "../../shared/instagramMeasurement";
 import { assertCaptionStyle, CaptionStyleError } from "./captionStyle";
 /**
  * Instagram Graph API client.
@@ -327,6 +327,42 @@ export type MediaMetrics = {
   totalInteractions: number | null;
 };
 
+export type MediaMetricsResult = {
+  metrics: MediaMetrics;
+  status: "complete" | "partial" | "unavailable" | "failed";
+  reason:
+    | "media_unavailable"
+    | "access_denied"
+    | "rate_limited"
+    | "provider_unavailable"
+    | "request_failed"
+    | "incomplete_metrics"
+    | null;
+};
+
+class InstagramReadError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code?: number,
+    readonly subcode?: number
+  ) {
+    super(message);
+  }
+}
+
+function metricsFailure(err: unknown): NonNullable<MediaMetricsResult["reason"]> {
+  if (err instanceof InstagramReadError) {
+    // This response is ambiguous: never describe it as a confirmed deletion.
+    if (err.code === 100 && err.subcode === 33) return "media_unavailable";
+    if (err.code === 190 || err.code === 10 || err.code === 200 || err.status === 401)
+      return "access_denied";
+    if (isRateLimitError(err)) return "rate_limited";
+    if (err.status >= 500) return "provider_unavailable";
+  }
+  return "request_failed";
+}
+
 async function igGet<T>(
   endpoint: string,
   params: Record<string, string>,
@@ -336,7 +372,21 @@ async function igGet<T>(
   const res = await fetch(`${BASE}${endpoint}?${qs}`, signal ? { signal } : undefined);
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
-    throw new Error(`Instagram API ${res.status} at ${endpoint}: ${detail.slice(0, 500)}`);
+    let code: number | undefined;
+    let subcode: number | undefined;
+    try {
+      const error = JSON.parse(detail).error;
+      code = typeof error?.code === "number" ? error.code : undefined;
+      subcode = typeof error?.error_subcode === "number" ? error.error_subcode : undefined;
+    } catch {
+      /* Non-JSON provider failure. */
+    }
+    throw new InstagramReadError(
+      `Instagram API ${res.status} at ${endpoint}: ${detail.slice(0, 500)}`,
+      res.status,
+      code,
+      subcode
+    );
   }
   return res.json() as Promise<T>;
 }
@@ -352,6 +402,13 @@ export async function fetchMediaMetrics(opts: {
   mediaId: string;
   accessToken: string;
 }): Promise<MediaMetrics> {
+  return (await fetchMediaMetricsResult(opts)).metrics;
+}
+
+export async function fetchMediaMetricsResult(opts: {
+  mediaId: string;
+  accessToken: string;
+}): Promise<MediaMetricsResult> {
   const metrics: MediaMetrics = {
     likes: null,
     comments: null,
@@ -360,6 +417,7 @@ export async function fetchMediaMetrics(opts: {
     shares: null,
     totalInteractions: null,
   };
+  let reason: MediaMetricsResult["reason"] = null;
 
   // 1. Reliable node fields.
   try {
@@ -371,7 +429,11 @@ export async function fetchMediaMetrics(opts: {
     metrics.likes = validMetricCount(fields.like_count) ? fields.like_count : null;
     metrics.comments = validMetricCount(fields.comments_count) ? fields.comments_count : null;
   } catch (err) {
-    console.warn(`[instagram] media fields failed for ${opts.mediaId}:`, (err as Error).message);
+    reason = metricsFailure(err);
+    // A second request for the same inaccessible node cannot recover it.
+    // Leave old snapshots intact and allow a later scheduled read to recover.
+    if (["media_unavailable", "access_denied", "rate_limited"].includes(reason))
+      return { metrics, status: reason === "rate_limited" ? "failed" : "unavailable", reason };
   }
 
   // 2. Insights (best-effort; metric availability varies by API version).
@@ -395,10 +457,21 @@ export async function fetchMediaMetrics(opts: {
       else if (row.name === "total_interactions") metrics.totalInteractions = value;
     }
   } catch (err) {
-    console.warn(`[instagram] insights failed for ${opts.mediaId}:`, (err as Error).message);
+    reason = metricsFailure(err);
   }
 
-  return metrics;
+  const status = completeInsightCounts(metrics)
+    ? "complete"
+    : Object.values(metrics).some(validMetricCount)
+      ? "partial"
+      : reason === "media_unavailable" || reason === "access_denied"
+        ? "unavailable"
+        : "failed";
+  return {
+    metrics,
+    status,
+    reason: status === "complete" ? null : (reason ?? "incomplete_metrics"),
+  };
 }
 
 export type PublishingLimit = {
