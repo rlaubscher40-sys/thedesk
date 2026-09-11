@@ -30,7 +30,7 @@ export function StatePopulationRead({
     read: annualStateDemographics(data, state, asOf),
   }));
   return (
-    <section className="rule-hair pt-5 mt-5" aria-label="State population and migration context">
+    <section id="state-population" className="rule-hair pt-5 mt-5" aria-label="State population and migration context">
       <p className="bs-label-accent">Demand context · State population</p>
       <h2 className="font-serif text-3xl mt-2">Where population changed.</h2>
       <div className="grid sm:grid-cols-2 gap-x-8 mt-4">

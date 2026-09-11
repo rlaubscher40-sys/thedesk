@@ -1,3 +1,4 @@
+import { testLoanRates, testMigration } from "./fixtures/contextReels";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 const m = vi.hoisted(() => ({
   env: {
@@ -9,6 +10,8 @@ const m = vi.hoisted(() => ({
   data: vi.fn(),
   approvals: vi.fn(),
   housing: vi.fn(),
+  demographics: vi.fn(),
+  lending: vi.fn(),
   read: vi.fn(),
   claim: vi.fn(),
   mark: vi.fn(),
@@ -16,6 +19,8 @@ const m = vi.hoisted(() => ({
   alert: vi.fn(),
   expire: vi.fn(),
 }));
+vi.mock("../markets/absDemographics", () => ({ getStateDemographics: m.demographics }));
+vi.mock("../markets/reelLendingRates", () => ({ getReelLendingRates: m.lending }));
 vi.mock("../core/env", () => ({ env: m.env }));
 vi.mock("../markets/absRents", () => ({ getCityRents: m.data }));
 vi.mock("../markets/absApprovals", () => ({ getCityApprovals: m.approvals }));
@@ -38,6 +43,8 @@ beforeEach(() => {
   vi.resetAllMocks();
   published = false;
   m.housing.mockResolvedValue(null);
+  m.demographics.mockResolvedValue({ status: "unavailable", retrievedAt: null, observations: [] });
+  m.lending.mockResolvedValue([]);
   m.approvals.mockResolvedValue({ status: "unavailable", observations: [] });
   m.env.enableScheduler = true;
   m.env.instagramAccessToken = "test";
@@ -386,4 +393,34 @@ it("waits until the Sydney evening window without consuming a delivery attempt",
   expect((await readReelAutomation(new Date("2026-09-09T08:29:00Z"))).state).toBe("scheduled");
   expect((await readReelAutomation(new Date("2026-09-09T08:30:00Z"))).state).toBe("ready");
   expect(m.claim).not.toHaveBeenCalled();
+});
+
+describe("new family permanent publication records", () => {
+  it("moves from published borrowing to population without reopening either period", async () => {
+    m.data.mockResolvedValue({ status: "unavailable", retrievedAt: null, observations: [] });
+    m.lending.mockResolvedValue(testLoanRates());
+    m.demographics.mockResolvedValue(testMigration());
+    const date = new Date("2026-09-11T08:30:00Z");
+    const loans = "instagram-reel-rba-new-loan-rates-v1";
+    const migration = "instagram-reel-abs-interstate-qld-wa-v1";
+    expect((await readReelAutomation(date)).candidate?.publication.key).toBe(loans);
+    m.read.mockImplementation(async (key: string) =>
+      key === loans
+        ? {
+            status: "success",
+            detail: "Published media 234567",
+            finishedAt: new Date("2026-09-10T08:45:00Z"),
+          }
+        : null
+    );
+    expect((await readReelAutomation(date)).candidate?.publication.key).toBe(migration);
+    m.read.mockResolvedValue({
+      status: "success",
+      detail: "Published media 234567",
+      finishedAt: new Date("2026-09-10T08:45:00Z"),
+    });
+    expect((await readReelAutomation(date)).state).toBe("published");
+    expect(m.post).not.toHaveBeenCalled();
+    expect(m.claim).not.toHaveBeenCalled();
+  });
 });

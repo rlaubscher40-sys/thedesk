@@ -201,6 +201,8 @@ export function parseRbaHousingRates(csv: string, retrievedAt: Date): RbaHousing
     throw new Error("Invalid RBA F6 observation rows");
   }
   const validObservations = observations as Array<{ row: string[]; date: Date }>;
+  if (new Set(validObservations.map((row) => row.date.getTime())).size !== validObservations.length)
+    throw new Error("Duplicate RBA F6 observation date");
   const latest = validObservations.reduce((best, entry) => (entry.date > best.date ? entry : best));
 
   return columns.map(({ seriesId, column, publicationDate }) => {
@@ -256,7 +258,7 @@ export function housingRateMetrics(rates: RbaHousingRate[]): RbaHousingRateMetri
   });
 }
 
-export async function fetchRbaHousingRateMetrics(): Promise<RbaHousingRateMetric[]> {
+export async function fetchRbaHousingRates(): Promise<RbaHousingRate[]> {
   try {
     const response = await fetch(F6_CSV_URL, {
       headers: { Accept: "text/csv", "User-Agent": USER_AGENT },
@@ -266,9 +268,13 @@ export async function fetchRbaHousingRateMetrics(): Promise<RbaHousingRateMetric
       throw new Error(`RBA F6 returned ${response.status}`);
     }
     const csv = await response.text();
-    return housingRateMetrics(parseRbaHousingRates(csv, new Date()));
+    return parseRbaHousingRates(csv, new Date());
   } catch (error) {
     console.warn("[metrics] RBA F6 unavailable:", (error as Error).message);
     return [];
   }
+}
+
+export async function fetchRbaHousingRateMetrics(): Promise<RbaHousingRateMetric[]> {
+  return housingRateMetrics(await fetchRbaHousingRates());
 }

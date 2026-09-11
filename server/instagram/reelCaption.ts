@@ -7,6 +7,8 @@ export const REEL_READS = {
   sydneySupply: SOCIAL_DESTINATIONS[2],
   supplyComparison: SOCIAL_DESTINATIONS[3],
   housingBalance: SOCIAL_DESTINATIONS[4],
+  newLoanRates: SOCIAL_DESTINATIONS[5],
+  interstateMigration: SOCIAL_DESTINATIONS[6],
   capitalRents: { label: "All eight capital-city rent figures", path: "/social" },
 } as const;
 export const REEL_CAPTION_LIMIT = 1400;
@@ -50,6 +52,8 @@ export function reelReadingCta(read: keyof typeof REEL_READS) {
   };
 }
 const CAMPAIGNS = {
+  newLoanRates: "new_home_loan_rates",
+  interstateMigration: "interstate_migration",
   rentComparison: "property_editorial_reel",
   sydneyRent: "sydney_rent_change",
   sydneySupply: "sydney_before_buy",
@@ -89,7 +93,7 @@ export function buildReelCaption(input: {
   url.searchParams.set("utm_campaign", CAMPAIGNS[input.read]);
   const caption = [
     ...paragraphs.map((p) => p.trim()),
-    `Bio → ${reading.label}. Figures, definitions and ABS source links:\n${url}`,
+    `Bio → ${reading.label}. Figures, definitions and source links:\n${url}`,
     "Source pages update; match the post's reference period.",
     "AI narration.\n#AusProperty #PropertyData #TheDesk",
   ].join("\n\n");

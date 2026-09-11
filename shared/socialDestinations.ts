@@ -25,6 +25,16 @@ export const SOCIAL_DESTINATIONS = [
     detail: "Matched supply and demand, the 55,000 gap and the source.",
     path: "/markets/housing-balance",
   },
+  {
+    label: "New home-loan rates",
+    detail: "Average new owner-occupier and investor rates, with RBA sources.",
+    path: "/social#new-loan-rates",
+  },
+  {
+    label: "Queensland and WA migration",
+    detail: "State population and net migration in the comparison's demand context.",
+    path: "/markets/compare/brisbane-vs-perth#state-population",
+  },
 ] as const;
 export function socialStoryPath(value: string): string | null {
   if (!/^[1-9]\d{0,9}$/.test(value)) return null;

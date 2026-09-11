@@ -1,8 +1,17 @@
+import { contextNow, testLoanRates, testMigration } from "./fixtures/contextReels";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { parseAbsApprovals } from "../markets/absApprovals";
 import { RENT_CITIES } from "../../shared/cityRents";
-const m = vi.hoisted(() => ({ rents: vi.fn(), approvals: vi.fn(), balance: vi.fn() }));
+const m = vi.hoisted(() => ({
+  rents: vi.fn(),
+  approvals: vi.fn(),
+  balance: vi.fn(),
+  demographics: vi.fn(),
+  lending: vi.fn(),
+}));
+vi.mock("../markets/absDemographics", () => ({ getStateDemographics: m.demographics }));
+vi.mock("../markets/reelLendingRates", () => ({ getReelLendingRates: m.lending }));
 vi.mock("../markets/absRents", () => ({ getCityRents: m.rents }));
 vi.mock("../markets/absApprovals", async (original) => ({
   ...(await original<typeof import("../markets/absApprovals")>()),
@@ -19,6 +28,8 @@ beforeEach(() => {
   m.rents.mockResolvedValue({ status: "unavailable", retrievedAt: null, observations: [] });
   m.approvals.mockResolvedValue({ status: "unavailable", retrievedAt: null, observations: [] });
   m.balance.mockResolvedValue(null);
+  m.demographics.mockResolvedValue({ status: "unavailable", retrievedAt: null, observations: [] });
+  m.lending.mockResolvedValue([]);
 });
 describe("repeatable automatic editorial selection", () => {
   it("passes all six verified recipes through the shared production gate", async () => {
@@ -52,9 +63,16 @@ describe("repeatable automatic editorial selection", () => {
     expect(candidates).toHaveLength(6);
     expect(new Set(candidates.map((candidate) => candidate.publication.key)).size).toBe(6);
   });
+  it("adds borrowing and population families without requiring rent or approval evidence", async () => {
+    m.demographics.mockResolvedValue(testMigration());
+    m.lending.mockResolvedValue(testLoanRates());
+    const candidates = await getVerifiedReelCandidates(contextNow);
+    expect(candidates.map((c) => c.family)).toEqual(["borrowing", "population"]);
+    expect(new Set(candidates.map((c) => c.publication.key)).size).toBe(2);
+  });
   it("explains every withheld recipe without inventing a story", async () => {
     const programme = await getVerifiedReelProgramme();
-    expect(programme).toHaveLength(6);
+    expect(programme).toHaveLength(8);
     expect(programme.every((p) => !p.candidate && p.requirement.length > 10)).toBe(true);
     expect(await getVerifiedReelCandidates()).toEqual([]);
   });

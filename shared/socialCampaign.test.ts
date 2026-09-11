@@ -11,6 +11,12 @@ describe("social destination and attribution boundaries", () => {
       "rent_change"
     );
     expect(socialCampaign({ source: "instagram", campaign: "person@example.com" })).toBe("other");
+    expect(socialCampaign({ source: "instagram", campaign: "new_home_loan_rates" })).toBe(
+      "borrowing"
+    );
+    expect(socialCampaign({ source: "instagram", campaign: "interstate_migration" })).toBe(
+      "population"
+    );
     expect(socialCampaign({ source: "google", campaign: "bio" })).toBeUndefined();
     expect(socialCampaign({ source: "instagram", campaign: "__proto__" })).toBe("other");
   });
@@ -19,7 +25,11 @@ describe("social destination and attribution boundaries", () => {
     for (const value of ["-1", "0", "//evil.test", "1?token=secret", "1.1", "1234567890123"])
       expect(socialStoryPath(value)).toBeNull();
     expect(
-      SOCIAL_DESTINATIONS.every((d) => d.path.startsWith("/markets/") && !d.path.includes("?"))
+      SOCIAL_DESTINATIONS.every(
+        (d) =>
+          (d.path.startsWith("/markets/") || d.path === "/social#new-loan-rates") &&
+          !d.path.includes("?")
+      )
     ).toBe(true);
   });
   it("excludes known foreign homonyms without matching the pronoun us", () => {

@@ -1,3 +1,4 @@
+import { NewLoanRatesRead } from "@shared/NewLoanRatesRead";
 import { SocialStart } from "@/components/SocialStart";
 import { SubscribeBand } from "@/components/broadsheet/SubscribeBand";
 import { trpc } from "@/lib/trpc";
@@ -14,6 +15,7 @@ import {
 export default function SocialSources() {
   useDocumentTitle("Reel sources and property evidence");
   const rents = trpc.markets.rentalConditions.useQuery(undefined, { staleTime: 60_000, retry: 1 });
+  const lending = trpc.markets.newLoanRates.useQuery(undefined, { staleTime: 60_000, retry: 1 });
   return (
     <>
       <h1 className="font-serif text-4xl sm:text-5xl">From the post to the evidence.</h1>
@@ -107,6 +109,7 @@ export default function SocialSources() {
           </a>
         </div>
       </section>
+      <NewLoanRatesRead rates={lending.data ?? []} loading={lending.isLoading} />
       <SubscribeBand
         source="social-sources"
         kicker="Keep reading · free daily email"

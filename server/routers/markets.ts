@@ -1,3 +1,4 @@
+import { getReelLendingRates } from "../markets/reelLendingRates";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { publicMarket } from "../../shared/marketDirectory";
@@ -19,6 +20,7 @@ import { buildComparisonMessages, comparisonResponseFormat } from "../prompts/ma
 
 export const marketsRouter = router({
   localData: publicProcedure.input(z.object({query: z.string().trim().min(2).max(80), state: z.enum(STATE_CODES).optional(), kind: z.enum(["SA2", "postcode", "suburb", "LGA", "state"]).optional()})).query(({input}) => getLocalData(input.query, input.state, input.kind)),
+  newLoanRates: publicProcedure.query(() => getReelLendingRates()),
   rentalConditions: publicProcedure.query(() => getCityRents()),
   discovery: publicProcedure.query(() => getMarketDirectory()),
   publicFile: publicProcedure
