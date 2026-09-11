@@ -152,7 +152,7 @@ export function InstagramReelPanel() {
           </p>
           <p className="text-sm" role="status">
             {plan.data.publication === "published"
-              ? `Published to Instagram. Confirmed media ID: ${plan.data.postId}.`
+              ? "All currently eligible stories have confirmed publication receipts. Another episode needs new qualifying evidence."
               : !plan.data.schedulerEnabled || !plan.data.accountConfigured
                 ? "Automatic publishing is off. Check the scheduler and connected account configuration."
                 : plan.data.publication === "ready"
