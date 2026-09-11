@@ -8,6 +8,7 @@
  * matches Ruben's voice: calm, refuses to perform certainty.
  */
 import { invokeLLM } from "../core/llm";
+import { editorialTimeContext, validEditorialAngle } from "../../shared/editorialTiming";
 
 export type CounterpointInput = {
   title: string;
@@ -57,7 +58,7 @@ export async function generateCounterpoint(input: CounterpointInput): Promise<st
           content:
             "You write sharp, calm, one-sentence counterpoints that name the tension a news story glosses over, OR you respond with the literal token SKIP when a story has no genuine second side. Output one or the other, nothing else.",
         },
-        { role: "user", content: buildPrompt(input) },
+        { role: "user", content: `${editorialTimeContext()}\n\n${buildPrompt(input)}` },
       ],
       maxTokens: 300,
     });
@@ -67,7 +68,7 @@ export async function generateCounterpoint(input: CounterpointInput): Promise<st
       console.log(`[counterpoint] skipped (no second side): ${input.title.slice(0, 80)}`);
       return null;
     }
-    return trimmed;
+    return validEditorialAngle(trimmed);
   } catch (err) {
     console.error("[counterpoint] generation error:", err);
     return null;

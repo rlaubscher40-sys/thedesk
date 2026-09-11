@@ -1,3 +1,4 @@
+import { ThreadLink } from "@/components/feed/ThreadLink";
 /**
  * The Today lead.
  *
@@ -51,6 +52,7 @@ export function Lead({ item }: { item: DailyFeedItem }) {
             {cleanHeadline(item.title)}
           </h2>
         </Link>
+        <div className="mt-3"><ThreadLink parentId={item.threadParentId} parentTitle={item.threadParentTitle} /></div>
 
         {dek && (
           <p

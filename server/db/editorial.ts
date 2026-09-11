@@ -11,6 +11,8 @@ import {
 import type { FetchedItem } from "../../scripts/ingest/lib/rss";
 import type { EvidenceStory } from "../../shared/storyEvidenceDuplicate";
 import { feedEvidenceFingerprints } from "./feedEvidenceSchema";
+import { relatedCoverageParent, type RelatedStory } from "../../shared/relatedCoverage";
+import { staleFutureDeadline } from "../../shared/editorialTiming";
 
 /** Authenticated ingest context only: private hashes, never article text.
  * Bounded recent, visible rows; held rows cannot block news. */
@@ -132,4 +134,66 @@ export async function repairEditorialReferences(): Promise<number> {
     }
   }
   return held;
+}
+
+/** Link actual publications, including neighbours inserted in the same run.
+ * Does not suppress reporting or turn related coverage into corroboration. */
+export async function linkPublishedCoverage(items: Array<RelatedStory & { id: number; threadParentId?: number | null }>, startIndex = 0) {
+  const db = getDb();
+  if (!db) return 0;
+  let linked = 0;
+  for (let i = startIndex; i < items.length; i++) {
+    const item = items[i]!;
+    if (item.threadParentId) continue;
+    const parent = relatedCoverageParent(item, items.slice(0, i));
+    if (!parent) continue;
+    const [result] = await db.update(dailyFeedItems).set({ threadParentId: parent.id, threadParentTitle: parent.title })
+      .where(and(eq(dailyFeedItems.id, item.id), sql`${dailyFeedItems.threadParentId} IS NULL`));
+    linked += result.affectedRows;
+  }
+  return linked;
+}
+
+/** Bounded startup repair. Compare old values before changing them; keep all
+ * story IDs and leave Ruben's notes intact. No model or publisher requests. */
+export async function repairCoverageAudit(now = new Date()) {
+  const db = getDb();
+  if (!db) return;
+  const rows = await db.select({
+    id: dailyFeedItems.id, title: dailyFeedItems.title, summary: dailyFeedItems.summary,
+    channel: dailyFeedItems.channel, feedDate: dailyFeedItems.feedDate, sourceUrl: dailyFeedItems.sourceUrl,
+    sourceTiming: dailyFeedItems.sourceTiming, threadParentId: dailyFeedItems.threadParentId,
+    partnerTag: dailyFeedItems.partnerTag, sayThis: dailyFeedItems.sayThis,
+    whyItMatters: dailyFeedItems.whyItMatters, counterpoint: dailyFeedItems.counterpoint,
+  }).from(dailyFeedItems).where(and(
+    gte(dailyFeedItems.feedDate, new Date(now.getTime() - 4 * 86400000).toISOString().slice(0, 10)),
+    sql`${dailyFeedItems.channel} IN ('AU','PROPERTY')`
+  )).orderBy(dailyFeedItems.createdAt, dailyFeedItems.id).limit(500);
+  let corrected = 0;
+  for (const row of rows) {
+    for (const field of ["partnerTag", "sayThis", "whyItMatters", "counterpoint"] as const) {
+      if (row[field] && staleFutureDeadline(row[field], now)) {
+        await db.update(dailyFeedItems).set({ [field]: null })
+          .where(and(eq(dailyFeedItems.id, row.id), eq(dailyFeedItems[field], row[field]!)));
+        corrected++;
+      }
+    }
+  }
+  const linked = await linkPublishedCoverage(rows);
+  // Source-verified September 11 follow-up has a generic title/summary. Its
+  // original release explicitly cites the same 10,700-home model. Do not use
+  // generated angles to guess this relationship or generalise these URLs.
+  const parent = rows.find(r => r.sourceUrl === "https://masterbuilders.com.au/joint-statement-updated-modelling-housing-package-estimated-to-cut-10700-homes-and-push-rents-higher/" && r.feedDate === "2026-09-11");
+  const relatedUrls = new Set([
+    "https://masterbuilders.com.au/housing-supply-sliding-backwards-worsening-crisis/",
+    // Original reporting explicitly identifies the same supplementary model,
+    // distinguishing its ~2,000 SMSF component from the 10,700 total.
+    "https://www.brokernews.com.au/news/breaking-news/smsf-property-ban-to-axe-2000-homes-lift-rents-modelling-289959.aspx",
+  ]);
+  for (const followup of rows.filter(r => r.feedDate === "2026-09-11" && relatedUrls.has(r.sourceUrl ?? ""))) {
+    if (parent && parent.id !== followup.id)
+      await db.update(dailyFeedItems).set({ threadParentId: parent.id, threadParentTitle: parent.title })
+        .where(and(eq(dailyFeedItems.id, followup.id), sql`${dailyFeedItems.threadParentId} IS NULL`));
+  }
+  console.log(`[coverage-repair] cleared ${corrected} expired angles; linked ${linked} related publications`);
 }

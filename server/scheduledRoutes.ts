@@ -3,6 +3,7 @@ import {
   recentEditorialCandidates,
   recentEditorialStories,
   recordEditorialReport,
+  linkPublishedCoverage,
 } from "./db/editorial";
 import { createEvidenceDuplicateIndex } from "../shared/storyEvidenceDuplicate";
 import { drainFeedEnrichment } from "./feed/enrichmentWorker";
@@ -28,7 +29,8 @@ import { refreshOfficialMetrics } from "./metrics/recovery";
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { COOKIE_NAME, isEnrichedChannel } from "../shared/const";
-import { bestMatch, titleTokens } from "../shared/textSimilarity";
+import { relatedCoverageParent } from "../shared/relatedCoverage";
+import { validEditorialAngle } from "../shared/editorialTiming";
 import { parse as parseCookieHeader } from "cookie";
 import type { Express, Request, Response } from "express";
 import rateLimit from "express-rate-limit";
@@ -200,9 +202,9 @@ function registerDailyFeedRoute(app: Express): void {
           // doesn't tag one, so legacy/untagged payloads keep their old home.
           channel: decision.channel,
           imageUrl: item.imageUrl ?? null,
-          partnerTag: sanitiseText(item.partnerTag ?? null),
-          sayThis: sanitiseText(item.sayThis ?? null),
-          whyItMatters: sanitiseText(item.whyItMatters ?? null),
+          partnerTag: validEditorialAngle(sanitiseText(item.partnerTag ?? null)),
+          sayThis: validEditorialAngle(sanitiseText(item.sayThis ?? null)),
+          whyItMatters: validEditorialAngle(sanitiseText(item.whyItMatters ?? null)),
           // Corroboration is computed at ingest (clustering) and persisted so
           // the card can show how many outlets ran the story.
           corroborationCount: item.corroborationCount ?? 1,
@@ -255,13 +257,9 @@ function registerDailyFeedRoute(app: Express): void {
     // item (newest first, so it threads to the latest coverage) so the card
     // can show "Continues from …". Headline-token match; null when nothing
     // clears the threshold, which is the common case for a genuinely new story.
-    const threadCandidates = recentItems.map((r) => ({
-      value: r,
-      tokens: titleTokens(r.title),
-    }));
     let threadedCount = 0;
     const freshItems = freshItemsRaw.map((item) => {
-      const parent = bestMatch(titleTokens(item.title), threadCandidates);
+      const parent = relatedCoverageParent(item, recentItems);
       if (parent) threadedCount++;
       return {
         ...item,
@@ -291,6 +289,17 @@ function registerDailyFeedRoute(app: Express): void {
         message: (err as Error).message,
       });
       return;
+    }
+
+    try {
+      // IDs exist only after insertion. Include the publisher text while it is
+      // still available so generic follow-up headlines can link to the event.
+      await linkPublishedCoverage([
+        ...recentItems.slice().reverse(),
+        ...freshItems.flatMap((item, i) => insertedIds[i] ? [{ ...item, id: insertedIds[i]! }] : []),
+      ], recentItems.length);
+    } catch (err) {
+      console.warn("[daily-feed] related coverage linking failed; publications committed", err);
     }
 
     // New stories are live — drop the cached feed reads so today's page

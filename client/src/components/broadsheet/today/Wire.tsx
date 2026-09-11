@@ -1,3 +1,4 @@
+import { ThreadLink } from "@/components/feed/ThreadLink";
 /**
  * "Also on the wire" — a 180px mono label column beside hairline-separated
  * rows of `CATEGORY | headline | source`.
@@ -25,8 +26,8 @@ export function Wire({ items }: { items: DailyFeedItem[] }) {
         </p>
         <div>
           {items.map((item) => (
+            <div key={item.id}>
             <Link
-              key={item.id}
               href={`/story/${item.id}`}
               className="bs-row rule-hair-b flex items-baseline gap-4 sm:gap-6 py-3.5"
             >
@@ -55,6 +56,8 @@ export function Wire({ items }: { items: DailyFeedItem[] }) {
                 </span>
               )}
             </Link>
+            {item.threadParentId && <div className="pb-3"><ThreadLink parentId={item.threadParentId} parentTitle={item.threadParentTitle} /></div>}
+            </div>
           ))}
         </div>
       </div>

@@ -134,3 +134,17 @@ describe("regional discovery and evidence", () => {
     );
   });
 });
+
+it("discovers dated Professional Planner articles through the public newsroom without reusing the denied feed", () => {
+ const source=SOURCES.find(s=>s.name==="Professional Planner")!;
+ expect(source.kind).toBe("index");
+ expect(source.url).toBe("https://www.professionalplanner.com.au/");
+ const result=parseIndexSource('<a href="/category/news/">Latest financial advice news</a><a href="/2026/09/tribunal-affirms-asic-ban/"><h2>Tribunal affirms ASIC ban on advisers</h2></a>',source);
+ expect(result).toHaveLength(1);
+ expect(result[0]).toMatchObject({isoDate:null,discovery:"publisher-index",url:"https://www.professionalplanner.com.au/2026/09/tribunal-affirms-asic-ban/"});
+ const local=SOURCES.find(s=>s.name==="Northern Rivers Housing")!;
+ const q=new URL(local.url).searchParams.get("q")!;
+ expect(q).toContain("Tweed");
+ expect(q).not.toContain("NSW");
+ expect(SOURCES.find(s=>s.name==="Australian Market Close")?.maxItems).toBe(6);
+});

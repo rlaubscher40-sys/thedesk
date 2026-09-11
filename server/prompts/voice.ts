@@ -62,6 +62,7 @@ export const rubenSystemPrompt = `You are a ghostwriter for Ruben Laubscher, who
  */
 export function stripBannedChars(text: string): string {
   return text
+    .replace(/(\d)\s*[–—]\s*(\d)/g, "$1-$2") // preserve fiscal years and numeric ranges
     .replace(/—/g, ",") // em dash
     .replace(/–/g, ",") // en dash
     .replace(/‘|’/g, "'")

@@ -199,7 +199,10 @@ export const SOURCES: Source[] = [
   },
   {
     name: "Professional Planner",
-    url: "https://www.professionalplanner.com.au/feed/",
+    // RSS denies requests; the public newsroom advertises dated article links.
+    url: "https://www.professionalplanner.com.au/",
+    kind: "index",
+    articlePath: "^/20[0-9]{2}/[0-9]{2}/[^/]+/$",
     category: "POLICY",
     channel: "AU",
     maxItems: 20,
@@ -390,6 +393,24 @@ export const SOURCES: Source[] = [
     category: "POLICY",
     channel: "AU",
     maxItems: 3,
+  },
+  {
+    name: "Australian Market Close",
+    // A dedicated closing-report query avoids using an intraday rates article
+    // as evidence for the final index move. Original article checks still apply.
+    url: googleNews('(ASX OR "Australian shares") (closed OR closes OR "market close")'),
+    category: "MARKETS",
+    channel: "AU",
+    maxItems: 6,
+  },
+  {
+    name: "Northern Rivers Housing",
+    // Border-region reports often omit the state name. This complements the
+    // statewide query; it does not certify any consultation as new publication.
+    url: googleNews('(Tweed OR "Northern Rivers" OR Lismore OR Ballina) (housing OR homes OR rents OR Landcom)'),
+    category: "PROPERTY",
+    channel: "PROPERTY",
+    maxItems: 8,
   },
   {
     name: "ASX & Markets",

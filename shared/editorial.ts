@@ -77,6 +77,12 @@ export function publisherWeight(input: EditorialInput): number {
 /** Page types are evidence/reference material, not automatically a dated news event. */
 export function referenceNewsHold(input: EditorialInput): string | null {
   const title = input.title.trim();
+  // A rolling national-news page is not a housing article. In particular,
+  // "housing nuclear activities" means containing, not residential supply.
+  if (/\b(?:australia|national|world|breaking) news\s+live\b/i.test(title))
+    return "general-news-liveblog";
+  if (/\b(?:that'?s where we(?:'ll| will) leave|that'?s all (?:from|for)|thanks for (?:joining|following))\b/i.test((input.summary ?? "").replace(/’/g, "'")))
+    return "liveblog-signoff";
   if (
     (/\bwhat sets this\b.{0,100}\bapart for buyers\b/i.test(title) &&
       /\b(?:luxury|landmark|apartments?|development)\b/i.test(title)) ||

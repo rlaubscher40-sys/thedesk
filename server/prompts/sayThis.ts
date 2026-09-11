@@ -16,6 +16,7 @@
  * database column is still `sayThis` for continuity.
  */
 import { invokeLLM } from "../core/llm";
+import { editorialTimeContext, validEditorialAngle } from "../../shared/editorialTiming";
 
 export type SayThisInput = {
   title: string;
@@ -72,7 +73,7 @@ export async function generateSayThis(input: SayThisInput): Promise<string | nul
           content:
             "You write short, commercially sharp hook lines for readers of a property briefing, OR you respond with the literal token SKIP when a story has no genuine bearing on the property market. Output one or the other, nothing else.",
         },
-        { role: "user", content: buildPrompt(input) },
+        { role: "user", content: `${editorialTimeContext()}\n\n${buildPrompt(input)}` },
       ],
       maxTokens: 300,
     });
@@ -82,7 +83,7 @@ export async function generateSayThis(input: SayThisInput): Promise<string | nul
       console.log(`[sayThis] skipped (off-topic): ${input.title.slice(0, 80)}`);
       return null;
     }
-    return trimmed;
+    return validEditorialAngle(trimmed);
   } catch (err) {
     console.error("[sayThis] generation error:", err);
     return null;

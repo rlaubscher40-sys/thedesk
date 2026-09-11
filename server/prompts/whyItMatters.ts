@@ -12,6 +12,7 @@
  * already knowing the background.
  */
 import { invokeLLM } from "../core/llm";
+import { editorialTimeContext, validEditorialAngle } from "../../shared/editorialTiming";
 
 export type WhyItMattersInput = {
   title: string;
@@ -65,7 +66,7 @@ export async function generateWhyItMatters(input: WhyItMattersInput): Promise<st
           content:
             "You write sharp, one-sentence analytical context notes that explain why a news story matters, OR you respond with the literal token SKIP when a story is genuinely trivial. Output one or the other, nothing else.",
         },
-        { role: "user", content: buildPrompt(input) },
+        { role: "user", content: `${editorialTimeContext()}\n\n${buildPrompt(input)}` },
       ],
       maxTokens: 300,
     });
@@ -75,7 +76,7 @@ export async function generateWhyItMatters(input: WhyItMattersInput): Promise<st
       console.log(`[whyItMatters] skipped (trivial): ${input.title.slice(0, 80)}`);
       return null;
     }
-    return trimmed;
+    return validEditorialAngle(trimmed);
   } catch (err) {
     console.error("[whyItMatters] generation error:", err);
     return null;
