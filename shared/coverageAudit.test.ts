@@ -106,3 +106,9 @@ it("does not thread distinct state housing models sharing a headline count", () 
  const candidate={...model,title:"Queensland housing modelling predicts 1,500 fewer homes"};
  expect(relatedCoverageParent({...model,id:2,title:"NSW housing modelling predicts 1,500 fewer homes"},[candidate])).toBeNull();
 });
+
+it("links a model component only when its reporting identifies the common total", () => {
+ const report={...model,id:2,title:"SMSF property ban to axe 2,000 homes, lift rents: modelling"};
+ expect(relatedCoverageParent(report,[model])).toBeNull();
+ expect(relatedCoverageParent({...report,articleText:"The total housing package is now projected to cut new dwelling starts by 10,700."},[model])?.id).toBe(1);
+});

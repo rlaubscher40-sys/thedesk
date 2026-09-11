@@ -184,9 +184,16 @@ export async function repairCoverageAudit(now = new Date()) {
   // original release explicitly cites the same 10,700-home model. Do not use
   // generated angles to guess this relationship or generalise these URLs.
   const parent = rows.find(r => r.sourceUrl === "https://masterbuilders.com.au/joint-statement-updated-modelling-housing-package-estimated-to-cut-10700-homes-and-push-rents-higher/" && r.feedDate === "2026-09-11");
-  const followup = rows.find(r => r.sourceUrl === "https://masterbuilders.com.au/housing-supply-sliding-backwards-worsening-crisis/" && r.feedDate === "2026-09-11");
-  if (parent && followup && parent.id !== followup.id)
-    await db.update(dailyFeedItems).set({ threadParentId: parent.id, threadParentTitle: parent.title })
-      .where(and(eq(dailyFeedItems.id, followup.id), sql`${dailyFeedItems.threadParentId} IS NULL`));
+  const relatedUrls = new Set([
+    "https://masterbuilders.com.au/housing-supply-sliding-backwards-worsening-crisis/",
+    // Original reporting explicitly identifies the same supplementary model,
+    // distinguishing its ~2,000 SMSF component from the 10,700 total.
+    "https://www.brokernews.com.au/news/breaking-news/smsf-property-ban-to-axe-2000-homes-lift-rents-modelling-289959.aspx",
+  ]);
+  for (const followup of rows.filter(r => r.feedDate === "2026-09-11" && relatedUrls.has(r.sourceUrl ?? ""))) {
+    if (parent && parent.id !== followup.id)
+      await db.update(dailyFeedItems).set({ threadParentId: parent.id, threadParentTitle: parent.title })
+        .where(and(eq(dailyFeedItems.id, followup.id), sql`${dailyFeedItems.threadParentId} IS NULL`));
+  }
   console.log(`[coverage-repair] cleared ${corrected} expired angles; linked ${linked} related publications`);
 }

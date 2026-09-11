@@ -20,6 +20,7 @@ function housingModelClaims(story: RelatedStory): Set<string> {
       ...text.matchAll(
         /\b(\d[\d,]*)\s+(?:fewer |new |residential )*(?:homes|dwellings|dwelling starts)\b/gi
       ),
+      ...text.matchAll(/\b(?:homes|dwellings|dwelling starts)\s+by\s+(\d[\d,]*)\b/gi),
     ]
       .map((m) => m[1]!.replace(/,/g, ""))
       .filter((n) => Number(n) >= 100)

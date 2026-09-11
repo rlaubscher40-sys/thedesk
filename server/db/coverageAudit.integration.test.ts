@@ -61,6 +61,8 @@ it.skipIf(!testUrl)(
           "INSERT INTO daily_feed_items (id,title,summary,feedDate,channel,sourceTiming,partnerTag,threadParentId,rubensNote) VALUES (?,?,'Publisher report','2026-09-11',?,?,?,?, 'Keep my editorial note')",
           [id, title, channel, JSON.stringify(timing), tag, parent]
         );
+      await connection.execute("UPDATE daily_feed_items SET sourceUrl=? WHERE id=1", ["https://masterbuilders.com.au/joint-statement-updated-modelling-housing-package-estimated-to-cut-10700-homes-and-push-rents-higher/"]);
+      await connection.execute("INSERT INTO daily_feed_items (id,title,summary,feedDate,channel,sourceUrl) VALUES (5,'SMSF property ban to axe 2,000 homes','Supplementary analysis','2026-09-11','PROPERTY',?)", ["https://www.brokernews.com.au/news/breaking-news/smsf-property-ban-to-axe-2000-homes-lift-rents-modelling-289959.aspx"]);
       await repairCoverageAudit(now);
       const read = () =>
         db
@@ -76,6 +78,7 @@ it.skipIf(!testUrl)(
       expect(first[0]).toMatchObject({ tag: null, parent: null, note: "Keep my editorial note" });
       expect(first[1]).toMatchObject({ parent: 1, tag: rows[1]![2] });
       expect(first[2]!.parent).toBe(99);
+      expect(first[4]!.parent).toBe(1);
       expect(first[3]).toMatchObject({ parent: null, tag: rows[3]![2] });
       await repairCoverageAudit(now);
       expect(await read()).toEqual(first);
