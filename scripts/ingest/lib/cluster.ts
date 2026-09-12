@@ -15,6 +15,7 @@ import { titlesMatch, titleTokens } from "../../../shared/textSimilarity";
 import { conflictingEvents } from "../../../shared/storyEvent";
 import {
   createEvidenceDuplicateIndex,
+  sharesReporting,
   type EvidenceStory,
 } from "../../../shared/storyEvidenceDuplicate";
 
@@ -91,6 +92,11 @@ export function clusterByTitle(
             } catch {
               /* Legacy fixtures may lack URLs. */
             }
+            // Reprinted evidence is one reporting chain, not an independent
+            // confirmation simply because it appeared on another domain.
+            if (m !== g.rep && sharesReporting(m, g.rep))
+              identity = g.rep.source.trim().toLowerCase();
+            if (m === g.rep && m.articleText) identity = g.rep.source.trim().toLowerCase();
             return [identity, m.source.trim()];
           })
       ).values(),

@@ -26,10 +26,10 @@ export function storySignificance(title: string): { reason: string; baseline: nu
       headline
     ) ||
     /^cash rate (?:held|raised|cut|unchanged|remains unchanged)\b/i.test(headline) ||
-    (/\b(?:legislation|law|reforms?|tax|stamp duty|negative gearing|capital gains|lending standards)\b/i.test(
+    (/\b(?:legislation|bill|levy|laws?|reforms?|tax|stamp duty|negative gearing|capital gains|lending standards)\b/i.test(
       headline
     ) &&
-      /\b(?:passes?|passed|enacted|abolish\w*|takes? effect|comes? into (?:force|effect))\b/i.test(
+      /\b(?:passes?|passed|enacted|reject\w*|votes? down|shelv\w*|ditch\w*|abolish\w*|takes? effect|comes? into (?:force|effect))\b/i.test(
         headline
       ))
   )
@@ -61,7 +61,7 @@ export function storySignificance(title: string): { reason: string; baseline: nu
       headline
     ) ||
     (housing.test(headline) &&
-      /\b(?:rezoning approved|construction begins|homes delivered|planning approval|rental reforms? enacted)\b/i.test(
+      /\b(?:DA approval|approval granted|rezoning approved|construction begins|homes delivered|planning approval|rental reforms? enacted)\b/i.test(
         headline
       ))
   )

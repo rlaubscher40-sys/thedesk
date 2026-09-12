@@ -81,7 +81,11 @@ export function referenceNewsHold(input: EditorialInput): string | null {
   // "housing nuclear activities" means containing, not residential supply.
   if (/\b(?:australia|national|world|breaking) news\s+live\b/i.test(title))
     return "general-news-liveblog";
-  if (/\b(?:that'?s where we(?:'ll| will) leave|that'?s all (?:from|for)|thanks for (?:joining|following))\b/i.test((input.summary ?? "").replace(/’/g, "'")))
+  if (
+    /\b(?:that'?s where we(?:'ll| will) leave|that'?s all (?:from|for)|thanks for (?:joining|following))\b/i.test(
+      (input.summary ?? "").replace(/’/g, "'")
+    )
+  )
     return "liveblog-signoff";
   if (
     (/\bwhat sets this\b.{0,100}\bapart for buyers\b/i.test(title) &&
@@ -153,6 +157,10 @@ const macro =
   /\b(inflation|cash rate|interest rates?|rba|reserve bank|gdp|Australian economy|national accounts|productivity|construction workforce|employment|filled jobs|unemployment|wage growth|household spending|consumer (?:sentiment|confidence)|population growth|net overseas migration|lending standards|serviceability)\b/i;
 const policy =
   /\b(negative gearing|land tax|stamp duty|capital gains|tenancy|rent(?:al)? (?:law|reform|cap)|housing (?:policy|reform)|first.home buyers?|deposit scheme)\b/i;
+const accommodationPolicy =
+  /\b(?:short[ -]stay|short[ -]term (?:rental|accommodation)|Airbnb)\b.{0,100}\b(?:levy|tax|bill|ban|regulat\w*)\b|\b(?:levy|tax|bill|ban|regulat\w*)\b.{0,100}\b(?:short[ -]stay|short[ -]term (?:rental|accommodation)|Airbnb)\b/i;
+const industryRegulation =
+  /\b(?:packaging|recycling|plastic waste)\b.{0,100}\b(?:laws?|reforms?|regulations?|standards?|mandates?)\b|\b(?:laws?|reforms?|regulations?|standards?|mandates?)\b.{0,100}\b(?:packaging|recycling|plastic waste)\b/i;
 const advice =
   /\b(superannuation|smsfs?|contribution caps?|financial advi(?:sers?|sors?|ce)|advice (?:fees|firms)|tax (?:reform|deductions?|residency|system)|discretionary trusts?|division 7a|capital gains tax|income tax|CGT|GST|PAYG|transfer balance cap|mortgage brokers?|broker commissions?|mortgage fraud|loan fraud|fraudulent (?:home |mortgage )?loans?)\b/i;
 const conduct =
@@ -163,8 +171,10 @@ const noise =
 export function editorialBeat(text: string): string | null {
   if (advice.test(text) || conduct.test(text)) return "advice-tax";
   if (markets.test(text)) return "markets";
-  if (policy.test(text)) return "policy";
+  if (policy.test(text) || accommodationPolicy.test(text) || industryRegulation.test(text))
+    return "policy";
   if (
+    /\b(?:DA|development|planning) approval\b.{0,100}\b(?:homes|housing|dwellings)\b/i.test(text) ||
     /\b(?:(?:new|social|affordable) homes|homes (?:built|delivered)|making way for more homes)\b/i.test(
       text
     )

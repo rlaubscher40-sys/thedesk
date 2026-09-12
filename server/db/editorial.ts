@@ -1,4 +1,4 @@
-import { desc, gte, lte, and, sql, lt, eq } from "drizzle-orm";
+import { desc, gte, lte, and, sql, lt, eq, inArray } from "drizzle-orm";
 import { json, mysqlTable, timestamp, varchar } from "drizzle-orm/mysql-core";
 import { getDb } from "./client";
 import { propertyEvidence } from "./evidenceSchema";
@@ -12,7 +12,8 @@ import type { FetchedItem } from "../../scripts/ingest/lib/rss";
 import type { EvidenceStory } from "../../shared/storyEvidenceDuplicate";
 import { feedEvidenceFingerprints } from "./feedEvidenceSchema";
 import { relatedCoverageParent, type RelatedStory } from "../../shared/relatedCoverage";
-import { staleFutureDeadline } from "../../shared/editorialTiming";
+import { staleFutureDeadline, unstableEditorialTiming } from "../../shared/editorialTiming";
+import { auditedRecordCorrections } from "../../shared/auditedRecordCorrections";
 
 /** Authenticated ingest context only: private hashes, never article text.
  * Bounded recent, visible rows; held rows cannot block news. */
@@ -138,16 +139,38 @@ export async function repairEditorialReferences(): Promise<number> {
 
 /** Link actual publications, including neighbours inserted in the same run.
  * Does not suppress reporting or turn related coverage into corroboration. */
-export async function linkPublishedCoverage(items: Array<RelatedStory & { id: number; threadParentId?: number | null }>, startIndex = 0) {
+export async function linkPublishedCoverage(
+  items: Array<RelatedStory & { id: number; threadParentId?: number | null }>,
+  startIndex = 0
+) {
   const db = getDb();
   if (!db) return 0;
   let linked = 0;
+  if (items.length) {
+    const fingerprints = await db
+      .select()
+      .from(feedEvidenceFingerprints)
+      .where(
+        inArray(
+          feedEvidenceFingerprints.feedItemId,
+          items.slice(-500).map((i) => i.id)
+        )
+      )
+      .limit(500);
+    const byId = new Map(fingerprints.map((f) => [f.feedItemId, f.fingerprint]));
+    items = items.map((i) => ({
+      ...i,
+      evidenceFingerprint: byId.get(i.id) ?? i.evidenceFingerprint,
+    }));
+  }
   for (let i = startIndex; i < items.length; i++) {
     const item = items[i]!;
     if (item.threadParentId) continue;
     const parent = relatedCoverageParent(item, items.slice(0, i));
     if (!parent) continue;
-    const [result] = await db.update(dailyFeedItems).set({ threadParentId: parent.id, threadParentTitle: parent.title })
+    const [result] = await db
+      .update(dailyFeedItems)
+      .set({ threadParentId: parent.id, threadParentTitle: parent.title })
       .where(and(eq(dailyFeedItems.id, item.id), sql`${dailyFeedItems.threadParentId} IS NULL`));
     linked += result.affectedRows;
   }
@@ -159,23 +182,53 @@ export async function linkPublishedCoverage(items: Array<RelatedStory & { id: nu
 export async function repairCoverageAudit(now = new Date()) {
   const db = getDb();
   if (!db) return;
-  const rows = await db.select({
-    id: dailyFeedItems.id, title: dailyFeedItems.title, summary: dailyFeedItems.summary,
-    channel: dailyFeedItems.channel, feedDate: dailyFeedItems.feedDate, sourceUrl: dailyFeedItems.sourceUrl,
-    sourceTiming: dailyFeedItems.sourceTiming, threadParentId: dailyFeedItems.threadParentId,
-    partnerTag: dailyFeedItems.partnerTag, sayThis: dailyFeedItems.sayThis,
-    whyItMatters: dailyFeedItems.whyItMatters, counterpoint: dailyFeedItems.counterpoint,
-  }).from(dailyFeedItems).where(and(
-    gte(dailyFeedItems.feedDate, new Date(now.getTime() - 4 * 86400000).toISOString().slice(0, 10)),
-    sql`${dailyFeedItems.channel} IN ('AU','PROPERTY')`
-  )).orderBy(dailyFeedItems.createdAt, dailyFeedItems.id).limit(500);
+  const rows = await db
+    .select({
+      id: dailyFeedItems.id,
+      title: dailyFeedItems.title,
+      summary: dailyFeedItems.summary,
+      channel: dailyFeedItems.channel,
+      feedDate: dailyFeedItems.feedDate,
+      sourceUrl: dailyFeedItems.sourceUrl,
+      sourceTiming: dailyFeedItems.sourceTiming,
+      threadParentId: dailyFeedItems.threadParentId,
+      partnerTag: dailyFeedItems.partnerTag,
+      sayThis: dailyFeedItems.sayThis,
+      whyItMatters: dailyFeedItems.whyItMatters,
+      counterpoint: dailyFeedItems.counterpoint,
+    })
+    .from(dailyFeedItems)
+    .where(
+      and(
+        gte(
+          dailyFeedItems.feedDate,
+          new Date(now.getTime() - 4 * 86400000).toISOString().slice(0, 10)
+        ),
+        sql`${dailyFeedItems.channel} IN ('AU','PROPERTY')`
+      )
+    )
+    .orderBy(dailyFeedItems.createdAt, dailyFeedItems.id)
+    .limit(500);
   let corrected = 0;
   for (const row of rows) {
+    for (const correction of auditedRecordCorrections(row)) {
+      const { field, before, after } = correction;
+      const [result] = await db
+        .update(dailyFeedItems)
+        .set({ [field]: after })
+        .where(and(eq(dailyFeedItems.id, row.id), eq(dailyFeedItems[field], before)));
+      corrected += result.affectedRows;
+    }
     for (const field of ["partnerTag", "sayThis", "whyItMatters", "counterpoint"] as const) {
-      if (row[field] && staleFutureDeadline(row[field], now)) {
-        await db.update(dailyFeedItems).set({ [field]: null })
+      if (
+        row[field] &&
+        (staleFutureDeadline(row[field], now) || unstableEditorialTiming(row[field]))
+      ) {
+        const [result] = await db
+          .update(dailyFeedItems)
+          .set({ [field]: null })
           .where(and(eq(dailyFeedItems.id, row.id), eq(dailyFeedItems[field], row[field]!)));
-        corrected++;
+        corrected += result.affectedRows;
       }
     }
   }
@@ -183,17 +236,57 @@ export async function repairCoverageAudit(now = new Date()) {
   // Source-verified September 11 follow-up has a generic title/summary. Its
   // original release explicitly cites the same 10,700-home model. Do not use
   // generated angles to guess this relationship or generalise these URLs.
-  const parent = rows.find(r => r.sourceUrl === "https://masterbuilders.com.au/joint-statement-updated-modelling-housing-package-estimated-to-cut-10700-homes-and-push-rents-higher/" && r.feedDate === "2026-09-11");
+  const parent = rows.find(
+    (r) =>
+      r.sourceUrl ===
+        "https://masterbuilders.com.au/joint-statement-updated-modelling-housing-package-estimated-to-cut-10700-homes-and-push-rents-higher/" &&
+      r.feedDate === "2026-09-11"
+  );
   const relatedUrls = new Set([
     "https://masterbuilders.com.au/housing-supply-sliding-backwards-worsening-crisis/",
     // Original reporting explicitly identifies the same supplementary model,
     // distinguishing its ~2,000 SMSF component from the 10,700 total.
     "https://www.brokernews.com.au/news/breaking-news/smsf-property-ban-to-axe-2000-homes-lift-rents-modelling-289959.aspx",
   ]);
-  for (const followup of rows.filter(r => r.feedDate === "2026-09-11" && relatedUrls.has(r.sourceUrl ?? ""))) {
+  for (const followup of rows.filter(
+    (r) => r.feedDate === "2026-09-11" && relatedUrls.has(r.sourceUrl ?? "")
+  )) {
     if (parent && parent.id !== followup.id)
-      await db.update(dailyFeedItems).set({ threadParentId: parent.id, threadParentTitle: parent.title })
-        .where(and(eq(dailyFeedItems.id, followup.id), sql`${dailyFeedItems.threadParentId} IS NULL`));
+      await db
+        .update(dailyFeedItems)
+        .set({ threadParentId: parent.id, threadParentTitle: parent.title })
+        .where(
+          and(eq(dailyFeedItems.id, followup.id), sql`${dailyFeedItems.threadParentId} IS NULL`)
+        );
   }
-  console.log(`[coverage-repair] cleared ${corrected} expired angles; linked ${linked} related publications`);
+  // The audit verified these two September 11 articles as syndicated PIPA
+  // reporting. Use exact source identities where old rows lack fingerprints.
+  const pipaParent = rows.find(
+    (r) =>
+      r.feedDate === "2026-09-11" &&
+      r.sourceUrl ===
+        "https://www.brokernews.com.au/news/breaking-news/investor-exits-hit-record-high-as-negative-gearing-and-cgt-reforms-bite-289958.aspx"
+  );
+  const pipaFollowup = rows.find(
+    (r) =>
+      r.feedDate === "2026-09-11" &&
+      r.sourceUrl ===
+        "https://www.mpamag.com/au/news/general/property-investors-head-for-the-exit-as-tax-reforms-bite/589408"
+  );
+  if (
+    pipaParent &&
+    pipaFollowup &&
+    pipaParent.id !== pipaFollowup.id &&
+    pipaParent.threadParentId !== pipaFollowup.id
+  ) {
+    await db
+      .update(dailyFeedItems)
+      .set({ threadParentId: pipaParent.id, threadParentTitle: pipaParent.title })
+      .where(
+        and(eq(dailyFeedItems.id, pipaFollowup.id), sql`${dailyFeedItems.threadParentId} IS NULL`)
+      );
+  }
+  console.log(
+    `[coverage-repair] corrected ${corrected} stale or audited fields; linked ${linked} related publications`
+  );
 }

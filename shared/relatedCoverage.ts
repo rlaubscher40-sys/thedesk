@@ -1,10 +1,12 @@
 import { originalPublicationDay, conflictingLocations, type EventStory } from "./storyEvent";
 import { bestMatch, titleTokens } from "./textSimilarity";
+import { sharesReporting, type EvidenceFingerprint } from "./storyEvidenceDuplicate";
 
 export type RelatedStory = EventStory & {
   id?: number;
   summary?: string | null;
   articleText?: string | null;
+  evidenceFingerprint?: EvidenceFingerprint | null;
 };
 /** A relation, not a duplicate or independent corroboration. Never hides rows.
  * Generated angles are intentionally absent from this input. */
@@ -52,6 +54,7 @@ export function relatedCoverageParent<T extends RelatedStory & { id: number }>(
   const modelParent =
     local(story) && eligible.find((c) => [...housingModelClaims(c)].some((n) => claims.has(n)));
   return (
+    eligible.find((c) => sharesReporting(story, c)) ||
     modelParent ||
     bestMatch(
       titleTokens(story.title),

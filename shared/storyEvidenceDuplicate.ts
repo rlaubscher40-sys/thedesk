@@ -68,6 +68,23 @@ function prepare(story: EvidenceStory) {
     numbers: new Set(parsed.data.numbers),
   };
 }
+
+/** Substantial shared reporting may have a rewritten lead/headline. Relate it
+ * without suppressing either record or claiming independent corroboration. */
+export function sharesReporting(a: EvidenceStory, b: EvidenceStory): boolean {
+  const left = prepare(a),
+    right = prepare(b);
+  if (!left || !right || left.day !== right.day) return false;
+  let common = 0;
+  for (const hash of left.shingles) if (right.shingles.has(hash)) common++;
+  let numbers = 0;
+  for (const n of left.numbers) if (right.numbers.has(n)) numbers++;
+  return (
+    numbers >= 2 &&
+    common >= 80 &&
+    common / Math.max(left.shingles.size, right.shingles.size) >= 0.65
+  );
+}
 /** Unchanged normalised evidence only, with original dates and numeric
  * claims. Do not suppress rewritten reporting, a new release day, added data,
  * or a short common quote. No generated summary/angle enters this comparison. */

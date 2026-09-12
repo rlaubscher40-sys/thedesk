@@ -11,7 +11,7 @@ export function editorialToday(now = new Date()): string {
   }).format(now);
 }
 export function editorialTimeContext(now = new Date()): string {
-  return `Current Sydney calendar date: ${editorialToday(now)}. Keep original publication dates, observation periods and forecast horizons distinct. Never describe a past deadline as something still to watch. Historical comparisons and older reporting periods are valid when explicitly labelled. Industry-commissioned modelling is a forecast with an attributed source, not an observed outcome. Do not invent dates, figures or causation. If a timely, grounded angle is unavailable, return null (or SKIP for a single-field response).`;
+  return `Current Sydney calendar date: ${editorialToday(now)}. Keep original publication dates, observation periods and forecast horizons distinct. Use absolute dates for event timing, not today, yesterday, next week or rounded countdowns such as two years away. For multi-stage frameworks, state the separate dates for consultation, data collection and publication; never substitute one milestone for another. A follow-up report is not a newly announced event. Never describe a past deadline as something still to watch. Historical comparisons and older reporting periods are valid when explicitly labelled. Industry-commissioned modelling is a forecast with an attributed source, not an observed outcome. Do not invent dates, figures or causation. If a timely, grounded angle is unavailable, return null (or SKIP for a single-field response).`;
 }
 /** Explicit expired deadlines in forward-looking clauses only. Historical
  * observations, fiscal years and completed comparisons remain valid. */
@@ -43,8 +43,17 @@ export function staleFutureDeadline(text: string | null | undefined, now = new D
 export function validEditorialAngle(value: string | null, now = new Date()): string | null {
   return value &&
     !staleFutureDeadline(value, now) &&
+    !unstableEditorialTiming(value) &&
     !/^(?:null|SKIP)\.?$/i.test(value.trim()) &&
     !/^(?:Buying|Holding|Watching):\s*(?:null|SKIP)\s*$/im.test(value)
     ? value
     : null;
+}
+
+/** Reusable cards need explicit dates. Relative event labels and rounded
+ * countdowns silently become wrong when a story rolls into tomorrow's feed. */
+export function unstableEditorialTiming(value: string): boolean {
+  return /\b(?:today|yesterday|tomorrow|next (?:week|month|year))\b|\b(?:one|two|three|\d+) years? (?:away|before|until|from now)\b/i.test(
+    value
+  );
 }
