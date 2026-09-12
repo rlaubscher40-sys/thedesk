@@ -111,7 +111,7 @@ export function cinematicEvidenceLayout(v: EvidenceVisual, key: string, progress
         125
       ),
       ...extra,
-      at(920, note, 28),
+      at(880, note, 28),
     ]),
     meta: {
       kicker: migration

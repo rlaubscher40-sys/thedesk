@@ -12,7 +12,11 @@ import {
   loadReelSubtitleFont,
 } from "../og/instagramCards";
 import { subtitleAss } from "./subtitles";
-import { REEL_SAFE_AREAS as safe, assertReelContentBottom } from "./reelSafeAreas";
+import {
+  REEL_SAFE_AREAS as safe,
+  assertReelContentBottom,
+  assertReelSceneBottom,
+} from "./reelSafeAreas";
 
 describe("reserved subtitle area across Reel recipes", () => {
   it("measures visible moving text independently of transparent stamp padding", async () => {
@@ -63,7 +67,7 @@ describe("reserved subtitle area across Reel recipes", () => {
         children: "Too low",
       },
     };
-    await expect(renderEditorialFrame(content, "navy", meta)).rejects.toThrow("subtitle clearance");
+    await expect(renderEditorialFrame(content, "navy", meta)).rejects.toThrow("clearance");
     await expect(
       renderEditorialFrame(
         { type: "div", props: { style: { display: "flex" }, children: "Story" } },
@@ -75,6 +79,36 @@ describe("reserved subtitle area across Reel recipes", () => {
     expect(() =>
       subtitleAss([{ start: 0, end: 1, lines: ["one", "two", "three"] }], "documentary")
     ).toThrow("two-line");
+  });
+  it("reserves a separate source gap without rejecting transparent layout padding", async () => {
+    const meta = { kicker: "TEST", source: "NHSAC 2026 / p. 21", index: 0, count: 1, quiet: true };
+    const note = (top: number, painted = false) => ({
+      type: "div",
+      props: {
+        style: { display: "flex", width: 840, height: 980, position: "relative" },
+        children: {
+          type: "div",
+          props: {
+            style: {
+              display: "flex",
+              position: "absolute",
+              top,
+              fontSize: 24,
+              ...(painted ? { width: 600, height: 20, backgroundColor: "#fff" } : {}),
+            },
+            children: painted ? "" : "NET OF DEMOLITIONS / SAME 18 MONTHS",
+          },
+        },
+      },
+    });
+    await expect(renderEditorialFrame(note(880), "navy", meta)).resolves.toBeInstanceOf(Buffer);
+    // The old housing note cleared subtitles, but ran directly into its source.
+    await expect(renderEditorialFrame(note(949), "navy", meta)).rejects.toThrow("source clearance");
+    await expect(renderEditorialFrame(note(949, true), "navy", meta)).rejects.toThrow(
+      "source clearance"
+    );
+    expect(safe.attributionTop - safe.sceneBottom).toBeGreaterThanOrEqual(40);
+    expect(() => assertReelSceneBottom(1281)).toThrow("source clearance");
   });
   it("keeps actual libass two-line glyphs inside the reserved area with clearance on both sides", async () => {
     if (!ffmpeg) throw new Error("Required encoder missing");

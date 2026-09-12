@@ -232,8 +232,8 @@ const at = (left: number, top: number, children: unknown, extra: Record<string, 
 export const BALANCE_CHART = {
   width: 840,
   scale: 300000,
-  supplyTop: 270,
-  demandTop: 530,
+  supplyTop: 250,
+  demandTop: 510,
   barTop: 212,
 };
 export function housingBalanceGeometry(
@@ -438,15 +438,15 @@ export function housingBalanceFrameLayout(
         "gap-caption",
         at(
           0,
-          820,
+          775,
           box({ gap: 20, alignItems: "baseline" }, [
-            text(n(g.gap), 100, c.gold, true),
+            text(n(g.gap), 84, c.gold, true),
             text("more homes needed", 36, c.fg),
           ]),
           { opacity: ease(p * 3 - 2) }
         )
       ),
-      at(0, 949, tag("NET OF DEMOLITIONS / SAME 18 MONTHS")),
+      at(0, 895, tag("NET OF DEMOLITIONS / SAME 18 MONTHS")),
     ];
   };
   const competition = (p: number) => {
@@ -514,7 +514,7 @@ export function housingBalanceFrameLayout(
         85
       ),
       at(0, 850, text("Pressure, not guaranteed price rises.", 36, c.fg)),
-      at(0, 920, tag("RATES AND INCOMES ALSO MATTER")),
+      at(0, 895, tag("RATES AND INCOMES ALSO MATTER")),
     ];
   };
   let nodes: unknown[];
@@ -559,7 +559,7 @@ export function housingBalanceFrameLayout(
             "deposit-ruler",
             at(
               0,
-              650,
+              610,
               svgNode(
                 `<path d="M90 50H750" stroke="${c.rule}" stroke-width="3"/><path d="M90 50H${dotX}" stroke="${c.gold}" stroke-width="4"/><path d="M90 34V66M750 34V66" stroke="${c.muted}" stroke-width="2"/><circle cx="${dotX}" cy="50" r="28" fill="${c.gold}" opacity="0.12"/><circle cx="${dotX}" cy="50" r="15" fill="${c.gold}"/><circle cx="${dotX}" cy="50" r="5" fill="${c.fg}"/>`,
                 840,
@@ -572,16 +572,16 @@ export function housingBalanceFrameLayout(
           ),
           moving(
             "deposit-start",
-            at(40, 750, text(later ? "2015 / 9.0" : "2015", 32, c.muted)),
+            at(40, 700, text(later ? "2015 / 9.0" : "2015", 32, c.muted)),
             300,
             50
           ),
           ...(later
-            ? [moving("deposit-end", at(690, 750, text("2025", 32, c.gold)), 150, 50)]
+            ? [moving("deposit-end", at(690, 700, text("2025", 32, c.gold)), 150, 50)]
             : []),
-          at(0, 835, text("Saving 15% of gross median household income", 31, c.muted)),
-          at(0, 883, text("each year. Median-priced dwelling.", 31, c.muted)),
-          at(0, 945, tag("SEPARATE DECADE / NOT AN OBSERVED WAIT")),
+          at(0, 790, text("Saving 15% of gross median household income", 31, c.muted)),
+          at(0, 835, text("each year. Median-priced dwelling.", 31, c.muted)),
+          at(0, 890, tag("SEPARATE DECADE / NOT AN OBSERVED WAIT")),
         ],
         { width: 840, height: 980 }
       ),
@@ -619,7 +619,7 @@ export function housingBalanceFrameLayout(
       at(640, 398, "", { height: 245, borderLeft: `1px solid ${c.muted}` }),
       at(0, 725, text("Add homes faster than need grows.", 43, c.fg)),
       at(0, 800, tag("NET ADDITIONS / ILLUSTRATION / NO FORECAST")),
-      at(0, 900, text(`Link in bio / ${REEL_READS.housingBalance.label}`, 28, c.gold)),
+      at(0, 890, text(`Link in bio / ${REEL_READS.housingBalance.label}`, 28, c.gold)),
     ];
   }
   return {

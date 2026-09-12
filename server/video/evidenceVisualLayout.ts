@@ -141,7 +141,7 @@ export function evidenceVisualLayout(
         ? [at(15, 405 + i * 170, "", { width: 2, height: 95, backgroundColor: c.track })]
         : []),
     ]),
-    at(0, 910, tag("BUILDING STAGES / NOT COMPLETION COUNTS")),
+    at(0, 885, tag("BUILDING STAGES / NOT COMPLETION COUNTS")),
   ];
 
   if (key === "label") {
@@ -196,7 +196,7 @@ export function evidenceVisualLayout(
       ...chart(key === "value"),
       at(
         0,
-        940,
+        890,
         tag(
           counts
             ? "SAME 12 MONTHS / NOT POPULATION-ADJUSTED"

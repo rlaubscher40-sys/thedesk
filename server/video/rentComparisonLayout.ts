@@ -109,8 +109,8 @@ export function rentComparisonLayout(
       at(0, 465, text("What does rent", 67, c.gold, "italic", 85)),
       at(0, 550, text("growth tell you?", 67, c.gold, "italic", 85)),
       type("intro-period", 0, 735, v.period, 31, c.muted, 840, eased),
-      at(0, 885, text("ILLUSTRATIVE ARCHITECTURE", 23, c.muted)),
-      at(0, 920, text("Phillip Flores / Unsplash", 25, c.muted))
+      at(0, 845, text("ILLUSTRATIVE ARCHITECTURE", 23, c.muted)),
+      at(0, 885, text("Phillip Flores / Unsplash", 25, c.muted))
     );
   } else if (key === "value" || key === "line") {
     nodes.push(...heading("Two rent markets.", "One comparable measure."));
@@ -176,7 +176,7 @@ export function rentComparisonLayout(
       type("takeaway", 0, 510, "Check rent, price and costs.", 51, c.fg, 840, eased),
       at(0, 765, text("Read the full comparison", 38, c.gold)),
       at(0, 830, text("Link in bio / Brisbane vs Perth rents", 30, c.muted)),
-      at(0, 920, text("Illustrative architecture / Phillip Flores", 23, c.muted))
+      at(0, 885, text("Illustrative architecture / Phillip Flores", 23, c.muted))
     );
   } else throw new Error(`Missing rent scene: ${key}`);
 
