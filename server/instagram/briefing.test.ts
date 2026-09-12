@@ -39,6 +39,12 @@ describe("daily briefing evidence and layout contract", () => {
       expect(briefingReady({ ...story, summary })).toBe(false);
     }
   });
+  it("retains real announcement detail even when it starts with a ministerial title", () => {
+    const summary =
+      "Deputy Premier Alex Example announced new Australian housing approvals in the latest release.";
+    expect(briefingDetail({ ...story, summary })).toBe(summary);
+    expect(briefingReady({ ...story, summary })).toBe(true);
+  });
   it("does not clip a decimal, sentence or long claim", () => {
     const first = "Australian dwelling approvals rose 3.5% in July 2026, according to the report.";
     expect(

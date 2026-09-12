@@ -124,8 +124,13 @@ export function briefingLens(story: Pick<DailyFeedItem, "title" | "summary">): B
  * of isolated dramatic clauses; cached/generated angles never enter this path. */
 export function briefingDetail(story: Pick<DailyFeedItem, "title" | "summary">): string | null {
   const summary = briefingText(story.summary ?? "");
-  if (/^(?:Deputy Premier|Minister for|The Honourable|Media contact|Published by)\b/i.test(summary))
-    return null;
+  if (/^(?:Media contact|Published by)\b/i.test(summary)) return null;
+  const ministerialLead = /^(?:Deputy Premier|Minister for|The Honourable)\b/i.test(summary);
+  const reportsAction =
+    /\b(?:announc\w*|approv\w*|confirm\w*|said|says|releas\w*|introduc\w*|unveil\w*|commit\w*|report\w*)\b/i.test(
+      summary
+    );
+  if (ministerialLead && !reportsAction) return null;
   // Do not present an approvals count as completed homes, even if the feed
   // copied an ambiguous publisher sentence. Another eligible story can lead.
   if (/\bnew homes approved\b[^.!?]*\bwere built\b/i.test(summary)) return null;
