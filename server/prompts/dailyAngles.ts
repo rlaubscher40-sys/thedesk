@@ -20,6 +20,7 @@
  */
 import { READER_ANGLE_LABELS, parseReaderAngles } from "../../shared/schemas";
 import { invokeLLM } from "../core/llm";
+import { checkedContext, type ClaimIssue } from "../../shared/claimEvidence";
 import { editorialTimeContext, validEditorialAngle } from "../../shared/editorialTiming";
 import { rubenSystemPrompt, stripBannedChars, voiceRules } from "./voice";
 
@@ -136,7 +137,11 @@ const EMPTY: DailyAngles = {
  */
 export async function generateDailyAngles(
   input: DailyAnglesInput,
-  options: { strict?: boolean; signal?: AbortSignal } = {}
+  options: {
+    strict?: boolean;
+    signal?: AbortSignal;
+    onHeld?: (held: Partial<Record<keyof DailyAngles, ClaimIssue[]>>) => void;
+  } = {}
 ): Promise<DailyAngles> {
   let content: string;
   try {
@@ -191,10 +196,15 @@ export async function generateDailyAngles(
   // field the model genuinely wrote but that fails parsing is dropped on its
   // own, matching the standalone generators (which persist independently and
   // let the card render whichever survived).
-  return {
-    sayThis: validEditorialAngle(cleanLine(parsed.sayThis, SAY_THIS_MAX_CHARS)),
-    partnerTag: validEditorialAngle(cleanTag(parsed.partnerTag)),
-    whyItMatters: validEditorialAngle(cleanLine(parsed.whyItMatters, WHY_MAX_CHARS)),
-    counterpoint: validEditorialAngle(cleanLine(parsed.counterpoint, COUNTERPOINT_MAX_CHARS)),
-  };
+  const checked = checkedContext(
+    {
+      sayThis: validEditorialAngle(cleanLine(parsed.sayThis, SAY_THIS_MAX_CHARS)),
+      partnerTag: validEditorialAngle(cleanTag(parsed.partnerTag)),
+      whyItMatters: validEditorialAngle(cleanLine(parsed.whyItMatters, WHY_MAX_CHARS)),
+      counterpoint: validEditorialAngle(cleanLine(parsed.counterpoint, COUNTERPOINT_MAX_CHARS)),
+    },
+    input
+  );
+  options.onHeld?.(checked.held);
+  return checked.values;
 }

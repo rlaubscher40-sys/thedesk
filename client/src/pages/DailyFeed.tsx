@@ -23,6 +23,8 @@
  *     and carrying real charts.
  */
 import { useEffect, useMemo, useState } from "react";
+import { coverageGroups } from "@shared/coverageGroups";
+import { RelatedCoverage } from "@/components/feed/RelatedCoverage";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useLocation, useSearch } from "wouter";
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
@@ -132,10 +134,11 @@ export default function DailyFeed() {
 
   // Items in the active lane. Partitioned client-side so switching lanes is
   // instant — the query already returned every channel for the day.
-  const feedItems = useMemo(
-    () => allFeedItems.filter((it) => channelOf(it) === channel),
+  const groups = useMemo(
+    () => coverageGroups(allFeedItems.filter((it) => channelOf(it) === channel)),
     [allFeedItems, channel]
   );
+  const feedItems = useMemo(() => groups.map((group) => group.lead), [groups]);
 
   const hasLiveData = allFeedItems.length > 0;
 
@@ -292,6 +295,7 @@ export default function DailyFeed() {
           <SectionErrorBoundary section="Wire">
             <Wire items={wire} />
           </SectionErrorBoundary>
+          <RelatedCoverage groups={groups} />
         </>
       )}
 

@@ -66,6 +66,36 @@ export function EditorialHealth() {
               </ul>
             </div>
           )}
+          {latest.sources.some((s) => s.recovery) && (
+            <div className="mt-4 text-sm">
+              <h4 className="font-semibold">Alternative discovery routes</h4>
+              <ul className="mt-2 space-y-2">
+                {latest.sources
+                  .filter((s) => s.recovery)
+                  .map((s) => (
+                    <li key={s.url}>
+                      {s.name}: {s.recovery!.primaryError}.{" "}
+                      {s.recovery!.recoveredUrl ? (
+                        <>
+                          Alternative returned {s.fetched} candidates:{" "}
+                          <a
+                            className="underline"
+                            href={s.recovery!.recoveredUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            publisher route
+                          </a>
+                          . Article checks still apply.
+                        </>
+                      ) : (
+                        "No usable alternative returned. Coverage gap remains open."
+                      )}
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          )}
           <details className="mt-4 text-sm">
             <summary className="cursor-pointer font-semibold">
               Why stories were selected or held

@@ -218,6 +218,16 @@ async function freshJob(key: string, extra: Partial<InsertDailyFeedItem> = {}) {
     ...extra,
   });
 }
+it.skipIf(!testUrl)("holds unsupported generated figures at the database boundary and records the review state", async () => {
+  const id = await freshJob("claim-evidence");
+  const claim = (await recovery.claimFeedEnrichment())!;
+  const before = (await feed.getFeedItemById(id))!;
+  await recovery.completeFeedEnrichment(claim, { ...emptyAngles, sayThis: "Rent rose 999%.", whyItMatters: "Check the original reporting." }, before);
+  expect(await feed.getFeedItemById(id)).toMatchObject({ sayThis: null, whyItMatters: "Check the original reporting." });
+  const [jobs] = await pool.query("SELECT status, reason, input FROM feed_enrichment_jobs WHERE feedItemId=?", [id]);
+  expect((jobs as any[])[0]).toMatchObject({ status: "completed", reason: "claim_fields_held", input: null });
+  expect((await recovery.feedEnrichmentHealth()).claimHolds.map((j) => j.feedItemId)).toContain(id);
+});
 
 it.skipIf(!testUrl)(
   "commits one durable job with the winning story and rolls both back on failure",

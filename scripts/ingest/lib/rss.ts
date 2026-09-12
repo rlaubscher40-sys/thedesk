@@ -16,7 +16,10 @@ import { plainText } from "./text";
 import { createFeedCache, FeedCooldownError } from "./feedCache";
 
 class FeedHttpError extends Error {
-  constructor(public readonly status: number, public readonly retryAfterMs = 0) {
+  constructor(
+    public readonly status: number,
+    public readonly retryAfterMs = 0
+  ) {
     super(`RSS HTTP ${status}`);
   }
 }
@@ -108,6 +111,11 @@ export type SourceReport = {
   error: string | null;
   /** Actual successful download time, preserved when a recent feed is reused. */
   checkedAt?: Date;
+  recovery?: {
+    primaryError: string;
+    attempts: Array<{ url: string; error: string | null }>;
+    recoveredUrl: string | null;
+  };
 };
 
 export function createSourceReader(
@@ -123,8 +131,12 @@ export function createSourceReader(
     });
     if (!response.ok) {
       const retry = response.headers.get("retry-after");
-      const delay = retry && /^\d+$/.test(retry) ? Number(retry) * 1000
-        : retry ? Math.max(0, Date.parse(retry) - Date.now()) : 0;
+      const delay =
+        retry && /^\d+$/.test(retry)
+          ? Number(retry) * 1000
+          : retry
+            ? Math.max(0, Date.parse(retry) - Date.now())
+            : 0;
       throw new FeedHttpError(response.status, Number.isFinite(delay) ? delay : 0);
     }
     return response.text();
@@ -133,13 +145,18 @@ export function createSourceReader(
 ) {
   const read = createFeedCache(load, {
     ...options,
-    failureTtlMs: (err) => err instanceof FeedHttpError
-      ? Math.max(err.retryAfterMs, [401, 403].includes(err.status) ? 6 * 3600_000
-        : err.status === 429 ? 3600_000 : 60_000)
-      : err instanceof Error && ["AbortError", "TimeoutError"].includes(err.name) ? 60_000 : 0,
-    failureReason: (err) => err instanceof FeedHttpError ? err.message : "Feed request timed out",
+    failureTtlMs: (err) =>
+      err instanceof FeedHttpError
+        ? Math.max(
+            err.retryAfterMs,
+            [401, 403].includes(err.status) ? 6 * 3600_000 : err.status === 429 ? 3600_000 : 60_000
+          )
+        : err instanceof Error && ["AbortError", "TimeoutError"].includes(err.name)
+          ? 60_000
+          : 0,
+    failureReason: (err) => (err instanceof FeedHttpError ? err.message : "Feed request timed out"),
   });
-  return async (src: Source): Promise<SourceReport> => {
+  const readOne = async (src: Source): Promise<SourceReport> => {
     try {
       const { value: xml, checkedAt } = await read(src.url);
       if (
@@ -192,15 +209,52 @@ export function createSourceReader(
       return {
         items: usable,
         fetched: items.length,
-        error: items.length ? null : "Feed returned no items",
+        error: usable.length
+          ? null
+          : items.length
+            ? "Feed returned no usable articles"
+            : "Feed returned no items",
         checkedAt: new Date(checkedAt),
       };
     } catch (err) {
       if (!(err instanceof FeedCooldownError))
         console.warn(`[rss] ${src.name} failed: ${(err as Error).message}`);
-      return { items: [], fetched: 0, error: err instanceof FeedCooldownError || err instanceof FeedHttpError
-        ? err.message : "Feed request or parsing failed" };
+      return {
+        items: [],
+        fetched: 0,
+        error:
+          err instanceof FeedCooldownError || err instanceof FeedHttpError
+            ? err.message
+            : "Feed request or parsing failed",
+      };
     }
+  };
+  return async (src: Source): Promise<SourceReport> => {
+    const primary = await readOne(src);
+    if (!primary.error || !src.recoveryRoutes?.length) return primary;
+    const recovery: NonNullable<SourceReport["recovery"]> = {
+      primaryError: primary.error,
+      attempts: [],
+      recoveredUrl: null,
+    };
+    for (const route of src.recoveryRoutes.slice(0, 2)) {
+      // Configuration is trusted code, but reject an accidental cross-publisher
+      // route or channel switch. The normal publicFetch protections still apply.
+      if (
+        new URL(route.url).hostname.replace(/^www\./, "") !==
+          new URL(src.url).hostname.replace(/^www\./, "") ||
+        route.url === src.url ||
+        route.channel !== src.channel
+      )
+        continue;
+      const result = await readOne(route);
+      recovery.attempts.push({ url: route.url, error: result.error });
+      if (!result.error && result.items.length) {
+        recovery.recoveredUrl = route.url;
+        return { ...result, recovery };
+      }
+    }
+    return { ...primary, recovery };
   };
 }
 

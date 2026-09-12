@@ -48,13 +48,17 @@ export function drainFeedEnrichment(): Promise<void> {
               await skipFeedEnrichment(claim, "source_changed");
               continue;
             }
+            let claimsHeld = false;
             const angles = ANGLE_FIELDS.every((field) => row[field] != null)
               ? EMPTY
               : await generateDailyAngles(claim.input, {
                   strict: true,
                   signal: AbortSignal.timeout(120_000),
+                  onHeld: (held) => {
+                    claimsHeld = Object.keys(held).length > 0;
+                  },
                 });
-            if (await completeFeedEnrichment(claim, angles, row)) invalidate("feed:");
+            if (await completeFeedEnrichment(claim, angles, row, claimsHeld)) invalidate("feed:");
           } catch {
             // Private error codes only; never log article text or model output.
             console.warn(

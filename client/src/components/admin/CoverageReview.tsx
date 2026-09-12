@@ -29,39 +29,81 @@ export function CoverageResults({ review }: { review: ReturnType<typeof evaluate
       </p>
       <p>
         No matching record means unknown. Add alternative articles about the same event before
-        treating it as a miss. These checks do not measure factual accuracy, overall recall or
-        whether a social post was delivered.
+        treating it as a miss. These checks do not measure factual accuracy, overall recall or every
+        social format. Instagram carousel delivery below requires a saved confirmation receipt.
+      </p>
+      <p>
+        Follow-ups: {review.followups.open} open · {review.followups.awaitingRecheck} awaiting
+        recheck · {review.followups.observedAfterFix} with publication observed after the fix.
       </p>
       {!review.rows.length && (
         <p>Add expected stories independently of The Desk’s feed to begin a review.</p>
       )}
       <ul className="space-y-3">
-        {review.rows.map(({ entry, status, publications, decisions }) => (
-          <li key={entry.id} className="border-t border-[var(--color-border)] pt-3">
-            <strong>{entry.title}</strong>
-            {!entry.reviewed && <span> · Provisional</span>}
-            <p>{COVERAGE_LABELS[status]}</p>
-            {publications.map((p) => (
-              <p key={p.id}>
-                <a
-                  className="underline"
-                  href={p.sourceUrl!}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {p.title}
-                </a>{" "}
-                · {p.channel} · {p.feedDate}
-              </p>
-            ))}
-            {decisions[0] && (
-              <p className="opacity-70">
-                Latest matching decision: {decisions[0].reason.replaceAll("-", " ")} ·{" "}
-                {decisions[0].at}
-              </p>
-            )}
-          </li>
-        ))}
+        {review.rows.map(
+          ({ entry, status, publications, decisions, social, remediation, nextCheck }) => (
+            <li key={entry.id} className="border-t border-[var(--color-border)] pt-3">
+              <strong>{entry.title}</strong>
+              {!entry.reviewed && <span> · Provisional</span>}
+              <p>{COVERAGE_LABELS[status]}</p>
+              {publications.map((p) => (
+                <p key={p.id}>
+                  <a
+                    className="underline"
+                    href={p.sourceUrl!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {p.title}
+                  </a>{" "}
+                  · {p.channel} · {p.feedDate}
+                </p>
+              ))}
+              {decisions[0] && (
+                <p className="opacity-70">
+                  Latest matching decision: {decisions[0].reason.replaceAll("-", " ")} ·{" "}
+                  {decisions[0].at}
+                </p>
+              )}
+              <p className="mt-1">Next check: {nextCheck}</p>
+              {publications.length > 0 && (
+                <p className="mt-1">
+                  Instagram carousel:{" "}
+                  {social.length
+                    ? social
+                        .map((s) =>
+                          s.state === "confirmed"
+                            ? `confirmed media ${s.mediaId} at ${s.confirmedAt}`
+                            : "reserved or uncertain; do not retry automatically"
+                        )
+                        .join(" · ")
+                    : "no matched receipt; this does not establish a failed post or social eligibility"}
+                  .
+                </p>
+              )}
+              {entry.followup && (
+                <p className="mt-1">
+                  Follow-up: {entry.followup.stage} · {remediation?.replaceAll("-", " ")} ·{" "}
+                  {entry.followup.note}
+                  {entry.followup.changeUrl && (
+                    <>
+                      {" "}
+                      ·{" "}
+                      <a
+                        className="underline"
+                        href={entry.followup.changeUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Change record
+                      </a>
+                    </>
+                  )}
+                </p>
+              )}
+            </li>
+          )
+        )}
       </ul>
     </div>
   );
@@ -157,6 +199,90 @@ function ReviewEditor({
                 />
                 Reviewed: this event should be covered
               </label>
+              <details>
+                <summary className="cursor-pointer text-sm">Track a coverage fix</summary>
+                <p className="text-sm mt-2">
+                  Record the diagnosed failure and a concrete change. Existing publication before
+                  implementation cannot close the follow-up.
+                </p>
+                <label className="block text-sm mt-2">
+                  Failure stage
+                  <select
+                    className={field}
+                    value={entry.followup?.stage ?? ""}
+                    onChange={(e) =>
+                      update(entry.id, {
+                        followup: e.target.value
+                          ? {
+                              note: "",
+                              ...entry.followup,
+                              stage: e.target.value as NonNullable<
+                                CoverageEntry["followup"]
+                              >["stage"],
+                            }
+                          : undefined,
+                      })
+                    }
+                  >
+                    <option value="">No follow-up</option>
+                    {["discovery", "extraction", "selection", "publication"].map((stage) => (
+                      <option key={stage}>{stage}</option>
+                    ))}
+                  </select>
+                </label>
+                {entry.followup && (
+                  <>
+                    <label className="block text-sm mt-2">
+                      Evidence and fix
+                      <textarea
+                        className={field}
+                        minLength={10}
+                        maxLength={600}
+                        required
+                        value={entry.followup.note}
+                        onChange={(e) =>
+                          update(entry.id, {
+                            followup: { ...entry.followup!, note: e.target.value },
+                          })
+                        }
+                      />
+                    </label>
+                    <label className="block text-sm mt-2">
+                      Change or regression-test link
+                      <input
+                        className={field}
+                        type="url"
+                        value={entry.followup.changeUrl ?? ""}
+                        onChange={(e) =>
+                          update(entry.id, {
+                            followup: {
+                              ...entry.followup!,
+                              changeUrl: e.target.value || undefined,
+                            },
+                          })
+                        }
+                      />
+                    </label>
+                    <label className="flex items-center gap-2 text-sm mt-2">
+                      <input
+                        type="checkbox"
+                        checked={!!entry.followup.implementedAt}
+                        onChange={(e) =>
+                          update(entry.id, {
+                            followup: {
+                              ...entry.followup!,
+                              implementedAt: e.target.checked
+                                ? new Date().toISOString()
+                                : undefined,
+                            },
+                          })
+                        }
+                      />
+                      Implemented; awaiting new publication evidence
+                    </label>
+                  </>
+                )}
+              </details>
               <button
                 type="button"
                 className="text-sm underline"

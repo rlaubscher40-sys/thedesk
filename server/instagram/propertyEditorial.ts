@@ -1,4 +1,5 @@
 import { datedBriefingHold } from "../../shared/sourceTiming";
+import { diverseCoverage } from "../../shared/coverageGroups";
 import type { DailyFeedItem, DailyMetric } from "../db/schema";
 import type { EditionTopic } from "../../shared/schemas";
 import { FEATURED_COMPARISON_PATH } from "../../shared/featuredComparison";
@@ -78,11 +79,11 @@ export function propertyStoryTier(story: DailyFeedItem): number {
 export function pickPropertyStories(stories: DailyFeedItem[], limit = 3): DailyFeedItem[] {
   if (!Number.isFinite(limit) || limit < 1) return [];
   const seen = new Set<string>();
-  return stories
+  return diverseCoverage(stories.filter((story) => propertyStoryTier(story) > 0))
     .map((story) => ({ story, tier: propertyStoryTier(story) }))
     .filter(({ tier }) => tier > 0)
     .sort(
-      (a, b) => b.tier - a.tier || b.story.priority - a.story.priority || a.story.id - b.story.id
+      (a, b) => b.story.priority - a.story.priority || b.tier - a.tier || a.story.id - b.story.id
     )
     .filter(({ story }) => {
       const headline = story.title

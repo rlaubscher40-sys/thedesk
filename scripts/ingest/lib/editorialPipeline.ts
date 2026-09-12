@@ -95,7 +95,7 @@ export async function buildDailyBrief(options: PipelineOptions = {}) {
     decisions: [],
   };
   const sources = options.sources ?? [...SOURCES, ...STATE_PROPERTY_SOURCES];
-  const reports = await mapLimit(sources, 6, async (source) => {
+  const reports = await mapLimit(sources, 6, async (source): Promise<SourceReport> => {
     // Read a useful pool before relevance, rather than the first 2–5 entries.
     const maxItems =
       source.kind === "index" ||
@@ -117,6 +117,7 @@ export async function buildDailyBrief(options: PipelineOptions = {}) {
     url: sources[i]!.url,
     fetched: result.fetched,
     error: result.error,
+    ...(result.recovery ? { recovery: result.recovery } : {}),
   }));
   const raw = [...reports.flatMap((r) => r.items), ...(options.extraCandidates ?? [])];
   report.discovered = raw.length;
