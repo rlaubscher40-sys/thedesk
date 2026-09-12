@@ -4,6 +4,7 @@ import { publicFetch } from "./publicFetch";
 import { readableArticleHtml } from "./htmlText";
 import { articleDisclosureHold } from "./articleDisclosure";
 import { extractResearchPdf, isResearchPdfUrl } from "./researchPdf";
+import { extractMarketClose, isAbcMarketLiveblog } from "./marketLiveblog";
 /**
  * Fetches an article page once and returns BOTH the og:image and the
  * extracted body text. This replaces the old image-only scrape: the daily
@@ -30,6 +31,7 @@ import { pickOgImage } from "./og";
 const SITE_URL = process.env.SITE_URL ?? DEFAULT_SITE_URL;
 
 export type FetchedArticle = {
+  title?: string;
   editorialHold?: string | null;
   imageUrl: string | null;
   text: string | null;
@@ -135,6 +137,20 @@ export async function fetchArticle(
 
     const editorialHold = articleDisclosureHold(html, url);
     if (editorialHold) return { ...empty, editorialHold };
+
+    if (isAbcMarketLiveblog(url)) {
+      const close = extractMarketClose(html, url);
+      if (!close) return { ...empty, editorialHold: "market-liveblog-without-dated-close" };
+      return {
+        title: close.title,
+        text: close.text,
+        imageUrl: pickOgImage(html),
+        publicationDate: {
+          publisherDateStatus: "available",
+          publisherPublishedAt: close.publishedAt,
+        },
+      };
+    }
 
     return {
       publicationDate: extractPublicationDate(html, url),

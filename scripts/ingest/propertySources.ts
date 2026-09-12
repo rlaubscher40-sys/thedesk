@@ -6,7 +6,7 @@ function news(query: string) {
   return `https://news.google.com/rss/search?${new URLSearchParams({ q: `${query} when:14d`, hl: "en-AU", gl: "AU", ceid: "AU:en" })}`;
 }
 const housing =
-  '(housing OR "property market" OR rents OR "home prices" OR "building approvals" OR "real estate" OR homes OR dwellings)';
+  '(housing OR "property market" OR rents OR "home prices" OR "building approvals" OR "real estate" OR homes OR dwellings OR "short-stay" OR "short-term accommodation")';
 
 /** Independent budgets for statewide, regional and government discovery in all 8 jurisdictions.
  * Google is a discovery service, never counted as an independent publisher. */
