@@ -97,7 +97,7 @@ export const instagramRouter = router({
   listAll: adminProcedure
     .input(z.object({ limit: z.number().int().min(1).max(100).default(30) }).optional())
     .query(async ({ input }) => {
-      return listInstagramPosts(input?.limit ?? 30);
+      return listInstagramPosts(input?.limit ?? 30, true);
     }),
 
   /**

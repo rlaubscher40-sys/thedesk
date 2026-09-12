@@ -443,7 +443,7 @@ function FormatPerformance({ posts, ready }: { posts: InsightRow[]; ready: boole
 export function InstagramAdminPanel() {
   // 100 rather than the default 30: the format comparison below needs enough
   // history to have anything to say, and 30 rows is barely a fortnight.
-  const { data, isLoading } = trpc.instagram.listAll.useQuery({ limit: 100 });
+  const { data, isLoading, isError } = trpc.instagram.listAll.useQuery({ limit: 100 });
   const posts = data ?? [];
 
   return (
@@ -486,16 +486,22 @@ export function InstagramAdminPanel() {
 
       <InstagramLaunchPanel />
 
-      <RerunJobs posts={posts} ready={!isLoading} />
+      <RerunJobs posts={posts} ready={!isLoading && !isError} />
 
-      <FormatPerformance posts={posts} ready={!isLoading} />
+      {isError ? (
+        <p role="alert">
+          Post and audience records could not be read. This does not mean zero posts or engagement.
+        </p>
+      ) : (
+        <FormatPerformance posts={posts} ready={!isLoading} />
+      )}
       <SocialPerformance />
       <BriefingPlan />
       <PublicationAudit />
 
       {isLoading ? (
         <Skeleton className="h-40 w-full rounded" />
-      ) : posts.length === 0 ? (
+      ) : isError ? null : posts.length === 0 ? (
         <p className="text-sm text-[var(--color-fg-muted)]">No posts recorded yet.</p>
       ) : (
         <div className="overflow-x-auto -mx-6 sm:-mx-8 px-6 sm:px-8">

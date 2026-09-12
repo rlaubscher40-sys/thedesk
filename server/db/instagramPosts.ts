@@ -177,12 +177,15 @@ export async function latestGridCoverVariant(): Promise<"navy" | "light" | null>
 }
 
 /** Recent posts, newest first. For reporting / admin. */
-export async function listInstagramPosts(limit = 30): Promise<InstagramPost[]> {
+export async function listInstagramPosts(limit = 30, strict = false): Promise<InstagramPost[]> {
   // Demo mode serves the seed so the admin panel's format comparison can be
   // reviewed without a live account behind it.
   if (isDemoMode()) return demoQueries.listInstagramPosts(limit);
   const db = getDb();
-  if (!db) return [];
+  if (!db) {
+    if (strict) throw new Error("Instagram post database unavailable");
+    return [];
+  }
   try {
     return await db
       .select()
@@ -190,6 +193,7 @@ export async function listInstagramPosts(limit = 30): Promise<InstagramPost[]> {
       .orderBy(desc(instagramPosts.createdAt))
       .limit(limit);
   } catch {
+    if (strict) throw new Error("Instagram posts could not be read");
     return [];
   }
 }
