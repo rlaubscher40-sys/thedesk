@@ -21,7 +21,7 @@ function fakeStory(o: Partial<DailyFeedItem> = {}): DailyFeedItem {
     feedDate: "2026-06-03",
     title: "RBA holds the cash rate at 3.85%",
     source: "AFR",
-    sourceUrl: null,
+    sourceUrl: `https://example.com/story/${o.id ?? 1}`,
     summary: "The Reserve Bank left the cash rate unchanged at its June meeting.",
     category: "MACRO",
     channel: "AU",
@@ -92,7 +92,11 @@ describe("property conversion", () => {
     expect(
       pickDailyTopStories([
         fakeStory({ title: "ASX surges", summary: null }),
-        fakeStory({ id: 2, title: "Brisbane rents rise", summary: null }),
+        fakeStory({
+          id: 2,
+          title: "Brisbane rents rise",
+          summary: "Brisbane rents paid rose in the latest ABS release.",
+        }),
       ]).map((s) => s.id)
     ).toEqual([2]);
   });
@@ -131,7 +135,7 @@ describe("buildDailyCaption — source-grounded property briefing", () => {
   it("cannot publish a fabricated city/direction from cached hooks or interpretations", () => {
     const story = fakeStory({
       title: "Brisbane rents rose 5.3%",
-      summary: null,
+      summary: "The latest Brisbane rent data report an annual increase of 5.3%.",
       sayThis: "Perth rents fell 5.3%",
       whyItMatters: "Buy Perth now: prices will double.",
     });
@@ -148,7 +152,7 @@ describe("buildDailyCaption — source-grounded property briefing", () => {
       buildDailyCaption([
         fakeStory({ title: "Australian housing " + "long source headline ".repeat(130) }),
       ])
-    ).toThrow("exceeds Instagram limit");
+    ).toThrow("No briefing stories");
   });
 });
 

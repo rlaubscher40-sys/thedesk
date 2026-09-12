@@ -52,7 +52,8 @@ export async function publishSocialOnce(
   stories: DailyFeedItem[],
   headline: string,
   publish: () => Promise<string>,
-  coverVariant: "navy" | "light" = "navy"
+  coverVariant: "navy" | "light" = "navy",
+  metadata?: { briefingVersion: "story-v2"; storyFollowupVersion: 1 }
 ) {
   const keys = [socialSlotKey(scope), ...stories.flatMap(storyPublicationKeys)];
   if (!stories.length || stories.some((story) => storyPublicationKeys(story).length !== 2))
@@ -76,6 +77,7 @@ export async function publishSocialOnce(
   await confirmSocialRecords(
     keys,
     JSON.stringify({
+      ...metadata,
       postId,
       headline,
       coverVariant,

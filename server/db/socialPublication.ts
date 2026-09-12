@@ -38,7 +38,7 @@ export async function recentSocialReceipts(now = new Date()) {
 /** One transaction or no reservation. Any duplicate/race/outage fails closed. */
 export async function reserveSocialRecords(keys: string[]) {
   const unique = [...new Set(keys)].sort();
-  if (!unique.length || unique.some((key) => !/^ig-(news|slot)-[a-f0-9]{56}$/.test(key)))
+  if (!unique.length || unique.some((key) => !/^ig-(news|slot|story)-[a-f0-9]{56}$/.test(key)))
     throw new Error("Invalid social publication identity");
   await database().transaction(async (tx) => {
     await tx.insert(jobRuns).values(

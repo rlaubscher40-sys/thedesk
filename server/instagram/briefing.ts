@@ -13,7 +13,7 @@ export type BriefingLens = {
 };
 export function briefingLens(story: Pick<DailyFeedItem, "title" | "summary">): BriefingLens {
   const full = `${story.title} ${story.summary ?? ""}`;
-  if (/\b(modell?ing|forecast\w*|projected|projections?)\b/i.test(full))
+  if (/\b(modell?ing|forecast\w*|projected|projections?|predict\w*)\b/i.test(full))
     return {
       key: "estimate",
       title: "A projection is not an outcome.",
@@ -141,7 +141,7 @@ export function briefingDetail(story: Pick<DailyFeedItem, "title" | "summary">):
   return first && first.length <= 420 && /[.!?][”"']?$/.test(first) ? first : null;
 }
 export function briefingClaimLabel(story: Pick<DailyFeedItem, "title" | "summary">): string {
-  return /\b(modell?ing|forecast\w*|projected|projections?)\b/i.test(
+  return /\b(modell?ing|forecast\w*|projected|projections?|predict\w*)\b/i.test(
     `${story.title} ${story.summary ?? ""}`
   )
     ? "REPORTED ESTIMATE"
@@ -194,6 +194,7 @@ export function briefingAlt(slide: BriefingSlide, index: number, count: number):
       `${index + 1} of ${count}.`,
       slide.title,
       slide.body,
+      briefingClaimLabel(slide.story),
       ...(slide.kind === "explainer"
         ? ["General reading guide.", ...slide.lens.points.map((p) => `${p.label}: ${p.detail}.`)]
         : []),
@@ -211,6 +212,9 @@ export function briefingCaption(stories: DailyFeedItem[]): string {
     .slice(0, 3)
     .flatMap((story, i) => [
       `${i === 0 ? "Lead" : "Also"}: ${briefingText(story.title)}`,
+      ...(briefingClaimLabel(story) === "REPORTED ESTIMATE"
+        ? ["Reported estimate; outcome is not established."]
+        : []),
       `Source: ${briefingText(story.source)} · Briefing ${story.feedDate}`,
       sourceTimingLabel(story.sourceTiming),
       `Read story ${story.id}: ${storyDestination(story)}`,

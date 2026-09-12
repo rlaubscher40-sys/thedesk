@@ -59,6 +59,17 @@ export function PublicationAudit() {
                             ? ` (${story.enrichment.reason})`
                             : ""}
                         </p>
+                        <p>
+                          Companion Story:{" "}
+                          {story.companionStory.state === "confirmed"
+                            ? `confirmed, media ${story.companionStory.mediaId}, ${stamp(story.companionStory.confirmedAt)} Sydney`
+                            : story.companionStory.state === "not-tracked"
+                              ? "not tracked for this older carousel"
+                              : story.companionStory.state === "uncertain"
+                                ? "reserved or uncertain; inspect before any action"
+                                : "no confirmation recorded; may be pending or interrupted"}
+                          .
+                        </p>
                         <p className="text-[var(--color-fg-muted)]">
                           {captured
                             ? "Source snapshot captured at publication."

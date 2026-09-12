@@ -13,6 +13,35 @@ const row = (o: Partial<InsightRow> = {}): InsightRow => ({
 });
 const summary = (rows: InsightRow[]) => summariseFormats(rows).find((s) => s.postType === "reel")!;
 describe("first-day format review", () => {
+  it("compares only the chosen age band and uses the preserved snapshot's age", () => {
+    const samples = [
+      row({ saved: 2 }),
+      row({ metricsFetchedAt: "2026-09-02T23:00:00Z", saved: 99 }),
+      row({
+        metricsFetchedAt: "2026-09-05T00:00:00Z",
+        saved: 999,
+        firstDayMetrics: {
+          capturedAtMs: Date.parse("2026-09-02T01:00:00Z"),
+          reach: 100,
+          saved: 1,
+          shares: null,
+        },
+      }),
+    ];
+    expect(summariseFormats(samples, 24).find((s) => s.postType === "reel")).toMatchObject({
+      measured: 1,
+      savesPer1k: 10,
+      sharesSamples: 0,
+    });
+    expect(summariseFormats(samples, 30).find((s) => s.postType === "reel")).toMatchObject({
+      measured: 1,
+      savesPer1k: 2,
+    });
+    expect(summariseFormats(samples, 42).find((s) => s.postType === "reel")).toMatchObject({
+      measured: 1,
+      savesPer1k: 99,
+    });
+  });
   it("keeps the first-day cohort after late recovery without mixing observation ages", () => {
     const s = summary([
       row({
