@@ -164,7 +164,7 @@ export function contextReelLayout(
       ...(migration ? [at(0, 800, text(v.period, 30, c.muted))] : []),
       at(
         0,
-        migration ? 870 : 900,
+        migration ? 870 : 880,
         text(
           migration
             ? "PEOPLE / STATE TOTALS"
@@ -188,17 +188,17 @@ export function contextReelLayout(
     );
   } else if (!migration && (key === "claim" || key === "facts")) {
     nodes = [
-      at(0, 270, text("Same loan. Different term.", 62, c.fg, true)),
-      at(0, 365, text("$500,000 / 6% a year", 42, c.gold)),
+      at(0, 210, text("Same loan. Different term.", 62, c.fg, true)),
+      at(0, 305, text("$500,000 / 6% a year", 42, c.gold)),
     ];
     const rows = exampleRepayments();
     const amounts = rows.map((r) => r.monthly);
     const progress = motion.repayment ?? [1, key === "facts" ? 1 : 0];
     nodes.push(
-      at(0, 435, text("ILLUSTRATION / NOT AN OFFER", 28, c.muted)),
+      at(0, 375, text("ILLUSTRATION / NOT AN OFFER", 28, c.muted)),
       ...rows.flatMap((r, i) => {
         const p = progress[i]!;
-        const y = 510 + i * 175;
+        const y = 450 + i * 175;
         const colour = i ? c.gold : c.fg;
         const show = i === 0 || key === "facts" ? 1 : 0;
         return [
@@ -245,14 +245,14 @@ export function contextReelLayout(
       }),
       moving(
         "term-tradeoff",
-        at(0, 860, text("Shorter term. Less total interest.", 36, c.gold), {
+        at(0, 800, text("Shorter term. Less total interest.", 36, c.gold), {
           opacity: key === "facts" ? progress[1] : 0,
         }),
         840,
         70
       ),
-      at(0, 915, text("Monthly P&I / rounded $ / unchanged rate", 28, c.muted)),
-      at(0, 945, text("No fees or extra payments", 28, c.muted))
+      at(0, 850, text("Monthly P&I / rounded $ / unchanged rate", 28, c.muted)),
+      at(0, 890, text("No fees or extra payments", 28, c.muted))
     );
   } else if (key === "claim") {
     nodes = title("A change of address.", "A different place to live.");
@@ -293,7 +293,7 @@ export function contextReelLayout(
       nodes = [
         at(0, 590, text("Compare the whole loan.", 72, c.fg, true)),
         at(0, 800, text("Amount. Term. Fees.", 50, c.gold)),
-        at(0, 890, text("Read the evidence / link in bio", 32, c.muted)),
+        at(0, 875, text("Read the evidence / link in bio", 32, c.muted)),
       ];
     else {
       nodes = title(
