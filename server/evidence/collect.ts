@@ -1,8 +1,5 @@
 import { sql } from "drizzle-orm";
-import {
-  EVIDENCE_SOURCES,
-  type EvidenceSource,
-} from "../../scripts/ingest/propertySources";
+import { EVIDENCE_SOURCES, type EvidenceSource } from "../../scripts/ingest/propertySources";
 import { fetchSourceReport } from "../../scripts/ingest/lib/rss";
 import { getDb } from "../db/client";
 import { evidenceSourceStatus, propertyEvidence } from "../db/evidenceSchema";
@@ -10,12 +7,11 @@ import { normaliseEvidence } from "./normalize";
 import { collectionSignal, withCollectionWrite } from "../db/collectionRuns";
 
 /** Bounded I/O, no model calls and no publication/social/email side effects. */
-export async function collectPropertyEvidence(
-  sources: EvidenceSource[] = EVIDENCE_SOURCES,
-) {
+export async function collectPropertyEvidence(sources: EvidenceSource[] = EVIDENCE_SOURCES) {
   const db = getDb();
   if (!db) throw new Error("Evidence collection requires a database");
   let failures = 0;
+  const failedSources: Array<{ name: string; reason: string }> = [];
   for (let start = 0; start < sources.length; start += 6) {
     collectionSignal()?.throwIfAborted();
     await Promise.all(
@@ -28,9 +24,7 @@ export async function collectPropertyEvidence(
           return row ? [row] : [];
         });
         // Duplicate URLs in one feed must not inflate accepted counts.
-        const unique = [
-          ...new Map(rows.map((row) => [row.identity, row])).values(),
-        ];
+        const unique = [...new Map(rows.map((row) => [row.identity, row])).values()];
         await withCollectionWrite(async (db) => {
           if (unique.length)
             await db
@@ -40,9 +34,8 @@ export async function collectPropertyEvidence(
                 set: { lastSeenAt: checkedAt },
               });
           const newestPublishedAt = unique.reduce<Date | null>(
-            (date, row) =>
-              !date || row.publishedAt > date ? row.publishedAt : date,
-            null,
+            (date, row) => (!date || row.publishedAt > date ? row.publishedAt : date),
+            null
           );
           const status = {
             sourceId: source.id,
@@ -67,14 +60,17 @@ export async function collectPropertyEvidence(
               },
             });
         });
-        if (report.error) failures++;
-      }),
+        if (report.error) {
+          failures++;
+          failedSources.push({ name: source.name, reason: report.error });
+        }
+      })
     );
   }
-  if (failures === sources.length)
-    throw new Error("All property evidence sources failed");
+  if (failedSources.length) console.warn(`[evidence-failures] ${JSON.stringify(failedSources)}`);
+  if (failures === sources.length) throw new Error("All property evidence sources failed");
   console.log(
-    `[evidence] checked ${sources.length} sources; ${failures} failed (see Admin coverage)`,
+    `[evidence] checked ${sources.length} sources; ${failures} failed (see Admin coverage)`
   );
   return { checked: sources.length, failed: failures };
 }

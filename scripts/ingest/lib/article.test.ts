@@ -46,6 +46,7 @@ describe("bounded article fetching", () => {
     const pending = fetchArticle("https://example.com/article", { timeoutMs: 100 });
     await vi.advanceTimersByTimeAsync(101);
     expect(await pending).toEqual({
+      fetchFailure: "article-timeout",
       imageUrl: null,
       text: null,
       publicationDate: { publisherPublishedAt: null, publisherDateStatus: "missing" },
@@ -83,6 +84,7 @@ describe("bounded article fetching", () => {
       )
     );
     expect(await fetchArticle("https://example.com/article")).toEqual({
+      fetchFailure: "article-unsupported-content-type",
       imageUrl: null,
       text: null,
       publicationDate: { publisherPublishedAt: null, publisherDateStatus: "missing" },
@@ -181,4 +183,38 @@ describe("extractArticleText", () => {
   it("returns null when there is no usable body text", () => {
     expect(extractArticleText("<html><head></head><body></body></html>", 6000)).toBeNull();
   });
+});
+
+it.each([403, 429, 503])(
+  "records HTTP %i without treating denied content as editorial evidence",
+  async (status) => {
+    const request = vi.fn(async () => new Response("Untrusted error page", { status }));
+    vi.stubGlobal("fetch", request);
+    expect(await fetchArticle("https://example.com/article")).toMatchObject({
+      fetchFailure: `article-http-${status}`,
+      text: null,
+    });
+    expect(request).toHaveBeenCalledOnce();
+  }
+);
+it("keeps network failures separate from genuinely empty HTML", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => {
+      throw new Error("private network detail");
+    })
+  );
+  expect(await fetchArticle("https://example.com/article")).toMatchObject({
+    fetchFailure: "article-fetch-failed",
+    text: null,
+  });
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(
+      async () => new Response("<article></article>", { headers: { "content-type": "text/html" } })
+    )
+  );
+  const empty = await fetchArticle("https://example.com/article");
+  expect(empty.text).toBeNull();
+  expect(empty.fetchFailure).toBeUndefined();
 });

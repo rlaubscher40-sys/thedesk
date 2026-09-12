@@ -37,6 +37,21 @@ export function EditorialHealth() {
               </div>
             ))}
           </dl>
+          {latest.outcomes && (
+            <details className="mt-4 text-sm">
+              <summary className="cursor-pointer font-semibold">All selection outcomes</summary>
+              <p className="mt-2">Counts include decisions outside the detailed sample below.</p>
+              <ul className="mt-2 space-y-1">
+                {Object.entries(latest.outcomes)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([reason, count]) => (
+                    <li key={reason}>
+                      {reason.replaceAll("-", " ")}: {count}
+                    </li>
+                  ))}
+              </ul>
+            </details>
+          )}
           {!!latest.sources.filter((s) => s.error).length && (
             <div className="mt-4 text-sm">
               <h4 className="font-semibold">Sources needing attention</h4>

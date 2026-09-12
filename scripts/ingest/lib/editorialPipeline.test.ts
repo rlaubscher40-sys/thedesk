@@ -231,6 +231,7 @@ describe("editorial regression benchmark", () => {
     );
     const result = await preview(items);
     expect(result.report.decisionCount).toBe(320);
+    expect(Object.values(result.report.outcomes!).reduce((a, b) => a + b, 0)).toBe(320);
     expect(result.report.decisions).toHaveLength(300);
     expect(result.report.read).toBe(0);
   });
@@ -586,4 +587,20 @@ it("uses a verified market closing post title and dated summary instead of the l
   expect(result.items[0]!.summary).toBe("");
   expect(briefingSummary(result.items[0]!)).toMatch(/^Market close on 2026-09-09/);
   expect(briefingSummary(result.items[0]!)).not.toContain("Japan");
+});
+
+it("records denied originals and full outcome totals before applying the sample limit", async () => {
+  const result = await preview([item()], {
+    readArticle: async () => ({ ...article, text: null, fetchFailure: "article-http-403" }),
+  });
+  expect(result.items).toEqual([]);
+  expect(result.report.decisions[0]).toMatchObject({
+    reason: "article-http-403",
+    readAttempted: true,
+    textChars: 0,
+  });
+  expect(result.report.outcomes).toEqual({ "article-http-403": 1 });
+  expect(editorialReportSchema.safeParse(result.report).success).toBe(true);
+  const { outcomes, ...legacyReport } = result.report;
+  expect(editorialReportSchema.safeParse(legacyReport).success).toBe(true);
 });
