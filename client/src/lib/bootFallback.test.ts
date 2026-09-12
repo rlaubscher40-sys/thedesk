@@ -1,8 +1,17 @@
 import { readFileSync } from "node:fs";
 import { runInNewContext } from "node:vm";
 import { afterEach, expect, it, vi } from "vitest";
+import { parse, type DefaultTreeAdapterMap } from "parse5";
 const html = readFileSync("client/index.html", "utf8");
-const script = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((match) => match[1]).find((source) => source.includes("15000"))!;
+const scripts: string[] = [];
+function visit(node: DefaultTreeAdapterMap["node"]) {
+  if ("tagName" in node && node.tagName === "script" && !node.attrs.some((attr) => attr.name === "src")) {
+    scripts.push(node.childNodes.map((child) => "value" in child ? child.value : "").join(""));
+  }
+  if ("childNodes" in node) node.childNodes.forEach(visit);
+}
+visit(parse(html));
+const script = scripts.find((source) => source.includes("15000"))!;
 afterEach(() => vi.useRealTimers());
 it("offers a working retry when the main bundle never starts", async () => {
   vi.useFakeTimers();
