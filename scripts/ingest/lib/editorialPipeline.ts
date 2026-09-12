@@ -217,7 +217,14 @@ export async function buildDailyBrief(options: PipelineOptions = {}) {
         retrievedAt: (options.now ?? new Date()).toISOString(),
       };
       const result = assessStory(
-        { ...item, sourceUrl: url, articleText: article.text, sourceTiming },
+        {
+          ...item,
+          title: article.title ?? item.title,
+          summary: article.title ? "" : item.summary,
+          sourceUrl: url,
+          articleText: article.text,
+          sourceTiming,
+        },
         options.now ?? new Date()
       );
       Object.assign(entry, {
@@ -230,6 +237,8 @@ export async function buildDailyBrief(options: PipelineOptions = {}) {
       if (!result.eligible) return null;
       const prepared: PreparedStory = {
         ...item,
+        title: article.title ?? item.title,
+        summary: article.title ? "" : item.summary,
         url,
         articleText: article.text!,
         sourceTiming,

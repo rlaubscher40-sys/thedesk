@@ -562,3 +562,28 @@ describe("primary publisher discovery and date precision", () => {
     expect(sourceTimingHold({ ...value, publisherPublishedDay: "2026-08-01" }, now)).toBeTruthy();
   });
 });
+
+it("uses a verified market closing post title and dated summary instead of the liveblog headline", async () => {
+  const result = await preview(
+    [
+      item({
+        title: "ASX drops, Nikkei plunges as oil surges - as it happened",
+        summary: "The Bank of Japan may raise rates.",
+        category: "MARKETS",
+        channel: "AU",
+      }),
+    ],
+    {
+      readArticle: async () => ({
+        ...article,
+        title: "ASX ends lower · 2026-09-09",
+        text: "Market close on 2026-09-09: The Australian share market finished lower. " + body,
+      }),
+    }
+  );
+  expect(result.items).toHaveLength(1);
+  expect(result.items[0]!.title).toBe("ASX ends lower · 2026-09-09");
+  expect(result.items[0]!.summary).toBe("");
+  expect(briefingSummary(result.items[0]!)).toMatch(/^Market close on 2026-09-09/);
+  expect(briefingSummary(result.items[0]!)).not.toContain("Japan");
+});

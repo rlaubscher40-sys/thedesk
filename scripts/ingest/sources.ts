@@ -118,13 +118,13 @@ export const SOURCES: Source[] = [
       new URLSearchParams({
         q: "status:true AND subtype:ministerialmediarelease AND (title:housing OR title:rent* OR title:planning OR title:homes)",
         sort: "display_date:desc",
-        size: "12",
+        size: "30",
         _source: "url,title,subtype,status",
       }).toString(),
     kind: "nsw-index",
     category: "PROPERTY",
     channel: "PROPERTY",
-    maxItems: 12,
+    maxItems: 30,
   },
   {
     name: "Queensland Housing Releases",
@@ -410,10 +410,39 @@ export const SOURCES: Source[] = [
     maxItems: 6,
   },
   {
+    name: "South Coast Housing",
+    url: googleNews(
+      '(Bega OR "Bega Valley" OR Eurobodalla OR Shoalhaven) (housing OR homes OR planning OR subdivision)'
+    ),
+    category: "PROPERTY",
+    channel: "PROPERTY",
+    maxItems: 6,
+  },
+  {
+    name: "Short-stay Housing Policy",
+    url: googleNews(
+      '(Australia OR Tasmania OR Victoria OR NSW) ("short-stay" OR "short-term accommodation" OR Airbnb) (levy OR tax OR bill OR regulation)'
+    ),
+    category: "POLICY",
+    channel: "PROPERTY",
+    maxItems: 6,
+  },
+  {
+    name: "Australian Industry Regulation",
+    url: googleNews(
+      'Australia (packaging OR recycling OR "plastic waste") (laws OR reform OR regulation OR standards)'
+    ),
+    category: "POLICY",
+    channel: "AU",
+    maxItems: 4,
+  },
+  {
     name: "Northern Rivers Housing",
     // Border-region reports often omit the state name. This complements the
     // statewide query; it does not certify any consultation as new publication.
-    url: googleNews('(Tweed OR "Northern Rivers" OR Lismore OR Ballina) (housing OR homes OR rents OR Landcom)'),
+    url: googleNews(
+      '(Tweed OR "Northern Rivers" OR Lismore OR Ballina) (housing OR homes OR rents OR Landcom)'
+    ),
     category: "PROPERTY",
     channel: "PROPERTY",
     maxItems: 8,
