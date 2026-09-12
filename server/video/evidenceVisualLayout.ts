@@ -3,6 +3,7 @@ import { rentComparisonLayout } from "./rentComparisonLayout";
 import type { CardVariant } from "../og/instagramCards";
 import { evidenceBarGeometry, type EvidenceVisual } from "./evidenceVisual";
 import { moving, smooth, type MotionNode } from "./reelMotion";
+import { cinematicEvidenceLayout } from "./cinematicEvidenceLayout";
 
 const box = (style: Record<string, unknown>, children: unknown): MotionNode => ({
   type: "div",
@@ -16,6 +17,8 @@ export function evidenceVisualLayout(
   progress: number,
   variant: CardVariant
 ) {
+  const cinematic = cinematicEvidenceLayout(v, key, progress);
+  if (cinematic) return cinematic;
   if (["new-loan-rates", "interstate-migration"].includes(v.recipe))
     return contextReelLayout(
       v,

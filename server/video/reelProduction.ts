@@ -5,6 +5,7 @@ import { validateStoryboard } from "./storyboard";
 import { assertCaptionStyle } from "../instagram/captionStyle";
 import { REEL_CAPTION_LIMIT } from "../instagram/reelCaption";
 import { validateEvidenceVisual } from "./evidenceVisual";
+import { assertReelVisualSequence } from "./reelVisualStandard";
 
 /** The approved settings are shared by review, admin preview and publication.
  * Auditions may override the low-level renderer, never the publishing wrapper. */
@@ -42,11 +43,19 @@ export function assertProductionCandidate(candidate: ProductionReelCandidate) {
   if (stat.storyboard) validateStoryboard(stat.storyboard, script);
   if (stat.visualStory) {
     validateEvidenceVisual(stat.visualStory, script, candidate.evidenceHash);
+    assertReelVisualSequence(
+      stat.visualStory.recipe,
+      script.map((s) => s.key)
+    );
     if (stat.source !== stat.visualStory.source)
       throw new Error("Visual source attribution changed.");
   } else if (stat.storyboard?.kind !== "housing-balance") {
     throw new Error("Automatic production requires a reviewed scene recipe.");
-  }
+  } else
+    assertReelVisualSequence(
+      "housing-balance",
+      script.map((s) => s.key)
+    );
   if (!caption.trim() || caption.length > REEL_CAPTION_LIMIT)
     throw new Error("Reel needs a complete caption within the editorial budget.");
   assertCaptionStyle(caption);
