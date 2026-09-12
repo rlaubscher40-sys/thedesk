@@ -22,6 +22,7 @@ vi.mock("../db/health", () => ({ recordServerError: async () => {} }));
 vi.mock("../core/env", () => ({
   env: { instagramAccessToken: "fixture", instagramBusinessAccountId: "fixture" },
 }));
+vi.mock("../og/briefingCards", () => ({ renderBriefingSlide: m.render }));
 vi.mock("./dailyCover", () => ({ renderPropertyDailyCover: m.render }));
 vi.mock("../og/instagramCards", () => ({
   renderDailyStoryCard: m.render,

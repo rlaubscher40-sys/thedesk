@@ -1907,8 +1907,10 @@ function registerInstagramRoutes(app: Express): void {
         const date = typeof req.query.date === "string" ? req.query.date : undefined;
         const variant =
           req.query.variant === "light" ? "light" : req.query.variant === "navy" ? "navy" : "light";
+        const { briefingReady, buildBriefingSlides } = await import("./instagram/briefing");
+        const { renderBriefingSlide } = await import("./og/briefingCards");
         const stories = pickDailyTopStories(
-          (await db.listFeedItems(date)).filter((it) => isEnrichedChannel(it.channel))
+          (await db.listFeedItems(date)).filter((it) => isEnrichedChannel(it.channel) && briefingReady(it))
         )
           .map(sourceGroundedStory)
           .map((s) => ({
@@ -1929,14 +1931,15 @@ function registerInstagramRoutes(app: Express): void {
           res.setHeader("X-Preview-Content", "source-headlines");
           buf = await renderPropertyDailyCover(stories, variant, metrics);
         } else if (kind === "daily-slide") {
-          const story = stories[idx];
-          if (!story) {
+          const slides = buildBriefingSlides(stories);
+          const slide = slides[idx + 1];
+          if (!slide) {
             res.status(404).json({ error: "No slide at that index" });
             return;
           }
-          buf = await cards.renderDailyStoryCard(story, idx, stories.length, variant);
+          buf = await renderBriefingSlide(slide, idx + 1, slides.length, variant);
         } else if (kind === "daily-story") {
-          buf = await cards.renderDailyStoryVertical(stories[0]!, variant);
+          buf = await renderBriefingSlide(buildBriefingSlides(stories)[1]!, 0, 1, variant, true);
         }
       }
 
