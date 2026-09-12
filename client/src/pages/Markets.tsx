@@ -1,3 +1,4 @@
+import { preferenceStorage } from "@/lib/storage";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useSearch } from "wouter";
 import {
@@ -27,7 +28,7 @@ const EXAMPLES = ["Sydney", "Brisbane", "Perth", "Adelaide", "Townsville"];
 function readWatchlist(): string[] {
   if (typeof window === "undefined") return [];
   try {
-    const value = JSON.parse(window.localStorage.getItem(WATCH_KEY) ?? "[]");
+    const value = JSON.parse(preferenceStorage.getItem(WATCH_KEY) ?? "[]");
     return Array.isArray(value)
       ? value.filter((item): item is string => typeof item === "string").slice(0, 12)
       : [];
@@ -38,7 +39,7 @@ function readWatchlist(): string[] {
 
 function writeWatchlist(markets: string[]) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(WATCH_KEY, JSON.stringify(markets.slice(0, 12)));
+  preferenceStorage.setItem(WATCH_KEY, JSON.stringify(markets.slice(0, 12)));
 }
 
 function parseQuery(search: string): string {

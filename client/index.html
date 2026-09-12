@@ -267,6 +267,32 @@
     </div>
 
     <div id="root"></div>
+    <noscript>
+      <style>#boot-splash { display: none; }</style>
+      <p>The Desk needs JavaScript to display this page. You can also read the <a href="/feed.xml">RSS feed</a>.</p>
+    </noscript>
+    <!-- Independent of the module bundle: failed downloads must not leave a
+         permanent splash. The server hashes this trusted inline script for CSP. -->
+    <script>
+      (function () {
+        setTimeout(function () {
+          var splash = document.getElementById("boot-splash");
+          if (!splash || splash.classList.contains("done")) return;
+          splash.removeAttribute("aria-hidden");
+          var message = document.createElement("p");
+          message.setAttribute("role", "status");
+          message.textContent = "The Desk is taking longer than expected to load. Check your connection, then try again.";
+          message.style.cssText = "max-width:320px;padding:0 24px;text-align:center;font:16px/1.5 system-ui,sans-serif";
+          var retry = document.createElement("button");
+          retry.type = "button";
+          retry.textContent = "Try again";
+          retry.style.cssText = "padding:12px 20px;border:1px solid currentColor;border-radius:4px;background:transparent;color:inherit;font:16px system-ui,sans-serif;cursor:pointer";
+          retry.addEventListener("click", function () { window.location.reload(); });
+          splash.appendChild(message);
+          splash.appendChild(retry);
+        }, 15000);
+      })();
+    </script>
 
     <!--
       Out-of-date browser notice. The whole design system is built on oklch()

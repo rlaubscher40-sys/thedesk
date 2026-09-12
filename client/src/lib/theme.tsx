@@ -1,3 +1,4 @@
+import { preferenceStorage } from "@/lib/storage";
 /**
  * Theme + reading-size context.
  *
@@ -68,14 +69,14 @@ const DEFAULT_THEME: ThemeMode = "light";
 
 function readStored(): ThemeMode {
   if (typeof window === "undefined") return DEFAULT_THEME;
-  const stored = window.localStorage.getItem(STORAGE_KEY);
+  const stored = preferenceStorage.getItem(STORAGE_KEY);
   if (stored === "light" || stored === "dark" || stored === "system") return stored;
   return DEFAULT_THEME;
 }
 
 function readStoredReadingSize(): ReadingSize {
   if (typeof window === "undefined") return "default";
-  const stored = window.localStorage.getItem(READING_SIZE_KEY);
+  const stored = preferenceStorage.getItem(READING_SIZE_KEY);
   return stored === "comfortable" ? "comfortable" : "default";
 }
 
@@ -104,15 +105,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const root = document.documentElement;
     root.classList.toggle("light", resolvedTheme === "light");
     root.style.colorScheme = resolvedTheme;
-    window.localStorage.setItem(STORAGE_KEY, theme);
+    preferenceStorage.setItem(STORAGE_KEY, theme);
     // Drop the superseded v1 key so it doesn't sit in storage forever.
-    window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+    preferenceStorage.removeItem(LEGACY_STORAGE_KEY);
   }, [resolvedTheme, theme]);
 
   useEffect(() => {
     const root = document.documentElement;
     root.classList.toggle("comfortable", readingSize === "comfortable");
-    window.localStorage.setItem(READING_SIZE_KEY, readingSize);
+    preferenceStorage.setItem(READING_SIZE_KEY, readingSize);
   }, [readingSize]);
 
   const setTheme = useCallback((next: ThemeMode) => setThemeState(next), []);

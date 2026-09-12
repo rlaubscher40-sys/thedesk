@@ -1,3 +1,4 @@
+import { preferenceStorage } from "@/lib/storage";
 /**
  * Editor's letter — the 800-1200 word narrative thread that runs across an
  * edition's topics.
@@ -17,7 +18,7 @@ const STORAGE_KEY = "thedesk:editors-letter-expanded";
 
 function readInitialExpanded(): boolean {
   if (typeof window === "undefined") return true;
-  const stored = window.localStorage.getItem(STORAGE_KEY);
+  const stored = preferenceStorage.getItem(STORAGE_KEY);
   if (stored === "1") return true;
   if (stored === "0") return false;
   return window.innerWidth >= 768;
@@ -27,7 +28,7 @@ export function EditorsLetter({ fullText }: { fullText: string }) {
   const [expanded, setExpanded] = useState<boolean>(readInitialExpanded);
 
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, expanded ? "1" : "0");
+    preferenceStorage.setItem(STORAGE_KEY, expanded ? "1" : "0");
   }, [expanded]);
 
   // Word-count hint when collapsed so the reader knows what they're

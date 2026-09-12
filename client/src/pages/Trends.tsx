@@ -1,3 +1,4 @@
+import { ConnectionNotice } from "@/components/ConnectionNotice";
 /**
  * Trends — the numbers, in broadsheet dress.
  *
@@ -59,6 +60,11 @@ export default function TrendsPage() {
           { label: "History", value: "30 days" },
         ]}
       />
+
+      {(metricsQuery.isError || historiesQuery.isError) && <ConnectionNotice
+        retry={() => { void metricsQuery.refetch(); void historiesQuery.refetch(); }}
+        retrying={metricsQuery.isFetching || historiesQuery.isFetching}
+      />}
 
       <SectionErrorBoundary section="The Month in Numbers">
         <MonthInNumbers />

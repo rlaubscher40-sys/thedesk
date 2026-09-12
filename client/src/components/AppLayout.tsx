@@ -25,6 +25,7 @@ import {
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { isLiteMode } from "@/lib/liteMode";
 import { getLoginUrl } from "@/lib/auth";
 import { useBookmarks } from "@/lib/useBookmarks";
 import { useTheme } from "@/lib/theme";
@@ -158,7 +159,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       >
         Skip to content
       </a>
-      {theme === "dark" && <AnimatedBackground />}
+      {theme === "dark" && !isLiteMode() && <AnimatedBackground />}
       <DemoModeBanner />
 
       <main
