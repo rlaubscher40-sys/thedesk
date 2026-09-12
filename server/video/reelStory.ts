@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import ffmpeg from "ffmpeg-static";
 import { loadReelSubtitleFont } from "../og/instagramCards";
+import { REEL_SAFE_AREAS } from "./reelSafeAreas";
 
 type Video = {
   bytes: Buffer;
@@ -66,7 +67,7 @@ Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour,
 Style: CTA,Desk Editorial Sans,32,&H0067A2C5,&H0067A2C5,&H0017110C,&H0017110C,0,0,0,0,100,100,0,0,1,0,0,5,0,0,0,1
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
-Dialogue: 0,0:00:00.00,0:01:00.00,CTA,,0,0,0,,{\\pos(540,1685)}FULL REEL ON OUR PROFILE
+Dialogue: 0,0:00:00.00,0:01:00.00,CTA,,0,0,0,,{\\pos(540,${REEL_SAFE_AREAS.storyFooterCentreY})}FULL REEL ON OUR PROFILE
 `
     );
     const filters = segments.flatMap((s, i) => [
@@ -77,7 +78,7 @@ Dialogue: 0,0:00:00.00,0:01:00.00,CTA,,0,0,0,,{\\pos(540,1685)}FULL REEL ON OUR 
     // Fixed text only. Not a fake link or tappable sticker. Kept below subtitles
     // and above the Story reply chrome in the existing 1080x1920 safe area.
     filters.push(
-      "[v]drawbox=x=72:y=1640:w=936:h=90:color=0x0c1117@0.95:t=fill,ass=cta.ass:fontsdir=.[out]"
+      `[v]drawbox=x=72:y=${REEL_SAFE_AREAS.storyFooterTop}:w=936:h=${REEL_SAFE_AREAS.storyFooterBottom - REEL_SAFE_AREAS.storyFooterTop}:color=0x0c1117@0.95:t=fill,ass=cta.ass:fontsdir=.[out]`
     );
     await run(
       ffmpeg,

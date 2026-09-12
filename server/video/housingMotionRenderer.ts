@@ -23,6 +23,7 @@ import {
 import type { MeasuredPhrase } from "./phraseSpeech";
 import { assertReelVisualSequence, reelSceneShot, REEL_SHOTS } from "./reelVisualStandard";
 import { loanPhotoCrop } from "./loanStoryPhotography";
+import { assertReelContentBottom } from "./reelSafeAreas";
 
 export type MotionScene = {
   key: string;
@@ -75,7 +76,7 @@ export async function createHousingMotionRenderer(
     plate: Image,
     photo: Image | undefined;
   // One cached stamp per slot: changing numbers cannot accumulate decoded images.
-  const stamps = new Map<string, { key: string; image: Image }>();
+  const stamps = new Map<string, { key: string; image: Image; textBottom: number }>();
   async function raster(layer: MotionLayer) {
     const key = JSON.stringify(layer.node);
     let stamp = stamps.get(layer.id);
@@ -92,12 +93,18 @@ export async function createHousingMotionRenderer(
           children: layer.node,
         },
       };
+      let textBottom = 0;
+      const bytes = await renderEditorialLayer(root, layer.width, layer.height, (bottom) => {
+        textBottom = Math.max(textBottom, bottom);
+      });
       stamp = {
         key,
-        image: await loadImage(await renderEditorialLayer(root, layer.width, layer.height)),
+        image: await loadImage(bytes),
+        textBottom,
       };
       stamps.set(layer.id, stamp);
     }
+    assertReelContentBottom(355 + layer.y + stamp.textBottom);
     ctx.drawImage(stamp.image, 84 + layer.x, 355 + layer.y);
   }
   return async (time: number) => {
@@ -154,6 +161,7 @@ export async function createHousingMotionRenderer(
       housingBalanceFrameLayout(story, scene.key, progress, variant).content
     );
     for (const layer of layers) {
+      if (layer.kind !== "raster") assertReelContentBottom(355 + layer.y + layer.height);
       if (layer.opacity <= 0) continue;
       ctx.globalAlpha = unit(layer.opacity);
       if (layer.kind === "rect") {

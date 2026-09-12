@@ -19,6 +19,7 @@ import {
   assertReelVisualSequence,
 } from "./reelVisualStandard";
 import { cinematicEvidenceLayout } from "./cinematicEvidenceLayout";
+import { assertReelContentBottom } from "./reelSafeAreas";
 
 export async function createEvidenceMotionRenderer(
   v: EvidenceVisual,
@@ -60,7 +61,7 @@ export async function createEvidenceMotionRenderer(
   const background = variant === "light" ? "#F5F1E8" : "#0C1117";
   let current = "",
     plate: Image;
-  const stamps = new Map<string, { content: string; image: Image }>();
+  const stamps = new Map<string, { content: string; image: Image; textBottom: number }>();
   return async (time: number) => {
     if (!Number.isFinite(time) || time < 0 || time >= total)
       throw new Error("Frame outside Reel timeline.");
@@ -139,6 +140,7 @@ export async function createEvidenceMotionRenderer(
       ctx.globalAlpha = unit(layer.opacity);
       if (layer.kind === "rect") {
         const style = layer.node.props.style;
+        assertReelContentBottom(355 + layer.y + style.height);
         ctx.fillStyle = style.backgroundColor;
         ctx.fillRect(84 + layer.x, 355 + layer.y, style.width, style.height);
       } else {
@@ -157,12 +159,18 @@ export async function createEvidenceMotionRenderer(
               children: layer.node,
             },
           };
+          let textBottom = 0;
+          const bytes = await renderEditorialLayer(root, layer.width, layer.height, (bottom) => {
+            textBottom = Math.max(textBottom, bottom);
+          });
           stamp = {
             content,
-            image: await loadImage(await renderEditorialLayer(root, layer.width, layer.height)),
+            image: await loadImage(bytes),
+            textBottom,
           };
           stamps.set(layer.id, stamp);
         }
+        assertReelContentBottom(355 + layer.y + stamp!.textBottom);
         ctx.drawImage(stamp!.image, 84 + layer.x, 355 + layer.y);
       }
     }
