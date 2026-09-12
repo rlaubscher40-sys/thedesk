@@ -3,6 +3,7 @@ import { propertyStoryTier } from "./propertyEditorial";
 import { briefingReady, briefingLens, briefingClaimLabel } from "./briefing";
 import { storyPublicationKeys } from "./socialProvenance";
 import { unpublishedSocialStories } from "./socialPublication";
+import { diverseCoverage } from "../../shared/coverageGroups";
 
 /** Editorial ordering, not a truth score. Only publisher copy contributes. */
 export function assessBriefingStory(story: DailyFeedItem) {
@@ -58,17 +59,16 @@ export function assessBriefingStory(story: DailyFeedItem) {
   return { hold, tier, kind, merit, topic: briefingLens(story).key };
 }
 
-export function pickBriefingStories(stories: DailyFeedItem[], limit = 3): DailyFeedItem[] {
-  if (!Number.isFinite(limit) || limit < 1) return [];
+function rankBriefingStories(stories: DailyFeedItem[]): DailyFeedItem[] {
   const ranked = stories
     .map((story) => ({ story, assessment: assessBriefingStory(story) }))
     .filter((row) => !row.assessment.hold)
     .sort(
       (a, b) =>
         b.assessment.merit - a.assessment.merit ||
-        b.assessment.tier - a.assessment.tier ||
         (Number.isFinite(b.story.priority) ? b.story.priority : 0) -
           (Number.isFinite(a.story.priority) ? a.story.priority : 0) ||
+        b.assessment.tier - a.assessment.tier ||
         a.story.id - b.story.id
     );
   const seen = new Set<string>();
@@ -79,14 +79,19 @@ export function pickBriefingStories(stories: DailyFeedItem[], limit = 3): DailyF
     seen.add(`id:${story.id}`);
     keys.forEach((key) => seen.add(key));
     selected.push(story);
-    if (selected.length >= Math.floor(limit)) break;
   }
   return selected;
+}
+
+export function pickBriefingStories(stories: DailyFeedItem[], limit = 3): DailyFeedItem[] {
+  if (!Number.isFinite(limit) || limit < 1) return [];
+  return diverseCoverage(rankBriefingStories(stories)).slice(0, Math.floor(limit));
 }
 
 /** Check every eligible item before limiting, so six used stories cannot hide
  * the seventh fresh story. The feed query is already bounded by the feed day. */
 export async function unpublishedBriefingSelection(stories: DailyFeedItem[], limit = 3) {
-  const ranked = pickBriefingStories(stories, stories.length);
-  return (await unpublishedSocialStories(ranked)).slice(0, limit);
+  if (!Number.isFinite(limit) || limit < 1) return [];
+  const unused = await unpublishedSocialStories(rankBriefingStories(stories));
+  return diverseCoverage(unused).slice(0, Math.floor(limit));
 }

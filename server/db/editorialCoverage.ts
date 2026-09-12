@@ -5,6 +5,8 @@ import { getDb } from "./client";
 import { dailyFeedItems } from "./schema";
 import { editorialRuns } from "./editorial";
 import { coverageExamples } from "../../shared/editorialCoverageExamples";
+import { coverageSocialEvidence } from "./coverageSocial";
+import { articleIdentity } from "../../scripts/ingest/lib/dedupe";
 import {
   coverageStartDay,
   evaluateCoverage,
@@ -89,17 +91,30 @@ export async function readCoverage(day: string, db = requiredDb(), now = new Dat
       .limit(31),
   ]);
   const row = saved[0];
+  const entries = row?.entries ?? coverageExamples(day);
+  const expectedUrls = new Set(
+    entries.flatMap((e) => e.urls.map((url) => articleIdentity({ url, title: "" })))
+  );
+  const social = await coverageSocialEvidence(
+    publications
+      .slice(0, 5000)
+      .filter(
+        (p) => p.sourceUrl && expectedUrls.has(articleIdentity({ url: p.sourceUrl, title: "" }))
+      ),
+    db
+  );
   return {
     version: row?.version ?? 0,
     updatedAt: row?.updatedAt ?? null,
     days,
     evidenceLimited: publications.length > 5000 || runs.length > 200,
     ...evaluateCoverage(
-      row?.entries ?? coverageExamples(day),
+      entries,
       day,
       publications.slice(0, 5000),
       runs.slice(0, 200).map((r) => r.report),
-      now
+      now,
+      social
     ),
   };
 }

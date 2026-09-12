@@ -11,7 +11,7 @@ const mockedInvoke = vi.mocked(invokeLLM);
 
 // A valid 3-line partner block (labels must match READER_ANGLE_LABELS).
 const VALID_TAG = `Buying: The hold steadies what you can borrow, but competition builds before listings do.
-Holding: Nothing changes on your repayments until the fixed-rate roll-off lands in June.
+Holding: Check your lender's repayment quote before changing your budget.
 Watching: The next CPI print is the test, not the decision itself.`;
 
 const input = {
@@ -187,7 +187,7 @@ it("supplies the current date and drops an expired deadline before persistence",
  vi.useFakeTimers(); vi.setSystemTime(new Date("2026-09-11T11:00:00Z"));
  try {
   mockedInvoke.mockResolvedValue(JSON.stringify({sayThis:"Watch the result by mid-2026.",partnerTag:null,whyItMatters:"The model covers 2026–27 to 2029–30.",counterpoint:null}));
-  const result=await generateDailyAngles(input);
+  const result=await generateDailyAngles({ ...input, title: "Housing model released", articleText: "The model covers 2026-27 to 2029-30." });
   expect(result.sayThis).toBeNull();
   expect(result.whyItMatters).toContain("2029-30");
   expect(mockedInvoke.mock.calls.at(-1)?.[0].messages[1]?.content).toContain("Current Sydney calendar date: 2026-09-11");

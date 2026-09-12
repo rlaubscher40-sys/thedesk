@@ -78,3 +78,31 @@ it("finds fresh stories beyond the old six-item pool without changing permanent 
   expect((await unpublishedBriefingSelection(input)).map((s) => s.id)).toEqual([7, 8, 9]);
   expect(m.unused.mock.calls[0][0]).toHaveLength(9);
 });
+it("preserves editorial priority across equally classified financing and housing news", () => {
+  const housing = story(1, {
+    title: "Sydney housing outlook",
+    summary: "Sydney housing supply remains constrained.",
+  });
+  const financing = story(2, {
+    title: "RBA interest rate outlook",
+    summary: "The RBA discusses interest rates in Australia.",
+    priority: 90,
+  });
+  expect(pickBriefingStories([housing, financing]).map((s) => s.id)).toEqual([2, 1]);
+});
+it("diversifies related coverage but preserves changed regional reporting", () => {
+  const lead = story(1, { title: "Sydney rents rise", priority: 80 });
+  const related = story(2, { title: "Sydney rental costs rise", threadParentId: 1 });
+  const update = story(3, {
+    title: "Melbourne rents rise",
+    summary: "ABS data show Melbourne rents paid rose 3.5% in July.",
+    threadParentId: 1,
+  });
+  expect(pickBriefingStories([lead, related, update]).map((s) => s.id)).toEqual([1, 3]);
+});
+it("checks publication before related-coverage diversity so a used lead cannot hide fresh reporting", async () => {
+  const lead = story(1, { title: "Sydney rents rise", priority: 80 });
+  const related = story(2, { title: "Sydney rental costs rise", threadParentId: 1 });
+  m.unused.mockImplementation(async (rows: DailyFeedItem[]) => rows.filter((s) => s.id !== 1));
+  expect((await unpublishedBriefingSelection([lead, related])).map((s) => s.id)).toEqual([2]);
+});

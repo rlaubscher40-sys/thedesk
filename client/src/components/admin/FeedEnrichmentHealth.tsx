@@ -40,6 +40,14 @@ export function FeedEnrichmentHealth() {
               . Review these stories in the feed editor before regenerating any missing text.
             </p>
           ) : null}
+          {!!query.data?.claimHolds.length && (
+            <p className="mt-3 text-sm">
+              Unsupported context held for review:{" "}
+              {query.data.claimHolds.map((job) => `#${job.feedItemId}`).join(", ")}. Source stories
+              remain available. These checks catch specific evidence mismatches; they do not certify
+              every claim.
+            </p>
+          )}
         </>
       )}
     </section>

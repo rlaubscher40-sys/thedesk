@@ -20,6 +20,40 @@ beforeEach(() => {
   fixture.publicFetch.mockImplementation(async () => new Response("<rss />"));
   fetchSourceReport = createSourceReader();
 });
+it("tries only configured publisher alternatives and reports the original failure", async () => {
+  fixture.publicFetch.mockImplementation(async (url: string) =>
+    url.endsWith("/feed") ? new Response("Denied", { status: 403 }) : new Response("<rss/>")
+  );
+  fixture.parseString.mockResolvedValue({
+    items: [{ title: "Hobart housing approvals rise", link: "https://example.org/housing" }],
+  });
+  const configured = {
+    ...source,
+    recoveryRoutes: [{ ...source, url: "https://example.org/alternate" }],
+  };
+  const result = await fetchSourceReport(configured);
+  expect(result.items).toHaveLength(1);
+  expect(result.recovery).toEqual({
+    primaryError: "RSS HTTP 403",
+    attempts: [{ url: "https://example.org/alternate", error: null }],
+    recoveredUrl: "https://example.org/alternate",
+  });
+  await fetchSourceReport(configured);
+  expect(fixture.publicFetch).toHaveBeenCalledTimes(2); // same denial cooldown and successful cache
+});
+it("leaves a failed recovery visible and never follows a cross-publisher route", async () => {
+  fixture.publicFetch.mockResolvedValue(new Response("Denied", { status: 403 }));
+  const result = await fetchSourceReport({
+    ...source,
+    recoveryRoutes: [
+      { ...source, url: "https://proxy.example/alternate" },
+      { ...source, url: "https://example.org/alternate" },
+    ],
+  });
+  expect(result.error).toBe("RSS HTTP 403");
+  expect(result.recovery?.recoveredUrl).toBeNull();
+  expect(fixture.publicFetch).toHaveBeenCalledTimes(2);
+});
 it("validates entries before applying the budget and retains headline-only releases", async () => {
   fixture.parseString.mockResolvedValue({
     items: [
@@ -69,10 +103,13 @@ it("shares a download across callers but applies each caller's own budget and ca
   ]);
   expect(fixture.parseString).toHaveBeenCalledTimes(2);
   expect(fixture.publicFetch).toHaveBeenCalledTimes(1);
-  expect(fixture.publicFetch).toHaveBeenCalledWith(source.url, expect.objectContaining({
-    maxBytes: 2 * 1024 * 1024,
-    signal: expect.any(AbortSignal),
-  }));
+  expect(fixture.publicFetch).toHaveBeenCalledWith(
+    source.url,
+    expect.objectContaining({
+      maxBytes: 2 * 1024 * 1024,
+      signal: expect.any(AbortSignal),
+    })
+  );
   expect(brief.items).toHaveLength(1);
   expect(archive.items).toHaveLength(2);
   expect(archive.items[0]).toMatchObject({
@@ -81,15 +118,15 @@ it("shares a download across callers but applies each caller's own budget and ca
   });
   expect(archive.checkedAt).toEqual(brief.checkedAt);
   brief.items[0]!.title = "Caller mutation";
-  expect((await fetchSourceReport(source)).items[0]!.title).toBe(
-    "Hobart housing approvals rise",
-  );
+  expect((await fetchSourceReport(source)).items[0]!.title).toBe("Hobart housing approvals rise");
 });
 
 it("does not cache a rejected destination or bypass the guarded transport on retry", async () => {
   fixture.publicFetch.mockRejectedValueOnce(new Error("Blocked destination"));
   fixture.parseString.mockResolvedValue({ items: [] });
-  expect(await fetchSourceReport(source)).toMatchObject({ error: "Feed request or parsing failed" });
+  expect(await fetchSourceReport(source)).toMatchObject({
+    error: "Feed request or parsing failed",
+  });
   expect(fixture.parseString).not.toHaveBeenCalled();
   expect(await fetchSourceReport(source)).toMatchObject({ error: "Feed returned no items" });
   expect(fixture.publicFetch).toHaveBeenCalledTimes(2);
@@ -98,10 +135,10 @@ it("does not cache a rejected destination or bypass the guarded transport on ret
 
 it("backs off an actual 403 across hourly readers, reports the denial, and retries after expiry", async () => {
   let now = Date.now();
-  const reader = createSourceReader(undefined, {now: () => now});
-  fixture.publicFetch.mockResolvedValue(new Response("Denied", {status:403}));
+  const reader = createSourceReader(undefined, { now: () => now });
+  fixture.publicFetch.mockResolvedValue(new Response("Denied", { status: 403 }));
   const first = await Promise.all([reader(source), reader(source)]);
-  expect(first[0]).toMatchObject({items:[],error:"RSS HTTP 403"});
+  expect(first[0]).toMatchObject({ items: [], error: "RSS HTTP 403" });
   expect(fixture.publicFetch).toHaveBeenCalledTimes(1);
   now += 3600_000;
   expect((await reader(source)).error).toMatch(/RSS HTTP 403; retry after/);
@@ -113,8 +150,10 @@ it("backs off an actual 403 across hourly readers, reports the denial, and retri
 
 it("honours a publisher Retry-After longer than the default cooldown", async () => {
   let now = Date.now();
-  const reader = createSourceReader(undefined, {now: () => now});
-  fixture.publicFetch.mockResolvedValue(new Response("Limited", {status:429,headers:{"retry-after":"7200"}}));
+  const reader = createSourceReader(undefined, { now: () => now });
+  fixture.publicFetch.mockResolvedValue(
+    new Response("Limited", { status: 429, headers: { "retry-after": "7200" } })
+  );
   await reader(source);
   now += 3600_000;
   expect((await reader(source)).error).toMatch(/RSS HTTP 429; retry after/);

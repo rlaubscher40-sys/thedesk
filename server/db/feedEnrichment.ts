@@ -5,6 +5,7 @@ import { getDb } from "./client";
 import { dailyFeedItems } from "./schema";
 import { feedEnrichmentJobs as jobs } from "./feedEnrichmentSchema";
 import type { DailyAngles, DailyAnglesInput } from "../prompts/dailyAngles";
+import { checkedContext } from "../../shared/claimEvidence";
 
 export const ANGLE_FIELDS = ["partnerTag", "sayThis", "whyItMatters", "counterpoint"] as const;
 export const MAX_ENRICHMENT_ATTEMPTS = 3;
@@ -91,11 +92,14 @@ export function sameEnrichmentSource(input: DailyAnglesInput, row: DailyAnglesIn
 export async function completeFeedEnrichment(
   claim: EnrichmentClaim,
   angles: DailyAngles,
-  before: DailyAnglesInput & Partial<DailyAngles>
+  before: DailyAnglesInput & Partial<DailyAngles>,
+  claimsHeld = false
 ): Promise<boolean> {
   return database().transaction(async (tx) => {
     const [job] = await tx.select().from(jobs).where(owned(claim)).for("update");
     if (!job) return false;
+    const checked = checkedContext(angles, job.input ?? before);
+    claimsHeld ||= Object.keys(checked.held).length > 0;
     const [row] = await tx
       .select()
       .from(dailyFeedItems)
@@ -107,8 +111,8 @@ export async function completeFeedEnrichment(
       for (const field of ANGLE_FIELDS) {
         // Non-null includes deliberately empty manual values. Re-read after
         // generation so an edit made while the model ran always wins.
-        if (before[field] == null && row[field] == null && angles[field] != null)
-          patch[field] = angles[field];
+        if (before[field] == null && row[field] == null && checked.values[field] != null)
+          patch[field] = checked.values[field];
       }
       if (Object.keys(patch).length)
         await tx.update(dailyFeedItems).set(patch).where(eq(dailyFeedItems.id, row.id));
@@ -117,7 +121,13 @@ export async function completeFeedEnrichment(
       .update(jobs)
       .set({
         status: row && !changed ? "completed" : "skipped",
-        reason: !row ? "item_deleted" : changed ? "source_changed" : null,
+        reason: !row
+          ? "item_deleted"
+          : changed
+            ? "source_changed"
+            : claimsHeld
+              ? "claim_fields_held"
+              : null,
         input: null,
         owner: null,
         finishedAt: sql`CURRENT_TIMESTAMP`,
@@ -162,7 +172,7 @@ export async function failFeedEnrichment(claim: EnrichmentClaim) {
 
 export async function feedEnrichmentHealth() {
   const db = database();
-  const [counts, recentFailures] = await Promise.all([
+  const [counts, recentFailures, claimHolds] = await Promise.all([
     db
       .select({ status: jobs.status, count: sql<number>`COUNT(*)` })
       .from(jobs)
@@ -173,10 +183,17 @@ export async function feedEnrichmentHealth() {
       .where(eq(jobs.status, "failed"))
       .orderBy(desc(jobs.finishedAt))
       .limit(10),
+    db
+      .select({ feedItemId: jobs.feedItemId, finishedAt: jobs.finishedAt })
+      .from(jobs)
+      .where(eq(jobs.reason, "claim_fields_held"))
+      .orderBy(desc(jobs.finishedAt))
+      .limit(10),
   ]);
   return {
     counts: Object.fromEntries(counts.map((r) => [r.status, Number(r.count)])),
     recentFailures,
+    claimHolds,
   };
 }
 

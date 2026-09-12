@@ -29,6 +29,7 @@ import { refreshOfficialMetrics } from "./metrics/recovery";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { COOKIE_NAME, isEnrichedChannel } from "../shared/const";
 import { relatedCoverageParent } from "../shared/relatedCoverage";
+import { checkedContext } from "../shared/claimEvidence";
 import { validEditorialAngle } from "../shared/editorialTiming";
 import { parse as parseCookieHeader } from "cookie";
 import type { Express, Request, Response } from "express";
@@ -188,6 +189,14 @@ function registerDailyFeedRoute(app: Express): void {
       .map(({ item, decision }) => {
         const category = decision.category;
         const source = sanitiseText(item.source);
+        const context = checkedContext(
+          {
+            partnerTag: validEditorialAngle(sanitiseText(item.partnerTag ?? null)),
+            sayThis: validEditorialAngle(sanitiseText(item.sayThis ?? null)),
+            whyItMatters: validEditorialAngle(sanitiseText(item.whyItMatters ?? null)),
+          },
+          item
+        ).values;
         return {
           feedDate: item.feedDate,
           sourceTiming: item.sourceTiming ?? null,
@@ -200,9 +209,7 @@ function registerDailyFeedRoute(app: Express): void {
           // doesn't tag one, so legacy/untagged payloads keep their old home.
           channel: decision.channel,
           imageUrl: item.imageUrl ?? null,
-          partnerTag: validEditorialAngle(sanitiseText(item.partnerTag ?? null)),
-          sayThis: validEditorialAngle(sanitiseText(item.sayThis ?? null)),
-          whyItMatters: validEditorialAngle(sanitiseText(item.whyItMatters ?? null)),
+          ...context,
           // Corroboration is computed at ingest (clustering) and persisted so
           // the card can show how many outlets ran the story.
           corroborationCount: item.corroborationCount ?? 1,
@@ -292,10 +299,15 @@ function registerDailyFeedRoute(app: Express): void {
     try {
       // IDs exist only after insertion. Include the publisher text while it is
       // still available so generic follow-up headlines can link to the event.
-      await linkPublishedCoverage([
-        ...recentItems.slice().reverse(),
-        ...freshItems.flatMap((item, i) => insertedIds[i] ? [{ ...item, id: insertedIds[i]! }] : []),
-      ], recentItems.length);
+      await linkPublishedCoverage(
+        [
+          ...recentItems.slice().reverse(),
+          ...freshItems.flatMap((item, i) =>
+            insertedIds[i] ? [{ ...item, id: insertedIds[i]! }] : []
+          ),
+        ],
+        recentItems.length
+      );
     } catch (err) {
       console.warn("[daily-feed] related coverage linking failed; publications committed", err);
     }
@@ -1865,8 +1877,7 @@ function registerInstagramRoutes(app: Express): void {
     const idx = Number.parseInt(typeof req.query.i === "string" ? req.query.i : "0", 10) || 0;
     try {
       const cards = await import("./og/instagramCards");
-      const { sanitizeDashes, pickDailyTopStories } =
-        await import("./instagram/post");
+      const { sanitizeDashes, pickDailyTopStories } = await import("./instagram/post");
       let buf: Buffer | null = null;
 
       if (kind.startsWith("weekly")) {
@@ -1901,7 +1912,9 @@ function registerInstagramRoutes(app: Express): void {
         const { briefingReady, buildBriefingSlides } = await import("./instagram/briefing");
         const { renderBriefingSlide } = await import("./og/briefingCards");
         const stories = pickDailyTopStories(
-          (await db.listFeedItems(date)).filter((it) => isEnrichedChannel(it.channel) && briefingReady(it))
+          (await db.listFeedItems(date)).filter(
+            (it) => isEnrichedChannel(it.channel) && briefingReady(it)
+          )
         )
           .map(sourceGroundedStory)
           .map((s) => ({
