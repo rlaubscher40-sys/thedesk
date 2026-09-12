@@ -9,6 +9,7 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { hardReload, isChunkLoadError } from "../lib/chunkReload";
+import { reportError } from "../lib/errorReporter";
 import { Button } from "./ui/Button";
 
 type Props = {
@@ -29,6 +30,7 @@ class BaseBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
+    reportError(error);
     console.error(`[ErrorBoundary${this.props.section ? `:${this.props.section}` : ""}]`, error, info);
   }
 
@@ -77,12 +79,12 @@ export function ErrorBoundary({ children }: { children: ReactNode }) {
               <p className="overline mb-3">The Desk · App error</p>
               <h2 className="text-lg font-serif mb-2">
                 {isChunk
-                  ? "A new version is available."
-                  : "Something broke at the top of the stack."}
+                  ? "This page could not finish loading."
+                  : "The Desk had trouble displaying this page."}
               </h2>
               <p className="text-sm text-[var(--color-fg-muted)] mb-4 break-words">
                 {isChunk
-                  ? "This tab is running an older build. Reload to pick up the latest version of The Desk."
+                  ? "A connection problem or site update may have interrupted the download. Try reloading the page."
                   : err.message}
               </p>
               <Button onClick={() => void hardReload()}>Reload</Button>

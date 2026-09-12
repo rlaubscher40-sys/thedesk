@@ -1,3 +1,4 @@
+import { preferenceStorage } from "@/lib/storage";
 /**
  * localStorage-backed "have I opened this story yet" set, keyed by story id.
  * Powers the unread dot on the Today brief so a returning reader can see at a
@@ -14,7 +15,7 @@ const MAX_TRACKED = 400;
 function read(): Set<string> {
   if (typeof window === "undefined") return new Set();
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = preferenceStorage.getItem(STORAGE_KEY);
     if (!raw) return new Set();
     const arr = JSON.parse(raw);
     return Array.isArray(arr) ? new Set(arr.map(String)) : new Set();
@@ -26,7 +27,7 @@ function read(): Set<string> {
 function write(set: Set<string>) {
   // Keep the most-recent MAX_TRACKED (insertion order is preserved by Set).
   const arr = [...set].slice(-MAX_TRACKED);
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+  preferenceStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
 }
 
 /** Imperative marker — safe to call from a page effect without subscribing. */

@@ -1,3 +1,4 @@
+import { preferenceStorage } from "@/lib/storage";
 /**
  * Active partner persona, drives the "VIEW AS" switch and every card's
  * highlighted angle / Say This line. Persisted to localStorage so the
@@ -17,7 +18,7 @@ const PersonaContext = createContext<Ctx | null>(null);
 
 function readStored(): Persona {
   if (typeof window === "undefined") return PERSONAS[0]!;
-  const raw = window.localStorage.getItem(STORAGE_KEY);
+  const raw = preferenceStorage.getItem(STORAGE_KEY);
   return (PERSONAS as readonly string[]).includes(raw as string) ? (raw as Persona) : PERSONAS[0]!;
 }
 
@@ -25,7 +26,7 @@ export function PersonaProvider({ children }: { children: ReactNode }) {
   const [persona, setPersonaState] = useState<Persona>(readStored);
 
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, persona);
+    preferenceStorage.setItem(STORAGE_KEY, persona);
   }, [persona]);
 
   const setPersona = (p: Persona) => setPersonaState(p);

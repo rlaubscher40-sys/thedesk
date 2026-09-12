@@ -1,3 +1,4 @@
+import { preferenceStorage } from "@/lib/storage";
 /**
  * Reading-streak tracker. Counts consecutive Sydney-time days the user
  * has loaded the Today page. Persisted in localStorage.
@@ -27,7 +28,7 @@ type Stored = {
 function read(): Stored | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = preferenceStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     return JSON.parse(raw) as Stored;
   } catch {
@@ -36,7 +37,7 @@ function read(): Stored | null {
 }
 
 function write(s: Stored) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+  preferenceStorage.setItem(STORAGE_KEY, JSON.stringify(s));
 }
 
 function daysBetween(aIso: string, bIso: string): number {

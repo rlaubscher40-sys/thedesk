@@ -12,6 +12,7 @@
  * rules there); this module owns the JS half (skipping the motion components).
  */
 const LITE_KEY = "thedesk:lite-mode";
+let enabledThisPage = false;
 
 /** OS-level "I want less motion" preference. */
 function prefersReducedMotion(): boolean {
@@ -24,7 +25,12 @@ function prefersReducedMotion(): boolean {
 
 /** True when the app should render its cheapest, least animated form. */
 export function isLiteMode(): boolean {
+  if (enabledThisPage) return true;
   if (prefersReducedMotion()) return true;
+  // Use the cheaper paint path from the first visit on phones and tablets,
+  // including iPads reporting a desktop viewport. Do not wait for a crash.
+  if (typeof window !== "undefined" && typeof window.matchMedia === "function" &&
+      window.matchMedia("(pointer: coarse)").matches) return true;
   try {
     return localStorage.getItem(LITE_KEY) === "1";
   } catch {
@@ -34,6 +40,7 @@ export function isLiteMode(): boolean {
 
 /** Persist the lite flag (e.g. after a crash loop) and apply the class now. */
 export function enableLiteMode(): void {
+  enabledThisPage = true;
   try {
     localStorage.setItem(LITE_KEY, "1");
   } catch {

@@ -47,8 +47,12 @@ export function serveStatic(app: Express): void {
       setHeaders(res, filePath) {
         if (path.basename(filePath) === "index.html") {
           res.setHeader("Cache-Control", "no-store");
-        } else {
+        } else if (filePath.startsWith(path.join(distPath, "assets") + path.sep)) {
           res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        } else {
+          // Service workers, recovery pages and other unversioned assets must
+          // revalidate after a deploy; they do not have a content hash.
+          res.setHeader("Cache-Control", "no-cache");
         }
       },
     })

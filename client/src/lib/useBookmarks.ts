@@ -1,3 +1,4 @@
+import { preferenceStorage } from "@/lib/storage";
 /**
  * localStorage-backed bookmarks. Stores a Set of story ids. Used by the
  * desk cards so the bookmark icon toggles instantly without needing a
@@ -11,7 +12,7 @@ const STORAGE_KEY = "thedesk:local-bookmarks";
 function read(): Set<string> {
   if (typeof window === "undefined") return new Set();
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = preferenceStorage.getItem(STORAGE_KEY);
     if (!raw) return new Set();
     const arr = JSON.parse(raw);
     return Array.isArray(arr) ? new Set(arr) : new Set();
@@ -21,7 +22,7 @@ function read(): Set<string> {
 }
 
 function write(set: Set<string>) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify([...set]));
+  preferenceStorage.setItem(STORAGE_KEY, JSON.stringify([...set]));
 }
 
 export function useBookmarks() {

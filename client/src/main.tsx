@@ -11,6 +11,7 @@ import { initErrorReporter } from "./lib/errorReporter";
 import { initCrashLoopGuard, renderCrashLoopSafeMode, watchHealthyBoot } from "./lib/crashLoopDetector";
 import { applyLiteClass } from "./lib/liteMode";
 import { trpc } from "./lib/trpc";
+import { queryFetch } from "./lib/queryFetch";
 import { initInstallPrompt } from "./lib/installPrompt";
 import "./index.css";
 
@@ -38,7 +39,7 @@ const queryClient = new QueryClient({
       retry: (failureCount, err) => {
         // Don't retry unauth errors, we redirect the user instead.
         if (err instanceof TRPCClientError && err.message === UNAUTHED_ERR_MSG) return false;
-        return failureCount < 2;
+        return failureCount < 1;
       },
     },
   },
@@ -80,17 +81,29 @@ const trpcClient = trpc.createClient({
           });
         }, ASK_CLIENT_TIMEOUT_MS),
       }),
-      false: httpBatchLink({
-        url: "/api/trpc",
-        transformer: superjson,
-        fetch: (input, init) => globalThis.fetch(input, { ...(init ?? {}), credentials: "include" }),
+      false: splitLink({
+        condition: (op) => op.type === "query",
+        true: httpBatchLink({ url: "/api/trpc", transformer: superjson, fetch: queryFetch }),
+        // Long-running publishing/admin mutations keep their existing behaviour.
+        false: httpBatchLink({
+          url: "/api/trpc",
+          transformer: superjson,
+          fetch: (input, init) => globalThis.fetch(input, { ...(init ?? {}), credentials: "include" }),
+        }),
       }),
     }),
   ],
 });
 
 function BootHealth() {
-  useEffect(watchHealthyBoot, []);
+  useEffect(() => {
+    // Dismiss only after React commits, not after an assumed number of frames.
+    const splash = document.getElementById("boot-splash");
+    splash?.classList.add("done");
+    const removal = setTimeout(() => splash?.remove(), 500);
+    const stopWatching = watchHealthyBoot();
+    return () => { clearTimeout(removal); stopWatching(); };
+  }, []);
   return null;
 }
 
@@ -113,19 +126,4 @@ if (inCrashLoop) {
     });
   }
 
-  // Dismiss the first-paint splash once the React tree has committed
-  // (see index.html). Two rAFs ensures we tick past the first commit
-  // frame so the user actually sees the app underneath before the
-  // splash fades, otherwise it can race the first skeleton paint and
-  // look like a flash.
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      const splash = document.getElementById("boot-splash");
-      if (!splash) return;
-      splash.classList.add("done");
-      splash.addEventListener("transitionend", () => splash.remove(), { once: true });
-      // Safety net for browsers that swallow the transitionend event.
-      setTimeout(() => splash.remove(), 1200);
-    });
-  });
 }

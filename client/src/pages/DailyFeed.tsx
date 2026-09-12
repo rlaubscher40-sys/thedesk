@@ -1,3 +1,5 @@
+import { ConnectionNotice } from "@/components/ConnectionNotice";
+import { preferenceStorage } from "@/lib/storage";
 /**
  * Today — the broadsheet front page.
  *
@@ -68,13 +70,13 @@ export default function DailyFeed() {
   // lands back in their preferred lane instead of the AU default.
   const [channel, setChannel] = useState<FeedChannel>(() => {
     if (typeof window === "undefined") return DEFAULT_FEED_CHANNEL;
-    const saved = window.localStorage.getItem(LANE_CHANNEL_KEY);
+    const saved = preferenceStorage.getItem(LANE_CHANNEL_KEY);
     return saved && (FEED_CHANNELS as readonly string[]).includes(saved)
       ? (saved as FeedChannel)
       : DEFAULT_FEED_CHANNEL;
   });
   useEffect(() => {
-    window.localStorage.setItem(LANE_CHANNEL_KEY, channel);
+    preferenceStorage.setItem(LANE_CHANNEL_KEY, channel);
   }, [channel]);
 
   const { current: streakDays } = useStreak();
@@ -239,6 +241,7 @@ export default function DailyFeed() {
       )}
 
       {feedQuery.isLoading && !isDemo && <FeedSkeleton />}
+      {feedQuery.isError && !isDemo && <ConnectionNotice retry={() => void feedQuery.refetch()} retrying={feedQuery.isFetching} />}
 
       {!hasLiveData && !isDemo && feedQuery.isSuccess && <EmptyFeedState />}
 

@@ -1,3 +1,4 @@
+import { preferenceStorage } from "@/lib/storage";
 /**
  * Lightweight intelligence alert.
  *
@@ -27,7 +28,7 @@ type WatchRecord = {
 function readWatchlist(): WatchRecord[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = JSON.parse(window.localStorage.getItem(WATCH_KEY) ?? "[]");
+    const raw = JSON.parse(preferenceStorage.getItem(WATCH_KEY) ?? "[]");
     if (!Array.isArray(raw)) return [];
     return raw.filter(
       (item): item is WatchRecord =>
@@ -75,8 +76,8 @@ export function BreakingSignalToast() {
 
   useEffect(() => {
     setWatchlist(readWatchlist());
-    setStoryDismissed(window.localStorage.getItem(STORY_DISMISS_KEY) === today);
-    setWatchDismissedFingerprint(window.localStorage.getItem(WATCH_ALERT_DISMISS_KEY));
+    setStoryDismissed(preferenceStorage.getItem(STORY_DISMISS_KEY) === today);
+    setWatchDismissedFingerprint(preferenceStorage.getItem(WATCH_ALERT_DISMISS_KEY));
   }, [today]);
 
   const metrics = trpc.metrics.list.useQuery(undefined, {
@@ -146,7 +147,7 @@ export function BreakingSignalToast() {
         <button
           type="button"
           onClick={() => {
-            window.localStorage.setItem(WATCH_ALERT_DISMISS_KEY, watchFingerprint);
+            preferenceStorage.setItem(WATCH_ALERT_DISMISS_KEY, watchFingerprint);
             setWatchDismissedFingerprint(watchFingerprint);
           }}
           aria-label="Dismiss watched signal alert"
@@ -184,7 +185,7 @@ export function BreakingSignalToast() {
       <button
         type="button"
         onClick={() => {
-          window.localStorage.setItem(STORY_DISMISS_KEY, today);
+          preferenceStorage.setItem(STORY_DISMISS_KEY, today);
           setStoryDismissed(true);
         }}
         aria-label="Dismiss"
