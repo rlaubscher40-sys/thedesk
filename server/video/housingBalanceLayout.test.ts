@@ -106,13 +106,15 @@ describe("documentary housing Reel", () => {
       expect(deposit).not.toContain("The squeeze.");
     }
   });
-  it("identifies archive imagery and the modelled deposit assumptions", () => {
+  it("credits each illustrative setting without inventing a place or project claim", () => {
     const opening = copy(frame("label").content).join(" ");
     expect(opening).toContain("ILLUSTRATIVE PHOTO");
-    expect(opening).toContain("Phillip Flores / Unsplash");
+    expect(opening).toContain("NOT A MEASURED LOCATION");
+    expect(frame("label").meta.photoCredit).toContain("Maximillian Conacher / Unsplash");
     const construction = copy(frame("construction").content).join(" ");
-    expect(construction).toContain("ARCHIVE PUBLISHED 2019");
-    expect(construction).toContain("DAMON HALL");
+    expect(construction).toContain("NOT A PROJECT CLAIM");
+    expect(frame("construction").meta.photoCredit).toContain("D Goug / Pexels");
+    expect(frame("signOff").meta.photoCredit).toBe(frame("construction").meta.photoCredit);
     const words = copy(frame("households").content).join(" ");
     for (const phrase of [
       "11.2",

@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+import { createHash } from "node:crypto";
+import { REEL_PHOTO_CATALOGUE } from "./reelPhotoCatalogue";
 import { loadImage } from "@napi-rs/canvas";
 import * as cards from "../og/instagramCards";
 import {
@@ -17,6 +19,36 @@ import { createEvidenceMotionRenderer } from "./evidenceMotionRenderer";
 import type { EvidenceVisual, EvidenceRecipe } from "./evidenceVisual";
 
 describe("mandatory repeatable full-screen visual standard", () => {
+  it("assigns varied reviewed story beats without random or runtime photo selection", () => {
+    const openings = new Set<string>();
+    for (const sequence of Object.values(REEL_VISUAL_SEQUENCES)) {
+      openings.add(sequence.label!);
+      expect(new Set(Object.values(sequence).filter(Boolean)).size).toBeGreaterThanOrEqual(2);
+    }
+    expect(openings.size).toBe(7);
+    expect(REEL_VISUAL_SEQUENCES["approval-comparison"]).toMatchObject({
+      construction: "building",
+      completion: "residential",
+    });
+    expect(REEL_VISUAL_SEQUENCES["new-loan-rates"]).toMatchObject({
+      label: "bank",
+      value: "money",
+      claim: "home",
+      signOff: "residential",
+    });
+  });
+  it("binds each new curated image to its reviewed bytes and free-source provenance", async () => {
+    for (const shot of Object.values(REEL_PHOTO_CATALOGUE)) {
+      const dataUrl = await cards.loadAsset(shot.asset);
+      expect(dataUrl).toMatch(/^data:image\/jpeg;base64,/);
+      const bytes = Buffer.from(dataUrl!.split(",")[1]!, "base64");
+      expect(createHash("sha256").update(bytes).digest("hex")).toBe(shot.sha256);
+      expect(shot.source).toMatch(/^https:\/\/(unsplash\.com|www\.pexels\.com)\//);
+      expect(shot.licence).toMatch(/^https:\/\/(unsplash\.com|www\.pexels\.com)\/license\/?$/);
+      expect(shot.purpose).toContain("not");
+      expect(shot.reviewed).toBe("2026-09-12");
+    }
+  });
   it("covers every current recipe and rejects incomplete or unknown future sequences", () => {
     expect(Object.keys(REEL_VISUAL_SEQUENCES)).toHaveLength(8);
     for (const [recipe, sequence] of Object.entries(REEL_VISUAL_SEQUENCES)) {
@@ -84,28 +116,31 @@ describe("mandatory repeatable full-screen visual standard", () => {
       }
     }
   }, 60000);
-  it("fails before returning a renderer when an opening asset is absent", async () => {
-    const v = verifiedInterstateMigration(testMigration(), contextNow)!.stat.visualStory!;
-    const original = cards.loadAsset;
-    const spy = vi
-      .spyOn(cards, "loadAsset")
-      .mockImplementation(async (name) =>
-        name === REEL_SHOTS.moving.asset ? null : original(name)
-      );
-    const scenes = v.script.map((s, i) => ({
-      key: s.key,
-      start: i * 4,
-      seconds: 4,
-      phrases: [{ text: s.text, start: 0, seconds: 3 }],
-    }));
-    try {
-      await expect(createEvidenceMotionRenderer(v, "navy", scenes, 24)).rejects.toThrow(
-        "photograph is missing"
-      );
-    } finally {
-      spy.mockRestore();
+  it.each(["moving", "building", "residential", "neighbourhood"] as const)(
+    "fails when required %s photography is absent",
+    async (shot) => {
+      const v = verifiedInterstateMigration(testMigration(), contextNow)!.stat.visualStory!;
+      const original = cards.loadAsset;
+      const spy = vi
+        .spyOn(cards, "loadAsset")
+        .mockImplementation(async (name) =>
+          name === REEL_SHOTS[shot].asset ? null : original(name)
+        );
+      const scenes = v.script.map((s, i) => ({
+        key: s.key,
+        start: i * 4,
+        seconds: 4,
+        phrases: [{ text: s.text, start: 0, seconds: 3 }],
+      }));
+      try {
+        await expect(createEvidenceMotionRenderer(v, "navy", scenes, 24)).rejects.toThrow(
+          "photograph is missing"
+        );
+      } finally {
+        spy.mockRestore();
+      }
     }
-  });
+  );
   it("continues adjacent shots and starts a fresh move when returning after a cut", () => {
     const scenes = Object.keys(REEL_VISUAL_SEQUENCES["new-loan-rates"]).map((key, i) => ({
       key,

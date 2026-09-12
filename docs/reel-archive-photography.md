@@ -1,5 +1,80 @@
 # Reel archive photography
 
+## Curated visual variety across all eight formats, 12 September 2026
+
+Three additional, visually inspected free photographs bring the bundled set to
+eight. The shared scene registry now assigns seven distinct opening images across
+the eight recipes, with at least two photographic settings per recipe. These are
+editorial assignments, not random choices: neighbourhood scale for broad housing
+and rent stories, a residential setting for rent comparisons, and house framing
+for the supply checklist. Approvals explicitly progress from framing to a home
+illustration. Bank, money and moving-box openings remain appropriate to their
+stories. Clean data scenes remain intentional, not missing-image fallbacks.
+
+The registry is shared by covers and video frames. Adjacent scenes retaining a
+photograph keep one continuous camera move. Housing camera geometry now uses the
+actual image dimensions rather than dimensions baked in for the former asset.
+Visible credits follow the selected image, including loan and housing closings.
+Source facts, narration, voice, timing limits and publication identities are
+unchanged. No runtime downloads or new services are introduced.
+
+### Neighbourhood aerial
+
+- Photographer: Maximillian Conacher.
+- Free individual photo page: https://unsplash.com/photos/sPpe2D7VbpM
+  ("top view photo of houses", description "Rooftops", published 21 December 2017).
+- Download: https://images.unsplash.com/photo-1513880989635-6eb491ce7f5b?fm=jpg&q=85&w=1400
+- Licence: https://unsplash.com/license, checked 12 September 2026. The individual
+  page explicitly offers the free Unsplash License, not Unsplash+.
+- Asset: `server/og/fonts/neighbourhood-conacher.jpg`, unchanged download.
+- SHA-256: `3a6ea9d56faa6fab9c53899822021c55a9eacb6adf3fb18d9a88e3d960eddbb3`.
+
+Inspected rooftops, streets and residential blocks illustrate neighbourhood scale.
+No exact location, capture date, mapped statistic or local shortage is asserted.
+
+### Residential home
+
+- Photographer: Brad Chapman, associated with the free gallery download.
+- Discovery: https://unsplash.com/s/photos/australian-houses
+- Gallery download: https://unsplash.com/photos/MGVeR9PvB2g/download?force=true
+- Download: https://images.unsplash.com/photo-1666000346172-8e7e87547d2a?fm=jpg&q=85&w=1400
+- Licence: https://unsplash.com/license, checked 12 September 2026. This gallery
+  entry is free, not Unsplash+. The individual metadata page was unavailable.
+- Asset: `server/og/fonts/residential-chapman.jpg`, unchanged download.
+- SHA-256: `396468056d1d69d70b257078df79d0525b6c7b2c53d487560382543aa17d7f0d`.
+
+The inspected brick cottage, veranda and fence illustrate a residential setting,
+not a listing, transaction, named household, completed development or measured
+suburb. No location or capture date is asserted.
+
+### House framing
+
+- Creator: D Goug, identified by the Pexels public download slug.
+- Discovery: https://www.pexels.com/search/house%20construction/
+- Photo ID: 39151690. Public gallery download:
+  https://images.pexels.com/photos/39151690/pexels-photo-39151690.jpeg?cs=srgb&dl=pexels-d-goug-211350543-39151690.jpg&fm=jpg
+- Downloaded rendition: https://images.pexels.com/photos/39151690/pexels-photo-39151690.jpeg?auto=compress&cs=tinysrgb&w=1400
+- Licence: https://www.pexels.com/license/, checked 12 September 2026. Free use
+  and modification, with no endorsement implied. Individual metadata unavailable.
+- Asset: `server/og/fonts/house-building-goug.jpg`, unchanged download.
+- SHA-256: `e97a89e1f94bcca862c7130f280aa205ee8c61012e657dec4548831748b594a7`.
+
+Inspected framing, scaffolding, boards and roof tiles illustrate the building
+stage, not a specific delayed project or a start/completion counted by ABS.
+No location or capture date is asserted. The housing film labels it explicitly
+as an illustrative building stage, not a project claim.
+
+### Repeatable review gate
+
+`server/video/reelPhotoCatalogue.ts` records provenance, licence, reviewed date,
+purpose and hash for these additions. Tests verify the bundled bytes, deliberate
+opening diversity, complete sequences, missing-asset refusal, camera coverage
+and native proportions. New images must be checked on their real downloaded
+pixels and in narrated exports; a search title alone is not approval. Avoid
+unverified advertising, implied endorsements and misleading project context.
+Earlier image records below are preserved as provenance history; current scene
+assignments are authoritative in `reelVisualStandard.ts`.
+
 ## Shared Reel standard: moving home, 12 September 2026
 
 - Photographer: cottonbro studio (identified by the Pexels public download).

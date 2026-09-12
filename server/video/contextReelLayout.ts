@@ -5,7 +5,7 @@ import { moving, smooth, type MotionNode } from "./reelMotion";
 import { exampleRepayments, loanDollars } from "../../shared/loanRepaymentExample";
 import { rentCueProgress } from "./rentComparisonLayout";
 import type { MeasuredPhrase } from "./phraseSpeech";
-import { LOAN_SHOTS, loanShot } from "./loanStoryPhotography";
+import { REEL_SHOTS, reelSceneShot } from "./reelVisualStandard";
 
 /** Keep the first result in place while the shorter term is spoken. The first
  * claim phrase introduces assumptions; only the second starts the dollar count. */
@@ -336,7 +336,7 @@ export function contextReelLayout(
       quiet: true,
       index: v.script.findIndex((s) => s.key === key),
       count: v.script.length,
-      ...(!migration ? { photoCredit: LOAN_SHOTS[loanShot(key)].credit } : {}),
+      ...(!migration ? { photoCredit: REEL_SHOTS[reelSceneShot(v.recipe, key)!].credit } : {}),
     },
   };
 }

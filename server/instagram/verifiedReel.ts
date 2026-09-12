@@ -77,7 +77,7 @@ export function verifiedRentReel(data: CityRents, now = new Date()) {
         finding: `Brisbane ${a.annualPercent.toFixed(1)}% vs Perth ${b.annualPercent.toFixed(1)}%. Year to ${period}. Gap: ${figure} percentage points.`,
         meaning: `${line} These percentages track rents actually paid. They do not tell you which city has higher weekly rents, or which property offers the better return. Purchase price and ownership costs matter too.`,
         method:
-          "Source: ABS CPI rents actually paid, original capital-city series. Illustrative architecture: Phillip Flores / Unsplash.",
+          "Source: ABS CPI rents actually paid, original capital-city series. Illustrative photography credited on screen.",
         revisions: revision + ". Data can be revised.",
         action:
           "Use growth to understand the change. Check rent levels, purchase prices and costs to compare returns.",

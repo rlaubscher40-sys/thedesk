@@ -22,6 +22,7 @@ import {
 } from "./reelMotion";
 import type { MeasuredPhrase } from "./phraseSpeech";
 import { assertReelVisualSequence, reelSceneShot, REEL_SHOTS } from "./reelVisualStandard";
+import { loanPhotoCrop } from "./loanStoryPhotography";
 
 export type MotionScene = {
   key: string;
@@ -31,14 +32,20 @@ export type MotionScene = {
 };
 
 /** A single camera move continues through construction and the final explanation. */
-export function housingCamera(key: string, time: number, scenes: MotionScene[], total: number) {
+export function housingCamera(
+  key: string,
+  time: number,
+  scenes: MotionScene[],
+  total: number,
+  image = { width: 1400, height: 986 },
+  focus = 0.5
+) {
   const opening = key === "label";
   const start = opening ? scenes[0]!.start : scenes.find((s) => s.key === "construction")!.start;
   const end = opening ? scenes[1]!.start : total;
   const p = smooth((time - start) / (end - start));
-  const height = 1980 * (1 + 0.03 * p);
-  const width = height * (opening ? 1400 / 986 : 2 / 3);
-  return { width, height, left: opening ? -1050 - p * 18 : (1080 - width) / 2, top: -35 - p * 28 };
+  const crop = loanPhotoCrop(image.width, image.height, focus, p);
+  return { width: crop.width, height: crop.height, left: crop.x, top: crop.y };
 }
 
 /** Each output frame is evaluated at its own timestamp. Typography is cached
@@ -124,7 +131,8 @@ export async function createHousingMotionRenderer(
     ctx.fillStyle = c.bg;
     ctx.fillRect(0, 0, 1080, 1920);
     if (photo) {
-      const camera = housingCamera(scene.key, time, scenes, total);
+      const shot = REEL_SHOTS[reelSceneShot("housing-balance", scene.key)!];
+      const camera = housingCamera(scene.key, time, scenes, total, photo, shot.focus);
       ctx.drawImage(photo, camera.left, camera.top, camera.width, camera.height);
       const blend = scene.key === "signOff" ? smooth((time - scene.start) / 0.5) : 0;
       const gradient = ctx.createLinearGradient(0, 0, 0, 1920);

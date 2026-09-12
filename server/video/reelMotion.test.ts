@@ -52,4 +52,27 @@ describe("continuous editorial movement", () => {
     expect(split.layers[0]).toMatchObject({ x: 24, y: 49, opacity: 0.3 });
     expect(split.layers[0]!.node.props.style).toMatchObject({ left: 0, top: 0, opacity: 1 });
   });
+  it("preserves native photo proportions and full-frame coverage for different source dimensions", () => {
+    const scenes = ["label", "facts", "claim", "households", "construction", "signOff"].map(
+      (key, i) => ({ key, start: i * 5, seconds: 5, phrases: [] })
+    );
+    for (const image of [
+      { width: 1400, height: 1050 },
+      { width: 1400, height: 786 },
+      { width: 900, height: 1400 },
+    ]) {
+      for (const time of [0, 2.5, 4.99, 20, 25, 29.99]) {
+        const key = time < 5 ? "label" : time < 25 ? "construction" : "signOff";
+        const c = housingCamera(key, time, scenes, 30, image, 0.54);
+        expect(c.width / c.height).toBeCloseTo(image.width / image.height, 10);
+        expect(c.left).toBeLessThanOrEqual(0);
+        expect(c.top).toBeLessThanOrEqual(0);
+        expect(c.left + c.width).toBeGreaterThanOrEqual(1080);
+        expect(c.top + c.height).toBeGreaterThanOrEqual(1920);
+      }
+      expect(housingCamera("construction", 25, scenes, 30, image, 0.54)).toEqual(
+        housingCamera("signOff", 25, scenes, 30, image, 0.54)
+      );
+    }
+  });
 });

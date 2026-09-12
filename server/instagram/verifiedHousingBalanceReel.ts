@@ -58,7 +58,7 @@ export function verifiedHousingBalanceReel(
         "The 18-month gap is not the total accumulated shortage. Need reflects household formation, not spending power. The deposit model assumes saving 15% of gross median household income each year for a median-priced dwelling. It is not an observed wait or a minimum deposit requirement.",
       ],
       source:
-        "Sources: NHSAC 2026, pp. 3, 21, 54, 57; RBA (2019). Photos: Phillip Flores and Damon Hall / Unsplash.",
+        "Sources: NHSAC 2026, pp. 3, 21, 54, 57; RBA (2019). Illustrative photography credited on screen.",
       read: "housingBalance",
     }),
   };
