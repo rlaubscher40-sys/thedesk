@@ -295,7 +295,13 @@ export async function renderBriefingSlide(
     children.push(
       div(
         { position: "absolute", left: 76, top: baseY + 170 },
-        label(isEvidence ? "THE EVIDENCE · REPORTED DETAIL" : "ALSO IN THE BRIEFING")
+        label(
+          briefingClaimLabel(slide.story) === "REPORTED ESTIMATE"
+            ? `${isEvidence ? "THE EVIDENCE" : "ALSO"} · REPORTED ESTIMATE`
+            : isEvidence
+              ? "THE EVIDENCE · REPORTED DETAIL"
+              : "ALSO IN THE BRIEFING"
+        )
       ),
       div(
         { position: "absolute", left: 76, top: baseY + 240, right: 76 },

@@ -3,6 +3,7 @@ import { insightAttemptLabel } from "@shared/instagramMeasurement";
 import { useState } from "react";
 import { InstagramLaunchPanel } from "./InstagramLaunchPanel";
 import { InstagramReelPanel } from "./InstagramReelPanel";
+import { BriefingPlan } from "./BriefingPlan";
 import { PublicationAudit } from "./PublicationAudit";
 import { SocialPerformance } from "./SocialPerformance";
 import { RefreshCw } from "lucide-react";
@@ -16,7 +17,12 @@ import {
   type JobState,
   type PostedRow,
 } from "@/lib/instagramRuns";
-import { readFormats, summariseFormats, type InsightRow } from "@/lib/instagramInsights";
+import {
+  INSIGHT_AGE_BANDS,
+  readFormats,
+  summariseFormats,
+  type InsightRow,
+} from "@/lib/instagramInsights";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 function fmt(n: number | null | undefined) {
@@ -327,9 +333,10 @@ function rate(n: number | null): string {
  * Differences are descriptive; the panel does not claim a winning format.
  */
 function FormatPerformance({ posts, ready }: { posts: InsightRow[]; ready: boolean }) {
+  const [ageBand, setAgeBand] = useState<(typeof INSIGHT_AGE_BANDS)[number]>(24);
   if (!ready) return <Skeleton className="h-32 w-full rounded" />;
 
-  const summaries = summariseFormats(posts);
+  const summaries = summariseFormats(posts, ageBand);
   const reading = readFormats(summaries);
 
   return (
@@ -344,6 +351,28 @@ function FormatPerformance({ posts, ready }: { posts: InsightRow[]; ready: boole
           metrics stay unknown. Zero reach is included in reach but cannot produce a rate.
         </p>
       </div>
+
+      <label className="block text-xs">
+        Observation age after publication
+        <select
+          className="ml-3 rounded border border-[var(--color-border)] bg-[var(--color-bg)] p-2"
+          value={ageBand}
+          onChange={(event) =>
+            setAgeBand(Number(event.target.value) as (typeof INSIGHT_AGE_BANDS)[number])
+          }
+        >
+          {INSIGHT_AGE_BANDS.map((age) => (
+            <option key={age} value={age}>
+              {age}–{age + 6} hours
+            </option>
+          ))}
+        </select>
+      </label>
+      <p className="text-xs text-[var(--color-fg-muted)]">
+        Only the selected six-hour age band is compared. A 47-hour reading does not compete with a
+        25-hour reading. Profile visits and follows are not collected by this report and remain
+        unavailable.
+      </p>
 
       <p className="text-sm text-[var(--color-fg)] leading-relaxed border-l-2 border-[var(--color-accent)] pl-3">
         {reading}
@@ -461,6 +490,7 @@ export function InstagramAdminPanel() {
 
       <FormatPerformance posts={posts} ready={!isLoading} />
       <SocialPerformance />
+      <BriefingPlan />
       <PublicationAudit />
 
       {isLoading ? (
