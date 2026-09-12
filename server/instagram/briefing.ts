@@ -41,7 +41,7 @@ export function briefingLens(story: Pick<DailyFeedItem, "title" | "summary">): B
       meaning:
         "Housing approvals and mortgage stress describe different things. An overlap between them does not establish that one causes the other.",
       points: [
-        { label: "New supply", detail: "Homes approved for building" },
+        { label: "New supply", detail: "The housing supply measure" },
         { label: "Existing pressure", detail: "Borrowers under financial strain" },
         { label: "The overlap", detail: "A shared location, not proof of cause" },
       ],
@@ -53,9 +53,9 @@ export function briefingLens(story: Pick<DailyFeedItem, "title" | "summary">): B
       key: "supply",
       title: "Permission. Construction. Completion.",
       meaning:
-        "These measure different stages of housing supply. An approval does not tell us when a home will be ready.",
+        "Building approvals permit construction; planning approval can be an earlier step. Starts and completions measure later stages.",
       points: [
-        { label: "Approved", detail: "Permission to build" },
+        { label: "Approved", detail: "Planning or building permission" },
         { label: "Started", detail: "Construction has begun" },
         { label: "Completed", detail: "Building work is finished" },
       ],
@@ -173,15 +173,13 @@ export function buildBriefingSlides(stories: DailyFeedItem[]): BriefingSlide[] {
       lens,
     },
     { kind: "explainer", story: lead, title: lens.title, body: lens.meaning, lens },
-    ...stories
-      .slice(1, 3)
-      .map((story) => ({
-        kind: "supporting" as const,
-        story,
-        title: briefingText(story.title),
-        body: briefingDetail(story)!,
-        lens: briefingLens(story),
-      })),
+    ...stories.slice(1, 3).map((story) => ({
+      kind: "supporting" as const,
+      story,
+      title: briefingText(story.title),
+      body: briefingDetail(story)!,
+      lens: briefingLens(story),
+    })),
     { kind: "takeaway", story: lead, title: "What to watch next", body: lens.takeaway, lens },
   ];
 }

@@ -27,7 +27,7 @@ describe("daily briefing evidence and layout contract", () => {
       /double|Buy now|explode/
     );
     expect(briefingCaption([story])).not.toMatch(/double|Buy now|explode/);
-    expect(briefingAlt(slides[2]!, 2, 4)).toContain("Approved: Permission to build");
+    expect(briefingAlt(slides[2]!, 2, 4)).toContain("Approved: Planning or building permission");
   });
   it("rejects boilerplate, headline duplicates and ambiguous supply measures", () => {
     for (const summary of [
