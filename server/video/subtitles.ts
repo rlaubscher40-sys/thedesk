@@ -129,10 +129,14 @@ function literal(text: string) {
     .replace(/\}/g, "｝")
     .replace(/[\r\n]/g, " ");
 }
+import { REEL_SAFE_AREAS } from "./reelSafeAreas";
+
 export function subtitleAss(
   cues: SubtitleCue[],
   layout: "card" | "story" | "documentary" = "card"
 ): string {
+  if (cues.some((cue) => cue.lines.length > 2))
+    throw new Error("Reel subtitles exceed the reserved two-line area.");
   return (
     `[Script Info]
 ScriptType: v4.00+
@@ -148,7 +152,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     cues
       .map(
         (c) =>
-          `Dialogue: 0,${timestamp(c.start)},${timestamp(c.end)},Desk,,0,0,0,,{\\pos(${layout === "documentary" ? "540,1540" : layout === "story" ? "504,1490" : "540,210"})}${c.lines.map(literal).join("\\N")}`
+          `Dialogue: 0,${timestamp(c.start)},${timestamp(c.end)},Desk,,0,0,0,,{\\pos(${layout === "documentary" ? `540,${REEL_SAFE_AREAS.subtitleCentreY}` : layout === "story" ? `504,${REEL_SAFE_AREAS.subtitleCentreY}` : "540,210"})}${c.lines.map(literal).join("\\N")}`
       )
       .join("\n") +
     "\n"

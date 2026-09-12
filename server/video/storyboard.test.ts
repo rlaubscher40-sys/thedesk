@@ -42,7 +42,7 @@ describe("spoken approval scenes", () => {
       sections.map((s, i) => ({ key: s.key, start: timing.starts[i]!, seconds: durations[s.key]! }))
     );
     expect(cues.flatMap((c) => c.lines).join(" ")).toBe(script.map((s) => s.text).join(" "));
-    expect(subtitleAss(cues, "story")).toContain("\\pos(504,1490)");
+    expect(subtitleAss(cues, "story")).toContain("\\pos(504,1575)");
     expect(storyboard.scenes.find((s) => s.key === "value")!.showPerth).toBe(true);
     expect(storyboard.scenes.find((s) => s.key === "claim")!.kind).toBe("demand");
   });

@@ -92,7 +92,7 @@ it("uses the bundled editorial sans face for documentary captions and keeps thei
   const cues = [{ start: 0, end: 2, lines: ["Homes added must outpace new need."] }];
   const out = subtitleAss(cues, "documentary");
   expect(out).toContain("Style: Desk,Desk Editorial Sans,54");
-  expect(out).toContain("540,1540");
+  expect(out).toContain("540,1575");
   expect(subtitleAss(cues, "story")).toContain("Style: Desk,JetBrains Mono,40");
 });
 

@@ -16,6 +16,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import satori from "satori";
+import { REEL_SAFE_AREAS, assertReelContentBottom } from "../video/reelSafeAreas";
 import { seriesRange, sparklineDataUri, thin, type SparkPoint } from "./sparkline";
 import type { StatFact } from "../metrics/statFacts";
 import sharp from "sharp";
@@ -60,6 +61,20 @@ async function loadFonts(): Promise<LoadedFonts> {
 export async function loadReelSubtitleFont(documentary = false): Promise<Buffer> {
   const fonts = await loadFonts();
   return Buffer.from(documentary ? fonts.sans : fonts.mono);
+}
+
+/** Mark authored content, never background photographs, for absolute render bounds. */
+function reserveReelSubtitleSpace(value: any): any {
+  if (Array.isArray(value)) return value.map(reserveReelSubtitleSpace);
+  if (!value || typeof value !== "object" || !value.props) return value;
+  return {
+    ...value,
+    props: {
+      ...value.props,
+      "data-reel-content-clearance": true,
+      children: reserveReelSubtitleSpace(value.props.children),
+    },
+  };
 }
 
 /** A stable 9:16 scene canvas, with room for platform chrome and spoken subtitles. */
@@ -128,43 +143,43 @@ export async function renderEditorialFrame(
       ),
       div(
         { position: "absolute", left: 84, top: 355, width: 840, flexDirection: "column" },
-        content
+        reserveReelSubtitleSpace(content)
       ),
       div(
         {
           position: "absolute",
           left: 84,
-          top: meta.documentary ? 1325 : 1375,
+          top: REEL_SAFE_AREAS.attributionTop,
           width: 840,
           ...(meta.quiet ? {} : { borderTop: `1px solid ${c.fgMuted}` }),
-          paddingTop: 20,
+          paddingTop: 0,
           flexDirection: "column",
-          gap: 12,
+          gap: 10,
         },
         [
-          ...(meta.publisher
-            ? [
-                div(
-                  {
-                    fontFamily: "Desk Editorial Sans",
-                    fontSize: meta.documentary ? 31 : 26,
-                    color: c.fgMuted,
-                  },
-                  meta.publisher
-                ),
-              ]
-            : []),
-          meta.documentary
-            ? div(
-                { fontFamily: "Desk Editorial Sans", fontSize: 30, color: c.fgMuted },
-                meta.source
-              )
-            : mono(meta.source, 21, c.fgMuted),
+          reserveReelSubtitleSpace(
+            div(
+              {
+                fontFamily: "Desk Editorial Sans",
+                fontSize: 26,
+                lineHeight: 1.15,
+                color: c.fgMuted,
+              },
+              meta.source
+            )
+          ),
           ...(meta.photoCredit
             ? [
-                div(
-                  { fontFamily: "Desk Editorial Sans", fontSize: 24, color: c.fgMuted },
-                  meta.photoCredit
+                reserveReelSubtitleSpace(
+                  div(
+                    {
+                      fontFamily: "Desk Editorial Sans",
+                      fontSize: 24,
+                      lineHeight: 1.15,
+                      color: c.fgMuted,
+                    },
+                    meta.photoCredit
+                  )
                 ),
               ]
             : []),
@@ -176,7 +191,7 @@ export async function renderEditorialFrame(
               {
                 position: "absolute",
                 left: 84,
-                top: 1570,
+                top: REEL_SAFE_AREAS.attributionBottom - 3,
                 width: 840,
                 height: 3,
                 backgroundColor: c.amberSoft,
@@ -455,13 +470,17 @@ export function fitValueSize(
 export async function renderEditorialLayer(
   tree: object,
   width: number,
-  height: number
+  height: number,
+  onTextBottom?: (bottom: number) => void
 ): Promise<Buffer> {
   const fonts = await loadFonts();
   const svg = await satori(tree as never, {
     width,
     height,
     onNodeDetected: (node) => {
+      if (node.textContent) onTextBottom?.(node.top + node.height);
+      if (node.props["data-reel-content-clearance"])
+        assertReelContentBottom(node.top + node.height);
       if (
         node.props["data-reel-safe-text"] &&
         (node.left < -0.5 ||
