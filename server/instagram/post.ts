@@ -1136,6 +1136,27 @@ export async function postStatReel(
         "This evidence is already published or locked, or its durable record is unavailable. No duplicate was sent."
       );
     let postId: string;
+    // Enrol only the winner of the permanent Reel claim. Store before Meta's
+    // publish so a confirmed Reel can get its Story after a process restart.
+    // A Story storage fault cannot turn this into a duplicate Reel retry.
+    if (opts.script) {
+      try {
+        const { stageReelStorySource } = await import("../db/reelStorySource");
+        await stageReelStorySource(publication, {
+          version: 1,
+          stat: sanitized,
+          script: opts.script,
+          siteUrl,
+        });
+      } catch (error) {
+        console.error("[instagram] Reel Story source was not saved:", (error as Error).message);
+        await recordServerError({
+          level: "warn",
+          route: "instagram/reel-story-source",
+          message: `Reel Story source was not saved: ${(error as Error).message}`.slice(0, 512),
+        }).catch(() => {});
+      }
+    }
     try {
       // No heuristic recovery from unrelated recent posts, and no retry after
       // an uncertain non-idempotent publish response.

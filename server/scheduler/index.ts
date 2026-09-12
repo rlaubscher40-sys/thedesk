@@ -19,6 +19,7 @@
  * can be rolled out deliberately alongside retiring the GitHub crons.
  */
 import { env } from "../core/env";
+import { runReelStoryAutomation } from "../instagram/reelStoryAutomation";
 import { isDemoMode } from "../demo/store";
 import { sendAdminAlertEmail } from "../core/mailer";
 import { recordServerError } from "../db/health";
@@ -432,6 +433,20 @@ async function tick(baseUrl: string, apiKey: string): Promise<void> {
         ),
       }).catch(() => {});
     });
+    // Story delivery has its own claims and failure handling. It also runs
+    // when today's Reel is already published, so preparation survives a restart.
+    await runReelStoryAutomation()
+      .then((result) => {
+        console.log(`[reel-story-plan] ${JSON.stringify(result)}`);
+      })
+      .catch(async (error) => {
+        console.error("[scheduler] Reel Story check failed:", (error as Error).message);
+        await recordServerError({
+          level: "warn",
+          route: "scheduler/reel-story",
+          message: `Reel Story check failed: ${(error as Error).message}`.slice(0, 512),
+        }).catch(() => {});
+      });
   } finally {
     ticking = false;
   }

@@ -235,6 +235,22 @@ export async function createStoryContainer(opts: {
   return data.id;
 }
 
+/** A separately published video Story, not an in-app Reel reshare/sticker. */
+export async function createVideoStoryContainer(opts: {
+  igUserId: string;
+  accessToken: string;
+  videoUrl: string;
+}): Promise<string> {
+  const data = await withIgRetry("createVideoStoryContainer", () =>
+    igPost<{ id: string }>(`/${opts.igUserId}/media`, {
+      media_type: "STORIES",
+      video_url: opts.videoUrl,
+      access_token: opts.accessToken,
+    })
+  );
+  return data.id;
+}
+
 /**
  * Poll a media container until it's ready to publish. Instagram processes the
  * uploaded image asynchronously; publishing before the container reports
@@ -472,6 +488,18 @@ export async function fetchMediaMetricsResult(opts: {
     status,
     reason: status === "complete" ? null : (reason ?? "incomplete_metrics"),
   };
+}
+
+/** Stories do not support the feed's saved/comment metric bundle. Read reach
+ * alone, preserving an unavailable result as null rather than zero. */
+export async function fetchStoryReach(opts: { mediaId: string; accessToken: string }) {
+  const result = await igGet<{ data?: Array<{ name: string; values?: Array<{ value: number }> }> }>(
+    `/${opts.mediaId}/insights`,
+    { metric: "reach", access_token: opts.accessToken },
+    AbortSignal.timeout(5000)
+  );
+  const raw = result.data?.find((row) => row.name === "reach")?.values?.[0]?.value;
+  return validMetricCount(raw) ? raw : null;
 }
 
 export type PublishingLimit = {

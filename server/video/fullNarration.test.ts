@@ -11,6 +11,7 @@ import {
 import { RENT_CITIES } from "../../shared/cityRents";
 import { localSpeech, audibleWave, voiceModel } from "./localVoice";
 import { renderStatReel } from "./statReel";
+import { renderReelStory } from "./reelStory";
 
 // CI installs the pinned voice before testing. Do not silently skip a missing
 // deployment dependency there. Local checkouts can run logic tests without it.
@@ -57,6 +58,13 @@ describe.skipIf(!available)("real complete narrated Reel", () => {
       expect(video.seconds).toBeGreaterThan(15);
       expect(video.seconds).toBeLessThanOrEqual(32);
       expect(video.bytes.length).toBeGreaterThan(100_000);
+      if (kind === "checklist") {
+        const story = await renderReelStory(video);
+        expect(story.narrated && story.subtitled).toBe(true);
+        expect(story.seconds).toBeLessThan(video.seconds);
+        expect(story.seconds).toBeLessThanOrEqual(35);
+        expect(story.bytes.length).toBeGreaterThan(100_000);
+      }
     },
     180_000
   );
