@@ -1,0 +1,33 @@
+name: Victorian rent source check
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - scripts/ingest/inspect-vic-rents.mjs
+      - .github/workflows/vic-rent-source-check.yml
+
+concurrency:
+  group: vic-rent-source-check
+  cancel-in-progress: false
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22
+      - name: Download published CC BY 4.0 workbooks for review
+        run: node scripts/ingest/inspect-vic-rents.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: vic-rent-source-check
+          path: source-check/
+          retention-days: 7
