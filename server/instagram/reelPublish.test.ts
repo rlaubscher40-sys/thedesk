@@ -17,7 +17,7 @@ vi.mock("../core/env", () => ({
   env: { instagramAccessToken: "test", instagramBusinessAccountId: "test" },
 }));
 vi.mock("../video/statReel", () => ({ renderStatReel: m.render }));
-vi.mock("../og/instagramCards", () => ({ renderStatCard: m.cover }));
+vi.mock("../video/reelCover", () => ({ renderReelCover: m.cover }));
 vi.mock("../db/jobRuns", () => ({ claimJobRun: m.claim, markJobRun: m.mark }));
 vi.mock("./tempStore", () => ({ storeTempImage: m.store, removeTempImage: m.remove }));
 vi.mock("./api", () => ({
@@ -56,6 +56,10 @@ describe("narrated Reel publication", () => {
   it("saves the Story source only after winning the Reel claim and before publication", async () => {
     const script = [{ key: "label", text: "A home." }];
     await postStatReel(stat, "https://thedesk.au", { ...options, script });
+    expect(m.cover).toHaveBeenCalledWith(stat, script);
+    expect(m.create).toHaveBeenCalledWith(
+      expect.objectContaining({ coverUrl: "https://thedesk.au/instagram/temp/temp.jpg" })
+    );
     expect(m.claim.mock.invocationCallOrder[0]).toBeLessThan(m.stage.mock.invocationCallOrder[0]!);
     expect(m.stage.mock.invocationCallOrder[0]).toBeLessThan(
       m.publish.mock.invocationCallOrder[0]!
@@ -103,6 +107,15 @@ describe("narrated Reel publication", () => {
     m.render.mockResolvedValue({ bytes: Buffer.from("silent"), seconds: 25, narrated: false });
     await expect(postStatReel(stat, "https://thedesk.au", options)).rejects.toThrow("silent");
     expect(m.create).not.toHaveBeenCalled();
+  });
+  it("withholds publication if its photographic cover cannot be rendered", async () => {
+    m.cover.mockRejectedValue(new Error("Reviewed Reel cover photograph is missing"));
+    await expect(postStatReel(stat, "https://thedesk.au", options)).rejects.toThrow(
+      "photograph is missing"
+    );
+    expect(m.create).not.toHaveBeenCalled();
+    expect(m.claim).not.toHaveBeenCalled();
+    expect(m.publish).not.toHaveBeenCalled();
   });
   it("preserves the evidence storyboard through the publishing wrapper", async () => {
     const storyboard = { kind: "approvals-comparison", scenes: [] };

@@ -81,7 +81,7 @@ export function verifiedSupplyReel(data: CityApprovals, now = new Date()): Verif
       evidenceHash: createHash("sha256").update(JSON.stringify(evidence)).digest("hex"),
       caption: buildNarrativeReelCaption({
         paragraphs: [
-          "More homes approved. But are we building enough?",
+          storyboard.scenes[0]!.text,
           `Greater Brisbane recorded ${number(a.total)} dwelling approvals in the year to ${period}. Greater Perth recorded ${number(b.total)}.`,
           "Supply only makes sense alongside demand. The question is whether homes being delivered are keeping pace with households needing somewhere to live.",
           "An approval is permission to build. Construction still has to happen before there is a finished home. These figures don't count construction starts or completed homes.",

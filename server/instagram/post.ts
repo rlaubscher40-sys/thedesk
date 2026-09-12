@@ -50,6 +50,7 @@ import {
 import { removeTempImage, storeTempImage } from "./tempStore";
 import type { ScriptLine } from "../video/narration";
 import { renderStatReel } from "../video/statReel";
+import { renderReelCover } from "../video/reelCover";
 import { productionReelOptions } from "../video/reelProduction";
 import {
   pickPropertyStories,
@@ -1034,8 +1035,8 @@ export function containerWaitBudgetMs(deadlineAt: number | undefined, now = Date
  * growth rather than at the people already reading.
  *
  * The video and its cover are both served from the temp store while Instagram
- * fetches them. The cover is the fully-revealed frame rather than the opening
- * one: the grid thumbnail should show the finished card, not an empty stage.
+ * fetches them. The photographic cover shares the reviewed opening and keeps
+ * essential text inside a centre crop for the profile grid.
  */
 export async function postStatReel(
   stat: {
@@ -1098,11 +1099,7 @@ export async function postStatReel(
   try {
     const [video, cover] = await Promise.all([
       renderStatReel(sanitized, variant, productionReelOptions(opts.script)),
-      renderStatCard(sanitized, variant, {
-        shape: "vertical",
-        kicker: sanitized.editorialLabel ?? "The Number",
-        facts: sanitized.facts,
-      }),
+      renderReelCover(sanitized, opts.script ?? []),
     ]);
     console.log(
       `[instagram] reel rendered in ${((Date.now() - renderStartedAt) / 1000).toFixed(1)}s ` +

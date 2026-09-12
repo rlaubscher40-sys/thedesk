@@ -1,4 +1,5 @@
 import type { CardVariant } from "../og/instagramCards";
+import { evidenceOpening } from "./reelOpening";
 import { evidenceBarGeometry, type EvidenceVisual } from "./evidenceVisual";
 import { moving, smooth, type MotionNode } from "./reelMotion";
 import { exampleRepayments, loanDollars } from "../../shared/loanRepaymentExample";
@@ -120,8 +121,8 @@ export function contextReelLayout(
   if (key === "label") {
     if (!migration)
       nodes = [
-        at(0, 610, text("A home loan.", 88, c.fg, true)),
-        at(0, 725, text("More than its rate.", 64, c.gold, true)),
+        at(0, 610, text(evidenceOpening(v.recipe, v.rows).headline, 78, c.fg, true)),
+        at(0, 725, text(evidenceOpening(v.recipe, v.rows).detail, 56, c.gold, true)),
       ];
     else {
       nodes = title(

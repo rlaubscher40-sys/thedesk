@@ -3,6 +3,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { parseAbsApprovals } from "../markets/absApprovals";
 import { RENT_CITIES } from "../../shared/cityRents";
+import { reelCoverContent, renderReelCover } from "../video/reelCover";
+import sharp from "sharp";
 const m = vi.hoisted(() => ({
   rents: vi.fn(),
   approvals: vi.fn(),
@@ -66,6 +68,17 @@ describe("repeatable automatic editorial selection", () => {
     const candidates = await getVerifiedReelCandidates(now);
     expect(candidates).toHaveLength(8);
     expect(new Set(candidates.map((candidate) => candidate.publication.key)).size).toBe(8);
+    for (const candidate of candidates) {
+      const cover = reelCoverContent(candidate.stat, candidate.script);
+      expect(candidate.script[0]!.text).toBe(cover.opening.voice);
+      expect(candidate.caption.startsWith(cover.opening.voice)).toBe(true);
+      const image = await renderReelCover(candidate.stat, candidate.script);
+      expect(await sharp(image).metadata()).toMatchObject({
+        format: "jpeg",
+        width: 1080,
+        height: 1920,
+      });
+    }
   });
   it("adds borrowing and population families without requiring rent or approval evidence", async () => {
     m.demographics.mockResolvedValue(testMigration());

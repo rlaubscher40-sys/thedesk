@@ -4,6 +4,7 @@ import type { ReelStat } from "../video/statReel";
 import type { ScriptLine } from "../video/narration";
 import { buildReelCaption, reelReadingCta } from "./reelCaption";
 import { withEvidenceVisual } from "../video/evidenceVisual";
+import { evidenceOpening } from "../video/reelOpening";
 
 /** One comparable official release, not a daily market-movement claim. */
 export function verifiedRentReel(data: CityRents, now = new Date()) {
@@ -43,8 +44,12 @@ export function verifiedRentReel(data: CityRents, now = new Date()) {
       ? "Neither city's annual rate was higher."
       : `${leading}'s annual rate was ${figure} percentage points higher.`;
   const rate = (n: number) => `${n < 0 ? "minus " : ""}${Math.abs(n).toFixed(1)} percent`;
+  const opening = evidenceOpening(
+    "rent-comparison",
+    [a, b].map((row) => ({ label: row.city, value: row.annualPercent }))
+  );
   const script: ScriptLine[] = [
-    { key: "label", text: "What does rent growth tell a buyer?" },
+    { key: "label", text: opening.voice },
     { key: "value", text: `Brisbane, ${rate(a.annualPercent)}. Perth, ${rate(b.annualPercent)}.` },
     { key: "line", text: meaning },
     { key: "claim", text: "That is the change. Not which city costs more to rent." },
@@ -68,7 +73,7 @@ export function verifiedRentReel(data: CityRents, now = new Date()) {
       publication: { key: "instagram-reel-abs-rents-brisbane-perth-v1", date: `${a.period}-01` },
       evidenceHash: hash,
       caption: buildReelCaption({
-        hook: "Faster rent growth. A better investment?",
+        hook: opening.voice,
         finding: `Brisbane ${a.annualPercent.toFixed(1)}% vs Perth ${b.annualPercent.toFixed(1)}%. Year to ${period}. Gap: ${figure} percentage points.`,
         meaning: `${line} These percentages track rents actually paid. They do not tell you which city has higher weekly rents, or which property offers the better return. Purchase price and ownership costs matter too.`,
         method:
