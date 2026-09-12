@@ -9,6 +9,7 @@ import {
 } from "./editorialCoverage";
 import { EDITORIAL_DDL } from "./editorial";
 import { coverageExamples } from "../../shared/editorialCoverageExamples";
+import { storyPublicationKeys } from "../instagram/socialProvenance";
 const testUrl = process.env.SECURITY_TEST_DATABASE_URL;
 it.skipIf(!testUrl)(
   "persists daily reviews, rejects concurrent overwrites, and compares actual publication",
@@ -29,6 +30,9 @@ it.skipIf(!testUrl)(
       );
       await connection.query(
         "CREATE TEMPORARY TABLE daily_feed_items (id INT PRIMARY KEY, title TEXT, sourceUrl TEXT, channel VARCHAR(32), feedDate VARCHAR(10), createdAt TIMESTAMP)"
+      );
+      await connection.query(
+        "CREATE TEMPORARY TABLE job_runs (jobKey VARCHAR(64), runDate VARCHAR(10), status VARCHAR(16), detail TEXT, finishedAt TIMESTAMP NULL)"
       );
       const db = drizzle(connection),
         day = "2026-09-10",
@@ -52,6 +56,31 @@ it.skipIf(!testUrl)(
       expect(result.reviewed).toBe(3);
       expect(result.confirmed).toBe(1);
       expect(result.unknown).toBe(2);
+      const identity = storyPublicationKeys({
+        title: entries[0]!.title,
+        sourceUrl: entries[0]!.urls[0]!,
+      });
+      await connection.query(
+        "INSERT INTO job_runs VALUES (?, '1970-01-01', 'running', 'Reserved', NULL)",
+        [identity[0]]
+      );
+      expect((await read()).rows[0]!.social[0]?.state).toBe("reserved-or-uncertain");
+      await connection.query(
+        "UPDATE job_runs SET status='success', detail=?, finishedAt='2026-09-10 01:00:00'",
+        [JSON.stringify({ postId: "12345", storyIds: [999] })]
+      );
+      expect((await read()).rows[0]!.social[0]?.state).toBe("reserved-or-uncertain");
+      await connection.query("UPDATE job_runs SET detail=?", [
+        JSON.stringify({ postId: "12345", storyIds: [1] }),
+      ]);
+      expect((await read()).rows[0]!.social).toEqual([
+        {
+          feedItemId: 1,
+          state: "confirmed",
+          mediaId: "12345",
+          confirmedAt: "2026-09-10T01:00:00.000Z",
+        },
+      ]);
       const saved = await db.select().from(editorialCoverageDays);
       expect(saved[0]!.updatedBy).toBe(7);
       expect(saved[0]!.version).toBe(2);

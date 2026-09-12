@@ -55,6 +55,9 @@ export type Source = {
   articleContainerClass?: string;
   /** Restrict discovery to the publisher's actual headline links. */
   articleLinkClass?: string;
+  /** Verified public discovery alternatives. Same publisher, same beat;
+   * never proxies, paywall workarounds or recursive recovery chains. */
+  recoveryRoutes?: Array<Omit<Source, "recoveryRoutes">>;
 };
 
 /**
@@ -260,6 +263,16 @@ export const SOURCES: Source[] = [
     category: "MACRO",
     channel: "AU",
     maxItems: 12,
+    recoveryRoutes: [
+      {
+        name: "RBA Speeches",
+        url: "https://www.rba.gov.au/rss/rss-cb-speeches.xml",
+        kind: "rss",
+        category: "MACRO",
+        channel: "AU",
+        maxItems: 20,
+      },
+    ],
   },
   {
     name: "ABS Media Releases",
@@ -296,6 +309,17 @@ export const SOURCES: Source[] = [
     category: "MACRO",
     channel: "AU",
     maxItems: 3,
+    recoveryRoutes: [
+      {
+        name: "RBA Interviews & Speeches",
+        url: `https://www.rba.gov.au/speeches/${new Date().getUTCFullYear()}/`,
+        kind: "index",
+        articlePath: "^/speeches/20[0-9]{2}/sp-[a-z-]+20[0-9]{2}-[0-9]{2}-[0-9]{2}\\.html$",
+        category: "MACRO",
+        channel: "AU",
+        maxItems: 12,
+      },
+    ],
   },
 
   // ── Tier 2: Australian newsrooms with reliable RSS ───────────────────────

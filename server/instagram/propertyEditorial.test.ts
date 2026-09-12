@@ -71,13 +71,13 @@ describe("property story selection", () => {
     expect(propertyStoryTier(story({ title: "Housing act changes rental rules" }))).toBe(0);
     expect(propertyStoryTier(story({ title: "ACT housing approvals rise" }))).toBe(2);
   });
-  it("leads with direct property ahead of higher-priority financing and excludes unrelated markets", () => {
+  it("preserves editorial priority across relevant housing and financing stories", () => {
     const input = [
       story({ id: 3, title: "ASX surges", channel: "AU", priority: 99 }),
       story({ id: 2, title: "RBA leaves cash rate unchanged", channel: "AU", priority: 90 }),
       story(),
     ];
-    expect(pickPropertyStories(input).map((s) => s.id)).toEqual([1, 2]);
+    expect(pickPropertyStories(input).map((s) => s.id)).toEqual([2, 1]);
     expect(input.map((s) => s.id)).toEqual([3, 2, 1]);
   });
   it("does not let categories or generated implications manufacture relevance", () => {

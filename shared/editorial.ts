@@ -328,6 +328,17 @@ export const editorialReportSchema = z.object({
         url: z.string().url().max(2048),
         fetched: z.number().int(),
         error: z.string().max(240).nullable(),
+        recovery: z
+          .object({
+            primaryError: z.string().max(240),
+            attempts: z
+              .array(
+                z.object({ url: z.string().url().max(2048), error: z.string().max(240).nullable() })
+              )
+              .max(2),
+            recoveredUrl: z.string().url().max(2048).nullable(),
+          })
+          .optional(),
       })
     )
     .max(100),

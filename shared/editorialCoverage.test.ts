@@ -55,6 +55,52 @@ function report(over: Partial<EditorialReport> = {}): EditorialReport {
 }
 const check = (pubs: CoveragePublication[] = [], reports: EditorialReport[] = []) =>
   evaluateCoverage([entry], day, pubs, reports, now);
+it("keeps implemented fixes open until publication is observed after implementation", () => {
+  const reviewed = {
+    ...entry,
+    followup: {
+      stage: "selection" as const,
+      note: "Added the missing housing delivery language",
+      changeUrl: "https://github.com/example/repo/pull/1",
+      implementedAt: "2026-09-10T08:00:00Z",
+    },
+  };
+  const read = (createdAt: string) =>
+    evaluateCoverage([reviewed], day, [{ ...publication, createdAt }], [], now);
+  expect(read("2026-09-10T07:00:00Z").rows[0]?.remediation).toBe("awaiting-recheck");
+  expect(read("2026-09-10T08:30:00Z").followups.observedAfterFix).toBe(1);
+  expect(evaluateCoverage([reviewed], day, [], [report()], now).rows[0]?.remediation).toBe(
+    "awaiting-recheck"
+  );
+  expect(
+    coverageSaveSchema.safeParse({
+      day,
+      version: 0,
+      entries: [{ ...reviewed, followup: { ...reviewed.followup, changeUrl: undefined } }],
+    }).success
+  ).toBe(false);
+});
+it("does not credit quarantined, future or unrelated social receipts", () => {
+  const social = {
+    feedItemId: 1,
+    state: "confirmed" as const,
+    mediaId: "123",
+    confirmedAt: "2026-09-10T08:30:00Z",
+  };
+  expect(evaluateCoverage([entry], day, [publication], [], now, [social]).rows[0]?.social).toEqual([
+    social,
+  ]);
+  expect(
+    evaluateCoverage([entry], day, [{ ...publication, channel: "HOLD" }], [], now, [social]).rows[0]
+      ?.social
+  ).toEqual([]);
+  expect(
+    evaluateCoverage([entry], day, [publication], [], now, [
+      { ...social, confirmedAt: "2026-09-11T08:30:00Z" },
+      { ...social, feedItemId: 2 },
+    ]).rows[0]?.social
+  ).toEqual([]);
+});
 describe("daily must-cover matching", () => {
   it("counts actual local publication, deduplicates event coverage and strips only tracking", () => {
     const result = check([
