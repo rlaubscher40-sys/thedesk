@@ -10,6 +10,7 @@ import type { ReelStat } from "../video/statReel";
 import type { ScriptLine } from "../video/narration";
 import { buildReelCaption, reelReadingCta } from "./reelCaption";
 import { withEvidenceVisual } from "../video/evidenceVisual";
+import { evidenceOpening } from "../video/reelOpening";
 
 /** Eight matching capital-city observations, not a national average or state proxy. */
 export function verifiedCapitalRentReel(data: CityRents, now = new Date()) {
@@ -75,8 +76,12 @@ export function verifiedCapitalRentReel(data: CityRents, now = new Date()) {
           reelReadingCta("capitalRents").fact,
         ],
   };
+  const opening = evidenceOpening(
+    "capital-rents",
+    evidenceRows.map((row) => ({ label: row.city, value: row.annualPercent }))
+  );
   const script: ScriptLine[] = [
-    { key: "label", text: "Are rents changing at the same pace across our capitals?" },
+    { key: "label", text: opening.voice },
     {
       key: "value",
       text: level
@@ -102,7 +107,7 @@ export function verifiedCapitalRentReel(data: CityRents, now = new Date()) {
       publication: { key: "instagram-reel-abs-rents-eight-capitals-v1", date: `${reference}-01` },
       evidenceHash: createHash("sha256").update(JSON.stringify(evidence)).digest("hex"),
       caption: buildReelCaption({
-        hook: "Are rents changing at the same pace across our capitals?",
+        hook: opening.voice,
         finding:
           `Year to ${period}: ${figure} percentage points between highest and lowest annual rent changes.\n` +
           evidenceRows

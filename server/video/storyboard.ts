@@ -1,4 +1,5 @@
 import { spokenCount } from "./spokenNumbers";
+import { evidenceOpening } from "./reelOpening";
 export { spokenCount } from "./spokenNumbers";
 import {
   type HousingBalanceStoryboard,
@@ -45,7 +46,14 @@ export function approvalStoryboard(
     perth,
     evidenceKey: `approvals:${period}:${brisbane}:${perth}`,
     scenes: [
-      { key: "label", kind: "opening", text: "Are we building enough homes?" },
+      {
+        key: "label",
+        kind: "opening",
+        text: evidenceOpening("approval-comparison", [
+          { label: "Greater Brisbane", value: brisbane },
+          { label: "Greater Perth", value: perth },
+        ]).voice,
+      },
       {
         key: "value",
         kind: "comparison",

@@ -7,6 +7,7 @@ import {
 } from "../../shared/stateDemographics";
 import type { ScriptLine } from "../video/narration";
 import { withEvidenceVisual } from "../video/evidenceVisual";
+import { evidenceOpening } from "../video/reelOpening";
 import { buildReelCaption, reelReadingCta } from "./reelCaption";
 import {
   LOAN_REPAYMENT_EXAMPLE,
@@ -53,8 +54,12 @@ export function verifiedNewLoanRates(rates: RbaHousingRate[], now = new Date()) 
     timeZone: "UTC",
   }).format(a.period);
   const textRate = (n: number) => `${n.toFixed(1)} percent`;
+  const opening = evidenceOpening("new-loan-rates", [
+    { label: "Owner-occupiers", value: a.rate },
+    { label: "Investors", value: b.rate },
+  ]);
   const script: ScriptLine[] = [
-    { key: "label", text: "A home loan is more than its rate." },
+    { key: "label", text: opening.voice },
     { key: "value", text: `Owner occupiers, ${textRate(a.rate)}. Investors, ${textRate(b.rate)}.` },
     { key: "line", text: "New-loan averages, not personal offers." },
     {
@@ -83,7 +88,7 @@ export function verifiedNewLoanRates(rates: RbaHousingRate[], now = new Date()) 
       evidenceHash: hash({ table: "RBA:F6", rates: [a, b], example: LOAN_REPAYMENT_EXAMPLE }),
       publication: { key: "instagram-reel-rba-new-loan-rates-v1", date: `${period}-01` },
       caption: buildReelCaption({
-        hook: "A home loan costs more than its headline rate.",
+        hook: opening.voice,
         finding: `${label}: new owner-occupier loans averaged ${a.rate.toFixed(1)}% a year; investor loans ${b.rate.toFixed(1)}%. Australia, all institutions.`,
         meaning:
           "These averages cover loans funded during the month, including fixed and variable rates. Different borrower and loan mixes mean the gap is not a like-for-like price premium or a rate everyone can get.",
@@ -146,6 +151,10 @@ export function verifiedInterstateMigration(data: StateDemographics, now = new D
   const [year, q] = a.period.split("-Q");
   const month = ["March", "June", "September", "December"][Number(q) - 1]!;
   const period = `Year to ${month} ${year}`;
+  const opening = evidenceOpening("interstate-migration", [
+    { label: "Queensland", value: a.netInternalMigration },
+    { label: "Western Australia", value: b.netInternalMigration },
+  ]);
   const net = (n: number) =>
     n > 0
       ? `a net gain of ${formatPeople(n)}`
@@ -153,7 +162,7 @@ export function verifiedInterstateMigration(data: StateDemographics, now = new D
         ? `a net loss of ${formatPeople(n)}`
         : "no net change";
   const script: ScriptLine[] = [
-    { key: "label", text: "Who is moving between states?" },
+    { key: "label", text: opening.voice },
     {
       key: "value",
       text: `Queensland, ${net(a.netInternalMigration)}. Western Australia, ${net(b.netInternalMigration)}.`,
@@ -198,7 +207,7 @@ export function verifiedInterstateMigration(data: StateDemographics, now = new D
         date: `${year}-${String(Number(q) * 3).padStart(2, "0")}-01`,
       },
       caption: buildReelCaption({
-        hook: "People move. Housing demand moves with them.",
+        hook: opening.voice,
         finding: `${period}: Queensland recorded ${net(a.netInternalMigration)} people through interstate migration; Western Australia ${net(b.netInternalMigration)}.`,
         meaning:
           "Net means interstate arrivals minus departures. These are state totals, not Brisbane or Perth figures. They exclude overseas migration and natural increase, so they do not measure total population growth or extra homes needed.",

@@ -51,6 +51,32 @@ labelled synthetic and must never become current-market preview claims.
 An already-confirmed Reel retains its publication lock. A visual redesign does
 not authorise deletion, replacement, reposting or a changed publication key.
 
+## Photographic covers and specific openings
+
+Every future automatic Reel uses `renderReelCover`, not the old vertical stat
+card. It takes the opening photograph from the same eight-recipe registry as
+the video. Missing or unreviewed recipes, altered evidence/script bindings and
+missing photographs stop cover preparation before a publication claim.
+
+`reelOpening.ts` supplies the opening scene, spoken hook, caption hook and cover
+headline. Source builders apply it before binding the verified script. Migration
+copy handles net gains, losses and zero. Rent copy distinguishes the annual rate
+from dollar rent and handles negative or tied observations. Approval copy does
+not promise completed homes. Publication keys, reference dates and evidence
+hash inputs stay unchanged when editorial copy changes.
+
+The 1080x1920 JPEG keeps brand, headline, explanation, reference period and data
+source inside y=420..1500, the centre square also retained by a centre 3:4 crop.
+The full portrait includes the photograph credit. This is an authored crop
+margin, not a guarantee of every Instagram app surface or user-adjusted crop.
+Inspect exported portrait and centre-cropped covers at thumbnail size alongside
+actual narrated opening frames. `scripts/reelVisualReview.ts` exports the cover
+JPEG beside every voiced MP4 and its review metadata.
+
+This release does not establish stronger retention or reach. Compare matched-age
+audience evidence before drawing that conclusion. Expanding the curated photo
+library remains a separate editorial improvement.
+
 ## Reference and purpose
 
 Reference: https://www.instagram.com/reel/DcvHmYLAycw/ and Ruben's supplied
@@ -81,8 +107,8 @@ this change does not claim automatic semantic review of every future post.
 
 ## Current housing story
 
-Open with the buyer's question: Australia is building homes, so why is buying
-one getting harder? Establish
+Open with the measured finding: Australia added homes but fell about 55,000 short
+of estimated new housing need. Establish
 232,000 additions after demolitions versus 287,000 estimated extra homes needed
 in the same national 18 months. Show the additional 55,000 gap. Then explain
 how limited supply relative to demand puts upward pressure on prices and rents.

@@ -5,6 +5,7 @@ import { spokenCount } from "./spokenNumbers";
 import { assertEditorialStory, type EditorialStory } from "./editorialStory";
 import { REEL_READS } from "../instagram/reelCaption";
 import { moving, smooth } from "./reelMotion";
+import { housingOpening } from "./reelOpening";
 
 type Kind =
   | "balance-opening"
@@ -74,16 +75,7 @@ export function housingBalanceStoryboard(
         "A flow gap is not total shortage or a price forecast. Underlying housing need differs from purchasing power. Rates, incomes and local conditions also matter.",
     },
     scenes: [
-      scene(
-        "label",
-        "balance-opening",
-        [
-          opening === "consequence"
-            ? "For buyers, saving a deposit has become a longer climb."
-            : "Australia is building homes. Why is buying one getting harder?",
-        ],
-        0
-      ),
+      scene("label", "balance-opening", [housingOpening(b.shortfall, opening).voice], 0),
       scene(
         "facts",
         "balance-comparison",
@@ -334,6 +326,18 @@ export function housingBalanceFrameLayout(
   const n = (v: number) => v.toLocaleString("en-AU");
   const tag = (v: string) =>
     box({ fontFamily: "JetBrains Mono", fontSize: 23, color: c.muted, letterSpacing: 1.5 }, v);
+  const openingLine = (value: string, size: number, slanted = false) => {
+    const node = slanted ? italic(value, size, c.gold) : text(value, size, c.fg, true);
+    return {
+      ...node,
+      props: {
+        ...node.props,
+        style: { ...(node.props.style as Record<string, unknown>), width: 840 },
+        "data-reel-safe-text": true,
+        "data-reel-max-height": 210,
+      },
+    };
+  };
   const marker = (m: ReturnType<typeof housingStoryBridge>) =>
     at(m.x, m.y, "", { width: m.width, height: m.height, backgroundColor: c.gold });
   const photographic = ["label", "construction", "signOff"].includes(key);
@@ -514,16 +518,12 @@ export function housingBalanceFrameLayout(
   let nodes: unknown[];
   if (key === "label")
     nodes = [
-      at(
-        0,
-        295,
-        text(story.opening === "consequence" ? "The deposit." : "More homes.", 134, c.fg, true)
-      ),
-      at(
-        0,
-        460,
-        italic(story.opening === "consequence" ? "A longer climb." : "Harder to buy?", 110, c.gold)
-      ),
+      at(0, 295, openingLine(housingOpening(b.shortfall, story.opening).headline, 76), {
+        width: 840,
+      }),
+      at(0, 560, openingLine(housingOpening(b.shortfall, story.opening).detail, 48, true), {
+        width: 840,
+      }),
       at(0, 855, tag("ARCHITECTURE / ILLUSTRATIVE PHOTO")),
       at(0, 905, text("Phillip Flores / Unsplash", 28, c.muted)),
     ];

@@ -50,9 +50,7 @@ export function verifiedHousingBalanceReel(
     publication: { key: "instagram-reel-nhsac-housing-balance-v1", date: balance.end },
     caption: buildNarrativeReelCaption({
       paragraphs: [
-        opening === "consequence"
-          ? "For buyers, saving a deposit has become a longer climb."
-          : "Australia is building homes. So why is buying one getting harder?",
+        storyboard.scenes[0]!.text,
         `July 2024 to December 2025: about ${number(balance.net)} net new homes, against ${number(balance.demand)} extra homes needed. An additional gap of about ${number(balance.shortfall)}.`,
         "Competition for scarce housing puts upward pressure on prices and rents. It does not guarantee price rises. Rates, incomes and borrowing power also matter.",
         "For buyers, the deposit has moved further away. In a separate decade-long comparison, the modelled time to save a 20% deposit rose from 9 years in 2015 to 11.2 in 2025.",

@@ -10,6 +10,7 @@ import {
   type ProductionReelCandidate,
 } from "../server/video/reelProduction";
 import { renderStatReel } from "../server/video/statReel";
+import { renderReelCover } from "../server/video/reelCover";
 import { REEL_VISUAL_SEQUENCES } from "../server/video/reelVisualStandard";
 
 const [input, destination, filter] = process.argv.slice(2);
@@ -26,6 +27,10 @@ for (const entry of programme) {
   const recipe = candidate.stat.visualStory?.recipe ?? "housing-balance";
   if (selected && !selected.includes(recipe)) continue;
   assertProductionCandidate(candidate);
+  await fs.writeFile(
+    path.join(out, `The-Desk-${recipe}-Cover.jpg`),
+    await renderReelCover(candidate.stat, candidate.script)
+  );
   const video = await renderStatReel(
     candidate.stat,
     "navy",

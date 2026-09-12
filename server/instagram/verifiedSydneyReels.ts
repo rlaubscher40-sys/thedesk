@@ -4,6 +4,7 @@ import { annualApprovals, APPROVAL_FLOW, type CityApprovals } from "../../shared
 import type { verifiedRentReel } from "./verifiedReel";
 import { buildReelCaption, reelReadingCta } from "./reelCaption";
 import { withEvidenceVisual } from "../video/evidenceVisual";
+import { evidenceOpening } from "../video/reelOpening";
 type VerifiedReel = NonNullable<ReturnType<typeof verifiedRentReel>>;
 const monthIndex = (period: string) => Number(period.slice(0, 4)) * 12 + Number(period.slice(5, 7));
 const validPeriod = (period: string, now: Date) =>
@@ -51,6 +52,10 @@ export function verifiedSydneyRentChange(data: CityRents, now = new Date()): Ver
   const period = rentPeriod(current.period),
     prior = rentPeriod(previous.period);
   const rates = `${previous.annualPercent.toFixed(1)}% to ${current.annualPercent.toFixed(1)}%`;
+  const opening = evidenceOpening(
+    "rent-change",
+    [previous, current].map((row) => ({ label: row.period, value: row.annualPercent }))
+  );
   const meaning =
     current.annualPercent > 0
       ? "Rents paid were still higher than a year earlier."
@@ -73,7 +78,7 @@ export function verifiedSydneyRentChange(data: CityRents, now = new Date()): Ver
         ],
       },
       script: [
-        { key: "label", text: "Sydney rents: what actually changed?" },
+        { key: "label", text: opening.voice },
         {
           key: "value",
           text: `The annual rate moved ${Math.abs(delta).toFixed(1)} percentage points ${delta > 0 ? "higher" : "lower"}.`,
@@ -92,7 +97,7 @@ export function verifiedSydneyRentChange(data: CityRents, now = new Date()): Ver
       },
       evidenceHash: hash({ series: "ABS:CPI(2.0.0)/3.30014.10.1.M/PCT", rows }),
       caption: buildReelCaption({
-        hook: "Sydney rents: what actually changed?",
+        hook: opening.voice,
         finding: `Annual rent change: ${previous.annualPercent.toFixed(1)}% in the year to ${prior}; ${current.annualPercent.toFixed(1)}% in the year to ${period}. Difference: ${signed}. ${meaning}`,
         meaning:
           "This compares two annual rates, not the percentage change in rents during the latest month. Different year-earlier bases can affect annual rates. Not asking rents, dollar levels, yields or all of NSW.",
@@ -142,6 +147,9 @@ export function verifiedSydneyBeforeBuy(
   if (!annual || !Number.isSafeInteger(annual.total)) return null;
   const count = annual.total.toLocaleString("en-AU"),
     period = rentPeriod(annual.period);
+  const opening = evidenceOpening("supply-checklist", [
+    { label: "Greater Sydney", value: annual.total },
+  ]);
   return withEvidenceVisual(
     {
       stat: {
@@ -158,7 +166,7 @@ export function verifiedSydneyBeforeBuy(
         ],
       },
       script: [
-        { key: "label", text: "Buying in Sydney? Check what the supply number counts." },
+        { key: "label", text: opening.voice },
         { key: "value", text: `Greater Sydney recorded ${count} dwelling approvals.` },
         { key: "line", text: `That's twelve months to ${period}. Not completed homes.` },
         { key: "claim", text: "Before using it, check the building stage and the local area." },
@@ -172,7 +180,7 @@ export function verifiedSydneyBeforeBuy(
         rows: rows.slice(0, 12),
       }),
       caption: buildReelCaption({
-        hook: "Buying in Sydney? Three checks before using a supply headline.",
+        hook: opening.voice,
         finding: `${count} dwelling units approved across Greater Sydney in the year to ${period}.`,
         meaning:
           "1. Stage: permission, not a start or a completion.\n2. Place: Greater Sydney, not your suburb or all NSW.\n3. Timing: check construction and completions before assuming homes are available. Counts alone don't establish shortage, future prices or investment quality.",

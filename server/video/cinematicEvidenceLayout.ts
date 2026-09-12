@@ -1,6 +1,7 @@
 import type { EvidenceVisual } from "./evidenceVisual";
 import { reelSceneShot, REEL_SHOTS } from "./reelVisualStandard";
 import { moving, smooth, type MotionNode } from "./reelMotion";
+import { evidenceOpening } from "./reelOpening";
 
 const box = (style: Record<string, unknown>, children: unknown): MotionNode => ({
   type: "div",
@@ -40,17 +41,7 @@ export function cinematicEvidenceLayout(v: EvidenceVisual, key: string, progress
     note = v.period;
   let extra: MotionNode[] = [];
   if (key === "label") {
-    [headline, detail] = migration
-      ? ["People move.", "Housing demand moves too."]
-      : checklist
-        ? ["Buying in Sydney?", "What does the supply count mean?"]
-        : supply
-          ? ["Homes approved.", "But are enough being finished?"]
-          : capitals
-            ? ["Eight capitals.", "Different rent markets."]
-            : change
-              ? ["Sydney rents.", "What actually changed?"]
-              : ["Brisbane or Perth?", "What does rent growth tell you?"];
+    ({ headline, detail } = evidenceOpening(v.recipe, v.rows));
   } else if (key === "signOff") {
     [headline, detail] = migration
       ? ["People need homes.", "Check the local balance."]
