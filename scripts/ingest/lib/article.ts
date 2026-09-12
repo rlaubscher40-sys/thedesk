@@ -31,6 +31,8 @@ import { pickOgImage } from "./og";
 const SITE_URL = process.env.SITE_URL ?? DEFAULT_SITE_URL;
 
 export type FetchedArticle = {
+  /** Operational failure, distinct from an editorial rejection of readable text. */
+  fetchFailure?: string;
   title?: string;
   editorialHold?: string | null;
   imageUrl: string | null;
@@ -103,7 +105,10 @@ export async function fetchArticle(
         Accept: "text/html,application/xhtml+xml,application/pdf",
       },
     });
-    if (!res.ok) return empty;
+    if (!res.ok) {
+      await res.body?.cancel();
+      return { ...empty, fetchFailure: `article-http-${res.status}` };
+    }
     const contentType = (res.headers.get("content-type") ?? "").split(";")[0]!.trim().toLowerCase();
     if (contentType === "application/pdf" && isResearchPdfUrl(url)) {
       const result = await extractResearchPdf(new Uint8Array(await res.arrayBuffer()), url, {
@@ -113,14 +118,14 @@ export async function fetchArticle(
     }
     if (!["text/html", "application/xhtml+xml"].includes(contentType)) {
       await res.body?.cancel();
-      return empty;
+      return { ...empty, fetchFailure: "article-unsupported-content-type" };
     }
 
     // Read up to maxBytes, the og tags sit in <head> (early) and most news
     // bodies fit inside the bounded 1MB extraction budget. Unlike the image-only scrape we
     // can't stop at </head>, the body is what we're here for.
     reader = res.body?.getReader();
-    if (!reader) return empty;
+    if (!reader) return { ...empty, fetchFailure: "article-empty-response" };
     const decoder = new TextDecoder();
     let html = "";
     let received = 0;
@@ -157,8 +162,11 @@ export async function fetchArticle(
       imageUrl: pickOgImage(html),
       text: extractArticleText(html, maxChars),
     };
-  } catch {
-    return empty;
+  } catch (error) {
+    const timedOut =
+      controller.signal.aborted ||
+      (error instanceof Error && ["AbortError", "TimeoutError"].includes(error.name));
+    return { ...empty, fetchFailure: timedOut ? "article-timeout" : "article-fetch-failed" };
   } finally {
     clearTimeout(timer);
     try {

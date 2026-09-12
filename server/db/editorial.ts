@@ -14,6 +14,7 @@ import { feedEvidenceFingerprints } from "./feedEvidenceSchema";
 import { relatedCoverageParent, type RelatedStory } from "../../shared/relatedCoverage";
 import { staleFutureDeadline, unstableEditorialTiming } from "../../shared/editorialTiming";
 import { auditedRecordCorrections } from "../../shared/auditedRecordCorrections";
+import { nonNewsFormatHold } from "../../shared/editorialPageTypes";
 
 /** Authenticated ingest context only: private hashes, never article text.
  * Bounded recent, visible rows; held rows cannot block news. */
@@ -108,7 +109,15 @@ export async function repairEditorialReferences(): Promise<number> {
   const db = getDb();
   if (!db) return 0;
   const rows = await db
-    .select()
+    .select({
+      id: dailyFeedItems.id,
+      title: dailyFeedItems.title,
+      summary: dailyFeedItems.summary,
+      source: dailyFeedItems.source,
+      sourceUrl: dailyFeedItems.sourceUrl,
+      category: dailyFeedItems.category,
+      channel: dailyFeedItems.channel,
+    })
     .from(dailyFeedItems)
     .where(
       and(
@@ -116,18 +125,30 @@ export async function repairEditorialReferences(): Promise<number> {
           dailyFeedItems.feedDate,
           new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10)
         ),
-        sql`${dailyFeedItems.channel} IN ('AU','PROPERTY')`
+        sql`${dailyFeedItems.channel} IN ('AU','PROPERTY','BUSINESS','TECH','GLOBAL')`
       )
-    );
+    )
+    .orderBy(desc(dailyFeedItems.createdAt))
+    .limit(3000);
   let held = 0;
   for (const row of rows) {
-    const reason = legacyEditorialHold(row);
+    // Australian subject gates must never be applied to international lanes.
+    const reason = ["AU", "PROPERTY"].includes(row.channel)
+      ? legacyEditorialHold(row)
+      : nonNewsFormatHold(row);
     if (reason) {
-      await db
+      const [result] = await db
         .update(dailyFeedItems)
         .set({ channel: "HOLD", priority: 0 })
-        .where(eq(dailyFeedItems.id, row.id));
-      held++;
+        .where(
+          and(
+            eq(dailyFeedItems.id, row.id),
+            eq(dailyFeedItems.channel, row.channel),
+            eq(dailyFeedItems.title, row.title),
+            sql`${dailyFeedItems.summary} <=> ${row.summary}`
+          )
+        );
+      held += result.affectedRows;
     } else {
       const channel = localEditorialChannel(row);
       if (channel !== row.channel)

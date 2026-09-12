@@ -4,6 +4,7 @@ import { looksLikeGarbage, looksLikeSiteBoilerplate } from "./headline";
 import { sourceTimingHold, type SourceTiming } from "./sourceTiming";
 import { storyChannel } from "./storyGeography";
 import { storySignificance } from "./editorialSignificance";
+import { nonNewsFormatHold } from "./editorialPageTypes";
 
 export const EDITORIAL_VERSION = "2026-09-10-v4";
 export type EditorialInput = {
@@ -77,6 +78,8 @@ export function publisherWeight(input: EditorialInput): number {
 /** Page types are evidence/reference material, not automatically a dated news event. */
 export function referenceNewsHold(input: EditorialInput): string | null {
   const title = input.title.trim();
+  const formatHold = nonNewsFormatHold(input);
+  if (formatHold) return formatHold;
   // A rolling national-news page is not a housing article. In particular,
   // "housing nuclear activities" means containing, not residential supply.
   if (/\b(?:australia|national|world|breaking) news\s+live\b/i.test(title))
@@ -313,6 +316,11 @@ export const editorialReportSchema = z.object({
   selected: z.number().int().nonnegative(),
   /** Total decisions before the retained 300-entry sample; absent on older runs. */
   decisionCount: z.number().int().nonnegative().optional(),
+  /** Complete decision totals, including entries outside the retained sample. */
+  outcomes: z
+    .record(z.string().max(100), z.number().int().nonnegative())
+    .refine((value) => Object.keys(value).length <= 100)
+    .optional(),
   sources: z
     .array(
       z.object({

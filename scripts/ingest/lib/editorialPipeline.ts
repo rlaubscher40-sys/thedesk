@@ -206,6 +206,11 @@ export async function buildDailyBrief(options: PipelineOptions = {}) {
         return null;
       }
       const article = await (options.readArticle ?? fetchArticle)(url);
+      if (article.fetchFailure) {
+        entry.reason = article.fetchFailure;
+        entry.url = url;
+        return null;
+      }
       if (article.editorialHold) {
         entry.reason = article.editorialHold;
         entry.url = url;
@@ -309,6 +314,10 @@ export async function buildDailyBrief(options: PipelineOptions = {}) {
   report.finishedAt = (options.now ?? new Date()).toISOString();
   // Keep all read decisions plus a bounded sample of pre-reading holds.
   report.decisionCount = decisions.size;
+  report.outcomes = {};
+  for (const decision of decisions.values()) {
+    report.outcomes[decision.reason] = (report.outcomes[decision.reason] ?? 0) + 1;
+  }
   report.decisions = [...decisions.values()]
     .sort(
       (a, b) =>

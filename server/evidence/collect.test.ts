@@ -1,4 +1,4 @@
-import { beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 vi.mock("../demo/store", () => ({ isDemoMode: () => false }));
 const writes = vi.hoisted(() => ({
   values: [] as any[],
@@ -29,12 +29,15 @@ import { fetchSourceReport } from "../../scripts/ingest/lib/rss";
 import { STATE_PROPERTY_SOURCES } from "../../scripts/ingest/propertySources";
 import { collectPropertyEvidence } from "./collect";
 
+afterEach(() => vi.restoreAllMocks());
+
 beforeEach(() => {
   vi.clearAllMocks();
   writes.values.length = 0;
   writes.updates.length = 0;
 });
 it("archives more than the front-page quota and persists partial feed failures", async () => {
+  const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
   const items = Array.from({ length: 20 }, (_, i) => ({
     title: `Hobart housing supply update ${i}`,
     summary: "Tasmania rental vacancies fall.",
@@ -49,19 +52,18 @@ it("archives more than the front-page quota and persists partial feed failures",
   vi.mocked(fetchSourceReport).mockImplementation(async (source) =>
     source.name === STATE_PROPERTY_SOURCES[0]!.name
       ? { items, fetched: 20, error: null }
-      : { items: [], fetched: 0, error: "failed" },
+      : { items: [], fetched: 0, error: "failed" }
   );
-  expect(
-    await collectPropertyEvidence(STATE_PROPERTY_SOURCES.slice(0, 2)),
-  ).toEqual({
+  expect(await collectPropertyEvidence(STATE_PROPERTY_SOURCES.slice(0, 2))).toEqual({
     checked: 2,
     failed: 1,
   });
   expect(writes.values.find(Array.isArray)).toHaveLength(20);
-  expect(
-    writes.values.some((row) => row.error === "failed" && row.accepted === 0),
-  ).toBe(true);
+  expect(writes.values.some((row) => row.error === "failed" && row.accepted === 0)).toBe(true);
   expect(fetchSourceReport).toHaveBeenCalledTimes(3);
+  expect(warning).toHaveBeenCalledWith(
+    `[evidence-failures] ${JSON.stringify([{ name: STATE_PROPERTY_SOURCES[1]!.name, reason: "failed" }])}`
+  );
 });
 it("fails the job when every feed fails, after recording each source status", async () => {
   vi.mocked(fetchSourceReport).mockResolvedValue({
@@ -69,9 +71,9 @@ it("fails the job when every feed fails, after recording each source status", as
     fetched: 0,
     error: "failed",
   });
-  await expect(
-    collectPropertyEvidence(STATE_PROPERTY_SOURCES.slice(0, 2)),
-  ).rejects.toThrow("All property evidence sources failed");
+  await expect(collectPropertyEvidence(STATE_PROPERTY_SOURCES.slice(0, 2))).rejects.toThrow(
+    "All property evidence sources failed"
+  );
   expect(writes.values).toHaveLength(2);
 });
 
@@ -95,12 +97,8 @@ it("preserves the actual feed check time when reusing a recent download, without
     ],
   });
   await collectPropertyEvidence(STATE_PROPERTY_SOURCES.slice(0, 1));
-  expect(writes.values.find((row) => row.sourceId)?.checkedAt).toEqual(
-    checkedAt,
-  );
-  expect(writes.values.find((row) => row.sourceId)?.lastSuccessAt).toEqual(
-    checkedAt,
-  );
+  expect(writes.values.find((row) => row.sourceId)?.checkedAt).toEqual(checkedAt);
+  expect(writes.values.find((row) => row.sourceId)?.lastSuccessAt).toEqual(checkedAt);
   expect(writes.values.find(Array.isArray)?.[0].lastSeenAt).toEqual(checkedAt);
   expect(invokeLLM).not.toHaveBeenCalled();
 });
