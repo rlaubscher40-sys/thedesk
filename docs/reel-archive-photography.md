@@ -1,4 +1,24 @@
-# Housing Reel archive photograph
+# Reel archive photography
+
+## Shared Reel standard: moving home, 12 September 2026
+
+- Photographer: cottonbro studio (identified by the Pexels public download).
+- Discovery: https://www.pexels.com/search/moving%20boxes/
+- Photo ID: 4554242. The gallery's free download links to
+  https://images.pexels.com/photos/4554242/pexels-photo-4554242.jpeg?cs=srgb&dl=pexels-cottonbro-4554242.jpg&fm=jpg
+- Downloaded rendition: https://images.pexels.com/photos/4554242/pexels-photo-4554242.jpeg?auto=compress&cs=tinysrgb&w=1400
+- Licence: https://www.pexels.com/license/ checked 12 September 2026. Free use
+  and modification; no endorsement is implied. The individual photo metadata
+  page was unavailable, so no capture date or location is asserted.
+- Asset: `server/og/fonts/moving-home-cottonbro.jpg`, unchanged downloaded bytes.
+- SHA-256: `11bcc8a3663a1b4727affd220fcd5ececcb84f3133f321c636d7e7ab9413dc5e`.
+
+The inspected photograph shows labelled moving boxes. It illustrates relocation,
+not an identified household, an Australian address or a measured interstate route.
+It fills the migration opening and net-movement explanation, with a restrained
+camera move and visible credit. Other formats reuse the relevant reviewed home,
+money, bank and construction images below. Explicit scene assignments live in
+`server/video/reelVisualStandard.ts`, shared by production checks and renderers.
 
 ## Borrowing film sequence, 11 September 2026
 
@@ -8,10 +28,10 @@ movement. The opening and closing leave the upper image clear; evidence graphics
 sit lower in the frame. The photographs do not establish financial facts.
 
 Bank opening:
+
 - Photographer: Etienne Martin.
 - Source: https://unsplash.com/photos/grey-concrete-building-2_K82gx9Uk8
-- Source describes columns on a building in Montréal, Canada, published 27 July
-  2017. The visible credit identifies Montréal; this is not presented as an
+- Source describes columns on a building in Montréal, Canada, published 27 July 2017. The visible credit identifies Montréal; this is not presented as an
   Australian lender, the RBA building, or an endorsement.
 - Download: https://images.unsplash.com/photo-1501167786227-4cba60f6d58f?fm=jpg&q=85&w=1400
 - Free Unsplash licence verified on the photo page and https://unsplash.com/license
@@ -20,6 +40,7 @@ Bank opening:
 - SHA-256: `c5c3813b3ea7e3ece390a0a03e40ef669f7b4e2236af2ea1de6efb33b3b9c01e`.
 
 Australian money:
+
 - Creator: Pixabay, published through Pexels.
 - Source: https://www.pexels.com/video/australian-money-855198/
 - The source identifies Australian banknotes and explicitly labels this item
@@ -37,6 +58,8 @@ time; publication does not download media or call another service. Missing
 reviewed images stop the render. Camera progress continues across adjacent
 scenes retaining the same photograph, including the two repayment terms.
 
+## Housing construction photograph
+
 - Photographer: Damon Hall.
 - Source: https://unsplash.com/photos/a-very-tall-building-with-a-crane-on-top-of-it-jzEkzVq3Yp0
 - Source description: tower in construction in Sydney Harbour.
@@ -52,7 +75,6 @@ The downloaded bytes remain unchanged. The renderer positions the photograph
 inside a cropped viewport with a light navy overlay and a restrained pan.
 It is illustrative archive imagery, not current construction footage, evidence
 of delay at this specific building, or an image of a household priced out.
-
 
 ## Opening architectural photograph
 

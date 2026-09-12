@@ -32,7 +32,7 @@ beforeEach(() => {
   m.lending.mockResolvedValue([]);
 });
 describe("repeatable automatic editorial selection", () => {
-  it("passes all six verified recipes through the shared production gate", async () => {
+  it("passes all eight recipes through the shared production and full-screen visual gates", async () => {
     const now = new Date("2026-09-10T12:00:00Z");
     m.rents.mockResolvedValue({
       status: "available",
@@ -59,9 +59,13 @@ describe("repeatable automatic editorial selection", () => {
     ];
     m.approvals.mockResolvedValue(approvals);
     m.balance.mockResolvedValue(HOUSING_BALANCE_SNAPSHOT);
+    const demographics = testMigration();
+    demographics.retrievedAt = now.toISOString();
+    m.demographics.mockResolvedValue(demographics);
+    m.lending.mockResolvedValue(testLoanRates());
     const candidates = await getVerifiedReelCandidates(now);
-    expect(candidates).toHaveLength(6);
-    expect(new Set(candidates.map((candidate) => candidate.publication.key)).size).toBe(6);
+    expect(candidates).toHaveLength(8);
+    expect(new Set(candidates.map((candidate) => candidate.publication.key)).size).toBe(8);
   });
   it("adds borrowing and population families without requiring rent or approval evidence", async () => {
     m.demographics.mockResolvedValue(testMigration());

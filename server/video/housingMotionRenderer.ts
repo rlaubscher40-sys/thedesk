@@ -21,6 +21,7 @@ import {
   type MotionLayer,
 } from "./reelMotion";
 import type { MeasuredPhrase } from "./phraseSpeech";
+import { assertReelVisualSequence, reelSceneShot, REEL_SHOTS } from "./reelVisualStandard";
 
 export type MotionScene = {
   key: string;
@@ -48,6 +49,10 @@ export async function createHousingMotionRenderer(
   scenes: MotionScene[],
   total: number
 ) {
+  assertReelVisualSequence(
+    "housing-balance",
+    scenes.map((s) => s.key)
+  );
   if (
     scenes.length !== story.scenes.length ||
     scenes.some((s, i) => s.key !== story.scenes[i]!.key || !s.phrases.length)
@@ -98,7 +103,8 @@ export async function createHousingMotionRenderer(
       stamps.clear();
       const layout = housingBalanceFrameLayout(story, scene.key, 1, variant);
       const { staticTree } = splitMotion(layout.content);
-      const photographic = ["label", "construction", "signOff"].includes(scene.key);
+      const shot = reelSceneShot("housing-balance", scene.key);
+      const photographic = shot !== null;
       plate = await loadImage(
         await renderEditorialFrame(staticTree, variant, {
           ...layout.meta,
@@ -109,11 +115,7 @@ export async function createHousingMotionRenderer(
         })
       );
       if (photographic) {
-        const asset = await loadAsset(
-          scene.key === "label"
-            ? "architecture-phillip-flores.jpg"
-            : "sydney-construction-damon-hall.jpg"
-        );
+        const asset = await loadAsset(REEL_SHOTS[shot!].asset);
         if (!asset) throw new Error("Reviewed archive photograph is missing.");
         photo = await loadImage(asset);
       } else photo = undefined;

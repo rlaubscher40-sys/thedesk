@@ -10,8 +10,15 @@ import { evidenceVisualLayout } from "./evidenceVisualLayout";
 import { validateEvidenceVisual, type EvidenceVisual } from "./evidenceVisual";
 import { rentComparisonLayout, rentCueProgress } from "./rentComparisonLayout";
 import type { MeasuredPhrase } from "./phraseSpeech";
-import { splitMotion, smooth, unit } from "./reelMotion";
-import { LOAN_SHOTS, loanShot, loanCameraProgress, loanPhotoCrop } from "./loanStoryPhotography";
+import { splitMotion, unit } from "./reelMotion";
+import { loanPhotoCrop } from "./loanStoryPhotography";
+import {
+  REEL_SHOTS,
+  reelSceneShot,
+  reelCameraProgress,
+  assertReelVisualSequence,
+} from "./reelVisualStandard";
+import { cinematicEvidenceLayout } from "./cinematicEvidenceLayout";
 
 export async function createEvidenceMotionRenderer(
   v: EvidenceVisual,
@@ -20,6 +27,10 @@ export async function createEvidenceMotionRenderer(
   total: number
 ) {
   validateEvidenceVisual(v, v.script);
+  assertReelVisualSequence(
+    v.recipe,
+    scenes.map((s) => s.key)
+  );
   if (
     scenes.length !== v.script.length ||
     scenes.some(
@@ -36,16 +47,13 @@ export async function createEvidenceMotionRenderer(
   const measured = isRent || isContext;
   if (measured && scenes.some((s) => !s.phrases?.length))
     throw new Error("Comparison scenes need measured phrases.");
-  const archive = isRent ? await loadAsset("architecture-phillip-flores.jpg") : null;
-  if (isRent && !archive) throw new Error("Reviewed architectural illustration is missing.");
-  const photo = archive ? await loadImage(archive) : null;
-  const loanPhotos = new Map<string, Image>();
-  if (v.recipe === "new-loan-rates") {
-    for (const [key, shot] of Object.entries(LOAN_SHOTS)) {
-      const bytes = await loadAsset(shot.asset);
-      if (!bytes) throw new Error(`Reviewed loan photograph is missing: ${shot.asset}`);
-      loanPhotos.set(key, await loadImage(bytes));
-    }
+  const photos = new Map<string, Image>();
+  for (const key of new Set(scenes.map((s) => reelSceneShot(v.recipe, s.key)))) {
+    if (!key) continue;
+    const shot = REEL_SHOTS[key],
+      bytes = await loadAsset(shot.asset);
+    if (!bytes) throw new Error(`Reviewed Reel photograph is missing: ${shot.asset}`);
+    photos.set(key, await loadImage(bytes));
   }
   const canvas = createCanvas(1080, 1920),
     ctx = canvas.getContext("2d");
@@ -60,29 +68,31 @@ export async function createEvidenceMotionRenderer(
     // One action per spoken scene, then a deliberate reading hold. A later
     // scene that keeps the chart holds its final values instead of counting again.
     const p = unit((time - scene.start) / Math.max(0.3, scene.seconds * 0.65));
-    const photographic =
-      v.recipe === "new-loan-rates" || (isRent && ["label", "signOff"].includes(scene.key));
+    const shotKey = reelSceneShot(v.recipe, scene.key);
+    const photographic = shotKey !== null;
     const sceneVariant = photographic ? "navy" : variant;
-    const layout = measured
-      ? (isContext ? contextReelLayout : rentComparisonLayout)(
-          v,
-          scene.key,
-          {
-            progress: p,
-            ...(v.recipe === "new-loan-rates" && ["claim", "facts"].includes(scene.key)
-              ? { repayment: repaymentCueProgress(scene.key, time - scene.start, scene.phrases!) }
-              : {}),
-            rates:
-              scene.key === "value"
-                ? [
-                    rentCueProgress(time - scene.start, scene.phrases!, 0),
-                    rentCueProgress(time - scene.start, scene.phrases!, 1),
-                  ]
-                : [1, 1],
-          },
-          sceneVariant
-        )
-      : evidenceVisualLayout(v, scene.key, p, variant);
+    const layout =
+      cinematicEvidenceLayout(v, scene.key, p) ??
+      (measured
+        ? (isContext ? contextReelLayout : rentComparisonLayout)(
+            v,
+            scene.key,
+            {
+              progress: p,
+              ...(v.recipe === "new-loan-rates" && ["claim", "facts"].includes(scene.key)
+                ? { repayment: repaymentCueProgress(scene.key, time - scene.start, scene.phrases!) }
+                : {}),
+              rates:
+                scene.key === "value"
+                  ? [
+                      rentCueProgress(time - scene.start, scene.phrases!, 0),
+                      rentCueProgress(time - scene.start, scene.phrases!, 1),
+                    ]
+                  : [1, 1],
+            },
+            sceneVariant
+          )
+        : evidenceVisualLayout(v, scene.key, p, sceneVariant));
     if (scene.key !== current) {
       current = scene.key;
       stamps.clear();
@@ -97,41 +107,27 @@ export async function createEvidenceMotionRenderer(
     ctx.globalAlpha = 1;
     ctx.fillStyle = background;
     ctx.fillRect(0, 0, 1080, 1920);
-    if (v.recipe === "new-loan-rates") {
-      const key = loanShot(scene.key),
-        shot = LOAN_SHOTS[key],
-        image = loanPhotos.get(key)!;
+    if (shotKey) {
+      const shot = REEL_SHOTS[shotKey],
+        image = photos.get(shotKey)!;
       const crop = loanPhotoCrop(
         image.width,
         image.height,
         shot.focus,
-        loanCameraProgress(scene.key, time, scenes)
+        reelCameraProgress(v.recipe, time, scenes.indexOf(scene), scenes)
       );
       ctx.drawImage(image, crop.x, crop.y, crop.width, crop.height);
-      const hero = ["label", "signOff"].includes(scene.key);
+      const hero = v.recipe !== "new-loan-rates" || ["label", "signOff"].includes(scene.key);
       const gradient = ctx.createLinearGradient(0, 0, 0, 1920);
       gradient.addColorStop(0, "rgba(12,17,23,.7)");
       gradient.addColorStop(0.15, "rgba(12,17,23,.7)");
       gradient.addColorStop(0.23, "rgba(12,17,23,.12)");
       gradient.addColorStop(hero ? 0.42 : 0.3, hero ? "rgba(12,17,23,.2)" : "rgba(12,17,23,.65)");
-      gradient.addColorStop(hero ? 0.59 : 0.46, "rgba(12,17,23,.87)");
-      gradient.addColorStop(0.72, "rgba(12,17,23,.96)");
-      gradient.addColorStop(1, "rgba(12,17,23,.99)");
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, 1080, 1920);
-    }
-    if (photo && photographic) {
-      const camera = smooth((time - scene.start) / scene.seconds);
-      const height = 1980 * (1 + 0.025 * camera),
-        width = (height * photo.width) / photo.height;
-      ctx.drawImage(photo, -970 - 20 * camera, -25 - 25 * camera, width, height);
-      const gradient = ctx.createLinearGradient(0, 0, 0, 1920);
-      gradient.addColorStop(0, "rgba(12,17,23,.62)");
       gradient.addColorStop(
-        0.38,
-        scene.key === "label" ? "rgba(12,17,23,.42)" : "rgba(12,17,23,.8)"
+        hero ? (v.recipe === "new-loan-rates" ? 0.59 : 0.49) : 0.46,
+        "rgba(12,17,23,.87)"
       );
-      gradient.addColorStop(0.75, "rgba(12,17,23,.96)");
+      gradient.addColorStop(0.72, "rgba(12,17,23,.96)");
       gradient.addColorStop(1, "rgba(12,17,23,.99)");
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, 1080, 1920);

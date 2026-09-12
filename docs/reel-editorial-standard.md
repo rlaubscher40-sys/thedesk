@@ -1,5 +1,56 @@
 # The Desk Reel editorial standard
 
+## Required across every automatic Reel, 12 September 2026
+
+Full-screen visual storytelling is a programme requirement, not an optional
+borrowing template. The earlier loan-only rollout left the next queued migration
+story in its old text layout. A successful preview of one recipe did not verify
+the whole rotation. Do not repeat that release mistake.
+
+Every automatic recipe must have an explicitly reviewed sequence covering its
+complete narration: full-screen opening imagery, relevant imagery in at least
+one explanatory scene, and a photographic takeaway. Dense evidence comparisons
+may use a clean full-screen graphic for legibility. Photography must support the
+meaning of that beat; placing every old paragraph over an image is not sufficient.
+Use sparse lower headlines so the photographic subject remains visible.
+
+`server/video/reelVisualStandard.ts` is the shared sequence registry used by the
+production gate and actual video renderers, including national housing. Unknown
+recipes, missing scenes or incomplete opening/explanation/takeaway coverage are
+rejected. Missing bundled images stop rendering before any upload. This proves
+structural coverage, not semantic quality, factual truth or audience engagement.
+
+Current sequences:
+
+- Borrowing: bank, Australian money, home and measured repayment graphics.
+- Population: moving boxes, net-movement comparison, a new home and construction
+  context. No particular household, state-to-state route or suburb is asserted.
+- Rent comparison: architecture, matched growth bars, money and price/cost checks.
+- Capital rents: architecture, eight-city chart, money illustrating price vs rate.
+- Sydney rent change: architecture, the two annual rates, money and their meaning.
+- City approvals: construction, approval counts, building stages and a home.
+- Sydney supply checklist: construction, the actual count, stage/place/timing,
+  a home and a practical reading takeaway.
+- National housing: the previously reviewed architecture, supply/demand graphics,
+  deposit example and construction sequence remain in the same registry.
+
+Retain local Kokoro bm_fable, speed 1.0, 30fps measured-speech count-ups, burned
+subtitles, financial/data source notes and visible image credits. These bundled
+photos use restrained camera moves; do not describe them as drone footage or
+live video. Photographic scenes use the navy treatment even when clean charts
+use a light variant. No paid source, runtime media search or extra scheduler.
+
+Before releasing changes to this standard, inspect the rendered opening,
+explanation, data and takeaway of every affected recipe, including the next
+queued story. `scripts/reelVisualReview.ts` renders saved verified programme
+candidates through the production renderer without publishing. Rehearsal JSON
+records the exact candidate, sequence, measured timeline, voice and MP4 hash.
+Unavailable sources and unchanged measures stay withheld; test fixtures remain
+labelled synthetic and must never become current-market preview claims.
+
+An already-confirmed Reel retains its publication lock. A visual redesign does
+not authorise deletion, replacement, reposting or a changed publication key.
+
 ## Reference and purpose
 
 Reference: https://www.instagram.com/reel/DcvHmYLAycw/ and Ruben's supplied
