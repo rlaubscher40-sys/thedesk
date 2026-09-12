@@ -6,6 +6,18 @@ const source = {
     "NSW plans to deliver 226 new social homes in Sydney. Funding of $1.5 billion was announced in September 2026. Rent growth was 4.3 per cent.",
 };
 describe("source claim checks", () => {
+  it("keeps percentage points, percent changes and negative figures distinct", () => {
+    const rate = {
+      title: "Cash rate decision",
+      articleText: "The cash rate changed by 25 basis points. Annual housing growth was -5%.",
+    };
+    expect(checkClaimEvidence("A change of 0.25 percentage points.", rate)).toEqual([]);
+    expect(checkClaimEvidence("A change of 0.25%.", rate)).toContain("unsupported-figure");
+    expect(checkClaimEvidence("Annual housing growth was 5%.", rate)).toContain(
+      "unsupported-figure"
+    );
+    expect(checkClaimEvidence("Annual housing growth was -5%.", rate)).toEqual([]);
+  });
   it("normalises money scales and percentages without inventing new values", () => {
     expect(checkClaimEvidence("NSW announced $1,500 million in September 2026.", source)).toEqual(
       []

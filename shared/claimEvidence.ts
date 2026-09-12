@@ -16,7 +16,7 @@ function figures(text: string): Set<string> {
   return new Set(
     [
       ...normal.matchAll(
-        /([$€£])?\s*\b(\d+(?:\.\d+)?)\s*(billion|million|trillion|bn|[mbk]\b|thousand|%|per cent|percent|percentage points?|basis points?)?/g
+        /(?<![\w.])([$€£])?\s*([+-]?\d+(?:\.\d+)?)\s*(billion\b|million\b|trillion\b|bn\b|[mbk]\b|thousand\b|%|percentage points?\b|basis points?\b|per cent\b|percent\b)?/g
       ),
     ].map((m) => {
       const unit = m[3] ?? "";
