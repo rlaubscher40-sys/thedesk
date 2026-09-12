@@ -15,6 +15,9 @@ export const REEL_PHOTO_CATALOGUE = {
     asset: "residential-chapman.jpg",
     credit: "Home illustration / Brad Chapman / Unsplash",
     focus: 0.48,
+    // Keep the house in the clear upper image area, not mostly sky above copy.
+    zoom: 1.55,
+    verticalFocus: 0.9,
     source: "https://unsplash.com/s/photos/australian-houses",
     licence: "https://unsplash.com/license",
     reviewed: "2026-09-12",

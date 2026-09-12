@@ -75,6 +75,11 @@ unverified advertising, implied endorsements and misleading project context.
 Earlier image records below are preserved as provenance history; current scene
 assignments are authoritative in `reelVisualStandard.ts`.
 
+Export review caught excessive sky in the residential image. Its reviewed
+1.55x framing and 0.9 vertical focus keep the home in the clear upper image area.
+The same crop helper serves covers and moving frames, preserving native aspect
+ratio and full-canvas coverage. The source bytes remain unchanged.
+
 ## Shared Reel standard: moving home, 12 September 2026
 
 - Photographer: cottonbro studio (identified by the Pexels public download).

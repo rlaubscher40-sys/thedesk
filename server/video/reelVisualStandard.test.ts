@@ -74,12 +74,30 @@ describe("mandatory repeatable full-screen visual standard", () => {
       const image = await loadImage((await cards.loadAsset(shot.asset))!);
       expect(shot.credit).toMatch(/illustration|archive/);
       for (const p of [0, 0.5, 1]) {
-        const crop = loanPhotoCrop(image.width, image.height, shot.focus, p);
+        const crop = loanPhotoCrop(
+          image.width,
+          image.height,
+          shot.focus,
+          p,
+          "zoom" in shot ? shot : {}
+        );
+        expect(crop.width / crop.height).toBeCloseTo(image.width / image.height, 10);
         expect(crop.x).toBeLessThanOrEqual(0);
         expect(crop.y).toBeLessThanOrEqual(0);
         expect(crop.x + crop.width).toBeGreaterThanOrEqual(1080);
         expect(crop.y + crop.height).toBeGreaterThanOrEqual(1920);
       }
+    }
+  });
+  it("keeps the reviewed residential roofline in the clear image area rather than behind the headline", async () => {
+    const shot = REEL_PHOTO_CATALOGUE.residential;
+    const image = await loadImage((await cards.loadAsset(shot.asset))!);
+    // Reviewed central roofline lies about 44% down the unchanged source image.
+    for (const p of [0, 0.35, 0.5, 1]) {
+      const crop = loanPhotoCrop(image.width, image.height, shot.focus, p, shot);
+      const roofY = crop.y + 0.44 * crop.height;
+      expect(roofY).toBeGreaterThan(250);
+      expect(roofY).toBeLessThan(700);
     }
   });
   it("keeps each photographic composition legible within its actual rendered bounds", async () => {

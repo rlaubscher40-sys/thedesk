@@ -114,7 +114,8 @@ export async function createEvidenceMotionRenderer(
         image.width,
         image.height,
         shot.focus,
-        reelCameraProgress(v.recipe, time, scenes.indexOf(scene), scenes)
+        reelCameraProgress(v.recipe, time, scenes.indexOf(scene), scenes),
+        "zoom" in shot ? shot : {}
       );
       ctx.drawImage(image, crop.x, crop.y, crop.width, crop.height);
       const hero = v.recipe !== "new-loan-rates" || ["label", "signOff"].includes(scene.key);

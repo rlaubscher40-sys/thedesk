@@ -39,9 +39,21 @@ export function loanCameraProgress(
 }
 
 /** Cover the entire portrait canvas at every camera position, with no edge reveal. */
-export function loanPhotoCrop(width: number, height: number, focus: number, progress: number) {
-  const scale = Math.max(1080 / width, 1920 / height) * (1.015 + 0.035 * progress);
+export function loanPhotoCrop(
+  width: number,
+  height: number,
+  focus: number,
+  progress: number,
+  framing: { zoom?: number; verticalFocus?: number } = {}
+) {
+  const scale =
+    Math.max(1080 / width, 1920 / height) * (1.015 + 0.035 * progress) * (framing.zoom ?? 1);
   const w = width * scale,
     h = height * scale;
-  return { x: (1080 - w) * focus, y: (1920 - h) * (0.35 + 0.2 * progress), width: w, height: h };
+  return {
+    x: (1080 - w) * focus,
+    y: (1920 - h) * (framing.verticalFocus ?? 0.35 + 0.2 * progress),
+    width: w,
+    height: h,
+  };
 }
