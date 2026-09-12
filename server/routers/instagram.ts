@@ -101,6 +101,10 @@ export const instagramRouter = router({
     const { describeReelPlan } = await import("../instagram/reelPlanSummary");
     const { latestGridCoverVariant } = await import("../db/instagramPosts");
     const plan = await readReelAutomation();
+    const { readReelRenderAudit } = await import("../instagram/reelRenderAudit");
+    const lastRender = plan.lastConfirmedPublication
+      ? await readReelRenderAudit(plan.lastConfirmedPublication.publication)
+      : null;
     const { getVerifiedReelProgramme } = await import("../instagram/reelCandidates");
     const { reelPublicationRecord } = await import("../instagram/reelStatus");
     const programme = await getVerifiedReelProgramme();
@@ -123,6 +127,7 @@ export const instagramRouter = router({
         Boolean(env.instagramAccessToken && env.instagramBusinessAccountId)
       ),
       editorialQueue,
+      lastRender,
       script: plan.candidate?.script ?? null,
       schedulerEnabled: env.enableScheduler && Boolean(env.scheduledApiKey),
       accountConfigured: Boolean(env.instagramAccessToken && env.instagramBusinessAccountId),

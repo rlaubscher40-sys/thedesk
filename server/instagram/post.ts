@@ -52,6 +52,7 @@ import type { ScriptLine } from "../video/narration";
 import { renderStatReel } from "../video/statReel";
 import { renderReelCover } from "../video/reelCover";
 import { productionReelOptions } from "../video/reelProduction";
+import { captureReelRender } from "../video/reelRenderRecord";
 import {
   pickPropertyStories,
   pickPropertyTopics,
@@ -1096,8 +1097,9 @@ export async function postStatReel(
   let coverUuid: string | null = null;
   const renderStartedAt = Date.now();
   try {
+    const renderOptions = productionReelOptions(opts.script);
     const [video, cover] = await Promise.all([
-      renderStatReel(sanitized, variant, productionReelOptions(opts.script)),
+      renderStatReel(sanitized, variant, renderOptions),
       renderReelCover(sanitized, opts.script ?? []),
     ]);
     console.log(
@@ -1108,6 +1110,7 @@ export async function postStatReel(
     if (!video.narrated) throw new Error("Narration unavailable. No silent Reel was published.");
     if (!video.subtitled)
       throw new Error("Required Reel subtitles are unavailable. No Reel was published.");
+    const render = captureReelRender(video, cover, sanitized, renderOptions.voice);
     videoUuid = storeTempImage(video.bytes, "video/mp4");
     coverUuid = storeTempImage(cover);
 
@@ -1132,6 +1135,7 @@ export async function postStatReel(
         "This evidence is already published or locked, or its durable record is unavailable. No duplicate was sent."
       );
     let postId: string;
+    let renderRecordSaved = false;
     // Enrol only the winner of the permanent Reel claim. Store before Meta's
     // publish so a confirmed Reel can get its Story after a process restart.
     // A Story storage fault cannot turn this into a duplicate Reel retry.
@@ -1143,7 +1147,9 @@ export async function postStatReel(
           stat: sanitized,
           script: opts.script,
           siteUrl,
+          render,
         });
+        renderRecordSaved = true;
       } catch (error) {
         console.error("[instagram] Reel Story source was not saved:", (error as Error).message);
         await recordServerError({
@@ -1170,6 +1176,10 @@ export async function postStatReel(
       );
     }
     await markJobRun(publication.key, publication.date, "success", `Published media ${postId}`);
+
+    console.log(
+      `[reel-publication-render] ${JSON.stringify({ publication, postId, renderRecordSaved, render })}`
+    );
 
     console.log(
       `[instagram] reel posted: ${postId} (${sanitized.label} ${sanitized.value}, ` +

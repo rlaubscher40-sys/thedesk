@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createHash } from "node:crypto";
 const m = vi.hoisted(() => ({
   quota: vi.fn(),
   render: vi.fn(),
@@ -66,7 +67,18 @@ describe("narrated Reel publication", () => {
     );
     expect(m.stage).toHaveBeenCalledWith(
       options.publication,
-      expect.objectContaining({ script, siteUrl: "https://thedesk.au" })
+      expect.objectContaining({
+        script,
+        siteUrl: "https://thedesk.au",
+        render: expect.objectContaining({
+          videoSha256: createHash("sha256").update("video").digest("hex"),
+          coverSha256: createHash("sha256").update("cover").digest("hex"),
+          seconds: 25,
+          narrated: true,
+          subtitled: true,
+          voice: { engine: "local-kokoro", voice: "bm_fable", speed: 1 },
+        }),
+      })
     );
     m.stage.mockClear();
     m.claim.mockResolvedValue(0);

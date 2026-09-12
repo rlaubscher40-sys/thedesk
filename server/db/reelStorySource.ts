@@ -6,12 +6,15 @@ import { isDemoMode } from "../demo/store";
 import { readJobRun } from "./jobRuns";
 import type { ReelStat } from "../video/statReel";
 import type { ScriptLine } from "../video/narration";
+import type { ReelRenderRecord } from "../video/reelRenderRecord";
 
 export type ReelStorySource = {
   version: 1;
   stat: ReelStat;
   script: ScriptLine[];
   siteUrl: string;
+  /** Absent on older source rows. Never infer a past export from today's renderer. */
+  render?: ReelRenderRecord;
 };
 export function reelStorySourceKey(publication: { key: string; date: string }) {
   return `reel-story-source-${createHash("sha256")
