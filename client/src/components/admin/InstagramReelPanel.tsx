@@ -85,6 +85,50 @@ export function InstagramReelPanel() {
               <p className="text-xs text-[var(--color-fg-muted)]">
                 From the saved publication receipt. This is separate from the next selected story.
               </p>
+              {plan.data.lastRender?.state === "recorded" ? (
+                <details className="pt-2">
+                  <summary className="cursor-pointer">Submitted video record</summary>
+                  <div className="mt-2 space-y-1">
+                    <p>
+                      {plan.data.lastRender.render.seconds.toFixed(1)} seconds. Narration:{" "}
+                      {plan.data.lastRender.render.narrated ? "yes" : "no"}. Burned-in subtitles:{" "}
+                      {plan.data.lastRender.render.subtitled ? "yes" : "no"}.
+                    </p>
+                    <p>
+                      Local Kokoro voice: {plan.data.lastRender.render.voice.voice}, speed{" "}
+                      {plan.data.lastRender.render.voice.speed}.
+                    </p>
+                    <p>
+                      Source clearance:{" "}
+                      {plan.data.lastRender.render.safeAreas.attributionTop -
+                        plan.data.lastRender.render.safeAreas.sceneBottom}
+                      px. Subtitle clearance:{" "}
+                      {plan.data.lastRender.render.safeAreas.subtitleTop -
+                        plan.data.lastRender.render.safeAreas.attributionBottom}
+                      px.
+                    </p>
+                    <p className="break-all text-xs">
+                      Video SHA-256: {plan.data.lastRender.render.videoSha256}
+                    </p>
+                    <p className="break-all text-xs">
+                      Build: {plan.data.lastRender.render.buildCommit ?? "Not recorded"}
+                    </p>
+                    <p className="text-xs text-[var(--color-fg-muted)]">
+                      Recorded from the export submitted for this media ID. Instagram may re-encode
+                      it. This does not measure reach or prove a visual review of the published
+                      post.
+                    </p>
+                  </div>
+                </details>
+              ) : (
+                <p className="text-xs text-[var(--color-fg-muted)]">
+                  {plan.data.lastRender?.state === "unavailable"
+                    ? "The submitted video record could not be checked. Publication remains confirmed."
+                    : plan.data.lastRender?.state === "unconfirmed"
+                      ? "The publication receipt needs another check before showing an export record."
+                      : "No submitted video record was saved for this Reel. Its past layout and voice settings are unknown."}
+                </p>
+              )}
             </div>
           )}
           <div className="rounded border border-[var(--color-border)] p-3 space-y-2 text-sm">
