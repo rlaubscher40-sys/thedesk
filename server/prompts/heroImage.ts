@@ -103,14 +103,3 @@ export function libraryHeroPrompt(args: { seed?: number } = {}): string {
     "Composition: wide cinematic format (3:2), single dominant subject, deep negative space, room for an editorial overlay at the bottom-left.",
   ].join(" ");
 }
-
-/** Image prompt for a single daily-feed item. Used by the background enrichment
- *  step to fill in `dailyFeedItems.imageUrl`. */
-export function feedItemImagePrompt(args: {
-  title: string;
-  summary: string | null;
-  category: string;
-}): string {
-  const summary = args.summary ? `Context: ${args.summary.slice(0, 240)}` : "";
-  return `Editorial news thumbnail image for a property and finance intelligence brief. Headline: ${args.title}. ${summary} Style: ${visualCue(args.category)}. Square framing, cinematic, high contrast, no text, no words, no labels.`;
-}

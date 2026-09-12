@@ -36,7 +36,7 @@
  * `pnpm probe:abs` to list the real ones, then put them in the ingest config.
  */
 
-export const ABS_API_BASE = "https://data.api.abs.gov.au/rest";
+const ABS_API_BASE = "https://data.api.abs.gov.au/rest";
 
 const UA = "Mozilla/5.0 (compatible; TheDeskBot/1.0; +https://thedesk.au)";
 

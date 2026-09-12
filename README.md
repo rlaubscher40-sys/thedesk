@@ -102,7 +102,7 @@ server/
 client/
   index.html
   src/
-    App.tsx          Routes + providers + onboarding + breaking toast
+    App.tsx          Routes + providers + breaking toast
     main.tsx         tRPC client + QueryClient + 401 redirect hook
     index.css        Tailwind 4 theme tokens
     lib/             cn, trpc, auth, date, category, theme, useAuth
@@ -110,20 +110,18 @@ client/
       AppLayout.tsx          Shell — sidebar, mobile drawer, tab bar
       ErrorBoundary.tsx      App-level + section-level
       LinkedInPostModal.tsx  Char counter, copy-and-open
-      OnboardingModal.tsx    4-step intro, localStorage flagged
+      OnboardingModal.tsx    Optional product guide
       BreakingSignalToast.tsx
       PageHeader.tsx
       ui/                    Button, Dialog, Skeleton, Toaster (sonner)
-      feed/                  SayThisLine, WhyItMattersLine, CounterpointLine,
-                             CorroborationBadge, RubensNoteBlock
       broadsheet/            ReaderAngles (the Buying/Holding/Watching block),
                              LaneNav, SubscribeBand, Masthead
       editions/              EditionReader, EditionHero, LeadStory, TopicCard,
                              SignalsBriefs, TalkingPointsBlock,
                              EditionAdminPanel, EditionListItem,
                              EditionReaderSkeleton
-    pages/                   One file per route — DailyFeed, Editions, Notes,
-                             ReadingQueue, ConversationTracker, SearchPage,
+    pages/                   One file per route — DailyFeed, Editions, Markets,
+                             AskDesk, Signals, ReadingQueue, Archive,
                              TopicThreads, Trends, StoryPage, About, NotFound
 ```
 
@@ -158,3 +156,7 @@ Both validate with Zod and respond before kicking LLM enrichment off in the back
 ## License
 
 Private. Not for public distribution.
+
+## Code hygiene
+
+Run `pnpm check`, `pnpm audit:dead-code`, `pnpm test` and `pnpm build` before opening a PR. CI enforces the same gates. TypeScript rejects unused locals and parameters in the app, server, shared modules and maintenance scripts. Knip traces files, exports and dependencies, including test and manual-tool entry points. See [the cleanup audit](docs/dead-code-audit-2026-09-12.md) for scope and runtime exceptions.

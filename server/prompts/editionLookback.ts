@@ -10,7 +10,6 @@
  * Returns null when there is no prior edition, nothing concrete to score, or
  * on any failure, the caller treats null as "no look-back this week".
  */
-import { z } from "zod";
 import type { DailyFeedItem, DateToWatch } from "../db/schema";
 import type { EditionTopic, Lookback } from "../../shared/schemas";
 import { lookbackSchema } from "../../shared/schemas";

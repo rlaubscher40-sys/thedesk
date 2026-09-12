@@ -118,7 +118,7 @@ export const REEL_SIGN_OFF = "The Desk. Follow for the next number.";
  * This is the fallback now rather than the main path. It is never wrong and
  * never interesting, which is the right thing to be when the alternative is a
  * script nobody verified — but a voice that recites what is already on screen
- * adds nothing, so `generateReelScript` writes the real one and this covers the
+ * adds nothing, so verified recipes supply the real script and this covers the
  * cases where it cannot: no key, a bad response, a fabricated figure.
  *
  * It has no passage for the supporting figures. Reading a list of numbers aloud
@@ -174,15 +174,6 @@ export function estimateSpeechSeconds(text: string): number {
   const words = text.trim().split(/\s+/).filter(Boolean).length;
   if (words === 0) return 0;
   return words / 2.6 + 0.35;
-}
-
-/** Local WAV audio. Failure is explicit; publishing never falls back to silence. */
-export async function synthesise(text: string): Promise<Buffer | null> {
-  try {
-    return (await localSpeech([{ key: "line", text }]))[0]!.bytes;
-  } catch {
-    return null;
-  }
 }
 
 export async function synthesiseScript(

@@ -1,40 +1,8 @@
-/**
- * The words the Reel says.
- *
- * The first version of the narration read the card aloud. That was the safe
- * choice and the wrong one: a voice that recites what is already on screen adds
- * nothing a reader could not get faster with the sound off. Ruben's brief is
- * that the audio should tell the story and explain the data, which means it has
- * to say things the card does not.
- *
- * So this is written by a model — and therefore fenced the same way
- * `generateStatLine` is fenced, because the whole position of the publication is
- * that its numbers are checkable and a voice stating a figure is exactly as
- * falsifiable as a card showing one.
- *
- * ## What it is allowed to do, and what it is not
- *
- * It may connect, order, characterise and explain *what the figures mean*: that
- * a run of four is unusual, that a reading sits near the top of its range, that
- * the typical month over this period was lower. All of those are restatements
- * of arithmetic already done in `statFacts.ts` and `statPick.ts`.
- *
- * It may not say why anything happened, what happens next, or state any figure
- * that is not in the facts it was handed. Causation and forecasting are the two
- * things it has no basis for, and a figure it invented is the one failure that
- * would cost more than the format is worth.
- *
- * Every line is checked against the source facts by `inventsFigures`. One bad
- * line fails the whole script, not just itself: a half-generated script mixes
- * two registers and reads worse than the plain one. The fallback is the
- * deterministic read in `narration.ts`, which is never wrong and never
- * interesting, and that is the right thing to be when the alternative is
- * unverified.
+/** Shared spoken-passage types and source-figure validation for Reel scripts.
+ * Automatic recipes supply reviewed scripts; there is no runtime LLM generator here.
  */
-import { invokeLLMJson } from "../core/llm";
 import type { StatFact } from "../metrics/statFacts";
 import { inventsFigures } from "./statCard";
-import { rubenSystemPrompt, stripBannedChars } from "./voice";
 
 export type ReelScriptStat = {
   label: string;
@@ -82,48 +50,13 @@ const KEYS: Array<keyof ReelScriptLines> = ["open", "number", "meaning", "contex
  * seconds of speech and a clip a little under thirty. `scriptFitsClip` is the
  * backstop underneath them.
  */
-export const MAX_CHARS: Record<keyof ReelScriptLines, number> = {
+const MAX_CHARS: Record<keyof ReelScriptLines, number> = {
   open: 65,
   number: 45,
   meaning: 75,
   context: 65,
   detail: 95,
 };
-
-function buildPrompt(stat: ReelScriptStat, facts: StatFact[]): string {
-  const direction =
-    stat.direction === "flat" ? "unchanged" : stat.direction === "down" ? "fallen" : "risen";
-  const factLines = facts.map((f) => `- ${f.figure} — ${f.caption}`).join("\n");
-  return `You are writing the voice-over for a 20-second Instagram Reel from The Desk, an Australian property data publication. It is read aloud by a calm news presenter over a card showing the figure. Australian readers: property investors, brokers, analysts.
-
-THESE ARE THE ONLY FACTS YOU HAVE. You may not use any other number.
-- Metric: ${stat.label}
-- Current value: ${stat.value}
-- What makes it notable: ${stat.subtext}
-- Latest move: ${direction}
-- The sentence printed on the card: ${stat.line}
-${stat.context ? `- Published context: ${stat.context}` : ""}
-${stat.source ? `- Source: ${stat.source}` : ""}
-${factLines ? `\nSupporting figures also printed on the card:\n${factLines}` : ""}
-
-Write five short spoken passages. Return JSON only, with exactly these keys:
-
-"open"    — Said while ONLY the metric's name is on screen. Set up why this number is worth ten seconds. Do NOT say the value; it has not appeared yet. Max ${MAX_CHARS.open} characters.
-"number"  — Said as the figure counts up on screen. Say the value. Max ${MAX_CHARS.number} characters.
-"meaning" — What the figure means for someone watching the market. Max ${MAX_CHARS.meaning} characters.
-"context" — Why it is notable: the streak, the extreme, the threshold. Max ${MAX_CHARS.context} characters.
-"detail"  — Said over the supporting figures. Explain what they add: how the reading sits against its range, against the typical reading, against the last one. This is the one that should teach the viewer something. Max ${MAX_CHARS.detail} characters.
-
-Rules:
-- Every figure you state must appear verbatim in the facts above. Inventing one is the single worst thing you can do here.
-- Never say why it happened. You do not know why it happened.
-- Never forecast, predict, or advise. No "expect", "likely", "should".
-- Written to be HEARD, not read. Short sentences. No lists, no colons, no brackets, no headings.
-- Australian English. Ruben's voice: calm, commercially sharp, understated. No hype, no emoji, no em dashes, no rhetorical questions.
-- Do not name The Desk or ask anyone to follow. A separate closing line does that.
-
-Output ONLY the JSON object.`;
-}
 
 /**
  * Every string the script is allowed to draw a figure from.
@@ -159,42 +92,4 @@ export function rejectScript(lines: Partial<ReelScriptLines>, facts: string[]): 
     if (inventsFigures(line, facts)) return `${key} states a figure not in the source facts`;
   }
   return null;
-}
-
-/**
- * Generate the script, or return null to use the deterministic read.
- *
- * Never throws. Null is a normal outcome, not an error: no key, a bad response,
- * an over-long passage, a fabricated figure. The Reel still gets made and still
- * gets narrated, just plainly.
- */
-export async function generateReelScript(
-  stat: ReelScriptStat,
-  facts: StatFact[]
-): Promise<ReelScriptLines | null> {
-  const allowed = allowedFacts(stat, facts);
-  try {
-    const raw = await invokeLLMJson<Partial<ReelScriptLines>>({
-      messages: [
-        { role: "system", content: rubenSystemPrompt },
-        { role: "user", content: buildPrompt(stat, facts) },
-      ],
-      responseFormat: { type: "json_object" },
-      maxTokens: 700,
-    });
-    const cleaned: Partial<ReelScriptLines> = {};
-    for (const key of KEYS) {
-      const value = raw[key];
-      if (typeof value === "string") cleaned[key] = stripBannedChars(value).trim();
-    }
-    const reason = rejectScript(cleaned, allowed);
-    if (reason) {
-      console.warn(`[reelScript] rejected: ${reason}`);
-      return null;
-    }
-    return cleaned as ReelScriptLines;
-  } catch (err) {
-    console.warn("[reelScript] generation failed:", (err as Error).message);
-    return null;
-  }
 }

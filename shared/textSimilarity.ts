@@ -24,7 +24,7 @@ export function titleTokens(title: string): Set<string> {
   );
 }
 
-export function sharedTokenCount(a: Set<string>, b: Set<string>): number {
+function sharedTokenCount(a: Set<string>, b: Set<string>): number {
   let n = 0;
   for (const t of a) if (b.has(t)) n++;
   return n;

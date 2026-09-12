@@ -18,7 +18,7 @@ export type Persona = "Buying" | "Holding" | "Watching";
 
 export const PERSONAS: Persona[] = ["Buying", "Holding", "Watching"];
 
-export type Category =
+type Category =
   | "MACRO"
   | "GEOPOLITICS"
   | "PROPERTY"
@@ -30,20 +30,7 @@ export type Category =
   | "REDDIT"
   | "CRYPTO";
 
-export const FEED_FILTERS: Array<{ id: Category | "ALL"; label: string }> = [
-  { id: "ALL", label: "All" },
-  { id: "MACRO", label: "Macro" },
-  { id: "GEOPOLITICS", label: "Geopolitics" },
-  { id: "PROPERTY", label: "Property" },
-  { id: "AI", label: "AI" },
-  { id: "MARKETS", label: "Markets" },
-  { id: "CLIMATE", label: "Climate" },
-  { id: "SPORT", label: "Sport, Culture and Entertainment" },
-  { id: "REDDIT", label: "Reddit Community Sentiment" },
-  { id: "CRYPTO", label: "Crypto" },
-];
-
-export type PartnerAngle = {
+type PartnerAngle = {
   persona: Persona;
   /** One-sentence "why this matters" angle for this persona. */
   angle: string;
@@ -74,29 +61,6 @@ export type Story = {
   /** Optional subscription tier gate. "paid" stories render a soft
    *  paywall hint that drives users to subscribe. */
   tier?: "free" | "paid";
-};
-
-export type Metric = {
-  /** Short uppercase key as shown on the right rail tile. */
-  key: string;
-  /** Single-line value. */
-  value: string;
-  /** Prior-edition value used to compute the trend arrow. Optional —
-   *  if absent, the tile renders without a delta. */
-  prior?: string;
-  /** Optional supporting line beneath the value. */
-  detail?: string;
-};
-
-export type Topic = {
-  category: Category;
-  label: string;
-  count: number;
-};
-
-export type TickerItem = {
-  label: string;
-  category?: Category;
 };
 
 // ─── The edition ────────────────────────────────────────────────────────────
@@ -408,31 +372,4 @@ export const stories: Story[] = [
       },
     ],
   },
-];
-
-export const metrics: Metric[] = [
-  { key: "AUS_PROD", value: "1.2%", prior: "0.9%", detail: "vs 0.9% prior" },
-  { key: "INFLATION", value: "3.4%", prior: "3.2%", detail: "headline YoY" },
-  { key: "OIL_DEM", value: "102.4 mb/d", prior: "102.1 mb/d", detail: "global demand" },
-  { key: "OIL_PRI", value: "$78.10", prior: "$78.57", detail: "Brent · spot" },
-];
-
-export const topics: Topic[] = [
-  { category: "MACRO", label: "Macro", count: 12 },
-  { category: "GEOPOLITICS", label: "Geopolitics", count: 9 },
-  { category: "PROPERTY", label: "Property", count: 8 },
-  { category: "MARKETS", label: "Markets", count: 6 },
-  { category: "AI", label: "AI", count: 5 },
-  { category: "CLIMATE", label: "Climate", count: 3 },
-];
-
-export const tickerItems: TickerItem[] = [
-  { label: "RBA holds cash rate at 4.35%, language softens", category: "MACRO" },
-  { label: "Sydney auction clearance 67.4%, sixth week above 65", category: "PROPERTY" },
-  { label: "APRA opens consultation on 3% serviceability buffer", category: "MACRO" },
-  { label: "IMF flags Iran sanctions risk to global oil supply", category: "GEOPOLITICS" },
-  { label: "US-China reopen semiconductor working group", category: "GEOPOLITICS" },
-  { label: "Energy reset lifts headline CPI to 3.4% YoY", category: "MACRO" },
-  { label: "TSMC pulls forward Arizona phase three by nine months", category: "AI" },
-  { label: "Federal Budget: CGT tweak rewrites 8-year property IRRs", category: "MACRO" },
 ];

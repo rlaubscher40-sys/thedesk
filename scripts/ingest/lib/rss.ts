@@ -15,7 +15,7 @@ import type { Source } from "../sources";
 import { plainText } from "./text";
 import { createFeedCache, FeedCooldownError } from "./feedCache";
 
-export class FeedHttpError extends Error {
+class FeedHttpError extends Error {
   constructor(public readonly status: number, public readonly retryAfterMs = 0) {
     super(`RSS HTTP ${status}`);
   }
@@ -205,7 +205,3 @@ export function createSourceReader(
 }
 
 export const fetchSourceReport = createSourceReader();
-
-export async function fetchSource(src: Source): Promise<FetchedItem[]> {
-  return (await fetchSourceReport(src)).items;
-}

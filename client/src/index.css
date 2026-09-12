@@ -70,7 +70,7 @@
      Single source of truth for easing and corner radius so the
      brand's snap/spring feel and rounding stay consistent. The
      emphasized curve is the canonical brand ease (also mirrored as
-     a tuple in StaggerList.tsx, which Framer needs literally). */
+     a tuple in App.tsx, which Framer needs literally). */
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-pulse: cubic-bezier(0.215, 0.61, 0.355, 1);
@@ -225,9 +225,8 @@
     oklch(0.32 0.18 70 / 30%) 100%
   );
   /* Avatar fallback disc — the indigo→amber blend behind initial-letter
-     avatars when an image is missing or errors. Tokenised so the four
-     byline surfaces (AuthorByline, CuratorByline, FromTheDeskIntro,
-     About) stop repeating the same inline gradient (brand guide §3.5:
+     avatars when an image is missing or errors. Shared by the
+     FromTheDeskIntro and About surfaces (brand guide §3.5:
      reference the token, never inline linear-gradient()). */
   --grad-avatar-disc: linear-gradient(
     135deg,
@@ -374,17 +373,6 @@
    visible through it. */
 .light .noise-overlay {
   opacity: 0 !important;
-}
-.light .hero-cover-shine {
-  opacity: 0.4;
-}
-
-/* Hero illustrations are authored dark. In light mode soften + fade
-   them so they read as a textural backdrop rather than a black hole
-   under the editorial type. */
-.light .hero-cover-img {
-  filter: brightness(1.4) contrast(0.78) saturate(0.6);
-  opacity: 0.5;
 }
 
 /* (The .editorial-art-img soften was removed with the broadsheet
@@ -633,37 +621,6 @@
     line-height: 0.98;
     letter-spacing: -0.035em;
   }
-  .display-2 {
-    font-family: var(--font-serif);
-    font-weight: 700;
-    font-size: clamp(2rem, 4.5vw, 3.5rem);
-    line-height: 1.04;
-    letter-spacing: -0.03em;
-  }
-  .display-3 {
-    font-family: var(--font-serif);
-    font-weight: 700;
-    font-size: clamp(1.5rem, 3vw, 2.25rem);
-    line-height: 1.1;
-    letter-spacing: -0.025em;
-  }
-  /* Mid-tier headline — fills the jump between display-3 and body for
-     card titles and sub-section heads. */
-  .display-4 {
-    font-family: var(--font-serif);
-    font-weight: 700;
-    font-size: clamp(1.2rem, 2.2vw, 1.6rem);
-    line-height: 1.18;
-    letter-spacing: -0.02em;
-  }
-
-  /* ─── Text tiers ──────────────────────────────────────────────
-     Named body/caption sizes so prose and fine print stop reaching
-     for ad-hoc text-base / text-sm. */
-  .body-lg {
-    font-size: 1.0625rem;
-    line-height: 1.72;
-  }
   .caption {
     font-size: 0.8125rem;
     line-height: 1.45;
@@ -777,11 +734,6 @@
     opacity: 0;
     animation: first-paint-fade 800ms var(--ease-emphasized) 100ms forwards;
   }
-  .first-paint-rule {
-    transform: scaleX(0);
-    transform-origin: left center;
-    animation: first-paint-sweep 900ms var(--ease-emphasized) 250ms forwards;
-  }
   .first-paint-content {
     opacity: 0;
     animation: first-paint-fade 700ms var(--ease-emphasized) 500ms forwards;
@@ -806,79 +758,6 @@
     transform: scale(0.98);
   }
 
-  .hover-lift {
-    transition:
-      transform 260ms var(--ease-emphasized),
-      box-shadow 260ms ease,
-      border-color 220ms ease;
-    will-change: transform;
-  }
-  .hover-lift:hover {
-    transform: translateY(-2px);
-    box-shadow:
-      0 14px 40px oklch(0 0 0 / 40%),
-      0 0 0 1px oklch(1 0 0 / 14%);
-  }
-
-  /* ─── Hover-reveal action row ─────────────────────────
-     Drop .reveal-on-hover on the parent and .reveal-target on
-     the action cluster; the cluster fades in only when the parent
-     is hovered or any child within is focused. Keyboard users
-     never lose access because focus-within keeps the row visible.
-     Touch devices (pointer:coarse) get the row always-on because
-     hover isn't reliable there.
-  */
-  .reveal-target {
-    opacity: 0;
-    transition: opacity 220ms var(--ease-emphasized);
-  }
-  .reveal-on-hover:hover .reveal-target,
-  .reveal-on-hover:focus-within .reveal-target {
-    opacity: 1;
-  }
-  @media (pointer: coarse) {
-    .reveal-target { opacity: 1; }
-  }
-
-  /* ─── Headline reveal ───────────────────────────────────
-     Letterbox-mask slide-up. Apply to the parent of a single-
-     line headline you want to reveal on mount; the child
-     content is what slides up behind the mask.
-  */
-  .reveal-mask {
-    overflow: hidden;
-    display: inline-block;
-  }
-  .reveal-mask > * {
-    display: inline-block;
-    animation: reveal-up 0.8s var(--ease-emphasized) both;
-  }
-
-  /* ─── Hero cover motion ────────────────────────────────────
-     Subtle Ken Burns: very slow scale + drift on the cover image
-     so the hero feels alive without distracting from the page.
-     A second specular highlight sweeps slowly across the surface.
-  */
-  .hero-cover-img {
-    animation: hero-drift 24s ease-in-out infinite alternate;
-    will-change: transform;
-  }
-  .hero-cover-shine {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background:
-      linear-gradient(
-        115deg,
-        transparent 38%,
-        oklch(1 0 0 / 6%) 49%,
-        oklch(1 0 0 / 0%) 60%
-      );
-    background-size: 300% 100%;
-    animation: hero-shine 14s ease-in-out infinite;
-    mix-blend-mode: screen;
-  }
-
   /* ─── Noise overlay ─────────────────────────────────────── */
   .noise-overlay::before {
     content: "";
@@ -890,11 +769,6 @@
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
     background-size: 200px 200px;
   }
-
-  /* ─── Ambient orbs ─────────────────────────────────────── */
-  .ambient-orb-1 { animation: orb-drift-1 26s ease-in-out infinite; }
-  .ambient-orb-2 { animation: orb-drift-2 32s ease-in-out infinite; }
-  .ambient-orb-3 { animation: orb-drift-3 38s ease-in-out infinite; }
 
   /* ═══ Broadsheet ═══════════════════════════════════════════
      The redesign's shared vocabulary. Editorial content carries no
@@ -981,8 +855,7 @@
   }
 
   /* Editorial hover. Links and headlines take the accent; rows take a
-     3% ink wash. No lift, no shadow, no scale — see .hover-lift, which
-     is deliberately retired from editorial content. */
+     3% ink wash. No lift, shadow or scale. */
   .bs-link {
     transition: color 150ms var(--ease-standard);
   }
@@ -1024,28 +897,9 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Quick spring used when a bookmark / save action toggles ON. Apply
-   .bookmark-pop to the icon wrapper momentarily after a true→false
-   transition; the brand curve gives a small bounce that signals
-   capture without becoming a celebration. */
-@keyframes bookmark-pop {
-  0%   { transform: scale(1); }
-  40%  { transform: scale(1.25); }
-  70%  { transform: scale(0.92); }
-  100% { transform: scale(1); }
-}
-.bookmark-pop {
-  animation: bookmark-pop 360ms var(--ease-emphasized);
-}
-
 @keyframes pulse-ring {
   0%   { transform: scale(0.8); opacity: 0.7; }
   100% { transform: scale(2.6); opacity: 0; }
-}
-
-@keyframes reveal-up {
-  from { transform: translateY(110%); opacity: 0; }
-  to   { transform: translateY(0%);   opacity: 1; }
 }
 
 @keyframes first-paint-fade {
@@ -1053,50 +907,13 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes first-paint-sweep {
-  from { transform: scaleX(0); }
-  to   { transform: scaleX(1); }
-}
-
 @keyframes draw-stroke {
   from { stroke-dashoffset: var(--len, 200); }
   to   { stroke-dashoffset: 0; }
 }
 
-@keyframes hero-drift {
-  from {
-    transform: scale(1.04) translate3d(-0.6%, -0.4%, 0);
-  }
-  to {
-    transform: scale(1.06) translate3d(0.4%, 0.4%, 0);
-  }
-}
-
-@keyframes hero-shine {
-  0% { background-position: -90% 0; opacity: 0.65; }
-  45% { background-position: 110% 0; opacity: 0.85; }
-  46%, 100% { background-position: 110% 0; opacity: 0; }
-}
-
-@keyframes orb-drift-1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33%      { transform: translate(60px, -40px) scale(1.1); }
-  66%      { transform: translate(-30px, 25px) scale(0.93); }
-}
-@keyframes orb-drift-2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  40%      { transform: translate(-70px, 45px) scale(1.07); }
-  70%      { transform: translate(40px, -25px) scale(0.9); }
-}
-@keyframes orb-drift-3 {
-  0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); }
-  50%      { transform: translate(30px, 60px) scale(1.05) rotate(180deg); }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .ambient-orb-1, .ambient-orb-2, .ambient-orb-3, .live-dot::before, .skeleton,
-  .hero-cover-img, .hero-cover-shine, .reveal-mask > *,
-  .first-paint-mark, .first-paint-rule, .first-paint-content {
+  .live-dot::before, .skeleton, .first-paint-mark, .first-paint-content {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
@@ -1116,9 +933,4 @@ html.lite *::after {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   animation: none !important;
-}
-html.lite .ambient-orb-1,
-html.lite .ambient-orb-2,
-html.lite .ambient-orb-3 {
-  display: none !important;
 }

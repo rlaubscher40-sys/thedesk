@@ -1,4 +1,3 @@
-import React from "react";
 import { exampleRepayments, loanDollars } from "./loanRepaymentExample";
 
 /** Public reading companion uses the same unrounded F6 observations as the Reel. */

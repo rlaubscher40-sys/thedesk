@@ -39,7 +39,7 @@ export type MetricTile = {
 const BAR_SERIES_RE = /(clearance|roll-?off|listing|approval|volume|starts)/i;
 
 /** All metrics for the day, each resolved into a render-ready tile. */
-export function useMetricTiles(): { tiles: MetricTile[]; isLoading: boolean } {
+function useMetricTiles(): { tiles: MetricTile[]; isLoading: boolean } {
   const metricsQuery = trpc.metrics.list.useQuery(undefined, { staleTime: 5 * 60_000 });
   const historiesQuery = trpc.metrics.histories.useQuery(undefined, {
     staleTime: 30 * 60_000,
@@ -75,7 +75,7 @@ export function useMetricTiles(): { tiles: MetricTile[]; isLoading: boolean } {
 }
 
 /** The cash-rate tile, if the ingest has produced one. */
-export function useCashRate(tiles: MetricTile[]): MetricTile | undefined {
+function useCashRate(tiles: MetricTile[]): MetricTile | undefined {
   return useMemo(() => tiles.find((t) => /cash rate/i.test(t.label)), [tiles]);
 }
 

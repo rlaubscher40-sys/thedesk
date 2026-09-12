@@ -5,7 +5,7 @@ import type { Sheet } from "./parsers";
 import release from "./releases/vic-2025-09";
 import { localFactEvidence, matchLocalAreas } from "./read";
 import { localObservationCoverage } from "../../shared/localCoverage";
-import { AUTOMATIC_LOCAL_SOURCE_KEYS, localDatasetIsOlder } from "../../shared/localData";
+import { LOCAL_SOURCE_KEYS, localDatasetIsOlder } from "../../shared/localData";
 import { directLocalRentAnswer } from "../ask/directLocalRent";
 vi.mock("../db/localData", () => ({
   readLocalDataset: vi.fn(),
@@ -222,5 +222,5 @@ it("keeps reviewed writes retryable alongside catalogue-based updates", async ()
   vi.mocked(writeLocalDataset).mockRejectedValueOnce(new Error("Lease expired"));
   await expect(importReviewedVicRelease()).rejects.toThrow("Lease expired");
   expect(markLocalDataCheck).not.toHaveBeenCalled();
-  expect(AUTOMATIC_LOCAL_SOURCE_KEYS).toContain("vic-bond-rents");
+  expect(LOCAL_SOURCE_KEYS).toContain("vic-bond-rents");
 });

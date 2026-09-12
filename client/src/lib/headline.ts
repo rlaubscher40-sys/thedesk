@@ -14,8 +14,4 @@ export function cleanHeadline(title: string): string {
   return dedash(baseCleanHeadline(title));
 }
 
-export {
-  isRedundantSummary,
-  looksLikeGarbage,
-  shouldShowSummary,
-} from "@shared/headline";
+export { shouldShowSummary } from "@shared/headline";

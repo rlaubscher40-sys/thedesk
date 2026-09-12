@@ -37,7 +37,7 @@
  * to the reader.
  */
 
-export type ChangeKind = "points" | "percent";
+type ChangeKind = "points" | "percent";
 
 export type MetricMove = {
   metricKey: string;

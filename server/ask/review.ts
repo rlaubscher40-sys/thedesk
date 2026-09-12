@@ -19,7 +19,7 @@ const reviewSchema = z
   .strict()
   .refine((review) => review.supported === (review.issues.length === 0));
 
-export const askReviewFormat: LlmResponseFormat = {
+const askReviewFormat: LlmResponseFormat = {
   type: "json_schema",
   json_schema: {
     name: "ask_evidence_review",

@@ -26,7 +26,7 @@
  */
 import type { DailyMetric } from "../db/schema";
 
-export type StatAngleKind = "streak" | "extreme" | "jump" | "threshold" | "latest";
+type StatAngleKind = "streak" | "extreme" | "jump" | "threshold" | "latest";
 
 export type StatPick = {
   metricKey: string;

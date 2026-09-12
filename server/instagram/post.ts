@@ -62,7 +62,6 @@ import {
   sourceGroundedStory,
   sourceGroundedTopic,
   propertyReadingQuestion,
-  storyDestination,
   editionDestination,
   marketDataCta,
 } from "./sourceContent";
@@ -87,7 +86,7 @@ export function sanitizeDashes(text: string): string {
  * recorded as the success it is). Self-resuming on the date — set to a past date
  * (or null) to bring Stories back immediately.
  */
-export const INSTAGRAM_RESUME_DATE: string | null = null;
+const INSTAGRAM_RESUME_DATE: string | null = null;
 
 /** True while 24h Stories are paused for the integrity cooldown. */
 export function instagramCooldownActive(): boolean {
@@ -271,7 +270,7 @@ export async function loadEditionHeroDataUri(editionId: number): Promise<string 
   }
 }
 
-export function buildWeeklyCaption(edition: Edition): string {
+function buildWeeklyCaption(edition: Edition): string {
   const topics = pickPropertyTopics(edition.topics);
   const caption = [
     topics[0]?.title ?? "This week's property briefing.",
@@ -859,7 +858,7 @@ const MONTHLY_SLIDE_COUNT = 4;
  * it, and says where the numbers come from, because "our own history" is the
  * claim that makes this series worth following rather than another recap.
  */
-export function buildMonthlyCaption(
+function buildMonthlyCaption(
   review: { label: string; reading: string },
   movers: Array<{ label: string; move: string; claim: string }>
 ): string {

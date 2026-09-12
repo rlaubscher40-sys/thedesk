@@ -1,7 +1,7 @@
 import type { AskContextSource } from "../prompts/ask";
 import { normaliseAskText, rankAskRecords } from "./relevance";
 
-export const ASK_SOURCE_LIMIT = 8;
+const ASK_SOURCE_LIMIT = 8;
 const COUNTS = ["one", "two", "three", "four", "five", "six", "seven", "eight"];
 
 /** Explicit source-count requests only; dates and bedroom counts are not limits. */

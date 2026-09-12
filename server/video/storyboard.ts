@@ -1,6 +1,5 @@
 import { spokenCount } from "./spokenNumbers";
 import { evidenceOpening } from "./reelOpening";
-export { spokenCount } from "./spokenNumbers";
 import {
   type HousingBalanceStoryboard,
   renderHousingBalanceFrame,
@@ -11,6 +10,7 @@ import type { MeasuredPhrase } from "./phraseSpeech";
 import type { CardVariant } from "../og/instagramCards";
 import { renderEditorialFrame } from "../og/instagramCards";
 import { reelReadingCta } from "../instagram/reelCaption";
+export { spokenCount } from "./spokenNumbers";
 
 type SceneKind =
   | "opening"

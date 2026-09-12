@@ -15,7 +15,7 @@ const MONTHS = [
   "november",
   "december",
 ];
-export const RENT_CATALOGUES = {
+const RENT_CATALOGUES = {
   "sa-bond-rents":
     "https://data.sa.gov.au/data/api/3/action/package_show?id=private-rent-report",
   "tas-bond-rents":

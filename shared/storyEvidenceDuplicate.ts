@@ -8,7 +8,7 @@ import {
   type EventStory,
 } from "./storyEvent";
 
-export const evidenceFingerprintSchema = z.object({
+const evidenceFingerprintSchema = z.object({
   version: z.literal(1),
   day: z.string().regex(/^20\d{2}-\d{2}-\d{2}$/),
   sourceTitle: z.string().max(512),

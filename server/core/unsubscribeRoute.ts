@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { Express } from "express";
 import rateLimit from "express-rate-limit";
-import { BRAND_LIGHT, BRAND_LIGHT_BORDER } from "../../shared/brandPalette";
+import { BRAND_LIGHT } from "../../shared/brandPalette";
 import { signingSecret } from "./env";
 import * as db from "../db";
 

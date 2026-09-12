@@ -25,10 +25,7 @@ import { sendAdminAlertEmail } from "../core/mailer";
 import { recordServerError } from "../db/health";
 import { claimJobRun, markJobRun } from "../db/jobRuns";
 import { runDailyFeedIngest } from "../../scripts/ingest/dailyFeed";
-import {
-  runReelAutomation,
-  REEL_MAX_ATTEMPTS,
-} from "../instagram/reelAutomation";
+import { runReelAutomation, REEL_MAX_ATTEMPTS } from "../instagram/reelAutomation";
 
 import { collectPropertyEvidence } from "../evidence/collect";
 import { collectLocalData } from "../localData/collect";
@@ -43,17 +40,19 @@ import {
 import { readLocalDataHealth } from "../db/localData";
 import { pausedLocalSourceJobs } from "../../shared/localSourceAccess";
 import { LocalSourceAccessPaused } from "../localData/access";
-import { AUTOMATIC_LOCAL_SOURCE_KEYS } from "../../shared/localData";
-import {
-  recoverMissingMetrics,
-  runScheduledMetricRefresh,
-} from "../metrics/recovery";
+import { LOCAL_SOURCE_KEYS } from "../../shared/localData";
+import { recoverMissingMetrics, runScheduledMetricRefresh } from "../metrics/recovery";
 import {
   claimCollectionRun,
   finishCollectionRun,
   isCollectionJob,
   runCollectionAttempt,
 } from "../db/collectionRuns";
+import {
+  sydneySocialClock as sydneyClock,
+  INSTAGRAM_FEED_SLOTS,
+  type SocialClock as SchedulerClock,
+} from "../../shared/instagramSchedule";
 
 const TICK_MINUTES = 5;
 const BOOT_DELAY_MS = 15_000;
@@ -67,11 +66,6 @@ const BOOT_DELAY_MS = 15_000;
 const GRACE_MINUTES = 5 * 60;
 
 export { sydneySocialClock as sydneyClock } from "../../shared/instagramSchedule";
-import {
-  sydneySocialClock as sydneyClock,
-  INSTAGRAM_FEED_SLOTS,
-  type SocialClock as SchedulerClock,
-} from "../../shared/instagramSchedule";
 export type { SocialClock as SchedulerClock } from "../../shared/instagramSchedule";
 
 function hhmmToMinutes(hhmm: string): number {
@@ -191,7 +185,7 @@ const JOBS: Job[] = [
     maxAttempts: 2,
     run: importReviewedSaRelease,
   },
-  ...AUTOMATIC_LOCAL_SOURCE_KEYS.map((source, index) => ({
+  ...LOCAL_SOURCE_KEYS.map((source, index) => ({
     key: `local-data-${source}`,
     at: `00:${15 + index * 5}`,
     graceMinutes: 23 * 60,

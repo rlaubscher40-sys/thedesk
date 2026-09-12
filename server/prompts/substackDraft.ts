@@ -46,7 +46,7 @@ function formatMetrics(metrics: KeyMetrics | null | undefined): string {
     .join(", ");
 }
 
-export function buildSubstackDraftPrompt(input: SubstackDraftInput): string {
+function buildSubstackDraftPrompt(input: SubstackDraftInput): string {
   return `You are ghostwriting a Substack essay for Ruben Laubscher. Ruben is 25, based in Sydney, and writes The Desk, a briefing on Australian property and the markets around it. He writes about property, the money around it, and the decisions that compound.
 
 This essay is based on his weekly intelligence edition: ${input.weekRange}

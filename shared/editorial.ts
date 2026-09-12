@@ -17,7 +17,7 @@ export type EditorialInput = {
   articleText?: string | null;
   sourceTiming?: SourceTiming | null;
 };
-export function publisherHost(input: EditorialInput): string {
+function publisherHost(input: EditorialInput): string {
   try {
     return new URL(input.sourceUrl ?? input.url ?? "").hostname.replace(/^www\./, "").toLowerCase();
   } catch {
@@ -216,7 +216,7 @@ export function editorialPriority(input: EditorialInput): number {
 
 /** The subject must be in the headline/dek. Only designated official releases
  * may use a generic interview/release title and establish their beat in the body. */
-export function subjectBeat(input: EditorialInput): string | null {
+function subjectBeat(input: EditorialInput): string | null {
   return (
     editorialBeat(`${input.title} ${input.summary ?? ""}`) ??
     (publisherWeight(input) === 16 ? editorialBeat((input.articleText ?? "").slice(0, 4500)) : null)

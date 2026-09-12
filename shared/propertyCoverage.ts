@@ -114,7 +114,7 @@ export function evidenceRegions(text: string): PropertyRegion[] {
   }).map((region) => region.code);
 }
 
-export const PROPERTY_BEATS = {
+const PROPERTY_BEATS = {
   housing: /\b(housing|property|real estate|dwellings?|apartments?|home buyers?)\b/i,
   rents: /\b(rents?|rental|vacanc(?:y|ies)|tenan(?:t|cy|ts))\b/i,
   supply: /\b(construction|building approvals|planning|rezoning|zoning|development|subdivision)\b/i,

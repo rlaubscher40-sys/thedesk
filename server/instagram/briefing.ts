@@ -3,7 +3,7 @@ import { sourceTimingLabel } from "../../shared/sourceTiming";
 import { storyDestination } from "./sourceContent";
 
 /** Source copy and reusable explanations have separate roles. No social model call. */
-export const briefingText = (s: string) => s.replace(/[–—]/g, ", ").replace(/\s+/g, " ").trim();
+const briefingText = (s: string) => s.replace(/[–—]/g, ", ").replace(/\s+/g, " ").trim();
 export type BriefingLens = {
   key: "estimate" | "stress" | "supply" | "rents" | "loans" | "auction" | "general";
   title: string;

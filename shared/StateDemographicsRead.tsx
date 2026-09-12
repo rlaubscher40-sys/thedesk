@@ -1,4 +1,3 @@
-import React from "react";
 import { PROPERTY_REGIONS } from "./propertyCoverage";
 import {
   annualStateDemographics,

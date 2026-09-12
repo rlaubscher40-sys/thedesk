@@ -2,7 +2,7 @@
  * Optional product guide. A shared-link recipient sees the evidence first;
  * this dialog opens only when they choose "How it works" in the footer.
  */
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link } from "wouter";
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "./ui/Dialog";
 

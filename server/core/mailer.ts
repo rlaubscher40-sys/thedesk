@@ -69,7 +69,7 @@ type SendResult =
  * lets the client POST the URL to unsubscribe with no further interaction;
  * the /api/unsubscribe route accepts that POST (same HMAC check as the GET).
  */
-export function listUnsubscribeHeaders(unsubscribeUrl: string): Record<string, string> {
+function listUnsubscribeHeaders(unsubscribeUrl: string): Record<string, string> {
   return {
     "List-Unsubscribe": `<${unsubscribeUrl}>`,
     "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",

@@ -127,7 +127,7 @@ export function LaneNav({
  * same radiogroup the old PersonaSwitcher used. Same `usePersona()` state
  * and `thedesk:active-persona` key; arrow keys move selection and focus.
  */
-export function AngledFor({ className }: { className?: string }) {
+function AngledFor({ className }: { className?: string }) {
   const { persona, setPersona } = usePersona();
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);

@@ -10,13 +10,11 @@ import { reelPublicationRecord } from "./reelStatus";
 import { isRateLimitError } from "./api";
 import { logReelPlan } from "./reelPlanSummary";
 import { readReelPublicationHistory } from "../db/reelHistory";
-
-export const REEL_POLL_MINUTES = 5;
-export const REEL_RETRY_MINUTES = 15;
-export const REEL_STALE_MINUTES = 15;
+const REEL_RETRY_MINUTES = 15;
+const REEL_STALE_MINUTES = 15;
 export const REEL_MAX_ATTEMPTS = 2;
 export const REEL_SCHEDULE = `Eight evidence-gated topics across rents, supply, borrowing costs and population movement; at most one automatic Reel per Sydney day, ${REEL_WINDOW.label}, checked every 5 minutes. Eligible families rotate by least recent confirmed publication, then newest evidence. Monthly, quarterly and annual-report releases determine availability; daily posts are not guaranteed`;
-export const REEL_DELIVERY_KEY = "instagram-reel-delivery-programme-v1";
+const REEL_DELIVERY_KEY = "instagram-reel-delivery-programme-v1";
 
 function sydneyDate(now: Date) {
   return new Intl.DateTimeFormat("en-CA", {

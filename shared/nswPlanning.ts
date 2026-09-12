@@ -15,7 +15,7 @@ export const NSW_PLANNING_STATUSES = [
   "Deferred Commencement",
   "On Exhibition",
 ] as const;
-export type NswPlanningStatus = (typeof NSW_PLANNING_STATUSES)[number];
+type NswPlanningStatus = (typeof NSW_PLANNING_STATUSES)[number];
 export type NswPlanningRecord = {
   applicationId: string;
   applicationType:

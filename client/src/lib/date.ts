@@ -1,14 +1,4 @@
-/** Date helpers shared across pages. Keep tz-aware bits in one place. */
 
-export function getSydneyDate(): string {
-  return new Date().toLocaleDateString("en-AU", {
-    timeZone: "Australia/Sydney",
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
 
 /**
  * ISO date of an instant in Sydney tz, e.g. "2026-05-13". Returns null for an

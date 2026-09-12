@@ -1,5 +1,5 @@
 /** Trial cadence for Australian property readers; not a proven best-time claim. */
-export const INSTAGRAM_TIMEZONE = "Australia/Sydney";
+const INSTAGRAM_TIMEZONE = "Australia/Sydney";
 export const INSTAGRAM_FEED_SLOTS = {
   daily: { at: "07:30", dow: [1, 2, 3, 4, 5], graceMinutes: 60, label: "Mon–Fri · 7:30am" },
   stat: {

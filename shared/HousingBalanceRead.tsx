@@ -1,4 +1,3 @@
-import React from "react";
 import { HOUSING_DEPOSIT } from "./housingAffordability";
 import { HOUSING_BALANCE_SNAPSHOT, matchedHousingBalance } from "./housingBalance";
 

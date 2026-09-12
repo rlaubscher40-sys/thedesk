@@ -114,7 +114,5 @@ export const BRAND_LIGHT = {
 
 /** Hairline, pre-composited over the paper canvas. */
 export const BRAND_LIGHT_BORDER = flattenBlackAlpha(BRAND_LIGHT.paper, 0.12);
-/** Band / folio edge, pre-composited over the paper canvas. */
-export const BRAND_LIGHT_BORDER_STRONG = flattenBlackAlpha(BRAND_LIGHT.paper, 0.22);
 /** Tint behind a Say This plate or an error block. */
 export const BRAND_LIGHT_ACCENT_SOFT = withAlpha(BRAND_LIGHT.accent, 0.07);

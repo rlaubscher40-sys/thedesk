@@ -490,7 +490,7 @@ export function registerSeoRoutes(app: Express): void {
     res.redirect(301, query ? `/archive?${query}` : "/archive");
   });
 
-  app.get("/sitemap.xml", async (req: Request, res: Response) => {
+  app.get("/sitemap.xml", async (_req: Request, res: Response) => {
     const base = siteUrl();
     const editions = await db.listEditions().catch(() => []);
 
@@ -549,7 +549,7 @@ ${urls.join("\n")}
     res.send(xml);
   });
 
-  app.get("/feed.xml", async (req: Request, res: Response) => {
+  app.get("/feed.xml", async (_req: Request, res: Response) => {
     const base = siteUrl();
     const editions = (await db.listEditions().catch(() => [])).slice(0, 50);
 

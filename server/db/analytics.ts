@@ -7,11 +7,11 @@
  * aggregate. Both record only an ephemeral session id; no IP or persistent
  * identity is stored.
  */
-import { and, desc, gte, like, notLike, sql } from "drizzle-orm";
+import { and, gte, like, notLike, sql } from "drizzle-orm";
 import * as demoQueries from "../demo/queries";
 import { isDemoMode } from "../demo/store";
 import { getDb } from "./client";
-import { pageViews, type InsertPageView, type PageView } from "./schema";
+import { pageViews, type InsertPageView } from "./schema";
 import { SOCIAL_CAMPAIGNS, type SocialCampaign } from "../../shared/socialCampaign";
 
 const EVENT_PREFIX = "@event/";
@@ -85,18 +85,6 @@ export async function socialPerformance(windowHours = 24 * 28) {
   } catch {
     return { available: false, rows: [] };
   }
-}
-
-export async function listRecentPageViews(limit = 50): Promise<PageView[]> {
-  if (isDemoMode()) return demoQueries.listRecentPageViews(limit);
-  const db = getDb();
-  if (!db) return [];
-  return db
-    .select()
-    .from(pageViews)
-    .where(notLike(pageViews.path, EVENT_PATTERN))
-    .orderBy(desc(pageViews.viewedAt))
-    .limit(limit);
 }
 
 /** Headline counts over a rolling window. Engagement events are excluded. */

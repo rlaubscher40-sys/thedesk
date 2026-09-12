@@ -5,7 +5,7 @@ import { getDb } from "./client";
 import { escapeLike } from "./like";
 import { rankResults } from "./searchRank";
 import { hasHousingEvidence, HOUSING_TOPIC_PATTERN } from "../../shared/marketRelevance";
-import { dailyFeedItems, editions, type DailyFeedItem, type InsertDailyFeedItem } from "./schema";
+import { dailyFeedItems, editions, type DailyFeedItem } from "./schema";
 import { insertFeedOnce, type FeedIngestItem } from "./feedClaims";
 import type { RelatedStory } from "../../shared/relatedCoverage";
 

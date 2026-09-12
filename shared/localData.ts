@@ -8,8 +8,6 @@ export const LOCAL_SOURCE_KEYS = [
   "tas-bond-rents",
   "vic-bond-rents",
 ] as const;
-/** VIC checks its catalogue first; only a newer release triggers a download. */
-export const AUTOMATIC_LOCAL_SOURCE_KEYS = LOCAL_SOURCE_KEYS;
 export type LocalSourceKey = (typeof LOCAL_SOURCE_KEYS)[number];
 export const STATE_CODES = [
   "NSW",

@@ -3,7 +3,7 @@ import { marketNameSchema } from "@shared/marketComparison";
 import { comparisonPairKey } from "@shared/comparisonChanges";
 
 export const COMPARISON_WATCH_KEY = "thedesk:comparison-watches:v1";
-export const MAX_COMPARISON_WATCHES = 6;
+const MAX_COMPARISON_WATCHES = 6;
 const watchSchema = z
   .object({
     marketA: marketNameSchema,

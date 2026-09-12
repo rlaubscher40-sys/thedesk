@@ -56,7 +56,7 @@ const FPS = 30;
  * So durations are frames from here on, and seconds only where ffmpeg needs a
  * number.
  */
-export function snapToFrame(seconds: number): number {
+function snapToFrame(seconds: number): number {
   return Math.max(1, Math.round(seconds * FPS)) / FPS;
 }
 
@@ -148,7 +148,7 @@ const FACT_SECONDS = 1.25;
  *  of satori for motion nobody can see. */
 const DRAW_STEPS = 8;
 
-export type Frame = {
+type Frame = {
   /** Numeric animation uses crisp cuts so adjacent digits never ghost. */
   hardCut?: boolean;
   sceneKey?: string;

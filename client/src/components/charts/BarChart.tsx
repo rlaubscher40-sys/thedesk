@@ -4,9 +4,9 @@
  * (gives the bars a printed-newspaper feel), faint grid horizontals,
  * mono axis labels.
  */
-import { useId, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-export type BarSeries = {
+type BarSeries = {
   key: string;
   label?: string;
   values: number[];
@@ -28,12 +28,11 @@ export function BarChart({
   padY = 16,
   padX = 44,
 }: Props) {
-  const id = useId();
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const [width, setWidth] = useState(720);
 
-  useMemo(() => {
+  useEffect(() => {
     if (typeof window === "undefined") return;
     const measure = () => {
       const w = wrapRef.current?.clientWidth ?? 720;

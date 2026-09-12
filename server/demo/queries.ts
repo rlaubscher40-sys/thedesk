@@ -469,16 +469,6 @@ export function addToQueue(data: InsertReadingQueueItem): ReadingQueueItem {
   return item;
 }
 
-export function findQueueItemsNeedingNudge() {
-  return [];
-}
-export function markNudgeSent(_id: number): void {
-  /* no-op */
-}
-export function recordNudgeResponse(_id: number, _response: string): void {
-  /* no-op */
-}
-
 export function markQueueItemRead(id: number, userId: number): void {
   const item = demo.queue.find((q) => q.id === id && q.userId === userId);
   if (item) item.isRead = true;
@@ -551,11 +541,6 @@ export function getUserByOpenId(openId: string) {
   return undefined;
 }
 
-export function getUserById(id: number) {
-  if (id === demoUser.id) return demoUser;
-  return undefined;
-}
-
 // ─── Subscribers ────────────────────────────────────────────────────────────
 
 export function findSubscriberByEmail(email: string): Subscriber | undefined {
@@ -621,14 +606,6 @@ export function listSubscribers(): Subscriber[] {
 
 export function countConfirmedSubscribers(): number {
   return demo.subscribers.filter((s) => s.confirmedAt && !s.unsubscribedAt).length;
-}
-
-export function listSubscribersForWeeklyRecap(_weekOf: string): ReturnType<typeof listSubscribers> {
-  return [];
-}
-
-export function markWeeklyRecapSent(_ids: number[], _weekOf: string): void {
-  /* no-op */
 }
 
 // ─── Featured LinkedIn posts ────────────────────────────────────────────────
@@ -902,12 +879,6 @@ export function recordPageView(data: InsertPageView): void {
     sessionId: data.sessionId,
   };
   demo.pageViews = trimRing([...demo.pageViews, row], PAGEVIEW_CAP);
-}
-
-export function listRecentPageViews(limit: number): PageView[] {
-  return [...demo.pageViews]
-    .sort((a, b) => b.viewedAt.getTime() - a.viewedAt.getTime())
-    .slice(0, limit);
 }
 
 export function pageViewSummary(since: Date): {

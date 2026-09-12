@@ -4,7 +4,6 @@ import {
   ArrowRight,
   Bookmark,
   BookmarkCheck,
-  Building2,
   ExternalLink,
   MapPin,
   Search,
@@ -563,40 +562,6 @@ function BriefBlock({
       <p className="bs-label-accent">{label}</p>
       <p className="font-serif text-lg leading-7 mt-3 text-[var(--color-fg-body)]">{text}</p>
     </div>
-  );
-}
-
-function MarketEmptyState({ onSelect }: { onSelect: (value: string) => void }) {
-  return (
-    <section className="grid lg:grid-cols-[minmax(0,1fr)_340px] gap-10 rule-major mt-10 pt-7">
-      <div>
-        <p className="bs-label-accent">Market intelligence, not suburb profiles</p>
-        <h2 className="font-serif font-bold mt-3" style={{ fontSize: 42, lineHeight: 1 }}>
-          Start with a place. Follow the forces around it.
-        </h2>
-        <p className="font-serif text-xl leading-8 mt-4 max-w-[62ch] text-[var(--color-fg-muted)]">
-          The Desk does not pretend to know a market from one growth figure. It builds the file from
-          reporting on supply, credit, policy, migration and price signals, then shows you the
-          evidence underneath the call.
-        </p>
-      </div>
-      <div>
-        <p className="bs-label">Popular starting points</p>
-        <div className="mt-3 rule-hair-b">
-          {EXAMPLES.map((example) => (
-            <button
-              key={example}
-              type="button"
-              onClick={() => onSelect(example)}
-              className="bs-row rule-hair w-full py-3 flex items-center justify-between"
-            >
-              <span className="font-serif text-xl">{example}</span>
-              <ArrowRight className="h-4 w-4 text-[var(--color-accent-text)]" />
-            </button>
-          ))}
-        </div>
-      </div>
-    </section>
   );
 }
 

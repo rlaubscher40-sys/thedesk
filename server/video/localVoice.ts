@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { createHash } from "node:crypto";
 
-export const SPEECH_TIMEOUT_MS = 90_000;
+const SPEECH_TIMEOUT_MS = 90_000;
 const CACHE_LIMIT = 4;
 type SpeechLine = { key: string; text: string };
 type SpeechAudio = { key: string; bytes: Buffer };
@@ -32,8 +32,8 @@ export function speechProcessFailure(error: {
 }
 
 // Installed at build time, never downloaded in a publishing request.
-export const voiceRoot = () => path.resolve("dist/voice");
-export const voiceBinary = () => path.join(voiceRoot(), "speak.mjs");
+const voiceRoot = () => path.resolve("dist/voice");
+const voiceBinary = () => path.join(voiceRoot(), "speak.mjs");
 export const voiceModel = () => path.join(voiceRoot(), "kokoro/onnx/model_quantized.onnx");
 
 /** Reject empty, silent, malformed or implausibly long PCM output. */

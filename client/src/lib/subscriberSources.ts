@@ -22,7 +22,7 @@ export type SubscriberRow = {
   createdAt: string | Date;
 };
 
-export type SourceRow = {
+type SourceRow = {
   /** Channel slug, "instagram" / "google" / "direct". */
   source: string;
   /** Everyone who arrived through it, confirmed or not. */
