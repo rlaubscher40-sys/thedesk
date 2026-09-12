@@ -49,7 +49,13 @@ export async function renderReelCover(stat: ReelStat, script: ScriptLine[]) {
   const photo = await loadImage(asset);
   const canvas = createCanvas(1080, 1920),
     ctx = canvas.getContext("2d");
-  const crop = loanPhotoCrop(photo.width, photo.height, cover.shot.focus, 0.35);
+  const crop = loanPhotoCrop(
+    photo.width,
+    photo.height,
+    cover.shot.focus,
+    0.35,
+    "zoom" in cover.shot ? cover.shot : {}
+  );
   ctx.drawImage(photo, crop.x, crop.y, crop.width, crop.height);
   const gradient = ctx.createLinearGradient(0, 0, 0, 1920);
   for (const [stop, alpha] of [

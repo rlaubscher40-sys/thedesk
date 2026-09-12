@@ -6,6 +6,7 @@ import { assertEditorialStory, type EditorialStory } from "./editorialStory";
 import { REEL_READS } from "../instagram/reelCaption";
 import { moving, smooth } from "./reelMotion";
 import { housingOpening } from "./reelOpening";
+import { REEL_SHOTS, reelSceneShot } from "./reelVisualStandard";
 
 type Kind =
   | "balance-opening"
@@ -340,11 +341,12 @@ export function housingBalanceFrameLayout(
   };
   const marker = (m: ReturnType<typeof housingStoryBridge>) =>
     at(m.x, m.y, "", { width: m.width, height: m.height, backgroundColor: c.gold });
-  const photographic = ["label", "construction", "signOff"].includes(key);
+  const shot = reelSceneShot("housing-balance", key);
+  const photographic = shot !== null;
   const camera = key === "signOff" ? 1 + progress * 0.15 : progress;
   const zoom = 1 + 0.025 * camera;
   const photoHeight = 1980 * zoom;
-  const photoWidth = photoHeight * (key === "label" ? 1400 / 986 : 2 / 3);
+  const photoWidth = 1080 * zoom;
   const background =
     photographic && photo
       ? box(
@@ -358,7 +360,7 @@ export function housingBalanceFrameLayout(
                 height: photoHeight,
                 style: {
                   position: "absolute",
-                  left: key === "label" ? -1050 - camera * 18 : (1080 - photoWidth) / 2,
+                  left: (1080 - photoWidth) / 2,
                   top: -35 - camera * 28,
                   objectFit: "cover",
                 },
@@ -524,8 +526,7 @@ export function housingBalanceFrameLayout(
       at(0, 560, openingLine(housingOpening(b.shortfall, story.opening).detail, 48, true), {
         width: 840,
       }),
-      at(0, 855, tag("ARCHITECTURE / ILLUSTRATIVE PHOTO")),
-      at(0, 905, text("Phillip Flores / Unsplash", 28, c.muted)),
+      at(0, 855, tag("ILLUSTRATIVE PHOTO / NOT A MEASURED LOCATION")),
     ];
   else if (key === "facts") nodes = comparison(progress);
   else if (key === "claim") {
@@ -597,8 +598,7 @@ export function housingBalanceFrameLayout(
         840,
         70
       ),
-      at(0, 860, tag("SYDNEY / ARCHIVE PUBLISHED 2019 / DAMON HALL")),
-      at(0, 920, tag("ILLUSTRATIVE ARCHIVE / UNSPLASH")),
+      at(0, 860, tag("ILLUSTRATIVE BUILDING STAGE / NOT A PROJECT CLAIM")),
     ];
   } else {
     const p = ease(progress * 2 - 1),
@@ -642,6 +642,7 @@ export function housingBalanceFrameLayout(
               ? "NHSAC 2026 / ch. 2 / RBA RDP 2019-01"
               : "NHSAC 2026 / ch. 2 / Housing supply",
       publisher: "National Housing Supply and Affordability Council",
+      ...(shot ? { photoCredit: REEL_SHOTS[shot].credit } : {}),
       index: story.scenes.indexOf(scene),
       count: story.scenes.length,
       quiet: true,
@@ -656,10 +657,15 @@ export async function renderHousingBalanceFrame(
   progress: number,
   variant: CardVariant
 ) {
-  const photo = await loadAsset(
-    key === "label" ? "architecture-phillip-flores.jpg" : "sydney-construction-damon-hall.jpg"
+  const shot = reelSceneShot("housing-balance", key);
+  const photo = shot ? await loadAsset(REEL_SHOTS[shot].asset) : undefined;
+  if (shot && !photo) throw new Error("Reviewed archive photograph is missing.");
+  const { content, meta } = housingBalanceFrameLayout(
+    story,
+    key,
+    progress,
+    variant,
+    photo ?? undefined
   );
-  if (!photo) throw new Error("Reviewed archive photograph is missing.");
-  const { content, meta } = housingBalanceFrameLayout(story, key, progress, variant, photo);
   return renderEditorialFrame(content, variant, meta);
 }

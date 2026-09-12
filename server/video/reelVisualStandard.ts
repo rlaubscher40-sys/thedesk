@@ -1,9 +1,11 @@
 import type { EvidenceRecipe } from "./evidenceVisual";
 import { LOAN_SHOTS } from "./loanStoryPhotography";
 import { smooth } from "./reelMotion";
+import { REEL_PHOTO_CATALOGUE } from "./reelPhotoCatalogue";
 
 export const REEL_SHOTS = {
   ...LOAN_SHOTS,
+  ...REEL_PHOTO_CATALOGUE,
   moving: {
     asset: "moving-home-cottonbro.jpg",
     credit: "Moving-home illustration / cottonbro studio / Pexels",
@@ -27,31 +29,31 @@ export const REEL_VISUAL_SEQUENCES: Record<ReelVisualRecipe, Record<string, Reel
     line: "money",
     claim: "home",
     facts: "home",
-    signOff: "home",
+    signOff: "residential",
   },
   "interstate-migration": {
     label: "moving",
     value: null,
     line: "moving",
-    claim: "home",
-    facts: "construction",
-    signOff: "home",
+    claim: "residential",
+    facts: "building",
+    signOff: "neighbourhood",
   },
   "rent-comparison": {
-    label: "home",
+    label: "residential",
     value: null,
     line: null,
     claim: null,
     facts: "money",
-    signOff: "home",
+    signOff: "neighbourhood",
   },
   "capital-rents": {
-    label: "home",
+    label: "neighbourhood",
     value: null,
     line: null,
     claim: "money",
     facts: null,
-    signOff: "home",
+    signOff: "residential",
   },
   "rent-change": {
     label: "home",
@@ -59,33 +61,33 @@ export const REEL_VISUAL_SEQUENCES: Record<ReelVisualRecipe, Record<string, Reel
     line: null,
     claim: "money",
     facts: null,
-    signOff: "home",
+    signOff: "residential",
   },
   "approval-comparison": {
     label: "construction",
     value: null,
     line: null,
-    construction: "construction",
-    completion: "home",
+    construction: "building",
+    completion: "residential",
     facts: null,
     claim: null,
-    signOff: "home",
+    signOff: "neighbourhood",
   },
   "supply-checklist": {
-    label: "construction",
+    label: "building",
     value: null,
-    line: "construction",
-    claim: "home",
+    line: "building",
+    claim: "neighbourhood",
     facts: "construction",
-    signOff: "home",
+    signOff: "residential",
   },
   "housing-balance": {
-    label: "home",
+    label: "neighbourhood",
     facts: null,
     claim: null,
     households: null,
-    construction: "construction",
-    signOff: "construction",
+    construction: "building",
+    signOff: "building",
   },
 };
 
