@@ -2,8 +2,8 @@ import { sourceTimingLabel } from "../../shared/sourceTiming";
 /**
  * High-level Instagram posting orchestration.
  *
- * postDailyCarousel  — picks the top-3 stories by priority, renders a
- *                      1080×1080 card per story, posts as a carousel.
+ * postDailyCarousel  — selects usable source stories, renders a 4–6 slide
+ *                      1080×1350 briefing, and posts once as a carousel.
  *
  * postWeeklyEdition  — renders a cover card + one card per topic from
  *                      the latest weekly edition, posts as a carousel.
@@ -25,6 +25,8 @@ import { recordServerError } from "../db/health";
 import { generateCoverageBrief } from "../prompts/coverageBrief";
 import { generateInstagramHeadline } from "../prompts/instagramHeadline";
 import { renderPropertyDailyCover } from "./dailyCover";
+import { briefingReady, buildBriefingSlides, briefingAlt, briefingCaption } from "./briefing";
+import { renderBriefingSlide } from "../og/briefingCards";
 import {
   type CardVariant,
   renderDailyCoverCard,
@@ -209,30 +211,7 @@ function categoryHashtag(category: string | null | undefined): string {
 
 /** Captions keep source claims intact and give each slide its own reading link. */
 export function buildDailyCaption(stories: DailyFeedItem[]): string {
-  const selected = pickPropertyStories(stories, 3).map(sourceGroundedStory);
-  const lead = selected[0];
-  const rundown = selected.flatMap((story, i) => [
-    ...(i > 0 ? [`${i + 1}. ${sanitizeDashes(story.title)}`] : []),
-    propertyReadingQuestion(story),
-    `Source: ${story.source} · Briefing ${story.feedDate}`,
-    sourceTimingLabel(story.sourceTiming),
-    `Read story ${story.id}: ${storyDestination(story)}`,
-    "",
-  ]);
-  const caption = [
-    lead ? sanitizeDashes(lead.title) : "Today's Australian property briefing.",
-    "",
-    ...rundown,
-    "Save this briefing to revisit the evidence before your next property decision.",
-    "Open our bio → Recent carousel stories and tap the headline. For older posts, enter the Read story number or search Archive.",
-    "",
-    `${CORE_HASHTAGS} #PropertyMarket`,
-  ].join("\n");
-  if (caption.length > 2200)
-    throw new Error(
-      "Source-grounded caption exceeds Instagram limit; needs shorter source material"
-    );
-  return caption;
+  return briefingCaption(pickPropertyStories(stories, 3));
 }
 
 export function buildCoverageCaption(stories: DailyFeedItem[]): string {
@@ -400,7 +379,10 @@ async function postStoryFrames(opts: {
     if (i > 0) await settle(45000);
     const uuids: string[] = [];
     try {
-      const storyBuf = await renderDailyStoryVertical(frames[i]!, variant, verticalOpts);
+      const storyBuf =
+        verticalOpts?.header === "Wider Lens"
+          ? await renderDailyStoryVertical(frames[i]!, variant, verticalOpts)
+          : await renderBriefingSlide(buildBriefingSlides([frames[i]!])[1]!, 0, 1, variant, true);
       const storyUuid = storeTempImage(storyBuf);
       uuids.push(storyUuid);
       const containerId = await createStoryContainer({
@@ -442,7 +424,7 @@ export async function postDailyCarousel(
   opts: {
     /** Cover variant for the grid thumbnail (alternated for the checkerboard). */
     variant?: CardVariant;
-    /** Market metrics for the cover's lower-third strip, already value+unit formatted. */
+    /** Legacy Wider Lens metrics; the property cover deliberately omits them. */
     metrics?: Array<{ label: string; value: string }>;
     /**
      * "daily" = the AU/Property partner briefing (default): say-this hooks,
@@ -476,7 +458,10 @@ export async function postDailyCarousel(
     const recovered = await recoverSocialPublication(scope);
     if (recovered) return recovered;
   }
-  const candidates = selectStories(stories, DAILY_CANDIDATE_POOL);
+  const candidates = selectStories(
+    isCoverage ? stories : stories.filter(briefingReady),
+    DAILY_CANDIDATE_POOL
+  );
   const pool = isCoverage ? candidates : await unpublishedSocialStories(candidates);
 
   if (pool.length === 0) throw new Error("No stories available for Instagram post");
@@ -526,10 +511,8 @@ export async function postDailyCarousel(
   // alt_text per slide, kept in lockstep with the carousel images (cover + one per story).
   const altTexts: (string | undefined)[] = [];
   try {
-    // Coverage keeps its branded series cover. The morning briefing earns the
-    // grid tile with the actual lead hook: the source-backed claim is the first
-    // thing a scroller sees, while supporting stories and live metrics remain
-    // visible as proof/context lower on the card.
+    // Coverage keeps its branded cover. The property briefing gives the lead
+    // a clean photographic cover, then evidence, explanation and a takeaway.
     const coverBuf = isCoverage
       ? await renderDailyCoverCard(
           sanitized,
@@ -542,18 +525,29 @@ export async function postDailyCarousel(
     carouselUuids.push(storeTempImage(coverBuf));
     altTexts.push(isCoverage ? "The Desk wider lens cover" : sanitized[0]!.title);
 
-    for (let i = 0; i < sanitized.length; i++) {
-      // Whole carousel shares the cover's variant so a light post reads as
-      // one piece when swiped, not a light cover over navy slides.
-      const buf = await renderDailyStoryCard(
-        sanitized[i]!,
-        i,
-        sanitized.length,
-        opts.variant ?? "navy",
-        cardOpts
-      );
-      carouselUuids.push(storeTempImage(buf));
-      altTexts.push(sanitized[i]?.title);
+    if (isCoverage) {
+      for (let i = 0; i < sanitized.length; i++) {
+        const buf = await renderDailyStoryCard(
+          sanitized[i]!,
+          i,
+          sanitized.length,
+          opts.variant ?? "navy",
+          cardOpts
+        );
+        carouselUuids.push(storeTempImage(buf));
+        altTexts.push(sanitized[i]?.title);
+      }
+    } else {
+      const slides = buildBriefingSlides(sanitized);
+      altTexts[0] = briefingAlt(slides[0]!, 0, slides.length);
+      for (let i = 1; i < slides.length; i++) {
+        carouselUuids.push(
+          storeTempImage(
+            await renderBriefingSlide(slides[i]!, i, slides.length, opts.variant ?? "navy")
+          )
+        );
+        altTexts.push(briefingAlt(slides[i]!, i, slides.length));
+      }
     }
 
     const caption = isCoverage ? buildCoverageCaption(sanitized) : buildDailyCaption(sanitized);

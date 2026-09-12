@@ -120,9 +120,11 @@ describe("property conversion", () => {
 });
 
 describe("buildDailyCaption — source-grounded property briefing", () => {
-  it("leads with the relevant source headline and excludes unrelated stories", () => {
+  it("opens with attributed detail and retains the source headline while excluding unrelated stories", () => {
     const caption = buildDailyCaption(trio);
-    expect(caption.startsWith(trio[1]!.title)).toBe(true);
+    expect(caption.startsWith(`${trio[1]!.source} reports:`)).toBe(true);
+    expect(caption).toContain(trio[1]!.summary);
+    expect(caption).toContain(trio[1]!.title);
     expect(caption).toContain(trio[0]!.title);
     expect(caption).not.toContain(trio[2]!.title);
   });
@@ -137,7 +139,7 @@ describe("buildDailyCaption — source-grounded property briefing", () => {
     expect(caption).toContain(story.title);
     expect(caption).not.toContain("Perth");
     expect(caption).not.toContain("double");
-    expect(caption).toContain("rent levels or rent growth");
+    expect(caption).toMatch(/rent levels or rent growth/i);
     expect(caption).toContain("Source: AFR");
     expect(caption).not.toContain("in our bio");
   });
