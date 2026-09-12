@@ -10,7 +10,9 @@ const m = vi.hoisted(() => ({
   mark: vi.fn(),
   store: vi.fn(),
   remove: vi.fn(),
+  stage: vi.fn(),
 }));
+vi.mock("../db/reelStorySource", () => ({ stageReelStorySource: m.stage }));
 vi.mock("../core/env", () => ({
   env: { instagramAccessToken: "test", instagramBusinessAccountId: "test" },
 }));
@@ -51,6 +53,34 @@ beforeEach(() => {
   m.publish.mockResolvedValue("media");
 });
 describe("narrated Reel publication", () => {
+  it("saves the Story source only after winning the Reel claim and before publication", async () => {
+    const script = [{ key: "label", text: "A home." }];
+    await postStatReel(stat, "https://thedesk.au", { ...options, script });
+    expect(m.claim.mock.invocationCallOrder[0]).toBeLessThan(m.stage.mock.invocationCallOrder[0]!);
+    expect(m.stage.mock.invocationCallOrder[0]).toBeLessThan(
+      m.publish.mock.invocationCallOrder[0]!
+    );
+    expect(m.stage).toHaveBeenCalledWith(
+      options.publication,
+      expect.objectContaining({ script, siteUrl: "https://thedesk.au" })
+    );
+    m.stage.mockClear();
+    m.claim.mockResolvedValue(0);
+    await expect(postStatReel(stat, "https://thedesk.au", { ...options, script })).rejects.toThrow(
+      "locked"
+    );
+    expect(m.stage).not.toHaveBeenCalled();
+  });
+  it("keeps the Reel successful if the companion source cannot be saved", async () => {
+    m.stage.mockRejectedValue(new Error("Story storage unavailable"));
+    await expect(
+      postStatReel(stat, "https://thedesk.au", {
+        ...options,
+        script: [{ key: "label", text: "A home." }],
+      })
+    ).resolves.toMatchObject({ postId: "media" });
+    expect(m.publish).toHaveBeenCalledTimes(1);
+  });
   it("requires quota and a durable slot before one publish, then records success", async () => {
     expect(await postStatReel(stat, "https://thedesk.au", options)).toMatchObject({
       postId: "media",
