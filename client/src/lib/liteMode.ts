@@ -14,7 +14,7 @@
 const LITE_KEY = "thedesk:lite-mode";
 
 /** OS-level "I want less motion" preference. */
-export function prefersReducedMotion(): boolean {
+function prefersReducedMotion(): boolean {
   return (
     typeof window !== "undefined" &&
     typeof window.matchMedia === "function" &&

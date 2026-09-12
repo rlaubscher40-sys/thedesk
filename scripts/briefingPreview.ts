@@ -20,7 +20,7 @@ const selected = wanted
 if (!selected.length) throw new Error("No usable source stories");
 const slides = buildBriefingSlides(selected);
 await fs.mkdir(out, { recursive: true });
-const tiles: sharp.OverlayOptions[] = [];
+const tiles: import("sharp").OverlayOptions[] = [];
 for (const variant of ["navy", "light"] as const) {
   for (const [i, slide] of slides.entries()) {
     const bytes = await renderBriefingSlide(slide, i, slides.length, variant);

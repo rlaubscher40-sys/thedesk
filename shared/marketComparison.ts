@@ -28,7 +28,7 @@ export const comparisonInputSchema = z
     path: ["marketB"],
   });
 
-export const comparisonBasisSchema = z
+const comparisonBasisSchema = z
   .object({
     measure: z.string().trim().min(1).max(100).nullable(),
     period: z.string().trim().min(1).max(100).nullable(),
@@ -47,7 +47,7 @@ const observationSchema = z
     basis: comparisonBasisSchema.nullable().optional(),
   })
   .strict();
-export const comparisonRowSchema = z
+const comparisonRowSchema = z
   .object({
     dimension: z.enum(
       Object.keys(MARKET_DIMENSIONS) as [

@@ -5,7 +5,7 @@ import type { MarketDirectory } from "../../shared/marketDirectory";
 import { featuredComparisonCardInput } from "../core/marketSeo";
 import type { DeskTakeCardInput } from "../og/takeCard";
 
-export type LaunchSlide = { title: string; body: string };
+type LaunchSlide = { title: string; body: string };
 export type LaunchContent = {
   id: LaunchPostId;
   title: string;

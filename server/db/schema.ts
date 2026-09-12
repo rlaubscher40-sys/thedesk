@@ -1,11 +1,5 @@
 import type { SourceTiming } from "../../shared/sourceTiming";
 import type { FirstDayInsight } from "../../shared/instagramMeasurement";
-/**
- * Drizzle schema for The Desk. JSON columns are typed against the Zod-derived
- * shapes in shared/schemas.ts so the database, server and client all agree on
- * what is in there.
- */
-export { localDataSnapshots, localDataHealth } from "./localDataSchema";
 import {
   boolean,
   bigint,
@@ -21,6 +15,13 @@ import {
   unique,
   varchar,
 } from "drizzle-orm/mysql-core";
+import type { EditionTopic, KeyMetrics, Lookback, Signals } from "../../shared/schemas";
+/**
+ * Drizzle schema for The Desk. JSON columns are typed against the Zod-derived
+ * shapes in shared/schemas.ts so the database, server and client all agree on
+ * what is in there.
+ */
+export { localDataSnapshots, localDataHealth } from "./localDataSchema";
 
 /**
  * MEDIUMBLOB column type, up to 16MB binary, plenty for compressed
@@ -30,7 +31,6 @@ import {
 const mediumBlob = customType<{ data: Buffer; driverData: Buffer }>({
   dataType: () => "mediumblob",
 });
-import type { EditionTopic, KeyMetrics, Lookback, Signals } from "../../shared/schemas";
 
 // ─── Users ──────────────────────────────────────────────────────────────────
 

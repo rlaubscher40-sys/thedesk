@@ -19,7 +19,7 @@ export async function findSubscriberByEmail(email: string): Promise<Subscriber |
   return rows[0];
 }
 
-export async function findSubscriberByToken(token: string): Promise<Subscriber | undefined> {
+async function findSubscriberByToken(token: string): Promise<Subscriber | undefined> {
   if (isDemoMode()) return demoQueries.findSubscriberByToken(token);
   const db = getDb();
   if (!db) return undefined;
@@ -131,26 +131,6 @@ export async function listConfirmedSubscribers(): Promise<Subscriber[]> {
     .select()
     .from(subscribers)
     .where(and(isNotNull(subscribers.confirmedAt), isNull(subscribers.unsubscribedAt)));
-}
-
-/** Confirmed subscribers who haven't received today's daily brief yet. */
-export async function listSubscribersForDailyBrief(todayDate: string): Promise<Subscriber[]> {
-  if (isDemoMode()) {
-    const all = await demoQueries.listSubscribers();
-    return all.filter((s) => s.confirmedAt && !s.unsubscribedAt);
-  }
-  const db = getDb();
-  if (!db) return [];
-  return db
-    .select()
-    .from(subscribers)
-    .where(
-      and(
-        isNotNull(subscribers.confirmedAt),
-        isNull(subscribers.unsubscribedAt),
-        or(isNull(subscribers.lastDailyBriefDate), ne(subscribers.lastDailyBriefDate, todayDate))
-      )
-    );
 }
 
 /** Mark these subscriber IDs as having received today's daily brief. */

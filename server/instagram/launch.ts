@@ -24,7 +24,7 @@ import { removeTempImage, storeTempImage } from "./tempStore";
 // This is a one-time campaign, not a daily schedule. A constant logical date
 // keeps its atomic job_runs reservation across days, restarts and deployments.
 export const LAUNCH_DATE = "2026-09-08";
-export const launchJobKey = (id: LaunchPostId) => `instagram-launch-v1-${id}`;
+const launchJobKey = (id: LaunchPostId) => `instagram-launch-v1-${id}`;
 
 async function contentFor(id: LaunchPostId): Promise<LaunchContent> {
   try {

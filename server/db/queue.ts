@@ -4,8 +4,6 @@ import { isDemoMode } from "../demo/store";
 import { getDb } from "./client";
 import { dailyFeedItems, readingQueue, users, type InsertReadingQueueItem } from "./schema";
 
-export type EnrichedQueueItem = Awaited<ReturnType<typeof getEnrichedQueue>>[number];
-
 export async function getEnrichedQueue(userId: number) {
   if (isDemoMode()) return demoQueries.getEnrichedQueue(userId);
   const db = getDb();

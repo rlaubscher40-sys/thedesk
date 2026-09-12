@@ -1,11 +1,11 @@
 import { z } from "zod";
 
-export const NSW_DA_DATASET_URL =
+const NSW_DA_DATASET_URL =
   "https://www.planningportal.nsw.gov.au/opendata/dataset/online-da-data-api";
-export const NSW_DA_DICTIONARY_URL =
+const NSW_DA_DICTIONARY_URL =
   "https://www.planningportal.nsw.gov.au/opendata/dataset/88c61ad1-7096-45ae-b1ac-94963e4cfca1/resource/95279ab6-b115-4300-bb21-30461dae3985/download/online-da-api-v2.0.pdf";
-export const NSW_DA_PUBLISHER = "NSW Department of Planning, Housing and Infrastructure";
-export const NSW_DA_COUNCIL_MANDATE_START = "2021-07-01";
+const NSW_DA_PUBLISHER = "NSW Department of Planning, Housing and Infrastructure";
+const NSW_DA_COUNCIL_MANDATE_START = "2021-07-01";
 
 const applicationTypeSchema = z.enum([
   "Development application",
@@ -94,7 +94,7 @@ const rawNswDaRecordSchema = z
     }
   });
 
-export type NswDaApplicationStatus = z.infer<typeof applicationStatusSchema>;
+type NswDaApplicationStatus = z.infer<typeof applicationStatusSchema>;
 
 export type NswDaRecord = {
   applicationId: string;

@@ -1,4 +1,3 @@
-import React from "react";
 import { CityRentRead } from "./CityRentRead";
 import { CityApprovalRead } from "./CityApprovalRead";
 import { StatePopulationRead } from "./StatePopulationRead";

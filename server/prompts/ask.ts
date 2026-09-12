@@ -54,7 +54,7 @@ const answeredJsonSchema = {
   },
 };
 
-export const askDeskResponseFormat: Extract<LlmResponseFormat, { type: "json_schema" }> = {
+const askDeskResponseFormat: Extract<LlmResponseFormat, { type: "json_schema" }> = {
   type: "json_schema",
   json_schema: {
     name: "ask_the_desk_answer",

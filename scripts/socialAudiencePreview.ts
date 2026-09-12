@@ -33,7 +33,7 @@ const candidates = [
     now
   )!,
 ];
-const overlays: sharp.OverlayOptions[] = [
+const overlays: import("sharp").OverlayOptions[] = [
   {
     input: Buffer.from(
       '<svg width="800" height="70"><text x="20" y="30" font-size="20" font-family="sans-serif">Automatic story recipes — synthetic preview only</text><text x="20" y="55" font-size="16" font-family="sans-serif">Not live figures or published posts</text></svg>'

@@ -29,7 +29,7 @@ import { isDemoMode } from "../demo/store";
 import { env } from "./env";
 import { demoLlm } from "../demo/llmStub";
 
-export type LlmRole = "system" | "user" | "assistant";
+type LlmRole = "system" | "user" | "assistant";
 
 export type LlmMessage = {
   role: LlmRole;
@@ -52,7 +52,7 @@ export type LlmResponseFormat =
  * "standard" → the cheaper, high-volume model (Sonnet by default).
  * "premium"  → the higher-quality model for voice-sensitive work (Opus).
  */
-export type ModelTier = "standard" | "premium";
+type ModelTier = "standard" | "premium";
 
 export type InvokeLlmParams = {
   messages: LlmMessage[];

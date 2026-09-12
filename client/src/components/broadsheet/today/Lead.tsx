@@ -13,7 +13,6 @@ import { ThreadLink } from "@/components/feed/ThreadLink";
 import { Link } from "wouter";
 import type { DailyFeedItem } from "@shared/types";
 import { cn } from "@/lib/cn";
-import { useCategoryColour } from "@/lib/category";
 import { cardDek } from "@/lib/cardDek";
 import { cleanHeadline } from "@/lib/headline";
 import { dedash } from "@/lib/dedash";
@@ -125,17 +124,5 @@ export function Lead({ item }: { item: DailyFeedItem }) {
         </div>
       </div>
     </div>
-  );
-}
-
-/** Category dot used by the wire rows and elsewhere on the page. */
-export function CategoryDot({ category }: { category: string }) {
-  const colourFor = useCategoryColour();
-  return (
-    <span
-      className="inline-block h-1.5 w-1.5 rounded-full shrink-0"
-      style={{ background: colourFor(category) }}
-      aria-hidden="true"
-    />
   );
 }

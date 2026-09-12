@@ -18,7 +18,7 @@ const urlSchema = z
     const url = new URL(value);
     return ["http:", "https:"].includes(url.protocol) && !url.username && !url.password;
   }, "Use an HTTP(S) article link without credentials");
-export const coverageEntrySchema = z
+const coverageEntrySchema = z
   .object({
     id: z.string().uuid(),
     title: z.string().trim().min(5).max(240),

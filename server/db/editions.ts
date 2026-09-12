@@ -71,11 +71,9 @@ export async function listEditionSummaries() {
   return rows;
 }
 
-export type EditionSummary = Awaited<ReturnType<typeof listEditionSummaries>>[number];
-
 /** Returns the next free editionNumber. Used by the weekly synthesis to assign
  *  the new edition without the caller having to think about numbering. */
-export async function getNextEditionNumber(): Promise<number> {
+async function getNextEditionNumber(): Promise<number> {
   if (isDemoMode()) {
     const rows = demoQueries.listEditions();
     const max = rows.reduce((m, r) => Math.max(m, r.editionNumber), 0);

@@ -26,7 +26,6 @@
  * right series from a plausible-looking neighbour. A metric with no honest
  * range should not use discovery.
  */
-import { fetchAbsSeries, latestObservation } from "./absApi";
 
 export type Dataflow = { id: string; agency: string; version: string; name: string };
 
@@ -78,44 +77,4 @@ export function rankFlows(flows: Dataflow[], spec: DiscoverSpec): Dataflow[] {
 /** Is this value the sort of number this metric should be? */
 export function withinExpected(value: number, [min, max]: [number, number]): boolean {
   return value >= min && value <= max;
-}
-
-export type ResolvedFlow = { flowRef: string; latest: number; period: string };
-
-/**
- * Try each candidate in order until one returns data whose latest value is
- * plausible. Returns null when none does, which the caller treats as "keep
- * scraping" rather than as an error.
- *
- * `maxCandidates` bounds the work: a search that matches thirty flows is a
- * badly specified search, and trying all thirty would turn one metric into
- * thirty API calls on every run.
- */
-export async function resolveFlow(
-  flows: Dataflow[],
-  spec: DiscoverSpec,
-  maxCandidates = 4
-): Promise<ResolvedFlow | null> {
-  for (const flow of rankFlows(flows, spec).slice(0, maxCandidates)) {
-    const flowRef = `${flow.agency},${flow.id},${flow.version}`;
-    const result = await fetchAbsSeries({
-      flowRef,
-      dataKey: spec.dataKey,
-      startPeriod: spec.startPeriod,
-    });
-    if (!result.ok) continue;
-    const latest = latestObservation(result.observations);
-    if (!latest) continue;
-    if (!withinExpected(latest.value, spec.expectRange)) {
-      console.warn(
-        `[abs] ${flowRef} matched "${spec.terms[0]}" but its latest value ${latest.value} is outside the expected range ${spec.expectRange.join("..")}; not using it.`
-      );
-      continue;
-    }
-    console.log(
-      `[abs] resolved "${spec.terms[0]}" to ${flowRef} (${latest.period} = ${latest.value})`
-    );
-    return { flowRef, latest: latest.value, period: latest.period };
-  }
-  return null;
 }

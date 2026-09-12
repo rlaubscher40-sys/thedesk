@@ -53,6 +53,9 @@ jobs:
       - name: Type check
         run: pnpm check
 
+      - name: Dead code and dependency audit
+        run: pnpm audit:dead-code
+
       - name: Tests
         run: pnpm test
 

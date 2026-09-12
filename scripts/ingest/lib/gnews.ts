@@ -101,7 +101,7 @@ const BATCHEXECUTE_URL = "https://news.google.com/_/DotsSplashUi/data/batchexecu
  * the article page for its signature + timestamp, then asks batchexecute for
  * the destination. Returns null on any failure.
  */
-export async function decodeGoogleNewsUrlOnline(
+async function decodeGoogleNewsUrlOnline(
   url: string,
   timeoutMs = 6_000
 ): Promise<string | null> {

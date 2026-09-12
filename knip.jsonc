@@ -1,0 +1,28 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "client/index.html!",
+    "client/src/index.css!",
+    "client/public/sw.js!",
+    "server/db/schema.ts!",
+    "drizzle.config.ts",
+    "scripts/briefingPreview.ts",
+    "scripts/import-sa-reviewed.mts",
+    "scripts/import-vic-reviewed.mts",
+    "scripts/reelVisualReview.ts",
+    "scripts/renderEmails.ts",
+    "scripts/review-housing-balance-reel.ts",
+    "scripts/review-reel.ts",
+    "scripts/review-supply-reel.ts",
+    "scripts/socialAudiencePreview.ts",
+    "scripts/socialCreativePreview.ts",
+    "scripts/speak-reel.mjs!",
+    "scripts/ingest/preview.ts",
+    "scripts/ingest/probe-local-data.ts"
+  ],
+  "project": ["**/*.{ts,tsx,mts,js,mjs,cjs,cts,css}!"],
+  // The bounded workbook worker imports a resolved module URL at runtime.
+  "ignoreDependencies": ["read-excel-file"],
+  // Register the schema above without executing credential-dependent config.
+  "drizzle": false
+}

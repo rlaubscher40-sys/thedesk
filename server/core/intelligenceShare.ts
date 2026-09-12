@@ -3,7 +3,7 @@ import { deflateRawSync, inflateRawSync } from "node:zlib";
 import { comparisonSnapshotSchema, type MarketComparison } from "../../shared/marketComparison";
 import { signingSecret } from "./env";
 
-export type SharedIntelligenceSource = {
+type SharedIntelligenceSource = {
   title: string;
   date: string;
   publisher: string | null;

@@ -70,4 +70,3 @@ export function matchedHousingBalance(data: HousingBalanceSnapshot | null | unde
     source: `${data.sourceUrl}#page=${data.pdfPage}`,
   };
 }
-export type HousingBalance = NonNullable<ReturnType<typeof matchedHousingBalance>>;

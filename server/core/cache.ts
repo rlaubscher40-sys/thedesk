@@ -1,6 +1,6 @@
 /** Bounded LRU with expiry, single-flight loading and invalidation-safe publication. */
 import { serialize } from "node:v8";
-export class CacheCapacityError extends Error {}
+class CacheCapacityError extends Error {}
 export function createBoundedCache(
   options = { maxEntries: 512, maxBytes: 32 * 1024 * 1024, maxInflight: 32 }
 ) {

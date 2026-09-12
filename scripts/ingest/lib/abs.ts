@@ -229,7 +229,7 @@ export async function fetchAbsMetric(spec: {
   return scrapeAbs(spec.scrape);
 }
 
-export async function fetchCpiTrimmedMean(): Promise<AbsResult> {
+async function fetchCpiTrimmedMean(): Promise<AbsResult> {
   return fetchAbsMetric({
     api: {
       discover: {
@@ -257,7 +257,7 @@ export async function fetchCpiTrimmedMean(): Promise<AbsResult> {
   });
 }
 
-export async function fetchUnemploymentRate(): Promise<AbsResult> {
+async function fetchUnemploymentRate(): Promise<AbsResult> {
   return fetchAbsMetric({
     api: {
       discover: {
@@ -284,7 +284,7 @@ export async function fetchUnemploymentRate(): Promise<AbsResult> {
   });
 }
 
-export async function fetchWageGrowth(): Promise<AbsResult> {
+async function fetchWageGrowth(): Promise<AbsResult> {
   return fetchAbsMetric({
     api: {
       discover: {
@@ -310,7 +310,7 @@ export async function fetchWageGrowth(): Promise<AbsResult> {
   });
 }
 
-export async function fetchBuildingApprovals(): Promise<AbsResult> {
+async function fetchBuildingApprovals(): Promise<AbsResult> {
   return fetchAbsMetric({
     api: {
       discover: {
@@ -337,7 +337,7 @@ export async function fetchBuildingApprovals(): Promise<AbsResult> {
   });
 }
 
-export async function fetchNetMigration(): Promise<AbsResult> {
+async function fetchNetMigration(): Promise<AbsResult> {
   return fetchAbsMetric({
     api: {
       discover: {

@@ -12,7 +12,6 @@ import {
   currentSocialFeed,
   currentSocialEdition,
   sourceGroundedStory,
-  sourceGroundedTopic,
 } from "./instagram/sourceContent";
 import { pickPropertyTopics, propertyMetrics } from "./instagram/propertyEditorial";
 import { refreshOfficialMetrics } from "./metrics/recovery";
@@ -34,13 +33,6 @@ import { validEditorialAngle } from "../shared/editorialTiming";
 import { parse as parseCookieHeader } from "cookie";
 import type { Express, Request, Response } from "express";
 import rateLimit from "express-rate-limit";
-// One shared client budget across scheduler endpoints and legacy aliases.
-const scheduledLimiter = rateLimit({
-  windowMs: 60_000,
-  limit: 30,
-  standardHeaders: "draft-7",
-  legacyHeaders: false,
-});
 import { z } from "zod";
 import { invalidate } from "./core/cache";
 import { unseenFeedItems } from "./core/feedDedupe";
@@ -65,7 +57,13 @@ import {
   runEditorQc,
   synthesizeWeeklyEdition,
 } from "./prompts";
-import Parser from "rss-parser";
+// One shared client budget across scheduler endpoints and legacy aliases.
+const scheduledLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: 30,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+});
 
 function siteOrigin(): string {
   const v = process.env.SITE_URL ?? process.env.VITE_SITE_URL ?? "https://thedesk.au";
@@ -1253,7 +1251,6 @@ function registerInstagramRoutes(app: Express): void {
       res.status(400).json({ error: "Invalid Instagram publication request" });
       return;
     }
-    const attempt = parsed.data.attempt ?? 1;
     const current = await currentSocialFeed(db.listFeedItems, parsed.data.feedDate);
     const feedDate = current.date;
     const items = current.items.filter((it) => isEnrichedChannel(it.channel));
@@ -1799,12 +1796,6 @@ function registerInstagramRoutes(app: Express): void {
       res.status(503).json({ error: "Instagram credentials not configured" });
       return;
     }
-    const attempt = (() => {
-      const parsed = z
-        .object({ attempt: z.number().int().min(1).optional() })
-        .safeParse(req.body ?? {});
-      return parsed.success ? (parsed.data.attempt ?? 1) : 1;
-    })();
     const editions = await db.listEditions();
     const latest = currentSocialEdition(editions);
     if (!latest || pickPropertyTopics(latest.topics).length === 0) {
@@ -1874,7 +1865,7 @@ function registerInstagramRoutes(app: Express): void {
     const idx = Number.parseInt(typeof req.query.i === "string" ? req.query.i : "0", 10) || 0;
     try {
       const cards = await import("./og/instagramCards");
-      const { sanitizeDashes, pickDailyTopStories, loadEditionHeroDataUri } =
+      const { sanitizeDashes, pickDailyTopStories } =
         await import("./instagram/post");
       let buf: Buffer | null = null;
 
@@ -2071,6 +2062,3 @@ export function registerScheduledRoutes(app: Express): void {
     "[scheduled] registered /api/{scheduled,ingest}/{daily-feed,weekly-edition,synthesize-edition,daily-metrics,extract-metrics,weekly-recap,nudge-check,instagram-daily,instagram-stat,instagram-reel,instagram-monthly,instagram-weekly,instagram-insights} + /api/nudge/respond + /instagram/temp/:uuid.{jpg,mp4} + /api/instagram/preview/:kind"
   );
 }
-
-// Re-export schemas so tests can import the shape from this module's surface.
-export { dailyFeedIngestBodySchema, weeklyEditionIngestSchema, z };

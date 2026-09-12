@@ -5,7 +5,6 @@ export const COOKIE_NAME = "app_session_id";
  * Admin sessions expire after 12 hours and are revoked on logout.
  */
 export const SESSION_TTL_MS = 1000 * 60 * 60 * 12;
-export const AXIOS_TIMEOUT_MS = 30_000;
 
 /**
  * How long a subscribe confirmation link stays valid. The confirm email
@@ -24,32 +23,6 @@ export const NOT_ADMIN_ERR_MSG = "You do not have required permission (10002)";
  * (Node scripts). When neither is set, falls back to the demo URL.
  */
 export const DEFAULT_SITE_URL = "https://thedesk.au";
-
-/**
- * Reader positions — where someone stands in relation to the property market,
- * which is the thing that changes what a story means to them.
- *
- * These replaced the old partner roles (Broker / Adviser / Buyers Agent). That
- * set was inherited from an earlier life of this codebase as an internal
- * briefing tool, and it put the wrong reader in the model's head on every
- * generation: The Desk is a subscription publication for people who follow
- * Australian property, not a channel-marketing tool aimed at intermediaries.
- *
- * Kept to three because a reader recognises themselves instantly in one of
- * them, and because a fourth would mostly be a rewording of an existing one.
- *
- * Matches `READER_ANGLE_LABELS` (`shared/schemas.ts`) and the `POSITION_COLOUR`
- * map (`client/src/lib/persona.tsx`). The canonical keys stay one bare word so
- * they survive as line prefixes in stored text and in a regex;
- * `positionDisplayLabel` expands them for the reader.
- *
- * Note that rows written before this change carry the old labels and will no
- * longer parse, so the angles block simply does not render on them. That is
- * the intended outcome: the old lines were addressed to brokers, and there is
- * no honest mapping from "Broker" to a reader position.
- */
-export const READER_POSITIONS = ["Buying", "Holding", "Watching"] as const;
-export type ReaderPosition = (typeof READER_POSITIONS)[number];
 
 /**
  * Feed channels — the Discover-style content lanes on the Today page. A
@@ -82,7 +55,7 @@ export const DEFAULT_FEED_CHANNEL: FeedChannel = "AU";
  * partner-relevant Australian lanes are enriched; the rest are coverage-only
  * (headline + summary + source + image + timestamp).
  */
-export const ENRICHED_CHANNELS = ["AU", "PROPERTY"] as const;
+const ENRICHED_CHANNELS = ["AU", "PROPERTY"] as const;
 
 /** Whether a channel gets the full angle-block enrichment. */
 export function isEnrichedChannel(channel: string | null | undefined): boolean {
@@ -92,7 +65,7 @@ export function isEnrichedChannel(channel: string | null | undefined): boolean {
 }
 
 /** Categories used across feed items and edition topics. */
-export const CATEGORIES = [
+const CATEGORIES = [
   "PROPERTY",
   "MACRO",
   "MARKETS",

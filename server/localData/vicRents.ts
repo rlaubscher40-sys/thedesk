@@ -1,7 +1,7 @@
 import { normaliseArea, type LocalArea, type LocalObservation } from "../../shared/localData";
 import type { Sheet } from "./parsers";
 
-export const VIC_RENT_SHEETS = [
+const VIC_RENT_SHEETS = [
   ["1br flat", "1 bedroom flats", "Flat 1 bedrooms"],
   ["2br Flat", "2 bedroom flats", "Flat 2 bedrooms"],
   ["3br Flat", "3 bedroom flats", "Flat 3 bedrooms"],
@@ -12,7 +12,7 @@ export const VIC_RENT_SHEETS = [
 ] as const;
 
 // Exact names in the reviewed publisher table, not inferred suburb boundaries.
-export const VIC_LGAS = [
+const VIC_LGAS = [
   "Colac-Otway",
   "Corangamite",
   "Glenelg",

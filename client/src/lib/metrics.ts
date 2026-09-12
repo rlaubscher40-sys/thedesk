@@ -7,7 +7,7 @@
  * tone is rendered as an arrow icon + delta in green / red / amber.
  */
 
-export type Trend = "up" | "down" | "flat";
+type Trend = "up" | "down" | "flat";
 export type Sentiment = "good" | "bad" | "neutral";
 
 /**
@@ -18,7 +18,7 @@ export type Sentiment = "good" | "bad" | "neutral";
  *   · Activity / income / channel / index metrics, UP is good.
  *   · Anything else, neutral.
  */
-export function directionOfGood(label: string): "up" | "down" | "neutral" {
+function directionOfGood(label: string): "up" | "down" | "neutral" {
   const k = label.toLowerCase();
   if (/(cash rate|rate|inflation|cpi|unemploy|oil|brent|vix|spread)/.test(k)) return "down";
   if (
@@ -28,33 +28,25 @@ export function directionOfGood(label: string): "up" | "down" | "neutral" {
   return "neutral";
 }
 
-export function computeSentiment(trend: Trend, dog: "up" | "down" | "neutral"): Sentiment {
+function computeSentiment(trend: Trend, dog: "up" | "down" | "neutral"): Sentiment {
   if (trend === "flat" || dog === "neutral") return "neutral";
   if (trend === dog) return "good";
   return "bad";
 }
 
 /** Sentiment → CSS colour string. Centralised so every chip matches. */
-export const SENTIMENT_COLOUR: Record<Sentiment, string> = {
+const SENTIMENT_COLOUR: Record<Sentiment, string> = {
   good: "oklch(0.72 0.17 155)", // emerald
   bad: "oklch(0.68 0.20 15)", // rose
   neutral: "oklch(0.78 0.18 70)", // amber
 };
 
-export function toMetricNumber(v: string | number | undefined | null): number {
+function toMetricNumber(v: string | number | undefined | null): number {
   if (typeof v === "number") return v;
   if (typeof v !== "string") return NaN;
   const m = v.match(/-?[\d,.]+/);
   if (!m) return NaN;
   return Number(m[0].replace(/,/g, ""));
-}
-
-/** Tight numeric format suited for metric tiles. */
-export function formatMetricDelta(d: number): string {
-  const abs = Math.abs(d);
-  if (abs >= 100) return d.toFixed(0);
-  if (abs >= 1) return d.toFixed(2);
-  return d.toFixed(3);
 }
 
 /** Resolve everything a tile needs to render in one call. */

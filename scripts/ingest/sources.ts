@@ -30,7 +30,7 @@
 import type { FeedChannel } from "../../shared/const";
 import { VICTORIA_SEARCH_URL } from "./lib/victoriaSource";
 
-export type SourceCategory =
+type SourceCategory =
   | "MACRO"
   | "PROPERTY"
   | "POLICY"

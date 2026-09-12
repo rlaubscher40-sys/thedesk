@@ -9,7 +9,6 @@ import { sourceTimingSchema } from "./sourceTiming";
  * from here, never re-declare these shapes.
  */
 import { z } from "zod";
-import { CATEGORIES, READER_POSITIONS } from "./const";
 import { MAX_HELPER_INPUT } from "./headline";
 
 // ─── Edition topics ─────────────────────────────────────────────────────────
@@ -30,7 +29,7 @@ const categorySchema = z
  * editions use different shorthands like "Brokers" vs "Mortgage Brokers"), so
  * we validate the *shape* but not the keys themselves.
  */
-export const talkingPointsSchema = z.record(z.string(), z.string());
+const talkingPointsSchema = z.record(z.string(), z.string());
 export type TalkingPoints = z.infer<typeof talkingPointsSchema>;
 
 export const editionTopicSchema = z.object({
@@ -83,7 +82,7 @@ export type KeyMetrics = z.infer<typeof keyMetricsSchema>;
  * topic (rates, property, global…). The union keeps every edition already
  * stored as a string array valid, no migration needed.
  */
-export const signalSchema = z.union([
+const signalSchema = z.union([
   z.string().min(1),
   z.object({
     text: z.string().min(1),
@@ -112,7 +111,7 @@ export function signalCategory(s: Signal): string | null {
  * into something readers trust, it closes the loop on prior forward-looking
  * claims (datesToWatch / whatToWatch / takeaways) against the new week.
  */
-export const lookbackItemSchema = z.object({
+const lookbackItemSchema = z.object({
   reference: z.string().min(1).max(280),
   outcome: z.string().min(1).max(400),
   verdict: z.enum(["on-track", "played-out", "too-early", "missed"]),
@@ -202,7 +201,6 @@ export const dailyFeedIngestItemSchema = z.object({
   /** Distinct source names that corroborated the story, when more than one. */
   corroboratingSources: z.array(z.string()).optional().nullable(),
 });
-export type DailyFeedIngestItem = z.infer<typeof dailyFeedIngestItemSchema>;
 
 export const dailyFeedIngestBodySchema = z.object({
   items: z.array(dailyFeedIngestItemSchema).min(1),
@@ -221,7 +219,6 @@ export const weeklyEditionIngestSchema = z.object({
   fullText: z.string().optional().nullable(),
   keyMetrics: keyMetricsSchema.optional().nullable(),
 });
-export type WeeklyEditionIngest = z.infer<typeof weeklyEditionIngestSchema>;
 
 // ─── LLM-generated Substack draft ───────────────────────────────────────────
 
@@ -231,7 +228,3 @@ export const substackDraftSchema = z.object({
   body: z.string().min(1),
 });
 export type SubstackDraft = z.infer<typeof substackDraftSchema>;
-
-// ─── Re-exports for convenience ─────────────────────────────────────────────
-
-export { READER_POSITIONS };

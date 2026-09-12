@@ -5,7 +5,7 @@
  */
 import { DEFAULT_SITE_URL } from "@shared/const";
 
-export const SITE_URL: string = import.meta.env.VITE_SITE_URL ?? DEFAULT_SITE_URL;
+const SITE_URL: string = import.meta.env.VITE_SITE_URL ?? DEFAULT_SITE_URL;
 
 /** Convenience: "yourdomain.com" without protocol, for footer text. */
 export const SITE_DISPLAY = SITE_URL.replace(/^https?:\/\//, "").replace(/\/+$/, "");

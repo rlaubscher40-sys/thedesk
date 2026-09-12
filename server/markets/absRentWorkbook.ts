@@ -11,7 +11,7 @@ import { readWorkbook } from "../localData/workbook";
 
 // Table 11 publishes both the rent sub-group and expenditure class. Pin both
 // reviewed series and require agreement, rather than selecting a duplicate label.
-export const RENT_WORKBOOK_SERIES = [
+const RENT_WORKBOOK_SERIES = [
   ["A130392587K", "A130390459F"],
   ["A130397628K", "A130390466C"],
   ["A130398800V", "A130399255T"],

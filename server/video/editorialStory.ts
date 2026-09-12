@@ -1,4 +1,4 @@
-export type EditorialBeat = {
+type EditorialBeat = {
   statement: string;
   evidence: string;
   sceneKeys: string[];

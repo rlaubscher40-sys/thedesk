@@ -74,7 +74,7 @@ const cols = 3,
   cellWidth = 400,
   cellHeight = 730,
   margin = 18;
-const composites: sharp.OverlayOptions[] = [];
+const composites: import("sharp").OverlayOptions[] = [];
 for (const [i, [label, bytes]] of samples.entries()) {
   const x = (i % cols) * cellWidth + margin;
   const y = Math.floor(i / cols) * cellHeight + 80;

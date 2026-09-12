@@ -8,9 +8,7 @@
  * The seed data below is plausible-shaped, not real intelligence. Edit freely.
  */
 import type {
-  DailyFeedItem,
   DailyMetric,
-  Edition,
   FeaturedLinkedInPost,
   FeedbackSubmission,
   InstagramPost,
@@ -433,4 +431,4 @@ export { allocId };
 
 // ─── Re-export types for helper convenience ─────────────────────────────────
 
-export type { Edition, DailyFeedItem, ReadingQueueItem };
+export type { ReadingQueueItem };

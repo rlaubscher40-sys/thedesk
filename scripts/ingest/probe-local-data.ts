@@ -1,16 +1,12 @@
 /** Read-only source probe: no DB writes, LLM calls or publication. */
-import { AUTOMATIC_LOCAL_SOURCE_KEYS, LOCAL_SOURCES } from "../../shared/localData";
+import { LOCAL_SOURCE_KEYS, LOCAL_SOURCES } from "../../shared/localData";
 import { fetchSource, selectResource } from "../../server/localData/fetch";
 import { readWorkbook } from "../../server/localData/workbook";
 import { discoverRentResource } from "../../server/localData/rentResources";
 import { parseSaBonds, parseTasBonds } from "../../server/localData/stateRents";
 import { parseWaArchive } from "../../server/localData/waArchive";
-import {
-  parseLocalPopulation,
-  parseNswBonds,
-  parseQldBonds,
-} from "../../server/localData/parsers";
-for (const source of AUTOMATIC_LOCAL_SOURCE_KEYS) {
+import { parseLocalPopulation, parseNswBonds, parseQldBonds } from "../../server/localData/parsers";
+for (const source of LOCAL_SOURCE_KEYS) {
   if (process.argv[2] && source !== process.argv[2]) continue;
   try {
     const now = new Date();

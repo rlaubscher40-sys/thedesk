@@ -1,6 +1,6 @@
 /** A consistent first-day observation window, not a significance threshold. */
 export const INSIGHT_MIN_AGE_HOURS = 24;
-export const INSIGHT_MAX_AGE_HOURS = 48;
+const INSIGHT_MAX_AGE_HOURS = 48;
 export const INSIGHT_RETRY_DAYS = 7;
 export const INSIGHT_BATCH_LIMIT = 20;
 export const INSIGHT_FIELDS = [
@@ -53,7 +53,7 @@ export type MeasuredPost = MetricCounts & {
 export function validMetricCount(value: unknown): value is number {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 }
-export function measurementAgeHours(row: MeasuredPost): number | null {
+function measurementAgeHours(row: MeasuredPost): number | null {
   if (!row.createdAt || !row.metricsFetchedAt) return null;
   const age =
     (new Date(row.metricsFetchedAt).getTime() - new Date(row.createdAt).getTime()) / 3_600_000;
