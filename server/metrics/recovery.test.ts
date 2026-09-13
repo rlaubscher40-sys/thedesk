@@ -177,6 +177,16 @@ it("still fails recovery for a storage error even when the only missing sources 
   );
 });
 
+it("keeps intentional source pauses out of failure emails without hiding them in Admin", async () => {
+  state.completeActive = true;
+  const { runScheduledMetricRefresh, metricRefreshStatus } = await import("./recovery");
+  const error = await runScheduledMetricRefresh().catch((error: Error) => error);
+  expect(error).toBeInstanceOf(Error);
+  expect((error as Error).message).toContain("failed writes: audusd");
+  expect((error as Error).message).not.toContain("auction_clearance");
+  expect(metricRefreshStatus().lastReport?.sourceErrors[0]?.reason).toContain("paused");
+});
+
 it("fails a scheduled partial refresh even when retained metrics look healthy", async () => {
   state.failWrites = false;
   state.sourceError = "RBA F1 HTTP 403";
@@ -196,6 +206,32 @@ it("fails a scheduled partial refresh even when retained metrics look healthy", 
     "cash_rate: RBA F1 HTTP 403",
   );
   expect(state.writes.some((row) => row.metricKey === "audusd")).toBe(true);
+  expect(await needsMetricRecovery()).toBe(true);
+});
+
+it("clears the recovery requirement after the next successful collection", async () => {
+  state.failWrites = false;
+  state.sourceError = "RBA F1 HTTP 403";
+  state.metrics = METRIC_EXPECTATIONS.filter(
+    (row) => !isAuctionCollectionPaused(row.key),
+  ).map((row) => ({
+    metricKey: row.key, label: row.label,
+    asOf: new Date(new Date().toISOString().slice(0, 10)),
+    updatedAt: new Date(), source: "Fixture",
+  }));
+  const { needsMetricRecovery, runScheduledMetricRefresh } = await import("./recovery");
+  await expect(runScheduledMetricRefresh()).rejects.toThrow("cash_rate");
+  expect(await needsMetricRecovery()).toBe(true);
+  state.completeActive = true;
+  // Production recovery slots are four hours apart; avoid the one-minute
+  // completed-request coalescing window used for concurrent Admin requests.
+  const clock = vi.spyOn(Date, "now").mockReturnValue(Date.now() + 4 * 60 * 60_000);
+  try {
+    await expect(runScheduledMetricRefresh()).resolves.toBeUndefined();
+    expect(await needsMetricRecovery()).toBe(false);
+  } finally {
+    clock.mockRestore();
+  }
 });
 
 it("can discover a new gap after an earlier healthy recovery check", async () => {

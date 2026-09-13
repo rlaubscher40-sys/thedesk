@@ -126,18 +126,46 @@ export async function fetchCashRate(onUnavailable?: (reason: string) => void) {
   let failure: string | undefined;
   try {
     const response = await fetch(CASH_RATE_CSV, {
-      headers: { Accept: "text/csv" },
+      // Identify the collector explicitly, as the other RBA reader does.
+      // Use one stable identity; never rotate clients to retry a denied request.
+      headers: {
+        Accept: "text/csv",
+        "User-Agent": "TheDeskBot/1.0 (+https://thedesk.au)",
+      },
       signal: AbortSignal.timeout(30_000),
+      redirect: "error",
     });
     if (!response.ok) {
+      await response.body?.cancel();
       failure = `RBA F1 HTTP ${response.status}`;
       throw new Error(failure);
     }
     if (Number(response.headers.get("content-length")) > MAX_BYTES) {
+      await response.body?.cancel();
       failure = "RBA F1 response exceeds the size limit";
       throw new Error(failure);
     }
-    const csv = await response.text();
+    // Content-Length can be absent or describe the compressed body. Enforce
+    // the existing limit while reading, before buffering the whole response.
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error("Empty RBA F1 response");
+    const chunks: Uint8Array[] = [];
+    let bytes = 0;
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        bytes += value.byteLength;
+        if (bytes > MAX_BYTES) {
+          failure = "RBA F1 response exceeds the size limit";
+          throw new Error(failure);
+        }
+        chunks.push(value);
+      }
+    } finally {
+      await reader.cancel();
+    }
+    const csv = Buffer.concat(chunks).toString("utf8");
     stage = "parse";
     return parseCashRate(csv);
   } catch (error) {
