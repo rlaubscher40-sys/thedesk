@@ -28,7 +28,7 @@ export function IndexStrip({ items }: { items: DailyFeedItem[] }) {
     // reach the lead. The mobile layout goes masthead → lanes → lead.
     <nav
       className={cn(GUTTER_X, "rule-hair-b hidden sm:grid sm:grid-cols-2 lg:grid-cols-5")}
-      aria-label="Today's contents"
+      aria-label="Briefing contents"
     >
       {shown.map((item, i) => (
         <Link

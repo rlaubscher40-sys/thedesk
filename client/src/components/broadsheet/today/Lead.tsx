@@ -118,8 +118,8 @@ export function Lead({
 
       <div className="pt-8 lg:pl-11 min-w-0">
         {supporting.length > 0 && (
-          <section aria-label="More this morning">
-            <h2 className="bs-label-accent">More this morning</h2>
+          <section aria-label="More in this briefing">
+            <h2 className="bs-label-accent">More in this briefing</h2>
             {supporting.map((story) => (
               <Link
                 href={`/story/${story.id}`}

@@ -1,6 +1,6 @@
 import { ThreadLink } from "@/components/feed/ThreadLink";
 /**
- * "More from today" — three hairline-divided columns.
+ * "More reporting" — three hairline-divided columns.
  *
  * Each column: a 3:2 image, kicker, 28px headline, 16.5px summary, and the
  * Say This line as a one-line pull quote on a 3px accent rule. There is no
@@ -97,7 +97,7 @@ export function StoryColumns({ items }: { items: DailyFeedItem[] }) {
       )}
 
       <p className="bs-label mb-6" style={{ letterSpacing: "0.24em" }}>
-        More from today
+        More reporting
       </p>
       <div className="grid gap-y-10 md:grid-cols-2 lg:grid-cols-3">
         {items.map((item, i) => (
