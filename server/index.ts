@@ -5,6 +5,7 @@ import { repairFeedGeography } from "./db/feedGeography";
  * client; in production it falls back to the static bundle in dist/public.
  */
 import "dotenv/config";
+import { TRPC_BATCH_LIMIT } from "../shared/const";
 import { protectBrowserMutation } from "./core/csrf";
 
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
@@ -181,7 +182,7 @@ async function startServer() {
     createExpressMiddleware({
       router: appRouter,
       createContext,
-      maxBatchSize: 10,
+      maxBatchSize: TRPC_BATCH_LIMIT,
     })
   );
 

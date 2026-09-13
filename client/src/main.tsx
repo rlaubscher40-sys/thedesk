@@ -4,7 +4,7 @@ import { ASK_CLIENT_TIMEOUT_MS, withDeadline } from "@shared/requestDeadline";
 import { createRoot } from "react-dom/client";
 import { useEffect } from "react";
 import superjson from "superjson";
-import { UNAUTHED_ERR_MSG } from "@shared/const";
+import { TRPC_BATCH_LIMIT, UNAUTHED_ERR_MSG } from "@shared/const";
 import App from "./App";
 import { getLoginUrl } from "./lib/auth";
 import { initErrorReporter } from "./lib/errorReporter";
@@ -83,10 +83,11 @@ const trpcClient = trpc.createClient({
       }),
       false: splitLink({
         condition: (op) => op.type === "query",
-        true: httpBatchLink({ url: "/api/trpc", transformer: superjson, fetch: queryFetch }),
+        true: httpBatchLink({ url: "/api/trpc", transformer: superjson, fetch: queryFetch, maxItems: TRPC_BATCH_LIMIT }),
         // Long-running publishing/admin mutations keep their existing behaviour.
         false: httpBatchLink({
           url: "/api/trpc",
+          maxItems: TRPC_BATCH_LIMIT,
           transformer: superjson,
           fetch: (input, init) => globalThis.fetch(input, { ...(init ?? {}), credentials: "include" }),
         }),
