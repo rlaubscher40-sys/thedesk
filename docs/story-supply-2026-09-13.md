@@ -64,6 +64,12 @@ windows, recent date/source links, topic preferences and empty/error states.
 A MySQL integration regression checks date/lane filtering before limits and
 excludes HOLD, today, future and old records; it runs in CI's isolated database.
 
+The first full PR CI run passed 2,238 tests and failed this new integration
+fixture because automatic demo mode bypassed SQL when DATABASE_URL was absent.
+The fixture now explicitly disables demo mode (without configuring any production
+database), and an always-on regression checks the unavailable-database path.
+The corrected full CI run must pass before merge.
+
 TypeScript, the dead-code audit and frontend production build passed locally.
 Static React markup was checked. Cloud Browser could not open the local preview,
 so visual browser verification remains a post-deployment check. A full local

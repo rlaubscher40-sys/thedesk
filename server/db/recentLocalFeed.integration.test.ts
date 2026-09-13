@@ -3,8 +3,17 @@ import { createConnection } from "mysql2/promise";
 import { drizzle } from "drizzle-orm/mysql2";
 const fixture = vi.hoisted(() => ({ db: null as unknown }));
 vi.mock("./client", () => ({ getDb: () => fixture.db }));
+// CI deliberately has no production DATABASE_URL. Exercise the SQL fixture,
+// not the automatic no-database demo fallback.
+vi.mock("../demo/store", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../demo/store")>()),
+  isDemoMode: () => false,
+}));
 import { listRecentLocalFeed } from "./feed";
 const testUrl = process.env.SECURITY_TEST_DATABASE_URL;
+it("returns no invented stories when the database is unavailable outside demo mode", async () => {
+  expect(await listRecentLocalFeed("PROPERTY", "2026-09-13")).toEqual([]);
+});
 it.skipIf(!testUrl)(
   "filters prior local days before the limit, retaining dates and excluding held/future rows",
   async () => {
