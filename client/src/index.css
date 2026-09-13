@@ -96,8 +96,8 @@
      the SVG charts still need resolved values, which live alongside these
      in components/charts/BroadsheetCharts.tsx. */
   --sentiment-good: oklch(0.72 0.17 155);
-  --sentiment-bad: oklch(0.68 0.20 15);
-  --sentiment-neutral: oklch(0.80 0.17 72);
+  --sentiment-bad: oklch(0.68 0.2 15);
+  --sentiment-neutral: oklch(0.8 0.17 72);
 
   --color-bg: oklch(0.11 0.018 260);
   --color-bg-elevated: oklch(0.16 0.018 260);
@@ -118,7 +118,7 @@
   /* Ink colour for text sitting on top of an amber CTA. Stays near-
      navy in both themes so the contrast against amber gold is the
      same in dark and light mode. */
-  --color-on-amber: oklch(0.10 0.018 260);
+  --color-on-amber: oklch(0.1 0.018 260);
 
   /* Brand accent. Semantically separate from the MACRO *category* (which
      currently happens to share the amber hue): reach for --color-accent
@@ -136,7 +136,7 @@
      amber on the colour wheel, used sparingly for callouts,
      directional deltas, and one-off accent moments. */
   --color-ink: oklch(0.62 0.18 25);
-  --color-ink-bright: oklch(0.72 0.20 28);
+  --color-ink-bright: oklch(0.72 0.2 28);
   --color-ink-dim: oklch(0.62 0.18 25 / 18%);
 
   --color-border: oklch(1 0 0 / 9%);
@@ -160,34 +160,22 @@
   /* Reusable gradient tokens. Components that previously hardcoded
      `linear-gradient(135deg, oklch(0.15 ...) ...)` inline now reference
      these so light mode can flip them in one place. */
-  --grad-panel-soft: linear-gradient(
-    135deg,
-    oklch(0.15 0.022 260) 0%,
-    oklch(0.10 0.022 260) 100%
-  );
+  --grad-panel-soft: linear-gradient(135deg, oklch(0.15 0.022 260) 0%, oklch(0.1 0.022 260) 100%);
   --grad-hero-overlay: linear-gradient(
     115deg,
     oklch(0.07 0.018 260 / 92%) 0%,
     oklch(0.07 0.018 260 / 65%) 45%,
     oklch(0.07 0.018 260 / 25%) 100%
   );
-  --grad-hero-fade-bottom: linear-gradient(
-    180deg,
-    transparent,
-    oklch(0.11 0.018 260 / 75%)
-  );
-  --grad-hero-fade-top: linear-gradient(
-    180deg,
-    oklch(0.11 0.018 260 / 60%),
-    transparent
-  );
+  --grad-hero-fade-bottom: linear-gradient(180deg, transparent, oklch(0.11 0.018 260 / 75%));
+  --grad-hero-fade-top: linear-gradient(180deg, oklch(0.11 0.018 260 / 60%), transparent);
   --color-panel-tile-bg: oklch(0.13 0.018 260);
 
   /* Bigger / dramatic panels (Subscribe CTA, modal). Carries amber bleed. */
   --grad-cta-deep: linear-gradient(
     135deg,
     oklch(0.13 0.022 260) 0%,
-    oklch(0.10 0.022 260) 60%,
+    oklch(0.1 0.022 260) 60%,
     oklch(0.18 0.045 70) 100%
   );
   /* Bright amber CTA — Hero "Gen all", Login "Sign in", Subscribe
@@ -200,11 +188,8 @@
     oklch(0.65 0.16 60) 100%
   );
   /* Modal backdrop — slightly more saturated than panel-soft. */
-  --grad-modal-bg: radial-gradient(
-      circle at 78% 22%,
-      oklch(0.78 0.18 70 / 35%) 0%,
-      transparent 55%
-    ),
+  --grad-modal-bg:
+    radial-gradient(circle at 78% 22%, oklch(0.78 0.18 70 / 35%) 0%, transparent 55%),
     linear-gradient(135deg, oklch(0.16 0.022 260), oklch(0.08 0.022 260));
   /* Toast surface. */
   --color-toast-bg: oklch(0.17 0.018 260);
@@ -220,7 +205,7 @@
   --grad-hero-placeholder: linear-gradient(
     135deg,
     oklch(0.14 0.02 260) 0%,
-    oklch(0.10 0.02 260) 35%,
+    oklch(0.1 0.02 260) 35%,
     oklch(0.18 0.03 260) 60%,
     oklch(0.32 0.18 70 / 30%) 100%
   );
@@ -247,7 +232,7 @@
   --color-bg-elevated: oklch(0.995 0.003 82);
   --color-bg-deep: oklch(0.92 0.006 82);
   --color-fg: oklch(0.16 0.018 260);
-  --color-fg-muted: oklch(0.40 0.015 260);
+  --color-fg-muted: oklch(0.4 0.015 260);
   --color-fg-subtle: oklch(0.42 0.015 260);
   --color-fg-body: oklch(0.22 0.015 260);
   --color-border: oklch(0 0 0 / 12%);
@@ -258,50 +243,46 @@
 
   /* Sentiment pulls deeper so the delta text clears AA on warm paper. */
   --sentiment-good: oklch(0.45 0.17 155);
-  --sentiment-bad: oklch(0.48 0.20 15);
+  --sentiment-bad: oklch(0.48 0.2 15);
   --sentiment-neutral: oklch(0.54 0.16 55);
 
   /* Amber accents pull deeper in light mode so they don't glow out
      against the paper canvas. */
   --color-amber: oklch(0.65 0.18 60);
-  --color-amber-bright: oklch(0.72 0.20 64);
+  --color-amber-bright: oklch(0.72 0.2 64);
   --color-amber-dim: oklch(0.65 0.18 60 / 14%);
   --color-amber-glow: oklch(0.65 0.18 60 / 22%);
-  --color-on-amber: oklch(0.10 0.018 260);
+  --color-on-amber: oklch(0.1 0.018 260);
 
   --color-accent: oklch(0.65 0.18 60);
-  --color-accent-bright: oklch(0.72 0.20 64);
+  --color-accent-bright: oklch(0.72 0.2 64);
   /* Darkened so amber-as-small-text clears AA on the warm paper canvas:
      the old 0.85L overline-amber sat at ~2:1 here. 0.54L ≈ 4.8:1 on bg,
      ≈ 5.3:1 on panels. */
   --color-accent-text: oklch(0.54 0.16 55);
 
   --color-ink: oklch(0.55 0.18 25);
-  --color-ink-bright: oklch(0.62 0.20 28);
+  --color-ink-bright: oklch(0.62 0.2 28);
   --color-ink-dim: oklch(0.55 0.18 25 / 16%);
 
   /* Category accents — same hue, pulled deeper for the light canvas.
      Lightness is set so each clears WCAG AA (≥4.5:1) as small label text
      on the paper bg, where the earlier values sat at ~3.7–4.2:1. tech /
      policy / science already passed and are unchanged. */
-  --color-property: oklch(0.50 0.17 155);
+  --color-property: oklch(0.5 0.17 155);
   --color-macro: oklch(0.54 0.18 60);
-  --color-tech: oklch(0.52 0.20 255);
-  --color-policy: oklch(0.52 0.20 295);
+  --color-tech: oklch(0.52 0.2 255);
+  --color-policy: oklch(0.52 0.2 295);
   --color-markets: oklch(0.55 0.18 38);
   --color-ai: oklch(0.49 0.18 210);
-  --color-science: oklch(0.55 0.20 15);
+  --color-science: oklch(0.55 0.2 15);
   /* Chartreuse-gold, light-theme pair (gamut-fit chroma at this depth). */
   --color-economics: oklch(0.53 0.111 110);
-  --color-geopolitics: oklch(0.50 0.15 180);
+  --color-geopolitics: oklch(0.5 0.15 180);
 
   /* Panel-soft gradient flips to a near-paper card with a hairline
      darker bottom so it still lifts off the warm canvas. */
-  --grad-panel-soft: linear-gradient(
-    135deg,
-    oklch(0.995 0.003 82) 0%,
-    oklch(0.95 0.006 82) 100%
-  );
+  --grad-panel-soft: linear-gradient(135deg, oklch(0.995 0.003 82) 0%, oklch(0.95 0.006 82) 100%);
   /* Hero overlay needs to keep the hero text legible. In light mode the
      hero photo still tilts dark (the SVGs were authored that way), so
      we shade lighter at the top and let the photo show through more,
@@ -312,16 +293,8 @@
     oklch(0.97 0.005 82 / 65%) 45%,
     oklch(0.97 0.005 82 / 30%) 100%
   );
-  --grad-hero-fade-bottom: linear-gradient(
-    180deg,
-    transparent,
-    oklch(0.97 0.005 82 / 75%)
-  );
-  --grad-hero-fade-top: linear-gradient(
-    180deg,
-    oklch(0.97 0.005 82 / 50%),
-    transparent
-  );
+  --grad-hero-fade-bottom: linear-gradient(180deg, transparent, oklch(0.97 0.005 82 / 75%));
+  --grad-hero-fade-top: linear-gradient(180deg, oklch(0.97 0.005 82 / 50%), transparent);
   --color-panel-tile-bg: oklch(0.97 0.006 82);
 
   --grad-cta-deep: linear-gradient(
@@ -334,15 +307,12 @@
      warm paper (brand guide §3.2). */
   --grad-cta-amber: linear-gradient(
     135deg,
-    oklch(0.72 0.20 64) 0%,
-    oklch(0.80 0.20 70) 60%,
+    oklch(0.72 0.2 64) 0%,
+    oklch(0.8 0.2 70) 60%,
     oklch(0.58 0.16 50) 100%
   );
-  --grad-modal-bg: radial-gradient(
-      circle at 78% 22%,
-      oklch(0.65 0.18 60 / 14%) 0%,
-      transparent 55%
-    ),
+  --grad-modal-bg:
+    radial-gradient(circle at 78% 22%, oklch(0.65 0.18 60 / 14%) 0%, transparent 55%),
     linear-gradient(135deg, oklch(0.995 0.003 82), oklch(0.95 0.006 82));
   --color-toast-bg: oklch(0.99 0.005 82);
   --color-banner-bg: oklch(0.92 0.06 76 / 90%);
@@ -433,7 +403,7 @@
   color: oklch(0.45 0.17 155);
 }
 .light .text-rose-300 {
-  color: oklch(0.48 0.20 15);
+  color: oklch(0.48 0.2 15);
 }
 
 /* Tinted overlays that use white-alpha (oklch(1 0 0 / X%)) become
@@ -537,14 +507,30 @@
    only generates variants for registered utilities: declared as plain
    classes in a component layer, every prefixed form silently compiles to
    nothing and the column hairlines disappear. */
-@utility rule-major   { border-top: var(--rule-major); }
-@utility rule-major-b { border-bottom: var(--rule-major); }
-@utility rule-band    { border-top: var(--rule-band); }
-@utility rule-band-b  { border-bottom: var(--rule-band); }
-@utility rule-hair    { border-top: var(--rule-hair); }
-@utility rule-hair-b  { border-bottom: var(--rule-hair); }
-@utility rule-hair-l  { border-left: var(--rule-hair); }
-@utility rule-hair-r  { border-right: var(--rule-hair); }
+@utility rule-major {
+  border-top: var(--rule-major);
+}
+@utility rule-major-b {
+  border-bottom: var(--rule-major);
+}
+@utility rule-band {
+  border-top: var(--rule-band);
+}
+@utility rule-band-b {
+  border-bottom: var(--rule-band);
+}
+@utility rule-hair {
+  border-top: var(--rule-hair);
+}
+@utility rule-hair-b {
+  border-bottom: var(--rule-hair);
+}
+@utility rule-hair-l {
+  border-left: var(--rule-hair);
+}
+@utility rule-hair-r {
+  border-right: var(--rule-hair);
+}
 
 @layer components {
   /* Hide the scrollbar on horizontally-scrollable strips (topic tabs,
@@ -585,12 +571,7 @@
        border-strong (22% black) was disappearing as a 1px gradient
        falling off either side. */
     height: 1.5px;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      var(--color-border-strong) 50%,
-      transparent
-    );
+    background: linear-gradient(90deg, transparent, var(--color-border-strong) 50%, transparent);
   }
 
   .overline {
@@ -645,16 +626,36 @@
   }
 
   /* ─── Category accent ──────────────────────────────────────── */
-  .accent-property  { border-left: 2px solid var(--color-property); }
-  .accent-macro     { border-left: 2px solid var(--color-macro); }
-  .accent-tech      { border-left: 2px solid var(--color-tech); }
-  .accent-policy    { border-left: 2px solid var(--color-policy); }
-  .accent-markets   { border-left: 2px solid var(--color-markets); }
-  .accent-ai        { border-left: 2px solid var(--color-ai); }
-  .accent-science   { border-left: 2px solid var(--color-science); }
-  .accent-economics   { border-left: 2px solid var(--color-economics); }
-  .accent-geopolitics { border-left: 2px solid var(--color-geopolitics); }
-  .accent-other       { border-left: 2px solid var(--color-border-strong); }
+  .accent-property {
+    border-left: 2px solid var(--color-property);
+  }
+  .accent-macro {
+    border-left: 2px solid var(--color-macro);
+  }
+  .accent-tech {
+    border-left: 2px solid var(--color-tech);
+  }
+  .accent-policy {
+    border-left: 2px solid var(--color-policy);
+  }
+  .accent-markets {
+    border-left: 2px solid var(--color-markets);
+  }
+  .accent-ai {
+    border-left: 2px solid var(--color-ai);
+  }
+  .accent-science {
+    border-left: 2px solid var(--color-science);
+  }
+  .accent-economics {
+    border-left: 2px solid var(--color-economics);
+  }
+  .accent-geopolitics {
+    border-left: 2px solid var(--color-geopolitics);
+  }
+  .accent-other {
+    border-left: 2px solid var(--color-border-strong);
+  }
 
   /* ─── Skeleton loader ────────────────────────────────────── */
   .skeleton {
@@ -694,7 +695,12 @@
 
   /* ─── Wordmark gradient ─────────────────────────────────── */
   .wordmark {
-    background: linear-gradient(135deg, oklch(0.96 0.08 88) 0%, oklch(0.85 0.18 76) 50%, oklch(0.68 0.15 60) 100%);
+    background: linear-gradient(
+      135deg,
+      oklch(0.96 0.08 88) 0%,
+      oklch(0.85 0.18 76) 50%,
+      oklch(0.68 0.15 60) 100%
+    );
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -802,7 +808,7 @@
   .bs-ink-band {
     background: var(--color-bg-elevated);
     color: var(--color-fg);
-    box-shadow: inset 0 0 0 1px oklch(0.80 0.17 72 / 30%);
+    box-shadow: inset 0 0 0 1px oklch(0.8 0.17 72 / 30%);
   }
   .light .bs-ink-band {
     background: oklch(0.16 0.018 260);
@@ -826,19 +832,22 @@
     padding: 12px 18px;
     white-space: nowrap;
     cursor: pointer;
-    transition: opacity 150ms var(--ease-standard),
+    transition:
+      opacity 150ms var(--ease-standard),
       background-color 150ms var(--ease-standard);
   }
   .bs-btn-solid {
     border: 0;
-    background: oklch(0.80 0.17 72);
+    background: oklch(0.8 0.17 72);
     color: oklch(0.14 0.018 260);
   }
   .light .bs-btn-solid {
     background: oklch(0.16 0.018 260);
     color: oklch(0.97 0.005 82);
   }
-  .bs-btn-solid:hover { opacity: 0.88; }
+  .bs-btn-solid:hover {
+    opacity: 0.88;
+  }
   .bs-btn-outline {
     border: 1px solid var(--color-border-strong);
     background: transparent;
@@ -860,7 +869,9 @@
     transition: color 150ms var(--ease-standard);
   }
   .bs-link:hover,
-  .bs-link:focus-visible { color: var(--color-accent-text); }
+  .bs-link:focus-visible {
+    color: var(--color-accent-text);
+  }
   .bs-row {
     transition: background-color 150ms var(--ease-standard);
   }
@@ -875,7 +886,9 @@
     column-rule: var(--rule-hair);
   }
   @media (max-width: 1000px) {
-    .bs-columns { columns: 1; }
+    .bs-columns {
+      columns: 1;
+    }
   }
 }
 
@@ -888,32 +901,61 @@
 /* ─── Keyframes ─────────────────────────────────────────────── */
 
 @keyframes shimmer {
-  from { background-position: 200% 0; }
-  to   { background-position: -200% 0; }
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
 }
 
 @keyframes fade-in {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes pulse-ring {
-  0%   { transform: scale(0.8); opacity: 0.7; }
-  100% { transform: scale(2.6); opacity: 0; }
+  0% {
+    transform: scale(0.8);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
 }
 
 @keyframes first-paint-fade {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes draw-stroke {
-  from { stroke-dashoffset: var(--len, 200); }
-  to   { stroke-dashoffset: 0; }
+  from {
+    stroke-dashoffset: var(--len, 200);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .live-dot::before, .skeleton, .first-paint-mark, .first-paint-content {
+  .live-dot::before,
+  .skeleton,
+  .first-paint-mark,
+  .first-paint-content {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
@@ -940,4 +982,40 @@ html.lite .first-paint-mark,
 html.lite .first-paint-content {
   opacity: 1 !important;
   transform: none !important;
+}
+
+/* Shared reading and overlay geometry. Rem units respect reading preferences. */
+:root {
+  --overlay-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+}
+@media (min-width: 1024px) {
+  :root {
+    --overlay-bottom: 1.5rem;
+  }
+}
+.bs-label,
+.bs-label-accent {
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+.bs-btn {
+  font-size: 0.75rem;
+  min-height: 2.75rem;
+  line-height: 1.4;
+}
+input,
+select,
+textarea {
+  font-size: 1rem;
+}
+summary {
+  cursor: pointer;
+}
+:target {
+  scroll-margin-top: 1.5rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }

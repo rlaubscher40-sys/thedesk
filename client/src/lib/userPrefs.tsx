@@ -25,9 +25,9 @@ import {
 const STORAGE_KEY = "thedesk:prefs";
 
 export type NotificationPrefs = {
-  /** Daily brief email at 7am AEST. */
+  /** Daily brief email at 7am Sydney time. */
   daily: boolean;
-  /** Weekly edition email Sunday 7am AEST. */
+  /** Weekly edition email Sunday 7am Sydney time. */
   weekly: boolean;
   /** Breaking-news pulses when a high-priority story drops mid-day. */
   breaking: boolean;

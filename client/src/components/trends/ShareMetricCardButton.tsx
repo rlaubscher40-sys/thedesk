@@ -11,7 +11,8 @@ function base64ToFile(base64: string, mimeType: string, filename: string): File 
 }
 
 function metricSurface(): "signals" | "trends" {
-  if (typeof window !== "undefined" && window.location.pathname.startsWith("/signals")) return "signals";
+  if (typeof window !== "undefined" && window.location.pathname.startsWith("/signals"))
+    return "signals";
   return "trends";
 }
 
@@ -45,7 +46,12 @@ export function ShareMetricCardButton({
     if (navigator.share) {
       try {
         if (canShareFile) {
-          await navigator.share({ files: [file], title, text, ...(publicUrl ? { url: publicUrl } : {}) });
+          await navigator.share({
+            files: [file],
+            title,
+            text,
+            ...(publicUrl ? { url: publicUrl } : {}),
+          });
         } else if (publicUrl) {
           await navigator.share({ title, text, url: publicUrl });
         } else {
@@ -107,7 +113,7 @@ export function ShareMetricCardButton({
         type="button"
         onClick={() => void shareNumber()}
         disabled={numberMutation.isPending || chartMutation.isPending}
-        className="inline-flex items-center gap-1.5 font-mono uppercase tracking-[0.14em] text-[9px] text-[var(--color-fg-subtle)] hover:text-[var(--color-accent-text)] disabled:opacity-40 transition-colors"
+        className="inline-flex items-center gap-1.5 font-mono uppercase tracking-[0.14em] text-[0.75rem] text-[var(--color-fg-subtle)] hover:text-[var(--color-accent-text)] disabled:opacity-40 transition-colors"
         title={numberMutation.error?.message ?? `Share ${label} as The Number`}
         aria-label={`Share ${label} as The Number`}
       >
@@ -126,7 +132,7 @@ export function ShareMetricCardButton({
           type="button"
           onClick={() => void shareChart()}
           disabled={numberMutation.isPending || chartMutation.isPending}
-          className="inline-flex items-center gap-1.5 font-mono uppercase tracking-[0.14em] text-[9px] text-[var(--color-fg-subtle)] hover:text-[var(--color-accent-text)] disabled:opacity-40 transition-colors"
+          className="inline-flex items-center gap-1.5 font-mono uppercase tracking-[0.14em] text-[0.75rem] text-[var(--color-fg-subtle)] hover:text-[var(--color-accent-text)] disabled:opacity-40 transition-colors"
           title={chartMutation.error?.message ?? `Share ${label} as The Chart`}
           aria-label={`Share ${label} as The Chart`}
         >

@@ -14,6 +14,22 @@ import { getCityRents } from "./absRents";
 import { getCityApprovals } from "./absApprovals";
 import { getStateDemographics } from "./absDemographics";
 
+async function optionalSource<T>(read: Promise<T>): Promise<T | undefined> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      read,
+      new Promise<undefined>((resolve) => {
+        timer = setTimeout(() => resolve(undefined), 3500);
+      }),
+    ]);
+  } catch {
+    return undefined;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 export const MARKET_SAMPLE_LIMIT = 2000;
 type DiscoveryItem = Pick<
   db.DailyFeedItem,
@@ -171,9 +187,9 @@ export async function getMarketDirectory(): Promise<MarketDirectory> {
     const demo = isDemoMode();
     const [items, rents, approvals, demographics, archive] = await Promise.all([
       db.listMarketDiscoveryItems(daysBefore(asOf, 89), asOf, 1001),
-      demo ? undefined : getCityRents(),
-      demo ? undefined : getCityApprovals(),
-      demo ? undefined : getStateDemographics(),
+      demo ? undefined : optionalSource(getCityRents()),
+      demo ? undefined : optionalSource(getCityApprovals()),
+      demo ? undefined : optionalSource(getStateDemographics()),
       db.listPropertyMarketEvidence(),
     ]);
     const directory = buildMarketDirectory(

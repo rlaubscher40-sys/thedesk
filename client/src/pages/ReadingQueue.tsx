@@ -1,3 +1,4 @@
+import { ConnectionNotice } from "@/components/ConnectionNotice";
 /**
  * Reading queue. Two modes driven by auth:
  *
@@ -48,12 +49,24 @@ type QueueRow = {
 };
 
 export default function ReadingQueuePage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, isLoading } = useAuth();
   const [status, setStatus] = useState<StatusFilter>("all");
   const [grouped, setGrouped] = useState(false);
 
+  if (isLoading)
+    return (
+      <p role="status" className="p-6">
+        Loading saved stories…
+      </p>
+    );
   return isAuthenticated ? (
-    <AuthQueue status={status} grouped={grouped} onStatus={setStatus} onGrouped={setGrouped} />
+    <AuthQueue
+      key={user!.id}
+      status={status}
+      grouped={grouped}
+      onStatus={setStatus}
+      onGrouped={setGrouped}
+    />
   ) : (
     <AnonQueue grouped={grouped} onGrouped={setGrouped} />
   );
@@ -73,18 +86,23 @@ function AuthQueue({
   onGrouped: (g: boolean) => void;
 }) {
   const utils = trpc.useUtils();
-  const listQuery = trpc.readingQueue.list.useQuery();
+  const { user } = useAuth();
+  const scope = { accountId: user!.id };
+  const listQuery = trpc.readingQueue.list.useQuery(scope);
 
   const markRead = trpc.readingQueue.markRead.useMutation({
     onMutate: async ({ id }) => {
       await utils.readingQueue.list.cancel();
-      const prev = utils.readingQueue.list.getData();
-      utils.readingQueue.list.setData(undefined, (old) =>
+      const prev = utils.readingQueue.list.getData(scope);
+      utils.readingQueue.list.setData(scope, (old) =>
         old?.map((q) => (q.id === id ? { ...q, isRead: true } : q))
       );
       return { prev };
     },
-    onError: (_e, _v, ctx) => ctx?.prev && utils.readingQueue.list.setData(undefined, ctx.prev),
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) utils.readingQueue.list.setData(scope, ctx.prev);
+      toast.error("Could not update Saved. Please try again.");
+    },
     onSettled: () => {
       utils.readingQueue.list.invalidate();
       utils.readingQueue.unreadCount.invalidate();
@@ -94,11 +112,14 @@ function AuthQueue({
   const remove = trpc.readingQueue.remove.useMutation({
     onMutate: async ({ id }) => {
       await utils.readingQueue.list.cancel();
-      const prev = utils.readingQueue.list.getData();
-      utils.readingQueue.list.setData(undefined, (old) => old?.filter((q) => q.id !== id));
+      const prev = utils.readingQueue.list.getData(scope);
+      utils.readingQueue.list.setData(scope, (old) => old?.filter((q) => q.id !== id));
       return { prev };
     },
-    onError: (_e, _v, ctx) => ctx?.prev && utils.readingQueue.list.setData(undefined, ctx.prev),
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) utils.readingQueue.list.setData(scope, ctx.prev);
+      toast.error("Could not update Saved. Please try again.");
+    },
     onSettled: () => {
       utils.readingQueue.list.invalidate();
       utils.readingQueue.unreadCount.invalidate();
@@ -167,6 +188,8 @@ function AuthQueue({
         <SectionErrorBoundary section="Reading queue">
           {listQuery.isLoading ? (
             <QueueSkeleton />
+          ) : listQuery.isError ? (
+            <ConnectionNotice retry={() => void listQuery.refetch()} />
           ) : rows.length === 0 ? (
             <EmptyState />
           ) : (
@@ -191,13 +214,7 @@ function AuthQueue({
 
 // ─── Anonymous queue ────────────────────────────────────────────────────────
 
-function AnonQueue({
-  grouped,
-  onGrouped,
-}: {
-  grouped: boolean;
-  onGrouped: (g: boolean) => void;
-}) {
+function AnonQueue({ grouped, onGrouped }: { grouped: boolean; onGrouped: (g: boolean) => void }) {
   const { bookmarks, toggle } = useBookmarks();
   const ids = useMemo(
     () =>
@@ -250,6 +267,8 @@ function AnonQueue({
         <SectionErrorBoundary section="Reading queue">
           {ids.length === 0 ? (
             <EmptyState />
+          ) : itemsQuery.isError ? (
+            <ConnectionNotice retry={() => void itemsQuery.refetch()} />
           ) : itemsQuery.isLoading ? (
             <QueueSkeleton />
           ) : (
@@ -300,7 +319,7 @@ function Toolbar({
                 className={cn("bs-link py-3.5", i > 0 ? "rule-hair-l px-4" : "pr-4")}
                 style={{
                   fontFamily: "var(--font-mono)",
-                  fontSize: 11,
+                  fontSize: "0.75rem",
                   letterSpacing: "0.16em",
                   textTransform: "uppercase",
                   color: active ? "var(--color-fg)" : "var(--color-fg-muted)",
@@ -352,9 +371,7 @@ function QueueList({
   onRemove: (id: string) => void;
 }) {
   if (rows.length === 0) {
-    return (
-      <p className="py-10 text-[var(--color-fg-muted)]">Nothing matches this filter.</p>
-    );
+    return <p className="py-10 text-[var(--color-fg-muted)]">Nothing matches this filter.</p>;
   }
 
   if (!grouped) {
@@ -430,7 +447,7 @@ function QueueRowIndex({
           <p
             className="font-mono uppercase"
             style={{
-              fontSize: 10,
+              fontSize: "0.75rem",
               letterSpacing: "0.16em",
               color: colourFor(row.category),
             }}
@@ -438,7 +455,10 @@ function QueueRowIndex({
             {row.category}
           </p>
         )}
-        <p className="font-mono mt-1.5 text-[var(--color-fg-subtle)]" style={{ fontSize: 10 }}>
+        <p
+          className="font-mono mt-1.5 text-[var(--color-fg-subtle)]"
+          style={{ fontSize: "0.75rem" }}
+        >
           {formatRelative(row.createdAt)}
         </p>
       </div>
@@ -448,14 +468,14 @@ function QueueRowIndex({
           <Link
             href={`/story/${row.feedItemId}`}
             className="bs-link font-serif block"
-            style={{ fontSize: 21, lineHeight: 1.28, letterSpacing: "-0.02em" }}
+            style={{ fontSize: "1.3125rem", lineHeight: 1.28, letterSpacing: "-0.02em" }}
           >
             {row.title}
           </Link>
         ) : (
           <p
             className="font-serif"
-            style={{ fontSize: 21, lineHeight: 1.28, letterSpacing: "-0.02em" }}
+            style={{ fontSize: "1.3125rem", lineHeight: 1.28, letterSpacing: "-0.02em" }}
           >
             {row.title}
           </p>
@@ -463,7 +483,7 @@ function QueueRowIndex({
         {row.summary && (
           <p
             className="mt-1.5 text-[var(--color-fg-muted)] line-clamp-2"
-            style={{ fontSize: 15, lineHeight: 1.55 }}
+            style={{ fontSize: "0.9375rem", lineHeight: 1.55 }}
           >
             {row.summary}
           </p>
@@ -514,12 +534,15 @@ function QueueRowIndex({
 function EmptyState() {
   return (
     <div className="rule-hair-b py-16 text-center">
-      <p className="font-serif italic text-[var(--color-fg-muted)]" style={{ fontSize: 21 }}>
+      <p
+        className="font-serif italic text-[var(--color-fg-muted)]"
+        style={{ fontSize: "1.3125rem" }}
+      >
         Empty queue.
       </p>
       <p className="mx-auto mt-3 max-w-[52ch] text-[var(--color-fg-muted)]">
-        Bookmark anything from Today or the Archive. It&apos;ll sit here ready for when
-        you have a window to read.
+        Bookmark anything from Today or the Archive. It&apos;ll sit here ready for when you have a
+        window to read.
       </p>
       <div className="flex items-center justify-center gap-2.5 mt-6 flex-wrap">
         <Link href="/" className="bs-btn bs-btn-solid">

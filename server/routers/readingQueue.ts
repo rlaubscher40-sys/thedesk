@@ -5,7 +5,10 @@ import { protectedProcedure, router } from "../core/trpc";
 const queueIdInput = z.object({ id: z.number().int().positive() });
 
 export const readingQueueRouter = router({
-  list: protectedProcedure.query(async ({ ctx }) => db.getEnrichedQueue(ctx.user.id)),
+  // accountId scopes the browser cache only. Authorisation always uses the session.
+  list: protectedProcedure
+    .input(z.object({ accountId: z.number().int().positive() }).optional())
+    .query(async ({ ctx }) => db.getEnrichedQueue(ctx.user.id)),
 
   unreadCount: protectedProcedure.query(async ({ ctx }) => {
     const items = await db.getEnrichedQueue(ctx.user.id);

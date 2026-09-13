@@ -1,3 +1,4 @@
+import { initWebVitals } from "./lib/webVitals";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink, httpLink, splitLink, TRPCClientError } from "@trpc/client";
 import { ASK_CLIENT_TIMEOUT_MS, withDeadline } from "@shared/requestDeadline";
@@ -8,7 +9,11 @@ import { TRPC_BATCH_LIMIT, UNAUTHED_ERR_MSG } from "@shared/const";
 import App from "./App";
 import { getLoginUrl } from "./lib/auth";
 import { initErrorReporter } from "./lib/errorReporter";
-import { initCrashLoopGuard, renderCrashLoopSafeMode, watchHealthyBoot } from "./lib/crashLoopDetector";
+import {
+  initCrashLoopGuard,
+  renderCrashLoopSafeMode,
+  watchHealthyBoot,
+} from "./lib/crashLoopDetector";
 import { applyLiteClass } from "./lib/liteMode";
 import { trpc } from "./lib/trpc";
 import { queryFetch } from "./lib/queryFetch";
@@ -16,6 +21,7 @@ import { initInstallPrompt } from "./lib/installPrompt";
 import "./index.css";
 
 initInstallPrompt();
+initWebVitals();
 
 // Browser error reporter. Sends window.error + unhandledrejection
 // to /api/errors/client, which writes into the same server_errors
@@ -45,6 +51,8 @@ const queryClient = new QueryClient({
   },
 });
 
+queryClient.setQueryDefaults(["desk-completed-brief"], { gcTime: Infinity, staleTime: Infinity });
+
 function maybeRedirectToLogin(err: unknown): void {
   if (!(err instanceof TRPCClientError)) return;
   if (err.message !== UNAUTHED_ERR_MSG) return;
@@ -70,26 +78,37 @@ const trpcClient = trpc.createClient({
       true: httpLink({
         url: "/api/trpc",
         transformer: superjson,
-        fetch: (input, init) => withDeadline(async (signal) => {
-          const response = await globalThis.fetch(input, { ...init, credentials: "include", signal });
-          // Include the response body in the deadline, not only the headers.
-          const body = await response.text();
-          return new Response(body, {
-            status: response.status,
-            statusText: response.statusText,
-            headers: response.headers,
-          });
-        }, ASK_CLIENT_TIMEOUT_MS),
+        fetch: (input, init) =>
+          withDeadline(async (signal) => {
+            const response = await globalThis.fetch(input, {
+              ...init,
+              credentials: "include",
+              signal,
+            });
+            // Include the response body in the deadline, not only the headers.
+            const body = await response.text();
+            return new Response(body, {
+              status: response.status,
+              statusText: response.statusText,
+              headers: response.headers,
+            });
+          }, ASK_CLIENT_TIMEOUT_MS),
       }),
       false: splitLink({
         condition: (op) => op.type === "query",
-        true: httpBatchLink({ url: "/api/trpc", transformer: superjson, fetch: queryFetch, maxItems: TRPC_BATCH_LIMIT }),
+        true: httpBatchLink({
+          url: "/api/trpc",
+          transformer: superjson,
+          fetch: queryFetch,
+          maxItems: TRPC_BATCH_LIMIT,
+        }),
         // Long-running publishing/admin mutations keep their existing behaviour.
         false: httpBatchLink({
           url: "/api/trpc",
           maxItems: TRPC_BATCH_LIMIT,
           transformer: superjson,
-          fetch: (input, init) => globalThis.fetch(input, { ...(init ?? {}), credentials: "include" }),
+          fetch: (input, init) =>
+            globalThis.fetch(input, { ...(init ?? {}), credentials: "include" }),
         }),
       }),
     }),
@@ -103,7 +122,10 @@ function BootHealth() {
     splash?.classList.add("done");
     const removal = setTimeout(() => splash?.remove(), 500);
     const stopWatching = watchHealthyBoot();
-    return () => { clearTimeout(removal); stopWatching(); };
+    return () => {
+      clearTimeout(removal);
+      stopWatching();
+    };
   }, []);
   return null;
 }
@@ -126,5 +148,4 @@ if (inCrashLoop) {
       navigator.serviceWorker.register("/sw.js").catch(() => {});
     });
   }
-
 }

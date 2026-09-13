@@ -11,6 +11,8 @@ export function Toaster() {
     <SonnerToaster
       theme={resolvedTheme}
       position="bottom-right"
+      offset="calc(var(--overlay-bottom) + 3.5rem)"
+      mobileOffset="calc(var(--overlay-bottom) + 3.5rem)"
       toastOptions={{
         style: {
           background: "var(--color-toast-bg)",

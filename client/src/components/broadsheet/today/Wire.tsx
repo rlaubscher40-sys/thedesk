@@ -27,36 +27,40 @@ export function Wire({ items }: { items: DailyFeedItem[] }) {
         <div>
           {items.map((item) => (
             <div key={item.id}>
-            <Link
-              href={`/story/${item.id}`}
-              className="bs-row rule-hair-b flex items-baseline gap-4 sm:gap-6 py-3.5"
-            >
-              <span
-                className="font-mono uppercase shrink-0 w-[92px] sm:w-[104px]"
-                style={{
-                  fontSize: 10,
-                  letterSpacing: "0.16em",
-                  color: colourFor(item.category),
-                }}
+              <Link
+                href={`/story/${item.id}`}
+                className="bs-row rule-hair-b flex items-baseline gap-4 sm:gap-6 py-3.5"
               >
-                {item.category}
-              </span>
-              <span
-                className="font-serif flex-1 min-w-0"
-                style={{ fontSize: 20, lineHeight: 1.3, letterSpacing: "-0.02em" }}
-              >
-                {cleanHeadline(item.title)}
-              </span>
-              {item.source && (
                 <span
-                  className="font-mono shrink-0 hidden sm:block text-[var(--color-fg-subtle)]"
-                  style={{ fontSize: 10 }}
+                  className="font-mono uppercase shrink-0 w-[92px] sm:w-[104px]"
+                  style={{
+                    fontSize: "0.75rem",
+                    letterSpacing: "0.16em",
+                    color: colourFor(item.category),
+                  }}
                 >
-                  {item.source}
+                  {item.category}
                 </span>
+                <span
+                  className="font-serif flex-1 min-w-0"
+                  style={{ fontSize: "1.25rem", lineHeight: 1.3, letterSpacing: "-0.02em" }}
+                >
+                  {cleanHeadline(item.title)}
+                </span>
+                {item.source && (
+                  <span
+                    className="font-mono shrink-0 hidden sm:block text-[var(--color-fg-subtle)]"
+                    style={{ fontSize: "0.75rem" }}
+                  >
+                    {item.source}
+                  </span>
+                )}
+              </Link>
+              {item.threadParentId && (
+                <div className="pb-3">
+                  <ThreadLink parentId={item.threadParentId} parentTitle={item.threadParentTitle} />
+                </div>
               )}
-            </Link>
-            {item.threadParentId && <div className="pb-3"><ThreadLink parentId={item.threadParentId} parentTitle={item.threadParentTitle} /></div>}
             </div>
           ))}
         </div>

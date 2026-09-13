@@ -21,16 +21,14 @@ import { GUTTER } from "./tokens";
 
 const NAV = [
   { href: "/", label: "Today" },
-  { href: "/ask", label: "Ask" },
   { href: "/markets", label: "Markets" },
-  { href: "/signals", label: "Signals" },
-  { href: "/editions", label: "Editions" },
-  { href: "/archive", label: "Archive" },
-  { href: "/trends", label: "Trends" },
-  { href: "/about", label: "About" },
+  { href: "/signals", label: "Data" },
+  { href: "/ask", label: "Ask" },
+  { href: "/queue", label: "Saved" },
 ];
 
 function isActive(location: string, href: string): boolean {
+  if (href === "/signals" && location === "/trends") return true;
   if (href === "/") return location === "/";
   return location === href || location.startsWith(`${href}/`);
 }
@@ -76,10 +74,10 @@ function PageNav({ className }: { className?: string }) {
             key={item.href}
             href={item.href}
             aria-current={active ? "page" : undefined}
-            className="bs-link pb-1"
+            className="bs-link min-h-11 flex items-center"
             style={{
               fontFamily: "var(--font-mono)",
-              fontSize: 11,
+              fontSize: "0.75rem",
               letterSpacing: "0.2em",
               textTransform: "uppercase",
               color: active ? "var(--color-fg)" : "var(--color-fg-muted)",
@@ -102,20 +100,20 @@ function PageNav({ className }: { className?: string }) {
 export function Masthead({ dateLabel, shapeLine }: { dateLabel: string; shapeLine: string }) {
   return (
     <header>
-      <div className={cn(GUTTER, "pt-8 lg:pt-11 pb-4 flex items-end justify-between gap-10")}>
+      <div className={cn(GUTTER, "pt-3 lg:pt-5 pb-3 flex items-end justify-between gap-10")}>
         <div className="flex items-end gap-4 lg:gap-[22px] min-w-0">
-          <Logomark size={72} animated={false} className="hidden lg:block mb-1" />
+          <Logomark size={44} animated={false} className="hidden lg:block mb-1" />
           <Logomark size={30} animated={false} className="lg:hidden" />
           <div className="min-w-0">
             <h1 className="hidden lg:block">
-              <Wordmark size={78} />
+              <Wordmark size={48} />
             </h1>
             <h1 className="lg:hidden">
               <Wordmark size={34} />
             </h1>
             <p
               className="bs-label mt-3 lg:mt-4 hidden sm:block"
-              style={{ fontSize: 11, letterSpacing: "0.3em" }}
+              style={{ fontSize: "0.75rem", letterSpacing: "0.3em" }}
             >
               Australian property intelligence before it becomes consensus
             </p>
@@ -123,7 +121,7 @@ export function Masthead({ dateLabel, shapeLine }: { dateLabel: string; shapeLin
         </div>
 
         <div className="hidden lg:block text-right pb-2 shrink-0">
-          <p className="font-serif" style={{ fontSize: 23 }}>
+          <p className="font-serif" style={{ fontSize: "1.4375rem" }}>
             {dateLabel}
           </p>
           <p className="bs-label mt-2">{shapeLine}</p>
@@ -131,10 +129,13 @@ export function Masthead({ dateLabel, shapeLine }: { dateLabel: string; shapeLin
       </div>
 
       {/* Mobile puts the day's shape under the lockup rather than beside it. */}
-      <p className={cn(GUTTER, "bs-label lg:hidden pb-3")} style={{ fontSize: 9.5 }}>
+      <p className={cn(GUTTER, "bs-label lg:hidden pb-3")} style={{ fontSize: "0.75rem" }}>
         {dateLabel} · {shapeLine}
       </p>
 
+      <div className={cn(GUTTER, "hidden lg:block py-2")}>
+        <PageNav />
+      </div>
       <div className={cn(GUTTER)}>
         <div className="rule-major" />
       </div>
@@ -167,13 +168,3 @@ export function SlimMasthead() {
  * hides its inline nav below `lg`; this row carries it instead so the
  * sections stay reachable without the old slide-out drawer.
  */
-export function MobilePageNav() {
-  return (
-    <div className={cn(GUTTER, "no-scrollbar rule-hair-b lg:hidden overflow-x-auto py-3")}>
-      <PageNav className="w-max" />
-      <Link href="/subscribe" className="bs-label-accent inline-block pt-4 pb-1 sm:hidden">
-        Get the free daily brief →
-      </Link>
-    </div>
-  );
-}

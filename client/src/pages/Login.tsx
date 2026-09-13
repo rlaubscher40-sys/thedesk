@@ -58,7 +58,7 @@ export default function Login() {
       <div className="panel rounded-sm p-8 sm:p-10 space-y-6">
         <BrandLockup size={36} />
         <div>
-          <p className="overline-amber" style={{ letterSpacing: "0.22em", fontSize: "10px" }}>
+          <p className="overline-amber" style={{ letterSpacing: "0.22em", fontSize: "0.75rem" }}>
             Curator access
           </p>
           <h1 className="font-serif text-2xl font-bold leading-tight mt-1">Sign in</h1>

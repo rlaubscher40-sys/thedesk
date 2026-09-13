@@ -40,7 +40,7 @@ export function PageTitle({
           <h1
             className="font-serif font-bold mt-3.5"
             style={{
-              fontSize: "clamp(36px, 4.6vw, 64px)",
+              fontSize: "clamp(2.25rem, 4.6vw, 4rem)",
               lineHeight: 0.94,
               letterSpacing: "-0.03em",
             }}
@@ -50,7 +50,7 @@ export function PageTitle({
           {standfirst && (
             <p
               className="font-serif mt-3.5 max-w-[52ch]"
-              style={{ fontSize: 21, lineHeight: 1.42, color: "var(--color-fg-muted)" }}
+              style={{ fontSize: "1.3125rem", lineHeight: 1.42, color: "var(--color-fg-muted)" }}
             >
               {standfirst}
             </p>
@@ -63,16 +63,13 @@ export function PageTitle({
             {stats.length > 0 && (
               <div className="hidden md:flex rule-hair-l">
                 {stats.map((s, i) => (
-                  <div
-                    key={s.label}
-                    className={cn("px-6 text-right", i > 0 && "rule-hair-l")}
-                  >
+                  <div key={s.label} className={cn("px-6 text-right", i > 0 && "rule-hair-l")}>
                     <p className="bs-label" style={{ letterSpacing: "0.2em" }}>
                       {s.label}
                     </p>
                     <p
                       className="font-serif font-bold tabular-nums mt-2"
-                      style={{ fontSize: 30, lineHeight: 1 }}
+                      style={{ fontSize: "1.875rem", lineHeight: 1 }}
                     >
                       {s.value}
                     </p>

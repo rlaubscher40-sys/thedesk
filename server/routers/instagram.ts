@@ -1,3 +1,4 @@
+import { publicPostGallery } from "../instagram/publicPostGallery";
 /**
  * Instagram posts admin router.
  *
@@ -76,6 +77,9 @@ export const instagramRouter = router({
     };
   }),
   publicationAudit: adminProcedure.query(() => publicationAudit()),
+  publishedGallery: publicProcedure.query(() =>
+    cached("social:public-gallery", 5 * 60_000, () => publicPostGallery())
+  ),
   publishedStories: publicProcedure.query(() =>
     cached("social:published-stories", 60_000, () => publishedSocialStories())
   ),

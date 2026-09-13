@@ -1,5 +1,5 @@
 import { repairEditorialReferences, repairCoverageAudit } from "./db/editorial";
-import { repairFeedGeography } from "./db/feedGeography";
+import { repairEditorialCategories, repairFeedGeography } from "./db/feedGeography";
 /**
  * Express + tRPC + Vite entry point. In dev the Vite middleware serves the
  * client; in production it falls back to the static bundle in dist/public.
@@ -216,6 +216,8 @@ async function startServer() {
   await applyPendingMigrations();
   if (!isDemoMode()) {
     try {
+      const corrected = await repairEditorialCategories();
+      console.log(`[editorial] corrected ${corrected} sports category labels`);
       const moved = await repairFeedGeography();
       const held = await repairEditorialReferences();
       await repairCoverageAudit();

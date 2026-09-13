@@ -15,12 +15,12 @@ export const PRODUCT_GUIDE_ACTIONS = [
   {
     href: "/ask",
     title: "Ask what it means",
-    body: "Ask a property question. Get a sourced read, its confidence and what would change the view—or an honest evidence gap.",
+    body: "Ask a property question. Get a sourced read, its confidence and what would change the view, or an honest evidence gap.",
   },
   {
     href: "/signals",
     title: "Follow the numbers",
-    body: "Inspect the live indicators behind property. Watch a signal from your own baseline and share a number with its context.",
+    body: "Inspect dated observations behind property. Watch a signal from your own baseline and share a number with its context.",
   },
   {
     href: "/",

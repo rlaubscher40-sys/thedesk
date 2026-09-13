@@ -42,7 +42,7 @@ function stated(move: {
   const sign = move.change > 0 ? "+" : "";
   if (move.changeKind === "points") {
     const dp = Math.abs(move.change) < 1 ? 2 : 1;
-    return `${sign}${move.change.toFixed(dp)} pts`;
+    return `${sign}${move.change.toFixed(dp)} percentage points`;
   }
   if (move.changePercent === null) return `${sign}${move.change}`;
   return `${sign}${move.changePercent.toFixed(1)}%`;
@@ -77,7 +77,7 @@ function Row({
       </td>
       <td className="py-3 text-right text-[var(--color-fg-muted)] whitespace-nowrap">
         {move.brokeStillness
-          ? `first move in ${move.monthsOfHistory} months`
+          ? `first stored change in ${move.monthsOfHistory} months`
           : move.biggestSince
             ? `biggest since ${monthLabel(move.biggestSince)}`
             : move.unusualness !== null
@@ -100,13 +100,15 @@ export function MonthInNumbers() {
 
   return (
     <section className="mt-10">
-      <p className="overline-amber" style={{ letterSpacing: "0.22em", fontSize: "10px" }}>
+      <p className="overline-amber" style={{ letterSpacing: "0.22em", fontSize: "0.75rem" }}>
         The Month in Numbers
       </p>
       <h2 className="font-serif text-2xl font-bold leading-tight mt-2">{data.label}</h2>
 
       <p className="text-sm text-[var(--color-fg)] leading-relaxed mt-3 max-w-[68ch] border-l-2 border-[var(--color-accent)] pl-3">
-        {data.reading}
+        Changes between stored samples, grouped by calendar month. Monthly and quarterly releases
+        can be carried forward between updates; this is not a comparison of economic reference
+        months.
       </p>
 
       {top.length > 0 && (
@@ -117,7 +119,7 @@ export function MonthInNumbers() {
                 {["Metric", "Move", "How notable"].map((h, i) => (
                   <th
                     key={h}
-                    className={`pb-2 font-mono uppercase tracking-[0.16em] text-[11px] text-[var(--color-fg-subtle)] pr-4 whitespace-nowrap ${
+                    className={`pb-2 font-mono uppercase tracking-[0.16em] text-[0.75rem] text-[var(--color-fg-subtle)] pr-4 whitespace-nowrap ${
                       i === 0 ? "text-left" : "text-right"
                     }`}
                   >
@@ -137,8 +139,8 @@ export function MonthInNumbers() {
 
       {data.unchanged.length > 0 && (
         <p className="text-xs text-[var(--color-fg-subtle)] leading-relaxed mt-4 max-w-[68ch]">
-          Unchanged all month: {data.unchanged.map((m) => m.label).join(", ")}. A number holding
-          still through a month is often the more useful fact.
+          No new value in the stored window: {data.unchanged.map((m) => m.label).join(", ")}. This
+          does not establish that the economy was unchanged or that a new release was published.
         </p>
       )}
 

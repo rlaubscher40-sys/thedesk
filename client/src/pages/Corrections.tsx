@@ -28,18 +28,13 @@ export default function Corrections() {
   return (
     <article className="max-w-[68ch] mx-auto py-10 space-y-6 leading-relaxed">
       <header className="space-y-2">
-        <p
-          className="overline-amber"
-          style={{ letterSpacing: "0.22em", fontSize: "10px" }}
-        >
+        <p className="overline-amber" style={{ letterSpacing: "0.22em", fontSize: "0.75rem" }}>
           The Desk
         </p>
-        <h1 className="font-serif text-4xl sm:text-5xl font-bold leading-tight">
-          Corrections
-        </h1>
+        <h1 className="font-serif text-4xl sm:text-5xl font-bold leading-tight">Corrections</h1>
         <p className="text-sm text-[var(--color-fg-muted)]">
-          Where we've fixed something publicly. Reply to any brief to flag an
-          error, you'll get a same-day response.
+          Where we've fixed something publicly. Reply to any brief to flag an error, you'll get a
+          same-day response.
         </p>
       </header>
       <div className="editorial-rule-soft" aria-hidden="true" />
@@ -51,9 +46,8 @@ export default function Corrections() {
               No corrections logged yet.
             </p>
             <p>
-              That's the goal, not the brag. If you spot something wrong, a
-              misquoted figure, a misattributed source, a date that doesn't
-              check out, email{" "}
+              That's the goal, not the brag. If you spot something wrong, a misquoted figure, a
+              misattributed source, a date that doesn't check out, email{" "}
               <a
                 href="mailto:ruben@thedesk.au"
                 className="text-amber-300 hover:text-amber-200 transition-colors"
@@ -76,7 +70,7 @@ export default function Corrections() {
                 <div>
                   <p
                     className="overline-amber"
-                    style={{ letterSpacing: "0.2em", fontSize: "10px" }}
+                    style={{ letterSpacing: "0.2em", fontSize: "0.75rem" }}
                   >
                     Issued
                   </p>
@@ -89,7 +83,7 @@ export default function Corrections() {
                   </p>
                   <p
                     className="overline-amber mt-4"
-                    style={{ letterSpacing: "0.2em", fontSize: "10px" }}
+                    style={{ letterSpacing: "0.2em", fontSize: "0.75rem" }}
                   >
                     Ref
                   </p>
@@ -100,9 +94,7 @@ export default function Corrections() {
                 <div className="space-y-3 text-sm">
                   <div>
                     <p className="overline mb-1.5">What we said</p>
-                    <p className="text-[var(--color-fg-muted)] leading-relaxed">
-                      {c.what}
-                    </p>
+                    <p className="text-[var(--color-fg-muted)] leading-relaxed">{c.what}</p>
                   </div>
                   <div>
                     <p className="overline mb-1.5">Now stands</p>
@@ -118,11 +110,10 @@ export default function Corrections() {
       <section className="mt-10 pt-6 border-t border-[var(--color-border)]">
         <h2 className="font-serif text-2xl mt-2">How we handle them</h2>
         <p className="mt-3 text-[var(--color-fg-muted)]">
-          Factual errors are corrected at the source, the affected story is
-          updated with an "Updated" timestamp and a brief note explaining what
-          changed. The fix is then logged here so the record is public, not
-          just patched. Edits that don't change meaning (typos, copy polish)
-          don't appear in this log.
+          Factual errors are corrected at the source, the affected story is updated with an
+          "Updated" timestamp and a brief note explaining what changed. The fix is then logged here
+          so the record is public, not just patched. Edits that don't change meaning (typos, copy
+          polish) don't appear in this log.
         </p>
       </section>
     </article>

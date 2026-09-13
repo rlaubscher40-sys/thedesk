@@ -1,6 +1,15 @@
+import { ConnectionNotice } from "@/components/ConnectionNotice";
+import { formatMetricValue, historyChange, hasDailyObservations } from "@shared/metricPresentation";
 import { preferenceStorage } from "@/lib/storage";
 import { NswPlanningPanel } from "@/components/planning/NswPlanningRead";
-import { Bookmark, BookmarkCheck, LineChart, MoveDownRight, MoveUpRight, Radio } from "lucide-react";
+import {
+  Bookmark,
+  BookmarkCheck,
+  LineChart,
+  MoveDownRight,
+  MoveUpRight,
+  Radio,
+} from "lucide-react";
 import { Link, useSearch } from "wouter";
 import { useEffect, useMemo, useState } from "react";
 import { GUTTER_X } from "@/components/broadsheet/tokens";
@@ -32,14 +41,7 @@ function parseDisplayNumber(value: string | null | undefined): number | null {
   return negative ? -n : n;
 }
 
-function displayValue(metric: { value: string; unit?: string | null }): string {
-  const unit = metric.unit?.trim();
-  if (!unit) return metric.value;
-  if (metric.value.includes(unit)) return metric.value;
-  if (unit === "%") return `${metric.value}%`;
-  if (unit === "$") return `$${metric.value}`;
-  return `${metric.value} ${unit}`;
-}
+const displayValue = formatMetricValue;
 
 function readWatchlist(): WatchRecord[] {
   if (typeof window === "undefined") return [];
@@ -65,14 +67,8 @@ function writeWatchlist(records: WatchRecord[]): void {
 }
 
 function pctMove(first: number, last: number): number {
-  if (Math.abs(first) < 0.000001) return last - first;
+  if (Math.abs(first) < 0.000001) return NaN;
   return ((last - first) / Math.abs(first)) * 100;
-}
-
-function moveLabel(move: number | null): string {
-  if (move == null || !Number.isFinite(move)) return "No recorded move";
-  const sign = move > 0 ? "+" : "";
-  return `${sign}${move.toFixed(Math.abs(move) >= 10 ? 1 : 2)}%`;
 }
 
 function moveMagnitude(move: number | null): number {
@@ -85,9 +81,14 @@ export default function SignalsPage() {
   const requestedMetricKey = params.get("metric");
   const snapshotId = params.get("snapshot");
   const validSnapshot = snapshotId !== null && signalSnapshotId.safeParse(snapshotId).success;
-  const shared = trpc.metrics.shared.useQuery({ snapshot: snapshotId ?? "" }, {
-    enabled: validSnapshot, staleTime: Infinity, retry: false,
-  });
+  const shared = trpc.metrics.shared.useQuery(
+    { snapshot: snapshotId ?? "" },
+    {
+      enabled: validSnapshot,
+      staleTime: Infinity,
+      retry: false,
+    }
+  );
   const requestedView = params.get("view") === "chart" ? "chart" : "number";
   const metrics = trpc.metrics.list.useQuery(undefined, { staleTime: 5 * 60_000 });
   const histories = trpc.metrics.histories.useQuery(undefined, { staleTime: 30 * 60_000 });
@@ -102,7 +103,10 @@ export default function SignalsPage() {
       const first = series[0]?.value;
       const last = series[series.length - 1]?.value;
       const move =
-        typeof first === "number" && typeof last === "number" && series.length >= 2
+        hasDailyObservations(metric.metricKey) &&
+        typeof first === "number" &&
+        typeof last === "number" &&
+        series.length >= 2
           ? pctMove(first, last)
           : null;
       return { metric, series, move, observation: describeMetricObservation(metric) };
@@ -113,21 +117,42 @@ export default function SignalsPage() {
     () => [...rows].sort((a, b) => moveMagnitude(b.move) - moveMagnitude(a.move)),
     [rows]
   );
-  const frozen = shared.data && (!requestedMetricKey || shared.data.metric.metricKey === requestedMetricKey)
-    ? shared.data : null;
-  const frozenHero = frozen ? { metric: frozen.metric, series: frozen.series,
-    move: frozen.series.length >= 2 ? pctMove(frozen.series[0]!.value, frozen.series[frozen.series.length - 1]!.value) : null,
-    observation: describeMetricObservation(frozen.metric) } : null;
-  const requestedHero = snapshotId !== null ? frozenHero
-    : selectSignal(rows, requestedMetricKey, null);
-  const hero = snapshotId !== null ? frozenHero
-    : selectSignal(rows, requestedMetricKey, ranked.find((row) => row.move != null) ?? rows[0] ?? null);
+  const frozen =
+    shared.data && (!requestedMetricKey || shared.data.metric.metricKey === requestedMetricKey)
+      ? shared.data
+      : null;
+  const frozenHero = frozen
+    ? {
+        metric: frozen.metric,
+        series: frozen.series,
+        move:
+          frozen.series.length >= 2
+            ? pctMove(frozen.series[0]!.value, frozen.series[frozen.series.length - 1]!.value)
+            : null,
+        observation: describeMetricObservation(frozen.metric),
+      }
+    : null;
+  const requestedHero =
+    snapshotId !== null ? frozenHero : selectSignal(rows, requestedMetricKey, null);
+  const hero =
+    snapshotId !== null
+      ? frozenHero
+      : selectSignal(
+          rows,
+          requestedMetricKey,
+          ranked.find((row) => row.move != null) ?? rows[0] ?? null
+        );
   const sharedTake = snapshotId !== null ? frozen?.deskTake : undefined;
   const shownTake = snapshotId !== null ? sharedTake : editions.data?.[0]?.rubensTake;
-  const shownEdition = snapshotId !== null ? frozen?.editionNumber : editions.data?.[0]?.editionNumber;
-  const chartView = requestedView === "chart" && Boolean(requestedHero?.series.length && requestedHero.series.length >= 2);
+  const shownEdition =
+    snapshotId !== null ? frozen?.editionNumber : editions.data?.[0]?.editionNumber;
+  const chartView =
+    requestedView === "chart" &&
+    Boolean(requestedHero?.series.length && requestedHero.series.length >= 2);
 
-  function toggleWatch(row: { metric: { metricKey: string; value: string; unit?: string | null } }) {
+  function toggleWatch(row: {
+    metric: { metricKey: string; value: string; unit?: string | null };
+  }) {
     const exists = watchlist.some((watch) => watch.metricKey === row.metric.metricKey);
     const next = exists
       ? watchlist.filter((watch) => watch.metricKey !== row.metric.metricKey)
@@ -147,29 +172,57 @@ export default function SignalsPage() {
 
   const watchedRows = watchlist
     .map((watch) => ({ watch, row: rows.find((row) => row.metric.metricKey === watch.metricKey) }))
-    .filter((entry): entry is { watch: WatchRecord; row: (typeof rows)[number] } => Boolean(entry.row));
+    .filter((entry): entry is { watch: WatchRecord; row: (typeof rows)[number] } =>
+      Boolean(entry.row)
+    );
 
-  if (snapshotId !== null ? validSnapshot && shared.isLoading : metrics.isLoading || histories.isLoading) return <SignalsSkeleton />;
+  if (
+    snapshotId !== null
+      ? validSnapshot && shared.isLoading
+      : metrics.isLoading || histories.isLoading
+  )
+    return <SignalsSkeleton />;
 
   return (
     <div className={`${GUTTER_X} pb-8`}>
+      {(metrics.isError || histories.isError) && (
+        <ConnectionNotice
+          retry={() => {
+            void metrics.refetch();
+            void histories.refetch();
+          }}
+          retrying={metrics.isFetching || histories.isFetching}
+        />
+      )}
+      <nav aria-label="Data views" className="flex gap-5 mb-5 text-sm">
+        <Link href="/signals" aria-current="page" className="bs-link min-h-11 py-3">
+          Observations
+        </Link>
+        <Link href="/trends" className="bs-link min-h-11 py-3">
+          Charts and history
+        </Link>
+      </nav>
       <header className="rule-major pt-5">
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div>
             <p className="bs-label-accent">The Desk · Signals</p>
             <h1
               className="font-serif font-bold mt-3"
-              style={{ fontSize: "clamp(46px, 7vw, 88px)", lineHeight: 0.92, letterSpacing: "-0.045em" }}
+              style={{
+                fontSize: "clamp(2.875rem, 7vw, 5.5rem)",
+                lineHeight: 0.92,
+                letterSpacing: "-0.045em",
+              }}
             >
               Read the numbers in context.
             </h1>
             <p
               className="font-serif mt-5 max-w-[58ch] text-[var(--color-fg-muted)]"
-              style={{ fontSize: "clamp(19px, 2vw, 26px)", lineHeight: 1.4 }}
+              style={{ fontSize: "clamp(1.1875rem, 2vw, 1.625rem)", lineHeight: 1.4 }}
             >
-              Market signals with observation dates, reporting context and a watchboard for
-              the indicators you care about. Publication schedules differ; a recent refresh
-              does not make an older reporting period current.
+              Market signals with observation dates, reporting context and a watchboard for the
+              indicators you care about. Publication schedules differ; a recent refresh does not
+              make an older reporting period current.
             </p>
           </div>
           <div className="flex items-center gap-2 bs-label mt-2">
@@ -179,12 +232,18 @@ export default function SignalsPage() {
         </div>
       </header>
 
-
       {(snapshotId !== null || requestedMetricKey !== null) && !requestedHero && (
-        <div role="status" className="rule-hair rule-hair-b py-3 mt-5 text-sm text-[var(--color-fg-muted)]">
-          {shared.isError ? "The shared observation could not be retrieved. Try reloading this page."
-            : "That shared observation is unavailable."} No newer value or different signal has been substituted.
-          <Link href="/signals" className="bs-link block mt-2">Open the latest Signals board</Link>
+        <div
+          role="status"
+          className="rule-hair rule-hair-b py-3 mt-5 text-sm text-[var(--color-fg-muted)]"
+        >
+          {shared.isError
+            ? "The shared observation could not be retrieved. Try reloading this page."
+            : "That shared observation is unavailable."}{" "}
+          No newer value or different signal has been substituted.
+          <Link href="/signals" className="bs-link block mt-2">
+            Open the latest Signals board
+          </Link>
         </div>
       )}
 
@@ -192,27 +251,41 @@ export default function SignalsPage() {
         <section className="grid lg:grid-cols-[minmax(0,1.35fr)_1px_minmax(280px,0.65fr)] mt-10">
           <div className="lg:pr-12 min-w-0">
             <p className="bs-label-accent">
-              {requestedHero ? `Shared signal · ${chartView ? "The Chart" : "The Number"}` : "The Number"}
+              {requestedHero
+                ? `Shared signal · ${chartView ? "The Chart" : "The Number"}`
+                : "The Number"}
             </p>
             <div className="flex flex-wrap items-end gap-x-5 gap-y-2 mt-3">
               <p
                 className="font-serif font-bold tabular-nums"
-                style={{ fontSize: "clamp(64px, 11vw, 144px)", lineHeight: 0.78, letterSpacing: "-0.055em" }}
+                style={{
+                  fontSize: "clamp(4rem, 11vw, 9rem)",
+                  lineHeight: 0.78,
+                  letterSpacing: "-0.055em",
+                }}
               >
                 {displayValue(hero.metric)}
               </p>
               {snapshotId === null && hero.move != null && (
-                <p className="font-mono text-[13px] pb-2 text-[var(--color-accent-text)]">
-                  {moveLabel(hero.move)} across recorded history
+                <p className="font-mono text-[0.8125rem] pb-2 text-[var(--color-accent-text)]">
+                  {historyChange(hero.metric, hero.series)}
                 </p>
               )}
             </div>
-            <h2 className="font-serif font-bold mt-7" style={{ fontSize: 34, lineHeight: 1.08 }}>
+            <h2
+              className="font-serif font-bold mt-7"
+              style={{ fontSize: "2.125rem", lineHeight: 1.08 }}
+            >
               {hero.metric.label}
             </h2>
             {hero.metric.source && <p className="bs-label mt-3">Source: {hero.metric.source}</p>}
             <SignalObservation observation={hero.observation} />
-            {snapshotId !== null && <p className="mt-3 text-sm text-[var(--color-fg-muted)]">Saved shared observation. Its value, source and recorded history are preserved from the original share.</p>}
+            {snapshotId !== null && (
+              <p className="mt-3 text-sm text-[var(--color-fg-muted)]">
+                Saved shared observation. Its value, source and recorded history are preserved from
+                the original share.
+              </p>
+            )}
             {snapshotId !== null && frozen?.move && <p className="mt-2 text-sm">{frozen.move}</p>}
             {hero.metric.context && (
               <p className="font-serif mt-3 max-w-[58ch] text-xl leading-8 text-[var(--color-fg-body)]">
@@ -224,12 +297,15 @@ export default function SignalsPage() {
               <SignalTrendFigure
                 label={hero.metric.label}
                 series={hero.series}
-                move={hero.move}
+                change={historyChange(hero.metric, hero.series)}
               />
             )}
 
             <div className="flex flex-wrap items-center gap-3 mt-6">
-              <ShareSignalCardButton metricKey={hero.metric.metricKey} snapshot={snapshotId ?? undefined} />
+              <ShareSignalCardButton
+                metricKey={hero.metric.metricKey}
+                snapshot={snapshotId ?? undefined}
+              />
               {hero.series.length >= 2 && (
                 <ShareMetricCardButton
                   metricKey={hero.metric.metricKey}
@@ -238,17 +314,25 @@ export default function SignalsPage() {
                   canChart
                 />
               )}
-              {snapshotId === null && <WatchButton
-                watched={watchlist.some((watch) => watch.metricKey === hero.metric.metricKey)}
-                onClick={() => toggleWatch(hero)}
-              />}
-              <Link href={metricObservationAskHref(hero.metric, displayValue(hero.metric))} className="bs-btn bs-btn-outline">
+              {snapshotId === null && (
+                <WatchButton
+                  watched={watchlist.some((watch) => watch.metricKey === hero.metric.metricKey)}
+                  onClick={() => toggleWatch(hero)}
+                />
+              )}
+              <Link
+                href={metricObservationAskHref(hero.metric, displayValue(hero.metric))}
+                className="bs-btn bs-btn-outline"
+              >
                 Ask what it means
               </Link>
               {requestedHero && hero.series.length >= 2 && (
                 <Link
-                  href={snapshotId !== null ? signalSharePath(hero.metric.metricKey, snapshotId, !chartView)
-                    : `/signals?metric=${encodeURIComponent(hero.metric.metricKey)}${chartView ? "" : "&view=chart"}`}
+                  href={
+                    snapshotId !== null
+                      ? signalSharePath(hero.metric.metricKey, snapshotId, !chartView)
+                      : `/signals?metric=${encodeURIComponent(hero.metric.metricKey)}${chartView ? "" : "&view=chart"}`
+                  }
                   className="bs-btn bs-btn-outline inline-flex items-center gap-2"
                 >
                   <LineChart className="h-3.5 w-3.5" />
@@ -267,16 +351,19 @@ export default function SignalsPage() {
                 <p className="font-serif mt-3 text-2xl leading-9 text-[var(--color-fg-body)]">
                   {shownTake}
                 </p>
-                {shownEdition && <Link
-                  href={`/editions/${shownEdition}`}
-                  className="bs-label bs-link mt-5 inline-block"
-                >
-                  Edition {shownEdition} →
-                </Link>}
+                {shownEdition && (
+                  <Link
+                    href={`/editions/${shownEdition}`}
+                    className="bs-label bs-link mt-5 inline-block"
+                  >
+                    Edition {shownEdition} →
+                  </Link>
+                )}
               </>
             ) : (
               <p className="mt-3 text-[var(--color-fg-muted)]">
-                {snapshotId !== null ? "No editorial take was attached to this shared observation."
+                {snapshotId !== null
+                  ? "No editorial take was attached to this shared observation."
                   : "The latest editorial take will appear here with the next published edition."}
               </p>
             )}
@@ -288,12 +375,15 @@ export default function SignalsPage() {
         <div className="flex flex-wrap items-baseline justify-between gap-4">
           <div>
             <p className="bs-label-accent">In motion</p>
-            <h2 className="font-serif font-bold mt-2" style={{ fontSize: 38, lineHeight: 1 }}>
+            <h2
+              className="font-serif font-bold mt-2"
+              style={{ fontSize: "2.375rem", lineHeight: 1 }}
+            >
               {snapshotId !== null ? "Latest market board" : "The market board"}
             </h2>
           </div>
           <Link href="/trends" className="bs-label bs-link">
-            Full 30-day charts →
+            Charts and stored history →
           </Link>
         </div>
 
@@ -325,7 +415,7 @@ export default function SignalsPage() {
                 </p>
                 <div className="flex sm:justify-end items-center gap-1.5 font-mono text-xs text-[var(--color-fg-muted)]">
                   {row.move != null && <MoveIcon className="h-3.5 w-3.5" />}
-                  {moveLabel(row.move)}
+                  {historyChange(row.metric, row.series)}
                 </div>
                 <WatchButton watched={watched} compact onClick={() => toggleWatch(row)} />
               </div>
@@ -338,7 +428,10 @@ export default function SignalsPage() {
         <div className="flex flex-wrap items-baseline justify-between gap-4">
           <div>
             <p className="bs-label-accent">Watchboard</p>
-            <h2 className="font-serif font-bold mt-2" style={{ fontSize: 38, lineHeight: 1 }}>
+            <h2
+              className="font-serif font-bold mt-2"
+              style={{ fontSize: "2.375rem", lineHeight: 1 }}
+            >
               Your watched signals
             </h2>
           </div>
@@ -358,7 +451,12 @@ export default function SignalsPage() {
             {watchedRows.map(({ watch, row }, index) => {
               const current = parseDisplayNumber(row.metric.value);
               const sinceWatch =
-                watch.baseline != null && current != null ? pctMove(watch.baseline, current) : null;
+                watch.baseline != null && current != null
+                  ? historyChange(row.metric, [
+                      { value: watch.baseline, recordedAt: new Date(watch.startedAt) },
+                      { value: current, recordedAt: new Date(row.metric.updatedAt) },
+                    ])
+                  : null;
               return (
                 <div
                   key={watch.metricKey}
@@ -380,13 +478,20 @@ export default function SignalsPage() {
                   >
                     {row.metric.label}
                   </Link>
-                  <p className="font-serif font-bold tabular-nums mt-2" style={{ fontSize: 42, lineHeight: 1 }}>
+                  <p
+                    className="font-serif font-bold tabular-nums mt-2"
+                    style={{ fontSize: "2.625rem", lineHeight: 1 }}
+                  >
                     {displayValue(row.metric)}
                   </p>
                   <SignalObservation observation={row.observation} />
                   <p className="font-mono text-xs mt-3 text-[var(--color-fg-muted)]">
-                    Started {new Date(watch.startedAt).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
-                    {sinceWatch != null ? ` · ${moveLabel(sinceWatch)} since watch` : ""}
+                    Started{" "}
+                    {new Date(watch.startedAt).toLocaleDateString("en-AU", {
+                      day: "numeric",
+                      month: "short",
+                    })}
+                    {sinceWatch != null ? ` · ${sinceWatch}` : ""}
                   </p>
                   <p className="text-sm mt-2 text-[var(--color-fg-muted)]">
                     Baseline {watch.baselineDisplay}
@@ -406,11 +511,11 @@ export default function SignalsPage() {
 function SignalTrendFigure({
   label,
   series,
-  move,
+  change,
 }: {
   label: string;
   series: Array<{ value: number; recordedAt: Date }>;
-  move: number | null;
+  change: string;
 }) {
   const values = series.map((point) => point.value);
   const min = Math.min(...values);
@@ -421,7 +526,11 @@ function SignalTrendFigure({
   const pad = 8;
   const points = values
     .map((value, index) => {
-      const x = pad + (values.length === 1 ? (width - pad * 2) / 2 : (index / (values.length - 1)) * (width - pad * 2));
+      const x =
+        pad +
+        (values.length === 1
+          ? (width - pad * 2) / 2
+          : (index / (values.length - 1)) * (width - pad * 2));
       const y = pad + (1 - (value - min) / span) * (height - pad * 2);
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     })
@@ -430,16 +539,26 @@ function SignalTrendFigure({
     ? new Date(series[0].recordedAt).toLocaleDateString("en-AU", { day: "numeric", month: "short" })
     : "Start";
   const lastDate = series[series.length - 1]?.recordedAt
-    ? new Date(series[series.length - 1]!.recordedAt).toLocaleDateString("en-AU", { day: "numeric", month: "short" })
+    ? new Date(series[series.length - 1]!.recordedAt).toLocaleDateString("en-AU", {
+        day: "numeric",
+        month: "short",
+      })
     : "Now";
 
   return (
     <figure className="rule-hair rule-hair-b mt-7 py-5" aria-label={`${label}, recorded trend`}>
       <div className="flex items-center justify-between gap-4 mb-3">
-        <p className="bs-label-accent">The Chart · 30-day direction</p>
-        <p className="bs-label">{moveLabel(move)} · {series.length} points</p>
+        <p className="bs-label-accent">The Chart · stored observations</p>
+        <p className="bs-label">
+          {change} · {series.length} points
+        </p>
       </div>
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto" role="img" aria-label={`${label} trend line`}>
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="w-full h-auto"
+        role="img"
+        aria-label={`${label} trend line`}
+      >
         <line
           x1={pad}
           y1={height - pad}

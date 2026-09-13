@@ -1,3 +1,4 @@
+import { formatMetricValue, metricTiming } from "@shared/metricPresentation";
 import { preferenceStorage } from "@/lib/storage";
 /**
  * The numbers, in broadsheet dress.
@@ -50,19 +51,18 @@ function useMetricTiles(): { tiles: MetricTile[]; isLoading: boolean } {
     const histories = historiesQuery.data;
     return (metricsQuery.data ?? []).map((m: DailyMetric): MetricTile => {
       const suffix = m.unit ?? "";
-      const value = suffix ? `${m.value}${suffix}` : m.value;
-      const prior = m.previousValue != null ? `${m.previousValue}${suffix}` : null;
-      const { delta, hasDelta, trend, sentiment } = resolveMetricTrend(
-        m.label,
-        value,
-        prior
-      );
+      const value = formatMetricValue(m);
+      const prior =
+        m.previousValue != null
+          ? formatMetricValue({ value: m.previousValue, unit: suffix })
+          : null;
+      const { delta, hasDelta, trend, sentiment } = resolveMetricTrend(m.label, value, prior);
       return {
         metricKey: m.metricKey,
         label: m.label,
         value,
         prior,
-        context: m.context ?? null,
+        context: `${metricTiming(m)}${m.context ? `. ${m.context}` : ""}`,
         history: histories?.[m.metricKey]?.map((p) => p.value) ?? [],
         delta,
         hasDelta,
@@ -78,20 +78,6 @@ function useMetricTiles(): { tiles: MetricTile[]; isLoading: boolean } {
 /** The cash-rate tile, if the ingest has produced one. */
 function useCashRate(tiles: MetricTile[]): MetricTile | undefined {
   return useMemo(() => tiles.find((t) => /cash rate/i.test(t.label)), [tiles]);
-}
-
-function DeltaChip({ tile }: { tile: MetricTile }) {
-  if (!tile.hasDelta || tile.trend === "flat") return null;
-  const arrow = tile.trend === "up" ? "▲" : "▼";
-  return (
-    <span
-      className="font-mono tabular-nums shrink-0"
-      style={{ fontSize: 11, color: `var(--sentiment-${tile.sentiment})` }}
-      aria-label={`${tile.trend} versus prior`}
-    >
-      {arrow} {Math.abs(tile.delta).toFixed(Math.abs(tile.delta) < 1 ? 2 : 2)}
-    </span>
-  );
 }
 
 /** The 40px chart under a metric value: bars or a line, by metric shape. */
@@ -138,11 +124,11 @@ export function WhereThingsStand({ limit = 4 }: { limit?: number }) {
   return (
     <section className={cn(GUTTER_X, "rule-major mt-11 pt-7")} aria-label="Where things stand">
       <div className="flex items-baseline justify-between gap-4 flex-wrap mb-6">
-        <h2 className="font-serif font-bold" style={{ fontSize: 34, lineHeight: 1.06 }}>
+        <h2 className="font-serif font-bold" style={{ fontSize: "2.125rem", lineHeight: 1.06 }}>
           Where things stand
         </h2>
         <div className="flex items-baseline gap-5">
-          <p className="bs-label">Refreshed daily · 7am AEST</p>
+          <p className="bs-label">Dated observations · release schedules vary</p>
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
@@ -167,17 +153,16 @@ export function WhereThingsStand({ limit = 4 }: { limit?: number }) {
                 i < shown.length - 1 && "lg:pr-7"
               )}
             >
-              <p className="bs-label truncate" style={{ letterSpacing: "0.18em" }} title={tile.label}>
+              <p className="bs-label" style={{ letterSpacing: "0.18em" }} title={tile.label}>
                 {tile.label}
               </p>
               <div className="flex items-baseline gap-2.5 mt-2">
                 <p
                   className="font-serif font-bold tabular-nums"
-                  style={{ fontSize: 40, lineHeight: 1 }}
+                  style={{ fontSize: "2.5rem", lineHeight: 1 }}
                 >
                   {tile.value}
                 </p>
-                <DeltaChip tile={tile} />
               </div>
               <div className="mt-2.5">
                 <TileChart tile={tile} />
@@ -185,7 +170,7 @@ export function WhereThingsStand({ limit = 4 }: { limit?: number }) {
               {tile.context && (
                 <p
                   className="font-mono mt-2 text-[var(--color-fg-subtle)]"
-                  style={{ fontSize: 10, lineHeight: 1.5 }}
+                  style={{ fontSize: "0.75rem", lineHeight: 1.5 }}
                 >
                   {tile.context}
                 </p>
@@ -245,7 +230,10 @@ export function CashRatePanel({
           {cashRate.value}
         </p>
         {cashRate.context && (
-          <p className="bs-label mb-2 max-w-[16ch]" style={{ letterSpacing: "0.14em", lineHeight: 1.5 }}>
+          <p
+            className="bs-label mb-2 max-w-[16ch]"
+            style={{ letterSpacing: "0.14em", lineHeight: 1.5 }}
+          >
             {cashRate.context}
           </p>
         )}
@@ -291,15 +279,15 @@ export function MetricRows({ limit = 4 }: { limit?: number }) {
             i === rows.length - 1 && "rule-hair-b"
           )}
         >
-          <span className="bs-label truncate" style={{ letterSpacing: "0.16em" }}>
+          <span className="bs-label" style={{ letterSpacing: "0.16em" }}>
             {tile.label}
           </span>
-          <span className="font-serif tabular-nums shrink-0" style={{ fontSize: 20 }}>
+          <span className="font-serif tabular-nums shrink-0" style={{ fontSize: "1.25rem" }}>
             {tile.value}{" "}
             {tile.hasDelta && tile.trend !== "flat" && (
               <span
                 className="font-mono"
-                style={{ fontSize: 10, color: `var(--sentiment-${tile.sentiment})` }}
+                style={{ fontSize: "0.75rem", color: `var(--sentiment-${tile.sentiment})` }}
               >
                 {tile.trend === "up" ? "▲" : "▼"}
               </span>

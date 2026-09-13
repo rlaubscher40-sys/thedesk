@@ -68,7 +68,7 @@ export function LaneNav({
 
   const labelStyle: React.CSSProperties = {
     fontFamily: "var(--font-mono)",
-    fontSize: 11,
+    fontSize: "0.75rem",
     letterSpacing: "0.2em",
     textTransform: "uppercase",
   };
@@ -94,7 +94,7 @@ export function LaneNav({
                 tabIndex={active ? 0 : -1}
                 onClick={() => onChannelChange(id)}
                 title={FEED_CHANNEL_LABELS[id]}
-                className="bs-link shrink-0 whitespace-nowrap pb-3"
+                className="bs-link shrink-0 whitespace-nowrap min-h-11 pb-3"
                 style={{
                   ...labelStyle,
                   color: active ? "var(--color-fg)" : "var(--color-fg-muted)",
@@ -107,15 +107,15 @@ export function LaneNav({
               </button>
             );
           })}
-          <Link
-            href="/editions"
-            className="bs-link shrink-0 whitespace-nowrap pb-3"
-            style={{ ...labelStyle, color: "var(--color-fg-muted)" }}
-          >
-            Editions
-          </Link>
         </div>
 
+        <Link
+          href="/editions"
+          className="bs-link shrink-0 whitespace-nowrap min-h-11 pb-3"
+          style={{ ...labelStyle, color: "var(--color-fg-muted)" }}
+        >
+          Editions
+        </Link>
         <AngledFor className="hidden md:flex pb-3 shrink-0" />
       </div>
     </div>
@@ -168,7 +168,7 @@ function AngledFor({ className }: { className?: string }) {
 
   return (
     <div ref={wrapRef} className={cn("relative items-center gap-2", className)}>
-      <span className="bs-label" style={{ fontSize: 11 }}>
+      <span className="bs-label" style={{ fontSize: "0.75rem" }}>
         Angled for
       </span>
       <button
@@ -179,7 +179,7 @@ function AngledFor({ className }: { className?: string }) {
         className="bs-link"
         style={{
           fontFamily: "var(--font-mono)",
-          fontSize: 11,
+          fontSize: "0.75rem",
           letterSpacing: "0.2em",
           textTransform: "uppercase",
           color: "var(--color-fg)",
@@ -215,7 +215,7 @@ function AngledFor({ className }: { className?: string }) {
                 className="bs-row flex items-center gap-2.5 px-4 py-3 text-left rule-hair first:border-t-0"
                 style={{
                   fontFamily: "var(--font-mono)",
-                  fontSize: 10,
+                  fontSize: "0.75rem",
                   letterSpacing: "0.16em",
                   textTransform: "uppercase",
                   color: active ? "var(--color-fg)" : "var(--color-fg-muted)",
@@ -266,7 +266,7 @@ export function AngledForChips() {
         "no-scrollbar rule-hair-b md:hidden flex items-center gap-2 overflow-x-auto py-2"
       )}
     >
-      <span className="bs-label shrink-0" style={{ fontSize: 9.5 }}>
+      <span className="bs-label shrink-0" style={{ fontSize: "0.75rem" }}>
         Angled for
       </span>
       <div
@@ -291,7 +291,7 @@ export function AngledForChips() {
               )}
               style={{
                 fontFamily: "var(--font-mono)",
-                fontSize: 9.5,
+                fontSize: "0.75rem",
                 letterSpacing: "0.14em",
                 textTransform: "uppercase",
                 minHeight: 44,

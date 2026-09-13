@@ -48,7 +48,7 @@ export const DialogContent = forwardRef<
         {!hideClose && (
           <DialogPrimitive.Close
             aria-label="Close"
-            className="absolute right-3 top-3 rounded p-1 text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] hover:bg-white/5"
+            className="absolute right-3 top-3 rounded min-h-11 min-w-11 flex items-center justify-center text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] hover:bg-white/5"
           >
             <X className="h-4 w-4" />
           </DialogPrimitive.Close>

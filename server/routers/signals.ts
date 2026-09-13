@@ -1,3 +1,4 @@
+import { formatMetricValue, historyChange } from "../../shared/metricPresentation";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { consumeAnonymousCard } from "../core/askQuota";
@@ -6,33 +7,6 @@ import { renderSignalCard } from "../core/publicRender";
 import { publicProcedure, router } from "../core/trpc";
 import { signalSharePath, signalSnapshotId } from "../../shared/signalSnapshot";
 import { loadSharedSignal } from "../metrics/sharedSignal";
-
-function displayValue(value: string, unit: string | null): string {
-  const cleanValue = value.trim();
-  const cleanUnit = unit?.trim();
-  if (!cleanUnit) return cleanValue;
-  if (cleanUnit === "%" && cleanValue.includes("%")) return cleanValue;
-  if (cleanUnit === "$" && cleanValue.startsWith("$")) return cleanValue;
-  if (["%", "°", "x"].includes(cleanUnit)) return `${cleanValue}${cleanUnit}`;
-  if (cleanUnit === "$") return `$${cleanValue}`;
-  return `${cleanValue} ${cleanUnit}`;
-}
-
-function pctMove(first: number, last: number): number {
-  if (Math.abs(first) < 0.000001) return last - first;
-  return ((last - first) / Math.abs(first)) * 100;
-}
-
-function formatMove(series: Array<{ value: number; recordedAt: Date }>): string | null {
-  if (series.length < 2) return null;
-  const first = series[0]?.value;
-  const last = series[series.length - 1]?.value;
-  if (typeof first !== "number" || typeof last !== "number") return null;
-  const move = pctMove(first, last);
-  if (!Number.isFinite(move)) return null;
-  const sign = move > 0 ? "+" : "";
-  return `${sign}${move.toFixed(Math.abs(move) >= 10 ? 1 : 2)}% across 30-day recorded history`;
-}
 
 function formatAsOf(value: Date): string {
   return new Intl.DateTimeFormat("en-AU", {
@@ -50,7 +24,9 @@ export const signalsRouter = router({
    * Take, so a public caller cannot manufacture a branded statistic or source.
    */
   shareCard: publicProcedure
-    .input(z.object({ metricKey: z.string().min(1).max(64), snapshot: signalSnapshotId.optional() }))
+    .input(
+      z.object({ metricKey: z.string().min(1).max(64), snapshot: signalSnapshotId.optional() })
+    )
     .mutation(async ({ input, ctx }) => {
       if (!ctx.user) {
         const quota = await consumeAnonymousCard(ctx.req);
@@ -69,27 +45,27 @@ export const signalsRouter = router({
         const edition = editions.find((item) => item.rubensTake?.trim());
         snapshot.deskTake = edition?.rubensTake ?? null;
         snapshot.editionNumber = edition?.editionNumber ?? null;
-        snapshot.move = formatMove(snapshot.series);
+        snapshot.move = historyChange(metric, snapshot.series);
       }
 
       try {
         const png = await renderSignalCard({
           label: metric.label,
-          value: displayValue(metric.value, metric.unit),
+          value: formatMetricValue(metric),
           context: metric.context ?? null,
           move: snapshot.move,
           deskTake: snapshot.deskTake,
           source: metric.source ?? null,
           asOf: formatAsOf(metric.asOf),
         });
-        const snapshotId = input.snapshot ?? await db.storeSignalSnapshot(snapshot);
+        const snapshotId = input.snapshot ?? (await db.storeSignalSnapshot(snapshot));
         return {
           mimeType: "image/png" as const,
           filename: "the-desk-the-number.png",
           base64: png.toString("base64"),
           sharePath: signalSharePath(metric.metricKey, snapshotId),
           label: metric.label,
-          value: displayValue(metric.value, metric.unit),
+          value: formatMetricValue(metric),
         };
       } catch (error) {
         console.error("[signals] card render failed", error);

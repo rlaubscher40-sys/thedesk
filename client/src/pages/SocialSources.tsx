@@ -1,3 +1,4 @@
+import { PublishedPostGallery } from "@/components/PublishedPostGallery";
 import { NewLoanRatesRead } from "@shared/NewLoanRatesRead";
 import { SocialStart } from "@/components/SocialStart";
 import { SubscribeBand } from "@/components/broadsheet/SubscribeBand";
@@ -19,6 +20,7 @@ export default function SocialSources() {
   return (
     <>
       <h1 className="font-serif text-4xl sm:text-5xl">From the post to the evidence.</h1>
+      <PublishedPostGallery />
       <SocialStart />
       <section
         id="capital-rents"

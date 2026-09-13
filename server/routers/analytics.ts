@@ -1,3 +1,4 @@
+import { webVitalSummary } from "../db/webVitals";
 /**
  * Admin-only analytics router.
  *
@@ -21,6 +22,7 @@ const windowSchema = z
   .optional();
 
 export const analyticsRouter = router({
+  vitals: adminProcedure.query(() => webVitalSummary()),
   social: adminProcedure
     .input(windowSchema)
     .query(({ input }) => db.socialPerformance(input?.hours ?? 24 * 28)),

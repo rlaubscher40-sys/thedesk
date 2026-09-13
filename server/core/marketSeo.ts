@@ -27,6 +27,27 @@ import { injectMeta } from "./seo";
 import { siteUrl } from "./siteUrl";
 import { withNoindex } from "./spaShell";
 
+async function directoryForDocument(): Promise<MarketDirectory> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      getMarketDirectory(),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("Market document deadline")), 6000);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+async function unavailableMarketShell(shellPath: string): Promise<string> {
+  const shell = withNoindex(await fs.promises.readFile(shellPath, "utf8"));
+  return shell.replace(
+    '<div id="root"></div>',
+    '<div id="root"><main style="max-width:52rem;margin:3rem auto;padding:1.5rem"><h1>Market evidence is taking longer to load</h1><p>The page will retry as it opens. You can also <a href="">try again</a>, use <a href="/markets">market search</a> or return to <a href="/">Today</a>.</p></main></div>'
+  );
+}
+
 export function marketCardInput(file: PublicMarketFile): DeskTakeCardInput {
   const lead = file.references[0];
   const rent = latestRent(file.rents, file.market.name);
@@ -122,7 +143,7 @@ export function registerMarketSeoRoutes(app: Express): void {
     try {
       const [shell, directory] = await Promise.all([
         fs.promises.readFile(shellPath, "utf8"),
-        getMarketDirectory(),
+        directoryForDocument(),
       ]);
       res
         .set("Cache-Control", "public, max-age=60")
@@ -134,7 +155,7 @@ export function registerMarketSeoRoutes(app: Express): void {
         .set("Retry-After", "60")
         .status(503)
         .type("html")
-        .send('<h1>Comparison temporarily unavailable</h1><a href="/markets">Back to Markets</a>');
+        .send(await unavailableMarketShell(shellPath));
     }
   });
   app.get(FEATURED_COMPARISON_CARD, async (_req, res) => {
@@ -169,7 +190,7 @@ export function registerMarketSeoRoutes(app: Express): void {
       try {
         const [shell, directory] = await Promise.all([
           fs.promises.readFile(shellPath, "utf8"),
-          getMarketDirectory(),
+          directoryForDocument(),
         ]);
         const file = directory.markets.find((item) => item.market.slug === slug);
         if (!file) {
@@ -185,9 +206,7 @@ export function registerMarketSeoRoutes(app: Express): void {
         res
           .status(503)
           .type("html")
-          .send(
-            '<!doctype html><html lang="en"><head><title>Market file temporarily unavailable | The Desk</title></head><body><h1>Market file temporarily unavailable</h1><p>Please try again shortly.</p><a href="/markets">Back to Markets</a></body></html>'
-          );
+          .send(await unavailableMarketShell(shellPath));
       }
     }
   );

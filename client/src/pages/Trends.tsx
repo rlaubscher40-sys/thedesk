@@ -1,3 +1,4 @@
+import { Link } from "wouter";
 import { ConnectionNotice } from "@/components/ConnectionNotice";
 /**
  * Trends — the numbers, in broadsheet dress.
@@ -42,29 +43,39 @@ export default function TrendsPage() {
   const heatQuery = trpc.trends.categoryHeat.useQuery({ days: 30 });
   const signalQuery = trpc.trends.signalFrequency.useQuery({ editionLimit: 8 });
 
-  const heroLoading =
-    metricsQuery.isLoading || historiesQuery.isLoading || editionsQuery.isLoading;
+  const heroLoading = metricsQuery.isLoading || historiesQuery.isLoading || editionsQuery.isLoading;
   const gridLoading = metricsQuery.isLoading || historiesQuery.isLoading;
   const metricCount = metricsQuery.data?.length ?? 0;
 
   return (
     <div>
+      <nav aria-label="Data views" className={`${GUTTER_X} flex gap-5 pt-5 text-sm`}>
+        <Link href="/signals" className="bs-link min-h-11 py-3">
+          Observations
+        </Link>
+        <Link href="/trends" aria-current="page" className="bs-link min-h-11 py-3">
+          Charts and history
+        </Link>
+      </nav>
       <PageTitle
         kicker="The Desk · Trends"
         title="The numbers"
         standfirst="What's moving, what isn't, and where the conversations are concentrating."
         stats={[
-          ...(metricCount > 0
-            ? [{ label: "Live metrics", value: String(metricCount) }]
-            : []),
+          ...(metricCount > 0 ? [{ label: "Recorded metrics", value: String(metricCount) }] : []),
           { label: "History", value: "30 days" },
         ]}
       />
 
-      {(metricsQuery.isError || historiesQuery.isError) && <ConnectionNotice
-        retry={() => { void metricsQuery.refetch(); void historiesQuery.refetch(); }}
-        retrying={metricsQuery.isFetching || historiesQuery.isFetching}
-      />}
+      {(metricsQuery.isError || historiesQuery.isError) && (
+        <ConnectionNotice
+          retry={() => {
+            void metricsQuery.refetch();
+            void historiesQuery.refetch();
+          }}
+          retrying={metricsQuery.isFetching || historiesQuery.isFetching}
+        />
+      )}
 
       <SectionErrorBoundary section="The Month in Numbers">
         <MonthInNumbers />
@@ -79,7 +90,10 @@ export default function TrendsPage() {
         />
       </SectionErrorBoundary>
 
-      <SectionHead label="Live metrics · 30-day history" note="Refreshed every 5 min" />
+      <SectionHead
+        label="Metric observations and stored history"
+        note="Source release schedules vary"
+      />
       <div className={GUTTER_X}>
         <SectionErrorBoundary section="Metric index">
           <MetricGroupGrid
@@ -92,10 +106,7 @@ export default function TrendsPage() {
 
       <SectionHead label="Editorial telemetry" />
       <div
-        className={cn(
-          GUTTER_X,
-          "grid gap-y-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] mt-6"
-        )}
+        className={cn(GUTTER_X, "grid gap-y-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] mt-6")}
       >
         <SectionErrorBoundary section="Category heat">
           <div className="lg:pr-9 min-w-0">
@@ -135,9 +146,7 @@ function CategoryHeat({
   data,
   loading,
 }: {
-  data:
-    | Array<{ category: string; total: number; daily: number; weekly: number }>
-    | undefined;
+  data: Array<{ category: string; total: number; daily: number; weekly: number }> | undefined;
   loading: boolean;
 }) {
   if (loading) return <Skeleton className="h-72 w-full rounded-none" />;
@@ -201,11 +210,7 @@ function SignalCadence({
             className="bs-label flex items-center gap-2"
             style={{ color: s.colour }}
           >
-            <span
-              className="h-1.5 w-3"
-              style={{ background: s.colour }}
-              aria-hidden="true"
-            />
+            <span className="h-1.5 w-3" style={{ background: s.colour }} aria-hidden="true" />
             {s.label}
           </span>
         ))}

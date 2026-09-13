@@ -1,3 +1,4 @@
+import { formatMetricValue, metricTiming } from "@shared/metricPresentation";
 import { preferenceStorage } from "@/lib/storage";
 /**
  * Lightweight intelligence alert.
@@ -8,12 +9,10 @@ import { preferenceStorage } from "@/lib/storage";
  * dismissible without adding push infrastructure or background polling.
  */
 import { useEffect, useMemo, useState } from "react";
-import { MoveDownRight, MoveUpRight, Radio, X } from "lucide-react";
+import { MoveDownRight, MoveUpRight, X } from "lucide-react";
 import { Link } from "wouter";
-import { getSydneyIsoDate } from "@/lib/date";
 import { trpc } from "@/lib/trpc";
 
-const STORY_DISMISS_KEY = "thedesk:breaking-dismissed-date";
 const WATCH_KEY = "thedesk:signal-watchlist:v1";
 const WATCH_ALERT_DISMISS_KEY = "thedesk:watch-alert-dismissed:v1";
 const MATERIAL_MOVE_PCT = 0.5;
@@ -58,27 +57,16 @@ function pctMove(first: number, last: number): number {
   return ((last - first) / Math.abs(first)) * 100;
 }
 
-function displayMetric(metric: { value: string; unit?: string | null }): string {
-  const unit = metric.unit?.trim();
-  if (!unit) return metric.value;
-  if (unit === "%" && metric.value.includes("%")) return metric.value;
-  if (unit === "$" && metric.value.startsWith("$")) return metric.value;
-  if (unit === "%") return `${metric.value}%`;
-  if (unit === "$") return `$${metric.value}`;
-  return `${metric.value} ${unit}`;
-}
+const displayMetric = formatMetricValue;
 
 export function BreakingSignalToast() {
-  const today = getSydneyIsoDate();
   const [watchlist, setWatchlist] = useState<WatchRecord[]>([]);
-  const [storyDismissed, setStoryDismissed] = useState(false);
   const [watchDismissedFingerprint, setWatchDismissedFingerprint] = useState<string | null>(null);
 
   useEffect(() => {
     setWatchlist(readWatchlist());
-    setStoryDismissed(preferenceStorage.getItem(STORY_DISMISS_KEY) === today);
     setWatchDismissedFingerprint(preferenceStorage.getItem(WATCH_ALERT_DISMISS_KEY));
-  }, [today]);
+  }, []);
 
   const metrics = trpc.metrics.list.useQuery(undefined, {
     enabled: watchlist.length > 0,
@@ -108,21 +96,20 @@ export function BreakingSignalToast() {
     watchAlert && watchFingerprint && watchFingerprint !== watchDismissedFingerprint
   );
 
-  const { data: items } = trpc.feed.getByDate.useQuery(
-    { date: today },
-    { enabled: !watchVisible && !storyDismissed, staleTime: 60_000 }
-  );
-
   if (watchVisible && watchAlert && watchFingerprint) {
     const rising = watchAlert.move >= 0;
     const Icon = rising ? MoveUpRight : MoveDownRight;
-    const moveText = `${rising ? "+" : ""}${watchAlert.move.toFixed(Math.abs(watchAlert.move) >= 10 ? 1 : 2)}%`;
+    const absolute = watchAlert.current - watchAlert.watch.baseline!;
+    const moveText =
+      watchAlert.metric.unit === "%"
+        ? `${absolute > 0 ? "+" : ""}${Number(absolute.toFixed(3))} percentage points`
+        : `${rising ? "+" : ""}${watchAlert.move.toFixed(2)}%`;
 
     return (
       <div
         role="status"
         aria-label="A watched signal moved materially"
-        className="flex fixed bottom-20 md:bottom-6 left-3 right-3 md:left-auto md:right-6 z-40 md:max-w-sm panel p-4 rounded shadow-xl items-start gap-3"
+        className="flex fixed bottom-[calc(var(--overlay-bottom)+7rem)] left-3 right-3 md:left-auto md:right-6 z-40 md:max-w-sm panel p-4 rounded shadow-xl items-start gap-3"
       >
         <div className="h-7 w-7 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0">
           <Icon className="h-3.5 w-3.5 text-amber-400" />
@@ -138,6 +125,7 @@ export function BreakingSignalToast() {
           <p className="text-xs text-[var(--color-fg-muted)] mt-1.5">
             {moveText} since you started watching at {watchAlert.watch.baselineDisplay}.
           </p>
+          <p className="text-xs mt-2">{metricTiming(watchAlert.metric)}</p>
           {watchAlert.metric.context && (
             <p className="text-xs text-[var(--color-fg-subtle)] mt-1 line-clamp-2">
               {watchAlert.metric.context}
@@ -151,7 +139,7 @@ export function BreakingSignalToast() {
             setWatchDismissedFingerprint(watchFingerprint);
           }}
           aria-label="Dismiss watched signal alert"
-          className="p-1 text-[var(--color-fg-subtle)] hover:text-[var(--color-fg)]"
+          className="min-h-11 min-w-11 flex items-center justify-center text-[var(--color-fg-subtle)] hover:text-[var(--color-fg)]"
         >
           <X className="h-3.5 w-3.5" />
         </button>
@@ -159,40 +147,5 @@ export function BreakingSignalToast() {
     );
   }
 
-  if (storyDismissed) return null;
-  const top = items?.[0];
-  if (!top) return null;
-
-  return (
-    <div
-      role="status"
-      aria-label="Today's top signal"
-      className="hidden md:flex fixed bottom-6 right-6 z-40 max-w-sm panel p-4 rounded shadow-xl items-start gap-3"
-    >
-      <div className="h-7 w-7 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0">
-        <Radio className="h-3.5 w-3.5 text-amber-400" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="overline mb-1">Today's top signal</p>
-        <Link
-          href={`/story/${top.id}`}
-          className="text-sm font-medium leading-snug line-clamp-2 hover:text-amber-300 transition-colors"
-        >
-          {top.title}
-        </Link>
-        <p className="text-xs text-[var(--color-fg-muted)] mt-1 line-clamp-2">{top.summary}</p>
-      </div>
-      <button
-        type="button"
-        onClick={() => {
-          preferenceStorage.setItem(STORY_DISMISS_KEY, today);
-          setStoryDismissed(true);
-        }}
-        aria-label="Dismiss"
-        className="p-1 text-[var(--color-fg-subtle)] hover:text-[var(--color-fg)]"
-      >
-        <X className="h-3.5 w-3.5" />
-      </button>
-    </div>
-  );
+  return null;
 }

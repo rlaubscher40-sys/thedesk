@@ -8,7 +8,7 @@ export default function Terms() {
   return (
     <article className="max-w-[68ch] mx-auto py-10 space-y-6 leading-relaxed">
       <header className="space-y-2">
-        <p className="overline-amber" style={{ letterSpacing: "0.22em", fontSize: "10px" }}>
+        <p className="overline-amber" style={{ letterSpacing: "0.22em", fontSize: "0.75rem" }}>
           The Desk
         </p>
         <h1 className="font-serif text-4xl sm:text-5xl font-bold leading-tight">Terms of use</h1>

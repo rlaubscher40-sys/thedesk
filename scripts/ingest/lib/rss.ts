@@ -1,3 +1,4 @@
+import { editorialCategory } from "../../../shared/editorialCategory";
 import { parseIndexSource } from "./indexSource";
 import { parseNswSource } from "./nswSource";
 import { parseAsicSource } from "./asicSource";
@@ -195,7 +196,7 @@ export function createSourceReader(
           if (!title) return null;
           return {
             source: publisherName(src, it.publisherSource),
-            category: src.category,
+            category: editorialCategory(title, summary, src.category),
             channel: src.channel,
             title,
             summary,

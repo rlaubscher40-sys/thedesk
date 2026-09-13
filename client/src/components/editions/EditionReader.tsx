@@ -26,7 +26,8 @@ import { useCategoryColour } from "@/lib/category";
 import { cn } from "@/lib/cn";
 import { dedash } from "@/lib/dedash";
 import { resolveMetricTrend } from "@/lib/metrics";
-import { EditionAdminPanel } from "./EditionAdminPanel";
+import { Link } from "wouter";
+import { useAuth } from "@/lib/useAuth";
 import { EditorsLetter } from "./EditorsLetter";
 import { ListenButton } from "./ListenButton";
 import { LookbackSection } from "./LookbackSection";
@@ -64,6 +65,7 @@ export function EditionReader({
   /** Prior edition's marketStress, drives the rising/easing badge. */
   priorMarketStress?: string | null;
 }) {
+  const { user } = useAuth();
   const topics = edition.topics ?? [];
   const [lead, ...rest] = topics;
   const audioScript = buildAudioScript(edition);
@@ -79,24 +81,6 @@ export function EditionReader({
           image when synthesis produced one, otherwise a quiet tinted plate —
           no stock-photography stand-in. */}
       <div className={cn(GUTTER_X, "mt-6")}>
-        <div
-          className="w-full overflow-hidden"
-          style={{
-            height: 300,
-            background: edition.heroImageUrl ? undefined : "var(--grad-hero-placeholder)",
-          }}
-        >
-          {edition.heroImageUrl && (
-            <img
-              src={edition.heroImageUrl}
-              alt=""
-              className="h-full w-full object-cover object-center"
-              loading="eager"
-              decoding="async"
-            />
-          )}
-        </div>
-
         <div className="flex items-baseline justify-between gap-5 flex-wrap mt-6">
           <div className="flex items-baseline gap-4">
             <p className="bs-label-accent" style={{ fontSize: 11, letterSpacing: "0.24em" }}>
@@ -263,7 +247,14 @@ export function EditionReader({
 
       <SectionErrorBoundary section="Admin panel">
         <div className={cn(GUTTER_X, "mt-10")}>
-          <EditionAdminPanel edition={edition} />
+          {user?.role === "admin" && (
+            <Link
+              href={`/admin?section=stories&edition=${edition.editionNumber}`}
+              className="bs-btn bs-btn-outline"
+            >
+              Manage this edition
+            </Link>
+          )}
         </div>
       </SectionErrorBoundary>
     </article>

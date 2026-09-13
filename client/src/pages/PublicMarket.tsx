@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams } from "wouter";
+import { Link, useParams } from "wouter";
 import { PublicMarketRead } from "@shared/PublicMarketRead";
 import { latestRent } from "@shared/cityRents";
 import { marketPath, publicMarket } from "@shared/marketDirectory";
@@ -33,6 +33,12 @@ export default function PublicMarketPage() {
         <button className="bs-btn bs-btn-outline mt-5" onClick={() => void query.refetch()}>
           Try again
         </button>
+        <Link href="/markets" className="bs-btn bs-btn-outline mt-5 ml-3">
+          Search other markets
+        </Link>
+        <Link href="/" className="bs-link block mt-4">
+          Read today’s reporting →
+        </Link>
       </section>
     );
   if (!query.data) return null;

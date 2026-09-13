@@ -1,3 +1,4 @@
+import { formatMetricValue, hasDailyObservations } from "@shared/metricPresentation";
 /**
  * "In motion" — the Trends page lede, as three hairline-divided columns:
  * the biggest 7-day movers (computed from daily_metric_history), the
@@ -52,6 +53,7 @@ function pickMovers(
   const cutoff = Date.now() - lookbackDays * 86_400_000;
   const candidates: Mover[] = [];
   for (const m of metrics) {
+    if (!hasDailyObservations(m.metricKey)) continue;
     const series = histories[m.metricKey] ?? [];
     if (series.length < 2) continue;
     const recent = series.filter((p) => new Date(p.recordedAt).getTime() >= cutoff);
@@ -60,6 +62,7 @@ function pickMovers(
     const latest = recent[recent.length - 1]!.value;
     if (earliest === 0) continue;
     const pctChange = ((latest - earliest) / Math.abs(earliest)) * 100;
+    if (latest === earliest) continue;
     candidates.push({
       metricKey: m.metricKey,
       label: m.label,
@@ -129,11 +132,11 @@ function MoversBlock({ movers }: { movers: Mover[] }) {
   return (
     <div>
       <p className="bs-label" style={{ letterSpacing: "0.22em" }}>
-        In motion · 7 days
+        Daily observations · last 7 days
       </p>
       {movers.length === 0 ? (
-        <p className="mt-4 text-[var(--color-fg-muted)]" style={{ fontSize: 15 }}>
-          Sparkline history will populate as the daily ingest runs.
+        <p className="mt-4 text-[var(--color-fg-muted)]" style={{ fontSize: "0.9375rem" }}>
+          No changed daily observations in this stored window. Check the dated figures below.
         </p>
       ) : (
         <div className="mt-3">
@@ -162,22 +165,22 @@ function MoverRow({ mover, last }: { mover: Mover; last: boolean }) {
       )}
     >
       <div className="min-w-0">
-        <p className="truncate" style={{ fontSize: 15 }} title={mover.label}>
+        <p className="break-words" style={{ fontSize: "0.9375rem" }} title={mover.label}>
           {mover.label}
         </p>
         <p className="bs-label mt-1 tabular-nums" style={{ letterSpacing: "0.1em" }}>
-          {mover.value}
-          {mover.unit ?? ""}
+          {formatMetricValue(mover)}
         </p>
       </div>
       <MetricSparkline values={mover.history} sentiment={sentiment} height={22} />
       <span
         className="font-mono tabular-nums shrink-0"
-        style={{ color: `var(--sentiment-${sentiment})`, fontSize: 11 }}
+        style={{ color: `var(--sentiment-${sentiment})`, fontSize: "0.75rem" }}
       >
-        {direction === "up" ? "▲" : direction === "down" ? "▼" : "—"}{" "}
-        {mover.pctChange > 0 ? "+" : ""}
-        {mover.pctChange.toFixed(Math.abs(mover.pctChange) < 1 ? 2 : 1)}%
+        {direction === "up" ? "▲" : direction === "down" ? "▼" : "—"} {mover.delta > 0 ? "+" : ""}
+        {mover.unit === "%"
+          ? `${Number(mover.delta.toFixed(3))} pp`
+          : `${mover.pctChange.toFixed(2)}%`}
       </span>
     </div>
   );
@@ -204,14 +207,14 @@ function StressBlock({
         />
         <p
           className="font-serif font-bold"
-          style={{ fontSize: 30, lineHeight: 1, color: meta.colour }}
+          style={{ fontSize: "1.875rem", lineHeight: 1, color: meta.colour }}
         >
           {meta.label}
         </p>
       </div>
       <p
         className="mt-3 text-[var(--color-fg-muted)]"
-        style={{ fontSize: 14, lineHeight: 1.55 }}
+        style={{ fontSize: "0.875rem", lineHeight: 1.55 }}
       >
         {meta.description}
       </p>
@@ -274,7 +277,7 @@ function DatesBlock({
         Dates to watch
       </p>
       {dates.length === 0 ? (
-        <p className="mt-4 text-[var(--color-fg-muted)]" style={{ fontSize: 15 }}>
+        <p className="mt-4 text-[var(--color-fg-muted)]" style={{ fontSize: "0.9375rem" }}>
           Forward calendar fills out once the next weekly edition lands.
         </p>
       ) : (
@@ -290,7 +293,7 @@ function DatesBlock({
               <span
                 className="font-mono uppercase tabular-nums"
                 style={{
-                  fontSize: 11,
+                  fontSize: "0.75rem",
                   letterSpacing: "0.14em",
                   color: "var(--color-accent-text)",
                 }}
@@ -299,7 +302,7 @@ function DatesBlock({
               </span>
               <p
                 className="text-[var(--color-fg-muted)]"
-                style={{ fontSize: 14, lineHeight: 1.5 }}
+                style={{ fontSize: "0.875rem", lineHeight: 1.5 }}
               >
                 {d.description}
               </p>

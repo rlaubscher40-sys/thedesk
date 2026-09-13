@@ -53,7 +53,7 @@ export function StoryColumns({ items }: { items: DailyFeedItem[] }) {
               <h2
                 className="font-serif font-bold mt-2"
                 style={{
-                  fontSize: "clamp(30px, 4vw, 48px)",
+                  fontSize: "clamp(1.875rem, 4vw, 3rem)",
                   lineHeight: 0.98,
                   letterSpacing: "-0.035em",
                 }}
@@ -70,15 +70,12 @@ export function StoryColumns({ items }: { items: DailyFeedItem[] }) {
             {counterpoints.map((item, index) => (
               <article
                 key={`counterpoint-${item.id}`}
-                className={cn(
-                  "py-4 lg:py-2 lg:pr-7",
-                  index > 0 && "lg:rule-hair-l lg:pl-7"
-                )}
+                className={cn("py-4 lg:py-2 lg:pr-7", index > 0 && "lg:rule-hair-l lg:pl-7")}
               >
                 <p className="bs-label-accent">{item.category}</p>
                 <p
                   className="font-serif mt-2.5 text-[var(--color-fg-body)]"
-                  style={{ fontSize: "clamp(20px, 2vw, 25px)", lineHeight: 1.32 }}
+                  style={{ fontSize: "clamp(1.25rem, 2vw, 1.5625rem)", lineHeight: 1.32 }}
                 >
                   {dedash(item.counterpoint?.trim() ?? "")}
                 </p>
@@ -132,7 +129,7 @@ function StoryColumn({ item, className }: { item: DailyFeedItem; className?: str
         <StoryImage seed={item.id} category={item.category} alt="" aspect="3 / 2" />
         <p
           className="font-mono uppercase mt-4"
-          style={{ fontSize: 10, letterSpacing: "0.18em", color: colourFor(item.category) }}
+          style={{ fontSize: "0.75rem", letterSpacing: "0.18em", color: colourFor(item.category) }}
         >
           {item.category}
           {item.source ? ` · ${item.source}` : ""} · {readingMinutes(item)} min
@@ -140,7 +137,7 @@ function StoryColumn({ item, className }: { item: DailyFeedItem; className?: str
         <h3
           className="font-serif font-bold mt-2.5"
           style={{
-            fontSize: "clamp(22px, 2.2vw, 28px)",
+            fontSize: "clamp(1.375rem, 2.2vw, 1.75rem)",
             lineHeight: 1.1,
             letterSpacing: "-0.025em",
             textWrap: "pretty",
@@ -149,12 +146,14 @@ function StoryColumn({ item, className }: { item: DailyFeedItem; className?: str
           {cleanHeadline(item.title)}
         </h3>
       </Link>
-        <div className="mt-3"><ThreadLink parentId={item.threadParentId} parentTitle={item.threadParentTitle} /></div>
+      <div className="mt-3">
+        <ThreadLink parentId={item.threadParentId} parentTitle={item.threadParentTitle} />
+      </div>
 
       {dek && (
         <p
           className="mt-3"
-          style={{ fontSize: 16.5, lineHeight: 1.6, color: "var(--color-fg-muted)" }}
+          style={{ fontSize: "1.03125rem", lineHeight: 1.6, color: "var(--color-fg-muted)" }}
         >
           {dek.text}
         </p>
@@ -164,7 +163,7 @@ function StoryColumn({ item, className }: { item: DailyFeedItem; className?: str
         <p
           className="font-serif mt-4 pl-4"
           style={{
-            fontSize: 19,
+            fontSize: "1.1875rem",
             lineHeight: 1.34,
             letterSpacing: "-0.02em",
             borderLeft: "3px solid var(--color-accent-text)",
