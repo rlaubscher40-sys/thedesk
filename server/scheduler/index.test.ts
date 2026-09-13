@@ -2,6 +2,7 @@ import { INSTAGRAM_FEED_SLOTS } from "../../shared/instagramSchedule";
 import { describe, expect, it } from "vitest";
 import {
   EVIDENCE_JOBS,
+  FEED_UPDATE_JOBS,
   METRIC_RECOVERY_JOBS,
   isJobDue,
   sydneyClock,
@@ -183,4 +184,15 @@ describe("shared Australian social cadence", () => {
       false,
     );
   });
+});
+
+it("keeps midday claim identities and permits at most one daytime update after restart", () => {
+  expect(FEED_UPDATE_JOBS.filter((job) => ["12:43", "18:43"].includes(job.at)).map((job) => job.key))
+    .toEqual(["daily-feed-update-12", "daily-feed-update-18"]);
+  for (let minutes = 0; minutes < 1440; minutes++) {
+    const due = FEED_UPDATE_JOBS.filter((job) => isJobDue(job, baseClock({ minutes })));
+    expect(due.length).toBeLessThanOrEqual(1);
+  }
+  expect(FEED_UPDATE_JOBS.filter((job) => isJobDue(job, baseClock({ minutes: 15 * 60 + 43 })))[0]?.key)
+    .toBe("daily-feed-update-15");
 });

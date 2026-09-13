@@ -95,6 +95,15 @@ function googleNewsGlobal(query: string): string {
 
 export const SOURCES: Source[] = [
   {
+    name: "SBS Economy and Finance",
+    url: "https://www.sbs.com.au/news/collection/economy-and-finance",
+    kind: "index",
+    articlePath: "^/news/article/[^/]+/[a-z0-9]+$",
+    category: "MACRO",
+    channel: "AU",
+    maxItems: 20,
+  },
+  {
     name: "Victoria Housing Releases",
     url: VICTORIA_SEARCH_URL,
     kind: "victoria-index",

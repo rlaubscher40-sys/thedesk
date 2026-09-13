@@ -11,7 +11,7 @@ import { extractPublicationDate } from "./publicationDate";
 import { sourceTimingHold, sourceTimingLabel } from "../../../shared/sourceTiming";
 import { clusterByTitle } from "./cluster";
 import type { FetchedItem } from "./rss";
-import type { Source } from "../sources";
+import { SOURCES, type Source } from "../sources";
 
 const now = new Date("2026-09-10T02:00:00Z");
 const published = "2026-09-09T01:00:00Z";
@@ -76,14 +76,14 @@ describe("editorial regression benchmark", () => {
       url: "https://www.abc.net.au/news/important-data",
     });
     const result = await preview([...routine, important]);
-    expect(result.report.read).toBe(10);
+    expect(result.report.read).toBe(11);
     expect(result.items.some((row) => row.url === important.url)).toBe(true);
     expect(result.report.decisions.find((row) => row.url === important.url)?.readAttempted).toBe(
       true
     );
     expect(
       result.report.decisions.filter((row) => row.reason === "publisher-reading-limit")
-    ).toHaveLength(1);
+    ).toHaveLength(0);
   });
 
   it("keeps publication times and day-only originals on the same Sydney day tied", async () => {
@@ -237,12 +237,12 @@ describe("editorial regression benchmark", () => {
   });
   it("distinguishes a publisher reading cap from the overall reading budget", async () => {
     const result = await preview(
-      Array.from({ length: 12 }, (_, i) => item({ url: `https://www.abc.net.au/news/story-${i}` }))
+      Array.from({ length: 22 }, (_, i) => item({ url: `https://www.abc.net.au/news/story-${i}` }))
     );
     expect(
       result.report.decisions.filter((d) => d.reason === "publisher-reading-limit")
     ).toHaveLength(2);
-    expect(result.report.read).toBe(10);
+    expect(result.report.read).toBe(20);
   });
   it("records the publisher publication cap separately from a lane cap", async () => {
     const titles = [
@@ -603,4 +603,79 @@ it("records denied originals and full outcome totals before applying the sample 
   expect(editorialReportSchema.safeParse(result.report).success).toBe(true);
   const { outcomes, ...legacyReport } = result.report;
   expect(editorialReportSchema.safeParse(legacyReport).success).toBe(true);
+});
+
+
+describe("bounded reading recovery", () => {
+  function pool(count: number) {
+    return Array.from({ length: count }, (_, i) => item({
+      source: `Reviewed source ${Math.floor(i / 10)}`,
+      url: `https://www.abc.net.au/news/candidate-${i}`,
+      title: `Australian housing approvals fall in region ${i}`,
+    }));
+  }
+  it("reaches a useful report beyond the initial 100 local slots after failed downloads", async () => {
+    const candidates = pool(110);
+    const readArticle = vi.fn(async (url: string) => url.endsWith("-109")
+      ? article : { ...article, text: null, fetchFailure: "article-http-403" });
+    const result = await preview(candidates, { readArticle });
+    expect(result.items.map((row) => row.url)).toContain(candidates[109]!.url);
+    expect(result.report.read).toBe(110);
+    expect(result.report.outcomes?.["article-http-403"]).toBe(109);
+  });
+  it("caps recovery at 60 extra local reads even when nothing is usable", async () => {
+    const readArticle = vi.fn(async () => ({ ...article, text: null, fetchFailure: "article-http-403" }));
+    const result = await preview(pool(220), { readArticle });
+    expect(readArticle).toHaveBeenCalledTimes(160);
+    expect(result.items).toEqual([]);
+    expect(result.report.outcomes?.["outside-reading-budget"]).toBe(60);
+  });
+  it("does not download local articles from unreviewed resolved publishers", async () => {
+    const readArticle = vi.fn(async () => article);
+    const result = await preview([item({ url: "https://unreviewed.example/report" })], { readArticle });
+    expect(readArticle).not.toHaveBeenCalled();
+    expect(result.report.read).toBe(0);
+    expect(result.report.outcomes?.["unreviewed-publisher"]).toBe(1);
+  });
+  it("coalesces two discovery URLs resolving to one original article", async () => {
+    const readArticle = vi.fn(async () => article);
+    const result = await preview([item(), item({ url: "https://www.abc.net.au/news/alias" })], {
+      readArticle, resolve: async () => "https://www.abc.net.au/news/original",
+    });
+    expect(readArticle).toHaveBeenCalledTimes(1);
+    expect(result.items).toHaveLength(1);
+    expect(result.report.read).toBe(1);
+  });
+  it("defers further requests after a publisher rate limit, but tries again in a later run", async () => {
+    const readArticle = vi.fn(async () => ({ ...article, text: null, fetchFailure: "article-http-429" }));
+    const candidates = pool(110);
+    const result = await preview(candidates, { readArticle });
+    expect(readArticle.mock.calls.length).toBeLessThanOrEqual(6);
+    expect(result.report.outcomes?.["publisher-rate-limit-deferred"]).toBeGreaterThan(0);
+    readArticle.mockClear();
+    await preview([item()], { readArticle });
+    expect(readArticle).toHaveBeenCalledTimes(1);
+  });
+});
+
+
+describe("reviewed free SBS reporting", () => {
+  const sbsUrl = "https://www.sbs.com.au/news/article/could-australias-housing-downturn-push-the-economy-into-recession/lxuxjoaaw";
+  it("discovers original articles, excluding audio, topic navigation and other hosts", () => {
+    const source = SOURCES.find((s) => s.name === "SBS Economy and Finance")!;
+    const rows = parseIndexSource(`<a href="${sbsUrl}"><h3>Could Australia's housing downturn push the economy into recession?</h3></a>
+      <a href="/news/collection/economy-and-finance">More economy reporting</a>
+      <a href="/news/podcast-episode/housing-news/abcdefghi">Australian housing news on audio</a>
+      <a href="https://example.org/news/article/housing/abcdefghi">Other publisher reporting</a>`, source);
+    expect(rows.map((r) => r.url)).toEqual([sbsUrl]);
+    expect(rows[0]).toMatchObject({ isoDate: null, discovery: "publisher-index", channel: "AU" });
+  });
+  it("admits reviewed SBS reporting while retaining date, subject and exact-host checks", () => {
+    const input = { title: "Could Australia's housing downturn push the economy into recession?",
+      url: sbsUrl, channel: "AU", articleText: body, sourceTiming: timing };
+    expect(assessStory(input, now).eligible).toBe(true);
+    expect(assessStory({ ...input, sourceTiming: { ...timing, publisherDateStatus: "missing", publisherPublishedAt: null } }, now).eligible).toBe(false);
+    expect(assessStory({ ...input, title: "New comedy film wins festival prize" }, now).eligible).toBe(false);
+    expect(assessStory({ ...input, url: "https://sbs.com.au.example.org/report" }, now).reason).toBe("unreviewed-publisher");
+  });
 });

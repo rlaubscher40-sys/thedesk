@@ -94,6 +94,14 @@ export const feedRouter = router({
       )
     ),
 
+  recentLocal: publicProcedure
+    .input(z.object({ channel: z.enum(["AU", "PROPERTY"]) }))
+    .query(({ input }) => {
+      const today = sydneyTodayIso();
+      return cached(cacheKey("feed:recentLocal", [today, input.channel]), FEED_TTL_MS,
+        () => db.listRecentLocalFeed(input.channel, today));
+    }),
+
   /** A single feed item by id, used by the /story/:id page. */
   getById: publicProcedure
     .input(z.object({ id: z.number().int().positive() }))

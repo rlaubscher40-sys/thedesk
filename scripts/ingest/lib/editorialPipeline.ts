@@ -4,6 +4,7 @@ import {
   discoveryScore,
   EDITORIAL_VERSION,
   referenceNewsHold,
+  publisherWeight,
   type EditorialReport,
 } from "../../../shared/editorial";
 import { newsTimestamp, recentNewsTimestamp } from "../../../shared/propertyNewsQuality";
@@ -192,10 +193,11 @@ export async function buildDailyBrief(options: PipelineOptions = {}) {
       32
     ),
   ];
-  const read = await mapLimit(selectedToRead, 6, async (item) => {
+  const articleRequests = new Map<string, Promise<FetchedArticle>>();
+  const rateLimited = new Set<string>();
+  const readCandidate = async (item: FetchedItem) => {
     const entry = decisions.get(articleIdentity(item))!;
-    report.read++;
-    entry.readAttempted = true;
+
     try {
       const url = await (options.resolve ?? resolveArticleUrl)(item.url);
       if (!url || new URL(url).hostname === "news.google.com") {
@@ -206,7 +208,27 @@ export async function buildDailyBrief(options: PipelineOptions = {}) {
         entry.reason = "already-published";
         return null;
       }
-      const article = await (options.readArticle ?? fetchArticle)(url);
+      const resolved = { ...item, url };
+      if (["AU", "PROPERTY"].includes(item.channel) && publisherWeight(resolved) === 0) {
+        entry.url = url;
+        entry.reason = "unreviewed-publisher";
+        return null;
+      }
+      const host = new URL(url).hostname;
+      if (rateLimited.has(host)) {
+        entry.url = url;
+        entry.reason = "publisher-rate-limit-deferred";
+        return null;
+      }
+      entry.readAttempted = true;
+      let request = articleRequests.get(url);
+      if (!request) {
+        report.read++;
+        request = (options.readArticle ?? fetchArticle)(url);
+        articleRequests.set(url, request);
+      }
+      const article = await request;
+      if (article.fetchFailure === "article-http-429") rateLimited.add(host);
       if (article.fetchFailure) {
         entry.reason = article.fetchFailure;
         entry.url = url;
@@ -258,7 +280,43 @@ export async function buildDailyBrief(options: PipelineOptions = {}) {
       entry.reason = "article-fetch-failed";
       return null;
     }
-  });
+  };
+  const read = await mapLimit(selectedToRead, 6, readCandidate);
+  // Failed/unusable articles must not exhaust the only chance to find local
+  // reporting. Read a bounded reserve in waves, stopping when each local lane
+  // has enough distinct eligible events. Every ordinary evidence gate still runs.
+  const attempted = new Set(selectedToRead);
+  const recoveryCounts = new Map<string, number>();
+  for (const item of selectedToRead) recoveryCounts.set(item.source, (recoveryCounts.get(item.source) ?? 0) + 1);
+  const reserve = readingBudget(candidates.filter((item) => {
+    if (!["AU", "PROPERTY"].includes(item.channel) || attempted.has(item)) return false;
+    const count = recoveryCounts.get(item.source) ?? 0;
+    if (count >= 20) return false;
+    recoveryCounts.set(item.source, count + 1);
+    return true;
+  }), 60);
+  const hasLocalSupply = () => {
+    const published = createEvidenceDuplicateIndex(options.recentStories);
+    const unique = new Map<string, PreparedStory>();
+    for (const row of read) {
+      if (row && !published.find(row.prepared))
+        unique.set(articleIdentity(row.prepared), row.prepared);
+    }
+    const clusters = clusterByTitle([...unique.values()]);
+    return ["AU", "PROPERTY"].every((channel) => {
+      const counts = new Map<string, number>();
+      let count = 0;
+      for (const { item } of clusters.filter((c) => c.item.channel === channel)) {
+        const host = new URL(item.url!).hostname.replace(/^www\./, "");
+        const used = counts.get(host) ?? 0;
+        if (used < 3) { counts.set(host, used + 1); count++; }
+      }
+      return count >= CHANNEL_TARGETS[channel as "AU" | "PROPERTY"];
+    });
+  };
+  for (let start = 0; start < reserve.length && !hasLocalSupply(); start += 20) {
+    read.push(...await mapLimit(reserve.slice(start, start + 20), 6, readCandidate));
+  }
   // Prefer significance, then original publication day. Length is evidence
   // for eligibility, not a reason to lead with a longer article.
   const eligible = read
