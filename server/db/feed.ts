@@ -65,6 +65,28 @@ export async function listFeedItems(date?: string): Promise<DailyFeedItem[]> {
     .orderBy(desc(dailyFeedItems.priority), desc(dailyFeedItems.createdAt), desc(dailyFeedItems.id));
 }
 
+/** Previously filed local reporting, bounded before returning to the browser.
+ * Keep original IDs/dates; this never republishes or changes social eligibility. */
+export async function listRecentLocalFeed(channel: "AU" | "PROPERTY", today = sydneyToday()) {
+  const since = new Date(Date.parse(`${today}T00:00:00Z`) - 3 * 86_400_000)
+    .toISOString().slice(0, 10);
+  if (isDemoMode()) return demoQueries.listFeedItemsBetween(since, today)
+    .filter((item) => item.feedDate < today && (item.channel ?? "AU") === channel)
+    .sort((a, b) => b.feedDate.localeCompare(a.feedDate) || b.priority - a.priority || b.id - a.id)
+    .slice(0, 24);
+  const db = getDb();
+  if (!db) return [];
+  return db.select({ id: dailyFeedItems.id, title: dailyFeedItems.title,
+    summary: dailyFeedItems.summary, source: dailyFeedItems.source, category: dailyFeedItems.category,
+    channel: dailyFeedItems.channel, feedDate: dailyFeedItems.feedDate, priority: dailyFeedItems.priority,
+    threadParentId: dailyFeedItems.threadParentId, sourceTiming: dailyFeedItems.sourceTiming,
+  }).from(dailyFeedItems)
+    .where(and(eq(dailyFeedItems.channel, channel), gte(dailyFeedItems.feedDate, since),
+      sql`${dailyFeedItems.feedDate} < ${today}`))
+    .orderBy(desc(dailyFeedItems.feedDate), desc(dailyFeedItems.priority), desc(dailyFeedItems.id))
+    .limit(24);
+}
+
 export async function getFeedItemById(id: number): Promise<DailyFeedItem | undefined> {
   if (isDemoMode()) return demoQueries.getFeedItemById(id);
   const db = getDb();

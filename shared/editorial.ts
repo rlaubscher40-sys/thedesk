@@ -49,6 +49,7 @@ const specialist = new Set([
   "nhsac.gov.au",
 ]);
 const newsroom = new Set([
+  "sbs.com.au",
   "abc.net.au",
   "theguardian.com",
   "afr.com",

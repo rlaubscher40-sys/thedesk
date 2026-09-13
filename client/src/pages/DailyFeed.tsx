@@ -26,6 +26,7 @@ import { preferenceStorage } from "@/lib/storage";
  */
 import { useEffect, useMemo, useState } from "react";
 import { coverageGroups } from "@shared/coverageGroups";
+import { RecentReporting } from "@/components/feed/RecentReporting";
 import { RelatedCoverage } from "@/components/feed/RelatedCoverage";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useLocation, useSearch } from "wouter";
@@ -188,7 +189,7 @@ export default function DailyFeed() {
 
   return (
     <>
-      <UtilityBar filedLine={isToday ? "Filed 7am AEST · Sydney" : `Archive · ${date}`}>
+      <UtilityBar filedLine={isToday ? "Updated throughout the day · Sydney" : `Archive · ${date}`}>
         <DatePagerInline
           date={date}
           isToday={isToday}
@@ -300,6 +301,12 @@ export default function DailyFeed() {
           </SectionErrorBoundary>
           <RelatedCoverage groups={groups} />
         </>
+      )}
+
+      {isToday && enriched && !isDemo && (
+        <SectionErrorBoundary section="Recent reporting">
+          <RecentReporting channel={channel === "PROPERTY" ? "PROPERTY" : "AU"} />
+        </SectionErrorBoundary>
       )}
 
       {/* Demo mode with no DB: the curated seed, rendered through the same
