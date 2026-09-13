@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { act, cleanup, fireEvent, renderHook } from "@testing-library/react";
+import { act, cleanup, fireEvent, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { usePageScroll } from "./usePageScroll";
 
@@ -97,4 +97,59 @@ it("keeps the caret and viewport while search updates the URL on each keystroke"
   expect(document.activeElement).toBe(input);
   expect(offset).toBe(250);
   input.remove();
+});
+
+it("restores again when a later layout clamps an already reached position", () => {
+  let frame: FrameRequestCallback | undefined;
+  vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+    frame = callback;
+    return 1;
+  });
+  const view = renderHook(({ route }) => usePageScroll(route), { initialProps: { route: "/?" } });
+  offset = 662;
+  fireEvent.scroll(window);
+  view.rerender({ route: "/story/42?" });
+  view.rerender({ route: "/?" });
+  expect(offset).toBe(662);
+  // A late placeholder commit clamps the document after the first restore.
+  offset = 234;
+  fireEvent.scroll(window);
+  act(() => frame?.(0));
+  expect(offset).toBe(662);
+  // Intentional interaction must immediately take control of scrolling.
+  fireEvent.pointerDown(window);
+  offset = 500;
+  fireEvent.scroll(window);
+  view.rerender({ route: "/story/42?" });
+  view.rerender({ route: "/?" });
+  expect(offset).toBe(500);
+});
+
+it("lands on evidence that is inserted after the page shell", async () => {
+  history.replaceState(null, "", "/markets/sydney#housing-approvals");
+  const view = renderHook(() => usePageScroll("/markets/sydney?"));
+  const target = document.createElement("section");
+  target.id = "housing-approvals";
+  const scroll = vi.spyOn(target, "scrollIntoView").mockImplementation(() => {});
+  act(() => {
+    document.body.append(target);
+  });
+  await waitFor(() => expect(scroll).toHaveBeenCalledWith({ block: "start", behavior: "instant" }));
+  view.unmount();
+  target.remove();
+});
+
+it("does not jump to late evidence after the reader starts interacting", async () => {
+  history.replaceState(null, "", "/markets/sydney#housing-approvals");
+  const view = renderHook(() => usePageScroll("/markets/sydney?"));
+  fireEvent.pointerDown(window);
+  const target = document.createElement("section");
+  target.id = "housing-approvals";
+  const scroll = vi.spyOn(target, "scrollIntoView").mockImplementation(() => {});
+  await act(async () => {
+    document.body.append(target);
+  });
+  expect(scroll).not.toHaveBeenCalled();
+  view.unmount();
+  target.remove();
 });
