@@ -42,7 +42,7 @@ export function StoryColumns({ items }: { items: DailyFeedItem[] }) {
     .slice(0, 3);
 
   return (
-    <section className={cn(GUTTER_X, "rule-major mt-11 pt-5")} aria-label="More from today">
+    <section className={cn(GUTTER_X, "rule-major mt-11 pt-5")} aria-label="More reporting">
       {counterpoints.length > 0 && (
         <div className="rule-hair-b pb-7 mb-7">
           <div className="flex flex-wrap items-end justify-between gap-4">

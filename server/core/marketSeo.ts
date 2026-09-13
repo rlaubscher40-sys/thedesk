@@ -1,3 +1,4 @@
+import { marketBootstrapTag } from "../../shared/marketBootstrap";
 import type { Express } from "express";
 import rateLimit from "express-rate-limit";
 import fs from "node:fs";
@@ -130,7 +131,7 @@ export function marketShell(
   const content = renderToStaticMarkup(createElement(PublicMarketRead, { file, directory }));
   html = html.replace(
     '<div id="root"></div>',
-    `<div id="root"><main class="max-w-6xl mx-auto px-5 py-8">${content}</main></div>`
+    `<div id="root"><main class="max-w-6xl mx-auto px-5 py-8">${content}</main></div>${marketBootstrapTag(marketPath(file.market.slug), directory)}`
   );
   return file.indexable ? html : withNoindex(html);
 }
@@ -297,7 +298,7 @@ export function featuredComparisonShell(
   return withNoindex(
     html.replace(
       '<div id="root"></div>',
-      `<div id="root"><main class="max-w-6xl mx-auto px-5 py-8">${content}</main></div>`
+      `<div id="root"><main class="max-w-6xl mx-auto px-5 py-8">${content}</main></div>${marketBootstrapTag(FEATURED_COMPARISON_PATH, directory)}`
     )
   );
 }

@@ -1,3 +1,5 @@
+import type { ArchiveRegion } from "@shared/archiveScope";
+import { shouldShowSummary } from "@shared/headline";
 import { ConnectionNotice } from "@/components/ConnectionNotice";
 /**
  * The Archive — search and browse as an index, not a card wall.
@@ -58,7 +60,15 @@ export default function ArchivePage() {
   const category = initial.cat === "ALL" ? null : (initial.cat ?? "PROPERTY");
   const params = new URLSearchParams(search);
   const sort = params.get("sort") === "latest" ? "latest" : "relevance";
-  const since = params.get("since") ?? "";
+  const sinceParam = params.get("since") ?? "";
+  const since = /^\d{4}-\d{2}-\d{2}$/.test(sinceParam) ? sinceParam : "";
+  const region: ArchiveRegion =
+    params.get("region") === "INTERNATIONAL"
+      ? "INTERNATIONAL"
+      : params.get("region") === "ALL"
+        ? "ALL"
+        : "AU";
+  const archiveFilters = { region, since: since || undefined };
   const update = (key: string, value: string) => {
     const next = new URLSearchParams(search);
     next.set(key, value);
@@ -83,15 +93,15 @@ export default function ArchivePage() {
     inputRef.current?.focus();
   }, []);
 
-  const recentByCategoryQuery = trpc.topics.recentByCategory.useQuery();
-  const countsQuery = trpc.topics.itemCounts.useQuery();
+  const recentByCategoryQuery = trpc.topics.recentByCategory.useQuery(archiveFilters);
+  const countsQuery = trpc.topics.itemCounts.useQuery(archiveFilters);
   const editionsQuery = trpc.editions.list.useQuery();
   const searchQuery = trpc.search.all.useQuery(
-    { query: debounced, category: category ?? undefined, since: since || undefined, sort },
+    { query: debounced, category: category ?? undefined, ...archiveFilters, sort },
     { enabled: debounced.trim().length >= 2, staleTime: 30_000 }
   );
   const categoryQuery = trpc.topics.getByCategory.useQuery(
-    { category: category ?? "" },
+    { category: category ?? "", ...archiveFilters },
     { enabled: !!category }
   );
 
@@ -122,16 +132,16 @@ export default function ArchivePage() {
     const raw = searchQuery.data;
     if (!raw) return undefined;
     return {
-      editions: category || since ? [] : raw.editions,
+      editions: category || since || region !== "ALL" ? [] : raw.editions,
       feedItems: raw.feedItems.filter(
         (it) =>
           (category ? it.category === category : isCategoryAllowed(it.category)) &&
           (!since || it.feedDate >= since)
       ),
     };
-  }, [searchQuery.data, isCategoryAllowed, category, since]);
+  }, [searchQuery.data, isCategoryAllowed, category, since, region]);
 
-  const categories = Object.keys(recentByCategoryFiltered).sort(
+  const categories = Array.from(counts.keys()).sort(
     (a, b) => beatOrder(a) - beatOrder(b) || a.localeCompare(b)
   );
   const totalStories = Array.from(counts.values()).reduce((a, b) => a + b, 0);
@@ -166,13 +176,22 @@ export default function ArchivePage() {
             className="font-serif mt-3.5 max-w-[52ch]"
             style={{ fontSize: "1.3125rem", lineHeight: 1.42, color: "var(--color-fg-muted)" }}
           >
-            Every weekly edition and every daily item. Find it by keyword, or follow one beat back
-            through the year.
+            Australian reporting first. Search by keyword, follow a beat, or include international
+            and global coverage.
           </p>
         </div>
 
         <div className="shrink-0 flex rule-hair-l">
-          <CorpusStat label="Stories archived" value={totalStories.toLocaleString("en-AU")} />
+          <CorpusStat
+            label={
+              region === "AU"
+                ? "Australian stories"
+                : region === "INTERNATIONAL"
+                  ? "Global stories"
+                  : "Stories archived"
+            }
+            value={totalStories.toLocaleString("en-AU")}
+          />
           {editions.length > 0 && (
             <div className="rule-hair-l">
               <CorpusStat label="Editions" value={String(editions.length)} />
@@ -250,6 +269,18 @@ export default function ArchivePage() {
 
       <div className="flex flex-wrap items-end gap-5 mt-5">
         <label className="text-sm">
+          Coverage
+          <select
+            className="block bg-[var(--color-bg)] border border-[var(--color-border)] p-3 mt-1"
+            value={region}
+            onChange={(e) => update("region", e.target.value)}
+          >
+            <option value="AU">Australia</option>
+            <option value="INTERNATIONAL">International &amp; global</option>
+            <option value="ALL">All coverage</option>
+          </select>
+        </label>
+        <label className="text-sm">
           Sort search results
           <select
             className="block bg-[var(--color-bg)] border border-[var(--color-border)] p-3 mt-1"
@@ -275,10 +306,10 @@ export default function ArchivePage() {
           </button>
         )}
       </div>
-      {isSearching && (category || since) && (
+      {isSearching && (category || since || region !== "ALL") && (
         <p className="text-sm mt-3 text-[var(--color-fg-muted)]">
           Showing daily reporting matching these filters. Weekly editions span multiple topics and
-          dates and are excluded.
+          dates and are available separately under By edition.
         </p>
       )}
       <p role="status" className="sr-only">
@@ -687,7 +718,8 @@ function SearchResults({
               title={highlight(item.title, query)}
               snippet={
                 <>
-                  {highlight(item.snippet || item.summary, query)}{" "}
+                  {shouldShowSummary(item.title, item.summary) &&
+                    highlight(item.snippet || item.summary, query)}{" "}
                   {item.source && (
                     <span
                       className="font-mono uppercase text-[var(--color-fg-subtle)]"
@@ -761,7 +793,7 @@ function CategoryResults({
               meta={<span style={{ color: colourFor(item.category) }}>{item.category}</span>}
               metaSub={item.feedDate}
               title={item.title}
-              snippet={item.summary}
+              snippet={shouldShowSummary(item.title, item.summary) ? item.summary : undefined}
             />
           ))}
         </section>

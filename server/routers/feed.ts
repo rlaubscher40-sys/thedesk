@@ -1,3 +1,4 @@
+import { FEED_CHANNELS } from "../../shared/const";
 import { z } from "zod";
 import * as db from "../db";
 import { cached, cacheKey, invalidate } from "../core/cache";
@@ -98,8 +99,9 @@ export const feedRouter = router({
     .input(z.object({ channel: z.enum(["AU", "PROPERTY"]) }))
     .query(({ input }) => {
       const today = sydneyTodayIso();
-      return cached(cacheKey("feed:recentLocal", [today, input.channel]), FEED_TTL_MS,
-        () => db.listRecentLocalFeed(input.channel, today));
+      return cached(cacheKey("feed:recentLocal", [today, input.channel]), FEED_TTL_MS, () =>
+        db.listRecentLocalFeed(input.channel, today)
+      );
     }),
 
   /** A single feed item by id, used by the /story/:id page. */
@@ -120,9 +122,13 @@ export const feedRouter = router({
     }),
 
   /** Dates that have at least one feed item, newest first. */
-  getRecentDates: publicProcedure.query(async () =>
-    cached(cacheKey("feed:recentDates"), FEED_TTL_MS, () => db.getRecentFeedDates())
-  ),
+  getRecentDates: publicProcedure
+    .input(z.object({ channel: z.enum(FEED_CHANNELS).optional() }).optional())
+    .query(async ({ input }) =>
+      cached(cacheKey("feed:recentDates", [sydneyTodayIso(), input?.channel]), FEED_TTL_MS, () =>
+        db.getRecentFeedDates(14, input?.channel)
+      )
+    ),
 
   /**
    * All feed items for the current ISO week (Mon–today in Sydney time).

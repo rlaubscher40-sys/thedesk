@@ -62,3 +62,13 @@ Field measurements are still a small cohort. At the start of this follow-up ther
 The `web_vitals` table is created by the existing idempotent startup catch-up mechanism. It stores metric identifiers, redacted paths, coarse viewport class and values, with a 30-day retention cleanup. Existing sports items incorrectly classified as geopolitics are repaired in bounded batches on startup. Guest bookmark import removes a local item only after a successful account save or confirmation that it already exists.
 
 Original shared-observation snapshots retain their identity and recorded content. New data comparisons use explicit units and stored intervals; collected samples do not establish release-to-release economic changes.
+
+
+### Reader-content follow-up
+
+- Archive summaries now use the shared story-card hygiene checks, including publisher advertising/navigation text and CSS. This applies to existing rows; article-disclosure hold checks retain their raw evidence.
+- The front page follows the latest available date within the selected lane, labels older reporting with its actual filing date, and refreshes availability each minute. Explicit date links remain exact. Recent reporting excludes the displayed filing to prevent duplicates.
+- Archive coverage defaults to Australia, with International & global and All coverage options preserved in the URL alongside keyword, category and date. SQL applies these filters before result limits; counts and browse use the same scope. Held stories are excluded. Weekly editions remain separately accessible because they mix geography/topics/dates.
+- Conservative ingestion and idempotent historical category correction keep general live blogs and non-residential nuclear/equipment references out of Property while retaining housing live blogs and land releases.
+- Public market and comparison documents include escaped, inert initial data. The browser seeds the existing query cache and loads the relevant route before replacing the server-rendered evidence. Missing, stale or wrong-route data falls back to normal queries.
+- Regression checks cover midnight/weekend continuity, explicit dates, lane-scoped date selection, geography/date filtering before caps, existing dirty summaries, duplicate recent stories, initial-fetch avoidance and safe JSON encoding. Production browser verification follows deployment. Actual iPhone/Android verification remains unavailable in this environment.

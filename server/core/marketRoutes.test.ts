@@ -112,6 +112,7 @@ describe("market page HTTP contracts", () => {
       vi.fn()
     );
     expect(res.send.mock.calls[0]?.[0]).toContain("evidence gap");
+    expect(res.send.mock.calls[0]?.[0]).toContain('id="desk-market-data" type="application/json"');
     expect(res.send.mock.calls[0]?.[0]).not.toContain("Injected client headline");
   });
   it("withholds comparison cards without matching evidence", async () => {
@@ -140,6 +141,7 @@ describe("market page HTTP contracts", () => {
     const res = response();
     await handlers.get("/markets/:slug")!(request(), res as unknown as Response, vi.fn());
     expect(res.send.mock.calls[0]?.[0]).toContain("Perth housing report");
+    expect(res.send.mock.calls[0]?.[0]).toContain('id="desk-market-data" type="application/json"');
     expect(res.send.mock.calls[0]?.[0]).not.toContain("Injected client headline");
     expect(res.set).toHaveBeenCalledWith("Cache-Control", "public, max-age=60");
   });

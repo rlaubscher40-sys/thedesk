@@ -6,7 +6,8 @@ import { createRoot } from "react-dom/client";
 import { useEffect } from "react";
 import superjson from "superjson";
 import { TRPC_BATCH_LIMIT, UNAUTHED_ERR_MSG } from "@shared/const";
-import App from "./App";
+import App, { prepareMarketDocument } from "./App";
+import { seedMarketDocument } from "./lib/marketBootstrap";
 import { getLoginUrl } from "./lib/auth";
 import { initErrorReporter } from "./lib/errorReporter";
 import {
@@ -134,14 +135,19 @@ if (inCrashLoop) {
   // Pause the full app after repeated interrupted starts in this tab.
   renderCrashLoopSafeMode();
 } else {
-  createRoot(document.getElementById("root")!).render(
-    <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>
-        <App />
-        <BootHealth />
-      </QueryClientProvider>
-    </trpc.Provider>
-  );
+  async function mount() {
+    if (seedMarketDocument(queryClient, document, window.location.pathname))
+      await prepareMarketDocument(window.location.pathname);
+    createRoot(document.getElementById("root")!).render(
+      <trpc.Provider client={trpcClient} queryClient={queryClient}>
+        <QueryClientProvider client={queryClient}>
+          <App />
+          <BootHealth />
+        </QueryClientProvider>
+      </trpc.Provider>
+    );
+  }
+  void mount();
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {

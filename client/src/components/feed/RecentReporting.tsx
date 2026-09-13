@@ -8,9 +8,17 @@ import { GUTTER_X } from "@/components/broadsheet/tokens";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ConnectionNotice } from "@/components/ConnectionNotice";
 
-export function RecentReporting({ channel }: { channel: "AU" | "PROPERTY" }) {
+export function RecentReporting({
+  channel,
+  beforeDate,
+}: {
+  channel: "AU" | "PROPERTY";
+  beforeDate?: string;
+}) {
   const query = trpc.feed.recentLocal.useQuery({ channel }, { staleTime: 60_000 });
-  const items = useFilteredFeed(query.data ?? []);
+  const items = useFilteredFeed(query.data ?? []).filter(
+    (item) => !beforeDate || item.feedDate < beforeDate
+  );
   if (query.isLoading)
     return (
       <section

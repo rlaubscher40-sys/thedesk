@@ -60,3 +60,27 @@ it("distinguishes unavailable reporting from an empty recent section", () => {
   state.error = true;
   expect(render()).toContain("Try again");
 });
+
+it("does not repeat the latest front-page filing in recent reporting", () => {
+  state.error = false;
+  const story = {
+    id: 1,
+    title: "Latest filing",
+    source: "NSW",
+    priority: 80,
+    channel: "PROPERTY",
+    category: "PROPERTY",
+    feedDate: "2026-09-13",
+    sourceTiming: null,
+  };
+  state.items = [story, { ...story, id: 2, title: "Earlier filing", feedDate: "2026-09-12" }];
+  const html = renderToStaticMarkup(
+    createElement(
+      Router,
+      { ssrPath: "/" },
+      createElement(RecentReporting, { channel: "PROPERTY", beforeDate: "2026-09-13" })
+    )
+  );
+  expect(html).not.toContain("Latest filing");
+  expect(html).toContain("Earlier filing");
+});

@@ -1,3 +1,4 @@
+import { ARCHIVE_REGIONS } from "../../shared/archiveScope";
 import { publicEdition } from "../core/publicEdition";
 import { z } from "zod";
 import * as db from "../db";
@@ -9,6 +10,7 @@ export const searchRouter = router({
       z.object({
         query: z.string().min(1).max(200),
         category: z.string().max(40).optional(),
+        region: z.enum(ARCHIVE_REGIONS).optional(),
         since: z
           .string()
           .regex(/^\d{4}-\d{2}-\d{2}$/)

@@ -16,22 +16,26 @@ describe("cleanHeadline", () => {
     expect(cleanHeadline("OpenAI diverges from White House on AI safety rules – Politico")).toBe(
       "OpenAI diverges from White House on AI safety rules"
     );
-    expect(cleanHeadline("GDP growth slows on cautious spending and external shocks – mpamag.com")).toBe(
-      "GDP growth slows on cautious spending and external shocks"
-    );
+    expect(
+      cleanHeadline("GDP growth slows on cautious spending and external shocks – mpamag.com")
+    ).toBe("GDP growth slows on cautious spending and external shocks");
   });
 
   it("leaves clean headlines untouched", () => {
-    expect(cleanHeadline("RBA holds the cash rate at 4.35%")).toBe("RBA holds the cash rate at 4.35%");
+    expect(cleanHeadline("RBA holds the cash rate at 4.35%")).toBe(
+      "RBA holds the cash rate at 4.35%"
+    );
   });
 
   it("does not strip hyphenated words or in-sentence dashes", () => {
     // No spaces around the hyphen → not a suffix.
-    expect(cleanHeadline("Trump-Xi summit yields trade deal")).toBe("Trump-Xi summit yields trade deal");
-    // Tail is a full clause (terminal punctuation / too long), not a masthead.
-    expect(cleanHeadline("Rates on hold - but the RBA signals a cut is coming soon next quarter")).toBe(
-      "Rates on hold - but the RBA signals a cut is coming soon next quarter"
+    expect(cleanHeadline("Trump-Xi summit yields trade deal")).toBe(
+      "Trump-Xi summit yields trade deal"
     );
+    // Tail is a full clause (terminal punctuation / too long), not a masthead.
+    expect(
+      cleanHeadline("Rates on hold - but the RBA signals a cut is coming soon next quarter")
+    ).toBe("Rates on hold - but the RBA signals a cut is coming soon next quarter");
   });
 });
 
@@ -46,7 +50,9 @@ describe("isRedundantSummary", () => {
   });
 
   it("flags an exact echo and an empty summary", () => {
-    expect(isRedundantSummary("OpenAI diverges from White House", "OpenAI diverges from White House")).toBe(true);
+    expect(
+      isRedundantSummary("OpenAI diverges from White House", "OpenAI diverges from White House")
+    ).toBe(true);
     expect(isRedundantSummary("Anything", "")).toBe(true);
     expect(isRedundantSummary("Anything", null)).toBe(true);
   });
@@ -61,9 +67,9 @@ describe("isRedundantSummary", () => {
         "Breaking: RBA holds interest rates realestate.com.au"
       )
     ).toBe(true);
-    expect(isRedundantSummary("ASX 200 slips at the open", "ASX 200 slips at the open ig.com")).toBe(
-      true
-    );
+    expect(
+      isRedundantSummary("ASX 200 slips at the open", "ASX 200 slips at the open ig.com")
+    ).toBe(true);
   });
 
   it("keeps a summary that adds real prose even when it ends with a domain", () => {
@@ -121,7 +127,9 @@ describe("pathological-input guards", () => {
   });
 
   it("leaves content at the ceiling working normally", () => {
-    expect(cleanHeadline("RBA holds the cash rate at 4.35%")).toBe("RBA holds the cash rate at 4.35%");
+    expect(cleanHeadline("RBA holds the cash rate at 4.35%")).toBe(
+      "RBA holds the cash rate at 4.35%"
+    );
   });
 });
 
@@ -130,7 +138,10 @@ describe("shouldShowSummary", () => {
     expect(shouldShowSummary("OpenAI diverges", "OpenAI diverges")).toBe(false);
     expect(shouldShowSummary("Anything", null)).toBe(false);
     expect(
-      shouldShowSummary("Defence push reshapes construction", '"use strict";function(_){var window=this;}')
+      shouldShowSummary(
+        "Defence push reshapes construction",
+        '"use strict";function(_){var window=this;}'
+      )
     ).toBe(false);
     expect(
       shouldShowSummary(
@@ -202,4 +213,20 @@ describe("looksLikeSiteBoilerplate", () => {
       )
     ).toBe(false);
   });
+});
+
+it("rejects the advertising, navigation and CSS excerpts observed in the archive", () => {
+  for (const summary of [
+    "Some offers on this page are from advertisers who pay us. See our Advertiser Disclosure.",
+    '@font-face { font-family: "cnnclock"; src: url(font.woff2) } Latest news from Australia.',
+    "Copyright 2026 The Associated Press. All rights reserved.",
+    "Skip to main content Open navigation menu Latest news",
+  ])
+    expect(shouldShowSummary("Australian housing outlook", summary), summary).toBe(false);
+  expect(
+    shouldShowSummary(
+      "Housing outlook",
+      "Advertising spending by Australian developers fell as apartment projects stalled."
+    )
+  ).toBe(true);
 });
