@@ -14,7 +14,7 @@ vi.mock("@/lib/trpc", () => {
       title: "Sydney housing supply",
       category: "PROPERTY",
       feedDate: "2026-09-10",
-      summary: "Homes",
+      summary: "Some offers on this page are from advertisers who pay us.",
       source: "ABS",
     },
     {
@@ -96,4 +96,29 @@ it("offers retry on search failure instead of claiming no matches", () => {
   open("/archive?q=Sydney&cat=PROPERTY");
   expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
   expect(screen.queryByText(/No results for/)).toBeNull();
+});
+
+it("defaults to Australia and preserves keyword, category and date when changing coverage", () => {
+  open("/archive?q=Sydney&cat=PROPERTY&since=2026-09-01");
+  expect(m.search).toHaveBeenLastCalledWith(expect.objectContaining({ region: "AU" }));
+  fireEvent.change(screen.getByRole("combobox", { name: "Coverage" }), {
+    target: { value: "INTERNATIONAL" },
+  });
+  expect(m.search).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      query: "Sydney",
+      category: "PROPERTY",
+      since: "2026-09-01",
+      region: "INTERNATIONAL",
+    })
+  );
+});
+
+it("omits scraped advertising copy from existing browse and search rows", () => {
+  open("/archive?cat=PROPERTY");
+  expect(screen.getByRole("link", { name: /Sydney housing supply/ })).toBeTruthy();
+  expect(screen.queryByText(/Some offers on this page/)).toBeNull();
+  cleanup();
+  open("/archive?q=Sydney&cat=PROPERTY");
+  expect(screen.queryByText(/Some offers on this page/)).toBeNull();
 });

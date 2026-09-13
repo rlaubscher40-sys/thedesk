@@ -2,7 +2,9 @@
  * Top-level routing + global providers. Pages are lazy-loaded so the initial
  * bundle stays under what one screen needs.
  */
-import { Suspense, useEffect } from "react";
+import { withDeadline } from "@shared/requestDeadline";
+import { FEATURED_COMPARISON_PATH } from "@shared/featuredComparison";
+import { Suspense, useEffect, type ComponentType } from "react";
 import { Route, Switch, useLocation, useSearch } from "wouter";
 import { BookmarkProvider } from "./lib/useBookmarks";
 import { AppLayout } from "./components/AppLayout";
@@ -30,8 +32,11 @@ const SharedBrief = lazyWithReload(() => import("./pages/SharedBrief"), "SharedB
 const Signals = lazyWithReload(() => import("./pages/Signals"), "Signals");
 const Markets = lazyWithReload(() => import("./pages/Markets"), "Markets");
 const HousingBalance = lazyWithReload(() => import("./pages/HousingBalance"), "HousingBalance");
-const PublicMarket = lazyWithReload(() => import("./pages/PublicMarket"), "PublicMarket");
-const FeaturedComparison = lazyWithReload(
+let PublicMarket: ComponentType = lazyWithReload(
+  () => import("./pages/PublicMarket"),
+  "PublicMarket"
+);
+let FeaturedComparison: ComponentType = lazyWithReload(
   () => import("./pages/FeaturedComparison"),
   "FeaturedComparison"
 );
@@ -59,6 +64,20 @@ const ConfirmSubscription = lazyWithReload(
 const Settings = lazyWithReload(() => import("./pages/Settings"), "Settings");
 const InstallApp = lazyWithReload(() => import("./pages/InstallApp"), "InstallApp");
 const NotFound = lazyWithReload(() => import("./pages/NotFound"), "NotFound");
+
+/** Keep the server's evidence visible while only this document's route loads. */
+export async function prepareMarketDocument(path: string): Promise<void> {
+  try {
+    if (path === FEATURED_COMPARISON_PATH) {
+      FeaturedComparison = (await withDeadline(() => import("./pages/FeaturedComparison"), 20_000))
+        .default;
+    } else {
+      PublicMarket = (await withDeadline(() => import("./pages/PublicMarket"), 20_000)).default;
+    }
+  } catch {
+    /* Normal lazy-route recovery remains available if preloading fails. */
+  }
+}
 
 function KeyboardShortcuts() {
   const [, navigate] = useLocation();

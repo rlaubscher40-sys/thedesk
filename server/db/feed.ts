@@ -1,3 +1,5 @@
+import { matchesArchiveFilters, type ArchiveFilters } from "../../shared/archiveScope";
+import { archiveConditions } from "./archiveFilters";
 import { and, desc, eq, gte, isNotNull, like, or, sql } from "drizzle-orm";
 import * as demoQueries from "../demo/queries";
 import { isDemoMode } from "../demo/store";
@@ -162,14 +164,30 @@ export async function listArchive(opts: {
   return filtered.orderBy(desc(dailyFeedItems.createdAt)).limit(opts.limit).offset(opts.offset);
 }
 
-export async function getRecentFeedDates(limit = 14): Promise<string[]> {
-  if (isDemoMode()) return demoQueries.getRecentFeedDates(limit);
+export async function getRecentFeedDates(limit = 14, channel?: string): Promise<string[]> {
+  if (isDemoMode()) {
+    const dates = demoQueries.getRecentFeedDates(365);
+    return dates
+      .filter(
+        (date) =>
+          date <= sydneyToday() &&
+          (!channel ||
+            demoQueries.listFeedItems(date).some((item) => (item.channel ?? "AU") === channel))
+      )
+      .slice(0, limit);
+  }
   const db = getDb();
   if (!db) return [];
   const rows = await db
     .selectDistinct({ feedDate: dailyFeedItems.feedDate })
     .from(dailyFeedItems)
-    .where(sql`${dailyFeedItems.channel} <> 'HOLD'`)
+    .where(
+      and(
+        sql`${dailyFeedItems.channel} <> 'HOLD'`,
+        sql`${dailyFeedItems.feedDate} <= ${sydneyToday()}`,
+        channel ? eq(dailyFeedItems.channel, channel) : undefined
+      )
+    )
     .orderBy(desc(dailyFeedItems.feedDate))
     .limit(limit);
   return rows.map((r) => r.feedDate);
@@ -417,15 +435,20 @@ export async function listFeedItemsMissingWhyItMatters(limit = 50): Promise<Dail
 
 export async function getFeedItemsByCategory(
   category: string,
-  limit = 100
+  limit = 100,
+  filters: ArchiveFilters = {}
 ): Promise<DailyFeedItem[]> {
-  if (isDemoMode()) return demoQueries.getFeedItemsByCategory(category, limit);
+  if (isDemoMode())
+    return demoQueries
+      .getFeedItemsByCategory(category, Number.MAX_SAFE_INTEGER)
+      .filter((item) => matchesArchiveFilters(item, filters))
+      .slice(0, limit);
   const db = getDb();
   if (!db) return [];
   return db
     .select()
     .from(dailyFeedItems)
-    .where(eq(dailyFeedItems.category, category.toUpperCase()))
+    .where(and(eq(dailyFeedItems.category, category.toUpperCase()), archiveConditions(filters)))
     .orderBy(desc(dailyFeedItems.createdAt))
     .limit(limit);
 }
@@ -452,7 +475,31 @@ export async function listAllCategories(): Promise<string[]> {
   return Array.from(set).sort();
 }
 
-export async function getCategoryHeat(days: number) {
+export async function getCategoryHeat(days: number, filters?: ArchiveFilters) {
+  if (filters) {
+    if (isDemoMode()) {
+      const rows = demoQueries
+        .getRecentFeedDates(3650)
+        .flatMap((date) => demoQueries.listFeedItems(date));
+      const counts = new Map<string, number>();
+      for (const row of rows.filter((item) => matchesArchiveFilters(item, filters)))
+        counts.set(row.category, (counts.get(row.category) ?? 0) + 1);
+      return [...counts].map(([category, total]) => ({ category, daily: total, weekly: 0, total }));
+    }
+    const db = getDb();
+    if (!db) return [];
+    const rows = await db
+      .select({ category: dailyFeedItems.category, total: sql<number>`count(*)` })
+      .from(dailyFeedItems)
+      .where(archiveConditions(filters))
+      .groupBy(dailyFeedItems.category);
+    return rows.map((row) => ({
+      ...row,
+      total: Number(row.total),
+      daily: Number(row.total),
+      weekly: 0,
+    }));
+  }
   if (isDemoMode()) return demoQueries.getCategoryHeat(days);
   const db = getDb();
   if (!db) return [];
@@ -492,9 +539,22 @@ export async function getCategoryHeat(days: number) {
 
 export async function searchAllContent(
   query: string,
-  options: { category?: string; since?: string; sort?: "relevance" | "latest" } = {}
+  options: ArchiveFilters & { category?: string; sort?: "relevance" | "latest" } = {}
 ) {
-  if (isDemoMode()) return demoQueries.searchAllContent(query);
+  if (isDemoMode()) {
+    const result = demoQueries.searchAllContent(query);
+    return {
+      editions:
+        options.category || options.since || (options.region && options.region !== "ALL")
+          ? []
+          : result.editions,
+      feedItems: result.feedItems.filter(
+        (item) =>
+          matchesArchiveFilters(item, options) &&
+          (!options.category || item.category === options.category)
+      ),
+    };
+  }
   const db = getDb();
   if (!db) return { editions: [], feedItems: [] };
   const pattern = `%${escapeLike(query)}%`;
@@ -511,7 +571,7 @@ export async function searchAllContent(
       and(
         or(like(dailyFeedItems.title, pattern), like(dailyFeedItems.summary, pattern)),
         options.category ? eq(dailyFeedItems.category, options.category) : undefined,
-        options.since ? sql`${dailyFeedItems.feedDate} >= ${options.since}` : undefined
+        archiveConditions(options)
       )
     )
     .orderBy(desc(dailyFeedItems.createdAt))
@@ -521,7 +581,7 @@ export async function searchAllContent(
   // knows "matched or not", so this is where a query actually gets ranked.
   return {
     editions:
-      options.category || options.since
+      options.category || options.since || (options.region && options.region !== "ALL")
         ? []
         : rankResults(
             query,

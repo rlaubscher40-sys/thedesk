@@ -58,7 +58,7 @@ export function looksLikeGarbage(text: string | null | undefined): boolean {
   const t = text.trim();
   if (!t) return false;
   if (
-    /\buse strict\b|function\s*\(|\bvar\s+[\w$]+\s*=|=>|;\}|\{\}|\bwindow\b\s*=|Closure Library|Copyright\s+The\s+[\w.]+\s+Authors|document\.|\.prototype\b|\b[\w$]+\.[\w$]+\s*=\s*function/iu.test(
+    /@font-face\b|@(?:media|supports)\s*[^{}]*\{|\b(?:font-family|font-display|background-color)\s*:|\buse strict\b|function\s*\(|\bvar\s+[\w$]+\s*=|=>|;\}|\{\}|\bwindow\b\s*=|Closure Library|Copyright\s+The\s+[\w.]+\s+Authors|document\.|\.prototype\b|\b[\w$]+\.[\w$]+\s*=\s*function/iu.test(
       t
     )
   ) {
@@ -90,6 +90,13 @@ export function looksLikeGarbage(text: string | null | undefined): boolean {
  * here is a string a publisher's UI emits and an editor never would.
  */
 const SITE_BOILERPLATE = [
+  // Publisher advertising and navigation chrome, not article disclosures.
+  /\bsome offers on this page are from advertisers who pay us\b/iu,
+  /\bsee our advertiser disclosure\b/iu,
+  /\b(?:copyright|©)\s*\d{0,4}\s*(?:the )?associated press\b/iu,
+  /\ball rights reserved\b/iu,
+  /\bskip to (?:main )?content\b/iu,
+  /\bopen (?:the )?(?:navigation|main) menu\b/iu,
   // Save / bookmark limits (the one that shipped).
   /\byou have reached your maximum number of saved items\b/iu,
   /\bremove items from your saved list\b/iu,

@@ -1,3 +1,4 @@
+import { frontPageDate } from "@shared/frontPageDate";
 import { ConnectionNotice } from "@/components/ConnectionNotice";
 import { preferenceStorage } from "@/lib/storage";
 /**
@@ -90,13 +91,18 @@ export default function DailyFeed() {
   const [, navigate] = useLocation();
   const todayIso = getSydneyIsoDate();
   const dateParam = new URLSearchParams(search).get("date");
-  const date = dateParam && ISO_DATE_RE.test(dateParam) ? dateParam : todayIso;
-  const isToday = date === todayIso;
-
-  const recentDatesQuery = trpc.feed.getRecentDates.useQuery(undefined, {
-    staleTime: 5 * 60_000,
-  });
+  const isFrontPage = !dateParam || !ISO_DATE_RE.test(dateParam);
+  const recentDatesQuery = trpc.feed.getRecentDates.useQuery(
+    { channel },
+    {
+      staleTime: 60_000,
+      refetchInterval: isFrontPage ? 60_000 : false,
+    }
+  );
   const availableDates = useMemo(() => recentDatesQuery.data ?? [], [recentDatesQuery.data]);
+  const date = frontPageDate(todayIso, dateParam, availableDates);
+  const isToday = date === todayIso;
+  const showingLatest = isFrontPage && !isToday;
 
   const { prevDate, nextDate } = useMemo(() => {
     let prev: string | null = null;
@@ -114,16 +120,23 @@ export default function DailyFeed() {
         break;
       }
     }
-    if (!next && date < todayIso) next = todayIso;
+    if (!next && !isFrontPage && date < todayIso) next = todayIso;
     return { prevDate: prev, nextDate: next };
-  }, [availableDates, date, todayIso]);
+  }, [availableDates, date, todayIso, isFrontPage]);
 
   function gotoDate(target: string) {
     if (target === todayIso) navigate("/");
     else navigate(`/?date=${target}`);
   }
 
-  const feedQuery = trpc.feed.getByDate.useQuery({ date }, { staleTime: 60_000 });
+  const feedQuery = trpc.feed.getByDate.useQuery(
+    { date },
+    {
+      staleTime: 60_000,
+      enabled: !isFrontPage || recentDatesQuery.isSuccess,
+      refetchInterval: isFrontPage ? 60_000 : false,
+    }
+  );
   // Distinguish "no DB configured" (demo mode → render seed) from "DB
   // configured but empty" (production after a wipe → empty state).
   const demoModeQuery = trpc.system.demoMode.useQuery();
@@ -189,7 +202,15 @@ export default function DailyFeed() {
 
   return (
     <>
-      <UtilityBar filedLine={isToday ? "Updated throughout the day · Sydney" : `Archive · ${date}`}>
+      <UtilityBar
+        filedLine={
+          showingLatest
+            ? `Latest reporting · Filed ${date}`
+            : isToday
+              ? "Updated throughout the day · Sydney"
+              : `Archive · ${date}`
+        }
+      >
         <DatePagerInline
           date={date}
           isToday={isToday}
@@ -205,7 +226,7 @@ export default function DailyFeed() {
             <CopyTalkingPoints items={talkingPoints} date={date} />
           </span>
         )}
-        {isToday && streakDays >= 2 && (
+        {(isFrontPage || isToday) && streakDays >= 2 && (
           <span className="bs-label hidden md:inline" style={{ color: "var(--color-accent-text)" }}>
             · {streakDays}-day streak
           </span>
@@ -218,16 +239,30 @@ export default function DailyFeed() {
         {enriched && <AngledForChips />}
       </SectionErrorBoundary>
 
-      {feedQuery.isLoading && !isDemo && <FeedSkeleton />}
+      {showingLatest && (
+        <p className={cn(GUTTER_X, "rule-hair-b py-3 text-sm text-[var(--color-fg-muted)]")}>
+          The latest reporting in this lane, filed {dateLabel}. New reporting will appear here when
+          ready.
+        </p>
+      )}
+      {(feedQuery.isLoading || (isFrontPage && recentDatesQuery.isLoading)) && !isDemo && (
+        <FeedSkeleton />
+      )}
+      {isFrontPage && recentDatesQuery.isError && !isDemo && (
+        <ConnectionNotice
+          retry={() => void recentDatesQuery.refetch()}
+          retrying={recentDatesQuery.isFetching}
+        />
+      )}
       {feedQuery.isError && !isDemo && (
         <ConnectionNotice retry={() => void feedQuery.refetch()} retrying={feedQuery.isFetching} />
       )}
 
-      {!hasLiveData && !isDemo && feedQuery.isSuccess && <EmptyFeedState />}
+      {!hasLiveData && !isDemo && feedQuery.isSuccess && <EmptyFeedState isToday={isToday} />}
 
       {hasLiveData && feedItems.length === 0 && (
         <p className={cn(GUTTER_X, "py-16 text-center text-[var(--color-fg-muted)]")}>
-          No stories in this lane today.
+          No stories in this lane for {dateLabel}.
         </p>
       )}
 
@@ -266,7 +301,7 @@ export default function DailyFeed() {
             </SectionErrorBoundary>
           )}
 
-          <SectionErrorBoundary section="More from today">
+          <SectionErrorBoundary section="More reporting">
             <StoryColumns items={columns} />
           </SectionErrorBoundary>
 
@@ -285,13 +320,13 @@ export default function DailyFeed() {
         </>
       )}
 
-      {isToday && enriched && !isDemo && (
+      {(isFrontPage || isToday) && enriched && !isDemo && (
         <SectionErrorBoundary section="Recent reporting">
-          <RecentReporting channel={channel === "PROPERTY" ? "PROPERTY" : "AU"} />
+          <RecentReporting channel={channel === "PROPERTY" ? "PROPERTY" : "AU"} beforeDate={date} />
         </SectionErrorBoundary>
       )}
 
-      {isToday && (
+      {(isFrontPage || isToday) && (
         <>
           <SectionErrorBoundary section="Ask The Desk">
             <AskDeskBand />
@@ -302,7 +337,7 @@ export default function DailyFeed() {
         </>
       )}
 
-      {isToday && new URLSearchParams(search).get("utm_source") === "instagram" ? (
+      {(isFrontPage || isToday) && new URLSearchParams(search).get("utm_source") === "instagram" ? (
         <div className={GUTTER_X}>
           <SocialStart compact />
         </div>
@@ -318,7 +353,7 @@ export default function DailyFeed() {
           columns so the layout is honest about what it is. */}
       {!hasLiveData && isDemo && <SeedFallback />}
 
-      {isToday && channel === "AU" && (
+      {(isFrontPage || isToday) && channel === "AU" && (
         <SectionErrorBoundary section="Market discovery">
           <div className={GUTTER_X}>
             <MarketDiscovery compact />
@@ -472,18 +507,20 @@ function FeedSkeleton() {
  * hairlines rather than a panel. Editor copy stays gated to admins so a
  * partner reader doesn't see GitHub Actions plumbing.
  */
-function EmptyFeedState() {
+function EmptyFeedState({ isToday }: { isToday: boolean }) {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
   return (
     <div className={cn(GUTTER_X, "rule-hair rule-hair-b my-6 py-5")}>
       <p className="bs-label-accent" style={{ letterSpacing: "0.24em" }}>
-        Today&apos;s feed
+        {isToday ? "Today’s feed" : "Selected day"}
       </p>
-      <h2 className="font-serif font-bold mt-2 text-2xl">Today’s reporting is on its way.</h2>
+      <h2 className="font-serif font-bold mt-2 text-2xl">
+        {isToday ? "Today’s reporting is on its way." : "No reporting filed for this day."}
+      </h2>
       <p className="mt-2 max-w-[70ch] text-[var(--color-fg-muted)]">
-        No stories have been filed in this section for the selected day yet. Explore recent
-        reporting below or browse the archive.
+        No stories have been filed in this section for the selected day. Browse the archive to find
+        earlier reporting.
       </p>
       {isAdmin && (
         <a href="/admin?section=data" className="bs-link inline-flex min-h-11 items-center mt-2">

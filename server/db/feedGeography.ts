@@ -1,5 +1,5 @@
 import { editorialCategory } from "../../shared/editorialCategory";
-import { and, asc, gt, inArray, eq } from "drizzle-orm";
+import { and, asc, gt, inArray } from "drizzle-orm";
 import { isClearlyOverseas, storyChannel } from "../../shared/storyGeography";
 import { dailyFeedItems } from "./schema";
 import { getDb } from "./client";
@@ -61,7 +61,12 @@ export async function repairEditorialCategories(): Promise<number> {
         category: dailyFeedItems.category,
       })
       .from(dailyFeedItems)
-      .where(and(gt(dailyFeedItems.id, cursor), eq(dailyFeedItems.category, "GEOPOLITICS")))
+      .where(
+        and(
+          gt(dailyFeedItems.id, cursor),
+          inArray(dailyFeedItems.category, ["GEOPOLITICS", "PROPERTY"])
+        )
+      )
       .orderBy(asc(dailyFeedItems.id))
       .limit(250);
     if (!rows.length) return changed;
@@ -72,7 +77,12 @@ export async function repairEditorialCategories(): Promise<number> {
       await db
         .update(dailyFeedItems)
         .set({ category: "OTHER" })
-        .where(and(inArray(dailyFeedItems.id, ids), eq(dailyFeedItems.category, "GEOPOLITICS")));
+        .where(
+          and(
+            inArray(dailyFeedItems.id, ids),
+            inArray(dailyFeedItems.category, ["GEOPOLITICS", "PROPERTY"])
+          )
+        );
       changed += ids.length;
     }
     cursor = rows[rows.length - 1]!.id;
