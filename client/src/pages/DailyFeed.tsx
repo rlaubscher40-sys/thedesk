@@ -486,9 +486,9 @@ function EmptyFeedState() {
         reporting below or browse the archive.
       </p>
       {isAdmin && (
-        <Link href="/admin?section=data" className="bs-link inline-flex min-h-11 items-center mt-2">
+        <a href="/admin?section=data" className="bs-link inline-flex min-h-11 items-center mt-2">
           Check feed status in the curator workspace →
-        </Link>
+        </a>
       )}
     </div>
   );
