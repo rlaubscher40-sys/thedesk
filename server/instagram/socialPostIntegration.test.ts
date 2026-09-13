@@ -11,12 +11,14 @@ const m = vi.hoisted(() => ({
   publish: vi.fn(),
   recent: vi.fn(),
   render: vi.fn(),
+  weeklyStories: vi.fn(),
 }));
 vi.mock("../db/socialPublication", () => ({
   readSocialRecords: m.read,
   reserveSocialRecords: m.reserve,
   confirmSocialRecords: m.confirm,
 }));
+vi.mock("./weeklyStoryDelivery", () => ({ postWeeklyStoryFrames: m.weeklyStories }));
 vi.mock("../db/feed", () => ({ getFeedItemsByIds: m.feed }));
 vi.mock("../db/health", () => ({ recordServerError: async () => {} }));
 vi.mock("../core/env", () => ({
@@ -28,9 +30,7 @@ vi.mock("../og/instagramCards", () => ({
   renderDailyStoryCard: m.render,
   renderWeeklyCoverCard: m.render,
   renderWeeklyTopicCard: m.render,
-  renderWeeklyStoryVertical: async () => {
-    throw new Error("No test Story");
-  },
+  renderWeeklyStoryVertical: m.render,
   renderDailyStoryVertical: async () => {
     throw new Error("No test Story");
   },
@@ -71,6 +71,7 @@ const edition = {
 } as Edition;
 beforeEach(() => {
   vi.resetAllMocks();
+  m.weeklyStories.mockResolvedValue(undefined);
   m.read.mockResolvedValue([]);
   m.feed.mockResolvedValue([story]);
   m.render.mockResolvedValue(Buffer.from("image"));
@@ -92,6 +93,19 @@ describe("real social publishers use provenance and durable identities", () => {
       m.publish.mock.invocationCallOrder[0]!
     );
     expect(m.confirm).toHaveBeenCalledOnce();
+    expect(m.weeklyStories).toHaveBeenCalledWith(
+      expect.objectContaining({
+        carouselId: "123",
+        sourceId: 1,
+        frames: expect.arrayContaining([Buffer.from("image")]),
+      })
+    );
+    expect(m.weeklyStories.mock.calls[0]![0].frames).toHaveLength(3);
+    expect(m.parent.mock.calls[0]![0].caption).not.toMatch(/Before|before your next property/);
+    expect(m.parent.mock.calls[0]![0].caption).toContain(story.summary);
+    expect(m.confirm.mock.invocationCallOrder[0]).toBeLessThan(
+      m.weeklyStories.mock.invocationCallOrder[0]!
+    );
   });
   it.each([null, { ...testSourceTiming(), publisherPublishedAt: "2026-04-01T00:00:00Z" }])(
     "holds missing or stale source timing before upload: %j",
@@ -126,6 +140,7 @@ describe("real social publishers use provenance and durable identities", () => {
       "Meta response lost"
     );
     expect(m.recent).not.toHaveBeenCalled();
+    expect(m.weeklyStories).not.toHaveBeenCalled();
     expect(m.confirm).not.toHaveBeenCalled();
   });
   it("an exact completed slot recovers its original colour without rendering or publishing", async () => {

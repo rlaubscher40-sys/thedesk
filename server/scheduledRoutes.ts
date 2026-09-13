@@ -1895,9 +1895,18 @@ function registerInstagramRoutes(app: Express): void {
         }
         const hero = null;
         if (kind === "weekly-cover") buf = await cards.renderWeeklyCoverCard(edition, hero);
-        else if (kind === "weekly-story")
-          buf = await cards.renderWeeklyStoryVertical(edition, hero);
-        else if (kind === "weekly-topic") {
+        else if (kind === "weekly-story") {
+          if (idx < 0 || idx > 2) {
+            res.status(404).json({ error: "Weekly Story frame must be 0, 1 or 2" });
+            return;
+          }
+          buf = await cards.renderWeeklyStoryVertical(
+            edition,
+            hero,
+            req.query.variant === "light" ? "light" : "navy",
+            idx as 0 | 1 | 2
+          );
+        } else if (kind === "weekly-topic") {
           const topic = edition.topics[idx];
           if (!topic) {
             res.status(404).json({ error: "No topic at that index" });

@@ -14,18 +14,21 @@ export const carouselStoryKey = (carouselId: string, storyId: number) =>
 export async function publishCarouselStoryOnce(
   carouselId: string,
   sourceId: number,
-  publish: () => Promise<string>
+  publish: () => Promise<string>,
+  frame?: "weekly-cover" | "weekly-detail" | "weekly-roundup"
 ) {
   if (!/^\d{1,64}$/.test(carouselId) || !Number.isSafeInteger(sourceId) || sourceId < 1)
     throw new Error("Invalid carousel Story identity");
-  const key = carouselStoryKey(carouselId, sourceId);
+  const key = frame
+    ? carouselStoryKey(`${carouselId}:${frame}`, sourceId)
+    : carouselStoryKey(carouselId, sourceId);
   if ((await readSocialRecords([key])).length)
     throw new Error("Carousel Story already reserved or confirmed; inspect its receipt");
   await reserveSocialRecords([key]);
   const storyId = await publish();
   if (!/^\d{1,64}$/.test(storyId))
     throw new Error("Story outcome uncertain; publication remains locked");
-  const detail = JSON.stringify({ carouselId, sourceId, storyId });
+  const detail = JSON.stringify({ carouselId, sourceId, storyId, ...(frame ? { frame } : {}) });
   await confirmSocialRecords([key], detail);
   const [saved] = await readSocialRecords([key]);
   if (saved?.status !== "success" || saved.detail !== detail)
