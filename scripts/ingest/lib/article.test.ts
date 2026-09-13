@@ -2,11 +2,39 @@ import { afterEach, describe, it, expect, vi } from "vitest";
 vi.mock("./publicFetch", () => ({
   publicFetch: (...args: Parameters<typeof fetch>) => globalThis.fetch(...args),
 }));
-import { extractArticleText, fetchArticle } from "./article";
+import { extractArticleText, fetchArticle as fetchWithAccess } from "./article";
+import { createArticleAccess } from "./articleAccess";
+const fetchArticle: typeof fetchWithAccess = (url, options) =>
+  fetchWithAccess(url, { access: createArticleAccess(), ...options });
 
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.useRealTimers();
+});
+
+it("stops a denied article from causing another network request during its cooldown", async () => {
+  const access = createArticleAccess();
+  const request = vi.fn(async () => new Response("Denied", { status: 403 }));
+  vi.stubGlobal("fetch", request);
+  expect((await fetchArticle("https://denied.example/story", { access })).fetchFailure).toBe(
+    "article-http-403"
+  );
+  expect((await fetchArticle("https://denied.example/story", { access })).fetchFailure).toBe(
+    "article-cooldown-http-403"
+  );
+  expect(request).toHaveBeenCalledOnce();
+});
+
+it("keeps APRA institutional assets out of the extracted release without deleting its findings", () => {
+  const body =
+    "The consultation proposes new retirement reporting with publication expected in 2028.";
+  const footer =
+    "The Australian Prudential Regulation Authority (APRA) is the prudential regulator of the financial services industry. APRA currently supervises institutions holding around $9.8 trillion in assets.";
+  expect(extractArticleText(`<article><p>${body}</p><p>${footer}</p></article>`, 6000)).toBe(body);
+  expect(extractArticleText(`<article><p>${footer}</p></article>`, 6000)).toBeNull();
+  expect(
+    extractArticleText(`<article><h1>Consultation</h1><p>${footer}</p></article>`, 6000)
+  ).toBeNull();
 });
 
 describe("bounded article fetching", () => {

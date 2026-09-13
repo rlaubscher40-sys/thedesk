@@ -5,6 +5,7 @@ export type ClaimSource = { title: string; summary?: string | null; articleText?
 export type ClaimIssue =
   | "missing-evidence"
   | "unsupported-figure"
+  | "figure-scope"
   | "unsupported-place"
   | "unsupported-date"
   | "delivery-status"
@@ -89,7 +90,20 @@ export function checkClaimEvidence(
   const knownMonths = new Set(monthNames(evidence));
   if (monthNames(copy).some((s) => !knownMonths.has(s))) issues.add("unsupported-date");
   const sourceSentences = sentences(evidence);
+  const institutionalAssets = new Set(
+    sourceSentences
+      .filter((s) => /APRA.*supervises institutions holding.*assets/i.test(s))
+      .flatMap((s) => [...figures(s)].filter((n) => n.startsWith("$:")))
+  );
   for (const sentence of sentences(copy)) {
+    if (
+      /\b(?:superannuation|super funds?|retirement)\b/i.test(sentence) &&
+      !/\b(?:regulated|supervised) institutions\b|\bdepositors\b.*\bpolicyholders\b/i.test(
+        sentence
+      ) &&
+      [...figures(sentence)].some((n) => institutionalAssets.has(n))
+    )
+      issues.add("figure-scope");
     if (delivered.test(sentence) && !future.test(sentence)) {
       const claimed = figures(sentence);
       if (

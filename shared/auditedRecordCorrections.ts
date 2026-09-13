@@ -1,4 +1,4 @@
-/** Source-verified corrections from the 12 September coverage audit.
+/** Source-verified corrections from the September coverage audits.
  * Match the exact publication and old field; preserve later editorial edits.
  * No source request, model generation or new publication during startup. */
 type Field = "title" | "summary" | "partnerTag" | "sayThis" | "whyItMatters" | "counterpoint";
@@ -9,6 +9,13 @@ const records: Array<{ sourceUrl: string; feedDate: string; changes: Correction[
       "https://www.apra.gov.au/news-and-publications/apra-revises-proposals-implement-governments-retirement-reporting-framework",
     feedDate: "2026-09-10",
     changes: [
+      {
+        field: "whyItMatters",
+        before:
+          "From 2028, Australians will for the first time have published data on how super funds are supporting members through retirement, shifting accountability in a system holding $9.8 trillion.",
+        after:
+          "The proposed indicators would make super funds' retirement support more transparent, with APRA expecting initial publication in 2028.",
+      },
       {
         field: "counterpoint",
         before:

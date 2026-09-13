@@ -70,7 +70,7 @@ export async function collectPropertyEvidence(sources: EvidenceSource[] = EVIDEN
   if (failedSources.length) console.warn(`[evidence-failures] ${JSON.stringify(failedSources)}`);
   if (failures === sources.length) throw new Error("All property evidence sources failed");
   console.log(
-    `[evidence] checked ${sources.length} sources; ${failures} failed (see Admin coverage)`
+    `[evidence] checked ${sources.length} sources; ${failures} failed (discovery only; article access and publication are separate)`
   );
   return { checked: sources.length, failed: failures };
 }

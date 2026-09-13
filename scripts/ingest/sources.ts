@@ -461,6 +461,17 @@ export const SOURCES: Source[] = [
     maxItems: 6,
   },
   {
+    name: "Pulse Tasmania Politics",
+    // Reviewed public regional newsroom, independent of denied mastheads.
+    // Index dates are never used as original publication dates.
+    url: "https://pulsetasmania.com.au/section/politics/",
+    kind: "index",
+    articlePath: "^/news/[^/]+/$",
+    category: "POLICY",
+    channel: "PROPERTY",
+    maxItems: 20,
+  },
+  {
     name: "Australian Industry Regulation",
     url: googleNews(
       'Australia (packaging OR recycling OR "plastic waste") (laws OR reform OR regulation OR standards)'
