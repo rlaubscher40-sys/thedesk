@@ -98,3 +98,29 @@ it("keeps the caret and viewport while search updates the URL on each keystroke"
   expect(offset).toBe(250);
   input.remove();
 });
+
+it("restores again when a later layout clamps an already reached position", () => {
+  let frame: FrameRequestCallback | undefined;
+  vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+    frame = callback;
+    return 1;
+  });
+  const view = renderHook(({ route }) => usePageScroll(route), { initialProps: { route: "/?" } });
+  offset = 662;
+  fireEvent.scroll(window);
+  view.rerender({ route: "/story/42?" });
+  view.rerender({ route: "/?" });
+  expect(offset).toBe(662);
+  // A late placeholder commit clamps the document after the first restore.
+  offset = 234;
+  fireEvent.scroll(window);
+  act(() => frame?.(0));
+  expect(offset).toBe(662);
+  // Intentional interaction must immediately take control of scrolling.
+  fireEvent.pointerDown(window);
+  offset = 500;
+  fireEvent.scroll(window);
+  view.rerender({ route: "/story/42?" });
+  view.rerender({ route: "/?" });
+  expect(offset).toBe(500);
+});

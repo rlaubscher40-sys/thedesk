@@ -38,13 +38,13 @@ export function usePageScroll(routeKey: string) {
       cancelAnimationFrame(raf);
       record();
     };
-    const onKey = (event: KeyboardEvent) => {
-      if (["ArrowDown", "ArrowUp", "PageDown", "PageUp", "Home", "End", " "].includes(event.key))
-        surrender();
-    };
     const restore = () => {
+      if (!restoring) return;
       window.scrollTo({ top: target, behavior: "instant" });
-      if (Math.abs(window.scrollY - target) <= 2 || performance.now() - started > 1500) {
+      // A lazy route can briefly reach the offset, then shrink when its
+      // placeholder is replaced. Keep a bounded settling window instead of
+      // saving that temporary clamped offset as the reader's position.
+      if (target === 0 || performance.now() - started > 1500) {
         restoring = false;
         record();
       } else {
@@ -56,7 +56,8 @@ export function usePageScroll(routeKey: string) {
     window.addEventListener("scroll", record, { passive: true });
     window.addEventListener("wheel", surrender, { passive: true });
     window.addEventListener("touchstart", surrender, { passive: true });
-    window.addEventListener("keydown", onKey);
+    window.addEventListener("keydown", surrender);
+    window.addEventListener("pointerdown", surrender, { passive: true });
     if (restoring) restore();
     else record(); // Leave evidence fragments to their native anchor handling.
 
@@ -65,7 +66,8 @@ export function usePageScroll(routeKey: string) {
       window.removeEventListener("scroll", record);
       window.removeEventListener("wheel", surrender);
       window.removeEventListener("touchstart", surrender);
-      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("keydown", surrender);
+      window.removeEventListener("pointerdown", surrender);
     };
   }, [routeKey]);
 
