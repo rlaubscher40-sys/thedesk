@@ -3,7 +3,7 @@
  * the user scrolls. Plus a sticky compact masthead that fades in once the
  * user has scrolled past the hero.
  *
- * Scroll source is the closest scrollable ancestor. Uses requestAnimationFrame
+ * Scroll source is the document, matching the native page shell. Uses requestAnimationFrame
  * for smooth updates without per-scroll React renders.
  */
 import { useEffect, useRef, useState } from "react";
@@ -14,19 +14,17 @@ export function ScrollProgress({ revealAt = 320 }: { revealAt?: number }) {
   const [revealed, setRevealed] = useState(false);
 
   useEffect(() => {
-    const main = document.querySelector<HTMLElement>("main");
-    if (!main) return;
+    const page = document.documentElement;
 
     let raf = 0;
     let pending = false;
     function update() {
-      if (!main) return;
-      const max = main.scrollHeight - main.clientHeight;
-      const pct = max > 0 ? Math.min(1, main.scrollTop / max) : 0;
+      const max = page.scrollHeight - window.innerHeight;
+      const pct = max > 0 ? Math.min(1, window.scrollY / max) : 0;
       if (barRef.current) {
         barRef.current.style.transform = `scaleX(${pct})`;
       }
-      setRevealed(main.scrollTop > revealAt);
+      setRevealed(window.scrollY > revealAt);
       pending = false;
     }
     function onScroll() {
@@ -34,11 +32,14 @@ export function ScrollProgress({ revealAt = 320 }: { revealAt?: number }) {
       pending = true;
       raf = requestAnimationFrame(update);
     }
+    const observer = new ResizeObserver(onScroll);
+    observer.observe(document.body);
     update();
-    main.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
+      observer.disconnect();
       cancelAnimationFrame(raf);
-      main.removeEventListener("scroll", onScroll);
+      window.removeEventListener("scroll", onScroll);
     };
   }, [revealAt]);
 

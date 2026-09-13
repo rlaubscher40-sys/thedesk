@@ -23,6 +23,7 @@ import {
   Search,
   Sparkles,
 } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle } from "./ui/Dialog";
 import { cn } from "@/lib/cn";
 import { highlight as highlightMatch } from "@/lib/highlight";
 import { trpc } from "@/lib/trpc";
@@ -112,6 +113,7 @@ export function CommandPalette() {
   const [highlight, setHighlight] = useState(0);
   const [, navigate] = useLocation();
   const inputRef = useRef<HTMLInputElement>(null);
+  const returnFocus = useRef<HTMLElement | null>(null);
 
   // Global hotkey.
   useEffect(() => {
@@ -136,16 +138,12 @@ export function CommandPalette() {
     return () => window.removeEventListener("thedesk:open-search", open);
   }, []);
 
-  // Focus input on open, reset on close.
+  // Keep keyboard and touch dismissal consistent with the other dialogs.
   useEffect(() => {
     if (open) {
       setQuery("");
       setHighlight(0);
-      // Defer so the input exists.
-      const t = setTimeout(() => inputRef.current?.focus(), 30);
-      return () => clearTimeout(t);
     }
-    return undefined;
   }, [open]);
 
   // Lazy: only run live search when the palette is open + query is meaningful.
@@ -214,14 +212,10 @@ export function CommandPalette() {
       e.preventDefault();
       const sel = items[highlight];
       if (sel) {
+        returnFocus.current = null;
         navigate(sel.href);
         setOpen(false);
       }
-    } else if (e.key === "Tab") {
-      // The only focusable control is the input; keep focus here so Tab
-      // can't wander into the page behind the modal. Arrow keys drive the
-      // list, so Tab has no navigation role to fill inside the palette.
-      e.preventDefault();
     }
   }
 
@@ -255,22 +249,26 @@ export function CommandPalette() {
   const flatIndex = new Map(items.map((it, i) => [it.id, i]));
 
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-start justify-center pt-[12vh] px-4"
-      onClick={() => setOpen(false)}
-    >
-      <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-fade-in"
-        aria-hidden="true"
-      />
-      <div
-        className="relative w-full max-w-2xl panel rounded shadow-2xl animate-fade-in flex flex-col max-h-[70vh]"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Search and jump to"
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent
+        className="top-[8dvh] -translate-y-0 w-[calc(100%-2rem)] max-w-2xl p-0 gap-0 flex flex-col max-h-[calc(84dvh-env(safe-area-inset-bottom,0px))]"
+        aria-describedby={undefined}
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          returnFocus.current =
+            document.activeElement instanceof HTMLElement ? document.activeElement : null;
+          inputRef.current?.focus();
+        }}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          const target = returnFocus.current?.isConnected
+            ? returnFocus.current
+            : document.querySelector<HTMLElement>("main");
+          target?.focus({ preventScroll: true });
+        }}
       >
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--color-border)]">
+        <DialogTitle className="sr-only">Search and jump to</DialogTitle>
+        <div className="flex items-center gap-3 pl-4 pr-16 py-4 border-b border-[var(--color-border)]">
           <Search className="h-4 w-4 text-[var(--color-fg-subtle)]" aria-hidden="true" />
           <input
             ref={inputRef}
@@ -278,7 +276,7 @@ export function CommandPalette() {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
             placeholder="Jump to intelligence, a market, edition or story…"
-            className="flex-1 bg-transparent text-base focus:outline-none placeholder:text-[var(--color-fg-subtle)]"
+            className="flex-1 min-w-0 bg-transparent text-base focus:outline-none placeholder:text-[var(--color-fg-subtle)]"
             role="combobox"
             aria-expanded={items.length > 0}
             aria-controls="cmdk-listbox"
@@ -287,16 +285,13 @@ export function CommandPalette() {
             aria-autocomplete="list"
             autoComplete="off"
           />
-          <kbd className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-white/[0.06] border border-[var(--color-border)] text-[var(--color-fg-subtle)]">
-            ESC
-          </kbd>
         </div>
 
         <div
           id="cmdk-listbox"
           role="listbox"
           aria-label="Results"
-          className="overflow-y-auto flex-1 py-2"
+          className="overflow-y-auto overscroll-contain min-h-0 flex-1 py-2"
         >
           {items.length === 0 && (
             <p className="px-4 py-6 text-sm text-[var(--color-fg-muted)]" role="status">
@@ -324,6 +319,7 @@ export function CommandPalette() {
                     tabIndex={-1}
                     onMouseEnter={() => setHighlight(idx)}
                     onClick={() => {
+                      returnFocus.current = null;
                       navigate(it.href);
                       setOpen(false);
                     }}
@@ -356,14 +352,14 @@ export function CommandPalette() {
           ))}
         </div>
 
-        <div className="flex items-center gap-4 px-4 py-2 border-t border-[var(--color-border)] text-[10px] font-mono uppercase tracking-wider text-[var(--color-fg-subtle)]">
+        <div className="hidden sm:flex items-center gap-4 px-4 py-2 border-t border-[var(--color-border)] text-[10px] font-mono uppercase tracking-wider text-[var(--color-fg-subtle)]">
           <Hint k="↑↓" label="navigate" />
           <Hint k="↵" label="open" />
           <Hint k="ESC" label="close" />
           <span className="ml-auto">⌘K from anywhere</span>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

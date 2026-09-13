@@ -5,11 +5,35 @@ import { sourceTimingLabel } from "@shared/sourceTiming";
 import { trpc } from "@/lib/trpc";
 import { useFilteredFeed } from "@/lib/useFilteredFeed";
 import { GUTTER_X } from "@/components/broadsheet/tokens";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { ConnectionNotice } from "@/components/ConnectionNotice";
 
 export function RecentReporting({ channel }: { channel: "AU" | "PROPERTY" }) {
   const query = trpc.feed.recentLocal.useQuery({ channel }, { staleTime: 60_000 });
   const items = useFilteredFeed(query.data ?? []);
+  if (query.isLoading)
+    return (
+      <section
+        className={`${GUTTER_X} rule-hair py-8`}
+        role="status"
+        aria-label="Loading recent reporting"
+        aria-busy="true"
+      >
+        <h2 className="bs-label">Recent reporting</h2>
+        <p className="text-sm mt-2 mb-5 text-[var(--color-fg-muted)]">
+          From the previous three days on The Desk.
+        </p>
+        <div className="grid md:grid-cols-2 gap-x-8" aria-hidden="true">
+          {Array.from({ length: 6 }, (_, i) => (
+            <div key={i} className="py-4 border-t border-[var(--color-border)] space-y-3">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-4 w-52 max-w-full" />
+            </div>
+          ))}
+        </div>
+      </section>
+    );
   if (query.isError)
     return <ConnectionNotice retry={() => void query.refetch()} retrying={query.isFetching} />;
   return <RecentReportingList items={items} />;
