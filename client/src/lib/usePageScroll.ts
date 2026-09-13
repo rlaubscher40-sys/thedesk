@@ -14,6 +14,45 @@ export function usePageScroll(routeKey: string) {
     };
   }, []);
 
+  // A direct evidence URL can arrive before its lazy page or data section.
+  // Native fragment scrolling does not retry after React replaces the shell.
+  useEffect(() => {
+    let id: string;
+    try {
+      id = decodeURIComponent(window.location.hash.slice(1));
+    } catch {
+      return;
+    }
+    if (!id) return;
+    const active = document.activeElement;
+    if (
+      active instanceof HTMLElement &&
+      (active.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName))
+    )
+      return;
+    let stopped = false;
+    const stop = () => {
+      stopped = true;
+      observer.disconnect();
+      clearTimeout(timeout);
+      for (const event of ["keydown", "pointerdown", "touchstart", "wheel"])
+        window.removeEventListener(event, stop);
+    };
+    const align = () => {
+      const target = document.getElementById(id);
+      if (stopped || !target) return;
+      target.scrollIntoView({ block: "start", behavior: "instant" });
+      stop();
+    };
+    const observer = new MutationObserver(align);
+    const timeout = setTimeout(stop, 15000);
+    observer.observe(document.body, { childList: true, subtree: true });
+    for (const event of ["keydown", "pointerdown", "touchstart", "wheel"])
+      window.addEventListener(event, stop, { passive: true });
+    align();
+    return stop;
+  }, [routeKey]);
+
   useLayoutEffect(() => {
     const path = routeKey.split("?")[0] ?? "";
     const samePage = previousPath.current === path;
