@@ -80,3 +80,21 @@ it("leaves evidence fragment positioning intact and restores browser settings on
   view.unmount();
   expect(history.scrollRestoration).toBe("auto");
 });
+
+it("keeps the caret and viewport while search updates the URL on each keystroke", () => {
+  const input = document.createElement("input");
+  document.body.append(input);
+  const view = renderHook(({ route }) => usePageScroll(route), {
+    initialProps: { route: "/archive?q=h" },
+  });
+  input.focus();
+  offset = 250;
+  fireEvent.scroll(window);
+  view.rerender({ route: "/archive?q=ho" });
+  expect(document.activeElement).toBe(input);
+  expect(offset).toBe(250);
+  view.rerender({ route: "/archive?q=hou" });
+  expect(document.activeElement).toBe(input);
+  expect(offset).toBe(250);
+  input.remove();
+});

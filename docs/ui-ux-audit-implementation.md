@@ -48,7 +48,7 @@ This branch implements changes for all 28 audit findings. Implementation is not 
 ## Mobile reading and performance follow-up
 
 - Live document geometry exposed a scroll-container mismatch: the document was 1,617px tall in a 936px viewport, while `main` had equal scroll/client heights. Reading progress, position restoration and the top button listened to `main`, so they did not follow actual scrolling. They now use the document; route positions include query strings and restoration yields to reader input. Evidence fragments retain native positioning.
-- Remove the route animation runtime and its exit delay. The production entry bundle falls from 461.80 kB to 336.25 kB, or 150.84 kB to 110.27 kB gzip (27% smaller). This is a measured build-size improvement, not a claimed field LCP improvement.
+- Remove the route animation runtime and its exit delay. The production entry bundle falls from 461.80 kB to 336.57 kB, or 150.84 kB to 110.41 kB gzip (27% smaller). This is a measured build-size improvement, not a claimed field LCP improvement.
 - Search uses the shared accessible dialog, a labelled 44px close target, focus trapping/return, a shrinkable input and dynamic-viewport bounds. Phone footers reserve sufficient space above bottom navigation; the top button meets the same 44px target.
 - Recent reporting reserves a loading section instead of inserting the whole section after an initially empty render.
 - Regression checks cover document scrolling, route/query restoration, delayed page height, yielding to touch, fragment preservation and search dialog dismissal/focus return.

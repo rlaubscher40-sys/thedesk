@@ -3,6 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 /** The document is the scroll container on both desktop and mobile. */
 export function usePageScroll(routeKey: string) {
   const positions = useRef(new Map<string, number>());
+  const previousPath = useRef<string | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   useEffect(() => {
@@ -14,8 +15,18 @@ export function usePageScroll(routeKey: string) {
   }, []);
 
   useLayoutEffect(() => {
+    const path = routeKey.split("?")[0] ?? "";
+    const samePage = previousPath.current === path;
+    previousPath.current = path;
+    const active = document.activeElement;
+    // Archive updates its URL on every keystroke. Keep the caret, keyboard
+    // and viewport in place while editing query-backed controls.
+    const editing =
+      samePage &&
+      active instanceof HTMLElement &&
+      (active.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName));
     const target = positions.current.get(routeKey) ?? 0;
-    let restoring = !window.location.hash;
+    let restoring = !window.location.hash && !editing;
     let raf = 0;
     const started = performance.now();
     const record = () => {
@@ -41,7 +52,7 @@ export function usePageScroll(routeKey: string) {
       }
     };
 
-    document.querySelector<HTMLElement>("main")?.focus({ preventScroll: true });
+    if (!samePage) document.querySelector<HTMLElement>("main")?.focus({ preventScroll: true });
     window.addEventListener("scroll", record, { passive: true });
     window.addEventListener("wheel", surrender, { passive: true });
     window.addEventListener("touchstart", surrender, { passive: true });

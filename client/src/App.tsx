@@ -188,7 +188,7 @@ function Routes() {
     </Suspense>
   );
 
-  return routes;
+  return <div key={location}>{routes}</div>;
 }
 
 export default function App() {
