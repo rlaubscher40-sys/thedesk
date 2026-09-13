@@ -476,22 +476,19 @@ function EmptyFeedState() {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
   return (
-    <div className={cn(GUTTER_X, "rule-hair rule-hair-b my-12 py-16 text-center")}>
+    <div className={cn(GUTTER_X, "rule-hair rule-hair-b my-6 py-5")}>
       <p className="bs-label-accent" style={{ letterSpacing: "0.24em" }}>
         Today&apos;s feed
       </p>
-      <h2 className="font-serif font-bold mt-3" style={{ fontSize: "2.5rem", lineHeight: 1.04 }}>
-        The desk is quiet.
-      </h2>
-      <p className="mx-auto mt-4 max-w-[58ch] text-[var(--color-fg-muted)]">
-        {isAdmin
-          ? "The daily-feed workflow hasn't run yet today, or it was just wiped. Re-fire from GitHub Actions to repopulate."
-          : "Today's brief hasn't landed yet. New stories arrive at 7am Sydney time on weekdays."}
+      <h2 className="font-serif font-bold mt-2 text-2xl">Today’s reporting is on its way.</h2>
+      <p className="mt-2 max-w-[70ch] text-[var(--color-fg-muted)]">
+        No stories have been filed in this section for the selected day yet. Explore recent
+        reporting below or browse the archive.
       </p>
       {isAdmin && (
-        <p className="bs-label mt-5" style={{ letterSpacing: "0.18em" }}>
-          GitHub · Actions · Daily Feed · Run workflow
-        </p>
+        <Link href="/admin?section=data" className="bs-link inline-flex min-h-11 items-center mt-2">
+          Check feed status in the curator workspace →
+        </Link>
       )}
     </div>
   );
