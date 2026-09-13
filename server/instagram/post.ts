@@ -25,7 +25,7 @@ import { recordServerError } from "../db/health";
 import { generateCoverageBrief } from "../prompts/coverageBrief";
 import { generateInstagramHeadline } from "../prompts/instagramHeadline";
 import { renderPropertyDailyCover } from "./dailyCover";
-import { briefingReady, buildBriefingSlides, briefingAlt, briefingCaption } from "./briefing";
+import { buildBriefingSlides, briefingAlt, briefingCaption } from "./briefing";
 import { renderBriefingSlide } from "../og/briefingCards";
 import {
   type CardVariant,
@@ -53,11 +53,7 @@ import { renderStatReel } from "../video/statReel";
 import { renderReelCover } from "../video/reelCover";
 import { productionReelOptions } from "../video/reelProduction";
 import { captureReelRender } from "../video/reelRenderRecord";
-import {
-  pickPropertyStories,
-  pickPropertyTopics,
-  propertyComparisonCta,
-} from "./propertyEditorial";
+import { pickPropertyTopics, propertyComparisonCta } from "./propertyEditorial";
 
 import {
   sourceGroundedStory,
@@ -67,7 +63,9 @@ import {
   marketDataCta,
 } from "./sourceContent";
 
-export const pickDailyTopStories = pickPropertyStories;
+import { pickBriefingStories, unpublishedBriefingSelection } from "./briefingSelection";
+import { publishCarouselStoryOnce } from "./carouselStoryReceipt";
+export const pickDailyTopStories = pickBriefingStories;
 
 /** Single source of truth for dash sanitization in Instagram content. */
 export function sanitizeDashes(text: string): string {
@@ -212,7 +210,7 @@ function categoryHashtag(category: string | null | undefined): string {
 
 /** Captions keep source claims intact and give each slide its own reading link. */
 export function buildDailyCaption(stories: DailyFeedItem[]): string {
-  return briefingCaption(pickPropertyStories(stories, 3));
+  return briefingCaption(pickDailyTopStories(stories, 3));
 }
 
 export function buildCoverageCaption(stories: DailyFeedItem[]): string {
@@ -356,6 +354,7 @@ const STORY_FRAME_COUNT = 3;
  */
 async function postStoryFrames(opts: {
   stories: DailyFeedItem[];
+  carouselId?: string;
   variant: CardVariant;
   verticalOpts: { subtextLabel?: string; header?: string };
   siteUrl: string;
@@ -392,7 +391,10 @@ async function postStoryFrames(opts: {
         imageUrl: `${siteUrl}/instagram/temp/${storyUuid}.jpg`,
       });
       await waitForContainerReady({ containerId, accessToken, timeoutMs: 20000 });
-      const storyId = await publishContainer({ igUserId, accessToken, creationId: containerId });
+      const publish = () => publishContainer({ igUserId, accessToken, creationId: containerId });
+      const storyId = opts.carouselId
+        ? await publishCarouselStoryOnce(opts.carouselId, frames[i]!.id, publish)
+        : await publish();
       console.log(`[instagram] story ${i + 1}/${frames.length} posted: ${storyId}`);
     } catch (err) {
       const message = (err as Error).message;
@@ -459,11 +461,9 @@ export async function postDailyCarousel(
     const recovered = await recoverSocialPublication(scope);
     if (recovered) return recovered;
   }
-  const candidates = selectStories(
-    isCoverage ? stories : stories.filter(briefingReady),
-    DAILY_CANDIDATE_POOL
-  );
-  const pool = isCoverage ? candidates : await unpublishedSocialStories(candidates);
+  const pool = isCoverage
+    ? selectStories(stories, DAILY_CANDIDATE_POOL)
+    : await unpublishedBriefingSelection(stories, DAILY_SLIDE_COUNT);
 
   if (pool.length === 0) throw new Error("No stories available for Instagram post");
 
@@ -585,7 +585,8 @@ export async function postDailyCarousel(
           top,
           sanitized[0]!.title,
           () => publishContainer({ igUserId, accessToken, creationId: carouselId }),
-          opts.variant ?? "navy"
+          opts.variant ?? "navy",
+          { briefingVersion: "story-v2", storyFollowupVersion: 1 }
         );
 
     console.log(`[instagram] daily carousel posted: ${postId}`);
@@ -594,6 +595,7 @@ export async function postDailyCarousel(
     // already live and recorded by the caller; a slow/failing Stories API must
     // never hang this request or make the post look failed.
     void postStoryFrames({
+      carouselId: isCoverage ? undefined : postId,
       stories: sanitized,
       variant: opts.variant ?? "navy",
       verticalOpts,

@@ -45,10 +45,21 @@ function rates(rows: InsightRow[], metric: (row: InsightRow) => number | null) {
   });
   return { value: median(values), count: values.length };
 }
-export function summariseFormats(rows: InsightRow[]): FormatSummary[] {
+export const INSIGHT_AGE_BANDS = [24, 30, 36, 42] as const;
+export function summariseFormats(
+  rows: InsightRow[],
+  ageBand?: (typeof INSIGHT_AGE_BANDS)[number]
+): FormatSummary[] {
   return INSTAGRAM_POST_TYPES.map((postType) => {
     const mine = rows.filter((row) => row.postType === postType).map(firstDayReading);
-    const measured = mine.filter((row) => inInsightWindow(row) && validMetricCount(row.reach));
+    const measured = mine.filter((row) => {
+      if (!inInsightWindow(row) || !validMetricCount(row.reach)) return false;
+      if (ageBand === undefined) return true;
+      const hours =
+        (new Date(row.metricsFetchedAt!).getTime() - new Date(row.createdAt!).getTime()) /
+        3_600_000;
+      return hours >= ageBand && hours < ageBand + 6;
+    });
     const awaiting = mine.filter((row) => !row.metricsFetchedAt).length;
     const saves = rates(measured, (row) => row.saved);
     const shares = rates(measured, (row) => row.shares);

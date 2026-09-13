@@ -18,6 +18,9 @@ import { publishedSocialStories } from "../instagram/publishedStories";
 import { publicationAudit } from "../instagram/publicationAudit";
 import { LAUNCH_POST_IDS } from "../../shared/instagramLaunch";
 import { launchPostStatus, previewLaunchPost, publishLaunchPost } from "../instagram/launch";
+import { currentSocialFeed } from "../instagram/sourceContent";
+import { listFeedItems } from "../db/feed";
+import { assessBriefingStory, unpublishedBriefingSelection } from "../instagram/briefingSelection";
 
 /** The ingest endpoint behind each re-runnable posting job. */
 const RERUN_PATHS = {
@@ -55,6 +58,23 @@ function describeFailure(status: number, body: string): string {
 }
 
 export const instagramRouter = router({
+  briefingPlan: adminProcedure.query(async () => {
+    const { date, items } = await currentSocialFeed(listFeedItems);
+    const selected = await unpublishedBriefingSelection(items);
+    return {
+      date,
+      selectedIds: selected.map((story) => story.id),
+      // A read-only candidate list, not a reservation or promise to publish.
+      stories: items
+        .filter((story) => ["AU", "PROPERTY"].includes(story.channel))
+        .map((story) => ({
+          id: story.id,
+          title: story.title,
+          source: story.source,
+          ...assessBriefingStory(story),
+        })),
+    };
+  }),
   publicationAudit: adminProcedure.query(() => publicationAudit()),
   publishedStories: publicProcedure.query(() =>
     cached("social:published-stories", 60_000, () => publishedSocialStories())
@@ -77,7 +97,7 @@ export const instagramRouter = router({
   listAll: adminProcedure
     .input(z.object({ limit: z.number().int().min(1).max(100).default(30) }).optional())
     .query(async ({ input }) => {
-      return listInstagramPosts(input?.limit ?? 30);
+      return listInstagramPosts(input?.limit ?? 30, true);
     }),
 
   /**

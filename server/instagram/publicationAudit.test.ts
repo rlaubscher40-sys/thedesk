@@ -1,13 +1,50 @@
 import { beforeEach, expect, it, vi } from "vitest";
-const m = vi.hoisted(() => ({ receipts: vi.fn(), items: vi.fn(), jobs: vi.fn() }));
-vi.mock("../db/socialPublication", () => ({ recentSocialReceipts: m.receipts }));
+const m = vi.hoisted(() => ({ receipts: vi.fn(), items: vi.fn(), jobs: vi.fn(), read: vi.fn() }));
+vi.mock("../db/socialPublication", () => ({
+  recentSocialReceipts: m.receipts,
+  readSocialRecords: m.read,
+}));
 vi.mock("../db/feed", () => ({ getFeedItemsByIds: m.items }));
 vi.mock("../db/feedEnrichment", () => ({ feedEnrichmentStates: m.jobs }));
 import { publicationAudit } from "./publicationAudit";
+import { carouselStoryKey } from "./carouselStoryReceipt";
 beforeEach(() => {
   vi.resetAllMocks();
   m.items.mockResolvedValue([]);
   m.jobs.mockResolvedValue([]);
+  m.read.mockResolvedValue([]);
+});
+it("distinguishes confirmed, uncertain, missing and older untracked Stories", async () => {
+  m.receipts.mockResolvedValue([
+    {
+      detail: JSON.stringify({
+        postId: "123",
+        storyIds: [1, 2, 3],
+        storyFollowupVersion: 1,
+        briefingVersion: "story-v2",
+      }),
+    },
+  ]);
+  m.read.mockResolvedValue([
+    {
+      jobKey: carouselStoryKey("123", 1),
+      status: "success",
+      detail: JSON.stringify({ carouselId: "123", sourceId: 1, storyId: "456" }),
+    },
+    {
+      jobKey: carouselStoryKey("123", 2),
+      status: "success",
+      detail: JSON.stringify({ carouselId: "999", sourceId: 2, storyId: "789" }),
+    },
+  ]);
+  const [post] = await publicationAudit();
+  expect(post.briefingVersion).toBe("story-v2");
+  expect(post.stories.map((s) => s.companionStory.state)).toEqual([
+    "confirmed",
+    "uncertain",
+    "not-confirmed",
+  ]);
+  expect(post.stories[0].companionStory.mediaId).toBe("456");
 });
 it("uses exact confirmed story IDs and does not invent missing legacy evidence", async () => {
   m.receipts.mockResolvedValue([

@@ -211,7 +211,12 @@ const JOBS: Job[] = [
   },
   {
     key: "instagram-insights",
-    at: "07:17",
+    at: "08:17",
+    run: (b, k) => postLocal(b, k, "/api/ingest/instagram-insights"),
+  },
+  {
+    key: "instagram-insights-evening",
+    at: "20:17",
     run: (b, k) => postLocal(b, k, "/api/ingest/instagram-insights"),
   },
   // General-news coverage remains manual. Property formats use a trial rhythm;

@@ -21,6 +21,7 @@ const story = {
   channel: "PROPERTY",
   category: "PROPERTY",
   source: "ABS",
+  sourceUrl: "https://www.abs.gov.au/fixture/brisbane-approvals",
   feedDate: "2026-09-08",
   summary: "Brisbane dwelling approvals increased in the latest report.",
   whyItMatters: "Approvals are not completed homes.",
@@ -38,6 +39,7 @@ describe("daily cover publication wiring", () => {
           {
             ...story,
             title: "Brisbane rents rose 5.3% in July 2026",
+            summary: "Brisbane rents increased in July 2026, according to the latest report.",
             sayThis: "Perth rents fell 5.3%",
             whyItMatters: "This guarantees higher investment returns.",
           },

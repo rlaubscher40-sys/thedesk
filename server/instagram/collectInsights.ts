@@ -26,6 +26,9 @@ export async function collectInstagramInsights(accessToken: string) {
             status: result.status,
             reason: result.reason,
             persisted,
+            observedAt: new Date().toISOString(),
+            publishedAt: post.createdAt ?? null,
+            metrics: result.metrics,
           })
       );
       if (result.reason === "rate_limited" || result.reason === "access_denied") {

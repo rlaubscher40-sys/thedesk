@@ -1,9 +1,9 @@
 /** Offline rehearsal: actual archived feed inputs or clearly labelled fixtures. Never posts. */
 import fs from "node:fs/promises";
 import sharp from "sharp";
-import { buildBriefingSlides, briefingCaption, briefingReady } from "../server/instagram/briefing";
+import { buildBriefingSlides, briefingCaption } from "../server/instagram/briefing";
 import { renderBriefingSlide } from "../server/og/briefingCards";
-import { pickPropertyStories } from "../server/instagram/propertyEditorial";
+import { pickBriefingStories, assessBriefingStory } from "../server/instagram/briefingSelection";
 import type { DailyFeedItem } from "../server/db/schema";
 
 const input = process.argv[2];
@@ -11,12 +11,7 @@ const out = process.argv[3] ?? "/tmp/briefing-review";
 if (!input) throw new Error("Provide saved public feed JSON and an output directory");
 const json = JSON.parse(await fs.readFile(input, "utf8"));
 const feed: DailyFeedItem[] = json.result?.data?.json ?? json;
-const ready = pickPropertyStories(feed.filter(briefingReady), 12);
-// Review the user's specific archived lead when present, without changing live selection.
-const wanted = ready.find((s) => s.id === 3840168);
-const selected = wanted
-  ? [wanted, ...ready.filter((s) => s.id !== wanted.id).slice(0, 2)]
-  : ready.slice(0, 3);
+const selected = pickBriefingStories(feed);
 if (!selected.length) throw new Error("No usable source stories");
 const slides = buildBriefingSlides(selected);
 await fs.mkdir(out, { recursive: true });
@@ -40,6 +35,9 @@ await fs.writeFile(
   JSON.stringify(
     {
       status: "Archived-source rehearsal, not published",
+      selectionAudit: feed
+        .filter((s) => ["AU", "PROPERTY"].includes(s.channel))
+        .map((s) => ({ id: s.id, title: s.title, ...assessBriefingStory(s) })),
       selectedIds: selected.map((s) => s.id),
       slides,
     },
