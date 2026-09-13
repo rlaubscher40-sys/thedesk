@@ -27,8 +27,11 @@ import { DEFAULT_SITE_URL } from "../../../shared/const";
 import { looksLikeGarbage, looksLikeSiteBoilerplate } from "../../../shared/headline";
 import { decodeEntities, stripHtml } from "./text";
 import { pickOgImage } from "./og";
+import { isInstitutionalBoilerplate } from "../../../shared/sourceBoilerplate";
+import { createArticleAccess } from "./articleAccess";
 
 const SITE_URL = process.env.SITE_URL ?? DEFAULT_SITE_URL;
+const articleAccess = createArticleAccess();
 
 export type FetchedArticle = {
   /** Operational failure, distinct from an editorial rejection of readable text. */
@@ -48,12 +51,17 @@ export function extractArticleText(html: string, maxChars: number): string | nul
   const container = readableArticleHtml(html);
 
   const paras: string[] = [];
+  let removedInstitutionalFooter = false;
   // Research releases often put their actual findings in lists. Retain those
   // within the same cleaned article container, not just surrounding prose.
   const re = /<(p|li)\b[^>]*>([\s\S]*?)<\/\1>/gi;
   let m: RegExpExecArray | null;
   while ((m = re.exec(container)) !== null) {
     const txt = decodeEntities(stripHtml(m[2] ?? "")).trim();
+    if (isInstitutionalBoilerplate(txt)) {
+      removedInstitutionalFooter = true;
+      continue;
+    }
     // Drop scraps: share prompts, captions, bylines, single words.
     if (txt.length >= 40 && !looksLikeSiteBoilerplate(txt) && !looksLikeGarbage(txt))
       paras.push(txt);
@@ -65,8 +73,15 @@ export function extractArticleText(html: string, maxChars: number): string | nul
   // paragraph we trust it, otherwise the fallback re-admits the nav/caption
   // scraps the paragraph pass just filtered out.
   if (paras.length === 0) {
+    // A heading must not cause the blanket fallback to re-admit a footer.
+    if (removedInstitutionalFooter) return null;
     text = decodeEntities(stripHtml(container)).trim();
-    if (looksLikeSiteBoilerplate(text) || looksLikeGarbage(text)) return null;
+    if (
+      looksLikeSiteBoilerplate(text) ||
+      looksLikeGarbage(text) ||
+      isInstitutionalBoilerplate(text)
+    )
+      return null;
   }
   if (!text) return null;
 
@@ -84,13 +99,21 @@ export async function fetchArticle(
     timeoutMs = 6_000,
     maxBytes = 1024 * 1024,
     maxChars = 6_000,
-  }: { timeoutMs?: number; maxBytes?: number; maxChars?: number } = {}
+    access = articleAccess,
+  }: {
+    timeoutMs?: number;
+    maxBytes?: number;
+    maxChars?: number;
+    access?: ReturnType<typeof createArticleAccess>;
+  } = {}
 ): Promise<FetchedArticle> {
   const empty: FetchedArticle = {
     imageUrl: null,
     text: null,
     publicationDate: { ...missingPublicationDate },
   };
+  const pause = access.check(url);
+  if (pause) return { ...empty, fetchFailure: pause };
   const controller = new AbortController();
   // Keep the budget alive through the body, not just the response headers.
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -106,6 +129,7 @@ export async function fetchArticle(
       },
     });
     if (!res.ok) {
+      access.record(url, res.status, res.headers.get("retry-after"));
       await res.body?.cancel();
       return { ...empty, fetchFailure: `article-http-${res.status}` };
     }

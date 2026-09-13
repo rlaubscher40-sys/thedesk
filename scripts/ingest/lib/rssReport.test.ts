@@ -162,3 +162,16 @@ it("honours a publisher Retry-After longer than the default cooldown", async () 
   await reader(source);
   expect(fixture.publicFetch).toHaveBeenCalledTimes(2);
 });
+
+it("labels index HTTP denials and cooldowns as index failures, not RSS", async () => {
+  fixture.publicFetch.mockResolvedValue(new Response("Denied", { status: 403 }));
+  const index = {
+    ...source,
+    kind: "index" as const,
+    url: "https://example.org/news",
+    articlePath: "^/news/",
+  };
+  expect((await fetchSourceReport(index)).error).toBe("Publisher index HTTP 403");
+  expect((await fetchSourceReport(index)).error).toMatch(/^Publisher index HTTP 403; retry after/);
+  expect(fixture.publicFetch).toHaveBeenCalledOnce();
+});

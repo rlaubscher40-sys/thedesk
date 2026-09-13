@@ -78,7 +78,7 @@ export async function runDailyFeedIngest(rawBaseUrl: string, apiKey: string): Pr
   } finally {
     report.finishedAt = new Date().toISOString();
     console.log(
-      `[editorial-outcomes] ${JSON.stringify({ runId: report.runId, status: report.status, decisionCount: report.decisionCount, outcomes: report.outcomes, failedSources: report.sources.filter((s) => s.error).map((s) => ({ name: s.name, error: s.error })), articleFailures: report.decisions.filter((d) => /^article-(?:http-|timeout|fetch-failed|unsupported-content-type|empty-response)/.test(d.reason)).map((d) => ({ source: d.source, reason: d.reason })) })}`
+      `[editorial-outcomes] ${JSON.stringify({ runId: report.runId, status: report.status, decisionCount: report.decisionCount, outcomes: report.outcomes, failedSources: report.sources.filter((s) => s.error).map((s) => ({ name: s.name, error: s.error })), articleFailures: report.decisions.filter((d) => /^article-(?:http-|cooldown-http-|timeout|fetch-failed|unsupported-content-type|empty-response)/.test(d.reason)).map((d) => ({ source: d.source, reason: d.reason })) })}`
     );
     await postJSON(`${baseUrl}/api/ingest/editorial-report`, report, apiKey);
   }
