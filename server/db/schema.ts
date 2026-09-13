@@ -669,3 +669,17 @@ export const adminSessions = mysqlTable(
   },
   (table) => [index("idx_admin_sessions_expiry").on(table.expiresMs)]
 );
+
+/** Anonymous document-lifetime measurements, retained for 30 days. */
+export const webVitals = mysqlTable(
+  "web_vitals",
+  {
+    id: varchar("id", { length: 100 }).primaryKey(),
+    name: varchar("name", { length: 8 }).notNull(),
+    value: double("value").notNull(),
+    path: varchar("path", { length: 256 }).notNull(),
+    device: varchar("device", { length: 8 }).notNull(),
+    recordedAt: timestamp("recordedAt").defaultNow().notNull(),
+  },
+  (table) => [index("idx_vitals_recorded").on(table.recordedAt)]
+);

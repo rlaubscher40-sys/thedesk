@@ -7,11 +7,3 @@
 export function getLoginUrl(): string {
   return "/login";
 }
-
-/**
- * Always true now, login is local, no external config required. The export
- * is kept so component render-time guards don't need to be touched.
- */
-export function hasOAuthConfig(): boolean {
-  return true;
-}

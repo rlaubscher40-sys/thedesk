@@ -20,7 +20,7 @@ export function SubscribeBand({
   source,
   kicker = "The Daily Brief · free",
   headline = "Five stories and three ready-made lines, in your inbox at 7am.",
-  blurb = "Written each morning by Ruben Laubscher. No tracking pixels, one email a day, unsubscribe in a click.",
+  blurb = "Written each morning by Ruben Laubscher. Weekdays at 7am Sydney time, plus the Sunday edition. No tracking pixels. Unsubscribe in a click.",
   showHeadshot = true,
   hideAfterSignup = true,
 }: {
@@ -37,7 +37,7 @@ export function SubscribeBand({
   // the instant they submit — the confirmation state handles that.
   const [alreadySubscribed] = useState(hasSubscribed);
   const [done, setDone] = useState(false);
-  const { email, setEmail, hp, setHp, submit, busy } = useSubscribe({
+  const { email, setEmail, hp, setHp, submit, busy, error, submittedEmail } = useSubscribe({
     source,
     onSubscribed: () => setDone(true),
   });
@@ -59,16 +59,20 @@ export function SubscribeBand({
         <p className="bs-label" style={{ color: "oklch(0.80 0.17 72)" }}>
           {kicker}
         </p>
-        <h3
+        <h2
           className="font-serif font-bold mt-3.5 max-w-[26ch]"
-          style={{ fontSize: "clamp(26px, 3.2vw, 38px)", lineHeight: 1.06, color: "inherit" }}
+          style={{
+            fontSize: "clamp(1.625rem, 3.2vw, 2.375rem)",
+            lineHeight: 1.06,
+            color: "inherit",
+          }}
         >
           {headline}
-        </h3>
+        </h2>
         {blurb && (
           <p
             className="bs-band-muted mt-3.5 max-w-[52ch]"
-            style={{ fontSize: 16.5, lineHeight: 1.6 }}
+            style={{ fontSize: "1.03125rem", lineHeight: 1.6 }}
           >
             {blurb}
           </p>
@@ -77,24 +81,47 @@ export function SubscribeBand({
 
       <div className="min-w-0">
         {done ? (
-          <p role="status" style={{ fontSize: 16.5, lineHeight: 1.6 }}>
-            Check your inbox — confirm the email to lock in your subscription.
-          </p>
+          <div role="status" className="text-base leading-7">
+            <p>
+              Check your inbox at <strong className="break-all">{submittedEmail}</strong>. Follow
+              the email instructions to confirm or manage your subscription.
+            </p>
+            <p className="text-sm mt-2">
+              Allow a few minutes and check spam. Requesting an email does not confirm your
+              subscription.
+            </p>
+            <button
+              className="bs-btn mt-3 underline"
+              onClick={() => {
+                setEmail(submittedEmail);
+                setDone(false);
+              }}
+            >
+              Edit address or request another email
+            </button>
+          </div>
         ) : (
-          <form onSubmit={submit} className="flex gap-2.5">
-            <label className="sr-only" htmlFor={`subscribe-${source}`}>
+          <form
+            onSubmit={submit}
+            noValidate
+            className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] gap-2.5"
+          >
+            <label className="text-sm sm:col-span-2" htmlFor={`subscribe-${source}`}>
               Email address
             </label>
             <input
               id={`subscribe-${source}`}
               type="email"
+              required
+              aria-invalid={!!error}
+              aria-describedby={error ? `subscribe-error-${source}` : undefined}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@firm.com"
               autoComplete="email"
               className="flex-1 min-w-0 rounded-sm px-4 py-3.5"
               style={{
-                fontSize: 15,
+                fontSize: "1rem",
                 fontFamily: "var(--font-sans)",
                 background: "oklch(0 0 0 / 28%)",
                 border: "1px solid oklch(1 0 0 / 16%)",
@@ -115,6 +142,11 @@ export function SubscribeBand({
             >
               {busy ? "Sending…" : "Subscribe"}
             </button>
+            {error && (
+              <p id={`subscribe-error-${source}`} role="alert" className="text-sm sm:col-span-2">
+                {error}
+              </p>
+            )}
           </form>
         )}
 

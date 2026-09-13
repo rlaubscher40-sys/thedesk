@@ -1,3 +1,4 @@
+import { formatMetricValue, metricTiming, historyChange } from "@shared/metricPresentation";
 /**
  * Trends metric index — every live `daily_metrics` row with its 30-day
  * series, sectioned by groupKey (Macro / Property / Labour / Markets /
@@ -52,8 +53,7 @@ export function MetricGroupGrid({
   if (!metrics || metrics.length === 0) {
     return (
       <p className="mt-6 text-[var(--color-fg-muted)]">
-        Daily metrics haven&apos;t been ingested yet. Trigger the daily-metrics
-        workflow and refresh.
+        Metric observations are unavailable. Please try again shortly.
       </p>
     );
   }
@@ -106,49 +106,52 @@ function MetricRow({
   return (
     <div
       className={cn(
-        "rule-hair grid grid-cols-[minmax(0,1fr)_150px] gap-5 items-center py-4",
+        "rule-hair grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_150px] gap-5 items-center py-4",
         last && "rule-hair-b"
       )}
     >
       <div className="min-w-0">
-        <p className="bs-label truncate" style={{ letterSpacing: "0.16em" }} title={metric.label}>
+        <p className="bs-label" style={{ letterSpacing: "0.16em" }} title={metric.label}>
           {metric.label}
         </p>
         <div className="flex items-baseline gap-2.5 mt-1.5">
           <p
             className="font-serif font-bold tabular-nums"
-            style={{ fontSize: 26, lineHeight: 1 }}
+            style={{ fontSize: "1.625rem", lineHeight: 1 }}
           >
-            {metric.value}
-            {suffix}
+            {formatMetricValue(metric)}
           </p>
           {hasDelta && trend !== "flat" && (
             <span
               className="font-mono"
-              style={{ fontSize: 10, color: `var(--sentiment-${sentiment})` }}
+              style={{ fontSize: "0.75rem", color: `var(--sentiment-${sentiment})` }}
               aria-label={`${trend} versus prior`}
             >
               {trend === "up" ? "▲" : "▼"}
             </span>
           )}
         </div>
+        <p className="text-sm mt-2 text-[var(--color-fg-muted)]">{metricTiming(metric)}</p>
+        <p className="text-xs mt-2 text-[var(--color-fg-muted)]">
+          {historyChange(metric, history)}
+        </p>
         {metric.context && (
           <p
             className="font-mono mt-1.5 text-[var(--color-fg-subtle)]"
-            style={{ fontSize: 10, lineHeight: 1.5 }}
+            style={{ fontSize: "0.75rem", lineHeight: 1.5 }}
             title={metric.context}
           >
             {metric.context}
           </p>
         )}
       </div>
-      <div className="flex flex-col items-end gap-1.5">
+      <div className="flex flex-col items-start sm:items-end gap-1.5">
         {values.length >= 2 ? (
           <MetricSparkline
             values={values}
             sentiment={sentiment}
             height={36}
-            label={`${metric.label}, 30-day trend`}
+            label={`${metric.label}, stored observations`}
           />
         ) : (
           <span className="bs-label" style={{ letterSpacing: "0.16em" }}>

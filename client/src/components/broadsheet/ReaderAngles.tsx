@@ -52,7 +52,7 @@ export function ReaderAngleRows({
             <p
               className="font-mono uppercase"
               style={{
-                fontSize: 10,
+                fontSize: "0.75rem",
                 letterSpacing: "0.16em",
                 color: PERSONA_COLOUR[label],
               }}
@@ -62,7 +62,7 @@ export function ReaderAngleRows({
             <p
               className="mt-1.5"
               style={{
-                fontSize: 16.5,
+                fontSize: "1.03125rem",
                 lineHeight: 1.55,
                 color: label === active ? "var(--color-fg-body)" : "var(--color-fg-muted)",
               }}
@@ -102,14 +102,14 @@ export function ReaderAngleColumns({
           >
             <p
               className="font-mono uppercase"
-              style={{ fontSize: 10, letterSpacing: "0.16em", color: PERSONA_COLOUR[label] }}
+              style={{ fontSize: "0.75rem", letterSpacing: "0.16em", color: PERSONA_COLOUR[label] }}
             >
               {personaDisplayLabel(label)}
             </p>
             <p
               className="mt-2"
               style={{
-                fontSize: 16,
+                fontSize: "1rem",
                 lineHeight: 1.55,
                 color: label === active ? "var(--color-fg-body)" : "var(--color-fg-muted)",
               }}

@@ -42,14 +42,18 @@ export function IndexStrip({ items }: { items: DailyFeedItem[] }) {
         >
           <span
             className="font-mono uppercase"
-            style={{ fontSize: 10, letterSpacing: "0.16em", color: colourFor(item.category) }}
+            style={{
+              fontSize: "0.75rem",
+              letterSpacing: "0.16em",
+              color: colourFor(item.category),
+            }}
           >
             {String(i + 1).padStart(2, "0")} · {item.category}
           </span>
           <p
             className="font-serif mt-1.5"
             style={{
-              fontSize: 16.5,
+              fontSize: "1.03125rem",
               lineHeight: 1.24,
               letterSpacing: "-0.02em",
               opacity: isRead(String(item.id)) ? 0.6 : 1,

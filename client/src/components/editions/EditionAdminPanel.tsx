@@ -27,7 +27,7 @@ import { SITE_DISPLAY } from "@/lib/siteUrl";
 import { useAuth } from "@/lib/useAuth";
 import { trpc } from "@/lib/trpc";
 
-export function EditionAdminPanel({ edition: publicEdition }: { edition: Edition }) {
+export function EditionAdminPanel({ edition: publicEdition }: { edition: Pick<Edition, "id"> }) {
   const { user } = useAuth();
   const query = trpc.editions.editor.useQuery(
     { editionId: publicEdition.id },
@@ -44,7 +44,7 @@ function EditionEditor({ edition }: { edition: Edition }) {
         <p className="overline mb-1">Admin panel</p>
         <h2 className="font-serif text-xl">Workshop this edition</h2>
         <p className="text-xs text-[var(--color-fg-muted)] mt-1">
-          Only visible to admins. All actions are reversible.
+          Curator tools for this edition. Review the scope before saving, sending or deleting.
         </p>
       </header>
       <SectionErrorBoundary section="Take controls">

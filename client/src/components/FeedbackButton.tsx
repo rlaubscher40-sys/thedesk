@@ -70,7 +70,7 @@ export function FeedbackButton() {
         onClick={() => setOpen(true)}
         aria-label="Send feedback"
         title="Send feedback"
-        className="fixed z-40 right-4 lg:right-6 lg:bottom-6 inline-flex items-center gap-2 rounded-full p-3 lg:pl-3 lg:pr-4 lg:py-2.5 text-[10px] font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.96] shadow-lg bottom-[calc(env(safe-area-inset-bottom,_0px)_+_88px)]"
+        className="fixed z-40 right-4 lg:right-6 inline-flex items-center gap-2 rounded-full p-3 lg:pl-3 lg:pr-4 lg:py-2.5 text-[10px] font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.96] shadow-lg bottom-[var(--overlay-bottom)]"
         style={{
           // Mobile: a compact icon-only disc, 88px clearance above the
           // bottom tab bar (z-50, ~70px tall with safe-area). The full

@@ -453,6 +453,10 @@ export function getEnrichedQueue(userId: number) {
 }
 
 export function addToQueue(data: InsertReadingQueueItem): ReadingQueueItem {
+  const existing = data.feedItemId
+    ? demo.queue.find((item) => item.userId === data.userId && item.feedItemId === data.feedItemId)
+    : undefined;
+  if (existing) return existing;
   const item: ReadingQueueItem = {
     id: allocId(),
     userId: data.userId,

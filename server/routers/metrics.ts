@@ -1,3 +1,4 @@
+import { formatMetricValue, historyChange } from "../../shared/metricPresentation";
 /**
  * Public read of the daily-refreshed metrics strip + admin upsert so the
  * editor can add or override metrics that aren't covered by the automated
@@ -24,14 +25,7 @@ function safeFilename(value: string, prefix = "the-number"): string {
 }
 
 function displayValue(value: string, unit: string | null): string {
-  const cleanValue = value.trim();
-  const cleanUnit = unit?.trim();
-  if (!cleanUnit) return cleanValue;
-  if (cleanUnit === "%" && cleanValue.includes("%")) return cleanValue;
-  if (cleanUnit === "$" && cleanValue.startsWith("$")) return cleanValue;
-  if (["%", "°", "x"].includes(cleanUnit)) return `${cleanValue}${cleanUnit}`;
-  if (cleanUnit === "$") return `$${cleanValue}`;
-  return `${cleanValue} ${cleanUnit}`;
+  return formatMetricValue({ value, unit });
 }
 
 function formatAsOf(value: Date): string {
@@ -58,12 +52,24 @@ async function enforceCardQuota(
 }
 
 export const metricsRouter = router({
-  shared: publicProcedure.input(z.object({ snapshot: signalSnapshotId }))
+  shared: publicProcedure
+    .input(z.object({ snapshot: signalSnapshotId }))
     .query(({ input }) => db.readSignalSnapshot(input.snapshot)),
-  planningPilot: publicProcedure.input(z.object({
-    period: z.string().regex(/^20\d{2}-(0[1-9]|1[0-2])$/),
-    fingerprint: z.string().regex(/^[a-f0-9]{64}$/).optional(),
-  }).optional()).query(({ input }) => input ? getStoredPlanningPilot(input.period, input.fingerprint) : getNswPlanningPilot()),
+  planningPilot: publicProcedure
+    .input(
+      z
+        .object({
+          period: z.string().regex(/^20\d{2}-(0[1-9]|1[0-2])$/),
+          fingerprint: z
+            .string()
+            .regex(/^[a-f0-9]{64}$/)
+            .optional(),
+        })
+        .optional()
+    )
+    .query(({ input }) =>
+      input ? getStoredPlanningPilot(input.period, input.fingerprint) : getNswPlanningPilot()
+    ),
   list: publicProcedure.query(async () => {
     return db.listDailyMetrics();
   }),
@@ -82,14 +88,15 @@ export const metricsRouter = router({
    * a Trends share is guaranteed to reflect a currently stored Desk metric.
    */
   shareCard: publicProcedure
-    .input(z.object({ metricKey: z.string().min(1).max(64), snapshot: signalSnapshotId.optional() }))
+    .input(
+      z.object({ metricKey: z.string().min(1).max(64), snapshot: signalSnapshotId.optional() })
+    )
     .mutation(async ({ input, ctx }) => {
       await enforceCardQuota(Boolean(ctx.user), ctx.req);
 
       const snapshot = await loadSharedSignal(input.metricKey, input.snapshot);
       const { metric } = snapshot;
-      if (!input.snapshot) snapshot.move = metric.previousValue
-        ? `Previous recorded value ${displayValue(metric.previousValue, metric.unit)}` : null;
+      if (!input.snapshot) snapshot.move = historyChange(metric, snapshot.series);
 
       try {
         const png = await renderSignalCard({
@@ -101,7 +108,7 @@ export const metricsRouter = router({
           source: metric.source ?? null,
           asOf: formatAsOf(metric.asOf),
         });
-        const snapshotId = input.snapshot ?? await db.storeSignalSnapshot(snapshot);
+        const snapshotId = input.snapshot ?? (await db.storeSignalSnapshot(snapshot));
         return {
           mimeType: "image/png" as const,
           filename: safeFilename(metric.label),
@@ -123,7 +130,9 @@ export const metricsRouter = router({
    * the browser, which prevents a branded chart being fabricated client-side.
    */
   shareTrendCard: publicProcedure
-    .input(z.object({ metricKey: z.string().min(1).max(64), snapshot: signalSnapshotId.optional() }))
+    .input(
+      z.object({ metricKey: z.string().min(1).max(64), snapshot: signalSnapshotId.optional() })
+    )
     .mutation(async ({ input, ctx }) => {
       await enforceCardQuota(Boolean(ctx.user), ctx.req);
 
@@ -146,7 +155,7 @@ export const metricsRouter = router({
           asOf: formatAsOf(metric.asOf),
           series,
         });
-        const snapshotId = input.snapshot ?? await db.storeSignalSnapshot(snapshot);
+        const snapshotId = input.snapshot ?? (await db.storeSignalSnapshot(snapshot));
         return {
           mimeType: "image/png" as const,
           filename: safeFilename(metric.label, "the-chart"),

@@ -49,7 +49,7 @@ export default function About() {
         <h1
           className="font-serif font-bold mt-5 max-w-[20ch]"
           style={{
-            fontSize: "clamp(42px, 6.2vw, 88px)",
+            fontSize: "clamp(2.625rem, 6.2vw, 5.5rem)",
             lineHeight: 0.92,
             letterSpacing: "-0.03em",
             textWrap: "pretty",
@@ -60,19 +60,20 @@ export default function About() {
         <p
           className="font-serif mt-6 max-w-[58ch]"
           style={{
-            fontSize: "clamp(19px, 2vw, 25px)",
+            fontSize: "clamp(1.1875rem, 2vw, 1.5625rem)",
             lineHeight: 1.4,
             color: "var(--color-fg-muted)",
           }}
         >
           Five stories every weekday morning, each one already angled for where you stand: buying,
-          holding, or watching. One long read on Sunday. Nothing else.
+          holding, or watching. One long read on Sunday, with market evidence, charts and sourced
+          answers when you want to go deeper.
         </p>
       </section>
 
       {/* Facts strip */}
       <div className={cn(GUTTER_X, "rule-major rule-band-b mt-9 grid grid-cols-2 lg:grid-cols-4")}>
-        <Fact label="Daily brief" value="7am AEST" sub="Weekdays" first />
+        <Fact label="Daily brief" value="7am Sydney time" sub="Weekdays" first />
         <Fact
           label="Weekly edition"
           value="Sundays"
@@ -92,7 +93,7 @@ export default function About() {
             <p
               className="font-serif"
               style={{
-                fontSize: "clamp(21px, 2.4vw, 29px)",
+                fontSize: "clamp(1.3125rem, 2.4vw, 1.8125rem)",
                 lineHeight: 1.26,
                 letterSpacing: "-0.03em",
                 textWrap: "pretty",
@@ -105,14 +106,14 @@ export default function About() {
           </blockquote>
 
           <div className="mt-8 max-w-[66ch]">
-            <p style={{ fontSize: 18, lineHeight: 1.7, color: "var(--color-fg-body)" }}>
+            <p style={{ fontSize: "1.125rem", lineHeight: 1.7, color: "var(--color-fg-body)" }}>
               The Desk runs two scans. The daily one lands at seven in the morning Sydney time with
               five stories worth knowing about, each angled for the three positions a reader can be
               in: trying to buy, already holding property, or watching to time a move.
             </p>
             <p
               className="mt-5"
-              style={{ fontSize: 18, lineHeight: 1.7, color: "var(--color-fg-body)" }}
+              style={{ fontSize: "1.125rem", lineHeight: 1.7, color: "var(--color-fg-body)" }}
             >
               Sundays the weekly edition lands. Long-form pieces, market metrics, signals worth
               tracking, and Ruben&apos;s Take, a short editorial opinion that opens the issue.
@@ -128,13 +129,17 @@ export default function About() {
               >
                 <p
                   className="font-mono tabular-nums"
-                  style={{ fontSize: 11, color: "var(--color-accent-text)" }}
+                  style={{ fontSize: "0.75rem", color: "var(--color-accent-text)" }}
                 >
                   {String(i + 1).padStart(2, "0")}
                 </p>
                 <p
                   className="mt-2"
-                  style={{ fontSize: 16.5, lineHeight: 1.55, color: "var(--color-fg-body)" }}
+                  style={{
+                    fontSize: "1.03125rem",
+                    lineHeight: 1.55,
+                    color: "var(--color-fg-body)",
+                  }}
                 >
                   {line}
                 </p>
@@ -144,14 +149,17 @@ export default function About() {
 
           <SectionHead>How we use AI</SectionHead>
           <div className="mt-5 max-w-[66ch]">
-            <p style={{ fontSize: 18, lineHeight: 1.7, color: "var(--color-fg-body)" }}>
-              One specific job: drafting the per-role angles after a story has been selected and
-              summarised. The editor picks the story, frames it and writes the take. The model helps
-              phrase the three lines so each role gets language tuned to their conversation.
+            <p style={{ fontSize: "1.125rem", lineHeight: 1.7, color: "var(--color-fg-body)" }}>
+              Automated collection and selection rules bring reporting into The Desk. AI helps
+              summarise stories, draft reader angles and produce weekly analysis. Ask and market
+              briefs generate answers from retrieved reporting, with evidence links and limits.
+              Ruben Laubscher sets the editorial direction and reviews and corrects the service;
+              each automated output is not individually pre-approved. Read the original sources
+              before relying on an interpretation.
             </p>
             <p
               className="mt-5"
-              style={{ fontSize: 18, lineHeight: 1.7, color: "var(--color-fg-body)" }}
+              style={{ fontSize: "1.125rem", lineHeight: 1.7, color: "var(--color-fg-body)" }}
             >
               Full disclosure sits on the{" "}
               <Link
@@ -170,7 +178,7 @@ export default function About() {
           <SectionHead>Built to be read in five minutes</SectionHead>
           <p
             className="mt-5 max-w-[66ch]"
-            style={{ fontSize: 18, lineHeight: 1.7, color: "var(--color-fg-body)" }}
+            style={{ fontSize: "1.125rem", lineHeight: 1.7, color: "var(--color-fg-body)" }}
           >
             Information density is the point. You should close The Desk knowing more than when you
             opened it, in about the time it takes to make coffee. If a page is making you scroll
@@ -198,12 +206,15 @@ export default function About() {
             <div className="flex items-center gap-4 mt-4">
               <Headshot />
               <div className="min-w-0">
-                <h2 className="font-serif font-bold" style={{ fontSize: 26, lineHeight: 1.1 }}>
+                <h2
+                  className="font-serif font-bold"
+                  style={{ fontSize: "1.625rem", lineHeight: 1.1 }}
+                >
                   Ruben Laubscher
                 </h2>
                 <p
                   className="mt-2 text-[var(--color-fg-muted)]"
-                  style={{ fontSize: 13.5, lineHeight: 1.45 }}
+                  style={{ fontSize: "0.84375rem", lineHeight: 1.45 }}
                 >
                   Writes The Desk
                   <br />
@@ -213,7 +224,7 @@ export default function About() {
             </div>
             <p
               className="mt-4"
-              style={{ fontSize: 15, lineHeight: 1.6, color: "var(--color-fg-body)" }}
+              style={{ fontSize: "0.9375rem", lineHeight: 1.6, color: "var(--color-fg-body)" }}
             >
               Reads the Australian property market for a living. The Desk is the reading he was
               already doing, written down.
@@ -234,10 +245,10 @@ export default function About() {
               Production
             </p>
             <dl className="grid grid-cols-[124px_minmax(0,1fr)] m-0">
-              <ProductionRow label="Edition" value="Sunday 7am AEST" first />
-              <ProductionRow label="Daily" value="Weekdays 7am AEST" />
+              <ProductionRow label="Edition" value="Sunday 7am Sydney time" first />
+              <ProductionRow label="Daily" value="Weekdays 7am Sydney time" />
               <ProductionRow label="Authority" value="Ruben Laubscher" />
-              <ProductionRow label="Location" value="Sydney · GMT+11" last />
+              <ProductionRow label="Location" value="Sydney · AEST / AEDT" last />
             </dl>
           </div>
         </aside>
@@ -257,7 +268,11 @@ function SectionHead({ children }: { children: React.ReactNode }) {
   return (
     <h2
       className="font-serif font-bold rule-major mt-11 pt-6"
-      style={{ fontSize: "clamp(28px, 3vw, 38px)", lineHeight: 1.06, letterSpacing: "-0.03em" }}
+      style={{
+        fontSize: "clamp(1.75rem, 3vw, 2.375rem)",
+        lineHeight: 1.06,
+        letterSpacing: "-0.03em",
+      }}
     >
       {children}
     </h2>
@@ -289,7 +304,7 @@ function Fact({
       <p className="bs-label" style={{ letterSpacing: "0.18em" }}>
         {label}
       </p>
-      <p className="font-serif font-bold mt-2" style={{ fontSize: 30, lineHeight: 1 }}>
+      <p className="font-serif font-bold mt-2" style={{ fontSize: "1.875rem", lineHeight: 1 }}>
         {value}
       </p>
       <p className="bs-label mt-1.5" style={{ letterSpacing: "0.1em" }}>
@@ -322,7 +337,7 @@ function ProductionRow({
       <dd
         className="py-3 m-0"
         style={{
-          fontSize: 15,
+          fontSize: "0.9375rem",
           borderTop: `1px solid ${border}`,
           borderBottom: last ? "1px solid var(--color-border-strong)" : undefined,
         }}
@@ -357,7 +372,7 @@ function LinkChip({
       className="bs-link inline-flex items-center gap-1.5 rounded-sm px-3 py-2.5"
       style={{
         fontFamily: "var(--font-mono)",
-        fontSize: 10,
+        fontSize: "0.75rem",
         letterSpacing: "0.16em",
         textTransform: "uppercase",
         border: "1px solid var(--color-border-strong)",
@@ -389,7 +404,7 @@ function Headshot() {
       ) : (
         <div
           className="avatar-initial-disc h-full w-full flex items-center justify-center font-serif font-bold"
-          style={{ fontSize: 35 }}
+          style={{ fontSize: "2.1875rem" }}
         >
           R
         </div>

@@ -83,7 +83,7 @@ export default function SharedBriefPage() {
         <p className="bs-label mt-8">Question</p>
         <p
           className="font-serif mt-2 max-w-[54ch] text-[var(--color-fg-muted)]"
-          style={{ fontSize: "clamp(18px, 2vw, 24px)", lineHeight: 1.4 }}
+          style={{ fontSize: "clamp(1.125rem, 2vw, 1.5rem)", lineHeight: 1.4 }}
         >
           {data.question}
         </p>
@@ -91,7 +91,7 @@ export default function SharedBriefPage() {
         <h1
           className="font-serif font-bold mt-5 max-w-[22ch]"
           style={{
-            fontSize: "clamp(42px, 6.4vw, 82px)",
+            fontSize: "clamp(2.625rem, 6.4vw, 5.125rem)",
             lineHeight: 0.96,
             letterSpacing: "-0.04em",
             textWrap: "pretty",
@@ -107,7 +107,7 @@ export default function SharedBriefPage() {
             <p className="bs-label">The answer</p>
             <p
               className="font-serif mt-3 max-w-[62ch] text-[var(--color-fg-body)]"
-              style={{ fontSize: "clamp(20px, 2.3vw, 28px)", lineHeight: 1.52 }}
+              style={{ fontSize: "clamp(1.25rem, 2.3vw, 1.75rem)", lineHeight: 1.52 }}
             >
               {data.answer}
             </p>
@@ -128,7 +128,7 @@ export default function SharedBriefPage() {
                   <p className="bs-label-accent">{data.signal.label}</p>
                   <p
                     className="font-serif font-bold tabular-nums mt-2"
-                    style={{ fontSize: "clamp(40px, 5vw, 64px)", lineHeight: 0.95 }}
+                    style={{ fontSize: "clamp(2.5rem, 5vw, 4rem)", lineHeight: 0.95 }}
                   >
                     {data.signal.value}
                   </p>
@@ -146,7 +146,7 @@ export default function SharedBriefPage() {
         <aside className="lg:pl-9 mt-10 lg:mt-0">
           <div className="rule-major pt-4">
             <p className="bs-label">What this is</p>
-            <p className="mt-3 text-[15px] leading-6 text-[var(--color-fg-body)]">
+            <p className="mt-3 text-[0.9375rem] leading-6 text-[var(--color-fg-body)]">
               A signed snapshot of an Ask The Desk answer. It was generated from evidence already
               inside The Desk, then frozen for sharing. The link expires automatically.
             </p>
@@ -161,8 +161,8 @@ export default function SharedBriefPage() {
                   href={source.href}
                   className="rule-hair bs-row block py-3.5"
                 >
-                  <p className="font-serif text-[17px] leading-6 bs-link">{source.title}</p>
-                  <p className="bs-label mt-2" style={{ fontSize: 9 }}>
+                  <p className="font-serif text-[1.0625rem] leading-6 bs-link">{source.title}</p>
+                  <p className="bs-label mt-2" style={{ fontSize: "0.75rem" }}>
                     {source.date}
                     {source.publisher ? ` · ${source.publisher}` : ""}
                   </p>
@@ -202,7 +202,7 @@ function InvalidBrief() {
     <div className="py-8">
       <div className="rule-major pt-6 max-w-3xl">
         <p className="bs-label-accent">Shared intelligence</p>
-        <h1 className="font-serif font-bold mt-3" style={{ fontSize: 46, lineHeight: 1 }}>
+        <h1 className="font-serif font-bold mt-3" style={{ fontSize: "2.875rem", lineHeight: 1 }}>
           This brief is no longer available.
         </h1>
         <p className="font-serif mt-4 text-xl leading-8 text-[var(--color-fg-body)]">

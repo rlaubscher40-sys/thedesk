@@ -1,3 +1,4 @@
+import { ConnectionNotice } from "@/components/ConnectionNotice";
 /**
  * Editions page.
  *
@@ -11,25 +12,19 @@
  * gutter; the reader below lays out gutter-to-gutter and owns its own.
  */
 import { useEffect, useMemo } from "react";
-import { useLocation, useParams } from "wouter";
+import { Link, useLocation, useParams } from "wouter";
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
-import { BackfillRubensTakeButton } from "@/components/editions/EditionAdminPanel";
 import { EditionReader } from "@/components/editions/EditionReader";
 import { EditionReaderSkeleton } from "@/components/editions/EditionReaderSkeleton";
-import { EditionSelector } from "@/components/editions/EditionSelector";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { PageTitle, type TitleStat } from "@/components/broadsheet/PageTitle";
 import { GUTTER_X } from "@/components/broadsheet/tokens";
 import { cn } from "@/lib/cn";
-import { useAuth } from "@/lib/useAuth";
 import { useEditionMeta } from "@/lib/useEditionMeta";
-import { getNextEditionLabel } from "@/lib/date";
 import { trpc } from "@/lib/trpc";
 
 export default function EditionsPage() {
   const params = useParams<{ editionNumber?: string }>();
   const [, navigate] = useLocation();
-  const { user } = useAuth();
 
   const listQuery = trpc.editions.list.useQuery();
 
@@ -104,13 +99,6 @@ export default function EditionsPage() {
       {/* Header + selector are page chrome, so they carry the gutter
           themselves — the reader below lays out gutter-to-gutter and owns
           its own. */}
-      <PageTitle
-        kicker="The Desk · Editions"
-        title="Weekly deep dives"
-        standfirst="The week in Australian property, read and argued. New edition each Sunday."
-        stats={editionStats(listQuery.data ?? [])}
-        actions={user?.role === "admin" ? <BackfillRubensTakeButton /> : undefined}
-      />
 
       <div className={cn(GUTTER_X, "rule-major mt-7 pt-6")}>
         {/* Horizontal selector row. Empty + loading states handled by the
@@ -120,17 +108,43 @@ export default function EditionsPage() {
           {listQuery.isLoading ? (
             <SelectorSkeleton />
           ) : listQuery.data && listQuery.data.length > 0 ? (
-            <EditionSelector editions={listQuery.data} activeNumber={selectedNumber} />
+            <div className="flex flex-wrap gap-4 items-center">
+              <label className="text-sm" htmlFor="edition-select">
+                Weekly edition
+              </label>
+              <select
+                id="edition-select"
+                className="bg-[var(--color-bg)] border border-[var(--color-border)] p-3 max-w-full"
+                value={selectedNumber ?? ""}
+                onChange={(e) => navigate(`/editions/${e.target.value}`)}
+              >
+                {listQuery.data.map((edition) => (
+                  <option key={edition.editionNumber} value={edition.editionNumber}>
+                    Edition {edition.editionNumber} · {edition.weekRange}
+                  </option>
+                ))}
+              </select>
+              <Link href="/archive?cat=ALL" className="bs-link text-sm">
+                Search all editions
+              </Link>
+            </div>
           ) : null}
         </SectionErrorBoundary>
       </div>
 
-      <div className="mt-11">
+      <div className="mt-5">
         <SectionErrorBoundary section="Edition reader">
           {listQuery.isLoading || editionQuery.isLoading ? (
             <div className={GUTTER_X}>
               <EditionReaderSkeleton />
             </div>
+          ) : listQuery.isError || editionQuery.isError ? (
+            <ConnectionNotice
+              retry={() => {
+                void listQuery.refetch();
+                void editionQuery.refetch();
+              }}
+            />
           ) : editionQuery.data ? (
             <EditionReader
               edition={edition!}
@@ -161,14 +175,14 @@ function EmptyEditions() {
       </p>
       <h2
         className="font-serif font-bold mt-3"
-        style={{ fontSize: 40, lineHeight: 1.04, letterSpacing: "-0.03em" }}
+        style={{ fontSize: "2.5rem", lineHeight: 1.04, letterSpacing: "-0.03em" }}
       >
         The first Weekly Edition lands soon.
       </h2>
       <p className="mx-auto mt-4 max-w-[52ch] text-[var(--color-fg-muted)]">
-        Sundays 7am AEST. A long-form read on what shifted in Australian property that week, and
-        what it changes for anyone with money or a home in the market. The Daily Brief ships every
-        weekday in the meantime.
+        Sundays 7am Sydney time. A long-form read on what shifted in Australian property that week,
+        and what it changes for anyone with money or a home in the market. The Daily Brief ships
+        every weekday in the meantime.
       </p>
     </div>
   );
@@ -179,24 +193,6 @@ function EmptyEditions() {
  * lands, how many have shipped, and the average read time. Rows that have
  * no data are omitted rather than rendered as empty zeroes.
  */
-function editionStats(editions: Array<{ readingTime?: string | null }>): TitleStat[] {
-  const stats: TitleStat[] = [{ label: "Next edition", value: getNextEditionLabel() }];
-  if (editions.length > 0) {
-    stats.push({ label: "Published", value: String(editions.length) });
-  }
-  const minutes = editions
-    .map((e) => {
-      const raw = e.readingTime?.match(/(\d+)/)?.[1];
-      return raw ? parseInt(raw, 10) : null;
-    })
-    .filter((m): m is number => m !== null && m > 0);
-  if (minutes.length > 0) {
-    const avg = Math.round(minutes.reduce((a, b) => a + b, 0) / minutes.length);
-    stats.push({ label: "Avg read", value: `${avg} min` });
-  }
-  return stats;
-}
-
 function SelectorSkeleton() {
   return (
     <div className="flex gap-3 overflow-hidden">

@@ -1,3 +1,4 @@
+import { formatMetricValue, historyChange } from "../../shared/metricPresentation";
 import type { Express, NextFunction, Request, Response } from "express";
 import rateLimit from "express-rate-limit";
 import fs from "node:fs";
@@ -112,29 +113,7 @@ async function sendSocialShell(
 }
 
 function displayValue(value: string, unit: string | null): string {
-  const cleanValue = value.trim();
-  const cleanUnit = unit?.trim();
-  if (!cleanUnit) return cleanValue;
-  if (cleanUnit === "%" && cleanValue.includes("%")) return cleanValue;
-  if (cleanUnit === "$" && cleanValue.startsWith("$")) return cleanValue;
-  if (["%", "°", "x"].includes(cleanUnit)) return `${cleanValue}${cleanUnit}`;
-  if (cleanUnit === "$") return `$${cleanValue}`;
-  return `${cleanValue} ${cleanUnit}`;
-}
-
-function pctMove(first: number, last: number): number {
-  if (Math.abs(first) < 0.000001) return last - first;
-  return ((last - first) / Math.abs(first)) * 100;
-}
-
-function formatMove(series: Array<{ value: number; recordedAt: Date }>): string | null {
-  if (series.length < 2) return null;
-  const first = series[0]?.value;
-  const last = series[series.length - 1]?.value;
-  if (typeof first !== "number" || typeof last !== "number") return null;
-  const move = pctMove(first, last);
-  if (!Number.isFinite(move)) return null;
-  return `${move > 0 ? "+" : ""}${move.toFixed(Math.abs(move) >= 10 ? 1 : 2)}% across 30-day recorded history`;
+  return formatMetricValue({ value, unit });
 }
 
 function formatAsOf(value: Date): string {
@@ -164,7 +143,7 @@ async function getMetricPresentation(metricKey: string, snapshotId?: string) {
     metric,
     series,
     value: displayValue(metric.value, metric.unit),
-    move: formatMove(series),
+    move: historyChange(metric, series),
     deskTake: editions.find((edition) => edition.rubensTake?.trim())?.rubensTake ?? null,
   };
 }
@@ -214,22 +193,30 @@ async function handleSignalMeta(req: Request, res: Response, next: NextFunction)
   const metricKey = firstQuery(req.query.metric).slice(0, 64);
   if (!metricKey) return next();
   try {
-    const snapshotId = req.query.snapshot === undefined ? undefined : firstQuery(req.query.snapshot);
+    const snapshotId =
+      req.query.snapshot === undefined ? undefined : firstQuery(req.query.snapshot);
     const presented = await getMetricPresentation(metricKey, snapshotId);
     if (!presented) {
       res.status(404);
       return sendSocialShell(req, res, next, {
         title: "Shared observation unavailable | The Desk",
-        description: "The requested evidence is unavailable. No newer value or different signal has been substituted.",
-        canonical: `${siteUrl()}/signals`, image: `${siteUrl()}/og-card.png`,
-        imageWidth: 1200, imageHeight: 630, noindex: true,
+        description:
+          "The requested evidence is unavailable. No newer value or different signal has been substituted.",
+        canonical: `${siteUrl()}/signals`,
+        image: `${siteUrl()}/og-card.png`,
+        imageWidth: 1200,
+        imageHeight: 630,
+        noindex: true,
       });
     }
     const { metric, value, move, series } = presented;
     const wantsChart = firstQuery(req.query.view).toLowerCase() === "chart" && series.length >= 2;
-    const basePath = snapshotId !== undefined ? signalSharePath(metric.metricKey, snapshotId)
-      : `/signals?metric=${encodeURIComponent(metric.metricKey)}`;
-    const imageQuery = snapshotId !== undefined ? `?snapshot=${encodeURIComponent(snapshotId)}` : "";
+    const basePath =
+      snapshotId !== undefined
+        ? signalSharePath(metric.metricKey, snapshotId)
+        : `/signals?metric=${encodeURIComponent(metric.metricKey)}`;
+    const imageQuery =
+      snapshotId !== undefined ? `?snapshot=${encodeURIComponent(snapshotId)}` : "";
     const canonical = `${siteUrl()}${basePath}${wantsChart ? "&view=chart" : ""}`;
     const movement = move ? ` ${move}.` : "";
     await sendSocialShell(req, res, next, {
@@ -259,7 +246,10 @@ async function handleSignalMeta(req: Request, res: Response, next: NextFunction)
 async function handleSignalOg(req: Request, res: Response): Promise<void> {
   try {
     const metricKey = decodeURIComponent(String(req.params.metricKey ?? "")).slice(0, 64);
-    const presented = await getMetricPresentation(metricKey, req.query.snapshot === undefined ? undefined : firstQuery(req.query.snapshot));
+    const presented = await getMetricPresentation(
+      metricKey,
+      req.query.snapshot === undefined ? undefined : firstQuery(req.query.snapshot)
+    );
     if (!presented) {
       res.redirect(302, "/og-card.png");
       return;
@@ -286,7 +276,10 @@ async function handleSignalOg(req: Request, res: Response): Promise<void> {
 async function handleChartOg(req: Request, res: Response): Promise<void> {
   try {
     const metricKey = decodeURIComponent(String(req.params.metricKey ?? "")).slice(0, 64);
-    const presented = await getMetricPresentation(metricKey, req.query.snapshot === undefined ? undefined : firstQuery(req.query.snapshot));
+    const presented = await getMetricPresentation(
+      metricKey,
+      req.query.snapshot === undefined ? undefined : firstQuery(req.query.snapshot)
+    );
     if (!presented || presented.series.length < 2) {
       res.redirect(302, "/og-card.png");
       return;

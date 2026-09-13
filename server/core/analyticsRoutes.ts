@@ -1,3 +1,5 @@
+import { webVitalSchema } from "../../shared/webVitals";
+import { recordWebVital } from "../db/webVitals";
 /**
  * Self-hosted analytics endpoints. No cookies, fingerprinting or IP storage.
  *
@@ -156,6 +158,23 @@ export function registerAnalyticsRoutes(app: Express): void {
     standardHeaders: false,
     legacyHeaders: false,
     message: { error: "Too many events" },
+  });
+  app.post("/api/analytics/vitals", limiter, async (req, res) => {
+    if (analyticsBlocked(req)) {
+      res.status(204).end();
+      return;
+    }
+    const parsed = webVitalSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid performance observation" });
+      return;
+    }
+    try {
+      await recordWebVital(parsed.data);
+    } catch {
+      /* Telemetry cannot break reading. */
+    }
+    res.status(204).end();
   });
   app.post("/api/analytics/pageview", limiter, handlePageView);
   app.post("/api/analytics/event", limiter, handleEngagementEvent);

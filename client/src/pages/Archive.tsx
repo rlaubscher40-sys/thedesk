@@ -1,3 +1,4 @@
+import { ConnectionNotice } from "@/components/ConnectionNotice";
 /**
  * The Archive — search and browse as an index, not a card wall.
  *
@@ -39,17 +40,37 @@ const BEAT_BLURB: Record<string, string> = {
   OTHER: "Everything that doesn't sit on a named beat.",
 };
 
+function beatOrder(category: string) {
+  const index = ["PROPERTY", "MACRO", "POLICY", "ECONOMICS", "MARKETS"].indexOf(category);
+  return index < 0 ? 10 : index;
+}
+
 function parseSearch(search: string): { q: string; cat: string | null } {
   const params = new URLSearchParams(search);
-  return { q: params.get("q") ?? "", cat: params.get("cat") };
+  return { q: (params.get("q") ?? "").slice(0, 200), cat: params.get("cat") };
 }
 
 export default function ArchivePage() {
   const search = useSearch();
   const [, navigate] = useLocation();
   const initial = parseSearch(search);
-  const [query, setQuery] = useState(initial.q);
-  const [category, setCategory] = useState<string | null>(initial.cat);
+  const query = initial.q;
+  const category = initial.cat === "ALL" ? null : (initial.cat ?? "PROPERTY");
+  const params = new URLSearchParams(search);
+  const sort = params.get("sort") === "latest" ? "latest" : "relevance";
+  const since = params.get("since") ?? "";
+  const update = (key: string, value: string) => {
+    const next = new URLSearchParams(search);
+    next.set(key, value);
+    navigate(`/archive?${next}`, { replace: true });
+  };
+  const setQuery = (value: string) => update("q", value);
+  const setCategory = (value: string | null) => update("cat", value ?? "ALL");
+  const [debounced, setDebounced] = useState(query);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(query), 250);
+    return () => clearTimeout(timer);
+  }, [query]);
   const inputRef = useRef<HTMLInputElement>(null);
   const colourFor = useCategoryColour();
 
@@ -62,22 +83,12 @@ export default function ArchivePage() {
     inputRef.current?.focus();
   }, []);
 
-  // Mirror state back into the URL so a refresh or share preserves the view.
-  // Replace (don't push) so keystrokes don't fill the back stack.
-  useEffect(() => {
-    const params = new URLSearchParams();
-    if (query.trim()) params.set("q", query.trim());
-    if (category) params.set("cat", category);
-    const next = params.toString();
-    navigate(next ? `/archive?${next}` : "/archive", { replace: true });
-  }, [query, category, navigate]);
-
   const recentByCategoryQuery = trpc.topics.recentByCategory.useQuery();
   const countsQuery = trpc.topics.itemCounts.useQuery();
   const editionsQuery = trpc.editions.list.useQuery();
   const searchQuery = trpc.search.all.useQuery(
-    { query },
-    { enabled: query.trim().length >= 2, staleTime: 30_000 }
+    { query: debounced, category: category ?? undefined, since: since || undefined, sort },
+    { enabled: debounced.trim().length >= 2, staleTime: 30_000 }
   );
   const categoryQuery = trpc.topics.getByCategory.useQuery(
     { category: category ?? "" },
@@ -102,21 +113,26 @@ export default function ArchivePage() {
     const raw = recentByCategoryQuery.data ?? {};
     const out: Record<string, (typeof raw)[string]> = {};
     for (const [cat, items] of Object.entries(raw)) {
-      if (isCategoryAllowed(cat)) out[cat] = items;
+      if (isCategoryAllowed(cat))
+        out[cat] = items.filter((item) => !since || item.feedDate >= since);
     }
     return out;
-  }, [recentByCategoryQuery.data, isCategoryAllowed]);
+  }, [recentByCategoryQuery.data, isCategoryAllowed, since]);
   const filteredSearchResults = useMemo(() => {
     const raw = searchQuery.data;
     if (!raw) return undefined;
     return {
-      editions: raw.editions,
-      feedItems: raw.feedItems.filter((it) => isCategoryAllowed(it.category)),
+      editions: category || since ? [] : raw.editions,
+      feedItems: raw.feedItems.filter(
+        (it) =>
+          (category ? it.category === category : isCategoryAllowed(it.category)) &&
+          (!since || it.feedDate >= since)
+      ),
     };
-  }, [searchQuery.data, isCategoryAllowed]);
+  }, [searchQuery.data, isCategoryAllowed, category, since]);
 
   const categories = Object.keys(recentByCategoryFiltered).sort(
-    (a, b) => (counts.get(b) ?? 0) - (counts.get(a) ?? 0)
+    (a, b) => beatOrder(a) - beatOrder(b) || a.localeCompare(b)
   );
   const totalStories = Array.from(counts.values()).reduce((a, b) => a + b, 0);
   const editions = editionsQuery.data ?? [];
@@ -139,7 +155,7 @@ export default function ArchivePage() {
           <h1
             className="font-serif font-bold mt-3.5"
             style={{
-              fontSize: "clamp(36px, 4.6vw, 64px)",
+              fontSize: "clamp(2.25rem, 4.6vw, 4rem)",
               lineHeight: 0.94,
               letterSpacing: "-0.03em",
             }}
@@ -148,10 +164,10 @@ export default function ArchivePage() {
           </h1>
           <p
             className="font-serif mt-3.5 max-w-[52ch]"
-            style={{ fontSize: 21, lineHeight: 1.42, color: "var(--color-fg-muted)" }}
+            style={{ fontSize: "1.3125rem", lineHeight: 1.42, color: "var(--color-fg-muted)" }}
           >
-            Every weekly edition and every daily item. Find it by keyword, or follow one
-            beat back through the year.
+            Every weekly edition and every daily item. Find it by keyword, or follow one beat back
+            through the year.
           </p>
         </div>
 
@@ -167,23 +183,26 @@ export default function ArchivePage() {
 
       {/* Typographic search field. */}
       <div className="rule-major rule-hair-b mt-7">
-        <label className="flex items-center gap-4 py-4" htmlFor="archive-search">
+        <div className="flex items-center gap-4 py-4">
           <SearchIcon
             className="h-[22px] w-[22px] shrink-0 text-[var(--color-fg-muted)]"
             strokeWidth={1.7}
             aria-hidden="true"
           />
-          <span className="sr-only">Search the archive</span>
+          <label className="sr-only" htmlFor="archive-search">
+            Search the archive
+          </label>
           <input
             id="archive-search"
             ref={inputRef}
             type="search"
+            maxLength={200}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search the archive…"
             className="flex-1 min-w-0 bg-transparent border-0 outline-none font-serif"
             style={{
-              fontSize: "clamp(22px, 3vw, 34px)",
+              fontSize: "clamp(1.375rem, 3vw, 2.125rem)",
               color: "var(--color-fg)",
               caretColor: "var(--color-accent-text)",
             }}
@@ -191,6 +210,7 @@ export default function ArchivePage() {
           {query && (
             <button
               type="button"
+              aria-label="Clear search"
               onClick={() => setQuery("")}
               className="bs-label bs-link shrink-0"
               style={{ letterSpacing: "0.18em" }}
@@ -199,7 +219,7 @@ export default function ArchivePage() {
               clear ✕
             </button>
           )}
-        </label>
+        </div>
       </div>
 
       {/* Category index row. Hairline-divided buttons, each a dot + name +
@@ -228,6 +248,55 @@ export default function ArchivePage() {
         </SectionErrorBoundary>
       )}
 
+      <div className="flex flex-wrap items-end gap-5 mt-5">
+        <label className="text-sm">
+          Sort search results
+          <select
+            className="block bg-[var(--color-bg)] border border-[var(--color-border)] p-3 mt-1"
+            value={sort}
+            onChange={(e) => update("sort", e.target.value)}
+          >
+            <option value="relevance">Relevance</option>
+            <option value="latest">Latest</option>
+          </select>
+        </label>
+        <label className="text-sm">
+          Published from
+          <input
+            type="date"
+            className="block bg-transparent border border-[var(--color-border)] p-3 mt-1"
+            value={since}
+            onChange={(e) => update("since", e.target.value)}
+          />
+        </label>
+        {since && (
+          <button className="bs-btn bs-btn-outline" onClick={() => update("since", "")}>
+            Clear date
+          </button>
+        )}
+      </div>
+      {isSearching && (category || since) && (
+        <p className="text-sm mt-3 text-[var(--color-fg-muted)]">
+          Showing daily reporting matching these filters. Weekly editions span multiple topics and
+          dates and are excluded.
+        </p>
+      )}
+      <p role="status" className="sr-only">
+        {isSearching ? `${resultCount} results` : "Browse reporting"}
+      </p>
+      {(isSearching
+        ? searchQuery.isError
+        : isCategoryView
+          ? categoryQuery.isError
+          : recentByCategoryQuery.isError) && (
+        <ConnectionNotice
+          retry={() => {
+            if (isSearching) void searchQuery.refetch();
+            else if (isCategoryView) void categoryQuery.refetch();
+            else void recentByCategoryQuery.refetch();
+          }}
+        />
+      )}
       {/* Results + rail */}
       <div className="grid lg:grid-cols-[minmax(0,1fr)_1px_340px]">
         <div className="pt-8 lg:pr-13 min-w-0">
@@ -235,8 +304,8 @@ export default function ArchivePage() {
             <SectionErrorBoundary section="Search results">
               <SearchResults
                 query={query}
-                data={filteredSearchResults}
-                loading={searchQuery.isLoading}
+                data={searchQuery.isError ? undefined : filteredSearchResults}
+                loading={searchQuery.isLoading || query !== debounced}
               />
             </SectionErrorBoundary>
           )}
@@ -245,13 +314,25 @@ export default function ArchivePage() {
             <SectionErrorBoundary section="Category drill-down">
               <CategoryResults
                 category={category}
-                data={categoryQuery.data}
+                data={
+                  categoryQuery.isError
+                    ? undefined
+                    : categoryQuery.data
+                      ? {
+                          ...categoryQuery.data,
+                          editions: [],
+                          feedItems: categoryQuery.data.feedItems.filter(
+                            (item) => !since || item.feedDate >= since
+                          ),
+                        }
+                      : undefined
+                }
                 loading={categoryQuery.isLoading}
               />
             </SectionErrorBoundary>
           )}
 
-          {!isSearching && !isCategoryView && (
+          {!isSearching && !isCategoryView && !recentByCategoryQuery.isError && (
             <SectionErrorBoundary section="Recent by beat">
               <RecentByBeat
                 recent={recentByCategoryFiltered}
@@ -280,8 +361,10 @@ export default function ArchivePage() {
                     key={c}
                     type="button"
                     onClick={() => {
-                      setQuery("");
-                      setCategory(c);
+                      const next = new URLSearchParams(search);
+                      next.delete("q");
+                      next.set("cat", c);
+                      navigate(`/archive?${next}`, { replace: true });
                     }}
                     className={cn(
                       "bs-row rule-hair block w-full text-left py-3.5",
@@ -291,20 +374,24 @@ export default function ArchivePage() {
                     <span className="flex items-baseline justify-between gap-3">
                       <span
                         className="font-mono uppercase"
-                        style={{ fontSize: 10, letterSpacing: "0.18em", color: colourFor(c) }}
+                        style={{
+                          fontSize: "0.75rem",
+                          letterSpacing: "0.18em",
+                          color: colourFor(c),
+                        }}
                       >
                         {c}
                       </span>
                       <span
                         className="font-mono tabular-nums text-[var(--color-fg-subtle)]"
-                        style={{ fontSize: 11 }}
+                        style={{ fontSize: "0.75rem" }}
                       >
                         {counts.get(c) ?? 0}
                       </span>
                     </span>
                     <span
                       className="block mt-1.5 text-[var(--color-fg-muted)]"
-                      style={{ fontSize: 14.5, lineHeight: 1.45 }}
+                      style={{ fontSize: "0.90625rem", lineHeight: 1.45 }}
                     >
                       {BEAT_BLURB[c] ?? BEAT_BLURB.OTHER}
                     </span>
@@ -326,7 +413,7 @@ export default function ArchivePage() {
                     href={`/editions/${ed.editionNumber}`}
                     className="bs-link font-mono tabular-nums px-3 py-2 rounded-sm"
                     style={{
-                      fontSize: 11,
+                      fontSize: "0.75rem",
                       letterSpacing: "0.1em",
                       border: "1px solid var(--color-border-strong)",
                     }}
@@ -338,7 +425,7 @@ export default function ArchivePage() {
                   href="/editions"
                   className="bs-link font-mono px-3 py-2 rounded-sm text-[var(--color-fg-subtle)]"
                   style={{
-                    fontSize: 11,
+                    fontSize: "0.75rem",
                     letterSpacing: "0.1em",
                     border: "1px solid var(--color-border-strong)",
                   }}
@@ -360,7 +447,7 @@ export default function ArchivePage() {
             <div className="flex flex-col gap-2.5 mt-3">
               <Shortcut keys="/" label="Jump to search" />
               <Shortcut keys="⌘K" label="Command palette" />
-              <Shortcut keys="J K" label="Move through results" />
+              <Shortcut keys="Tab" label="Move through links" />
             </div>
           </div>
         </aside>
@@ -377,7 +464,7 @@ function CorpusStat({ label, value }: { label: string; value: string }) {
       </p>
       <p
         className="font-serif font-bold tabular-nums mt-2"
-        style={{ fontSize: 40, lineHeight: 1 }}
+        style={{ fontSize: "2.5rem", lineHeight: 1 }}
       >
         {value}
       </p>
@@ -411,7 +498,7 @@ function IndexButton({
       )}
       style={{
         fontFamily: "var(--font-mono)",
-        fontSize: 11,
+        fontSize: "0.75rem",
         letterSpacing: "0.16em",
         textTransform: "uppercase",
         color: active ? "var(--color-fg)" : "var(--color-fg-muted)",
@@ -432,19 +519,20 @@ function IndexButton({
       >
         {label}
       </span>
-      {count != null && (
-        <span className="tabular-nums text-[var(--color-fg-subtle)]">{count}</span>
-      )}
+      {count != null && <span className="tabular-nums text-[var(--color-fg-subtle)]">{count}</span>}
     </button>
   );
 }
 
 function Shortcut({ keys, label }: { keys: string; label: string }) {
   return (
-    <p className="flex items-center gap-2.5" style={{ fontSize: 13.5, color: "var(--color-fg-muted)" }}>
+    <p
+      className="flex items-center gap-2.5"
+      style={{ fontSize: "0.84375rem", color: "var(--color-fg-muted)" }}
+    >
       <kbd
         className="font-mono rounded-sm px-1.5 py-0.5"
-        style={{ fontSize: 10, border: "1px solid var(--color-border-strong)" }}
+        style={{ fontSize: "0.75rem", border: "1px solid var(--color-border-strong)" }}
       >
         {keys}
       </kbd>
@@ -483,12 +571,15 @@ function ResultRow({
       <div>
         <div
           className="font-mono uppercase"
-          style={{ fontSize: 10, letterSpacing: "0.16em" }}
+          style={{ fontSize: "0.75rem", letterSpacing: "0.16em" }}
         >
           {meta}
         </div>
         {metaSub && (
-          <p className="font-mono mt-1.5 text-[var(--color-fg-subtle)]" style={{ fontSize: 10 }}>
+          <p
+            className="font-mono mt-1.5 text-[var(--color-fg-subtle)]"
+            style={{ fontSize: "0.75rem" }}
+          >
             {metaSub}
           </p>
         )}
@@ -496,14 +587,14 @@ function ResultRow({
       <div className="min-w-0">
         <p
           className="font-serif"
-          style={{ fontSize: 21, lineHeight: 1.28, letterSpacing: "-0.02em" }}
+          style={{ fontSize: "1.3125rem", lineHeight: 1.28, letterSpacing: "-0.02em" }}
         >
           {title}
         </p>
         {snippet && (
           <p
             className="mt-1.5 text-[var(--color-fg-muted)]"
-            style={{ fontSize: 15, lineHeight: 1.55 }}
+            style={{ fontSize: "0.9375rem", lineHeight: 1.55 }}
           >
             {snippet}
           </p>
@@ -560,7 +651,7 @@ function SearchResults({
   }
 
   return (
-    <div className="space-y-9">
+    <div className="flex flex-col gap-9">
       {data.editions.length > 0 && (
         <section>
           <ResultGroup label="Editions" count={data.editions.length} />
@@ -583,7 +674,7 @@ function SearchResults({
       )}
 
       {data.feedItems.length > 0 && (
-        <section>
+        <section className="order-first">
           <ResultGroup label="Daily items" count={data.feedItems.length} />
           {data.feedItems.map((item, i) => (
             <ResultRow
@@ -600,7 +691,7 @@ function SearchResults({
                   {item.source && (
                     <span
                       className="font-mono uppercase text-[var(--color-fg-subtle)]"
-                      style={{ fontSize: 10, letterSpacing: "0.14em" }}
+                      style={{ fontSize: "0.75rem", letterSpacing: "0.14em" }}
                     >
                       {item.source}
                     </span>
@@ -637,7 +728,7 @@ function CategoryResults({
   }
 
   return (
-    <div className="space-y-9">
+    <div className="flex flex-col gap-9">
       {data.editions.length > 0 && (
         <section>
           <ResultGroup label="Editions" count={data.editions.length} />
@@ -659,7 +750,7 @@ function CategoryResults({
       )}
 
       {data.feedItems.length > 0 && (
-        <section>
+        <section className="order-first">
           <ResultGroup label="Daily items" count={data.feedItems.length} />
           {data.feedItems.map((item, i) => (
             <ResultRow
@@ -696,11 +787,11 @@ function RecentByBeat({
   }
 
   const entries = Object.entries(recent).sort(
-    ([a], [b]) => (counts.get(b) ?? 0) - (counts.get(a) ?? 0)
+    ([a], [b]) => beatOrder(a) - beatOrder(b) || a.localeCompare(b)
   );
 
   return (
-    <div className="space-y-9">
+    <div className="flex flex-col gap-9">
       {entries.map(([category, items]) => (
         <section key={category}>
           <ResultGroup label={category} count={counts.get(category) ?? items.length} />

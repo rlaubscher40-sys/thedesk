@@ -10,7 +10,7 @@ export default function Privacy() {
   return (
     <article className="max-w-[68ch] mx-auto py-10 space-y-6 leading-relaxed">
       <header className="space-y-2">
-        <p className="overline-amber" style={{ letterSpacing: "0.22em", fontSize: "10px" }}>
+        <p className="overline-amber" style={{ letterSpacing: "0.22em", fontSize: "0.75rem" }}>
           The Desk
         </p>
         <h1 className="font-serif text-4xl sm:text-5xl font-bold leading-tight">Privacy</h1>
@@ -37,8 +37,16 @@ export default function Privacy() {
             that identify you personally. No tracking across other sites.
           </li>
           <li>
-            <strong>Local preferences</strong>: your selected audience persona, theme, reading queue
-            and bookmarks live in your browser's local storage. They never leave your device.
+            <strong>Performance measurements</strong>: page loading, interaction delay and layout
+            shifts, grouped by mobile or desktop viewport. These measurements contain no account
+            identity, question text or browsing history across sites. Older samples are removed as
+            new measurements arrive, using a rolling 30-day retention window. Do Not Track is
+            respected.
+          </li>
+          <li>
+            <strong>Local preferences</strong>: your audience persona, theme and guest bookmarks are
+            stored on your device. When you sign in, bookmarks sync to your account and device saves
+            are imported into that queue.
           </li>
         </ul>
 

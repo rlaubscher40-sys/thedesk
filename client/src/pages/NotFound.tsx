@@ -31,7 +31,7 @@ export default function NotFound() {
 
         <p
           className="overline-amber mb-6 first-paint-mark"
-          style={{ letterSpacing: "0.3em", fontSize: "11px" }}
+          style={{ letterSpacing: "0.3em", fontSize: "0.75rem" }}
         >
           ● Transmission lost
         </p>
@@ -39,7 +39,7 @@ export default function NotFound() {
         <h1
           className="font-serif font-bold relative mb-8 first-paint-content"
           style={{
-            fontSize: "clamp(128px, 22vw, 256px)",
+            fontSize: "clamp(8rem, 22vw, 16rem)",
             lineHeight: "0.9",
             letterSpacing: "-0.04em",
           }}
@@ -60,7 +60,8 @@ export default function NotFound() {
         </h1>
 
         <p className="font-serif italic text-xl text-[var(--color-fg-muted)] mb-12 leading-snug max-w-xl mx-auto">
-          That signal hasn't reached this frequency. Most pages on The Desk live behind one of the routes below, try one.
+          That signal hasn't reached this frequency. Most pages on The Desk live behind one of the
+          routes below, try one.
         </p>
 
         <div className="flex items-center justify-center gap-3 flex-wrap">

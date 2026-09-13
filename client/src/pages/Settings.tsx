@@ -8,17 +8,7 @@
  *, the shape is already JSON-friendly.
  */
 import { useState } from "react";
-import {
-  Bell,
-  Check,
-  Layers,
-  LogOut,
-  Monitor,
-  Moon,
-  Sun,
-  Trash2,
-  Type,
-} from "lucide-react";
+import { Bell, Check, Layers, LogOut, Monitor, Moon, Sun, Trash2, Type } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 import { PageHeader } from "@/components/PageHeader";
@@ -28,10 +18,7 @@ import { cn } from "@/lib/cn";
 import { useAuth } from "@/lib/useAuth";
 import { useDocumentTitle } from "@/lib/useDocumentTitle";
 import { useTheme } from "@/lib/theme";
-import {
-  SELECTABLE_CATEGORIES,
-  useUserPrefs,
-} from "@/lib/userPrefs";
+import { SELECTABLE_CATEGORIES, useUserPrefs } from "@/lib/userPrefs";
 
 export default function SettingsPage() {
   useDocumentTitle("Settings");
@@ -81,7 +68,7 @@ function AppearanceCard() {
           <Type className="h-3.5 w-3.5 text-[var(--color-fg-muted)]" />
           <p
             className="font-mono uppercase tracking-[0.18em] text-[var(--color-fg-muted)]"
-            style={{ fontSize: "11px" }}
+            style={{ fontSize: "0.75rem" }}
           >
             Reading size
           </p>
@@ -210,14 +197,14 @@ function ThemeSegmented({
                 className="font-mono uppercase tracking-[0.16em]"
                 style={{
                   color: active ? "var(--color-amber)" : "var(--color-fg)",
-                  fontSize: "10px",
+                  fontSize: "0.75rem",
                 }}
               >
                 {opt.label}
               </span>
               {active && <Check className="h-3 w-3 ml-auto text-amber-300" />}
             </div>
-            <p className="text-[11px] text-[var(--color-fg-subtle)] leading-relaxed">
+            <p className="text-[0.75rem] text-[var(--color-fg-subtle)] leading-relaxed">
               {opt.sub}
             </p>
           </button>
@@ -254,7 +241,7 @@ function TopicsCard() {
         {!isAll && (
           <button
             onClick={() => setTopicAllowlist([])}
-            className="text-[10px] font-mono uppercase tracking-[0.16em] text-[var(--color-fg-muted)] hover:text-amber-300 transition-colors"
+            className="text-[0.75rem] font-mono uppercase tracking-[0.16em] text-[var(--color-fg-muted)] hover:text-amber-300 transition-colors"
           >
             Reset (show all)
           </button>
@@ -288,7 +275,7 @@ function TopicsCard() {
                 className="font-mono uppercase tracking-[0.14em] truncate"
                 style={{
                   color: active ? colour : "var(--color-fg-muted)",
-                  fontSize: "10px",
+                  fontSize: "0.75rem",
                 }}
               >
                 {cat}
@@ -311,9 +298,9 @@ export function NotificationsCard() {
       kicker="The free subscription includes the weekday morning brief and Sunday edition."
     >
       <p className="text-sm text-[var(--color-fg-muted)] leading-relaxed">
-        Confirm the link in your signup email to start receiving The Desk.
-        To stop emails, use the unsubscribe link at the bottom of any message.
-        Appearance and topic choices on this page only change this browser.
+        Confirm the link in your signup email to start receiving The Desk. To stop emails, use the
+        unsubscribe link at the bottom of any message. Appearance and topic choices on this page
+        only change this browser.
       </p>
       <a href="/subscribe" className="inline-block mt-4 text-sm underline underline-offset-4">
         Subscribe or request a fresh confirmation email →
@@ -351,18 +338,16 @@ function AccountCard() {
         <button
           onClick={signOut}
           disabled={busy}
-          className="inline-flex items-center gap-2 rounded px-3.5 py-2 text-[10px] font-mono uppercase tracking-[0.18em] border border-[var(--color-border)] text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] hover:border-[var(--color-border-strong)] transition-colors disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded px-3.5 py-2 text-[0.75rem] font-mono uppercase tracking-[0.18em] border border-[var(--color-border)] text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] hover:border-[var(--color-border-strong)] transition-colors disabled:opacity-50"
         >
           <LogOut className="h-3 w-3" />
           {busy ? "Signing out…" : "Sign out"}
         </button>
         <button
           onClick={() =>
-            toast.message(
-              "Reader-level account deletion arrives when email delivery does."
-            )
+            toast.message("Reader-level account deletion arrives when email delivery does.")
           }
-          className="inline-flex items-center gap-2 rounded px-3.5 py-2 text-[10px] font-mono uppercase tracking-[0.18em] transition-colors"
+          className="inline-flex items-center gap-2 rounded px-3.5 py-2 text-[0.75rem] font-mono uppercase tracking-[0.18em] transition-colors"
           style={{
             background: "oklch(0.68 0.20 15 / 8%)",
             color: "oklch(0.78 0.16 15)",

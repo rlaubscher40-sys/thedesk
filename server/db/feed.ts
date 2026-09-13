@@ -48,7 +48,11 @@ export async function listFeedItems(date?: string): Promise<DailyFeedItem[]> {
     .select()
     .from(dailyFeedItems)
     .where(and(eq(dailyFeedItems.feedDate, today), sql`${dailyFeedItems.channel} <> 'HOLD'`))
-    .orderBy(desc(dailyFeedItems.priority), desc(dailyFeedItems.createdAt), desc(dailyFeedItems.id));
+    .orderBy(
+      desc(dailyFeedItems.priority),
+      desc(dailyFeedItems.createdAt),
+      desc(dailyFeedItems.id)
+    );
   if (todayRows.length > 0) return todayRows;
   const recentDate = await db
     .selectDistinct({ feedDate: dailyFeedItems.feedDate })
@@ -62,27 +66,50 @@ export async function listFeedItems(date?: string): Promise<DailyFeedItem[]> {
     .select()
     .from(dailyFeedItems)
     .where(and(eq(dailyFeedItems.feedDate, fallback), sql`${dailyFeedItems.channel} <> 'HOLD'`))
-    .orderBy(desc(dailyFeedItems.priority), desc(dailyFeedItems.createdAt), desc(dailyFeedItems.id));
+    .orderBy(
+      desc(dailyFeedItems.priority),
+      desc(dailyFeedItems.createdAt),
+      desc(dailyFeedItems.id)
+    );
 }
 
 /** Previously filed local reporting, bounded before returning to the browser.
  * Keep original IDs/dates; this never republishes or changes social eligibility. */
 export async function listRecentLocalFeed(channel: "AU" | "PROPERTY", today = sydneyToday()) {
   const since = new Date(Date.parse(`${today}T00:00:00Z`) - 3 * 86_400_000)
-    .toISOString().slice(0, 10);
-  if (isDemoMode()) return demoQueries.listFeedItemsBetween(since, today)
-    .filter((item) => item.feedDate < today && (item.channel ?? "AU") === channel)
-    .sort((a, b) => b.feedDate.localeCompare(a.feedDate) || b.priority - a.priority || b.id - a.id)
-    .slice(0, 24);
+    .toISOString()
+    .slice(0, 10);
+  if (isDemoMode())
+    return demoQueries
+      .listFeedItemsBetween(since, today)
+      .filter((item) => item.feedDate < today && (item.channel ?? "AU") === channel)
+      .sort(
+        (a, b) => b.feedDate.localeCompare(a.feedDate) || b.priority - a.priority || b.id - a.id
+      )
+      .slice(0, 24);
   const db = getDb();
   if (!db) return [];
-  return db.select({ id: dailyFeedItems.id, title: dailyFeedItems.title,
-    summary: dailyFeedItems.summary, source: dailyFeedItems.source, category: dailyFeedItems.category,
-    channel: dailyFeedItems.channel, feedDate: dailyFeedItems.feedDate, priority: dailyFeedItems.priority,
-    threadParentId: dailyFeedItems.threadParentId, sourceTiming: dailyFeedItems.sourceTiming,
-  }).from(dailyFeedItems)
-    .where(and(eq(dailyFeedItems.channel, channel), gte(dailyFeedItems.feedDate, since),
-      sql`${dailyFeedItems.feedDate} < ${today}`))
+  return db
+    .select({
+      id: dailyFeedItems.id,
+      title: dailyFeedItems.title,
+      summary: dailyFeedItems.summary,
+      source: dailyFeedItems.source,
+      category: dailyFeedItems.category,
+      channel: dailyFeedItems.channel,
+      feedDate: dailyFeedItems.feedDate,
+      priority: dailyFeedItems.priority,
+      threadParentId: dailyFeedItems.threadParentId,
+      sourceTiming: dailyFeedItems.sourceTiming,
+    })
+    .from(dailyFeedItems)
+    .where(
+      and(
+        eq(dailyFeedItems.channel, channel),
+        gte(dailyFeedItems.feedDate, since),
+        sql`${dailyFeedItems.feedDate} < ${today}`
+      )
+    )
     .orderBy(desc(dailyFeedItems.feedDate), desc(dailyFeedItems.priority), desc(dailyFeedItems.id))
     .limit(24);
 }
@@ -125,7 +152,12 @@ export async function listArchive(opts: {
   if (!db) return [];
   const base = db.select().from(dailyFeedItems);
   const filtered = opts.category
-    ? base.where(and(eq(dailyFeedItems.category, opts.category.toUpperCase()), sql`${dailyFeedItems.channel} <> 'HOLD'`))
+    ? base.where(
+        and(
+          eq(dailyFeedItems.category, opts.category.toUpperCase()),
+          sql`${dailyFeedItems.channel} <> 'HOLD'`
+        )
+      )
     : base.where(sql`${dailyFeedItems.channel} <> 'HOLD'`);
   return filtered.orderBy(desc(dailyFeedItems.createdAt)).limit(opts.limit).offset(opts.offset);
 }
@@ -176,11 +208,17 @@ export async function getRecentFeedItems(
   cutoff.setDate(cutoff.getDate() - windowDays);
   const cutoffStr = cutoff.toISOString().slice(0, 10);
   return db
-    .select({ id: dailyFeedItems.id, title: dailyFeedItems.title, summary: dailyFeedItems.summary,
-      channel: dailyFeedItems.channel, sourceTiming: dailyFeedItems.sourceTiming })
+    .select({
+      id: dailyFeedItems.id,
+      title: dailyFeedItems.title,
+      summary: dailyFeedItems.summary,
+      channel: dailyFeedItems.channel,
+      sourceTiming: dailyFeedItems.sourceTiming,
+    })
     .from(dailyFeedItems)
     .where(and(gte(dailyFeedItems.feedDate, cutoffStr), sql`${dailyFeedItems.channel} <> 'HOLD'`))
-    .orderBy(desc(dailyFeedItems.feedDate), desc(dailyFeedItems.id)).limit(500);
+    .orderBy(desc(dailyFeedItems.feedDate), desc(dailyFeedItems.id))
+    .limit(500);
 }
 
 /**
@@ -193,7 +231,11 @@ export async function createFeedItems(
   items: FeedIngestItem[]
 ): Promise<{ ids: number[]; duplicateCount: number; failedCount: number }> {
   if (isDemoMode())
-    return { ids: demoQueries.createFeedItems(items.map(({ articleText: _drop, ...row }) => row)), duplicateCount: 0, failedCount: 0 };
+    return {
+      ids: demoQueries.createFeedItems(items.map(({ articleText: _drop, ...row }) => row)),
+      duplicateCount: 0,
+      failedCount: 0,
+    };
   const db = getDb();
   if (!db) throw new Error("createFeedItems: database unavailable");
   if (items.length === 0) return { ids: [], duplicateCount: 0, failedCount: 0 };
@@ -303,7 +345,11 @@ export async function listFeedItemsBetween(
     .where(
       sql`${dailyFeedItems.feedDate} >= ${startDate} AND ${dailyFeedItems.feedDate} <= ${endDate} AND ${dailyFeedItems.channel} <> 'HOLD'`
     )
-    .orderBy(desc(dailyFeedItems.priority), desc(dailyFeedItems.createdAt), desc(dailyFeedItems.id));
+    .orderBy(
+      desc(dailyFeedItems.priority),
+      desc(dailyFeedItems.createdAt),
+      desc(dailyFeedItems.id)
+    );
 }
 
 /** Small public discovery sample, not an unbounded copy of the archive. */
@@ -444,7 +490,10 @@ export async function getCategoryHeat(days: number) {
     .sort((a, b) => b.total - a.total);
 }
 
-export async function searchAllContent(query: string) {
+export async function searchAllContent(
+  query: string,
+  options: { category?: string; since?: string; sort?: "relevance" | "latest" } = {}
+) {
   if (isDemoMode()) return demoQueries.searchAllContent(query);
   const db = getDb();
   if (!db) return { editions: [], feedItems: [] };
@@ -458,25 +507,37 @@ export async function searchAllContent(query: string) {
   const feedResults = await db
     .select()
     .from(dailyFeedItems)
-    .where(or(like(dailyFeedItems.title, pattern), like(dailyFeedItems.summary, pattern)))
+    .where(
+      and(
+        or(like(dailyFeedItems.title, pattern), like(dailyFeedItems.summary, pattern)),
+        options.category ? eq(dailyFeedItems.category, options.category) : undefined,
+        options.since ? sql`${dailyFeedItems.feedDate} >= ${options.since}` : undefined
+      )
+    )
     .orderBy(desc(dailyFeedItems.createdAt))
     .limit(50);
   // Re-rank by relevance (title hits above body-only hits, recency as the
   // DB-order tiebreak) and attach a match snippet. The DB LIKE scan only
   // knows "matched or not", so this is where a query actually gets ranked.
   return {
-    editions: rankResults(
-      query,
-      editionResults,
-      (e) => `Edition ${e.editionNumber} ${e.weekRange}`,
-      (e) => e.fullText ?? ""
-    ),
-    feedItems: rankResults(
-      query,
-      feedResults,
-      (f) => f.title,
-      (f) => f.summary ?? ""
-    ),
+    editions:
+      options.category || options.since
+        ? []
+        : rankResults(
+            query,
+            editionResults,
+            (e) => `Edition ${e.editionNumber} ${e.weekRange}`,
+            (e) => e.fullText ?? ""
+          ),
+    feedItems:
+      options.sort === "latest"
+        ? feedResults.map((row) => ({ ...row, snippet: row.summary }))
+        : rankResults(
+            query,
+            feedResults,
+            (f) => f.title,
+            (f) => f.summary ?? ""
+          ),
   };
 }
 

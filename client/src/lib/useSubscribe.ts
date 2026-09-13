@@ -51,6 +51,8 @@ export function useSubscribe({
   onSubscribed?: (email: string) => void;
 }) {
   const [email, setEmail] = useState("");
+  const [error, setError] = useState("");
+  const [lastSent, setLastSent] = useState(0);
   const [hp, setHp] = useState("");
   /** The address that was actually submitted — survives the input clearing
    *  so confirmation copy ("a link is on its way to …") can show it. */
@@ -58,6 +60,8 @@ export function useSubscribe({
 
   const mutation = trpc.subscribers.subscribe.useMutation({
     onSuccess: (_res, vars) => {
+      setError("");
+      setLastSent(Date.now());
       setEmail("");
       markSubscribed();
       if (onSubscribed) onSubscribed(vars.email);
@@ -67,17 +71,24 @@ export function useSubscribe({
         });
     },
     onError: () => {
-      toast.error("Couldn't subscribe right now. Try again in a minute.");
+      setError("Could not subscribe right now. Please try again in a minute.");
+      toast.error("Could not subscribe right now. Please try again in a minute.");
     },
   });
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!EMAIL_RE.test(email)) {
-      toast.error("That email doesn't look right");
+    if (mutation.isPending) return;
+    if (!EMAIL_RE.test(email.trim())) {
+      setError("Enter a valid email address, such as you@example.com.");
       return;
     }
-    setSubmittedEmail(email);
+    if (Date.now() - lastSent < 60_000 && email.trim() === submittedEmail) {
+      setError("Please wait a minute before requesting another email.");
+      return;
+    }
+    setError("");
+    setSubmittedEmail(email.trim());
     // Two different facts, both worth keeping. `source` is which form
     // converted them; the arrival is which channel brought them to the site in
     // the first place, read from the session because by now the referrer is
@@ -85,7 +96,7 @@ export function useSubscribe({
     // still go through, unattributed.
     const arrival = getArrival();
     mutation.mutate({
-      email,
+      email: email.trim(),
       source,
       arrivalSource: arrival?.source,
       arrivalCampaign: arrival?.campaign ?? undefined,
@@ -99,6 +110,8 @@ export function useSubscribe({
     hp,
     setHp,
     submittedEmail,
+    error,
+    lastSent,
     submit,
     busy: mutation.isPending,
   };

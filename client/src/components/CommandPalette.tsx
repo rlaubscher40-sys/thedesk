@@ -58,7 +58,7 @@ const NAV_ITEMS: Item[] = [
   },
   {
     id: "nav-signals",
-    label: "Signals",
+    label: "Data observations",
     hint: "What is moving now",
     icon: Radio,
     group: "nav",
@@ -74,7 +74,7 @@ const NAV_ITEMS: Item[] = [
   },
   {
     id: "nav-trends",
-    label: "Trends",
+    label: "Data charts",
     hint: "Intelligence dashboard",
     icon: BarChart3,
     group: "nav",
@@ -82,7 +82,7 @@ const NAV_ITEMS: Item[] = [
   },
   {
     id: "nav-queue",
-    label: "Reading Queue",
+    label: "Saved",
     hint: "Saved items",
     icon: Bookmark,
     group: "nav",
@@ -90,7 +90,7 @@ const NAV_ITEMS: Item[] = [
   },
   {
     id: "nav-archive",
-    label: "Archive",
+    label: "Search reporting",
     hint: "Search + browse",
     icon: Search,
     group: "nav",

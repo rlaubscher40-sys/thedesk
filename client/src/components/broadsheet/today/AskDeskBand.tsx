@@ -24,14 +24,14 @@ export function AskDeskBand() {
           <p
             className="font-serif font-bold group-hover:text-[var(--color-accent-text)] transition-colors"
             style={{
-              fontSize: "clamp(22px, 3vw, 36px)",
+              fontSize: "clamp(1.375rem, 3vw, 2.25rem)",
               lineHeight: 1.06,
               letterSpacing: "-0.025em",
             }}
           >
             What do you need to know about Australian property?
           </p>
-          <p className="mt-2 text-sm lg:text-[15px] text-[var(--color-fg-muted)]">
+          <p className="mt-2 text-sm lg:text-[0.9375rem] text-[var(--color-fg-muted)]">
             Cross-reference The Desk's reporting and get a sourced intelligence brief.
           </p>
         </div>

@@ -6,9 +6,12 @@ const origin = "https://thedesk.au";
 function worker(fetcher = vi.fn().mockResolvedValue(new Response("ok"))) {
   const handlers: Record<string, (event: any) => void> = {};
   const stored = new Map<string, Response>();
-  const keyOf = (key: string | Request) => typeof key === "string" ? new URL(key, origin).href : key.url;
+  const keyOf = (key: string | Request) =>
+    typeof key === "string" ? new URL(key, origin).href : key.url;
   const cache = {
-    put: vi.fn(async (key, response) => { stored.set(keyOf(key), response); }),
+    put: vi.fn(async (key, response) => {
+      stored.set(keyOf(key), response);
+    }),
     keys: async () => [...stored.keys()].map((key) => new Request(key)),
     delete: async (key: Request) => stored.delete(key.url),
     addAll: vi.fn().mockResolvedValue(undefined),
@@ -20,12 +23,34 @@ function worker(fetcher = vi.fn().mockResolvedValue(new Response("ok"))) {
     delete: vi.fn().mockResolvedValue(true),
   };
   const claim = vi.fn().mockResolvedValue(undefined);
-  runInNewContext(source, { self: { location: { origin }, addEventListener: (name: string, fn: any) => { handlers[name] = fn; }, clients: { claim }, skipWaiting: vi.fn() }, caches, fetch: fetcher, URL, Response, AbortController, setTimeout, clearTimeout });
+  runInNewContext(source, {
+    self: {
+      location: { origin },
+      addEventListener: (name: string, fn: any) => {
+        handlers[name] = fn;
+      },
+      clients: { claim },
+      skipWaiting: vi.fn(),
+    },
+    caches,
+    fetch: fetcher,
+    URL,
+    Response,
+    AbortController,
+    setTimeout,
+    clearTimeout,
+  });
   function request(path: string, mode = "cors", init: RequestInit = {}) {
     const raw = new Request(origin + path, init);
     const waits: Promise<any>[] = [];
     let response: Promise<Response> | undefined;
-    handlers.fetch({ request: { url: raw.url, method: raw.method, headers: raw.headers, mode }, respondWith: (p: Promise<Response>) => { response = p; }, waitUntil: (p: Promise<any>) => waits.push(p) });
+    handlers.fetch({
+      request: { url: raw.url, method: raw.method, headers: raw.headers, mode },
+      respondWith: (p: Promise<Response>) => {
+        response = p;
+      },
+      waitUntil: (p: Promise<any>) => waits.push(p),
+    });
     return { response, done: () => Promise.all(waits) };
   }
   return { request, caches, stored, handlers, claim, cache };
@@ -48,13 +73,26 @@ it("passes a healthy navigation through without caching HTML", async () => {
 });
 it("does not intercept API, media, private pages, POST or range requests", () => {
   const w = worker();
-  for (const path of ["/api/trpc/feed.list", "/social/reel.mp4", "/admin.json", "/assets/test.js?v=1"])
+  for (const path of [
+    "/api/trpc/feed.list",
+    "/social/reel.mp4",
+    "/admin.json",
+    "/assets/test.js?v=1",
+  ])
     expect(w.request(path).response).toBeUndefined();
   expect(w.request("/assets/test.js", "cors", { method: "POST" }).response).toBeUndefined();
-  expect(w.request("/assets/test.js", "cors", { headers: { Range: "bytes=0-20" } }).response).toBeUndefined();
+  expect(
+    w.request("/assets/test.js", "cors", { headers: { Range: "bytes=0-20" } }).response
+  ).toBeUndefined();
 });
 it("still delivers scripts when CacheStorage is blocked", async () => {
-  const w = worker(vi.fn().mockResolvedValue(new Response("app()", { headers: { "Content-Type": "application/javascript" } })));
+  const w = worker(
+    vi
+      .fn()
+      .mockResolvedValue(
+        new Response("app()", { headers: { "Content-Type": "application/javascript" } })
+      )
+  );
   w.caches.match.mockRejectedValue(new Error("blocked"));
   w.caches.open.mockRejectedValue(new Error("blocked"));
   const result = w.request("/assets/app-123.js");
@@ -62,7 +100,11 @@ it("still delivers scripts when CacheStorage is blocked", async () => {
   await expect(result.done()).resolves.toBeDefined();
 });
 it("bounds static cache growth across deployments", async () => {
-  const w = worker(vi.fn(async () => new Response("app()", { headers: { "Content-Type": "application/javascript" } })));
+  const w = worker(
+    vi.fn(
+      async () => new Response("app()", { headers: { "Content-Type": "application/javascript" } })
+    )
+  );
   w.stored.set(origin + "/offline.html", new Response("offline"));
   for (let i = 0; i < 70; i++) {
     const result = w.request(`/assets/app-${i}.js`);
@@ -75,8 +117,26 @@ it("bounds static cache growth across deployments", async () => {
 it("deletes only The Desk's old caches during activation", async () => {
   const w = worker();
   let done!: Promise<any>;
-  w.handlers.activate({ waitUntil: (p: Promise<any>) => { done = p; } });
+  w.handlers.activate({
+    waitUntil: (p: Promise<any>) => {
+      done = p;
+    },
+  });
   await done;
   expect(w.caches.delete).toHaveBeenCalledExactlyOnceWith("thedesk-shell-v3");
   expect(w.claim).toHaveBeenCalledOnce();
+});
+it("preserves a server's recoverable market shell instead of masking it as offline", async () => {
+  const html =
+    '<h1>Market evidence is taking longer to load</h1><a href="/markets">Market search</a>';
+  const w = worker(
+    vi
+      .fn()
+      .mockResolvedValue(
+        new Response(html, { status: 503, headers: { "Content-Type": "text/html" } })
+      )
+  );
+  const response = await w.request("/markets/sydney", "navigate").response!;
+  expect(response.status).toBe(503);
+  expect(await response.text()).toBe(html);
 });

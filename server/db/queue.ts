@@ -7,7 +7,7 @@ import { dailyFeedItems, readingQueue, users, type InsertReadingQueueItem } from
 export async function getEnrichedQueue(userId: number) {
   if (isDemoMode()) return demoQueries.getEnrichedQueue(userId);
   const db = getDb();
-  if (!db) return [];
+  if (!db) throw new Error("Saved stories unavailable");
   // Left-join to feed items in a single round-trip, the reference code did N+1.
   const rows = await db
     .select({
@@ -34,13 +34,26 @@ export async function addToQueue(item: InsertReadingQueueItem) {
   if (isDemoMode()) return demoQueries.addToQueue(item);
   const db = getDb();
   if (!db) throw new Error("addToQueue: database unavailable");
-  return db.insert(readingQueue).values(item);
+  return db.transaction(async (tx) => {
+    await tx.select({ id: users.id }).from(users).where(eq(users.id, item.userId)).for("update");
+    if (item.feedItemId) {
+      const existing = await tx
+        .select({ id: readingQueue.id })
+        .from(readingQueue)
+        .where(
+          and(eq(readingQueue.userId, item.userId), eq(readingQueue.feedItemId, item.feedItemId))
+        )
+        .limit(1);
+      if (existing.length) return;
+    }
+    await tx.insert(readingQueue).values(item);
+  });
 }
 
 export async function markQueueItemRead(id: number, userId: number) {
   if (isDemoMode()) return demoQueries.markQueueItemRead(id, userId);
   const db = getDb();
-  if (!db) return;
+  if (!db) throw new Error("Saved stories unavailable");
   return db
     .update(readingQueue)
     .set({ isRead: true })
@@ -50,21 +63,23 @@ export async function markQueueItemRead(id: number, userId: number) {
 export async function removeFromQueue(id: number, userId: number) {
   if (isDemoMode()) return demoQueries.removeFromQueue(id, userId);
   const db = getDb();
-  if (!db) return;
-  return db.delete(readingQueue).where(and(eq(readingQueue.id, id), eq(readingQueue.userId, userId)));
+  if (!db) throw new Error("Saved stories unavailable");
+  return db
+    .delete(readingQueue)
+    .where(and(eq(readingQueue.id, id), eq(readingQueue.userId, userId)));
 }
 
 export async function clearQueue(userId: number) {
   if (isDemoMode()) return demoQueries.clearQueue(userId);
   const db = getDb();
-  if (!db) return;
+  if (!db) throw new Error("Saved stories unavailable");
   return db.delete(readingQueue).where(eq(readingQueue.userId, userId));
 }
 
 export async function markAllQueueRead(userId: number) {
   if (isDemoMode()) return demoQueries.markAllQueueRead(userId);
   const db = getDb();
-  if (!db) return;
+  if (!db) throw new Error("Saved stories unavailable");
   return db.update(readingQueue).set({ isRead: true }).where(eq(readingQueue.userId, userId));
 }
 
@@ -117,13 +132,13 @@ export async function findQueueItemsNeedingNudge(): Promise<NudgeCandidate[]> {
 export async function markNudgeSent(id: number): Promise<void> {
   if (isDemoMode()) return;
   const db = getDb();
-  if (!db) return;
+  if (!db) throw new Error("Saved stories unavailable");
   await db.update(readingQueue).set({ nudgeSentAt: new Date() }).where(eq(readingQueue.id, id));
 }
 
 export async function recordNudgeResponse(id: number, response: string): Promise<void> {
   if (isDemoMode()) return;
   const db = getDb();
-  if (!db) return;
+  if (!db) throw new Error("Saved stories unavailable");
   await db.update(readingQueue).set({ nudgeResponse: response }).where(eq(readingQueue.id, id));
 }

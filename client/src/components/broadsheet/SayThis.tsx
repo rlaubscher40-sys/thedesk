@@ -60,7 +60,7 @@ export function SayThis({
       <p
         className="font-serif mt-3"
         style={{
-          fontSize: `clamp(22px, 2.4vw, ${size}px)`,
+          fontSize: `clamp(1.375rem, 2.4vw, ${size / 16}rem)`,
           lineHeight: 1.18,
           letterSpacing: "-0.03em",
           textWrap: "pretty",

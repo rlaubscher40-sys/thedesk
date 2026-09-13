@@ -1,3 +1,4 @@
+import { PUBLIC_MARKETS, marketPath } from "@shared/marketDirectory";
 import { preferenceStorage } from "@/lib/storage";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useSearch } from "wouter";
@@ -65,6 +66,14 @@ export default function MarketsPage() {
   const [watchlist, setWatchlist] = useState<string[]>([]);
 
   useEffect(() => setWatchlist(readWatchlist()), []);
+  useEffect(() => {
+    const city = PUBLIC_MARKETS.find((city) => city.name.toLowerCase() === initial.toLowerCase());
+    const params = new URLSearchParams(search);
+    // Keep explicitly dated evidence links on their original period-aware reader.
+    const periodLink = ["rentPeriod", "period", "state", "areaKind"].some((key) => params.has(key));
+    if (city && !comparisonMode && !periodLink)
+      navigate(marketPath(city.slug) + window.location.hash, { replace: true });
+  }, [initial, comparisonMode, navigate, search]);
   useEffect(() => {
     setInput(initial);
     setMarket(initial);
@@ -136,9 +145,19 @@ export default function MarketsPage() {
   function buildBrief() {
     if (!market || ask.isPending) return;
     const params = new URLSearchParams(search);
-    const state = /^(NSW|VIC|QLD|SA|WA|TAS|NT|ACT)$/.test(params.get("state") ?? "") ? params.get("state") : "";
-    const kind = /^(SA2|LGA|suburb|postcode)$/.test(params.get("areaKind") ?? "") ? params.get("areaKind") : /^\d{4}$/.test(market) ? "postcode" : "";
-    const period = /^20\d{2}-\d{2}-\d{2}$/.test(params.get("period") ?? "") ? params.get("period") : /^20\d{2}-(0[1-9]|1[0-2])$/.test(params.get("rentPeriod") ?? "") ? params.get("rentPeriod") : "";
+    const state = /^(NSW|VIC|QLD|SA|WA|TAS|NT|ACT)$/.test(params.get("state") ?? "")
+      ? params.get("state")
+      : "";
+    const kind = /^(SA2|LGA|suburb|postcode)$/.test(params.get("areaKind") ?? "")
+      ? params.get("areaKind")
+      : /^\d{4}$/.test(market)
+        ? "postcode"
+        : "";
+    const period = /^20\d{2}-\d{2}-\d{2}$/.test(params.get("period") ?? "")
+      ? params.get("period")
+      : /^20\d{2}-(0[1-9]|1[0-2])$/.test(params.get("rentPeriod") ?? "")
+        ? params.get("rentPeriod")
+        : "";
     ask.mutate({
       question: `Assess ${kind} ${market.slice(0, 64)} ${state}${period ? ` for reporting period ${period}` : ""}: price momentum, rents, supply, credit, population and risks. Use Desk evidence only; state gaps and what would change the call.`,
     });
@@ -155,25 +174,23 @@ export default function MarketsPage() {
             <h1
               className="font-serif font-bold"
               style={{
-                fontSize: "clamp(44px, 7vw, 86px)",
+                fontSize: "clamp(2.125rem, 4.5vw, 3.5rem)",
                 lineHeight: 0.9,
                 letterSpacing: "-0.045em",
               }}
             >
-              {comparisonMode
-                ? "Put two markets to the test."
-                : "Read a market before the consensus does."}
+              {comparisonMode ? "Put two markets to the test." : "Explore a property market."}
             </h1>
             <p
               className="font-serif mt-5 max-w-[62ch] text-[var(--color-fg-muted)]"
-              style={{ fontSize: "clamp(19px, 2vw, 25px)", lineHeight: 1.42 }}
+              style={{ fontSize: "clamp(1.1875rem, 2vw, 1.5625rem)", lineHeight: 1.42 }}
             >
               {comparisonMode
                 ? "Compare the forces behind two property markets. See where the evidence leans, where it is thin and what would change the call."
-                : "Search any Australian city, region or suburb. The Desk pulls every mention from its reporting, then turns the evidence into a sourced market brief."}
+                : "Start with a city’s dated evidence file, or search reporting for an Australian suburb or region. Generate an interpretation when you need one."}
             </p>
           </div>
-          <div className="lg:pb-2">
+          <div className="hidden lg:block lg:pb-2">
             <p className="bs-label">Tracked on this device</p>
             <p className="font-serif text-4xl font-bold mt-2 tabular-nums">{watchlist.length}</p>
             <p className="text-sm text-[var(--color-fg-muted)] mt-1">Market watchlist</p>
@@ -196,10 +213,20 @@ export default function MarketsPage() {
         </Link>
       </nav>
 
-      <ComparisonWatchlist />
-      {!comparisonMode && <AuctionClearance metrics={metrics.data} loading={metrics.isLoading} />}
-      {!comparisonMode && market && <MarketRentConditions marketA={market} period={new URLSearchParams(search).get("rentPeriod")} />}
-      {!comparisonMode && market && <LocalMarketData query={market} state={new URLSearchParams(search).get("state")} kind={new URLSearchParams(search).get("areaKind")} period={new URLSearchParams(search).get("period")} />}
+      {!comparisonMode && market && (
+        <MarketRentConditions
+          marketA={market}
+          period={new URLSearchParams(search).get("rentPeriod")}
+        />
+      )}
+      {!comparisonMode && market && (
+        <LocalMarketData
+          query={market}
+          state={new URLSearchParams(search).get("state")}
+          kind={new URLSearchParams(search).get("areaKind")}
+          period={new URLSearchParams(search).get("period")}
+        />
+      )}
       {comparisonMode ? (
         <MarketComparison
           marketA={initial}
@@ -228,7 +255,7 @@ export default function MarketsPage() {
                 placeholder="Enter a market, city, region or suburb…"
                 className="flex-1 min-w-0 bg-transparent border-0 outline-none font-serif"
                 style={{
-                  fontSize: "clamp(23px, 3vw, 36px)",
+                  fontSize: "clamp(1.4375rem, 3vw, 2.25rem)",
                   color: "var(--color-fg)",
                   caretColor: "var(--color-accent-text)",
                 }}
@@ -272,13 +299,17 @@ export default function MarketsPage() {
             </section>
           )}
 
+          <ComparisonWatchlist />
           {!market && <MarketDiscovery />}
+          {!comparisonMode && (
+            <AuctionClearance metrics={metrics.data} loading={metrics.isLoading} />
+          )}
 
           {market && (
             <>
               <section className="grid sm:grid-cols-3 rule-major mt-9">
                 <MarketStat
-                  label="Desk references"
+                  label="Desk search matches"
                   value={searchQuery.isLoading ? "…" : String(coverageCount)}
                 />
                 <MarketStat label="Latest mention" value={latestMention ?? "None yet"} border />
@@ -294,7 +325,7 @@ export default function MarketsPage() {
                   <p className="bs-label-accent">Market file</p>
                   <h2
                     className="font-serif font-bold mt-1.5"
-                    style={{ fontSize: 38, lineHeight: 1 }}
+                    style={{ fontSize: "2.375rem", lineHeight: 1 }}
                   >
                     {market}
                   </h2>
@@ -328,12 +359,10 @@ export default function MarketsPage() {
                 <MarketLoading />
               ) : coverageCount === 0 ? (
                 <section className="py-12 rule-hair-b">
-                  <p className="font-serif text-3xl">
-                    No archived reporting for {market} yet.
-                  </p>
+                  <p className="font-serif text-3xl">No archived reporting for {market} yet.</p>
                   <p className="mt-3 max-w-[58ch] text-[var(--color-fg-muted)]">
-                    You can still build a brief from available local data. If the evidence
-                    is insufficient, The Desk will explain the gap.
+                    You can still build a brief from available local data. If the evidence is
+                    insufficient, The Desk will explain the gap.
                   </p>
                   <Link
                     href="/ask"
@@ -348,7 +377,7 @@ export default function MarketsPage() {
                     <p className="bs-label-accent">Evidence trail</p>
                     <h3
                       className="font-serif font-bold mt-2"
-                      style={{ fontSize: 34, lineHeight: 1 }}
+                      style={{ fontSize: "2.125rem", lineHeight: 1 }}
                     >
                       What The Desk has seen
                     </h3>
@@ -370,8 +399,10 @@ export default function MarketsPage() {
                               </>
                             )}
                           </div>
-                          <p className="font-serif text-[22px] leading-7 mt-1.5">{item.title}</p>
-                          <p className="mt-2 text-[15px] leading-6 text-[var(--color-fg-muted)]">
+                          <p className="font-serif text-[1.375rem] leading-7 mt-1.5">
+                            {item.title}
+                          </p>
+                          <p className="mt-2 text-[0.9375rem] leading-6 text-[var(--color-fg-muted)]">
                             {cleanSnippet(item.snippet || item.summary)}
                           </p>
                         </Link>
@@ -456,7 +487,7 @@ export default function MarketsPage() {
                   <h2
                     className="font-serif font-bold mt-4 max-w-[18ch]"
                     style={{
-                      fontSize: "clamp(38px, 5vw, 62px)",
+                      fontSize: "clamp(2.375rem, 5vw, 3.875rem)",
                       lineHeight: 0.98,
                       letterSpacing: "-0.035em",
                     }}
@@ -542,7 +573,10 @@ function MarketStat({
   return (
     <div className={`${border ? "sm:rule-hair-l sm:pl-6" : ""} py-5 sm:pr-6`}>
       <p className="bs-label">{label}</p>
-      <p className="font-serif font-bold mt-2 tabular-nums" style={{ fontSize: 32, lineHeight: 1 }}>
+      <p
+        className="font-serif font-bold mt-2 tabular-nums"
+        style={{ fontSize: "2rem", lineHeight: 1 }}
+      >
         {value}
       </p>
     </div>

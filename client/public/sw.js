@@ -1,6 +1,6 @@
 // v4 never caches navigation HTML. An old shell can reference deleted chunks,
 // and an arbitrary page must not become another route's offline fallback.
-const CACHE = "thedesk-static-v4";
+const CACHE = "thedesk-static-v5";
 const MAX_ENTRIES = 64;
 const SHELL = ["/offline.html", "/manifest.json", "/favicon.svg", "/icon-192.png",
   "/icon-512.png", "/apple-touch-icon.png", "/fonts/SourceSans3-Variable.woff2",
@@ -35,7 +35,7 @@ async function offlineResponse() {
     if (html) return new Response(html, { status: 503, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
   } catch { /* Even without cache, return a useful response. */ }
   finally { clearTimeout(timer); }
-  return new Response('<!doctype html><meta name="viewport" content="width=device-width"><title>The Desk</title><h1>The Desk could not connect</h1><p>Check your connection, then <a href="">try again</a>.</p>', {
+  return new Response('<!doctype html><meta name="viewport" content="width=device-width"><title>The Desk</title><h1>The Desk could not connect</h1><p>Check your connection, then <a href="">try again</a>. You can also return to <a href="/">Today</a> or <a href="/markets">market search</a>.</p>', {
     status: 503, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
   });
 }
@@ -50,7 +50,7 @@ async function navigate(request) {
         timer = setTimeout(() => { reject(new Error("Navigation timed out")); controller.abort(); }, 12000);
       }),
     ]);
-    return response.status >= 500 ? offlineResponse() : response;
+    return response;
   } catch { return offlineResponse(); }
   finally { clearTimeout(timer); }
 }

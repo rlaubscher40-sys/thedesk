@@ -1,3 +1,5 @@
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useSearch } from "wouter";
@@ -28,8 +30,18 @@ const EXAMPLES = [
 ];
 
 export default function AskDeskPage() {
+  const { user } = useAuth();
+  return <AskDeskSession key={user?.id ?? "guest"} accountId={user?.id ?? "guest"} />;
+}
+function AskDeskSession({ accountId }: { accountId: number | "guest" }) {
   const search = useSearch();
-  const [question, setQuestion] = useState("");
+  const cache = useQueryClient();
+  const cached = cache.getQueryData<{
+    question: string;
+    result: NonNullable<typeof mutation.data>;
+  }>(["desk-completed-brief", accountId]);
+  const [completed, setCompleted] = useState(cached);
+  const [question, setQuestion] = useState(cached?.question ?? "");
   const [history, setHistory] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -66,10 +78,16 @@ export default function AskDeskPage() {
     if (
       linkedQuestion.length >= 3 &&
       linkedQuestion !== handledDeepLink.current &&
-      !mutation.isPending && !requestInFlight.current
+      !mutation.isPending &&
+      !requestInFlight.current
     ) {
       handledDeepLink.current = linkedQuestion;
-      ask(linkedQuestion);
+      setQuestion(linkedQuestion);
+      if (completed?.question !== linkedQuestion) {
+        setCompleted(undefined);
+        mutation.reset();
+      }
+      // Deep links prepare a question; generation is an explicit reader action.
     }
   }, [search, mutation.isPending]);
 
@@ -87,19 +105,33 @@ export default function AskDeskPage() {
     setCopied(false);
     setHistory(rememberAskQuestion(value, history));
     trackEvent("ask_query", "ask");
-    mutation.mutate({ question: value }, {
-      onSettled: () => { requestInFlight.current = false; },
-    });
+    setCompleted(undefined);
+    mutation.mutate(
+      { question: value },
+      {
+        onSuccess: (result) => {
+          const completed = { question: value, result };
+          cache.setQueryData(["desk-completed-brief", accountId], completed);
+          setCompleted(completed);
+        },
+        onSettled: () => {
+          requestInFlight.current = false;
+        },
+      }
+    );
   }
 
-  const result = mutation.data;
-  const submittedQuestion = mutation.variables?.question ?? question.trim();
+  const result = mutation.data ?? completed?.result;
+  const submittedQuestion = mutation.variables?.question ?? completed?.question ?? question.trim();
   const isQuotaError = mutation.error?.data?.code === "TOO_MANY_REQUESTS";
-  const isTimeout = mutation.error?.data?.code === "TIMEOUT" ||
+  const isTimeout =
+    mutation.error?.data?.code === "TIMEOUT" ||
     mutation.error?.message.includes("This request took too long");
 
   function editQuestion(value: string) {
     mutation.reset();
+    setCompleted(undefined);
+    cache.removeQueries({ queryKey: ["desk-completed-brief", accountId] });
     setQuestion(value);
     inputRef.current?.focus();
     inputRef.current?.scrollIntoView({ block: "center" });
@@ -128,13 +160,16 @@ export default function AskDeskPage() {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2200);
     } catch {
-      // Clipboard is unavailable on some non-secure local previews.
+      toast.error("Could not copy. Use Share or copy the address from your browser.");
     }
   }
 
   async function shareBrief() {
     if (!result || result.status !== "answered") return;
-    const text = `${result.answer.headline}\n\n${result.answer.answer}\n\nThe Desk`;
+    const text = `${result.answer.headline}\n\n${result.answer.answer
+      .split(/(?<=[.!?])\s+/)
+      .slice(0, 2)
+      .join(" ")}\n\nThe Desk`;
     const publicUrl = new URL(
       `/brief?token=${encodeURIComponent(result.shareToken)}`,
       window.location.origin
@@ -156,7 +191,7 @@ export default function AskDeskPage() {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2200);
     } catch {
-      // Clipboard is unavailable on some non-secure local previews.
+      toast.error("Could not copy. Use Share or copy the address from your browser.");
     }
   }
 
@@ -171,7 +206,7 @@ export default function AskDeskPage() {
             <h1
               className="font-serif font-bold"
               style={{
-                fontSize: "clamp(44px, 7vw, 92px)",
+                fontSize: "clamp(2.75rem, 7vw, 5.75rem)",
                 lineHeight: 0.9,
                 letterSpacing: "-0.045em",
               }}
@@ -181,7 +216,7 @@ export default function AskDeskPage() {
             <p
               className="font-serif mt-5 max-w-[58ch]"
               style={{
-                fontSize: "clamp(19px, 2.1vw, 27px)",
+                fontSize: "clamp(1.1875rem, 2.1vw, 1.6875rem)",
                 lineHeight: 1.35,
                 color: "var(--color-fg-muted)",
               }}
@@ -192,7 +227,7 @@ export default function AskDeskPage() {
           </div>
           <div className="rule-major pt-4 lg:pt-5">
             <p className="bs-label">Grounding standard</p>
-            <p className="mt-2 text-[15px] leading-6 text-[var(--color-fg-body)]">
+            <p className="mt-2 text-[0.9375rem] leading-6 text-[var(--color-fg-body)]">
               Answers are constrained to evidence already inside The Desk. When the archive cannot
               support a claim, it should say so.
             </p>
@@ -200,6 +235,15 @@ export default function AskDeskPage() {
         </div>
       </header>
 
+      {new URLSearchParams(search).get("story")?.match(/^\d+$/) && (
+        <p className="mt-5 text-sm">
+          Following up on{" "}
+          <Link className="underline" href={`/story/${new URLSearchParams(search).get("story")}`}>
+            this story
+          </Link>
+          . Review the question, then choose Ask.
+        </p>
+      )}
       <form onSubmit={submit} className="rule-major rule-hair-b mt-10 lg:mt-12">
         <label htmlFor="ask-desk" className="sr-only">
           Ask The Desk a property intelligence question
@@ -229,7 +273,7 @@ export default function AskDeskPage() {
             className="flex-1 min-w-0 resize-none overflow-y-auto bg-transparent border-0 outline-none font-serif"
             style={{
               minHeight: 48,
-              fontSize: "clamp(24px, 3.8vw, 44px)",
+              fontSize: "clamp(1.5rem, 3.8vw, 2.75rem)",
               lineHeight: 1.12,
               color: "var(--color-fg)",
               caretColor: "var(--color-accent-text)",
@@ -256,7 +300,7 @@ export default function AskDeskPage() {
 
       {!authLoading && !isAuthenticated && (
         <div className="rule-hair-b py-4 flex flex-wrap items-center justify-between gap-4">
-          <p className="text-[14px] text-[var(--color-fg-muted)]">
+          <p className="text-[0.875rem] text-[var(--color-fg-muted)]">
             No account required · 3 grounded intelligence questions free each day.
           </p>
           <a href={getLoginUrl()} className="bs-label bs-link">
@@ -265,7 +309,7 @@ export default function AskDeskPage() {
         </div>
       )}
 
-      {mutation.isIdle && (
+      {mutation.isIdle && !result && (
         <div className="grid lg:grid-cols-[minmax(0,1fr)_1px_320px] mt-7">
           <section className="lg:pr-14">
             <p className="bs-label">Try asking</p>
@@ -279,7 +323,7 @@ export default function AskDeskPage() {
                 >
                   <span
                     className="font-serif group-hover:text-[var(--color-accent-text)] transition-colors"
-                    style={{ fontSize: "clamp(20px, 2.4vw, 30px)", lineHeight: 1.2 }}
+                    style={{ fontSize: "clamp(1.25rem, 2.4vw, 1.875rem)", lineHeight: 1.2 }}
                   >
                     {example}
                   </span>
@@ -292,9 +336,21 @@ export default function AskDeskPage() {
           <aside className="lg:pl-9 mt-9 lg:mt-0">
             <p className="bs-label">How it works</p>
             <div className="mt-4 space-y-5">
-              <ProcessStep number="01" title="Retrieve" body="Find the reporting and editions that actually bear on the question." />
-              <ProcessStep number="02" title="Cross-check" body="Separate archive facts from The Desk's interpretation and uncertainty." />
-              <ProcessStep number="03" title="Brief" body="Return the answer, why it matters, the take, and what would change the view." />
+              <ProcessStep
+                number="01"
+                title="Retrieve"
+                body="Find the reporting and editions that actually bear on the question."
+              />
+              <ProcessStep
+                number="02"
+                title="Cross-check"
+                body="Separate archive facts from The Desk's interpretation and uncertainty."
+              />
+              <ProcessStep
+                number="03"
+                title="Brief"
+                body="Return the answer, why it matters, the take, and what would change the view."
+              />
             </div>
             {history.length > 0 && (
               <div className="rule-hair mt-8 pt-5">
@@ -318,227 +374,302 @@ export default function AskDeskPage() {
       )}
 
       <div ref={feedbackRef} className="scroll-mt-24">
-      {mutation.isPending && <ThinkingState question={mutation.variables?.question ?? question.trim()} />}
+        {mutation.isPending && (
+          <ThinkingState question={mutation.variables?.question ?? question.trim()} />
+        )}
 
-      {mutation.isError && (
-        <div className="rule-major mt-10 pt-6 max-w-3xl" role="alert">
-          <p className="bs-label-accent">{isQuotaError ? "Ask allowance" : "Your question is saved below"}</p>
-          <h2 className="font-serif text-3xl mt-2">
-            {isQuotaError ? "You've reached an Ask limit." : isTimeout ? "That answer took too long." : "Something went wrong."}
-          </h2>
-          <p className="mt-3 text-[var(--color-fg-body)]">
-            {isQuotaError ? mutation.error.message : "We couldn't complete this request. Try again, edit your question, or explore the archive."}
-          </p>
-          <p className="font-serif text-xl mt-4">{submittedQuestion}</p>
-          <div className="flex flex-wrap gap-2 mt-5">
-            {!isQuotaError && (
-              <button type="button" onClick={() => ask(submittedQuestion)} className="bs-btn bs-btn-solid">
-                Try again
-              </button>
-            )}
-            <button type="button" onClick={() => editQuestion(submittedQuestion)} className="bs-btn bs-btn-outline">
-              Edit question
-            </button>
-            <Link href={`/archive?q=${encodeURIComponent(submittedQuestion)}`} className="bs-btn bs-btn-outline">
-              Search the archive
-            </Link>
-            {isQuotaError && !isAuthenticated && (
-              <a href={getLoginUrl()} className="bs-btn bs-btn-solid">
-                Sign in
-              </a>
-            )}
-          </div>
-        </div>
-      )}
-
-      {result?.status === "insufficient" && (
-        <div className="rule-major mt-10 pt-6 max-w-3xl" role="status">
-          <p className="bs-label-accent">More evidence needed</p>
-          <h2
-            className="font-serif font-bold mt-2"
-            style={{ fontSize: "clamp(31px, 4vw, 50px)", lineHeight: 1.02 }}
-          >
-            We don't have enough verified information to answer this yet.
-          </h2>
-          <p className="font-serif mt-4 text-xl leading-8 text-[var(--color-fg-body)]">
-            {result.message}
-          </p>
-          <p className="mt-4 text-sm leading-6 text-[var(--color-fg-muted)]">
-            Try naming a suburb, lender or policy and the time period you mean.
-            {!isAuthenticated && " This hasn't used a free question."}
-          </p>
-          <div className="flex flex-wrap gap-2 mt-6">
-            <button type="button" onClick={() => editQuestion(result.question)} className="bs-btn bs-btn-solid">
-              Refine question
-            </button>
-            <Link href={`/archive?q=${encodeURIComponent(result.question)}`} className="bs-btn bs-btn-outline">
-              Search the archive
-            </Link>
-          </div>
-          {result.sources.length > 0 && (
-            <div className="rule-hair mt-7 pt-4">
-              <p className="bs-label">Explore the records we found</p>
-              <p className="mt-2 text-sm text-[var(--color-fg-muted)]">These records did not provide enough evidence for a verified answer.</p>
-              {result.sources.map((source) => (
-                <Link key={source.ref} href={source.href} className="block font-serif text-xl bs-link rule-hair mt-3 pt-3">
-                  {source.title}
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {result?.status === "answered" && (
-        <article className="mt-10 lg:mt-12 animate-fade-in">
-          <div className="rule-major pt-4 flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3 flex-wrap">
-              <ShieldCheck className="h-4 w-4 text-[var(--color-accent-text)]" />
-              <p className="bs-label-accent">Grounded intelligence · {result.searchedRecords} records checked</p>
-              {result.anonymousRemaining !== null && (
-                <p className="bs-label">· {result.anonymousRemaining} free {result.anonymousRemaining === 1 ? "question" : "questions"} left today</p>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button type="button" onClick={copyBrief} className="bs-btn bs-btn-outline inline-flex items-center gap-2">
-                {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                {copied ? "Copied" : "Copy brief"}
-              </button>
-              <button type="button" onClick={shareBrief} className="bs-btn bs-btn-outline inline-flex items-center gap-2">
-                <Share2 className="h-3.5 w-3.5" />
-                Share text
-              </button>
-              <ShareIntelligenceCardButton
-                shareToken={result.shareToken}
-                headline={result.answer.headline}
-              />
-            </div>
-          </div>
-
-          <div className="grid lg:grid-cols-[minmax(0,1fr)_1px_340px] mt-7">
-            <div className="lg:pr-14 min-w-0">
-              <p className="bs-label">The answer</p>
-              <h2
-                className="font-serif font-bold mt-3"
-                style={{
-                  fontSize: "clamp(38px, 5.5vw, 72px)",
-                  lineHeight: 0.98,
-                  letterSpacing: "-0.035em",
-                }}
-              >
-                {result.answer.headline}
-              </h2>
-              <p
-                className="font-serif mt-6 max-w-[64ch] text-[var(--color-fg-body)]"
-                style={{ fontSize: "clamp(20px, 2.2vw, 27px)", lineHeight: 1.5 }}
-              >
-                {result.answer.answer}
-              </p>
-
-              {result.answer.signals.length > 0 && (
-                <div className="grid sm:grid-cols-2 xl:grid-cols-4 rule-major mt-9">
-                  {result.answer.signals.map((signal, index) => (
-                    <div
-                      key={`${signal.label}-${signal.value}`}
-                      className={cn("py-5 sm:pr-5", index > 0 && "sm:rule-hair-l sm:pl-5")}
-                    >
-                      <p className="bs-label">{signal.label}</p>
-                      <p
-                        className="font-serif font-bold mt-2 tabular-nums"
-                        style={{ fontSize: "clamp(28px, 3.2vw, 43px)", lineHeight: 1 }}
-                      >
-                        {signal.value}
-                      </p>
-                      <p className="mt-2 text-sm leading-5 text-[var(--color-fg-muted)]">
-                        {signal.context}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="grid md:grid-cols-2 rule-major mt-9">
-                <IntelligenceSection eyebrow="Why it matters" body={result.answer.whyItMatters} />
-                <div className="md:rule-hair-l md:pl-8">
-                  <IntelligenceSection eyebrow="The Desk take" body={result.answer.deskTake} />
-                </div>
-              </div>
-
-              <div className="rule-major mt-8 pt-5 max-w-[70ch]">
-                <p className="bs-label-accent">What would change our mind</p>
-                <p className="font-serif mt-3 text-xl leading-8 text-[var(--color-fg-body)]">
-                  {result.answer.whatWouldChangeOurMind}
-                </p>
-              </div>
-            </div>
-
-            <div className="hidden lg:block bg-[var(--color-border)]" />
-
-            <aside className="lg:pl-9 mt-10 lg:mt-0">
-              <div className="rule-major pt-4">
-                <p className="bs-label">Confidence</p>
-                <p
-                  className="font-serif font-bold mt-2 capitalize"
-                  style={{ fontSize: 34, lineHeight: 1 }}
+        {mutation.isError && (
+          <div className="rule-major mt-10 pt-6 max-w-3xl" role="alert">
+            <p className="bs-label-accent">
+              {isQuotaError ? "Ask allowance" : "Your question is saved below"}
+            </p>
+            <h2 className="font-serif text-3xl mt-2">
+              {isQuotaError
+                ? "You've reached an Ask limit."
+                : isTimeout
+                  ? "That answer took too long."
+                  : "Something went wrong."}
+            </h2>
+            <p className="mt-3 text-[var(--color-fg-body)]">
+              {isQuotaError
+                ? mutation.error.message
+                : "We couldn't complete this request. Try again, edit your question, or explore the archive."}
+            </p>
+            <p className="font-serif text-xl mt-4">{submittedQuestion}</p>
+            <div className="flex flex-wrap gap-2 mt-5">
+              {!isQuotaError && (
+                <button
+                  type="button"
+                  onClick={() => ask(submittedQuestion)}
+                  className="bs-btn bs-btn-solid"
                 >
-                  {result.answer.confidence}
-                </p>
-                <p className="mt-2 text-sm leading-5 text-[var(--color-fg-muted)]">
-                  Confidence reflects the quality and agreement of the archive evidence, not certainty
-                  about future outcomes.
-                </p>
-              </div>
-
-              <div className="rule-major mt-8 pt-4">
-                <p className="bs-label">Evidence used · {result.sources.length}</p>
-                <div className="mt-3">
-                  {result.sources.map((source) => (
-                    <div key={source.ref} className="rule-hair py-4">
-                      <div className="flex items-start gap-3">
-                        <span className="bs-label-accent tabular-nums shrink-0">[{source.ref}]</span>
-                        <div className="min-w-0">
-                          <Link
-                            href={source.href}
-                            className="font-serif text-[18px] leading-6 bs-link block"
-                          >
-                            {source.title}
-                          </Link>
-                          <p className="bs-label mt-2" style={{ fontSize: 9 }}>
-                            {source.date}
-                            {source.publisher ? ` · ${source.publisher}` : ""}
-                          </p>
-                          {source.externalUrl && (
-                            <a
-                              href={source.externalUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="mt-2 inline-flex items-center gap-1 text-xs bs-link text-[var(--color-fg-muted)]"
-                            >
-                              Original source <ExternalLink className="h-3 w-3" />
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
+                  Try again
+                </button>
+              )}
               <button
                 type="button"
-                onClick={() => {
-                  mutation.reset();
-                  setQuestion("");
-                  window.setTimeout(() => inputRef.current?.focus(), 0);
-                }}
-                className="bs-btn bs-btn-outline w-full mt-7"
+                onClick={() => editQuestion(submittedQuestion)}
+                className="bs-btn bs-btn-outline"
               >
-                Ask another question
+                Edit question
               </button>
-            </aside>
+              <Link
+                href={`/archive?q=${encodeURIComponent(submittedQuestion)}`}
+                className="bs-btn bs-btn-outline"
+              >
+                Search the archive
+              </Link>
+              {isQuotaError && !isAuthenticated && (
+                <a href={getLoginUrl()} className="bs-btn bs-btn-solid">
+                  Sign in
+                </a>
+              )}
+            </div>
           </div>
-        </article>
-      )}
+        )}
+
+        {result?.status === "insufficient" && (
+          <div className="rule-major mt-10 pt-6 max-w-3xl" role="status">
+            <p className="bs-label-accent">More evidence needed</p>
+            <h2
+              className="font-serif font-bold mt-2"
+              style={{ fontSize: "clamp(1.9375rem, 4vw, 3.125rem)", lineHeight: 1.02 }}
+            >
+              We don't have enough verified information to answer this yet.
+            </h2>
+            <p className="font-serif mt-4 text-xl leading-8 text-[var(--color-fg-body)]">
+              {result.message}
+            </p>
+            <p className="mt-4 text-sm leading-6 text-[var(--color-fg-muted)]">
+              Try naming a suburb, lender or policy and the time period you mean.
+              {!isAuthenticated && " This hasn't used a free question."}
+            </p>
+            <div className="flex flex-wrap gap-2 mt-6">
+              <button
+                type="button"
+                onClick={() => editQuestion(result.question)}
+                className="bs-btn bs-btn-solid"
+              >
+                Refine question
+              </button>
+              <Link
+                href={`/archive?q=${encodeURIComponent(result.question)}`}
+                className="bs-btn bs-btn-outline"
+              >
+                Search the archive
+              </Link>
+            </div>
+            {result.sources.length > 0 && (
+              <div className="rule-hair mt-7 pt-4">
+                <p className="bs-label">Explore the records we found</p>
+                <p className="mt-2 text-sm text-[var(--color-fg-muted)]">
+                  These records did not provide enough evidence for a verified answer.
+                </p>
+                {result.sources.map((source) => (
+                  <Link
+                    key={source.ref}
+                    href={source.href}
+                    className="block font-serif text-xl bs-link rule-hair mt-3 pt-3"
+                  >
+                    {source.title}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {result?.status === "answered" && (
+          <article className="mt-10 lg:mt-12 animate-fade-in">
+            <div className="rule-major pt-4 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3 flex-wrap">
+                <ShieldCheck className="h-4 w-4 text-[var(--color-accent-text)]" />
+                <p className="bs-label-accent">
+                  Grounded intelligence · {result.searchedRecords} records checked
+                </p>
+                {result.anonymousRemaining !== null && (
+                  <p className="bs-label">
+                    · {result.anonymousRemaining} free{" "}
+                    {result.anonymousRemaining === 1 ? "question" : "questions"} left today
+                  </p>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={copyBrief}
+                  className="bs-btn bs-btn-outline inline-flex items-center gap-2"
+                >
+                  {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                  {copied ? "Copied" : "Copy brief"}
+                </button>
+                <button
+                  type="button"
+                  onClick={shareBrief}
+                  className="bs-btn bs-btn-outline inline-flex items-center gap-2"
+                >
+                  <Share2 className="h-3.5 w-3.5" />
+                  Share text
+                </button>
+                <ShareIntelligenceCardButton
+                  shareToken={result.shareToken}
+                  headline={result.answer.headline}
+                />
+              </div>
+            </div>
+
+            <div className="grid lg:grid-cols-[minmax(0,1fr)_1px_340px] mt-7">
+              <div className="lg:pr-14 min-w-0">
+                <p className="bs-label">The answer</p>
+                <h2
+                  className="font-serif font-bold mt-3"
+                  style={{
+                    fontSize: "clamp(2.375rem, 5.5vw, 4.5rem)",
+                    lineHeight: 0.98,
+                    letterSpacing: "-0.035em",
+                  }}
+                >
+                  {result.answer.headline}
+                </h2>
+                <p
+                  className="font-serif mt-6 max-w-[64ch] text-[var(--color-fg-body)]"
+                  style={{ fontSize: "clamp(1.25rem, 2.2vw, 1.6875rem)", lineHeight: 1.5 }}
+                >
+                  {result.answer.answer
+                    .split(/(?<=[.!?])\s+/)
+                    .slice(0, 2)
+                    .join(" ")}
+                </p>
+
+                {result.answer.answer.split(/(?<=[.!?])\s+/).length > 2 && (
+                  <details className="mt-4">
+                    <summary className="bs-link min-h-11 py-3">Read the full answer</summary>
+                    <p className="leading-7 max-w-prose">{result.answer.answer}</p>
+                  </details>
+                )}
+                {result.answer.signals.length > 0 && (
+                  <div className="grid sm:grid-cols-3 rule-major mt-9">
+                    {result.answer.signals.slice(0, 3).map((signal, index) => (
+                      <div
+                        key={`${signal.label}-${signal.value}`}
+                        className={cn("py-5 sm:pr-5", index > 0 && "sm:rule-hair-l sm:pl-5")}
+                      >
+                        <p className="bs-label">{signal.label}</p>
+                        <p
+                          className="font-serif font-bold mt-2 tabular-nums"
+                          style={{ fontSize: "clamp(1.75rem, 3.2vw, 2.6875rem)", lineHeight: 1 }}
+                        >
+                          {signal.value}
+                        </p>
+                        <p className="mt-2 text-sm leading-5 text-[var(--color-fg-muted)]">
+                          {signal.context}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {result.answer.signals.length > 3 && (
+                  <details className="mt-4">
+                    <summary className="min-h-11 py-3 bs-link">More supporting points</summary>
+                    <ul className="space-y-3">
+                      {result.answer.signals.slice(3).map((signal) => (
+                        <li key={signal.label}>
+                          <strong>
+                            {signal.label}: {signal.value}.
+                          </strong>{" "}
+                          {signal.context}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+                <div className="grid md:grid-cols-2 rule-major mt-9">
+                  <IntelligenceSection eyebrow="Why it matters" body={result.answer.whyItMatters} />
+                  <div className="md:rule-hair-l md:pl-8">
+                    <IntelligenceSection eyebrow="The Desk take" body={result.answer.deskTake} />
+                  </div>
+                </div>
+
+                <div className="rule-major mt-8 pt-5 max-w-[70ch]">
+                  <p className="bs-label-accent">What would change our mind</p>
+                  <p className="font-serif mt-3 text-xl leading-8 text-[var(--color-fg-body)]">
+                    {result.answer.whatWouldChangeOurMind}
+                  </p>
+                </div>
+              </div>
+
+              <div className="hidden lg:block bg-[var(--color-border)]" />
+
+              <aside className="lg:pl-9 mt-10 lg:mt-0">
+                <div className="rule-major pt-4">
+                  <p className="bs-label">Confidence</p>
+                  <p
+                    className="font-serif font-bold mt-2 capitalize"
+                    style={{ fontSize: "2.125rem", lineHeight: 1 }}
+                  >
+                    {result.answer.confidence}
+                  </p>
+                  <p className="mt-2 text-sm leading-5 text-[var(--color-fg-muted)]">
+                    Confidence reflects the quality and agreement of the archive evidence, not
+                    certainty about future outcomes.
+                  </p>
+                </div>
+
+                <div className="rule-major mt-8 pt-4">
+                  <p className="bs-label">Evidence used · {result.sources.length}</p>
+                  <div className="mt-3">
+                    {result.sources.map((source) => (
+                      <div key={source.ref} className="rule-hair py-4">
+                        <div className="flex items-start gap-3">
+                          <span className="bs-label-accent tabular-nums shrink-0">
+                            [{source.ref}]
+                          </span>
+                          <div className="min-w-0">
+                            <Link
+                              href={source.href}
+                              className="font-serif text-[1.125rem] leading-6 bs-link block"
+                            >
+                              {source.title}
+                            </Link>
+                            <p className="bs-label mt-2" style={{ fontSize: "0.75rem" }}>
+                              {source.date}
+                              {source.publisher ? ` · ${source.publisher}` : ""}
+                            </p>
+                            {source.externalUrl && (
+                              <a
+                                href={source.externalUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="mt-2 inline-flex items-center gap-1 text-xs bs-link text-[var(--color-fg-muted)]"
+                              >
+                                Original source <ExternalLink className="h-3 w-3" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    mutation.reset();
+                    setCompleted(undefined);
+                    cache.removeQueries({ queryKey: ["desk-completed-brief", accountId] });
+                    setQuestion("");
+                    window.setTimeout(() => inputRef.current?.focus(), 0);
+                  }}
+                  className="bs-btn bs-btn-outline w-full mt-7"
+                >
+                  Ask another question
+                </button>
+              </aside>
+            </div>
+          </article>
+        )}
       </div>
     </div>
   );
@@ -580,7 +711,10 @@ function ThinkingState({ question }: { question: string }) {
 
       <div className="mt-6 border border-[var(--color-border)] border-l-2 border-l-[var(--color-accent-text)] bg-[var(--color-bg-elevated)] p-5 sm:p-7">
         <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center border border-[var(--color-accent-text)] text-[var(--color-accent-text)]" aria-hidden="true">
+          <div
+            className="flex h-12 w-12 shrink-0 items-center justify-center border border-[var(--color-accent-text)] text-[var(--color-accent-text)]"
+            aria-hidden="true"
+          >
             <LoaderCircle className="h-7 w-7 motion-safe:animate-spin" strokeWidth={1.5} />
           </div>
           <div className="min-w-0" role="status" aria-live="polite" aria-atomic="true">

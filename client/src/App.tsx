@@ -5,6 +5,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Suspense, useEffect } from "react";
 import { Route, Switch, useLocation, useSearch } from "wouter";
+import { BookmarkProvider } from "./lib/useBookmarks";
 import { AppLayout } from "./components/AppLayout";
 import { BreakingSignalToast } from "./components/BreakingSignalToast";
 import { CommandPalette } from "./components/CommandPalette";
@@ -66,10 +67,14 @@ function KeyboardShortcuts() {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (
+        e.target instanceof HTMLElement &&
+        (e.target.isContentEditable || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName))
+      )
+        return;
       if (e.key === "/") {
         e.preventDefault();
-        navigate("/ask");
+        window.dispatchEvent(new Event("thedesk:open-search"));
       }
     };
     window.addEventListener("keydown", handler);
@@ -89,11 +94,24 @@ function SearchRedirect() {
 }
 
 function PageFallback() {
+  const [path] = useLocation();
+  const reading = path.startsWith("/story/") || path.startsWith("/editions/");
+  const input = path === "/ask" || path === "/archive" || path === "/markets";
   return (
-    <div className="space-y-3 max-w-3xl">
-      <Skeleton className="h-5 w-1/3" />
-      <Skeleton className="h-3 w-2/3" />
-      <Skeleton className="h-3 w-1/2" />
+    <div
+      className="space-y-6 px-5 lg:px-14 py-9 min-h-[65vh]"
+      role="status"
+      aria-label="Loading page"
+      aria-busy="true"
+    >
+      <Skeleton className="h-4 w-32" />
+      <Skeleton className="h-16 w-full max-w-2xl" />
+      <Skeleton className="h-8 w-full max-w-xl" />
+      {input && <Skeleton className="h-16 w-full max-w-3xl" />}
+      <div className={reading ? "space-y-5 max-w-3xl pt-6" : "grid md:grid-cols-2 gap-6 pt-6"}>
+        <Skeleton className={reading ? "h-24" : "h-48"} />
+        <Skeleton className={reading ? "h-32" : "h-48"} />
+      </div>
     </div>
   );
 }
@@ -202,13 +220,15 @@ export default function App() {
       <ThemeProvider>
         <UserPrefsProvider>
           <PersonaProvider>
-            <Toaster />
-            <AppLayout>
-              <KeyboardShortcuts />
-              <Routes />
-            </AppLayout>
-            <CommandPalette />
-            <BreakingSignalToast />
+            <BookmarkProvider>
+              <Toaster />
+              <AppLayout>
+                <KeyboardShortcuts />
+                <Routes />
+              </AppLayout>
+              <CommandPalette />
+              <BreakingSignalToast />
+            </BookmarkProvider>
           </PersonaProvider>
         </UserPrefsProvider>
       </ThemeProvider>

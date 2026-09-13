@@ -18,10 +18,15 @@ import { cleanHeadline } from "@/lib/headline";
 import { dedash } from "@/lib/dedash";
 import { CashRatePanel } from "../MetricBlocks";
 import { ReaderAngleRows } from "../ReaderAngles";
-import { StoryImage } from "../StoryImage";
 import { GUTTER_X } from "../tokens";
 
-export function Lead({ item }: { item: DailyFeedItem }) {
+export function Lead({
+  item,
+  supporting = [],
+}: {
+  item: DailyFeedItem;
+  supporting?: DailyFeedItem[];
+}) {
   const dek = cardDek(item);
 
   const corroboration =
@@ -31,7 +36,7 @@ export function Lead({ item }: { item: DailyFeedItem }) {
 
   return (
     <div className={cn(GUTTER_X, "grid lg:grid-cols-[minmax(0,1.68fr)_1px_minmax(0,1fr)]")}>
-      <div className="pt-8 lg:pr-11 min-w-0">
+      <div className="pt-5 lg:pr-11 min-w-0">
         <p className="bs-label-accent" style={{ letterSpacing: "0.24em" }}>
           The lead · {item.category}
           {item.source ? ` · ${item.source}` : ""}
@@ -42,7 +47,7 @@ export function Lead({ item }: { item: DailyFeedItem }) {
           <h2
             className="font-serif font-bold"
             style={{
-              fontSize: "clamp(34px, 4.4vw, 62px)",
+              fontSize: "clamp(2.125rem, 4.4vw, 3.875rem)",
               lineHeight: 0.97,
               letterSpacing: "-0.03em",
               textWrap: "pretty",
@@ -51,13 +56,15 @@ export function Lead({ item }: { item: DailyFeedItem }) {
             {cleanHeadline(item.title)}
           </h2>
         </Link>
-        <div className="mt-3"><ThreadLink parentId={item.threadParentId} parentTitle={item.threadParentTitle} /></div>
+        <div className="mt-3">
+          <ThreadLink parentId={item.threadParentId} parentTitle={item.threadParentTitle} />
+        </div>
 
         {dek && (
           <p
             className="font-serif mt-5"
             style={{
-              fontSize: "clamp(18px, 1.7vw, 23px)",
+              fontSize: "clamp(1.125rem, 1.7vw, 1.4375rem)",
               lineHeight: 1.42,
               color: "var(--color-fg-muted)",
               textWrap: "pretty",
@@ -67,14 +74,6 @@ export function Lead({ item }: { item: DailyFeedItem }) {
           </p>
         )}
 
-        <StoryImage
-          seed={item.id}
-          category={item.category}
-          alt=""
-          className="mt-6"
-          aspect="16 / 9"
-        />
-
         {(item.whyItMatters || item.counterpoint) && (
           <div className="rule-hair mt-7 pt-6 flex flex-col sm:flex-row gap-6 sm:gap-7">
             {item.whyItMatters && dek?.from !== "whyItMatters" && (
@@ -82,7 +81,7 @@ export function Lead({ item }: { item: DailyFeedItem }) {
                 <p className="bs-label">Why it matters</p>
                 <p
                   className="mt-2"
-                  style={{ fontSize: 17, lineHeight: 1.6, color: "var(--color-fg-body)" }}
+                  style={{ fontSize: "1.0625rem", lineHeight: 1.6, color: "var(--color-fg-body)" }}
                 >
                   {dedash(item.whyItMatters)}
                 </p>
@@ -100,7 +99,7 @@ export function Lead({ item }: { item: DailyFeedItem }) {
                 <p className="bs-label">The counterpoint</p>
                 <p
                   className="mt-2"
-                  style={{ fontSize: 17, lineHeight: 1.6, color: "var(--color-fg-body)" }}
+                  style={{ fontSize: "1.0625rem", lineHeight: 1.6, color: "var(--color-fg-body)" }}
                 >
                   {dedash(item.counterpoint)}
                 </p>
@@ -118,7 +117,27 @@ export function Lead({ item }: { item: DailyFeedItem }) {
       />
 
       <div className="pt-8 lg:pl-11 min-w-0">
-        <ReaderAngleRows raw={item.partnerTag} />
+        {supporting.length > 0 && (
+          <section aria-label="More this morning">
+            <h2 className="bs-label-accent">More this morning</h2>
+            {supporting.map((story) => (
+              <Link
+                href={`/story/${story.id}`}
+                key={story.id}
+                className="block rule-hair py-4 mt-3 bs-link"
+              >
+                <p className="bs-label">{story.category}</p>
+                <h3 className="font-serif text-xl mt-2 leading-snug">
+                  {cleanHeadline(story.title)}
+                </h3>
+              </Link>
+            ))}
+          </section>
+        )}
+        <details className="mt-5">
+          <summary className="bs-label min-h-11 py-3">Reading angles</summary>
+          <ReaderAngleRows raw={item.partnerTag} />
+        </details>
         <div className="rule-major mt-8 pt-6">
           <CashRatePanel />
         </div>

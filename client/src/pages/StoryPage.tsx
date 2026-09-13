@@ -26,7 +26,14 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { CashRatePanel, MetricRows } from "@/components/broadsheet/MetricBlocks";
 import { ReaderAngleColumns } from "@/components/broadsheet/ReaderAngles";
 import { SayThis } from "@/components/broadsheet/SayThis";
-import { StoryImage } from "@/components/broadsheet/StoryImage";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/Dialog";
+import { toast } from "sonner";
 import { SubscribeBand } from "@/components/broadsheet/SubscribeBand";
 import { GUTTER_X } from "@/components/broadsheet/tokens";
 import { useCategoryColour } from "@/lib/category";
@@ -75,7 +82,7 @@ export default function StoryPage() {
     return (
       <div className={cn(GUTTER_X, "py-16")}>
         <p className="bs-label">Story</p>
-        <h1 className="font-serif font-bold mt-3" style={{ fontSize: 40 }}>
+        <h1 className="font-serif font-bold mt-3" style={{ fontSize: "2.5rem" }}>
           Invalid story id
         </h1>
         <Link href="/" className="bs-label bs-link mt-5 inline-block">
@@ -86,11 +93,14 @@ export default function StoryPage() {
   }
 
   if (itemQuery.isLoading) return <StorySkeleton />;
-  if (itemQuery.isError && !story) return <ConnectionNotice retry={() => void itemQuery.refetch()} retrying={itemQuery.isFetching} />;
+  if (itemQuery.isError && !story)
+    return (
+      <ConnectionNotice retry={() => void itemQuery.refetch()} retrying={itemQuery.isFetching} />
+    );
   if (!story) {
     return (
       <div className={cn(GUTTER_X, "py-16")}>
-        <h1 className="font-serif font-bold" style={{ fontSize: 40 }}>
+        <h1 className="font-serif font-bold" style={{ fontSize: "2.5rem" }}>
           Story not found.
         </h1>
         <Link href="/" className="bs-label bs-link mt-5 inline-block">
@@ -132,7 +142,7 @@ export default function StoryPage() {
           <h1
             className="font-serif font-bold mt-4 max-w-[26ch]"
             style={{
-              fontSize: "clamp(34px, 4.6vw, 60px)",
+              fontSize: "clamp(2.125rem, 4.6vw, 3.75rem)",
               lineHeight: 0.98,
               letterSpacing: "-0.03em",
               textWrap: "pretty",
@@ -145,7 +155,7 @@ export default function StoryPage() {
             <p
               className="font-serif mt-5 max-w-[56ch]"
               style={{
-                fontSize: "clamp(18px, 1.8vw, 24px)",
+                fontSize: "clamp(1.125rem, 1.8vw, 1.5rem)",
                 lineHeight: 1.42,
                 color: "var(--color-fg-muted)",
                 textWrap: "pretty",
@@ -155,7 +165,9 @@ export default function StoryPage() {
             </p>
           )}
 
-          <div className="mt-4"><ThreadLink parentId={story.threadParentId} parentTitle={story.threadParentTitle} /></div>
+          <div className="mt-4">
+            <ThreadLink parentId={story.threadParentId} parentTitle={story.threadParentTitle} />
+          </div>
 
           {/* Byline row, bounded by hairlines above and below. */}
           <div className="rule-hair rule-hair-b mt-7 py-4 flex items-center gap-4 flex-wrap">
@@ -169,9 +181,9 @@ export default function StoryPage() {
               decoding="async"
             />
             <div className="min-w-0">
-              <p style={{ fontSize: 14.5 }}>
+              <p style={{ fontSize: "0.90625rem" }}>
                 <span className="font-semibold">Ruben Laubscher</span>
-                at InvestorKit
+                {" · The Desk"}
               </p>
               <p className="bs-label mt-1" style={{ letterSpacing: "0.16em" }}>
                 Briefing {story.feedDate} · {readingMinutes(story)} min read
@@ -191,30 +203,81 @@ export default function StoryPage() {
               >
                 {saved ? "Saved" : "Save"}
               </button>
-              <Link href="/ask" className="bs-btn bs-btn-solid">
-                Ask The Desk
-              </Link>
-              <StoryShareButton id={story.id} title={cleanHeadline(story.title)} />
-              {hasDeskTake && (
-                <DeskTakeShareButton id={story.id} title={cleanHeadline(story.title)} />
-              )}
-              <button
-                type="button"
-                onClick={() => setLinkedInOpen(true)}
-                className="bs-btn bs-btn-outline"
-              >
-                LinkedIn
-              </button>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <button className="bs-btn bs-btn-outline">Share</button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md w-[calc(100%_-_2rem)]">
+                  <DialogTitle className="font-serif text-2xl">Share this story</DialogTitle>
+                  <DialogDescription>{cleanHeadline(story.title)}</DialogDescription>
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      className="bs-btn bs-btn-solid"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(
+                            `${window.location.origin}/story/${story.id}`
+                          );
+                          toast.success("Story link copied");
+                        } catch {
+                          toast.error("Could not copy. Copy the address from your browser.");
+                        }
+                      }}
+                    >
+                      Copy link
+                    </button>
+                    {typeof navigator.share === "function" && (
+                      <button
+                        className="bs-btn bs-btn-outline"
+                        onClick={() => {
+                          void navigator
+                            .share({
+                              title: cleanHeadline(story.title),
+                              url: `${window.location.origin}/story/${story.id}`,
+                            })
+                            .catch((error: Error) => {
+                              if (error.name !== "AbortError")
+                                toast.error("Sharing is unavailable. Try Copy link.");
+                            });
+                        }}
+                      >
+                        Share to…
+                      </button>
+                    )}
+                    <StoryShareButton id={story.id} title={cleanHeadline(story.title)} />
+                    {hasDeskTake && (
+                      <DeskTakeShareButton id={story.id} title={cleanHeadline(story.title)} />
+                    )}
+                    <button className="bs-btn bs-btn-outline" onClick={() => setLinkedInOpen(true)}>
+                      Prepare LinkedIn draft
+                    </button>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
 
-          <StoryImage
-            seed={story.id}
-            category={story.category}
-            alt=""
-            aspect="16 / 9"
-            className="mt-7"
-          />
+          <div className="mt-5 flex flex-wrap items-center gap-4 text-sm">
+            {story.sourceUrl && /^https?:\/\//i.test(story.sourceUrl) ? (
+              <a
+                href={story.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bs-link min-h-11 inline-flex items-center underline"
+              >
+                Read original reporting{story.source ? ` at ${story.source}` : ""} ↗
+              </a>
+            ) : (
+              <p className="text-[var(--color-fg-muted)]">Original reporting link unavailable.</p>
+            )}
+            <Link
+              href={`/ask?story=${story.id}&q=${encodeURIComponent(`What does this story mean for property? ${cleanHeadline(story.title)}`.slice(0, 240))}`}
+              className="bs-btn bs-btn-outline"
+            >
+              Ask about this story
+            </Link>
+          </div>
+          <p className="bs-label mt-5">The Desk summary and interpretation</p>
 
           {/* Body prose with the existing `.has-dropcap` treatment.
               A feed item has no long-form body field — the publisher
@@ -224,7 +287,7 @@ export default function StoryPage() {
               here as well would print the same paragraph twice. */}
           {story.rubensNote?.trim() && (
             <div className="has-dropcap mt-8 max-w-[66ch]">
-              <p style={{ fontSize: 18, lineHeight: 1.72, color: "var(--color-fg-body)" }}>
+              <p style={{ fontSize: "1.125rem", lineHeight: 1.72, color: "var(--color-fg-body)" }}>
                 {dedash(story.rubensNote)}
               </p>
             </div>
@@ -237,7 +300,11 @@ export default function StoryPage() {
                   <p className="bs-label">Why it matters</p>
                   <p
                     className="mt-2"
-                    style={{ fontSize: 16.5, lineHeight: 1.6, color: "var(--color-fg-body)" }}
+                    style={{
+                      fontSize: "1.03125rem",
+                      lineHeight: 1.6,
+                      color: "var(--color-fg-body)",
+                    }}
                   >
                     {dedash(story.whyItMatters)}
                   </p>
@@ -255,7 +322,11 @@ export default function StoryPage() {
                   <p className="bs-label">The counterpoint</p>
                   <p
                     className="mt-2"
-                    style={{ fontSize: 16.5, lineHeight: 1.6, color: "var(--color-fg-body)" }}
+                    style={{
+                      fontSize: "1.03125rem",
+                      lineHeight: 1.6,
+                      color: "var(--color-fg-body)",
+                    }}
                   >
                     {dedash(story.counterpoint)}
                   </p>
@@ -265,20 +336,7 @@ export default function StoryPage() {
           )}
 
           {story.sayThis && (
-            <SayThis
-              sayThis={story.sayThis}
-              size={33}
-              className="mt-8 max-w-[64ch]"
-              actions={
-                <button
-                  type="button"
-                  onClick={() => setLinkedInOpen(true)}
-                  className="bs-btn bs-btn-outline"
-                >
-                  Post to LinkedIn
-                </button>
-              }
-            />
+            <SayThis sayThis={story.sayThis} size={33} className="mt-8 max-w-[64ch]" />
           )}
 
           <ReaderAngleColumns raw={story.partnerTag} className="mt-9" />
@@ -331,7 +389,7 @@ export default function StoryPage() {
                     <span
                       className="font-mono uppercase"
                       style={{
-                        fontSize: 9.5,
+                        fontSize: "0.75rem",
                         letterSpacing: "0.16em",
                         color: colourFor(s.category),
                       }}
@@ -341,7 +399,7 @@ export default function StoryPage() {
                     </span>
                     <p
                       className="font-serif mt-1.5"
-                      style={{ fontSize: 18, lineHeight: 1.28, letterSpacing: "-0.02em" }}
+                      style={{ fontSize: "1.125rem", lineHeight: 1.28, letterSpacing: "-0.02em" }}
                     >
                       {cleanHeadline(s.title)}
                     </p>
@@ -390,7 +448,7 @@ function StoryStep({
       <p className="bs-label">{isNext ? "Next →" : "← Previous"}</p>
       <p
         className="font-serif mt-2"
-        style={{ fontSize: 20, lineHeight: 1.28, letterSpacing: "-0.02em" }}
+        style={{ fontSize: "1.25rem", lineHeight: 1.28, letterSpacing: "-0.02em" }}
       >
         {cleanHeadline(item.title)}
       </p>

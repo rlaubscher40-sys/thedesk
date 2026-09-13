@@ -1,3 +1,4 @@
+import { WEB_VITALS_DDL } from "./webVitals";
 import { EDITORIAL_DDL } from "./editorial";
 import { FEED_EVIDENCE_DDL } from "./feedEvidenceSchema";
 import { COVERAGE_DDL } from "./editorialCoverage";
@@ -32,6 +33,7 @@ import type { MySql2Database } from "drizzle-orm/mysql2";
 
 export const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
   SIGNAL_SNAPSHOT_DDL,
+  WEB_VITALS_DDL,
   ...SECURITY_DDL,
   ...EDITORIAL_DDL,
   ...FEED_EVIDENCE_DDL,

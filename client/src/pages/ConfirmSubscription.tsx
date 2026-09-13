@@ -48,7 +48,7 @@ export default function ConfirmSubscription() {
   return (
     <div className="max-w-md mx-auto py-16">
       <div className="panel rounded-sm p-8 sm:p-10 space-y-5">
-        <p className="overline-amber" style={{ letterSpacing: "0.22em", fontSize: "10px" }}>
+        <p className="overline-amber" style={{ letterSpacing: "0.22em", fontSize: "0.75rem" }}>
           The Desk · Subscription
         </p>
 
@@ -86,7 +86,7 @@ function ReadyState({ onConfirm, loading }: { onConfirm: () => void; loading: bo
       <button
         onClick={onConfirm}
         disabled={loading}
-        className="inline-flex items-center gap-1.5 rounded px-3.5 py-2 text-[10px] font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.98] mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="inline-flex items-center gap-1.5 rounded px-3.5 py-2 text-[0.75rem] font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.98] mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
         style={{
           background: "var(--grad-cta-amber)",
           color: "var(--color-on-amber)",
@@ -127,11 +127,11 @@ function ConfirmedState({ email }: { email: string }) {
       </div>
       <p className="text-sm text-[var(--color-fg-muted)] leading-relaxed">
         Confirmed <span className="font-mono text-[var(--color-fg)]">{email}</span>. The daily brief
-        lands at 7am AEST every weekday, and the weekly edition arrives Sunday 7am.
+        lands at 7am Sydney time every weekday, and the weekly edition arrives Sunday 7am.
       </p>
       <a
         href="/"
-        className="inline-flex items-center gap-1.5 rounded px-3.5 py-2 text-[10px] font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.98] mt-2"
+        className="inline-flex items-center gap-1.5 rounded px-3.5 py-2 text-[0.75rem] font-mono uppercase tracking-[0.18em] transition-all active:scale-[0.98] mt-2"
         style={{
           background: "var(--grad-cta-amber)",
           color: "var(--color-on-amber)",

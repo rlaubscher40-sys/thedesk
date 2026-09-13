@@ -21,10 +21,20 @@ export default function Subscribe() {
         source="subscribe-page"
         kicker="The daily brief · free"
         headline="Get the next briefing."
-        blurb="Enter your email, then confirm using the link in your inbox. The national briefing arrives at 7am AEST on weekdays, with the weekly edition on Sunday. Unsubscribe any time."
+        blurb="Enter your email, then confirm using the link in your inbox. The national briefing arrives at 7am Sydney time on weekdays, with the weekly edition on Sunday. Unsubscribe any time."
         showHeadshot={false}
         hideAfterSignup={false}
       />
+      <section className={`${GUTTER_X} mt-8 max-w-3xl`} aria-label="Briefing sample">
+        <h2 className="font-serif text-2xl">A briefing you can use</h2>
+        <p className="mt-3 leading-7">
+          Each story pairs the headline with why it matters, a counterpoint where available and a
+          link to the original reporting.
+        </p>
+        <Link href="/" className="bs-btn bs-btn-outline mt-4 inline-flex items-center">
+          Read today’s briefing as a sample
+        </Link>
+      </section>
       <section className={`${GUTTER_X} mt-8 max-w-3xl`} aria-label="About your subscription">
         <p className="text-sm leading-7 text-[var(--color-fg-muted)]">
           This is the national email briefing. It does not create city-specific alerts or a paid

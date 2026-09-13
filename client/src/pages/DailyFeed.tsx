@@ -213,36 +213,15 @@ export default function DailyFeed() {
       </UtilityBar>
 
       <Masthead dateLabel={dateLabel} shapeLine={shapeLine} />
-      {isToday && new URLSearchParams(search).get("utm_source") === "instagram" ? (
-        <div className={GUTTER_X}>
-          <SocialStart compact />
-        </div>
-      ) : (
-        <div className={GUTTER_X}>
-          <a href="/social" className="bs-link text-sm inline-block py-3">
-            Seen a Reel? Open the sources →
-          </a>
-        </div>
-      )}
-
       <SectionErrorBoundary section="Lane nav">
         <LaneNav channel={channel} onChannelChange={setChannel} />
         {enriched && <AngledForChips />}
       </SectionErrorBoundary>
 
-      {isToday && (
-        <>
-          <SectionErrorBoundary section="Ask The Desk">
-            <AskDeskBand />
-          </SectionErrorBoundary>
-          <SectionErrorBoundary section="Moving now">
-            <MorningSignals />
-          </SectionErrorBoundary>
-        </>
-      )}
-
       {feedQuery.isLoading && !isDemo && <FeedSkeleton />}
-      {feedQuery.isError && !isDemo && <ConnectionNotice retry={() => void feedQuery.refetch()} retrying={feedQuery.isFetching} />}
+      {feedQuery.isError && !isDemo && (
+        <ConnectionNotice retry={() => void feedQuery.refetch()} retrying={feedQuery.isFetching} />
+      )}
 
       {!hasLiveData && !isDemo && feedQuery.isSuccess && <EmptyFeedState />}
 
@@ -254,10 +233,6 @@ export default function DailyFeed() {
 
       {hasLiveData && feedItems.length > 0 && (
         <>
-          <SectionErrorBoundary section="Index strip">
-            <IndexStrip items={feedItems} />
-          </SectionErrorBoundary>
-
           {lead && (
             <SectionErrorBoundary section="Lead">
               {leadIsFallback && (
@@ -265,7 +240,10 @@ export default function DailyFeed() {
                   <LeadEnrichmentWarning item={lead} />
                 </div>
               )}
-              <Lead item={lead} />
+              <Lead
+                item={lead}
+                supporting={feedItems.filter((item) => item.id !== lead.id).slice(0, 3)}
+              />
               {lead.sayThis && (
                 <div className={cn(GUTTER_X, "rule-hair mt-8 pt-6")}>
                   <SayThis
@@ -288,12 +266,16 @@ export default function DailyFeed() {
             </SectionErrorBoundary>
           )}
 
-          <SectionErrorBoundary section="Metrics">
-            <WhereThingsStand />
-          </SectionErrorBoundary>
-
           <SectionErrorBoundary section="More from today">
             <StoryColumns items={columns} />
+          </SectionErrorBoundary>
+
+          <SectionErrorBoundary section="Index strip">
+            <IndexStrip items={feedItems} />
+          </SectionErrorBoundary>
+
+          <SectionErrorBoundary section="Metrics">
+            <WhereThingsStand />
           </SectionErrorBoundary>
 
           <SectionErrorBoundary section="Wire">
@@ -307,6 +289,29 @@ export default function DailyFeed() {
         <SectionErrorBoundary section="Recent reporting">
           <RecentReporting channel={channel === "PROPERTY" ? "PROPERTY" : "AU"} />
         </SectionErrorBoundary>
+      )}
+
+      {isToday && (
+        <>
+          <SectionErrorBoundary section="Ask The Desk">
+            <AskDeskBand />
+          </SectionErrorBoundary>
+          <SectionErrorBoundary section="Moving now">
+            <MorningSignals />
+          </SectionErrorBoundary>
+        </>
+      )}
+
+      {isToday && new URLSearchParams(search).get("utm_source") === "instagram" ? (
+        <div className={GUTTER_X}>
+          <SocialStart compact />
+        </div>
+      ) : (
+        <div className={GUTTER_X}>
+          <a href="/social" className="bs-link text-sm inline-block py-3">
+            Seen a Reel? Open the sources →
+          </a>
+        </div>
       )}
 
       {/* Demo mode with no DB: the curated seed, rendered through the same
@@ -357,7 +362,7 @@ function DatePagerInline({
         onClick={onPrev}
         disabled={!canGoPrev}
         aria-label="Previous day with stories"
-        className="bs-link p-1 disabled:opacity-30"
+        className="bs-link min-h-11 min-w-11 inline-flex items-center justify-center disabled:opacity-30"
       >
         <ChevronLeft className="h-3.5 w-3.5" />
       </button>
@@ -370,7 +375,7 @@ function DatePagerInline({
         onClick={onNext}
         disabled={!canGoNext}
         aria-label="Next day with stories"
-        className="bs-link p-1 disabled:opacity-30"
+        className="bs-link min-h-11 min-w-11 inline-flex items-center justify-center disabled:opacity-30"
       >
         <ChevronRight className="h-3.5 w-3.5" />
       </button>
@@ -475,13 +480,13 @@ function EmptyFeedState() {
       <p className="bs-label-accent" style={{ letterSpacing: "0.24em" }}>
         Today&apos;s feed
       </p>
-      <h2 className="font-serif font-bold mt-3" style={{ fontSize: 40, lineHeight: 1.04 }}>
+      <h2 className="font-serif font-bold mt-3" style={{ fontSize: "2.5rem", lineHeight: 1.04 }}>
         The desk is quiet.
       </h2>
       <p className="mx-auto mt-4 max-w-[58ch] text-[var(--color-fg-muted)]">
         {isAdmin
           ? "The daily-feed workflow hasn't run yet today, or it was just wiped. Re-fire from GitHub Actions to repopulate."
-          : "Today's brief hasn't landed yet. New stories arrive at 7am AEST on weekdays."}
+          : "Today's brief hasn't landed yet. New stories arrive at 7am Sydney time on weekdays."}
       </p>
       {isAdmin && (
         <p className="bs-label mt-5" style={{ letterSpacing: "0.18em" }}>
@@ -508,7 +513,7 @@ function SeedFallback() {
             </p>
             <p
               className="font-serif mt-1.5"
-              style={{ fontSize: 22, lineHeight: 1.24, letterSpacing: "-0.025em" }}
+              style={{ fontSize: "1.375rem", lineHeight: 1.24, letterSpacing: "-0.025em" }}
             >
               {s.headline}
             </p>

@@ -12,18 +12,17 @@ export function AuctionClearance({
   return (
     <section className="rule-major mt-8 py-6" aria-busy={loading}>
       <p className="bs-label-accent">Auction results</p>
-      <h2 className="bs-headline mt-3 text-2xl">Clearance across Australia</h2>
+      <h2 className="bs-headline mt-3 text-2xl">Auction coverage</h2>
       <aside
         className="mt-4 max-w-3xl border border-[var(--color-border)] p-4 sm:p-5"
         aria-label="Public auction results"
       >
         <h3 className="font-semibold">Read Domain’s weekly auction results</h3>
         <p className="mt-2 text-sm text-[var(--color-fg-muted)]">
-          Free to view on Domain for Sydney, Melbourne, Brisbane, Adelaide and
-          Canberra, with reported auction counts and six months of history.
-          Coverage excludes Perth, Hobart and Darwin. These are city results;
-          they do not cover every state or establish an Australian clearance
-          rate.
+          Free to view on Domain for Sydney, Melbourne, Brisbane, Adelaide and Canberra, with
+          reported auction counts and six months of history. Coverage excludes Perth, Hobart and
+          Darwin. These are city results; they do not cover every state or establish an Australian
+          clearance rate.
         </p>
         <a
           className="mt-3 inline-flex min-h-11 items-center underline underline-offset-4"
@@ -38,90 +37,85 @@ export function AuctionClearance({
           <span className="sr-only"> (opens in a new tab)</span>
         </a>
       </aside>
-      <p className="mt-3 max-w-3xl text-sm text-[var(--color-fg-muted)]">
-        New auction collection is paused while access to an approved replacement
-        source is arranged. Any retained figures below are historical
-        observations. An Australian result requires compatible counts for the
-        same week from all eight states and territories. Missing states are
-        never treated as zero, and capital-city results cannot stand in for a
-        whole state.
-      </p>
-      {loading ? (
-        <p className="mt-4" role="status">
-          Loading auction results…
+      <details className="mt-4">
+        <summary className="min-h-11 cursor-pointer py-3">
+          Coverage limits and retained regional results
+        </summary>
+        <p className="mt-3 max-w-3xl text-sm text-[var(--color-fg-muted)]">
+          New auction collection is paused while access to an approved replacement source is
+          arranged. Any retained figures below are historical observations. An Australian result
+          requires compatible counts for the same week from all eight states and territories.
+          Missing states are never treated as zero, and capital-city results cannot stand in for a
+          whole state.
         </p>
-      ) : (
-        <div className="mt-5 grid gap-x-8 sm:grid-cols-2 lg:grid-cols-3">
-          {regions.map((region) => {
-            const key =
-              region === "Australia"
-                ? "auction_clearance"
-                : `${region.toLowerCase()}_auction_clearance`;
-            const row = metrics?.find(
-              (metric) =>
-                metric.metricKey === key && metric.source === AUCTION_SOURCE,
-            );
-            const date = row ? new Date(row.asOf) : null;
-            const stale =
-              date &&
-              (Date.now() - date.getTime() > 14 * 86_400_000 ||
-                date.getTime() > Date.now());
-            const counts = row?.context?.match(
-              /(\d+) sold \/ (\d+) reported; (\d+) scheduled/,
-            );
-            return (
-              <article
-                key={region}
-                className="border-b border-[var(--color-border)] py-4"
-              >
-                <div className="flex items-baseline justify-between gap-3">
-                  <h3 className="font-semibold">{region}</h3>
-                  <p className="text-xl tabular-nums">
-                    {row ? `${row.value}${row.unit ?? ""}` : "Unavailable"}
-                  </p>
-                </div>
-                {date && (
-                  <p className="mt-1 text-sm text-[var(--color-fg-muted)]">
-                    Week ending{" "}
-                    {date.toLocaleDateString("en-AU", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                      timeZone: "UTC",
-                    })}
-                    {stale
-                      ? " · needs update"
-                      : " · retained preliminary result"}
-                  </p>
-                )}
-                {counts && (
-                  <p className="mt-1 text-sm">
-                    {counts[1]} sold / {counts[2]} reported · {counts[3]}{" "}
-                    scheduled{Number(counts[2]) < 10 ? " · small sample" : ""}
-                  </p>
-                )}
-                {!row && (
-                  <p className="mt-1 text-sm text-[var(--color-fg-muted)]">
-                    {region === "Australia"
-                      ? "National coverage unavailable while replacement source access is pending."
-                      : "No verified statewide results available. Source access is pending."}
-                  </p>
-                )}
-                {row?.sourceUrl && (
-                  <a
-                    className="mt-2 inline-block text-sm underline underline-offset-4"
-                    href={row.sourceUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    View source
-                  </a>
-                )}
-              </article>
-            );
-          })}
-        </div>
-      )}
+        {loading ? (
+          <p className="mt-4" role="status">
+            Loading auction results…
+          </p>
+        ) : (
+          <div className="mt-5 grid gap-x-8 sm:grid-cols-2 lg:grid-cols-3">
+            {regions.map((region) => {
+              const key =
+                region === "Australia"
+                  ? "auction_clearance"
+                  : `${region.toLowerCase()}_auction_clearance`;
+              const row = metrics?.find(
+                (metric) => metric.metricKey === key && metric.source === AUCTION_SOURCE
+              );
+              const date = row ? new Date(row.asOf) : null;
+              const stale =
+                date &&
+                (Date.now() - date.getTime() > 14 * 86_400_000 || date.getTime() > Date.now());
+              const counts = row?.context?.match(/(\d+) sold \/ (\d+) reported; (\d+) scheduled/);
+              return (
+                <article key={region} className="border-b border-[var(--color-border)] py-4">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <h3 className="font-semibold">{region}</h3>
+                    <p className="text-xl tabular-nums">
+                      {row ? `${row.value}${row.unit ?? ""}` : "Unavailable"}
+                    </p>
+                  </div>
+                  {date && (
+                    <p className="mt-1 text-sm text-[var(--color-fg-muted)]">
+                      Week ending{" "}
+                      {date.toLocaleDateString("en-AU", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                        timeZone: "UTC",
+                      })}
+                      {stale ? " · needs update" : " · retained preliminary result"}
+                    </p>
+                  )}
+                  {counts && (
+                    <p className="mt-1 text-sm">
+                      {counts[1]} sold / {counts[2]} reported · {counts[3]} scheduled
+                      {Number(counts[2]) < 10 ? " · small sample" : ""}
+                    </p>
+                  )}
+                  {!row && (
+                    <p className="mt-1 text-sm text-[var(--color-fg-muted)]">
+                      {region === "Australia"
+                        ? "National coverage unavailable while replacement source access is pending."
+                        : "No verified statewide results available. Source access is pending."}
+                    </p>
+                  )}
+                  {row?.sourceUrl && (
+                    <a
+                      className="mt-2 inline-block text-sm underline underline-offset-4"
+                      href={row.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      View source
+                    </a>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </details>
     </section>
   );
 }

@@ -14,28 +14,17 @@
  */
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import {
-  Bookmark,
-  ChevronUp,
-  LogIn,
-  MapPin,
-  Newspaper,
-  Radio,
-  Search,
-  Settings,
-} from "lucide-react";
+import { Bookmark, ChevronUp, MapPin, Newspaper, Radio, Search } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { isLiteMode } from "@/lib/liteMode";
-import { getLoginUrl } from "@/lib/auth";
 import { useBookmarks } from "@/lib/useBookmarks";
 import { useTheme } from "@/lib/theme";
-import { useAuth } from "@/lib/useAuth";
 import { AnimatedBackground } from "./AnimatedBackground";
 import { DemoModeBanner } from "./DemoModeBanner";
 import { IosSafariNudge } from "./IosSafariNudge";
 import { FeedbackButton } from "./FeedbackButton";
 import { Footer } from "./desk/Footer";
-import { MobilePageNav, SlimMasthead } from "./broadsheet/Masthead";
+import { SlimMasthead } from "./broadsheet/Masthead";
 import { UtilityBar } from "./broadsheet/UtilityBar";
 
 type NavItem = {
@@ -50,9 +39,9 @@ type NavItem = {
 // stay in the masthead nav rather than competing for one of five thumb targets.
 const MOBILE_TABS: NavItem[] = [
   { path: "/", label: "Today", icon: Newspaper },
-  { path: "/ask", label: "Ask", icon: Search },
   { path: "/markets", label: "Markets", icon: MapPin },
-  { path: "/signals", label: "Signals", icon: Radio },
+  { path: "/signals", label: "Data", icon: Radio },
+  { path: "/ask", label: "Ask", icon: Search },
   { path: "/queue", label: "Saved", icon: Bookmark },
 ];
 
@@ -80,6 +69,7 @@ function ownsGutter(location: string): boolean {
 }
 
 function isActive(location: string, path: string): boolean {
+  if (path === "/signals" && location === "/trends") return true;
   if (path === "/") return location === "/";
   return location === path || location.startsWith(`${path}/`);
 }
@@ -119,6 +109,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     const target = scrollPositions.current.get(location) ?? 0;
     if (target === 0) {
       main.scrollTop = 0;
+      main.focus({ preventScroll: true });
       return;
     }
     // Returning to a route we'd scrolled: nudge scrollTop to the saved offset
@@ -170,9 +161,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
       >
         {!ownsChrome && (
           <>
-            <UtilityBar filedLine="Published weekdays 7am AEST · Sydney" />
+            <UtilityBar filedLine="Weekdays 7am Sydney time" />
             <SlimMasthead />
-            <MobilePageNav />
           </>
         )}
 
@@ -189,7 +179,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       {showScrollTop && (
         <button
           aria-label="Scroll to top"
-          className="fixed z-50 lg:bottom-20 lg:right-6 bottom-[120px] right-4 h-10 w-10 rounded-full bg-[var(--color-bg-elevated)]/80 border border-[var(--color-border)] text-[var(--color-fg-muted)] backdrop-blur flex items-center justify-center hover:text-[var(--color-fg)] hover:border-[var(--color-border-strong)] transition-colors"
+          className="fixed z-50 bottom-[calc(var(--overlay-bottom)+3.5rem)] lg:right-6 right-4 h-10 w-10 rounded-full bg-[var(--color-bg-elevated)]/80 border border-[var(--color-border)] text-[var(--color-fg-muted)] backdrop-blur flex items-center justify-center hover:text-[var(--color-fg)] hover:border-[var(--color-border-strong)] transition-colors"
           onClick={() => document.querySelector("main")?.scrollTo({ top: 0, behavior: "smooth" })}
         >
           <ChevronUp className="h-4 w-4" />
@@ -205,13 +195,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
 // ─── Sub-components ─────────────────────────────────────────────────────────
 
 function MobileTabBar({ location, unreadCount }: { location: string; unreadCount: number }) {
-  const { user, isAuthenticated } = useAuth();
-  const isAdmin = user?.role === "admin";
-
-  const tabs = isAdmin
-    ? [...MOBILE_TABS, { path: "/admin", label: "Admin", icon: Settings }]
-    : MOBILE_TABS;
-
   return (
     <nav
       aria-label="Mobile navigation"
@@ -219,13 +202,18 @@ function MobileTabBar({ location, unreadCount }: { location: string; unreadCount
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
       <div className="flex items-center justify-around px-2 py-2">
-        {tabs.map((item) => {
+        {MOBILE_TABS.map((item) => {
           const Icon = item.icon;
           const active = isActive(location, item.path);
           return (
-            <Link key={item.path} href={item.path}>
+            <Link
+              key={item.path}
+              href={item.path}
+              aria-current={active ? "page" : undefined}
+              className="flex-1"
+            >
               {/* 44px minimum tap target. */}
-              <span className="relative flex flex-col items-center justify-center gap-1 px-3 min-h-[44px] py-1.5">
+              <span className="relative flex flex-col items-center justify-center gap-1 px-1 min-h-[44px] py-1.5">
                 <Icon
                   className={cn(
                     "h-5 w-5 transition-colors",
@@ -234,7 +222,7 @@ function MobileTabBar({ location, unreadCount }: { location: string; unreadCount
                 />
                 <span
                   className={cn(
-                    "font-mono text-[9px] uppercase tracking-wider",
+                    "font-mono text-[0.75rem] tracking-normal",
                     active ? "text-[var(--color-accent-text)]" : "text-[var(--color-fg-subtle)]"
                   )}
                 >
@@ -250,19 +238,6 @@ function MobileTabBar({ location, unreadCount }: { location: string; unreadCount
             </Link>
           );
         })}
-        {!isAuthenticated && (
-          <a href={getLoginUrl()}>
-            <span className="relative flex flex-col items-center justify-center gap-1 px-3 min-h-[44px] py-1.5">
-              <LogIn className="h-5 w-5" style={{ color: "var(--color-accent-text)" }} />
-              <span
-                className="font-mono text-[9px] uppercase tracking-wider"
-                style={{ color: "var(--color-accent-text)" }}
-              >
-                Sign in
-              </span>
-            </span>
-          </a>
-        )}
       </div>
     </nav>
   );
