@@ -218,15 +218,17 @@ export function createSourceReader(
         checkedAt: new Date(checkedAt),
       };
     } catch (err) {
+      const kind = src.kind && src.kind !== "rss" ? "Publisher index" : "RSS";
+      const message =
+        err instanceof FeedCooldownError || err instanceof FeedHttpError
+          ? err.message.replace(/^RSS HTTP/, `${kind} HTTP`)
+          : `${kind === "RSS" ? "Feed" : kind} request or parsing failed`;
       if (!(err instanceof FeedCooldownError))
-        console.warn(`[rss] ${src.name} failed: ${(err as Error).message}`);
+        console.warn(`[source-discovery] ${src.name} failed: ${message}`);
       return {
         items: [],
         fetched: 0,
-        error:
-          err instanceof FeedCooldownError || err instanceof FeedHttpError
-            ? err.message
-            : "Feed request or parsing failed",
+        error: message,
       };
     }
   };

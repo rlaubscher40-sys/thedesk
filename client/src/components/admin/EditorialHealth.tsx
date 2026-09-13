@@ -9,7 +9,9 @@ export function EditorialHealth() {
       <p className="mt-2 text-sm">
         Stories must have relevant reporting, enough readable source text and a usable publication
         date before they can earn a briefing slot. Selection scores measure editorial priority, not
-        factual certainty.
+        factual certainty. Discovery health reports feed or index requests only. Article access
+        failures and cooldowns are separate selection outcomes; neither measure establishes
+        coverage.
       </p>
       {query.isLoading ? (
         <p className="mt-2 text-sm">Loading sourcing results…</p>
@@ -28,7 +30,7 @@ export function EditorialHealth() {
             {[
               ["Discovered", latest.discovered],
               ["From hourly collection", latest.evidencePool],
-              ["Article reads attempted", latest.read],
+              ["Article checks (including cooldowns)", latest.read],
               ["Published", latest.inserted],
             ].map(([label, value]) => (
               <div key={label}>

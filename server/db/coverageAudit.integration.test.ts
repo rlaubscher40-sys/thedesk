@@ -87,6 +87,12 @@ it.skipIf(!testUrl)(
           "https://www.mpamag.com/au/news/general/property-investors-head-for-the-exit-as-tax-reforms-bite/589408",
         ]
       );
+      await connection.execute(
+        "UPDATE daily_feed_items SET whyItMatters=?, rubensNote='Keep APRA note' WHERE id=6",
+        [
+          "From 2028, Australians will for the first time have published data on how super funds are supporting members through retirement, shifting accountability in a system holding $9.8 trillion.",
+        ]
+      );
       await repairCoverageAudit(now);
       const read = () =>
         db
@@ -96,11 +102,15 @@ it.skipIf(!testUrl)(
             parent: dailyFeedItems.threadParentId,
             note: dailyFeedItems.rubensNote,
             counterpoint: dailyFeedItems.counterpoint,
+            whyItMatters: dailyFeedItems.whyItMatters,
           })
           .from(dailyFeedItems)
           .orderBy(dailyFeedItems.id);
       const first = await read();
       expect(first[5]!.counterpoint).toContain("late 2027");
+      expect(first[5]!.whyItMatters).toContain("expecting initial publication in 2028");
+      expect(first[5]!.whyItMatters).not.toContain("9.8");
+      expect(first[5]!.note).toBe("Keep APRA note");
       expect(first[7]!.parent).toBe(7);
       expect(first[0]).toMatchObject({ tag: null, parent: null, note: "Keep my editorial note" });
       expect(first[1]).toMatchObject({ parent: 1, tag: rows[1]![2] });

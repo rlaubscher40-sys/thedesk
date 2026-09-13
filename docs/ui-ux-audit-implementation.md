@@ -42,7 +42,7 @@ This branch implements changes for all 28 audit findings. Implementation is not 
 
 - TypeScript check and production build pass, including the existing pinned local Reel voice build step.
 - Focused tests cover guest and authenticated saving, migration failure/account changes, archive filtering, subscription recovery, Ask persistence and deep links, metric formatting, contrast tokens, safe public-post metadata, Sydney scheduling, Web Vitals aggregation and service-worker recovery.
-- Full-suite and dead-code results are recorded in the pull request once final checks complete.
+- Full suite: 271 files and 2,228 tests passed, including real narrated-video exports; 11 database integration files and 40 tests were skipped without MySQL. Dead-code and dependency security audits pass. A post-merge regression run covers the subsequent APRA/source-access correction from main; the unchanged expensive narration suites are not repeated locally.
 - No real subscriber emails, Instagram publication jobs or production database changes were run during this work.
 
 ## Release checks still required

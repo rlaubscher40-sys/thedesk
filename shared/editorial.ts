@@ -59,6 +59,7 @@ const newsroom = new Set([
   "theconversation.com",
   "realestate.com.au",
   "domain.com.au",
+  "pulsetasmania.com.au",
 ]);
 // Useful original statements, but an industry position is not corroboration
 // of its own claims. Keep below official releases and specialist reporting.
@@ -162,7 +163,7 @@ const macro =
 const policy =
   /\b(negative gearing|land tax|stamp duty|capital gains|tenancy|rent(?:al)? (?:law|reform|cap)|housing (?:policy|reform)|first.home buyers?|deposit scheme)\b/i;
 const accommodationPolicy =
-  /\b(?:short[ -]stay|short[ -]term (?:rental|accommodation)|Airbnb)\b.{0,100}\b(?:levy|tax|bill|ban|regulat\w*)\b|\b(?:levy|tax|bill|ban|regulat\w*)\b.{0,100}\b(?:short[ -]stay|short[ -]term (?:rental|accommodation)|Airbnb)\b/i;
+  /\b(?:short[ -]stay|short[ -]term (?:rental|accommodation)|Airbnb)\b.{0,100}\b(?:levy|tax|bill|ban|regulat\w*|laws?|legislation|reforms?)\b|\b(?:levy|tax|bill|ban|regulat\w*|laws?|legislation|reforms?)\b.{0,100}\b(?:short[ -]stay|short[ -]term (?:rental|accommodation)|Airbnb)\b/i;
 const industryRegulation =
   /\b(?:packaging|recycling|plastic waste)\b.{0,100}\b(?:laws?|reforms?|regulations?|standards?|mandates?)\b|\b(?:laws?|reforms?|regulations?|standards?|mandates?)\b.{0,100}\b(?:packaging|recycling|plastic waste)\b/i;
 const advice =

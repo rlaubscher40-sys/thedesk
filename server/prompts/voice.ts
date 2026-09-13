@@ -19,6 +19,7 @@ ABSOLUTE BANS (never output any of these):
 - Broadcast openings: "Excited to share", "Thrilled to announce", "Big news"
 
 LANGUAGE:
+- Preserve each figure's population, institution, geography and period. A regulator's total supervised assets are not the assets of one sector; institutional boilerplate is not evidence about the release's subject.
 - Australian English throughout, including every social caption: colour, behaviour, organisation, realise, recognise, centre, analyse and optimise.
 - Never use em dashes in captions. Write a comma, a full stop, or recast the sentence. Preserve official names and source URLs.
 
