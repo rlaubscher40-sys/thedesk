@@ -16,7 +16,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import satori from "satori";
-import { REEL_SAFE_AREAS, assertReelContentBottom } from "../video/reelSafeAreas";
+import {
+  REEL_SAFE_AREAS,
+  assertReelContentBottom,
+  assertReelSceneBottom,
+} from "../video/reelSafeAreas";
 import { seriesRange, sparklineDataUri, thin, type SparkPoint } from "./sparkline";
 import type { StatFact } from "../metrics/statFacts";
 import sharp from "sharp";
@@ -64,15 +68,16 @@ export async function loadReelSubtitleFont(documentary = false): Promise<Buffer>
 }
 
 /** Mark authored content, never background photographs, for absolute render bounds. */
-function reserveReelSubtitleSpace(value: any): any {
-  if (Array.isArray(value)) return value.map(reserveReelSubtitleSpace);
+function reserveReelSubtitleSpace(value: any, scene = false): any {
+  if (Array.isArray(value)) return value.map((child) => reserveReelSubtitleSpace(child, scene));
   if (!value || typeof value !== "object" || !value.props) return value;
   return {
     ...value,
     props: {
       ...value.props,
       "data-reel-content-clearance": true,
-      children: reserveReelSubtitleSpace(value.props.children),
+      "data-reel-scene-clearance": scene,
+      children: reserveReelSubtitleSpace(value.props.children, scene),
     },
   };
 }
@@ -143,7 +148,7 @@ export async function renderEditorialFrame(
       ),
       div(
         { position: "absolute", left: 84, top: 355, width: 840, flexDirection: "column" },
-        reserveReelSubtitleSpace(content)
+        reserveReelSubtitleSpace(content, true)
       ),
       div(
         {
@@ -479,6 +484,16 @@ export async function renderEditorialLayer(
     height,
     onNodeDetected: (node) => {
       if (node.textContent) onTextBottom?.(node.top + node.height);
+      // Transparent layout boxes can extend beyond their visible children.
+      // Measure actual text and painted geometry, not that allocation padding.
+      if (
+        node.props["data-reel-scene-clearance"] &&
+        (node.textContent ||
+          node.props.style?.backgroundColor ||
+          node.type === "svg" ||
+          node.type === "img")
+      )
+        assertReelSceneBottom(node.top + node.height, node.textContent || node.type);
       if (node.props["data-reel-content-clearance"])
         assertReelContentBottom(node.top + node.height);
       if (

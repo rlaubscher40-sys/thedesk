@@ -19,7 +19,7 @@ import {
   assertReelVisualSequence,
 } from "./reelVisualStandard";
 import { cinematicEvidenceLayout } from "./cinematicEvidenceLayout";
-import { assertReelContentBottom } from "./reelSafeAreas";
+import { assertReelSceneBottom } from "./reelSafeAreas";
 
 export async function createEvidenceMotionRenderer(
   v: EvidenceVisual,
@@ -140,7 +140,7 @@ export async function createEvidenceMotionRenderer(
       ctx.globalAlpha = unit(layer.opacity);
       if (layer.kind === "rect") {
         const style = layer.node.props.style;
-        assertReelContentBottom(355 + layer.y + style.height);
+        assertReelSceneBottom(355 + layer.y + style.height, layer.id);
         ctx.fillStyle = style.backgroundColor;
         ctx.fillRect(84 + layer.x, 355 + layer.y, style.width, style.height);
       } else {
@@ -170,7 +170,7 @@ export async function createEvidenceMotionRenderer(
           };
           stamps.set(layer.id, stamp);
         }
-        assertReelContentBottom(355 + layer.y + stamp!.textBottom);
+        assertReelSceneBottom(355 + layer.y + stamp!.textBottom, layer.id);
         ctx.drawImage(stamp!.image, 84 + layer.x, 355 + layer.y);
       }
     }

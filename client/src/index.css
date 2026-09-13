@@ -934,3 +934,10 @@ html.lite *::after {
   -webkit-backdrop-filter: none !important;
   animation: none !important;
 }
+
+/* These elements start transparent until their animation runs. */
+html.lite .first-paint-mark,
+html.lite .first-paint-content {
+  opacity: 1 !important;
+  transform: none !important;
+}

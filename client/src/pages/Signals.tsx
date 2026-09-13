@@ -1,3 +1,4 @@
+import { preferenceStorage } from "@/lib/storage";
 import { NswPlanningPanel } from "@/components/planning/NswPlanningRead";
 import { Bookmark, BookmarkCheck, LineChart, MoveDownRight, MoveUpRight, Radio } from "lucide-react";
 import { Link, useSearch } from "wouter";
@@ -43,7 +44,7 @@ function displayValue(metric: { value: string; unit?: string | null }): string {
 function readWatchlist(): WatchRecord[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = JSON.parse(window.localStorage.getItem(WATCH_KEY) ?? "[]");
+    const raw = JSON.parse(preferenceStorage.getItem(WATCH_KEY) ?? "[]");
     if (!Array.isArray(raw)) return [];
     return raw.filter(
       (item): item is WatchRecord =>
@@ -60,7 +61,7 @@ function readWatchlist(): WatchRecord[] {
 
 function writeWatchlist(records: WatchRecord[]): void {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(WATCH_KEY, JSON.stringify(records));
+  preferenceStorage.setItem(WATCH_KEY, JSON.stringify(records));
 }
 
 function pctMove(first: number, last: number): number {

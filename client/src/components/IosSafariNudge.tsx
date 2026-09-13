@@ -1,3 +1,4 @@
+import { preferenceStorage } from "@/lib/storage";
 import { useState } from "react";
 import { Share2, X } from "lucide-react";
 
@@ -10,7 +11,7 @@ function detectVariant(): NudgeVariant {
   // Already installed as a PWA — no nudge needed
   if ((window.navigator as Navigator & { standalone?: boolean }).standalone) return null;
   // Already dismissed
-  if (localStorage.getItem(DISMISSED_KEY)) return null;
+  if (preferenceStorage.getItem(DISMISSED_KEY)) return null;
 
   const ua = navigator.userAgent;
   const isIos = /iPhone|iPad|iPod/i.test(ua);
@@ -30,7 +31,7 @@ export function IosSafariNudge() {
   if (!variant) return null;
 
   function dismiss() {
-    localStorage.setItem(DISMISSED_KEY, "1");
+    preferenceStorage.setItem(DISMISSED_KEY, "1");
     setVariant(null);
   }
 

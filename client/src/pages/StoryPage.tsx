@@ -1,3 +1,4 @@
+import { ConnectionNotice } from "@/components/ConnectionNotice";
 import { ThreadLink } from "@/components/feed/ThreadLink";
 import { sourceTimingLabel } from "@shared/sourceTiming";
 /**
@@ -85,6 +86,7 @@ export default function StoryPage() {
   }
 
   if (itemQuery.isLoading) return <StorySkeleton />;
+  if (itemQuery.isError && !story) return <ConnectionNotice retry={() => void itemQuery.refetch()} retrying={itemQuery.isFetching} />;
   if (!story) {
     return (
       <div className={cn(GUTTER_X, "py-16")}>

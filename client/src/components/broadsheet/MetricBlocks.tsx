@@ -1,3 +1,4 @@
+import { preferenceStorage } from "@/lib/storage";
 /**
  * The numbers, in broadsheet dress.
  *
@@ -124,11 +125,11 @@ export function WhereThingsStand({ limit = 4 }: { limit?: number }) {
   const { tiles } = useMetricTiles();
   const [expanded, setExpanded] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
-    return window.localStorage.getItem(EXPANDED_KEY) !== "0";
+    return preferenceStorage.getItem(EXPANDED_KEY) !== "0";
   });
 
   useEffect(() => {
-    window.localStorage.setItem(EXPANDED_KEY, expanded ? "1" : "0");
+    preferenceStorage.setItem(EXPANDED_KEY, expanded ? "1" : "0");
   }, [expanded]);
 
   if (tiles.length === 0) return null;

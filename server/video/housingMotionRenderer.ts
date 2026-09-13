@@ -23,7 +23,7 @@ import {
 import type { MeasuredPhrase } from "./phraseSpeech";
 import { assertReelVisualSequence, reelSceneShot, REEL_SHOTS } from "./reelVisualStandard";
 import { loanPhotoCrop } from "./loanStoryPhotography";
-import { assertReelContentBottom } from "./reelSafeAreas";
+import { assertReelSceneBottom } from "./reelSafeAreas";
 
 export type MotionScene = {
   key: string;
@@ -104,7 +104,7 @@ export async function createHousingMotionRenderer(
       };
       stamps.set(layer.id, stamp);
     }
-    assertReelContentBottom(355 + layer.y + stamp.textBottom);
+    assertReelSceneBottom(355 + layer.y + stamp.textBottom, layer.id);
     ctx.drawImage(stamp.image, 84 + layer.x, 355 + layer.y);
   }
   return async (time: number) => {
@@ -161,7 +161,7 @@ export async function createHousingMotionRenderer(
       housingBalanceFrameLayout(story, scene.key, progress, variant).content
     );
     for (const layer of layers) {
-      if (layer.kind !== "raster") assertReelContentBottom(355 + layer.y + layer.height);
+      if (layer.kind !== "raster") assertReelSceneBottom(355 + layer.y + layer.height, layer.id);
       if (layer.opacity <= 0) continue;
       ctx.globalAlpha = unit(layer.opacity);
       if (layer.kind === "rect") {
