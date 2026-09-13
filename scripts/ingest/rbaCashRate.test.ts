@@ -146,6 +146,16 @@ it("returns successful data without reporting a source error", async () => {
     asOf: new Date("2026-09-07"),
   });
   expect(report).not.toHaveBeenCalled();
+  expect(fetch).toHaveBeenCalledExactlyOnceWith(
+    "https://www.rba.gov.au/statistics/tables/csv/f1-data.csv",
+    expect.objectContaining({
+      headers: {
+        Accept: "text/csv",
+        "User-Agent": "TheDeskBot/1.0 (+https://thedesk.au)",
+      },
+      redirect: "error",
+    }),
+  );
 });
 
 it("reports the HTTP status without including the response body", async () => {
@@ -161,6 +171,22 @@ it("reports the HTTP status without including the response body", async () => {
     expect.stringContaining("RBA F1 HTTP 403"),
   );
   expect(report.mock.calls[0]![0]).not.toContain("private response");
+  expect(fetch).toHaveBeenCalledOnce();
+});
+
+it("bounds streamed responses even when Content-Length is missing or understated", async () => {
+  for (const headers of [{}, { "content-length": "10" }]) {
+    const cancel = vi.fn();
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) { controller.enqueue(new Uint8Array(600_000)); },
+      cancel,
+    });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(body, { headers })));
+    const report = vi.fn();
+    expect(await fetchCashRate(report)).toBeNull();
+    expect(report).toHaveBeenCalledWith(expect.stringContaining("size limit"));
+    expect(cancel).toHaveBeenCalledOnce();
+  }
 });
 
 it("distinguishes oversized responses, timeouts and validation failures", async () => {

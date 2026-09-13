@@ -24,6 +24,15 @@ export function metricRefreshStatus() {
 }
 
 export async function needsMetricRecovery() {
+  // A retained value can still pass the age review after its next collection
+  // failed. The later recovery slot must retry that known failure, rather
+  // than waiting for the previously saved observation to become stale.
+  if (
+    lastError ||
+    lastReport?.failedWrites.length ||
+    lastReport?.unavailable.some((key) => !isAuctionCollectionPaused(key))
+  )
+    return true;
   return metricHealth(await listDailyMetrics()).some(
     (row) =>
       !row.extracted &&
@@ -141,11 +150,16 @@ export async function runScheduledMetricRefresh() {
   const retryableUnavailable = report.unavailable.filter(
     (key) => !isAuctionCollectionPaused(key),
   );
+  // Paused sources remain visible in Admin, but are not causes of this
+  // failed job. Keep the alert focused on sources that actually need repair.
+  const activeSourceErrors = report.sourceErrors.filter(
+    (error) => !isAuctionCollectionPaused(error.metricKey),
+  );
   if (retryableUnavailable.length || report.failedWrites.length)
     throw new Error(
       `Metric refresh stored ${report.stored}; unavailable: ${retryableUnavailable.join(", ") || "none"}; failed writes: ${report.failedWrites.join(", ") || "none"}` +
-        (report.sourceErrors.length
-          ? `; source errors: ${report.sourceErrors.map((error) => `${error.metricKey}: ${error.reason}`).join("; ")}`
+        (activeSourceErrors.length
+          ? `; source errors: ${activeSourceErrors.map((error) => `${error.metricKey}: ${error.reason}`).join("; ")}`
           : ""),
     );
 }
