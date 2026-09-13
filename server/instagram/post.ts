@@ -58,13 +58,14 @@ import { pickPropertyTopics, propertyComparisonCta } from "./propertyEditorial";
 import {
   sourceGroundedStory,
   sourceGroundedTopic,
-  propertyReadingQuestion,
   editionDestination,
   marketDataCta,
 } from "./sourceContent";
 
 import { pickBriefingStories, unpublishedBriefingSelection } from "./briefingSelection";
 import { publishCarouselStoryOnce } from "./carouselStoryReceipt";
+import { postWeeklyStoryFrames } from "./weeklyStoryDelivery";
+import { weeklyTopicContent } from "../og/weeklyFeature";
 export const pickDailyTopStories = pickBriefingStories;
 
 /** Single source of truth for dash sanitization in Instagram content. */
@@ -271,28 +272,33 @@ export async function loadEditionHeroDataUri(editionId: number): Promise<string 
 
 function buildWeeklyCaption(edition: Edition): string {
   const topics = pickPropertyTopics(edition.topics);
-  const caption = [
-    topics[0]?.title ?? "This week's property briefing.",
-    "",
-    `Property stories from Edition #${edition.editionNumber} · ${edition.weekRange ?? edition.weekOf}`,
-    ...topics.flatMap((topic, i) => [
-      ...(i ? [`- ${sanitizeDashes(topic.title)}`] : []),
-      ...(topic.socialSource
-        ? [
-            `Source: ${topic.socialSource.publisher} · Briefing ${topic.socialSource.feedDate}`,
-            sourceTimingLabel(topic.socialSource.sourceTiming),
-            topic.socialSource.url,
-          ]
-        : []),
-    ]),
-    "",
-    ...(topics[0] ? [propertyReadingQuestion(topics[0]), ""] : []),
-    "Save this to check the evidence before your next property decision.",
-    `Read Edition ${edition.editionNumber}: ${editionDestination(edition)}`,
-    `On thedesk.au, open Editions and choose #${edition.editionNumber}.`,
-    "",
-    `${CORE_HASHTAGS} #WeeklyBriefing`,
-  ].join("\n");
+  // Whole source sentences only. Optional lead detail is removed as a unit if
+  // source URLs and attribution use the available caption budget.
+  const assemble = (includeDetail: boolean) =>
+    [
+      sanitizeDashes(topics[0]?.title ?? "This week's property briefing."),
+      "",
+      ...(includeDetail && topics[0] ? [weeklyTopicContent(topics[0]).detail, ""] : []),
+      `${topics.length} property ${topics.length === 1 ? "story" : "stories"} · Edition ${edition.editionNumber} · ${sanitizeDashes(edition.weekRange ?? edition.weekOf)}`,
+      ...topics.flatMap((topic, i) => [
+        "",
+        ...(i ? [`${i + 1}. ${sanitizeDashes(topic.title)}`] : []),
+        ...(topic.socialSource
+          ? [
+              `Source: ${topic.socialSource.publisher} · Briefing ${topic.socialSource.feedDate}`,
+              sourceTimingLabel(topic.socialSource.sourceTiming),
+              topic.socialSource.url,
+            ]
+          : []),
+      ]),
+      "",
+      "Save your weekly property briefing.",
+      `Read Edition ${edition.editionNumber}: ${editionDestination(edition)}`,
+      "",
+      `${CORE_HASHTAGS} #WeeklyBriefing`,
+    ].join("\n");
+  const detailed = assemble(true);
+  const caption = detailed.length <= 2200 ? detailed : assemble(false);
   if (caption.length > 2200)
     throw new Error("Source-attributed weekly caption exceeds Instagram limit");
   return caption;
@@ -659,12 +665,15 @@ export async function postWeeklyEdition(
   };
   const totalSlides = 1 + sanitizedTopics.length;
   const editionAlt = `Weekly Edition #${edition.editionNumber}, ${sanitizedEdition.weekRange ?? ""}`;
+  const caption = buildWeeklyCaption(sanitizedEdition);
+  sanitizedTopics.forEach(weeklyTopicContent);
   const uuids: string[] = [];
   // alt_text per slide, parallel to uuids: cover first, then one per topic.
-  const altTexts: string[] = [editionAlt];
+  const altTexts: string[] = [
+    `${editionAlt}. ${sanitizedTopics[0]!.title}. ${weeklyTopicContent(sanitizedTopics[0]!).detail}`,
+  ];
 
-  // The cover and the Story share the edition's own hero photo when one was
-  // generated; null falls back to the bundled image inside the renderers.
+  // Weekly illustrations come from the bundled, credited archive.
   const heroDataUri = null;
 
   try {
@@ -675,10 +684,30 @@ export async function postWeeklyEdition(
     for (let i = 0; i < sanitizedTopics.length; i++) {
       const buf = await renderWeeklyTopicCard(sanitizedTopics[i]!, i + 1, totalSlides, variant);
       uuids.push(storeTempImage(buf));
-      altTexts.push(sanitizedTopics[i]!.title);
+      const copy = weeklyTopicContent(sanitizedTopics[i]!);
+      altTexts.push(
+        `${copy.claim}. ${copy.title}. ${copy.detail}${copy.context ? ` Context: ${copy.context}` : ""}. Source: ${sanitizedTopics[i]!.socialSource!.publisher}.`
+      );
     }
 
-    const caption = buildWeeklyCaption(sanitizedEdition);
+    let storyFrames: [Buffer, Buffer, Buffer] | null = null;
+    if (!instagramCooldownActive()) {
+      try {
+        storyFrames = await Promise.all([
+          renderWeeklyStoryVertical(sanitizedEdition, heroDataUri, variant, 0),
+          renderWeeklyStoryVertical(sanitizedEdition, heroDataUri, variant, 1),
+          renderWeeklyStoryVertical(sanitizedEdition, heroDataUri, variant, 2),
+        ]);
+      } catch (error) {
+        const message = `Weekly Story rendering failed: ${(error as Error).message}`;
+        console.error(`[instagram] ${message}`);
+        await recordServerError({
+          level: "warn",
+          message: message.slice(0, 512),
+          route: "instagram/weekly-story",
+        }).catch(() => {});
+      }
+    }
 
     const childIds = await Promise.all(
       uuids.map((uuid, i) =>
@@ -712,35 +741,17 @@ export async function postWeeklyEdition(
 
     console.log(`[instagram] weekly edition ${edition.editionNumber} posted: ${postId}`);
 
-    // Share the edition to the 24h Story. Best-effort: a Story failure must
-    // never fail the feed post that has already gone live. Skipped entirely
-    // while Stories are paused for the integrity cooldown.
-    if (!instagramCooldownActive())
-      try {
-        const storyBuf = await renderWeeklyStoryVertical(sanitizedEdition, heroDataUri, variant);
-        const storyUuid = storeTempImage(storyBuf);
-        uuids.push(storyUuid);
-        const storyContainerId = await createStoryContainer({
-          igUserId,
-          accessToken,
-          imageUrl: `${siteUrl}/instagram/temp/${storyUuid}.jpg`,
-        });
-        await waitForContainerReady({ containerId: storyContainerId, accessToken });
-        const storyId = await publishContainer({
-          igUserId,
-          accessToken,
-          creationId: storyContainerId,
-        });
-        console.log(`[instagram] weekly story posted: ${storyId}`);
-      } catch (err) {
-        const message = (err as Error).message;
-        console.error("[instagram] weekly story failed (feed post still live):", message);
-        await recordServerError({
-          level: "warn",
-          message: `Instagram weekly story failed: ${message}`.slice(0, 512),
-          route: "instagram/weekly-story",
-        }).catch(() => {});
-      }
+    // Only new, confirmed carousels enrol. A Story failure cannot fail or
+    // republish the live carousel. Each frame has its own permanent receipt.
+    if (storyFrames)
+      void postWeeklyStoryFrames({
+        frames: storyFrames,
+        carouselId: postId,
+        sourceId: sanitizedTopics[0]!.socialSource!.feedItemId,
+        igUserId,
+        accessToken,
+        siteUrl,
+      }).catch((error) => console.error("[instagram] weekly Story delivery stopped", error));
 
     return { postId, headline: editionAlt, coverVariant: variant };
   } finally {

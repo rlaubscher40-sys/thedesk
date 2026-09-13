@@ -12,14 +12,12 @@ beforeEach(() => {
 });
 it("requires an exact durable receipt before reporting success", async () => {
   const publish = vi.fn().mockResolvedValue("456");
-  m.read
-    .mockResolvedValueOnce([])
-    .mockResolvedValueOnce([
-      {
-        status: "success",
-        detail: JSON.stringify({ carouselId: "123", sourceId: 42, storyId: "456" }),
-      },
-    ]);
+  m.read.mockResolvedValueOnce([]).mockResolvedValueOnce([
+    {
+      status: "success",
+      detail: JSON.stringify({ carouselId: "123", sourceId: 42, storyId: "456" }),
+    },
+  ]);
   expect(await publishCarouselStoryOnce("123", 42, publish)).toBe("456");
   expect(m.reserve).toHaveBeenCalledWith([carouselStoryKey("123", 42)]);
   expect(m.reserve.mock.invocationCallOrder[0]).toBeLessThan(publish.mock.invocationCallOrder[0]!);
@@ -50,4 +48,19 @@ it("does not enter Meta when the durable store cannot be read", async () => {
   const publish = vi.fn();
   await expect(publishCarouselStoryOnce("123", 42, publish)).rejects.toThrow("database down");
   expect(publish).not.toHaveBeenCalled();
+});
+
+it("keeps separate receipts for weekly frames that use the same lead source", async () => {
+  for (const frame of ["weekly-cover", "weekly-detail", "weekly-roundup"] as const) {
+    m.read
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          status: "success",
+          detail: JSON.stringify({ carouselId: "123", sourceId: 42, storyId: "456", frame }),
+        },
+      ]);
+    await publishCarouselStoryOnce("123", 42, async () => "456", frame);
+  }
+  expect(new Set(m.reserve.mock.calls.flatMap(([keys]) => keys)).size).toBe(3);
 });

@@ -22,7 +22,7 @@ export function currentSocialEdition(editions: Edition[], now = new Date()): Edi
 }
 
 /** Questions guide a decision without asserting a new cause, forecast or local fact. */
-export function propertyReadingQuestion(input: { title: string; summary?: string | null }): string {
+function propertyReadingQuestion(input: { title: string; summary?: string | null }): string {
   const text = `${input.title} ${input.summary ?? ""}`;
   if (/\b(approvals?|approved|development applications?)\b/i.test(text))
     return "Before counting new homes, check whether this measures approvals, starts or completions, and which area and period it covers.";

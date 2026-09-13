@@ -26,7 +26,8 @@ import type { StatFact } from "../metrics/statFacts";
 import sharp from "sharp";
 import type { DailyFeedItem, Edition } from "../db/schema";
 import type { EditionTopic } from "../../shared/schemas";
-import { weeklyFeatureTree } from "./weeklyFeature";
+import { weeklyFeatureTree, weeklyTopicTree, weeklyRoundupTree } from "./weeklyFeature";
+import { briefingLens } from "../instagram/briefing";
 
 const FONT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "fonts");
 
@@ -1506,477 +1507,68 @@ export async function renderDailyStoryVertical(
   return renderToJpeg(tree, 1080, 1920);
 }
 
-/**
- * Weekly edition cover card: 1080×1350 portrait.
- * Leads with the first property finding, followed by a reading question and edition date.
- */
+/** Licensed illustrations only; no claim that the photo depicts this news event. */
+async function weeklyPicture(edition: Edition) {
+  const key = briefingLens(edition.topics[0]!).key;
+  const [file, credit] =
+    key === "supply" || key === "stress"
+      ? ["sydney-construction-damon-hall.jpg", "Archive illustration · Damon Hall / Unsplash"]
+      : key === "loans"
+        ? ["australian-money-pixabay.jpg", "Illustration · Pixabay / Pexels"]
+        : [
+            "architecture-phillip-flores.jpg",
+            "Architectural illustration · Phillip Flores / Unsplash",
+          ];
+  const src = await loadAsset(file!);
+  return src ? { src, credit: credit! } : null;
+}
+
 export async function renderWeeklyCoverCard(
   edition: Edition,
   _heroOverride?: string | null,
   variant: CardVariant = "navy"
 ): Promise<Buffer> {
   return renderToJpeg(
-    weeklyFeatureTree(edition, colorScheme(variant), false, await loadLogo(variant)),
+    weeklyFeatureTree(
+      edition,
+      colorScheme(variant),
+      false,
+      await loadLogo(variant),
+      await weeklyPicture(edition)
+    ),
     1080,
     1350
   );
 }
 
-/** Same lead, date and palette in a Story-safe vertical composition. */
+/** The three automatic Story frames use the same edition as the confirmed carousel. */
 export async function renderWeeklyStoryVertical(
   edition: Edition,
   _heroOverride?: string | null,
-  variant: CardVariant = "navy"
+  variant: CardVariant = "navy",
+  frame: 0 | 1 | 2 = 0
 ): Promise<Buffer> {
-  return renderToJpeg(
-    weeklyFeatureTree(edition, colorScheme(variant), true, await loadLogo(variant)),
-    1080,
-    1920
-  );
+  const c = colorScheme(variant);
+  const tree =
+    frame === 0
+      ? weeklyFeatureTree(edition, c, true, await loadLogo(variant), await weeklyPicture(edition))
+      : frame === 1
+        ? weeklyTopicTree(edition.topics[0]!, 1, 3, c, true)
+        : weeklyRoundupTree(edition, c);
+  return renderToJpeg(tree, 1080, 1920);
 }
 
-/**
- * Weekly topic card: 1080×1350 portrait.
- * One card per topic — category, title, summary, key takeaway.
- */
 export async function renderWeeklyTopicCard(
   topic: EditionTopic,
   slideIndex: number,
   slideTotal: number,
   variant: CardVariant = "navy"
 ): Promise<Buffer> {
-  // Match the cover/Story tone so the whole weekly carousel is one colourway.
-  const c = colorScheme(variant);
-  const FG = c.fg;
-  const FG_MUTED = c.fgMuted;
-  const AMBER = c.amber;
-  const slideNum = String(slideIndex + 1).padStart(2, "0");
-  const totalNum = String(slideTotal).padStart(2, "0");
-  // Every prose field is trimmed sentence-aware, never with a bare word-cut:
-  // these are full sentences, so a hard clamp reads as chopped mid-thought
-  // (the "not the", "pulling back," artefacts). clampSentence ends on a
-  // complete sentence where one fits, else a clean word boundary + ellipsis.
-  const why = topic.whyItMatters ? clampSentence(topic.whyItMatters, 190) : null;
-  // Forward-looking watch items: the analytical payload that turns a bare
-  // summary card into a briefing the reader keeps. Up to three, each trimmed
-  // so it completes its thought or elides cleanly, on at most two lines.
-  const watch = (topic.whatToWatch ?? [])
-    .filter((w) => w && w.trim())
-    .slice(0, 3)
-    .map((w) => clampSentence(w, 120));
-  const takeaway = topic.keyTakeaway ? clampSentence(topic.keyTakeaway, 185) : null;
-
-  // How much analysis the topic actually ships. With at most one block the
-  // card would dead-space, so we switch it to a "standfirst page": the lead
-  // grows and the whole block is centred, turning empty space into deliberate
-  // editorial breathing room rather than a hole above the folio.
-  const analysisBlocks = (why ? 1 : 0) + (watch.length ? 1 : 0) + (takeaway ? 1 : 0);
-  const sparse = analysisBlocks <= 1;
-  const summary = clampSentence(topic.summary, sparse ? 320 : 240);
-  const summaryFontSize = sparse ? "29px" : "23px";
-  const summaryLineHeight = sparse ? 1.58 : 1.62;
-  // On a standfirst page the title is the hero, so it scales right up; on a
-  // dense card it stays measured to leave room for the analysis blocks.
-  if (!topic.title.trim() || topic.title.length > 200)
-    throw new Error("Weekly topic needs editorial review: headline outside layout limit");
-  const titleFontSize =
-    topic.title.length > 150
-      ? "44px"
-      : topic.title.length > 100
-        ? "52px"
-        : sparse
-          ? topic.title.length > 55
-            ? "68px"
-            : "90px"
-          : topic.title.length > 55
-            ? "52px"
-            : "62px";
-
-  const tree = {
-    type: "div",
-    props: {
-      style: {
-        display: "flex",
-        flexDirection: "column",
-        width: "1080px",
-        height: "1350px",
-        backgroundColor: c.bg,
-        backgroundImage: c.bloom,
-        padding: "80px 72px",
-        position: "relative",
-        justifyContent: "space-between",
-      },
-      children: [
-        // ── Oversized folio numeral, bleeds off the bottom-right edge. The
-        //    same anchor the daily cover uses, so the weekly slides read as
-        //    the same system and the lower third never sits empty. ──
-        {
-          type: "div",
-          props: {
-            style: {
-              position: "absolute",
-              bottom: "-96px",
-              right: "32px",
-              fontFamily: "Playfair Display",
-              fontWeight: 700,
-              fontSize: "440px",
-              lineHeight: 1,
-              letterSpacing: "-0.04em",
-              color: c.ghost,
-            },
-            children: slideNum,
-          },
-        },
-
-        // ── Top: branding + counter ──
-        {
-          type: "div",
-          props: {
-            style: {
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            },
-            children: [
-              {
-                type: "div",
-                props: {
-                  style: {
-                    fontFamily: "JetBrains Mono",
-                    fontSize: "24px",
-                    letterSpacing: "0.12em",
-                    textTransform: "uppercase",
-                    color: AMBER,
-                  },
-                  children: "The Desk · Weekly",
-                },
-              },
-              {
-                type: "div",
-                props: {
-                  style: {
-                    fontFamily: "JetBrains Mono",
-                    fontSize: "24px",
-                    letterSpacing: "0.10em",
-                    color: FG_MUTED,
-                  },
-                  children: `${slideNum} / ${totalNum}`,
-                },
-              },
-            ],
-          },
-        },
-
-        // ── Content fills the gap between header and footer, centred so any
-        //    slack splits evenly top and bottom instead of dead-ending above
-        //    the footer: the lead group sits over the analysis group. ──
-        {
-          type: "div",
-          props: {
-            style: {
-              display: "flex",
-              flexDirection: "column",
-              flexGrow: 1,
-              justifyContent: sparse ? "center" : "flex-start",
-              gap: "46px",
-              paddingTop: sparse ? "0px" : "52px",
-              paddingBottom: sparse ? "40px" : "0px",
-            },
-            children: [
-              // ── Upper: the lead (category, title, standfirst) ──
-              {
-                type: "div",
-                props: {
-                  style: {
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "30px",
-                  },
-                  children: [
-                    // Category pill
-                    {
-                      type: "div",
-                      props: {
-                        style: {
-                          display: "flex",
-                          alignSelf: "flex-start",
-                          backgroundColor: c.amberSoft,
-                          border: `1px solid ${AMBER}`,
-                          borderRadius: "4px",
-                          padding: "6px 16px",
-                        },
-                        children: {
-                          type: "div",
-                          props: {
-                            style: {
-                              fontFamily: "JetBrains Mono",
-                              fontSize: "24px",
-                              letterSpacing: "0.12em",
-                              textTransform: "uppercase",
-                              color: AMBER,
-                            },
-                            children: (topic.category || "ANALYSIS").toUpperCase(),
-                          },
-                        },
-                      },
-                    },
-                    // Title
-                    {
-                      type: "div",
-                      props: {
-                        style: {
-                          fontFamily: "Playfair Display",
-                          fontWeight: 700,
-                          fontSize: titleFontSize,
-                          lineHeight: 1.08,
-                          letterSpacing: "-0.025em",
-                          color: FG,
-                        },
-                        children: topic.title.trim(),
-                      },
-                    },
-                    // Summary (the lead / standfirst — grows when it carries
-                    // the card alone)
-                    {
-                      type: "div",
-                      props: {
-                        style: {
-                          fontFamily: "JetBrains Mono",
-                          fontSize: summaryFontSize,
-                          lineHeight: summaryLineHeight,
-                          color: FG,
-                        },
-                        children: summary,
-                      },
-                    },
-                    // Why it matters — the audience-focus sentence, set off with a
-                    // rule so it reads as analysis, not more of the lead.
-                    ...(why
-                      ? [
-                          {
-                            type: "div",
-                            props: {
-                              style: {
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: "10px",
-                                borderLeft: `3px solid ${AMBER}`,
-                                paddingLeft: "22px",
-                              },
-                              children: [
-                                {
-                                  type: "div",
-                                  props: {
-                                    style: {
-                                      fontFamily: "JetBrains Mono",
-                                      fontSize: "24px",
-                                      letterSpacing: "0.12em",
-                                      textTransform: "uppercase",
-                                      color: AMBER,
-                                    },
-                                    children: "Before You Act",
-                                  },
-                                },
-                                {
-                                  type: "div",
-                                  props: {
-                                    style: {
-                                      fontFamily: "JetBrains Mono",
-                                      fontSize: sparse ? "28px" : "21px",
-                                      lineHeight: 1.5,
-                                      color: FG_MUTED,
-                                    },
-                                    children: why,
-                                  },
-                                },
-                              ],
-                            },
-                          },
-                        ]
-                      : []),
-                  ],
-                },
-              },
-
-              // ── Lower: the analysis (what to watch + key takeaway). Held as its
-              //    own group so the page's space-between pushes it into the lower
-              //    third, filling the card instead of leaving dead space. ──
-              {
-                type: "div",
-                props: {
-                  style: {
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "26px",
-                  },
-                  children: [
-                    // What to watch — forward-looking checklist that gives the card
-                    // genuine reader value.
-                    ...(watch.length
-                      ? [
-                          {
-                            type: "div",
-                            props: {
-                              style: {
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: "14px",
-                              },
-                              children: [
-                                {
-                                  type: "div",
-                                  props: {
-                                    style: {
-                                      fontFamily: "JetBrains Mono",
-                                      fontSize: "11px",
-                                      letterSpacing: "0.25em",
-                                      textTransform: "uppercase",
-                                      color: AMBER,
-                                    },
-                                    children: "What To Watch",
-                                  },
-                                },
-                                ...watch.map((item) => ({
-                                  type: "div",
-                                  props: {
-                                    style: {
-                                      display: "flex",
-                                      alignItems: "flex-start",
-                                      gap: "14px",
-                                    },
-                                    children: [
-                                      {
-                                        type: "div",
-                                        props: {
-                                          style: {
-                                            fontFamily: "JetBrains Mono",
-                                            fontSize: "21px",
-                                            lineHeight: 1.4,
-                                            color: AMBER,
-                                          },
-                                          children: "›",
-                                        },
-                                      },
-                                      {
-                                        type: "div",
-                                        props: {
-                                          style: {
-                                            fontFamily: "JetBrains Mono",
-                                            fontSize: "20px",
-                                            lineHeight: 1.4,
-                                            color: FG,
-                                          },
-                                          children: item,
-                                        },
-                                      },
-                                    ],
-                                  },
-                                })),
-                              ],
-                            },
-                          },
-                        ]
-                      : []),
-                    // Key takeaway box — the line Ruben repeats verbatim, kept as
-                    // the emphasized closer of the card.
-                    ...(takeaway
-                      ? [
-                          {
-                            type: "div",
-                            props: {
-                              style: {
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: "10px",
-                                backgroundColor: "rgba(212,168,83,0.07)",
-                                borderRadius: "8px",
-                                padding: "26px",
-                                border: "1px solid rgba(212,168,83,0.22)",
-                              },
-                              children: [
-                                {
-                                  type: "div",
-                                  props: {
-                                    style: {
-                                      fontFamily: "JetBrains Mono",
-                                      fontSize: "10px",
-                                      letterSpacing: "0.25em",
-                                      textTransform: "uppercase",
-                                      color: AMBER,
-                                    },
-                                    children: "Key Takeaway",
-                                  },
-                                },
-                                {
-                                  type: "div",
-                                  props: {
-                                    style: {
-                                      fontFamily: "JetBrains Mono",
-                                      fontSize: "21px",
-                                      lineHeight: 1.5,
-                                      color: FG,
-                                    },
-                                    children: takeaway,
-                                  },
-                                },
-                              ],
-                            },
-                          },
-                        ]
-                      : []),
-                  ],
-                },
-              },
-            ],
-          },
-        },
-
-        // ── Bottom: rule + domain ──
-        {
-          type: "div",
-          props: {
-            style: { display: "flex", flexDirection: "column", gap: "16px" },
-            children: [
-              {
-                type: "div",
-                props: {
-                  style: {
-                    display: "flex",
-                    width: "100%",
-                    height: "1px",
-                    backgroundImage: `linear-gradient(90deg, ${AMBER} 0%, rgba(212,168,83,0) 70%)`,
-                  },
-                  children: "",
-                },
-              },
-              {
-                type: "div",
-                props: {
-                  style: { display: "flex", justifyContent: "flex-end" },
-                  children: {
-                    type: "div",
-                    props: {
-                      style: {
-                        fontFamily: "JetBrains Mono",
-                        fontSize: "24px",
-                        letterSpacing: "0.02em",
-                        color: AMBER,
-                      },
-                      children: topic.socialSource
-                        ? `Source: ${topic.socialSource.publisher} · Feed date: ${topic.socialSource.feedDate} · Link in caption`
-                        : "thedesk.au",
-                    },
-                  },
-                },
-              },
-            ],
-          },
-        },
-      ],
-    },
-  };
-
-  return renderToJpeg(tree, 1080, 1350);
+  return renderToJpeg(
+    weeklyTopicTree(topic, slideIndex, slideTotal, colorScheme(variant)),
+    1080,
+    1350
+  );
 }
 
 /**
