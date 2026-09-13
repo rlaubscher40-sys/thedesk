@@ -2,7 +2,6 @@
  * Top-level routing + global providers. Pages are lazy-loaded so the initial
  * bundle stays under what one screen needs.
  */
-import { AnimatePresence, motion } from "framer-motion";
 import { Suspense, useEffect } from "react";
 import { Route, Switch, useLocation, useSearch } from "wouter";
 import { BookmarkProvider } from "./lib/useBookmarks";
@@ -15,7 +14,6 @@ import { Toaster } from "./components/ui/Toaster";
 import { trackPageView } from "./lib/analytics";
 import { captureArrival } from "./lib/attribution";
 import { lazyWithReload } from "./lib/chunkReload";
-import { isLiteMode } from "./lib/liteMode";
 import { PersonaProvider } from "./lib/persona";
 import { ThemeProvider } from "./lib/theme";
 import { UserPrefsProvider } from "./lib/userPrefs";
@@ -117,8 +115,6 @@ function PageFallback() {
 }
 
 function Routes() {
-  // Wrap routes in AnimatePresence so navigations fade between pages instead
-  // of snapping. Honour prefers-reduced-motion, disable transitions when set.
   const [location] = useLocation();
 
   // Fire a privacy-preserving page-view beacon on every route change.
@@ -192,26 +188,7 @@ function Routes() {
     </Suspense>
   );
 
-  // Lite mode (reduced-motion, or a device that has crash-looped) skips the
-  // Framer Motion route transition entirely — no AnimatePresence, no motion
-  // runtime per navigation — so the cheapest possible path renders.
-  if (isLiteMode()) {
-    return <div key={location}>{routes}</div>;
-  }
-
-  return (
-    <AnimatePresence mode="wait" initial={false}>
-      <motion.div
-        key={location}
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -4 }}
-        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
-      >
-        {routes}
-      </motion.div>
-    </AnimatePresence>
-  );
+  return <div key={location}>{routes}</div>;
 }
 
 export default function App() {

@@ -38,20 +38,26 @@ This branch implements changes for all 28 audit findings. Implementation is not 
 | 27  | Installation instructions refer to a button that is not shown         | Capability-aware install instructions show the relevant platform first, explain unavailable prompts and distinguish sharing from installation.                                                                                                   |
 | 28  | The admin console needs task-based organisation                       | Overview, Stories, Social, Data and Settings sections; overview surfaces failures, scheduled slots and recorded publications. Technical panels render on disclosure; publication safeguards remain.                                              |
 
-## Verification
+## Verification and release
 
-- TypeScript check and production build pass, including the existing pinned local Reel voice build step.
-- Focused tests cover guest and authenticated saving, migration failure/account changes, archive filtering, subscription recovery, Ask persistence and deep links, metric formatting, contrast tokens, safe public-post metadata, Sydney scheduling, Web Vitals aggregation and service-worker recovery.
-- Full suite: 271 files and 2,228 tests passed, including real narrated-video exports; 11 database integration files and 40 tests were skipped without MySQL. Dead-code and dependency security audits pass. A post-merge regression run covers the subsequent APRA/source-access correction from main; the unchanged expensive narration suites are not repeated locally.
-- No real subscriber emails, Instagram publication jobs or production database changes were run during this work.
+- PRs #266 and #267 are merged and deployed. The final CI gate for #267 passed 285 test files and 2,283 tests, including MySQL integration, production build, type checking and dependency/dead-code security gates.
+- Live checks passed for authenticated save/remove and refresh persistence, combined archive search/category filters, contextual Ask prefill, invalid-email feedback, dark/light themes, More-menu keyboard dismissal and curator navigation.
+- Direct Sydney and Brisbane/Perth comparison documents return HTTP 200 with server-rendered evidence after correcting the server build's JSX runtime. The health endpoint reports a healthy database.
+- No subscriber emails or social publication jobs were triggered by the acceptance checks. The temporary saved story and theme changes were restored.
 
-## Release checks still required
+## Mobile reading and performance follow-up
 
-The controlled browser blocked the local preview with `net::ERR_BLOCKED_BY_CLIENT`. Therefore no new visual screenshots, mobile/dark-mode acceptance, keyboard walkthrough, screen-reader result, Lighthouse score or real-device install result is claimed.
+- Live document geometry exposed a scroll-container mismatch: the document was 1,617px tall in a 936px viewport, while `main` had equal scroll/client heights. Reading progress, position restoration and the top button listened to `main`, so they did not follow actual scrolling. They now use the document; route positions include query strings and restoration yields to reader input. Evidence fragments retain native positioning.
+- Remove the route animation runtime and its exit delay. The production entry bundle falls from 461.80 kB to 336.57 kB, or 150.84 kB to 110.41 kB gzip (27% smaller). This is a measured build-size improvement, not a claimed field LCP improvement.
+- Search uses the shared accessible dialog, a labelled 44px close target, focus trapping/return, a shrinkable input and dynamic-viewport bounds. Phone footers reserve sufficient space above bottom navigation; the top button meets the same 44px target.
+- Recent reporting reserves a loading section instead of inserting the whole section after an initially empty render.
+- Regression checks cover document scrolling, route/query restoration, delayed page height, yielding to touch, fragment preservation and search dialog dismissal/focus return.
 
-On a permitted preview, check 390px and desktop widths, comfortable reading mode, light/dark themes, keyboard navigation and dialogs. Verify direct Sydney and Brisbane/Perth comparison loads on an independent network, including fragment destinations and simulated upstream failure. Verify a real authenticated save/remove round trip, exact Instagram thumbnail matches and signup confirmation recovery using a controlled test address.
+## Device and field checks still required
 
-Web Vitals must accumulate after deployment. The overview shows sample sizes and treats small cohorts as early signals. Targets are p75 LCP at most 2.5s, INP at most 200ms and CLS at most 0.1; they are not measured results from this branch.
+The controlled browser cannot resize or emulate a device, and blocks the local preview with `net::ERR_BLOCKED_BY_CLIENT`. Live desktop interaction and screenshots are verified; real iPhone/Android layout, virtual-keyboard behaviour, screen-reader use and PWA installation are not claimed. The responsive changes above have source and automated checks, not real-device acceptance.
+
+Field measurements are still a small cohort. At the start of this follow-up there were no mobile observations; desktop p75 was 9,260ms LCP (10 samples), 272ms INP (4) and 0.224 CLS (11). Cloud acceptance sessions contribute to these samples. They identify investigation targets but cannot establish representative reader performance or a before/after result. Continue collecting observations against p75 targets of LCP ≤2.5s, INP ≤200ms and CLS ≤0.1.
 
 The `web_vitals` table is created by the existing idempotent startup catch-up mechanism. It stores metric identifiers, redacted paths, coarse viewport class and values, with a 30-day retention cleanup. Existing sports items incorrectly classified as geopolitics are repaired in bounded batches on startup. Guest bookmark import removes a local item only after a successful account save or confirmation that it already exists.
 
