@@ -10,7 +10,7 @@ import { sourceTimingLabel } from "@shared/sourceTiming";
  * image, prose with the drop cap, Why-it-matters / Counterpoint as a
  * two-up, the full-measure Say This, then the three partner angles as
  * hairline-divided columns under a major rule, then the pager. Rail: the
- * cash-rate panel, the metric rows and "More from today".
+ * cash-rate panel, the metric rows and "More from this day".
  *
  * The day-paging logic and the same-category-first ordering of the rail
  * are unchanged — only the presentation moved.
@@ -61,7 +61,7 @@ export default function StoryPage() {
   }, [id]);
 
   // Pull the rest of the story's day so the page is never a dead-end: it
-  // powers prev/next paging and the "More from today" rail. Cheap — the day
+  // powers prev/next paging and the "More from this day" rail. Cheap — the day
   // is already cached from the Today page.
   const story = itemQuery.data;
   const dayQuery = trpc.feed.getByDate.useQuery(
@@ -374,7 +374,7 @@ export default function StoryPage() {
           {moreToday.length > 0 && (
             <>
               <p className="bs-label mt-8" style={{ letterSpacing: "0.24em" }}>
-                More from today
+                More from this day
               </p>
               <div className="mt-3.5">
                 {moreToday.map((s, i) => (
