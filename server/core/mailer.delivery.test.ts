@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { send, sendDailyBriefEmail } from "./mailer";
+import { send, sendDailyBriefEmail, sendConfirmEmail } from "./mailer";
+import { EDITORIAL_CONTACT, NEWSLETTER_NOTICE } from "../../shared/legal";
 const fetchMock = vi.fn();
 beforeEach(() => {
   vi.stubEnv("RESEND_API_KEY", "test-only");
@@ -12,6 +13,18 @@ afterEach(() => {
 });
 const message = { to: "reader@example.com", subject: "Test", html: "<p>Test</p>" };
 describe("email transport", () => {
+  it("explains the newsletter scope in confirmation and routes replies to the published contact", async () => {
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ id: "email-123" })));
+    await sendConfirmEmail({
+      to: "reader@example.com",
+      confirmUrl: "https://thedesk.au/confirm-subscription?token=test",
+    });
+    const body = JSON.parse(fetchMock.mock.calls[0]![1].body);
+    expect(body.reply_to).toBe(EDITORIAL_CONTACT);
+    expect(body.text).toContain(NEWSLETTER_NOTICE);
+    expect(body.html).toContain("free weekday morning briefing and Sunday edition");
+    expect(body.html).toContain("https://thedesk.au/privacy");
+  });
   it("requires a provider receipt, not just HTTP success", async () => {
     for (const body of [{}, { id: "" }, { id: 123 }, { id: " " }]) {
       fetchMock.mockResolvedValueOnce(new Response(JSON.stringify(body)));
