@@ -91,6 +91,18 @@ export default function SocialSources() {
                 </a>
                 <p>{photo.purpose}</p>
                 <p>{photo.changes}</p>
+                {"archive" in photo && (
+                  <p>
+                    <a
+                      href={photo.archive}
+                      className="bs-link"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Kyoto University Library archive
+                    </a>
+                  </p>
+                )}
                 <a
                   href={photo.licence}
                   className="bs-link"

@@ -1,5 +1,50 @@
 /** Individually checked Commons records. Reading an article is not an image licence. */
 export const DOCUMENTARY_PHOTOS = {
+  tianjinView: {
+    asset: "documentary-tianjin-view-1930.jpg",
+    credit: "Tianjin archive, 1930 / Nikkodo / Kyoto University Library / public domain / adapted",
+    sha256: "c88e79ce42ea1a892a7d5fcee99be324e0d7a3f4de2b8ce4dcf3130b3fc13921",
+    focus: 0.5,
+    verticalFocus: 0.5,
+    source:
+      "https://commons.wikimedia.org/wiki/File:Twenty_Views_of_Tianjin_-_View_of_French_Concession_from_British_Concession.jpg",
+    licence:
+      "https://commons.wikimedia.org/wiki/File:Twenty_Views_of_Tianjin_-_View_of_French_Concession_from_British_Concession.jpg#Licensing",
+    archive: "https://rmda.kulib.kyoto-u.ac.jp/",
+    purpose:
+      "Tianjin city context in 1930, before Harry's birth. Not his family or home. Original supplied by Kyoto University Library.",
+    changes:
+      "Cropped, reframed and animated with captions. Source image provided by Kyoto University Library.",
+    reviewed: "2026-09-14",
+  },
+  worldTowerDetail: {
+    asset: "documentary-world-tower-2014.jpg",
+    credit: "World Tower archive, 2014 / WANG-HSIN PEI / CC BY 2.0 / adapted",
+    sha256: "d3268fb920af1ea209470f74544a30e02e5df1c2777f1a46ec4546afe864e510",
+    focus: 0.5,
+    verticalFocus: 0.3,
+    source: "https://commons.wikimedia.org/wiki/File:World_Tower_2014-08-22.jpg",
+    licence: "https://creativecommons.org/licenses/by/2.0/",
+    purpose:
+      "World Tower photographed in 2014. Later architectural context, not footage of its 2004 completion.",
+    changes: "Cropped, reframed, animated and overlaid with explanatory graphics.",
+    reviewed: "2026-09-14",
+  },
+  meritonConstruction: {
+    asset: "documentary-parramatta-cranes-2015.jpg",
+    credit: "Parramatta archive, 2015 / Rcbutcher / public domain / adapted",
+    sha256: "b3f8c4258d162501d08689a688bfe847d5f569e6101a3922431eaef2aa966e59",
+    focus: 0.5,
+    verticalFocus: 0.5,
+    source:
+      "https://commons.wikimedia.org/wiki/File:Meriton_cranes_on_old_David_Jones_site_Church_St_Parramatta_23042015.jpg",
+    licence:
+      "https://commons.wikimedia.org/wiki/File:Meriton_cranes_on_old_David_Jones_site_Church_St_Parramatta_23042015.jpg#Licensing",
+    purpose:
+      "Meriton construction at Church Street, Parramatta, in 2015. Only used in the closing montage; not the Tempe, Regis or Zetland sites.",
+    changes: "Cropped, reframed, animated and captioned.",
+    reviewed: "2026-09-14",
+  },
   goldCoastArchive: {
     asset: "documentary-gold-coast-2008.jpg",
     credit: "Gold Coast / GrieSeb / 2008 / public domain / adapted",

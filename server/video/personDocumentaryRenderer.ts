@@ -4,11 +4,24 @@ import { loadAsset } from "../og/instagramCards";
 import type { DocumentaryStory } from "./documentaryStory";
 import type { MeasuredPhrase } from "./phraseSpeech";
 import { TRIGUBOFF_FINANCIAL_FACTS as facts } from "../../shared/documentaryReels";
+import { documentaryEdit } from "./documentaryDirection";
 import { DOCUMENTARY_PHOTOS } from "../../shared/documentaryPhotos";
 
 /** Authored documentary sequences. Archive images retain dates and credits.
  * Diagrams explain recorded events; no invented archive documents or cash transfers. */
 export const PERSON_DOCUMENTARY_ASSETS = {
+  city: {
+    file: DOCUMENTARY_PHOTOS.tianjinView.asset,
+    sha256: DOCUMENTARY_PHOTOS.tianjinView.sha256,
+  },
+  detail: {
+    file: DOCUMENTARY_PHOTOS.worldTowerDetail.asset,
+    sha256: DOCUMENTARY_PHOTOS.worldTowerDetail.sha256,
+  },
+  construction: {
+    file: DOCUMENTARY_PHOTOS.meritonConstruction.asset,
+    sha256: DOCUMENTARY_PHOTOS.meritonConstruction.sha256,
+  },
   portrait: {
     file: DOCUMENTARY_PHOTOS.triguboffArchive.asset,
     sha256: DOCUMENTARY_PHOTOS.triguboffArchive.sha256,
@@ -188,12 +201,12 @@ export async function createPersonDocumentaryRenderer(
     c.restore();
   };
   const source = [
-    "MERITON / FOUNDER PROFILE",
+    "MERITON / FOUNDER PROFILE + DOMAIN / 2018",
     "FORBES AUSTRALIA / 2024",
     "FORBES / 2024 + DOMAIN / 2018",
     "MERITON / 2013 + NATIONAL ARCHIVES",
     "MERITON / 2013 + PROPERTY COUNCIL",
-    "DOMAIN / 21 AUGUST 2018",
+    "FORBES / 2024 + DOMAIN / 2018",
     "DOMAIN / 2018 + FORBES / 2024",
     "URBAN.COM.AU / 20 APRIL 2023",
     "FORBES / 2024 + MERITON / 2025",
@@ -213,8 +226,8 @@ export async function createPersonDocumentaryRenderer(
       local = time - scene.start;
     const split = scene.phrases[1]?.start ?? scene.seconds,
       beat = local >= split ? 1 : 0;
-    const e = local - (beat ? split : 0),
-      duration = beat ? scene.seconds - split : split,
+    const e = local - (scene.phrases[beat]?.start ?? 0),
+      duration = scene.phrases[beat]?.seconds ?? scene.seconds,
       p = clamp(e / Math.max(0.1, duration)),
       shot = idx * 2 + beat;
     c.globalAlpha = 1;
@@ -228,333 +241,482 @@ export async function createPersonDocumentaryRenderer(
       rect(x, y, 1 + (i % 2), 1, paper);
     }
     c.globalAlpha = 1;
+    const edit = documentaryEdit(shot, p),
+      stage = edit.index,
+      q = clamp(edit.progress);
+    const smooth = ease(q);
+    // A real facade motif travels through the early build, sale and retained-stock story.
+    // This is an original explanation, not a reconstruction of a specific building.
+    const facade = (
+      x: number,
+      y: number,
+      w: number,
+      rows: number,
+      cols: number,
+      fill = 1,
+      spread = 0
+    ) => {
+      const ww = w / cols,
+        hh = Math.min(170, ww * 0.82),
+        h = rows * hh;
+      if (spread < 0.1) {
+        rect(x - 18, y - 20, w + 36, h + 40, "#27352f", "#718174");
+        rect(x - 28, y - 34, w + 56, 18, "#afb19b");
+        for (let row = 0; row <= rows; row++)
+          line(x - 15, y + row * hh, x + w + 15, y + row * hh, "#8d9888", 5);
+      }
+      for (let i = 0; i < rows * cols; i++) {
+        const cx = i % cols,
+          cy = Math.floor(i / cols);
+        const xx = x + cx * ww + (cx - (cols - 1) / 2) * spread * 30;
+        const yy = y + cy * hh + cy * spread * 25;
+        const occupied = i < fill * rows * cols;
+        rect(
+          xx + 10,
+          yy + 13,
+          ww - 20,
+          hh - 26,
+          occupied ? "#53644c" : "#151f1b",
+          occupied ? gold : "#46554a"
+        );
+        line(xx + ww / 2, yy + 16, xx + ww / 2, yy + hh - 17, "#bcc2aa", 3);
+        line(xx + 14, yy + hh * 0.5, xx + ww - 14, yy + hh * 0.5, "#bcc2aa", 3);
+        rect(xx + 6, yy + hh - 21, ww - 12, 8, occupied ? "#a8ad91" : "#455347");
+      }
+    };
+    const stamp = (label: string, value: string, y: number, color = gold) => {
+      txt(label, 84, y, 27, muted);
+      title([value], 84, y + 108, 105, color);
+    };
+    const card = (value: string, label: string, x: number, y: number, w = 385) => {
+      rect(x, y, w, 174, "#e9e2d1");
+      txt(label, x + 25, y + 44, 23, "#4c5547", "DocMono", w - 50);
+      txt(value, x + 25, y + 124, 57, "#17231c", "DocTitle", w - 50);
+    };
+    const arrow = (x: number, y: number, xx: number, yy: number, color = gold) => {
+      line(x, y, xx, yy, color, 4);
+      const a = Math.atan2(yy - y, xx - x);
+      line(xx, yy, xx - 18 * Math.cos(a - 0.5), yy - 18 * Math.sin(a - 0.5), color, 4);
+      line(xx, yy, xx - 18 * Math.cos(a + 0.5), yy - 18 * Math.sin(a + 0.5), color, 4);
+    };
     if (shot === 0) {
-      photo(images.portrait, 0, 0, 1080, 1330, 1.82 + p * 0.07, 0.53, 0.56);
-      shade(720, 1340);
-      rect(0, 0, 1080, 240, "rgba(17,23,20,.60)");
-      heading("THE PERSON BEHIND MERITON");
-      title(["Harry", "Triguboff."], 84, 925, 110);
-      note("Before the towers.", 1220);
-      credit = "PORTRAIT: MERITON / 2008 / PUBLIC DOMAIN";
+      if (stage === 0) {
+        photo(images.portrait, 0, 0, 1080, 1320, 1.8 + q * 0.09, 0.53, 0.56);
+        shade(650, 1300);
+        title(["Harry", "Triguboff."], 84, 1000, 115);
+        txt("THE MAN BEHIND MERITON", 84, 1250, 28, gold);
+        credit = "PORTRAIT / MERITON / 2008 / PUBLIC DOMAIN";
+      } else {
+        photo(images.portrait, 430, 280, 650, 1000, 1.85 + q * 0.05, 0.53, 0.48);
+        rect(0, 250, 1080, 1040, "rgba(17,23,20,.75)");
+        title(["Before the towers,"], 84, 465, 74);
+        title(["A$30m"], 84, 790, 181, red);
+        txt("REPORTED DEBT / 1974–75", 84, 875, 31, paper);
+        reveal(e, duration * 0.68, () => title(["the business", "had to survive."], 84, 1060, 71));
+        credit = "DOMAIN / 2018 REPORTED HISTORY / PORTRAIT 2008";
+      }
     } else if (shot === 1) {
-      photo(images.map, 360, 280, 660, 1020, 1 + p * 0.08, 0.52, 0.4);
-      rect(62, 280, 475, 1020, "rgba(17,23,20,.94)");
-      heading("1933–1948 / THE JOURNEY");
-      title(["From China", "to Sydney."], 84, 345, 71);
-      const places = [
-        ["DALIAN", "1933 / BORN"],
-        ["TIANJIN", "CHILDHOOD"],
-        ["SYDNEY", "1948 / WITH HIS BROTHER"],
-      ];
-      for (let i = 0; i < 3; i++) {
-        const y = 650 + i * 220;
-        reveal(e, i * duration * 0.26, () => {
-          if (i) line(114, y - 205, 114, y - 22, "#687669");
-          dot(114, y);
-          txt(places[i]![0]!, 148, y + 10, 31, paper);
-          txt(places[i]![1]!, 148, y + 57, 20, gold, undefined, 355);
-        });
+      if (!stage) {
+        photo(images.city, 0, 265, 1080, 1030, 1.05 + q * 0.12, 0.45 + q * 0.08, 0.5);
+        shade(780, 1290);
+        heading("1933 / BORN IN DALIAN");
+        title(["A childhood", "in Tianjin."], 84, 1030, 91);
+        txt("CITY ARCHIVE / 1930 / BEFORE HARRY'S BIRTH", 84, 1250, 22, gold);
+        credit = "NIKKODO / KYOTO UNIVERSITY LIBRARY / PD / ADAPTED";
+      } else {
+        photo(images.map, 0, 220, 1080, 1070, 1.03 + q * 0.06, 0.52, 0.45);
+        rect(0, 220, 1080, 1070, "rgba(17,23,20,.76)");
+        heading("1948 / A NEW COUNTRY");
+        title(["Harry and", "his brother."], 84, 450, 96);
+        txt("TIANJIN", 100, 810, 42, paper);
+        arrow(120, 855, 120 + 700 * smooth, 995, gold);
+        title(["Sydney."], 490, 1110, 112);
+        txt("JOURNEY CHRONOLOGY / NOT A PLOTTED ROUTE", 84, 1250, 23, muted);
+        credit = "MAP / NIKKODO / 1930 / GEOGRAPHICUS / PUBLIC DOMAIN";
       }
-      credit = "TIANJIN MAP: NIKKODO / 1930 / GEOGRAPHICUS / PD";
     } else if (shot === 2) {
-      heading("FINDING HIS DIRECTION");
-      title(["A winding road", "into property."], 84, 340, 72);
-      const places = ["LEEDS", "ISRAEL", "SOUTH AFRICA"];
-      for (let i = 0; i < 3; i++) {
-        const y = 610 + i * 135;
-        reveal(e, i * 0.7, () => {
-          dot(110, y, 7);
-          txt(places[i]!, 145, y + 10, 31, paper);
-          if (i < 2) line(110, y + 20, 110, y + 105, "#586459");
+      heading("BEFORE THE FIRST APARTMENTS");
+      if (stage === 0) {
+        title(["Looking for", "a direction."], 84, 430, 100);
+        ["LEEDS", "ISRAEL", "SOUTH AFRICA"].forEach((place, i) => {
+          const y = 770 + i * 145;
+          reveal(e, i * duration * 0.055, () => {
+            dot(115, y, 9);
+            txt(place, 160, y + 14, 44, paper);
+          });
         });
-      }
-      reveal(e, 2, () => {
-        txt("TEXTILES", 145, 1040, 24, gold);
-      });
-      const q = ease((p - 0.37) / 0.2);
-      if (q > 0) {
+        txt("TEXTILES", 84, 1240, 29, gold);
+      } else if (stage === 1) {
+        title(["Taxis."], 84, 430, 125);
         c.save();
-        c.globalAlpha = q;
-        rect(550, 540, 390, 600, ink);
-        house(595, 690, 0.8, ease((p - 0.5) / 0.25));
-        txt("ROSEVILLE", 570, 600, 29, gold);
-        txt("TAKES OVER", 590, 1050, 25, paper);
-        txt("COMPLETION", 590, 1090, 25, paper);
+        c.translate(110 + q * 45, 740);
+        c.beginPath();
+        c.moveTo(0, 145);
+        c.lineTo(85, 125);
+        c.lineTo(185, 20);
+        c.lineTo(460, 20);
+        c.lineTo(565, 130);
+        c.lineTo(710, 160);
+        c.lineTo(735, 280);
+        c.lineTo(0, 280);
+        c.closePath();
+        c.fillStyle = "#415a48";
+        c.fill();
+        c.strokeStyle = paper;
+        c.lineWidth = 6;
+        c.stroke();
+        line(202, 48, 135, 139, gold, 6);
+        line(202, 48, 332, 48, gold, 6);
+        line(350, 48, 449, 48, gold, 6);
+        line(449, 48, 532, 139, gold, 6);
+        rect(273, -24, 112, 40, paper);
+        txt("TAXI", 285, 5, 28, ink);
+        [145, 580].forEach((x) => {
+          dot(x, 282, 69, ink);
+          c.strokeStyle = paper;
+          c.lineWidth = 6;
+          c.stroke();
+          dot(x, 282, 23, gold);
+        });
         c.restore();
-      }
-      note("Taxis. A milk round. His own home.", 1220);
-    } else if (shot === 3) {
-      heading("1963 / TEMPE");
-      title(["The first eight."], 84, 345, 90);
-      txt("LAND", 84, 490, 27, gold);
-      title([aud(facts.tempe.landAud * ease(e / 1.2))], 84, 590, 94);
-      const unit = ease((p - 0.18) / 0.28);
-      for (let i = 0; i < 8; i++) {
-        const x = 90 + (i % 4) * 205,
-          y = 750 + Math.floor(i / 4) * 135;
-        rect(x, y, 180, 110, i < unit * 8 ? "#344b3c" : "#19251e", i < unit * 8 ? gold : "#455148");
-        if (i < unit * 8) {
-          txt(String(i + 1).padStart(2, "0"), x + 20, y + 70, 32, paper);
+        note("An early business. Not the last.", 1240);
+      } else if (stage === 2) {
+        title(["A milk round."], 84, 430, 104);
+        for (let i = 0; i < 3; i++) {
+          c.save();
+          c.translate(145 + i * 240, 650 + (i % 2) * 45);
+          c.beginPath();
+          c.moveTo(45, 0);
+          c.lineTo(105, 0);
+          c.lineTo(105, 115);
+          c.lineTo(145, 175);
+          c.lineTo(145, 435);
+          c.lineTo(5, 435);
+          c.lineTo(5, 175);
+          c.lineTo(45, 115);
+          c.closePath();
+          c.fillStyle = "#273b30";
+          c.fill();
+          c.strokeStyle = paper;
+          c.lineWidth = 5;
+          c.stroke();
+          rect(14, 260, 122, 160, "#dddcca");
+          line(40, 23, 110, 23, gold, 7);
+          c.restore();
         }
+      } else {
+        title(["The builder", "wasn't working out."], 84, 410, 76);
+        house(275, 650, 1.25, smooth);
+        if (q > 0.38) {
+          rect(70, 1110, 890, 150, "#273e30");
+          txt("HARRY FINISHES THE HOUSE", 105, 1200, 39, paper);
+        }
+        txt("ROSEVILLE / HIS OWN HOME", 84, 580, 29, gold);
       }
-      if (p > 0.47) {
-        reveal(e, duration * 0.47, () => {
-          txt("GROSS BLOCK SALE / WITHIN 8 MONTHS", 84, 1115, 25, gold);
-          title([aud(facts.tempe.saleAud * ease((p - 0.47) / 0.12))], 84, 1220, 97);
+      credit = "ORIGINAL ILLUSTRATIONS / NOT ARCHIVAL OBJECTS";
+    } else if (shot === 3) {
+      heading("1963 / THE FIRST DEVELOPMENT / TEMPE");
+      if (!stage) {
+        title(["A piece", "of land."], 84, 430, 112);
+        c.save();
+        c.translate(160, 820);
+        c.transform(1, -0.2, 0.6, 0.65, 0, 0);
+        rect(0, 0, 620, 340, "#33493a", gold);
+        for (let i = 1; i < 6; i++) line(i * 100, 0, i * 100, 340, "#52654e");
+        c.restore();
+        stamp("LAND / HISTORICAL AUD EQUIVALENT", aud(facts.tempe.landAud), 1100);
+      } else if (stage === 1) {
+        title(["Eight flats."], 84, 445, 120);
+        facade(135, 700, 725, 2, 4, smooth);
+        txt("TWO STOREYS / EIGHT APARTMENTS", 84, 1200, 29, gold);
+      } else {
+        facade(155, 370, 680, 2, 4);
+        c.save();
+        c.translate(610, 735);
+        c.rotate(-0.1);
+        rect(-130, -55, 260, 105, "#e8e2cf");
+        txt("SOLD", -92, 16, 52, "#20352a");
+        c.restore();
+        stamp("GROSS BLOCK SALE / WITHIN EIGHT MONTHS", aud(facts.tempe.saleAud), 920);
+        txt("BEFORE CONSTRUCTION AND OTHER COSTS", 84, 1200, 25, paper);
+        txt("SALE PROCEEDS ARE NOT PROFIT", 84, 1250, 25, gold);
+      }
+      credit = "ORIGINAL SCHEMATIC / AUD CONVERSION, NOT INFLATION-ADJUSTED";
+    } else if (shot === 4) {
+      heading("1960s / MERITON STREET / GLADESVILLE");
+      if (!stage) {
+        rect(75, 320, 865, 122, "#e5dfcc");
+        txt("MERITON STREET", 111, 402, 59, ink);
+        facade(120, 610, 760, 3, 6);
+        title(["18 apartments."], 84, 1150, 91);
+        txt("THE STREET BECOMES THE COMPANY NAME", 84, 1240, 25, gold);
+      } else {
+        title(["Change the sale."], 84, 390, 96);
+        facade(140, 580, 720, 3, 6, 1, smooth);
+        card("Whole block", "EARLY APPROACH", 84, 1070);
+        card("One by one", "INDIVIDUAL SALES", 520, 1070);
+      }
+      credit = "ORIGINAL SCHEMATIC / COMPANY DATES GLADESVILLE TO 1968";
+    } else if (shot === 5) {
+      if (stage < 2) {
+        heading(stage === 0 ? "1969 / MERITON FLOATS" : "1973 / HARRY BUYS IT BACK");
+        title(stage === 0 ? ["A public", "company."] : ["Back in", "his hands."], 84, 440, 106);
+        const gather = stage === 0 ? 0 : smooth;
+        for (let i = 0; i < 12; i++) {
+          const angle = (i * Math.PI) / 6,
+            x = 525 + Math.cos(angle) * 320 * (1 - gather),
+            y = 930 + Math.sin(angle) * 240 * (1 - gather);
+          dot(x, y, 19, i % 2 ? gold : green);
+          if (stage) line(x, y, 525, 930, "#687a65", 2);
+        }
+        c.save();
+        c.beginPath();
+        c.arc(525, 930, 145, 0, Math.PI * 2);
+        c.clip();
+        photo(images.portrait, 380, 785, 290, 290, 2.8, 0.53, 0.46);
+        c.restore();
+        txt("OWNERSHIP / SCHEMATIC, NOT SHARE PERCENTAGES", 84, 1260, 22, muted);
+      } else {
+        rect(0, 230, 1080, 1060, "#301e1c");
+        txt("1974", 84, 485, 150, red, "DocTitle");
+        title(["Then the", "market turns."], 84, 800, 116);
+        // No fabricated price chart: this is a chapter break, not a data series.
+        line(85, 1130, 920, 1130, red, 7);
+      }
+      credit = "OWNERSHIP ILLUSTRATION / PORTRAIT: MERITON / 2008 / PD";
+    } else if (shot === 6) {
+      heading("1974–76 / THE SURVIVAL TEST");
+      if (!stage) {
+        facade(105, 360, 770, 4, 6, 0.2);
+        rect(0, 220, 1080, 1070, "rgba(36,19,19,.54)");
+        title(["Growth.", "Then pressure."], 84, 1040, 100);
+      } else if (stage === 1) {
+        rect(45, 305, 925, 720, "#2b201d");
+        txt("DOMAIN'S REPORTED HISTORY", 84, 392, 28, muted);
+        title(["A$30m"], 84, 657, 191, red);
+        txt("DEBT / 1974–75 DOWNTURN", 84, 762, 35, paper);
+        line(84, 845, 900, 845, "#735047", 3);
+        title(["The business", "has to survive."], 84, 1010, 75);
+      } else {
+        txt("1976", 84, 490, 158, paper, "DocTitle");
+        title(["Debt repaid."], 84, 690, 104, green);
+        facade(140, 900, 700, 1, 5, smooth);
+        txt("HE ALSO HELD APARTMENTS FOR RENT", 84, 1220, 28, gold);
+      }
+      credit = "REPAYMENT SOURCES NOT ITEMISED / WINDOWS ARE ILLUSTRATIVE";
+    } else if (shot === 7) {
+      photo(images.coast, 0, 220, 1080, 1070, 1.03 + p * 0.08, 0.58, 0.5);
+      shade(570, 1290);
+      heading("1980s–1990s / THE GOLD COAST");
+      if (!stage) {
+        title(["Beyond", "Sydney."], 84, 1030, 122);
+      } else {
+        const names = [
+          ["FLORIDA", "1980s"],
+          ["THE NELSON", "1980s"],
+          ["XANADU", "LATE 1990s"],
+        ];
+        names.forEach((pair, i) => {
+          const y = 690 + i * 190;
+          rect(62, y - 50, 883, 157, "rgba(17,23,20,.86)");
+          txt(pair[0]!, 92, y + 8, 46, paper);
+          txt(pair[1]!, 92, y + 63, 28, gold);
         });
       }
-      credit = "HISTORICAL AUD EQUIVALENTS / NOT INFLATION-ADJUSTED";
-    } else if (shot === 4) {
-      heading("1960s / GLADESVILLE");
-      title(["18 apartments."], 84, 345, 88);
-      txt("MERITON STREET", 84, 425, 30, gold);
-      const spread = ease((p - 0.4) / 0.35);
-      for (let i = 0; i < 18; i++) {
-        const x = 100 + (i % 6) * (127 + spread * 11),
-          y = 620 + Math.floor(i / 6) * (126 + spread * 18);
-        rect(x, y, 121 - spread * 8, 120 - spread * 10, "#293b30", paper);
-        txt(String(i + 1).padStart(2, "0"), x + 32, y + 73, 25, gold);
-      }
-      reveal(e, duration * 0.4, () => {
-        txt("ONE BLOCK", 84, 1130, 25, muted);
-        line(84, 1145, 250, 1145, red, 3);
-        note("Individual apartment sales.", 1220);
-      });
-      credit = "18 UNITS / COMPANY HISTORY DATES PROJECT TO 1968";
-    } else if (shot === 5) {
-      heading("1969–1974 / CONTROL AND RISK");
-      title(["Public.", "Private again."], 84, 345, 88);
-      const cx = 515,
-        cy = 850,
-        r = 215;
-      c.beginPath();
-      c.arc(cx, cy, r, 0, Math.PI * 2);
-      c.strokeStyle = "#526355";
-      c.lineWidth = 2;
-      c.stroke();
-      const consolidate = ease((p - 0.3) / 0.36);
-      for (let i = 0; i < 10; i++) {
-        const a = (i * Math.PI) / 5;
-        dot(
-          cx + Math.sin(a) * r * (1 - consolidate),
-          cy + Math.cos(a) * r * (1 - consolidate),
-          12,
-          gold
+      credit = "GOLD COAST CONTEXT / GRIESEB / 2008 / PD / NOT NAMED PROJECTS";
+    } else if (shot === 8) {
+      heading("1989–1990 / MORE THAN A BUILDER");
+      facade(195, 370, 620, 2, 4);
+      const labels = ["BUILD", "FINANCE", "MANAGE"];
+      for (let i = 0; i <= stage; i++) {
+        const y = 900 + i * 120;
+        dot(105, y, 9, i === stage ? gold : muted);
+        txt(labels[i]!, 150, y + 14, 49, i === stage ? paper : muted);
+        if (i) line(105, y - 100, 105, y - 20, gold, 3);
+        txt(
+          i === 0 ? "THE APARTMENT" : i === 1 ? "FORMAL DIVISION / 1989" : "DIVISION / 1990",
+          495,
+          y + 11,
+          22,
+          gold,
+          undefined,
+          425
         );
       }
-      if (consolidate > 0.3) {
-        c.save();
-        c.globalAlpha = ease((consolidate - 0.3) / 0.6);
-        c.beginPath();
-        c.arc(cx, cy, 175, 0, Math.PI * 2);
-        c.clip();
-        photo(images.portrait, cx - 180, cy - 180, 360, 360, 2.8, 0.53, 0.46);
-        c.restore();
-      }
-      if (consolidate > 0.95) txt("HARRY / CONTROL", cx - 140, cy + 280, 27, paper);
-      txt("1969 / FLOAT", 84, 1175, 27, muted);
-      txt("1973 / BUYBACK", 550, 1175, 27, gold, undefined, 370);
-      if (p > 0.82) {
-        rect(0, 1210, 1080, 82, "#3a2420");
-        txt("1974 / THE MARKET TURNS", 84, 1263, 28, red);
-      }
-      credit = "OWNERSHIP DIAGRAM / PORTRAIT: MERITON, 2008 / PD";
-    } else if (shot === 6) {
-      heading("1974–75 / THE PROPERTY CRASH");
-      title(["A$30 million."], 84, 390, 106, red);
-      txt("REPORTED DEBT", 84, 465, 28, paper);
-      for (let i = 0; i < 30; i++) {
-        const x = 92 + (i % 6) * 138,
-          y = 610 + Math.floor(i / 6) * 82;
-        rect(x, y, 110, 57, "#2b3028", i < 10 ? red : "#5a6157");
-      }
-      txt("UNSOLD APARTMENTS", 84, 1100, 28, muted);
-      reveal(e, duration * 0.55, () => {
-        line(84, 1150, 924, 1150, "#59635a");
-        txt("1976", 84, 1240, 60, paper);
-        txt("DEBT REPAID", 360, 1230, 32, green);
-      });
-      credit = "REPORTED HISTORY / REPAYMENT SOURCES NOT ITEMISED";
-    } else if (shot === 7) {
-      photo(images.coast, 0, 280, 1080, 1060, 1.03 + p * 0.08, 0.58, 0.5);
-      rect(0, 280, 1080, 150, "rgba(17,23,20,.60)");
-      shade(850, 1320);
-      heading("1980s–1990s / QUEENSLAND");
-      title(["Beyond Sydney."], 84, 360, 84);
-      const names = [
-        ["FLORIDA", "SURFERS PARADISE"],
-        ["THE NELSON", "PARADISE WATERS"],
-        ["XANADU", "LATE 1990s"],
-      ];
-      for (let i = 0; i < 3; i++) {
-        reveal(e, i * duration * 0.23, () => {
-          const y = 830 + i * 154;
-          rect(64, y - 49, 860, 115, "rgba(17,23,20,.87)");
-          txt(names[i]![0]!, 84, y, 35, paper);
-          txt(names[i]![1]!, 84, y + 42, 22, gold);
-        });
-      }
-      credit = "COAST CONTEXT: GRIESEB / 2008 / PUBLIC DOMAIN";
-    } else if (shot === 8) {
-      heading("1989–1990 / THE OPERATING BUSINESS");
-      title(["Help them buy.", "Then manage it."], 84, 345, 78);
-      const stages = [
-        ["DEVELOP", "APARTMENTS"],
-        ["FINANCE", "FORMAL DIVISION / 1989"],
-        ["MANAGE", "DIVISION / 1990"],
-      ];
-      for (let i = 0; i < 3; i++) {
-        reveal(e, i * duration * 0.25, () => {
-          const y = 630 + i * 190;
-          rect(84, y, 840, 130, i === 1 ? "#344738" : "#1a2720", gold);
-          txt(stages[i]![0]!, 112, y + 53, 32, paper);
-          txt(stages[i]![1]!, 112, y + 101, 22, gold);
-          if (i < 2) line(500, y + 130, 500, y + 185, gold, 3);
-        });
-      }
-      note("A business around the apartment.", 1240);
-      credit = "VENDOR LENDING EXISTED BEFORE THE FORMAL DIVISION";
+      credit = "BUSINESS MODEL / VENDOR LENDING PRE-DATED THE 1989 DIVISION";
     } else if (shot === 9) {
-      heading("1998–1999 / REGIS, SYDNEY");
-      title(["Already building tall."], 84, 340, 77);
-      facts.regis.levels.forEach((n, i) => {
-        const x = 115 + i * 280,
-          q = ease((p - i * 0.08) / 0.36);
-        tower(x, 1050, 175, n, q, i === 1 ? gold : green);
-        txt(String(Math.round(n * q)), x + 25, 1110, 65, paper);
-        txt(i === 0 ? "1998" : "1999", x + 37, 1160, 25, muted);
-      });
-      if (p > 0.52) {
-        reveal(e, duration * 0.52, () => {
-          rect(64, 1188, 880, 96, "#26372c");
-          txt("CONTRACTS", 84, 1224, 21, gold);
-          txt(
-            `${aud(facts.regis.contractsAud[0])}  /  ${aud(facts.regis.contractsAud[1])}`,
-            84,
-            1262,
-            32,
-            paper
-          );
+      heading("1998–1999 / REGIS / SYDNEY");
+      if (!stage) {
+        title(["Already", "building tall."], 84, 415, 100);
+        facts.regis.levels.forEach((n, i) => {
+          const x = 110 + i * 282;
+          tower(x, 1130, 182, n, ease(q * 1.4 - i * 0.15), i === 1 ? gold : green);
+          txt(String(n), x + 38, 1215, 66, paper);
         });
+        credit = "32 / 43 / 36 LEVELS / SHARED SCALE, NOT BUILDING LIKENESSES";
+      } else {
+        title(["The apartments", "inside the towers."], 84, 435, 82);
+        tower(685, 1180, 200, 43, 1, "#526752");
+        card(aud(facts.regis.contractsAud[0]), "CONTRACT / MARCH 1999", 84, 685, 580);
+        card(aud(facts.regis.contractsAud[1]), "CONTRACT / MARCH 1999", 84, 915, 580);
+        txt("TWO INDIVIDUAL PRICES. NOT AVERAGES.", 84, 1220, 27, gold);
+        credit = "FEDERAL COURT RECORD / FIGURE CARDS, NOT RECREATED DOCUMENTS";
       }
-      credit = "LEVEL COUNTS / TWO INDIVIDUAL CONTRACTS, NOT AVERAGES";
     } else if (shot === 10) {
-      photo(images.tower, 0, 240, 1080, 1100, 1.06 + p * 0.04, 0.45, 0.1);
-      rect(0, 230, 1080, 180, "rgba(17,23,20,.70)");
-      shade(700, 1340);
-      heading("1999–2004 / WORLD SQUARE");
-      title(["World Tower."], 84, 345, 90);
-      const q = ease((p - 0.3) / 0.45),
-        x = 630,
-        base = 1160,
-        w = 230,
-        h = 660;
-      rect(x, base - h, w, h, "rgba(17,23,20,.86)", paper);
-      const occupied = Math.round(30 * q);
-      for (let i = 0; i < 60; i++) {
-        const yy = base - i * 10 - 8;
-        line(x + 12, yy, x + w - 12, yy, i < occupied ? green : "#64716a", i < occupied ? 5 : 2);
+      if (stage < 2) {
+        photo(
+          stage === 0 ? images.tower : images.detail,
+          0,
+          220,
+          1080,
+          1070,
+          1.01 + q * 0.06,
+          0.48,
+          stage === 0 ? 0.12 : 0.42 - q * 0.15
+        );
+        shade(670, 1290);
+        heading("1999–2004 / WORLD SQUARE");
+        title(
+          stage === 0 ? ["World", "Tower."] : ["A new scale."],
+          84,
+          1030,
+          stage === 0 ? 124 : 94
+        );
+        credit =
+          stage === 0
+            ? "WORLD TOWER / ADAM.J.W.C. / 2008 / CC BY 3.0"
+            : "WORLD TOWER / WANG-HSIN PEI / 2014 / CC BY 2.0 / ADAPTED";
+      } else {
+        heading("2004 / COMPLETION");
+        title(["Occupied below.", "Building above."], 84, 390, 75);
+        const x = 390,
+          y = 595,
+          w = 285,
+          h = 610;
+        rect(x, y, w, h, "#203228", paper);
+        for (let i = 0; i < 28; i++)
+          line(
+            x + 14,
+            y + 16 + i * 21,
+            x + w - 14,
+            y + 16 + i * 21,
+            i > 13 ? green : "#667566",
+            i > 13 ? 8 : 3
+          );
+        line(95, 675, x - 20, 675, paper, 3);
+        txt("WORK", 95, 630, 30, paper);
+        line(x + w + 20, 1100, 920, 1100, green, 3);
+        txt("LIFE", 750, 1055, 30, green);
+        line(350, y + 290, 720, y + 290, gold, 4);
+        txt("CONSTRUCTION AND OCCUPATION OVERLAPPED", 84, 1260, 24, gold);
+        credit = "JBW PROJECT ACCOUNT / SCHEMATIC SECTION, NOT FLOOR COUNTS";
       }
-      reveal(e, duration * 0.35, () => {
-        txt("BUILDING", 84, 710, 31, paper);
-        txt("ABOVE", 84, 755, 31, paper);
-        line(84, 800, 590, 800, paper);
-        txt("OCCUPIED", 84, 1035, 31, green);
-        txt("BELOW", 84, 1080, 31, green);
-        line(84, 1120, 590, 1120, green);
-      });
-      credit = "PHOTO: ADAM.J.W.C. / 2008 / CC BY 3.0 / DIAGRAM OVERLAY";
     } else if (shot === 11) {
-      heading("2003 / SERVICED APARTMENTS");
-      title(["Another use.", "Another business."], 84, 340, 78);
-      // A floor plan becomes accommodation: furniture, kitchen and nightly use.
-      const x = 130,
-        y = 590,
-        w = 720,
-        h = 425;
-      rect(x, y, w, h, "#26392d", paper);
-      line(x + 455, y, x + 455, y + h, paper, 4);
-      line(x + 455, y + 205, x + w, y + 205, paper, 4);
-      rect(x + 490, y + 32, 190, 126, "#6b765d", gold);
-      line(x + 490, y + 60, x + 680, y + 60, paper);
-      rect(x + 35, y + 55, 225, 75, "#465944", gold);
-      c.strokeStyle = gold;
-      c.lineWidth = 3;
-      c.strokeRect(x + 35, y + 200, 145, 90);
-      dot(x + 300, y + 295, 42, "#637154");
-      reveal(e, 1, () => {
-        txt("ROOM TO LIVE", 170, 1110, 31, paper);
-      });
-      reveal(e, 2, () => {
-        txt("AND COOK", 170, 1160, 31, gold);
-      });
-      note("Apartments become accommodation.", 1240);
-    } else if (shot === 12) {
-      heading("2009 / THROUGH THE FINANCIAL CRISIS");
-      title(["Buying when", "markets hurt."], 84, 340, 79);
-      // Parcel diagram is deliberately schematic, not a fictional cadastral map.
-      c.save();
-      c.translate(94, 590);
-      c.transform(1, -0.12, 0.23, 0.65, 0, 0);
-      for (let i = 0; i < 12; i++) {
-        const x = (i % 4) * 182,
-          y = Math.floor(i / 4) * 157;
-        rect(x, y, 166, 141, i < ease(p * 2) * 12 ? "#50674e" : "#1c2b21", gold);
-      }
-      c.restore();
+      heading("2003 / SERVICED APARTMENTS BEGIN");
       title(
-        [`A$${Math.round((facts.gfc.acquisitionAud / 1e6) * ease(e / 1.3))}m`],
+        stage === 0 ? ["Keep the space."] : stage === 1 ? ["Change its use."] : ["Run the stay."],
         84,
-        1055,
-        128,
-        gold
+        425,
+        94
       );
-      txt("VICTORIA PARK / ZETLAND PURCHASE", 84, 1120, 24, paper);
-      reveal(e, duration * 0.57, () => {
-        txt("1,800 HOUSING STARTS / FY2008–09", 84, 1240, 29, green);
-      });
-    } else if (shot === 13) {
-      heading("2013–2014 / BORROWING AGAIN");
-      title(["Keep more homes.", "Tie up more capital."], 84, 340, 74);
-      for (let i = 0; i < 6; i++) {
-        const x = 95 + (i % 3) * 282,
-          y = 635 + Math.floor(i / 3) * 175;
-        house(x, y, 0.55, 1);
+      const x = 135,
+        y = 620,
+        w = 720,
+        h = 450;
+      rect(x, y, w, h, "#314338", paper);
+      line(x + 440, y, x + 440, y + h, paper, 5);
+      line(x + 440, y + 215, x + w, y + 215, paper, 5);
+      if (stage >= 1) {
+        rect(x + 475, y + 32, 204, 140, "#899279", gold);
+        rect(x + 480, y + 36, 89, 36, "#e2deca");
+        rect(x + 582, y + 36, 89, 36, "#e2deca");
+        rect(x + 34, y + 30, 320, 75, "#8b937c", gold);
+        rect(x + 37, y + 190, 135, 200, "#53674e", gold);
+        dot(x + 300, y + 280, 45, "#b0ac8b");
       }
-      reveal(e, duration * 0.32, () => {
-        rect(64, 1050, 890, 225, ink);
-        txt("REPORTED DEBT / FEBRUARY 2014", 84, 1095, 24, paper);
-        title(["~A$300m"], 84, 1225, 126, gold);
-      });
-      credit = "BORROWING RESUMED IN 2013 / RETAINING MORE APARTMENTS";
+      if (stage === 2) {
+        rect(420, 1100, 475, 154, "#e9e2d1");
+        txt("GUEST STAYS", 450, 1150, 27, ink);
+        txt("An operating business", 450, 1210, 32, ink, "DocBody", 415);
+      } else
+        txt(stage === 0 ? "THE APARTMENT" : "BEDROOM. KITCHEN. LIVING SPACE.", 84, 1220, 30, gold);
+      credit = "ORIGINAL FLOOR PLAN / ILLUSTRATIVE, NOT A NAMED SUITE";
+    } else if (shot === 12) {
+      heading("2008–09 / THE GLOBAL FINANCIAL CRISIS");
+      if (!stage) {
+        title(["Another downturn.", "Another decision."], 84, 435, 86);
+        c.save();
+        c.translate(140, 780);
+        c.transform(1, -0.18, 0.35, 0.62, 0, 0);
+        rect(0, 0, 660, 370, "#344d3c", gold);
+        line(0, 185, 660, 185, paper, 5);
+        line(220, 0, 220, 370, paper, 5);
+        line(440, 0, 440, 370, paper, 5);
+        c.restore();
+        stamp("VICTORIA PARK / ZETLAND LAND PURCHASE", "A$109m", 1080);
+      } else {
+        title(["1,800"], 84, 540, 206, gold);
+        txt("HOUSING STARTS / FY2008–09", 84, 640, 33, paper);
+        for (let i = 0; i < 9; i++)
+          facade(100 + (i % 3) * 287, 800 + Math.floor(i / 3) * 134, 220, 1, 4, 1);
+        credit = "URBAN TASKFORCE / SYMBOLIC BUILDINGS, NOT ONE ICON PER START";
+      }
+    } else if (shot === 13) {
+      heading("2013–2014 / CAPITAL HAS A COST");
+      if (!stage) {
+        title(["Keep more", "apartments."], 84, 430, 110);
+        facade(115, 710, 770, 3, 5);
+        txt("MORE CAPITAL STAYS IN THE BUILDINGS", 84, 1240, 28, gold);
+      } else {
+        title(["Borrow again."], 84, 445, 112);
+        stamp("REPORTED DEBT / FEBRUARY 2014", "~A$300m", 740);
+        txt("BORROWING RESUMED IN 2013", 84, 1090, 34, paper);
+        txt("RETAINING STOCK TIES UP CAPITAL", 84, 1240, 28, gold);
+      }
+      credit = "THE BUSINESS TIMES / 13 FEBRUARY 2014 / APPROXIMATE DEBT";
     } else if (shot === 14) {
-      photo(images.accommodation, 0, 230, 1080, 1090, 1.02 + p * 0.07, 0.5, 0.05);
-      shade(400, 1150);
-      rect(64, 820, 890, 410, "rgba(17,23,20,.88)");
+      photo(images.accommodation, 0, 220, 1080, 1070, 1.05 + p * 0.05, 0.5, 0.08);
+      shade(390, 1290);
       heading("FY2020 / REPORTED GROUP RENTS");
-      title(["A$447m"], 84, 990, 146, gold);
-      txt("RENTAL INCOME", 84, 1080, 32, paper);
-      txt("NOT PROFIT", 84, 1160, 32, green);
-      credit = "MERITON CONTEXT: SARDAKA / 2024 / CC0";
+      title(["A$447m"], 84, 1000, 160, gold);
+      txt(
+        stage === 0 ? "RENTAL INCOME" : "RENTAL INCOME IS NOT PROFIT",
+        84,
+        1120,
+        stage === 0 ? 38 : 31,
+        paper
+      );
+      if (stage) txt("GROUP ACCOUNTS / ONE FINANCIAL YEAR", 84, 1230, 26, gold);
+      credit = "MERITON BUILDING / SARDAKA / 2024 / CC0 / LATER CONTEXT";
     } else {
-      photo(images.portrait, 0, 0, 1080, 1330, 1.83 + p * 0.05, 0.53, 0.56);
-      shade(700, 1360);
-      rect(0, 0, 1080, 240, "rgba(17,23,20,.60)");
-      heading("THE BUSINESS BEHIND THE BUILDINGS");
-      title(["80,000+"], 84, 945, 126, gold);
-      txt("APARTMENTS BUILT", 84, 1020, 32, paper);
-      reveal(e, 1, () => {
-        txt("BUILD. SELL. FINANCE. HOLD.", 84, 1160, 30, paper);
-      });
-      note("Harry Triguboff. Meriton.", 1240);
-      credit = "COMPANY TOTAL / NOT CURRENT OWNERSHIP / PORTRAIT 2008";
+      if (stage === 0) {
+        heading("1963 / THE BEGINNING");
+        title(["Eight flats."], 84, 490, 120);
+        facade(135, 760, 725, 2, 4);
+      } else if (stage === 1) {
+        photo(images.detail, 0, 220, 1080, 1070, 1.04 + q * 0.08, 0.5, 0.3);
+        shade(540, 1290);
+        title(["80,000+"], 84, 1030, 163, gold);
+        txt("APARTMENTS BUILT / COMPANY TOTAL", 84, 1140, 29, paper);
+        txt("CUMULATIVE BUILT. NOT CURRENT OWNERSHIP.", 84, 1240, 23, gold);
+        credit = "WORLD TOWER / WANG-HSIN PEI / 2014 / CC BY 2.0 / ADAPTED";
+      } else {
+        photo(images.construction, 0, 220, 1080, 1070, 1.01 + q * 0.05, 0.5, 0.35);
+        shade(440, 1290);
+        const words = ["BUILD.", "SELL.", "FINANCE.", "MANAGE.", "HOLD."];
+        words.forEach((word, i) => {
+          if (q >= i * 0.13) txt(word, 84, 535 + i * 120, 83, i === 4 ? gold : paper, "DocTitle");
+        });
+        txt("HARRY TRIGUBOFF / THE BUSINESS BEHIND THE SKYLINE", 84, 1240, 23, gold);
+        credit = "MERITON CRANES / PARRAMATTA / RCBUTCHER / 2015 / PD";
+      }
     }
     txt("THE DESK", 84, 125, 23, paper);
-    txt(`${String(shot + 1).padStart(2, "0")} / 16`, 790, 125, 22, muted, undefined, 135);
+    txt("PROPERTY EMPIRES", 660, 125, 22, muted, undefined, 260);
     // One fixed source zone; all visual content ends above the subtitle separator.
     rect(0, 1290, 1080, 165, ink);
-    txt(source[shot]!, 84, 1329, 20, muted);
-    txt(credit, 84, 1380, 18, muted);
+    txt(source[shot]!, 84, 1330, 22, muted);
+    txt(credit, 84, 1380, 20, muted);
     line(84, 1430, 924, 1430, "#425247", 1);
     line(84, 1430, 84 + (840 * time) / total, 1430, gold, 3);
     if (shot > 0 && e < 0.12) {

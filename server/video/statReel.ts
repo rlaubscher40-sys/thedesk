@@ -768,6 +768,27 @@ export async function renderStatReel(
     for (const file of frameFiles) args.push("-i", file);
     for (const s of spokenSections) args.push("-i", s.file);
 
+    // Authored person documentary only. Other Reel audio paths remain unchanged.
+    const scored = Boolean(
+      spokenSections.length && stat.documentary?.treatment === "person-led-v2"
+    );
+    if (scored) {
+      const { documentarySoundtrack } = await import("./documentarySoundtrack");
+      const scoreFile = path.join(dir, "documentary-score.wav");
+      await fs.writeFile(
+        scoreFile,
+        documentarySoundtrack(
+          sections.map((s, i) => ({
+            start: starts[i]!,
+            seconds: durations[s.key]!,
+            phrases: phrases[s.key]!,
+          })),
+          total
+        )
+      );
+      args.push("-i", scoreFile);
+    }
+
     let subtitleFilter = "";
     if (opts.subtitles) {
       if (!spoken) throw new Error("Subtitles require measured narration.");
@@ -816,17 +837,28 @@ export async function renderStatReel(
     const videoGraph = continuous
       ? "[0:v]format=yuv420p[vout]"
       : buildVideoGraph(beats, Boolean(stat.storyboard));
+    let audioGraph = spokenSections.length
+      ? buildAudioGraph(
+          spokenSections.map((s) => s.start),
+          continuous ? 1 : frameFiles.length,
+          total,
+          documentary
+        )
+      : "";
+    if (scored) {
+      const { DOCUMENTARY_DIRECTION } = await import("./documentaryDirection");
+      const scoreInput = (continuous ? 1 : frameFiles.length) + spokenSections.length;
+      audioGraph =
+        audioGraph.replace(/\[aout\]$/, "[voice]") +
+        `;[voice]asplit=2[voiceMix][voiceKey];[${scoreInput}:a][voiceKey]` +
+        `sidechaincompress=threshold=0.015:ratio=${DOCUMENTARY_DIRECTION.sound.duckRatio}:attack=15:release=320[scoreDuck];` +
+        "[voiceMix][scoreDuck]amix=inputs=2:duration=longest:normalize=0," +
+        "alimiter=limit=0.84:level=0:latency=1[aout]";
+    }
     const graph = [
       opts.subtitles ? videoGraph.replace(/\[vout\]$/, "[vplain]") : videoGraph,
       subtitleFilter,
-      spokenSections.length
-        ? buildAudioGraph(
-            spokenSections.map((s) => s.start),
-            continuous ? 1 : frameFiles.length,
-            total,
-            documentary
-          )
-        : "",
+      audioGraph,
     ]
       .filter(Boolean)
       .join(";");
