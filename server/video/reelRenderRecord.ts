@@ -56,6 +56,7 @@ export function captureReelRender(
     coverSha256: createHash("sha256").update(cover).digest("hex"),
     buildCommit: buildCommit && /^[a-f0-9]{40}$/.test(buildCommit) ? buildCommit : null,
     recipe:
+      stat.documentary?.recipe ??
       stat.visualStory?.recipe ??
       (stat.storyboard?.kind === "housing-balance" ? "housing-balance" : null),
     seconds: video.seconds,

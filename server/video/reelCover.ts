@@ -1,4 +1,5 @@
 import { createCanvas, loadImage } from "@napi-rs/canvas";
+import { createHash } from "node:crypto";
 import { loadAsset, renderEditorialLayer } from "../og/instagramCards";
 import type { ReelStat } from "./statReel";
 import type { ScriptLine } from "./narration";
@@ -8,8 +9,30 @@ import { matchedHousingBalance } from "../../shared/housingBalance";
 import { evidenceOpening, housingOpening } from "./reelOpening";
 import { assertReelVisualSequence, reelSceneShot, REEL_SHOTS } from "./reelVisualStandard";
 import { loanPhotoCrop } from "./loanStoryPhotography";
+import { validateDocumentary } from "./documentaryStory";
 
 export function reelCoverContent(stat: ReelStat, script: ScriptLine[]) {
+  if (stat.documentary) {
+    validateDocumentary(stat.documentary, script);
+    const story = stat.documentary;
+    const shot = reelSceneShot(story.recipe, "label");
+    if (!shot) throw new Error("Documentary cover needs its opening photograph.");
+    return {
+      recipe: story.recipe,
+      shot: REEL_SHOTS[shot],
+      opening: {
+        headline:
+          story.treatment === "person-led-v2" ? "Harry Triguboff." : story.scenes[0]!.headline,
+        detail:
+          story.treatment === "person-led-v2"
+            ? "Eight flats were the beginning."
+            : story.scenes[0]!.detail,
+        voice: script[0]!.text,
+      },
+      period: story.period,
+      source: story.series,
+    };
+  }
   const visual = stat.visualStory;
   const story = stat.storyboard;
   if (story) validateStoryboard(story, script);
@@ -46,16 +69,24 @@ export async function renderReelCover(stat: ReelStat, script: ScriptLine[]) {
   const cover = reelCoverContent(stat, script);
   const asset = await loadAsset(cover.shot.asset);
   if (!asset) throw new Error(`Reviewed Reel cover photograph is missing: ${cover.shot.asset}`);
+  if (
+    stat.documentary &&
+    "sha256" in cover.shot &&
+    createHash("sha256")
+      .update(Buffer.from(asset.split(",")[1]!, "base64"))
+      .digest("hex") !== cover.shot.sha256
+  )
+    throw new Error("Reviewed documentary cover photograph changed.");
   const photo = await loadImage(asset);
   const canvas = createCanvas(1080, 1920),
     ctx = canvas.getContext("2d");
-  const crop = loanPhotoCrop(
-    photo.width,
-    photo.height,
-    cover.shot.focus,
-    0.35,
-    "zoom" in cover.shot ? cover.shot : {}
-  );
+  const crop = loanPhotoCrop(photo.width, photo.height, cover.shot.focus, 0.35, {
+    zoom: "zoom" in cover.shot && typeof cover.shot.zoom === "number" ? cover.shot.zoom : undefined,
+    verticalFocus:
+      "verticalFocus" in cover.shot && typeof cover.shot.verticalFocus === "number"
+        ? cover.shot.verticalFocus
+        : undefined,
+  });
   ctx.drawImage(photo, crop.x, crop.y, crop.width, crop.height);
   const gradient = ctx.createLinearGradient(0, 0, 0, 1920);
   for (const [stop, alpha] of [
@@ -102,7 +133,13 @@ export async function renderReelCover(stat: ReelStat, script: ScriptLine[]) {
         style: { display: "flex", position: "relative", width: 840, height: 1000 },
         children: [
           line(0, "The Desk", 52, 65, false, true),
-          line(82, "THE EVIDENCE / EXPLAINED", 24, 35, true),
+          line(
+            82,
+            stat.documentary?.series.toUpperCase() ?? "THE EVIDENCE / EXPLAINED",
+            24,
+            35,
+            true
+          ),
           line(350, cover.opening.headline, 82, 280, false, true),
           line(650, cover.opening.detail, 38, 100, true),
           line(780, cover.period, 27, 65),

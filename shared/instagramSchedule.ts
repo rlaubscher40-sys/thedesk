@@ -17,6 +17,11 @@ export const REEL_WINDOW = {
   endMinute: 20 * 60,
   label: "6:30–8pm Sydney time",
 };
+/** Documentary slots replace that day's data Reel. Trial cadence, not an optimal-time claim. */
+export function documentarySlot(now: Date): "The Deal" | "Property Empires" | null {
+  const { dow } = sydneySocialClock(now);
+  return dow === 3 ? "The Deal" : dow === 0 ? "Property Empires" : null;
+}
 export function inReelWindow(now: Date): boolean {
   const { minutes } = sydneySocialClock(now);
   return minutes >= REEL_WINDOW.startMinute && minutes < REEL_WINDOW.endMinute;

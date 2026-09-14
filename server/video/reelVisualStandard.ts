@@ -2,8 +2,10 @@ import type { EvidenceRecipe } from "./evidenceVisual";
 import { LOAN_SHOTS } from "./loanStoryPhotography";
 import { smooth } from "./reelMotion";
 import { REEL_PHOTO_CATALOGUE } from "./reelPhotoCatalogue";
+import { DOCUMENTARY_PHOTOS } from "../../shared/documentaryPhotos";
 
 export const REEL_SHOTS = {
+  ...DOCUMENTARY_PHOTOS,
   ...LOAN_SHOTS,
   ...REEL_PHOTO_CATALOGUE,
   moving: {
@@ -17,12 +19,36 @@ export const REEL_SHOTS = {
     focus: 0.5,
   },
 } as const;
-export type ReelVisualRecipe = EvidenceRecipe | "housing-balance";
+export type ReelVisualRecipe =
+  | EvidenceRecipe
+  | "housing-balance"
+  | "grollo-documentary"
+  | "meriton-documentary";
 export type ReelShot = keyof typeof REEL_SHOTS;
 
 /** Null means an intentionally clean evidence graphic, never an unreviewed
  * fallback. Every production recipe explicitly covers its complete script. */
 export const REEL_VISUAL_SEQUENCES: Record<ReelVisualRecipe, Record<string, ReelShot | null>> = {
+  "grollo-documentary": {
+    label: "rialtoArchive",
+    value: null,
+    line: "money",
+    turn: null,
+    mechanism: null,
+    stakes: "rialtoArchive",
+    meaning: null,
+    signOff: "rialtoArchive",
+  },
+  "meriton-documentary": {
+    label: "triguboffArchive",
+    value: null,
+    line: "meritonArchive",
+    turn: "triguboffArchive",
+    mechanism: null,
+    stakes: "meritonArchive",
+    meaning: null,
+    signOff: "meritonArchive",
+  },
   "new-loan-rates": {
     label: "bank",
     value: "money",

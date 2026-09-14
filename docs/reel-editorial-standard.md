@@ -1,5 +1,13 @@
 # The Desk Reel editorial standard
 
+## Documentary facts, money and storytelling
+
+Introduce the person first, with a real face and a clear reason to follow their story. Numbers and facts provide credibility; visuals and storytelling earn attention. Both must coexist in every documentary. Choose figures that explain risk, results, growth or the next decision, and give those figures a visible story beat.
+
+Always use AUD in narration, captions and graphics. Identify historical AUD equivalents and state whether inflation adjustment is applied. Do not silently turn a historical currency conversion into a present-day value. Keep land cost, total project cost, gross sale proceeds, profit, rents and personal income distinct. A later larger project does not establish that all earlier sale proceeds funded it. Show an exact transfer only when a source establishes it.
+
+Use the source's period and measurement basis. A company history is a company account; a reported interview contains attributed recollections; secondary reporting on lodged accounts is not independent inspection of those accounts. Keep unavailable transaction prices and returns out of the script. Full notes hold the qualifications, while the film presents the essential distinctions in clear language.
+
 ## Required across every automatic Reel, 12 September 2026
 
 Full-screen visual storytelling is a programme requirement, not an optional

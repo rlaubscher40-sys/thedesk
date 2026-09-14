@@ -10,10 +10,12 @@ import { reelPublicationRecord } from "./reelStatus";
 import { isRateLimitError } from "./api";
 import { logReelPlan } from "./reelPlanSummary";
 import { readReelPublicationHistory } from "../db/reelHistory";
+import { DOCUMENTARY_EPISODES } from "./documentaryEpisodes";
+import { documentaryCandidate } from "./verifiedDocumentaryReel";
 const REEL_RETRY_MINUTES = 15;
 const REEL_STALE_MINUTES = 15;
 export const REEL_MAX_ATTEMPTS = 2;
-export const REEL_SCHEDULE = `Eight evidence-gated topics across rents, supply, borrowing costs and population movement; at most one automatic Reel per Sydney day, ${REEL_WINDOW.label}, checked every 5 minutes. Eligible families rotate by least recent confirmed publication, then newest evidence. Monthly, quarterly and annual-report releases determine availability; daily posts are not guaranteed`;
+export const REEL_SCHEDULE = `Wednesday: The Deal. Sunday: Property Empires. Reviewed documentary episodes take that day's slot at 6:30pm Sydney, within ${REEL_WINDOW.label}. Four finished episodes are required before launch. Eight data topics fill other days or an empty documentary slot. At most one automatic Reel per Sydney day, checked every 5 minutes; daily posts are not guaranteed`;
 const REEL_DELIVERY_KEY = "instagram-reel-delivery-programme-v1";
 
 function sydneyDate(now: Date) {
@@ -60,6 +62,27 @@ async function readReelSelection(
 ) {
   const candidates = await getVerifiedReelCandidates(now);
   const date = sydneyDate(now);
+  // A dated slot expiring must not hide an uncertain publication. Keep reading
+  // permanent documentary receipts after their day, even if review is withdrawn.
+  const documentaries = DOCUMENTARY_EPISODES.filter((episode) => episode.releaseDate <= date).map(
+    (episode) => ({
+      ...documentaryCandidate(episode),
+      topic: episode.series,
+      family: episode.series === "The Deal" ? "documentary-deal" : "documentary-empires",
+    })
+  );
+  const documentaryRecords = await Promise.all(
+    documentaries.map((item) => reelPublicationRecord(item.publication))
+  );
+  const documentaryBlock = documentaryRecords.findIndex(
+    (r) => r.state === "locked" || r.state === "unavailable"
+  );
+  if (documentaryBlock >= 0)
+    return {
+      state: documentaryRecords[documentaryBlock]!.state as "locked" | "unavailable",
+      candidate: documentaries[documentaryBlock]!,
+      date,
+    };
   let candidate = candidates[0] ?? null;
   if (!candidate) return { state: "no-evidence" as const, candidate, date };
   const records = await Promise.all(

@@ -13,16 +13,17 @@
     "scripts/renderEmails.ts",
     "scripts/review-housing-balance-reel.ts",
     "scripts/review-reel.ts",
+    "scripts/review-documentary.ts",
     "scripts/review-supply-reel.ts",
     "scripts/socialAudiencePreview.ts",
     "scripts/socialCreativePreview.ts",
     "scripts/speak-reel.mjs!",
     "scripts/ingest/preview.ts",
-    "scripts/ingest/probe-local-data.ts"
+    "scripts/ingest/probe-local-data.ts",
   ],
   "project": ["**/*.{ts,tsx,mts,js,mjs,cjs,cts,css}!"],
   // The bounded workbook worker imports a resolved module URL at runtime.
   "ignoreDependencies": ["read-excel-file"],
   // Register the schema above without executing credential-dependent config.
-  "drizzle": false
+  "drizzle": false,
 }

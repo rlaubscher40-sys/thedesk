@@ -28,6 +28,8 @@ import {
 } from "./storyboard";
 import type { SpeechProfile } from "./localVoice";
 import { validateEvidenceVisual, type EvidenceVisual } from "./evidenceVisual";
+import { validateDocumentary, documentaryScript, type DocumentaryStory } from "./documentaryStory";
+import { documentaryDurationLimit } from "../../shared/documentaryReels";
 
 const run = promisify(execFile);
 
@@ -121,11 +123,14 @@ const MIN_HOLD = 0.55;
  * seconds for complete sentences and its source passage, without speeding up
  * the voice. This is an editorial limit, not a claim about audience retention. */
 export const MAX_REEL_SECONDS = 32;
-export function reelDurationLimit(stat?: Pick<ReelStat, "storyboard">): number {
+export function reelDurationLimit(stat?: Pick<ReelStat, "storyboard" | "documentary">): number {
+  if (stat?.documentary)
+    return documentaryDurationLimit(stat.documentary.series, stat.documentary.treatment);
   return stat?.storyboard?.kind === "housing-balance" ? 46 : MAX_REEL_SECONDS;
 }
 
 export type ReelStat = ReelStatText & {
+  documentary?: DocumentaryStory;
   visualStory?: EvidenceVisual;
   storyboard?: ReelStoryboard;
   editorialLabel?: "What Changed" | "Before You Buy" | "Supply and Demand";
@@ -439,7 +444,10 @@ export function estimateScriptSeconds(script: ScriptLine[]): number {
 }
 
 /** Will this script produce a Reel anyone finishes? */
-export function scriptFitsClip(script: ScriptLine[], stat?: Pick<ReelStat, "storyboard">): boolean {
+export function scriptFitsClip(
+  script: ScriptLine[],
+  stat?: Pick<ReelStat, "storyboard" | "documentary">
+): boolean {
   return estimateScriptSeconds(script) <= reelDurationLimit(stat);
 }
 
@@ -456,17 +464,19 @@ export function composeSections(
   durations: Record<string, number>,
   phrases?: Record<string, MeasuredPhrase[]>
 ): Section[] {
-  if (stat.visualStory)
-    return stat.visualStory.script.map((scene, i, all) => {
-      const seconds = durations[scene.key];
-      if (!Number.isFinite(seconds) || seconds! <= 0)
-        throw new Error("Scene has no speech timing.");
-      return {
-        key: scene.key,
-        seconds: seconds! + (i === all.length - 1 ? 0.65 : 0.18),
-        frames: [{ reveal: 1, sceneKey: scene.key, sceneProgress: 1, hardCut: true }],
-      };
-    });
+  if (stat.visualStory || stat.documentary)
+    return (stat.documentary ? documentaryScript(stat.documentary) : stat.visualStory!.script).map(
+      (scene, i, all) => {
+        const seconds = durations[scene.key];
+        if (!Number.isFinite(seconds) || seconds! <= 0)
+          throw new Error("Scene has no speech timing.");
+        return {
+          key: scene.key,
+          seconds: seconds! + (i === all.length - 1 ? 0.65 : 0.18),
+          frames: [{ reveal: 1, sceneKey: scene.key, sceneProgress: 1, hardCut: true }],
+        };
+      }
+    );
   if (stat.storyboard) return storyboardSections(stat.storyboard, durations, phrases);
   const ticks = countUpFrames(stat.value);
   const withTail = (key: string, last = false) =>
@@ -586,12 +596,20 @@ export async function renderStatReel(
     // script costs nothing rather than five TTS calls that are then discarded.
     let script =
       opts.script ??
+      (stat.documentary ? documentaryScript(stat.documentary) : undefined) ??
       stat.visualStory?.script ??
       (stat.storyboard
         ? stat.storyboard.scenes.map(({ key, text }) => ({ key, text }))
         : buildScript(stat));
     if (stat.storyboard) validateStoryboard(stat.storyboard, script);
     if (stat.visualStory) validateEvidenceVisual(stat.visualStory, script);
+    if (stat.documentary) {
+      validateDocumentary(stat.documentary, script);
+      if (opts.narrate === false || !opts.subtitles || opts.auditionVoice)
+        throw new Error(
+          "Documentary review and publication require local narration and subtitles."
+        );
+    }
     const maxSeconds = reelDurationLimit(stat);
     if (opts.script && !scriptFitsClip(opts.script, stat)) {
       throw new Error(
@@ -610,17 +628,22 @@ export async function renderStatReel(
                 : script.map((s) => ({ ...s, phrases: s.text.split(/(?<=[.!?])\s+(?=[A-Z])/u) })),
               opts.auditionVoice
             )
-          : stat.storyboard?.kind === "housing-balance"
-            ? await synthesisePhrases(stat.storyboard.scenes, opts.voice)
-            : stat.visualStory &&
-                ["rent-comparison", "new-loan-rates", "interstate-migration"].includes(
-                  stat.visualStory.recipe
-                )
-              ? await synthesisePhrases(
-                  (await import("./rentComparisonLayout")).rentPhrasePlan(stat.visualStory),
-                  opts.voice
-                )
-              : await synthesiseScript(script, opts.voice);
+          : stat.documentary
+            ? await synthesisePhrases(
+                stat.documentary.scenes.map((s) => ({ ...s, text: s.phrases.join(" ") })),
+                opts.voice
+              )
+            : stat.storyboard?.kind === "housing-balance"
+              ? await synthesisePhrases(stat.storyboard.scenes, opts.voice)
+              : stat.visualStory &&
+                  ["rent-comparison", "new-loan-rates", "interstate-migration"].includes(
+                    stat.visualStory.recipe
+                  )
+                ? await synthesisePhrases(
+                    (await import("./rentComparisonLayout")).rentPhrasePlan(stat.visualStory),
+                    opts.voice
+                  )
+                : await synthesiseScript(script, opts.voice);
     if (opts.narrate !== false && !spoken)
       throw new Error("Narration unavailable. No silent Reel was produced.");
 
@@ -660,8 +683,14 @@ export async function renderStatReel(
     const cache = new Map<string, string>();
     const frameFiles: string[] = [];
     const continuous =
-      Boolean(spoken) && (stat.storyboard?.kind === "housing-balance" || Boolean(stat.visualStory));
-    const documentary = stat.storyboard?.kind === "housing-balance" || Boolean(stat.visualStory);
+      Boolean(spoken) &&
+      (stat.storyboard?.kind === "housing-balance" ||
+        Boolean(stat.visualStory) ||
+        Boolean(stat.documentary));
+    const documentary =
+      stat.storyboard?.kind === "housing-balance" ||
+      Boolean(stat.visualStory) ||
+      Boolean(stat.documentary);
     for (const beat of continuous ? [] : beats) {
       const key = [
         beat.frame.reveal,
@@ -768,7 +797,8 @@ export async function renderStatReel(
               start: starts[i]!,
               seconds: durations[section.key] ?? 0,
             })),
-        documentary ? 34 : 32
+        documentary ? 34 : 32,
+        documentary ? "documentary" : "standard"
       );
       const fontDir = path.join(dir, "fonts");
       await fs.mkdir(fontDir);
@@ -836,7 +866,21 @@ export async function renderStatReel(
     );
 
     // The encode measures a few seconds; the ceiling is for a cold container.
-    if (continuous && stat.visualStory) {
+    if (continuous && stat.documentary) {
+      const { createDocumentaryRenderer } = await import("./documentaryRenderer");
+      const { encodeMotionFrames } = await import("./housingMotionRenderer");
+      const draw = await createDocumentaryRenderer(
+        stat.documentary,
+        sections.map((s, i) => ({
+          key: s.key,
+          start: starts[i]!,
+          seconds: durations[s.key]!,
+          phrases: phrases[s.key]!,
+        })),
+        total
+      );
+      await encodeMotionFrames(args, total, draw);
+    } else if (continuous && stat.visualStory) {
       const { createEvidenceMotionRenderer } = await import("./evidenceMotionRenderer");
       const { encodeMotionFrames } = await import("./housingMotionRenderer");
       const draw = await createEvidenceMotionRenderer(
