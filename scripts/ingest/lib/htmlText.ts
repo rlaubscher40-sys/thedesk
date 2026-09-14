@@ -31,8 +31,29 @@ export function readableHtml(html: string): string {
 }
 /** Serialize a complete DOM container. A closing-tag regex truncates nested
  * article sections (for example Housing Australia's introduction/body cards). */
-export function readableArticleHtml(html: string): string {
+export function readableArticleHtml(html: string, contentClass?: string): string {
   const document = documentWithoutInactiveContent(html);
+  function declaredContent(node: Node): DefaultTreeAdapterMap["element"] | null {
+    if (
+      "tagName" in node &&
+      node.attrs.some(
+        (a) => a.name === "class" && a.value.split(/\s+/).includes(contentClass ?? "")
+      )
+    )
+      return node;
+    if ("childNodes" in node)
+      for (const child of node.childNodes) {
+        const found = declaredContent(child);
+        if (found) return found;
+      }
+    return null;
+  }
+  // A reviewed publisher's explicit post body must not fall back to a related
+  // article card if its template changes. Empty means insufficient evidence.
+  if (contentClass) {
+    const content = declaredContent(document);
+    return content ? serialize(content) : "";
+  }
   function find(node: Node, name: string): DefaultTreeAdapterMap["element"] | null {
     if ("tagName" in node && node.tagName === name) return node;
     if ("childNodes" in node)

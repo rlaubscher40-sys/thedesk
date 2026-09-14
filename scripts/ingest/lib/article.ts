@@ -29,6 +29,7 @@ import { decodeEntities, stripHtml } from "./text";
 import { pickOgImage } from "./og";
 import { isInstitutionalBoilerplate } from "../../../shared/sourceBoilerplate";
 import { createArticleAccess } from "./articleAccess";
+import { isVerifiedReiwaRelease } from "./reiwaRelease";
 
 const SITE_URL = process.env.SITE_URL ?? DEFAULT_SITE_URL;
 const articleAccess = createArticleAccess();
@@ -47,8 +48,19 @@ export type FetchedArticle = {
 };
 
 /** Pull readable body text out of raw article HTML, capped at `maxChars`. */
-export function extractArticleText(html: string, maxChars: number): string | null {
-  const container = readableArticleHtml(html);
+export function extractArticleText(
+  html: string,
+  maxChars: number,
+  sourceUrl?: string
+): string | null {
+  let contentClass: string | undefined;
+  try {
+    if (new URL(sourceUrl ?? "").hostname === "faaa.au")
+      contentClass = "elementor-widget-theme-post-content";
+  } catch {
+    /* Generic semantic extraction. */
+  }
+  const container = readableArticleHtml(html, contentClass);
 
   const paras: string[] = [];
   let removedInstitutionalFooter = false;
@@ -166,6 +178,8 @@ export async function fetchArticle(
 
     const editorialHold = articleDisclosureHold(html, url);
     if (editorialHold) return { ...empty, editorialHold };
+    if (new URL(url).hostname.replace(/^www\./, "") === "nationaltribune.com.au" && !isVerifiedReiwaRelease(html))
+      return { ...empty, editorialHold: "unverified-public-release-attribution" };
 
     if (isAbcMarketLiveblog(url)) {
       const close = extractMarketClose(html, url);
@@ -184,7 +198,7 @@ export async function fetchArticle(
     return {
       publicationDate: extractPublicationDate(html, url),
       imageUrl: pickOgImage(html),
-      text: extractArticleText(html, maxChars),
+      text: extractArticleText(html, maxChars, url),
     };
   } catch (error) {
     const timedOut =

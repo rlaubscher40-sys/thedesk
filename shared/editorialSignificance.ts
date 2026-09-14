@@ -45,10 +45,10 @@ export function storySignificance(title: string): { reason: string; baseline: nu
     return result("financial-or-housing-disruption", 88);
 
   const metric =
-    /\b(?:values?|prices?|approvals?|completions?|vacanc(?:y|ies)|rents?|inflation|unemployment|wages?|GDP|consumer confidence)\b/i;
+    /\b(?:affordability|values?|prices?|approvals?|completions?|vacanc(?:y|ies)|rents?|inflation|unemployment|wages?|GDP|consumer confidence)\b/i;
   if (
     metric.test(headline) &&
-    /\b(?:falls?|fell|rises?|rose|rising|drops?|dropped|declines?|declining|slows?|grows?|grew|hits?|reaches?|record (?:low|high)|first quarterly fall)\b/i.test(
+    /\b(?:falls?|fell|rises?|rose|rising|drops?|dropped|declines?|declining|slows?|grows?|grew|hits?|reaches?|record (?:lows?|highs?)|first quarterly fall)\b/i.test(
       headline
     ) &&
     (housing.test(headline) ||

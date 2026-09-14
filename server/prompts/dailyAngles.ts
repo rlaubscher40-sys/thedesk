@@ -57,6 +57,8 @@ Its readers follow the market closely and have money or a home in it. Some are t
 
 Write all four fields, see them together, and only keep the ones that genuinely earn their place.
 
+Preserve each figure's unit, population and period. Homes are not beds or people. A period over which homes support beneficiaries is not a building timetable. Loan-to-grant conversions are not wholly new budget allocations. Keep publication dates separate from reporting quarters and historic rate changes. Party proposals, non-binding motions and implementation reminders are not enacted decisions or new policy announcements. If the source does not establish a consequence, return null.
+
 STORY
 Title: ${input.title}
 Category: ${input.category}

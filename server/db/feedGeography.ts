@@ -70,6 +70,25 @@ export async function repairEditorialCategories(): Promise<number> {
       .orderBy(asc(dailyFeedItems.id))
       .limit(250);
     if (!rows.length) return changed;
+    const employmentIds = rows
+      .filter(
+        (row) =>
+          editorialCategory(row.title, row.summary ?? "", row.category) === "MACRO" &&
+          row.category === "PROPERTY"
+      )
+      .map((row) => row.id);
+    if (employmentIds.length) {
+      await db
+        .update(dailyFeedItems)
+        .set({ category: "MACRO" })
+        .where(
+          and(
+            inArray(dailyFeedItems.id, employmentIds),
+            inArray(dailyFeedItems.category, ["PROPERTY"])
+          )
+        );
+      changed += employmentIds.length;
+    }
     const ids = rows
       .filter((row) => editorialCategory(row.title, row.summary ?? "", row.category) === "OTHER")
       .map((row) => row.id);

@@ -217,7 +217,7 @@ async function startServer() {
   if (!isDemoMode()) {
     try {
       const corrected = await repairEditorialCategories();
-      console.log(`[editorial] corrected ${corrected} sports category labels`);
+      console.log(`[editorial] corrected ${corrected} topic category labels`);
       const moved = await repairFeedGeography();
       const held = await repairEditorialReferences();
       await repairCoverageAudit();

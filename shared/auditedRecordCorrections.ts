@@ -6,6 +6,78 @@ type Correction = { field: Field; before: string; after: string | null };
 const records: Array<{ sourceUrl: string; feedDate: string; changes: Correction[] }> = [
   {
     sourceUrl:
+      "https://www.abc.net.au/news/2026-09-14/asx-markets-business-live-news-september-14/107148618",
+    feedDate: "2026-09-14",
+    changes: [
+      {
+        field: "title",
+        before:
+          "Markets live updates: Wall Street rises despite hot inflation likely to trigger a Fed rate hike this week - ABC News & Headlines - Australian Broadcasting Corporation",
+        after: "Wall Street rises as US rate expectations firm",
+      },
+      {
+        field: "summary",
+        before:
+          "The odds of the US Federal Reserve raising interest rates this week jumped to an almost sure thing after August inflation data came in higher than expected.",
+        after:
+          "ABC's 14 September liveblog reported Wall Street's gains at the preceding US market close and firmer expectations of a Federal Reserve rate rise. This is overseas market reporting, not an Australian policy decision.",
+      },
+      {
+        field: "partnerTag",
+        before:
+          "Buying: A Fed hike this week keeps upward pressure on Australian fixed-rate mortgage pricing, narrowing the window on competitive deals.\nHolding: If the RBA reads sustained US inflation as cover for its own policy, variable-rate relief stays further away than many expect.\nWatching: The signal to watch is not the Fed decision itself but whether Australian bond yields move in sympathy in the days after.",
+        after: null,
+      },
+      {
+        field: "sayThis",
+        before:
+          "Wall Street shrugged off near-certain Fed hike odds, but the move that matters for Australian borrowers is what follows the Fed's decision, not the decision itself.",
+        after: null,
+      },
+      {
+        field: "whyItMatters",
+        before:
+          "A near-certain Fed hike, with Wall Street still rising, tells you markets are pricing the end of the cycle, not the hike itself, and that read flows directly into Australian rate expectations.",
+        after: null,
+      },
+      {
+        field: "counterpoint",
+        before:
+          "Markets rallying into a hike have been wrong before. If August inflation is a trend rather than a blip, the Fed funds rate has further to go and bond markets are under-pricing it.",
+        after: null,
+      },
+    ],
+  },
+  {
+    sourceUrl:
+      "https://www.housingaustralia.gov.au/media/housing-australia-welcomes-australian-governments-additional-300-million-commitment-deliver",
+    feedDate: "2026-09-14",
+    changes: [
+      {
+        field: "whyItMatters",
+        before:
+          "With $614.6 million approved across 115 projects as at 31 July 2026, the program's scale is real, but 968 dwellings spread nationally over 20 years leaves the structural shortfall in crisis accommodation largely intact.",
+        after:
+          "The 968 approved dwellings are expected to assist more than 35,000 people over 20 years; that is a service horizon, not a stated construction timetable.",
+      },
+    ],
+  },
+  {
+    sourceUrl:
+      "https://www.brokernews.com.au/news/breaking-news/housing-australia-unlocks-fresh-funding-for-crisis-and-transitional-housing-289963.aspx",
+    feedDate: "2026-09-14",
+    changes: [
+      {
+        field: "sayThis",
+        before:
+          "One in three people seeking emergency housing in 2024-25 went unassisted. An extra $300 million adds roughly 500 beds to a system already short by tens of thousands.",
+        after:
+          "Converting $300 million in existing loans to grants is intended to support around 500 additional crisis and transitional homes, not 500 beds.",
+      },
+    ],
+  },
+  {
+    sourceUrl:
       "https://www.apra.gov.au/news-and-publications/apra-revises-proposals-implement-governments-retirement-reporting-framework",
     feedDate: "2026-09-10",
     changes: [

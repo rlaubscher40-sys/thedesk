@@ -162,6 +162,9 @@ export function shouldShowSummary(title: string, summary: string | null | undefi
  */
 export function cleanHeadline(title: string, publisher?: string): string {
   if (title.length > MAX_HELPER_INPUT) return title;
+  // This legacy ABC masthead contains a dash of its own and the word
+  // Australian. It is attribution, never geography evidence.
+  title = title.replace(/\s+[-–—]\s+ABC News & Headlines\s*[-–—]\s*Australian Broadcasting Corporation$/iu, "");
   const m = title.match(/^(.*\S)\s+[-–—]\s+([^-–—]{1,40})$/u);
   if (!m || !m[1] || !m[2]) return title;
   const head = m[1].trim();
