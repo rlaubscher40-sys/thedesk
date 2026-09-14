@@ -44,6 +44,13 @@
       "url": "https://www.theguardian.com/help/terms-of-service",
       "finding": "Commercial AI reuse needs written permission; review before ingestion.",
       "action": "Prioritise permissions review."
+    },
+    {
+      "id": "treasury",
+      "host": "treasury.gov.au",
+      "url": "https://treasury.gov.au/copyright-disclaimer",
+      "finding": "Treasury website material is generally CC BY 4.0, excluding the Commonwealth Coat of Arms, departmental logo and third-party content.",
+      "action": "Check the actual release and third-party exclusions; attribute Commonwealth of Australia and retain licence and change notices."
     }
   ]
 }
