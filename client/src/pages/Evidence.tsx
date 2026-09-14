@@ -30,12 +30,19 @@ export default function Evidence() {
             {item.source} · Published {new Date(item.publishedAt).toLocaleDateString("en-AU")}
           </p>
           <p className="text-lg leading-relaxed">
-            {item.summary || "This feed supplied a headline only."}
+            {item.summary ||
+              "No usable article excerpt is available. Read the original for context."}
           </p>
           <p className="text-sm text-[var(--color-fg-muted)]">
             This is a public feed excerpt, not a full article or a verified market statistic. Read
             the original for its complete context.
           </p>
+          {item.excluded && (
+            <p role="note" className="text-sm text-[var(--color-fg-muted)]">
+              Retained for source traceability, but excluded from selected market evidence by our
+              source-quality checks.
+            </p>
+          )}
           <a
             className="bs-btn bs-btn-solid"
             href={item.sourceUrl}

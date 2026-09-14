@@ -2,6 +2,7 @@ import type { ComparisonSource, MarketSide } from "../../shared/marketComparison
 import * as db from "../db";
 import { hasHousingEvidence } from "../../shared/marketRelevance";
 import { retrieveLocalFacts } from "../ask/localFacts";
+import { evidenceEligible, evidenceText } from "../../shared/evidenceQuality";
 
 export type MarketEvidence = ComparisonSource & { text: string };
 export function normaliseText(value: string): string {
@@ -49,30 +50,46 @@ export async function retrieveMarketEvidence(
   const [bundles, archives, localFacts] = await Promise.all([
     Promise.all([db.searchMarketContent(marketA), db.searchMarketContent(marketB)]),
     Promise.all([db.searchPropertyEvidence(marketA), db.searchPropertyEvidence(marketB)]),
-    Promise.all([marketA, marketB].map(market => retrieveLocalFacts(`Property rents and population outlook for ${market}`))),
+    Promise.all(
+      [marketA, marketB].map((market) =>
+        retrieveLocalFacts(`Property rents and population outlook for ${market}`)
+      )
+    ),
   ]);
   const evidence = new Map<string, MarketEvidence>();
+  const asOf = new Date().toISOString().slice(0, 10);
   for (const [index, bundle] of bundles.entries()) {
     const side: MarketSide = index === 0 ? "a" : "b";
     const market = index === 0 ? marketA : marketB;
     const candidates = [
-      ...localFacts[index]!.slice(0, 2).map(fact => ({...fact, identity: `${fact.sourceUrl}:${fact.title}:${fact.date}`, fact: true})),
-      ...archives[index]!.map((item) => ({
-        title: item.title,
-        text: `${item.title}\n${item.summary}`,
-        date: item.publishedAt.toISOString().slice(0, 10),
-        publisher: item.source,
-        href: `/evidence/${item.id}`,
-        identity: item.sourceUrl,
+      ...localFacts[index]!.slice(0, 2).map((fact) => ({
+        ...fact,
+        identity: `${fact.sourceUrl}:${fact.title}:${fact.date}`,
+        fact: true,
       })),
-      ...bundle.feedItems.map((item) => ({
-        title: item.title,
-        text: `${item.title}\n${item.summary ?? ""}`,
-        date: item.feedDate,
-        publisher: item.source ?? null,
-        href: `/story/${item.id}`,
-        identity: item.sourceUrl || `/story/${item.id}`,
-      })),
+      ...archives[index]!.filter((item) => evidenceEligible(item, asOf))
+        .map((item) => ({ ...item, ...evidenceText(item) }))
+        .map((item) => ({
+          title: item.title,
+          text: `${item.title}\n${item.summary}`,
+          headlineOnly: !item.summary,
+          date: item.publishedAt.toISOString().slice(0, 10),
+          publisher: item.source,
+          href: `/evidence/${item.id}`,
+          identity: item.sourceUrl,
+        })),
+      ...bundle.feedItems
+        .filter((item) => evidenceEligible(item, asOf))
+        .map((item) => ({ ...item, ...evidenceText(item) }))
+        .map((item) => ({
+          title: item.title,
+          text: `${item.title}\n${item.summary}`,
+          headlineOnly: !item.summary,
+          date: item.feedDate,
+          publisher: item.source ?? null,
+          href: `/story/${item.id}`,
+          identity: item.sourceUrl || `/story/${item.id}`,
+        })),
       ...bundle.editions.map((item) => ({
         title: `Edition ${item.editionNumber}: ${item.weekRange}`,
         text: item.fullText ?? "",
@@ -84,8 +101,12 @@ export async function retrieveMarketEvidence(
     ].sort((a, b) => Number("fact" in b) - Number("fact" in a) || b.date.localeCompare(a.date));
     let count = 0;
     for (const item of candidates) {
-      const passage = "fact" in item ? item.text : marketHousingPassage(item.text, market);
-      if (!passage) continue;
+      const localPassage = "fact" in item ? item.text : marketHousingPassage(item.text, market);
+      if (!localPassage) continue;
+      const passage =
+        "headlineOnly" in item && item.headlineOnly
+          ? `${localPassage}\n[Headline-only reference. No article excerpt is available; do not infer details beyond the headline.]`
+          : localPassage;
       const existing = evidence.get(item.identity);
       if (existing?.markets.includes(side)) continue;
       if (existing) {

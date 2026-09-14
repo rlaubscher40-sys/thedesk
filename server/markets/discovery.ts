@@ -8,8 +8,7 @@ import * as db from "../db";
 import { isDemoMode } from "../demo/store";
 import { marketHousingPassage, normaliseText } from "./evidence";
 import { hasHousingEvidence } from "../../shared/marketRelevance";
-import { foreignHousingHeadline } from "../../shared/australianScope";
-import { propertyNewsHold } from "../../shared/propertyNewsQuality";
+import { evidenceEligible, evidenceText } from "../../shared/evidenceQuality";
 import { getCityRents } from "./absRents";
 import { getCityApprovals } from "./absApprovals";
 import { getStateDemographics } from "./absDemographics";
@@ -77,6 +76,8 @@ export function buildMarketDirectory(
   const since = daysBefore(asOf, 89);
   const recent = daysBefore(asOf, 29);
   const eligible = items
+    .filter((item) => evidenceEligible(item, asOf))
+    .map((item) => ({ ...item, ...evidenceText(item) }))
     .filter(
       (item) =>
         ["AU", "PROPERTY"].includes((item.channel ?? "AU").toUpperCase()) &&
@@ -84,8 +85,6 @@ export function buildMarketDirectory(
           item.category.toUpperCase()
         ) &&
         hasHousingEvidence(`${item.title} ${item.summary ?? ""}`) &&
-        !foreignHousingHeadline(item.title, item.sourceUrl, item.source) &&
-        !propertyNewsHold(item, asOf) &&
         validDate(item.feedDate) &&
         item.feedDate >= since &&
         item.feedDate <= asOf
@@ -103,7 +102,9 @@ export function buildMarketDirectory(
           id: item.id,
           href: item.href,
           title: item.title,
-          excerpt: excerpt(passage, market.name),
+          excerpt: item.summary
+            ? excerpt(marketHousingPassage(item.summary, market.name) ?? item.summary, market.name)
+            : "",
           date: item.feedDate,
           publisher: item.source?.trim() || null,
           sourceUrl,

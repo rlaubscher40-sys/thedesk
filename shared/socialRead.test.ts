@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { FeaturedComparisonRead } from "./FeaturedComparisonRead";
 import { CityRentRead } from "./CityRentRead";
+import { PublicMarketRead } from "./PublicMarketRead";
 import { PUBLIC_MARKETS, type MarketDirectory } from "./marketDirectory";
 
 describe("social evidence destinations", () => {
@@ -39,6 +40,13 @@ describe("social evidence destinations", () => {
     const html = renderToStaticMarkup(createElement(FeaturedComparisonRead, { directory }));
     expect(html).toContain('href="/evidence/619"');
     expect(html).not.toContain("/story/-619");
+    const file = directory.markets[0]!;
+    file.references[0]!.excerpt = "";
+    const marketHtml = renderToStaticMarkup(createElement(PublicMarketRead, { directory, file }));
+    expect(
+      marketHtml.match(/Headline-only reference\. Read the original for context\./g)
+    ).toHaveLength(2);
+    expect(marketHtml).toContain('href="/evidence/619"');
   });
   it("makes the previous annual rate inspectable without claiming a monthly rent change", () => {
     const html = renderToStaticMarkup(

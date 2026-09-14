@@ -48,6 +48,29 @@ beforeEach(() => {
 });
 
 describe("public market discovery", () => {
+  it("removes promotions and roundup geography, and labels headline-only references honestly", () => {
+    const rows = [
+      item(1, {
+        title: "Australian Mortgage Awards: Book your hotel room now",
+        summary: "Perth mortgage brokers can get discounted rooms.",
+      }),
+      item(2, {
+        title: "Sydney housing supply tightens",
+        summary: "Perth rents rise Another newspaper",
+        sourceUrl: "https://news.google.com/rss/articles/2",
+      }),
+      item(3, {
+        title: "Perth housing supply tightens",
+        summary: "Perth housing supply tightens Perth housing supply tightens Publisher",
+      }),
+      item(4),
+    ];
+    const file = perth(rows);
+    expect(file.references.map((row) => row.id)).toEqual([4, 3]);
+    expect(file.references[0]!.excerpt).toBe("Perth rents were reported in release 4.");
+    expect(file.references[1]!.excerpt).toBe("");
+    expect(rows[2]!.summary).toContain("Publisher");
+  });
   it("excludes stored spam and recycled updates even when their feed date is recent", () => {
     const file = perth([
       item(1),

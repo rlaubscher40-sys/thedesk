@@ -17,6 +17,35 @@ const item: FetchedItem = {
 };
 
 describe("nationwide evidence", () => {
+  it("rejects event sales and does not infer topics or regions from a search roundup", () => {
+    expect(
+      normaliseEvidence(
+        { ...item, title: "Australian Mortgage Awards 2026: Book your hotel room now" },
+        now
+      )
+    ).toBeNull();
+    expect(
+      normaliseEvidence(
+        {
+          ...item,
+          title: "Sydney football scores",
+          summary: "Launceston rental supply tightens",
+          url: "https://news.google.com/rss/articles/1",
+        },
+        now
+      )
+    ).toBeNull();
+    const row = normaliseEvidence(
+      {
+        ...item,
+        summary: "Sydney housing supply improves",
+        url: "https://news.google.com/rss/articles/2",
+      },
+      now
+    )!;
+    expect(row.summary).toBe("");
+    expect(row.regions).toEqual(["TAS"]);
+  });
   it("does not archive search spam or Canadian Perth as Australian property evidence", () => {
     for (const title of [
       "Perth Housing Market Update | April 2026 Emergency Alert Today (7Y9mHxXuGJ)",
