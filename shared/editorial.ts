@@ -63,9 +63,22 @@ const newsroom = new Set([
 ]);
 // Useful original statements, but an industry position is not corroboration
 // of its own claims. Keep below official releases and specialist reporting.
-const industryBody = new Set(["smsfassociation.com", "udia.com.au", "masterbuilders.com.au"]);
+const industryBody = new Set([
+  "smsfassociation.com",
+  "udia.com.au",
+  "masterbuilders.com.au",
+  "ausbanking.org.au",
+  "faaa.au",
+]);
 export function publisherWeight(input: EditorialInput): number {
   const host = publisherHost(input);
+  // Reading opportunity only. The article reader must independently verify
+  // REIWA attribution and its original-release reference before publication.
+  if (
+    host === "nationaltribune.com.au" &&
+    input.source === "REIWA public releases (National Tribune)"
+  )
+    return 8;
   return primary.has(host)
     ? 16
     : specialist.has(host)
@@ -171,12 +184,24 @@ const advice =
 const conduct =
   /\b(?:ASIC|Tax Practitioners Board|TPB)\b.{0,70}\b(?:ban\w*|sanctions?|licen\w*|enforc\w*)\b|\b(?:ban\w*|sanctions?|licen\w*|enforc\w*)\b.{0,70}\b(?:ASIC|Tax Practitioners Board|TPB)\b/i;
 const markets = /\b(asx|australian shares|australian dollar|bond yields?)\b/i;
+const migrationPolicy =
+  /\b(?:net.negative migration|migration (?:policy|plan|program|reform)|immigration (?:policy|plan|program|reform)|temporary visas?|migrant workers?|international students?)\b|\bvisas?\b.{0,60}\b(?:cut|cap|plan|reform)\b/i;
+const paymentPolicy = /\b(?:card surcharg(?:ing|es?)|interchange fees?)\b/i;
+const employmentVacancies =
+  /\b(?:job|staff|employment|public.service) vacanc(?:y|ies)\b|\bvacan(?:t|cy|cies)\b.{0,80}\b(?:jobs?|positions?|departments?|staff)\b|\b(?:jobs?|positions?|departments?|staff)\b.{0,80}\bvacan(?:t|cy|cies)\b/i;
 const noise =
   /\b(celebrity|obituary|sexual touching|gangsters?|shooting|murder|dingo|sheep (?:theft|stolen)|poetry|horoscope|casino|promo code)\b/i;
 export function editorialBeat(text: string): string | null {
+  if (employmentVacancies.test(text) && !hasHousingEvidence(text)) return "rates-economy";
   if (advice.test(text) || conduct.test(text)) return "advice-tax";
   if (markets.test(text)) return "markets";
-  if (policy.test(text) || accommodationPolicy.test(text) || industryRegulation.test(text))
+  if (
+    policy.test(text) ||
+    accommodationPolicy.test(text) ||
+    industryRegulation.test(text) ||
+    migrationPolicy.test(text) ||
+    paymentPolicy.test(text)
+  )
     return "policy";
   if (
     /\b(?:DA|development|planning) approval\b.{0,100}\b(?:homes|housing|dwellings)\b/i.test(text) ||

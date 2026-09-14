@@ -28,6 +28,18 @@ function housingModelClaims(story: RelatedStory): Set<string> {
       .filter((n) => Number(n) >= 100)
   );
 }
+function crisisGrantClaims(story: RelatedStory): Set<string> {
+  const text = `${story.title} ${story.summary ?? ""} ${story.articleText?.slice(0, 6000) ?? ""}`;
+  if (
+    !/\b(?:HAFF|Housing Australia Future Fund)\b/i.test(text) ||
+    !/\bcrisis and transitional\b/i.test(text) ||
+    !/\bgrants?\b/i.test(text)
+  )
+    return new Set();
+  return new Set(
+    [...text.matchAll(/\$([\d,]+)\s*(million|m)\b/gi)].map((m) => m[1]!.replace(/,/g, ""))
+  );
+}
 export function relatedCoverageParent<T extends RelatedStory & { id: number }>(
   story: RelatedStory,
   candidates: T[]
@@ -53,9 +65,17 @@ export function relatedCoverageParent<T extends RelatedStory & { id: number }>(
   const claims = housingModelClaims(story);
   const modelParent =
     local(story) && eligible.find((c) => [...housingModelClaims(c)].some((n) => claims.has(n)));
+  const grants = crisisGrantClaims(story);
+  const grantParent =
+    local(story) &&
+    eligible.find(
+      (c) =>
+        originalPublicationDay(c) === day && [...crisisGrantClaims(c)].some((n) => grants.has(n))
+    );
   return (
     eligible.find((c) => sharesReporting(story, c)) ||
     modelParent ||
+    grantParent ||
     bestMatch(
       titleTokens(story.title),
       eligible.map((value) => ({ value, tokens: titleTokens(value.title) }))

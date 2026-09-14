@@ -208,6 +208,9 @@ const JOBS: Job[] = [
   })),
   { key: "daily-metrics", at: "06:33", run: () => runScheduledMetricRefresh() },
   { key: "editorial-pipeline-v4", at: "00:00", graceMinutes: 24 * 60, claimDate: "2026-09-10", run: (b, k) => runDailyFeedIngest(b, k) },
+  // One bounded post-release collection. Original dates, reading/quality gates
+  // and normal publication dedupe all remain in force; no social-post action.
+  { key: "coverage-september-14-recovery", at: "00:00", graceMinutes: 24 * 60 - 1, claimDate: "2026-09-14", maxAttempts: 1, run: (b, k) => runDailyFeedIngest(b, k) },
   { key: "daily-feed", at: "06:43", run: (b, k) => runDailyFeedIngest(b, k) },
   ...FEED_UPDATE_JOBS,
   {

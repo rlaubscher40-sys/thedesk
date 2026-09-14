@@ -11,11 +11,7 @@ export function extractMarketClose(
   now = new Date()
 ): MarketClose | null {
   const page = new URL(url);
-  if (
-    page.hostname !== "www.abc.net.au" ||
-    !/\/asx-markets-business-news-live-updates\//.test(page.pathname)
-  )
-    return null;
+  if (!isAbcMarketLiveblog(url)) return null;
   const pageDay = page.pathname.match(/\/news\/(20\d{2}-\d{2}-\d{2})\//)?.[1];
   const scripts: string[] = [];
   function walk(node: DefaultTreeAdapterMap["node"]) {
@@ -99,8 +95,11 @@ export function isAbcMarketLiveblog(url: string): boolean {
   try {
     const u = new URL(url);
     return (
+      u.protocol === "https:" &&
       u.hostname === "www.abc.net.au" &&
-      /\/asx-markets-business-news-live-updates\//.test(u.pathname)
+      /^\/news\/20\d{2}-\d{2}-\d{2}\/(?=[^/]*\basx\b)(?=[^/]*\bmarkets?\b)(?=[^/]*\bbusiness\b)(?=[^/]*\blive\b)[a-z0-9-]+\/\d+\/?$/.test(
+        u.pathname
+      )
     );
   } catch {
     return false;

@@ -150,7 +150,9 @@ it("discovers dated Professional Planner articles through the public newsroom wi
 });
 
 it("reads realestate.com.au headline cards without spending the budget on menus or image links", () => {
- const source=SOURCES.find(s=>s.name==="realestate.com.au News")!;
+ const primary=SOURCES.find(s=>s.name==="realestate.com.au News")!;
+ expect(primary.url).toBe("https://www.realestate.com.au/news/feed/");
+ const source=primary.recoveryRoutes![0]!;
  expect(source.kind).toBe("index");
  expect(source.url).toBe("https://www.realestate.com.au/news/");
  const html=`
@@ -163,5 +165,6 @@ it("reads realestate.com.au headline cards without spending the budget on menus 
  const items=parseIndexSource(html,{...source,maxItems:1});
  expect(items).toHaveLength(1);
  expect(items[0]).toMatchObject({url:"https://www.realestate.com.au/news/canberra-homes/",isoDate:null,discovery:"publisher-index"});
- expect(EVIDENCE_SOURCES.some(s=>s.url==="https://www.realestate.com.au/news/feed/")).toBe(false);
+ // The reverified RSS route is also available to hourly evidence discovery.
+ expect(EVIDENCE_SOURCES.some(s=>s.url==="https://www.realestate.com.au/news/feed/")).toBe(true);
 });

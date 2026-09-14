@@ -6,6 +6,9 @@ export type ClaimIssue =
   | "missing-evidence"
   | "unsupported-figure"
   | "figure-scope"
+  | "period-scope"
+  | "figure-unit"
+  | "proposal-as-fact"
   | "unsupported-place"
   | "unsupported-date"
   | "delivery-status"
@@ -90,12 +93,49 @@ export function checkClaimEvidence(
   const knownMonths = new Set(monthNames(evidence));
   if (monthNames(copy).some((s) => !knownMonths.has(s))) issues.add("unsupported-date");
   const sourceSentences = sentences(evidence);
+  const years = (s: string) =>
+    [...s.matchAll(/\b(?:over|across|during|within) (?:the )?(?:next )?(\d+) years?\b/gi)].map(
+      (m) => m[1]!
+    );
+  const beneficiaries =
+    /\b(?:assist|support|accommodate|serve)\w*\b.{0,90}\b(?:people|families|women|children|beneficiaries)\b/i;
+  const housingPeriod = (s: string) =>
+    /\b(?:homes|dwellings|apartments)\b/i.test(s) && !beneficiaries.test(s);
+  const serviceYears = new Set(sourceSentences.filter((s) => beneficiaries.test(s)).flatMap(years));
   const institutionalAssets = new Set(
     sourceSentences
       .filter((s) => /APRA.*supervises institutions holding.*assets/i.test(s))
       .flatMap((s) => [...figures(s)].filter((n) => n.startsWith("$:")))
   );
   for (const sentence of sentences(copy)) {
+    if (
+      housingPeriod(sentence) &&
+      years(sentence).some(
+        (y) =>
+          serviceYears.has(y) &&
+          !sourceSentences.some((s) => housingPeriod(s) && years(s).includes(y))
+      )
+    )
+      issues.add("period-scope");
+    for (const match of sentence.matchAll(/\b(\d[\d,]*)\s+(?:new )?beds\b/gi)) {
+      const count = match[1]!.replace(/,/g, "");
+      if (
+        !new RegExp(`\\b${count}\\s+(?:new )?beds\\b`, "i").test(
+          evidence.replace(/(?<=\d),(?=\d)/g, "")
+        )
+      )
+        issues.add("figure-unit");
+    }
+    if (
+      /\b(?:propos\w*|non.binding|party plan)\b/i.test(evidence) &&
+      /\b(?:visas?|migration|short.stay|levy|review)\b/i.test(sentence) &&
+      /\b(?:enacted|now law|takes effect|compulsory|mandatory|has (?:cut|banned)|will (?:cut|ban|remove))\b/i.test(
+        sentence
+      ) &&
+      !/\b(?:propos\w*|would|if|non.binding|party plan)\b/i.test(sentence) &&
+      !sourceSentences.some((s) => s.includes(sentence))
+    )
+      issues.add("proposal-as-fact");
     if (
       /\b(?:superannuation|super funds?|retirement)\b/i.test(sentence) &&
       !/\b(?:regulated|supervised) institutions\b|\bdepositors\b.*\bpolicyholders\b/i.test(

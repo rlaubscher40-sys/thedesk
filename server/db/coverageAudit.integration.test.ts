@@ -125,6 +125,58 @@ it.skipIf(!testUrl)(
         .where(eq(dailyFeedItems.id, 1));
       await repairCoverageAudit(now);
       expect((await read())[0]!.tag).toBe("An editor corrected this.");
+
+      // The geography repair has already moved the US liveblog to Business.
+      // Its exact audited fields still need correction, without touching any
+      // other international story or a later editor override.
+      const crisisUrl =
+        "https://www.housingaustralia.gov.au/media/housing-australia-welcomes-australian-governments-additional-300-million-commitment-deliver";
+      const brokerUrl =
+        "https://www.brokernews.com.au/news/breaking-news/housing-australia-unlocks-fresh-funding-for-crisis-and-transitional-housing-289963.aspx";
+      const liveUrl =
+        "https://www.abc.net.au/news/2026-09-14/asx-markets-business-live-news-september-14/107148618";
+      await connection.execute(
+        "INSERT INTO daily_feed_items (id,title,summary,channel,feedDate,sourceUrl,whyItMatters,rubensNote) VALUES (20,'Housing Australia grant funding','Crisis and transitional housing','PROPERTY','2026-09-14',?,?,'Keep housing note')",
+        [
+          crisisUrl,
+          "With $614.6 million approved across 115 projects as at 31 July 2026, the program's scale is real, but 968 dwellings spread nationally over 20 years leaves the structural shortfall in crisis accommodation largely intact.",
+        ]
+      );
+      await connection.execute(
+        "INSERT INTO daily_feed_items (id,title,summary,channel,feedDate,sourceUrl,rubensNote) VALUES (21,'Fresh funding','Grant conversion','PROPERTY','2026-09-14',?,'Keep broker note')",
+        [brokerUrl]
+      );
+      await connection.execute(
+        "INSERT INTO daily_feed_items (id,title,summary,channel,feedDate,sourceUrl,whyItMatters,rubensNote) VALUES (22,'Markets live updates: Wall Street rises despite hot inflation likely to trigger a Fed rate hike this week - ABC News & Headlines - Australian Broadcasting Corporation','US summary','BUSINESS','2026-09-14',?,'Edited explanation','Keep liveblog note')",
+        [liveUrl]
+      );
+      const september14 = new Date("2026-09-14T11:00:00Z");
+      await repairCoverageAudit(september14);
+      const updated = await read();
+      expect(updated.find((r) => r.id === 20)).toMatchObject({
+        whyItMatters: expect.stringContaining("service horizon"),
+        note: "Keep housing note",
+      });
+      expect(updated.find((r) => r.id === 21)).toMatchObject({
+        parent: 20,
+        note: "Keep broker note",
+      });
+      expect(updated.find((r) => r.id === 22)).toMatchObject({
+        whyItMatters: "Edited explanation",
+        note: "Keep liveblog note",
+      });
+      const [live] = await connection.query(
+        "SELECT title,channel,feedDate FROM daily_feed_items WHERE id=22"
+      );
+      expect(live).toEqual([
+        {
+          title: "Wall Street rises as US rate expectations firm",
+          channel: "BUSINESS",
+          feedDate: "2026-09-14",
+        },
+      ]);
+      await repairCoverageAudit(september14);
+      expect(await read()).toEqual(updated);
     } finally {
       fixture.db = null;
       await connection.end();

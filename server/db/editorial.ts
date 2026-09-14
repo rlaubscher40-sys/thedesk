@@ -225,7 +225,9 @@ export async function repairCoverageAudit(now = new Date()) {
           dailyFeedItems.feedDate,
           new Date(now.getTime() - 4 * 86400000).toISOString().slice(0, 10)
         ),
-        sql`${dailyFeedItems.channel} IN ('AU','PROPERTY')`
+        sql`(${dailyFeedItems.channel} IN ('AU','PROPERTY') OR
+          (${dailyFeedItems.channel} = 'BUSINESS' AND ${dailyFeedItems.feedDate} = '2026-09-14' AND
+           ${dailyFeedItems.sourceUrl} = 'https://www.abc.net.au/news/2026-09-14/asx-markets-business-live-news-september-14/107148618'))`
       )
     )
     .orderBy(dailyFeedItems.createdAt, dailyFeedItems.id)
@@ -254,6 +256,28 @@ export async function repairCoverageAudit(now = new Date()) {
     }
   }
   const linked = await linkPublishedCoverage(rows);
+  // Verified original/industry reporting of the same 14 September grant
+  // conversion. A relationship, not independent corroboration or suppression.
+  const crisisParent = rows.find(
+    (r) =>
+      r.feedDate === "2026-09-14" &&
+      r.sourceUrl ===
+        "https://www.housingaustralia.gov.au/media/housing-australia-welcomes-australian-governments-additional-300-million-commitment-deliver"
+  );
+  const crisisFollowup = rows.find(
+    (r) =>
+      r.feedDate === "2026-09-14" &&
+      r.sourceUrl ===
+        "https://www.brokernews.com.au/news/breaking-news/housing-australia-unlocks-fresh-funding-for-crisis-and-transitional-housing-289963.aspx"
+  );
+  if (crisisParent && crisisFollowup && crisisParent.id !== crisisFollowup.id) {
+    await db
+      .update(dailyFeedItems)
+      .set({ threadParentId: crisisParent.id, threadParentTitle: crisisParent.title })
+      .where(
+        and(eq(dailyFeedItems.id, crisisFollowup.id), sql`${dailyFeedItems.threadParentId} IS NULL`)
+      );
+  }
   // Source-verified September 11 follow-up has a generic title/summary. Its
   // original release explicitly cites the same 10,700-home model. Do not use
   // generated angles to guess this relationship or generalise these URLs.

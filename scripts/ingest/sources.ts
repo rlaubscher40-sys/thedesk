@@ -29,6 +29,7 @@
  */
 import type { FeedChannel } from "../../shared/const";
 import { VICTORIA_SEARCH_URL } from "./lib/victoriaSource";
+import { REIWA_RELEASE_SOURCE } from "./lib/reiwaRelease";
 
 type SourceCategory =
   | "MACRO"
@@ -94,6 +95,48 @@ function googleNewsGlobal(query: string): string {
 }
 
 export const SOURCES: Source[] = [
+  {
+    name: "Financial Advice Association Australia",
+    url: "https://faaa.au/feed/",
+    category: "POLICY",
+    channel: "AU",
+    maxItems: 20,
+  },
+  {
+    name: REIWA_RELEASE_SOURCE,
+    url: "https://www.nationaltribune.com.au/topics/reiwa/",
+    kind: "index",
+    articlePath: "^/[^/]+/$",
+    articleContainerClass: "entry-innerwrap",
+    category: "PROPERTY",
+    channel: "PROPERTY",
+    maxItems: 12,
+  },
+  {
+    name: "ABC Mortgages",
+    url: "https://www.abc.net.au/news/topic/mortgages",
+    kind: "index",
+    articlePath: "^/news/20[0-9]{2}-[0-9]{2}-[0-9]{2}/[^/]+/[0-9]+$",
+    category: "PROPERTY",
+    channel: "PROPERTY",
+    maxItems: 20,
+  },
+  {
+    name: "ABC Federal Government",
+    url: "https://www.abc.net.au/news/topic/federal-government",
+    kind: "index",
+    articlePath: "^/news/20[0-9]{2}-[0-9]{2}-[0-9]{2}/[^/]+/[0-9]+$",
+    category: "POLICY",
+    channel: "AU",
+    maxItems: 20,
+  },
+  {
+    name: "Australian Banking Association",
+    url: "https://www.ausbanking.org.au/feed/",
+    category: "POLICY",
+    channel: "AU",
+    maxItems: 20,
+  },
   {
     name: "SBS Economy and Finance",
     url: "https://www.sbs.com.au/news/collection/economy-and-finance",
@@ -294,14 +337,24 @@ export const SOURCES: Source[] = [
   },
   {
     name: "realestate.com.au News",
-    // RSS returns 403; the public newsroom exposes ordinary headline links.
-    url: "https://www.realestate.com.au/news/",
-    kind: "index",
-    articlePath: "^/news/[^/]+/$",
-    articleLinkClass: "article-summary-title-link",
+    // Public RSS reverified 14 September. Keep the independently verified
+    // newsroom as a discovery alternative; neither bypasses article denials.
+    url: "https://www.realestate.com.au/news/feed/",
     category: "PROPERTY",
     channel: "PROPERTY",
     maxItems: 25,
+    recoveryRoutes: [
+      {
+        name: "realestate.com.au News index",
+        url: "https://www.realestate.com.au/news/",
+        kind: "index",
+        articlePath: "^/news/[^/]+/$",
+        articleLinkClass: "article-summary-title-link",
+        category: "PROPERTY",
+        channel: "PROPERTY",
+        maxItems: 25,
+      },
+    ],
   },
   // ══ AU FLAGSHIP ═══════════════════════════════════════════════════════════
   // ── Tier 1: Official / regulators ────────────────────────────────────────

@@ -1,6 +1,13 @@
 import { hasHousingEvidence } from "./marketRelevance";
 
 export function editorialCategory(title: string, summary: string, fallback: string): string {
+  if (
+    fallback === "PROPERTY" &&
+    !hasHousingEvidence(`${title} ${summary}`) &&
+    /\bvacan(?:t|cy|cies)\b/i.test(`${title} ${summary}`) &&
+    /\b(?:jobs?|staff|positions?|departments?)\b/i.test(`${title} ${summary}`)
+  )
+    return "MACRO";
   if (fallback === "PROPERTY" && !hasHousingEvidence(title)) {
     const generalLiveBlog = /\b(?:news live|live updates|live blog)\b/i.test(title);
     const nonResidentialHousing =
