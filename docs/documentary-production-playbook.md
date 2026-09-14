@@ -65,16 +65,16 @@ The output has empty evidence, no release date and `research-required` status. I
 
 After research and authoring, register the episode, public reading notes, sources, checked assets and visual treatment. The maintained locations are:
 
-| Material | Project file |
-| --- | --- |
-| Narration and eight production scenes | `server/instagram/documentaryEpisodes.ts` |
-| Source records and public reading notes | `shared/documentaryReels.ts` |
-| Image credits, licences and file checksums | `shared/documentaryPhotos.ts` |
-| Visual timing and sound direction | `server/video/documentaryDirection.ts` |
-| Timed visual purposes | `server/video/documentaryShotPlan.ts` |
-| Harry's authored sequences | `server/video/personDocumentaryRenderer.ts` |
-| Review criteria and research brief | `server/video/documentaryProduction.ts` |
-| Exact previously reviewed exports | `server/instagram/documentaryReviews.ts` |
+| Material                                   | Project file                                |
+| ------------------------------------------ | ------------------------------------------- |
+| Narration and eight production scenes      | `server/instagram/documentaryEpisodes.ts`   |
+| Source records and public reading notes    | `shared/documentaryReels.ts`                |
+| Image credits, licences and file checksums | `shared/documentaryPhotos.ts`               |
+| Visual timing and sound direction          | `server/video/documentaryDirection.ts`      |
+| Timed visual purposes                      | `server/video/documentaryShotPlan.ts`       |
+| Harry's authored sequences                 | `server/video/personDocumentaryRenderer.ts` |
+| Review criteria and research brief         | `server/video/documentaryProduction.ts`     |
+| Exact previously reviewed exports          | `server/instagram/documentaryReviews.ts`    |
 
 Export a registered episode:
 

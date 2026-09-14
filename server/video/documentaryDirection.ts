@@ -1,7 +1,7 @@
 /** Authored edit points inside measured spoken phrases, not a fixed slide interval.
  * Fractions direct pictures and score together; they are not forced word alignment. */
 export const DOCUMENTARY_DIRECTION = {
-  version: 1,
+  version: 2,
   cuts: [
     [0, 0.48],
     [0, 0.52],
@@ -20,7 +20,7 @@ export const DOCUMENTARY_DIRECTION = {
     [0, 0.66],
     [0, 0.22, 0.48],
   ],
-  sound: { version: 1, sampleRate: 48000, peak: 0.11, duckRatio: 8 },
+  sound: { version: 2, sampleRate: 48000, peak: 0.11, duckRatio: 8 },
 } as const;
 
 export function documentaryEdit(shot: number, progress: number) {

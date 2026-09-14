@@ -9,6 +9,7 @@ import { documentaryReviewHash } from "../server/video/documentaryStory";
 import { assertProductionCandidate, productionReelOptions } from "../server/video/reelProduction";
 import { renderStatReel } from "../server/video/statReel";
 import { renderReelCover } from "../server/video/reelCover";
+import { writeDocumentaryReviewPackage } from "./lib/documentaryReviewPackage";
 
 const [id, output] = process.argv.slice(2);
 const episodes = DOCUMENTARY_EPISODES.filter((e) => id === "all" || id === e.id);
@@ -32,13 +33,14 @@ for (const episode of episodes) {
   const videoSha256 = createHash("sha256").update(video.bytes).digest("hex");
   await fs.writeFile(path.join(out, `The-Desk-${episode.id}.mp4`), video.bytes);
   await fs.writeFile(path.join(out, "caption.txt"), candidate.caption + "\n");
+  const hash = documentaryReviewHash(candidate.stat.documentary!);
   await fs.writeFile(
     path.join(out, "review.json"),
     JSON.stringify(
       {
         status: "Review export. Not posted or automatically approved.",
         candidate,
-        hash: documentaryReviewHash(candidate.stat.documentary!),
+        hash,
         seconds: video.seconds,
         videoSha256,
         timeline: video.timeline,
@@ -50,12 +52,23 @@ for (const episode of episodes) {
       2
     )
   );
+  console.log(JSON.stringify({ id: episode.id, status: "checking-encoded-film", posted: false }));
+  const audit = await writeDocumentaryReviewPackage({
+    episode,
+    output: out,
+    timeline: video.timeline.map((scene) => ({ ...scene, phrases: scene.phrases ?? [] })),
+    seconds: video.seconds,
+    videoSha256,
+    inputHash: hash,
+  });
   console.log(
     JSON.stringify({
       id: episode.id,
       seconds: video.seconds,
       renderSeconds: (Date.now() - started) / 1000,
       posted: false,
+      technicalReview: audit.status,
+      visualSections: audit.visualSections,
     })
   );
 }

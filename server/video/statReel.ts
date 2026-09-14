@@ -850,7 +850,7 @@ export async function renderStatReel(
       const scoreInput = (continuous ? 1 : frameFiles.length) + spokenSections.length;
       audioGraph =
         audioGraph.replace(/\[aout\]$/, "[voice]") +
-        `;[voice]asplit=2[voiceMix][voiceKey];[${scoreInput}:a][voiceKey]` +
+        `;[voice]apad=whole_dur=${total.toFixed(3)},atrim=duration=${total.toFixed(3)},asplit=2[voiceMix][voiceKey];[${scoreInput}:a][voiceKey]` +
         `sidechaincompress=threshold=0.015:ratio=${DOCUMENTARY_DIRECTION.sound.duckRatio}:attack=15:release=320[scoreDuck];` +
         "[voiceMix][scoreDuck]amix=inputs=2:duration=longest:normalize=0," +
         "alimiter=limit=0.84:level=0:latency=1[aout]";
