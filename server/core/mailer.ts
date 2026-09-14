@@ -1,3 +1,4 @@
+import { EDITORIAL_CONTACT, NEWSLETTER_NOTICE } from "../../shared/legal";
 /**
  * Minimal mailer over the Resend REST API.
  *
@@ -100,6 +101,7 @@ export async function send(
       body: JSON.stringify({
         from,
         to: [input.to],
+        reply_to: EDITORIAL_CONTACT,
         subject: input.subject,
         html: input.html,
         text: input.text,
@@ -324,6 +326,8 @@ export async function sendConfirmEmail({
     "The Desk · Intelligence",
     "",
     "Confirm your subscription.",
+    NEWSLETTER_NOTICE,
+    "Privacy: https://thedesk.au/privacy",
     "",
     "Tap the link below to lock in your subscription. It expires in 24 hours.",
     "",
@@ -721,7 +725,7 @@ function confirmEmailHtml({ confirmUrl }: { confirmUrl: string }): string {
       <td class="em-bg" bgcolor="${L.bg}" style="padding:0 0 24px;background-color:${L.bg};">
         <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${L.accent};text-transform:uppercase;margin-bottom:12px;">One more step</div>
         <h1 class="em-h" style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:34px;line-height:1.05;color:${L.heading};margin:0 0 14px;letter-spacing:-0.02em;">Confirm your subscription.</h1>
-        <p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.6;color:${L.muted};margin:0 0 24px;">Tap the button below to lock it in. The link expires in 24 hours. If you didn't ask for this, ignore the message and nothing happens.</p>
+        <p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.6;color:${L.muted};margin:0 0 24px;">${esc(NEWSLETTER_NOTICE)} <a href="https://thedesk.au/privacy">Privacy</a>. The link expires in 24 hours. If you didn't ask for this, ignore the message and nothing happens.</p>
       </td>
     </tr>
     ${ctaRow(confirmUrl, "Confirm subscription")}
