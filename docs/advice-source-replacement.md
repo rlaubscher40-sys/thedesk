@@ -62,3 +62,27 @@ verify saved story rows separately from selection and insertion counts.
 Regression checks cover direct/resolved publisher pauses without requests,
 alternative-source attribution without false corroboration, extraction boundary,
 sponsored metadata, timezone/DST/calendar failures, and recovery claim limits.
+
+## Production result and permitted newsroom follow-up
+
+PR #277 passed all 2,378 CI tests and deployed as 676fb62. Railway's actual
+Money Management RSS request returned 403. Its successful workstation fetch
+was not sufficient proof of production access. ASIC's recovery read succeeded
+and inserted one report; the adviser-ban event was already published from ASIC.
+The Money Management topic index also returned 403 during the subsequent check.
+Its direct RSS entry is removed; its reviewed article adapter remains available
+for ordinarily accessible rediscovered articles, without retrying denied URLs.
+
+Financial Newswire's public /financial-planning/ index returned HTTP 200 and
+its robots file permits that path and article pages. The previously checked
+article pages also returned 200. This route uses the rendered headline
+containers (rpsw-post-title or post-header), excludes sidebar/comment links
+and other subject paths, and never requests its disallowed RSS feed. The
+article reader requires content-inner, and checks sponsorship inside that
+article body plus the current article's own structured disclosure. Comments
+outside the body do not become evidence. Standard dates, evidence, geography,
+ranking and duplication remain mandatory.
+
+A separate one-attempt durable recovery reads only this newsroom after the
+follow-up deploy. Production access must still be verified from that run.
+Workstation access and synthetic regression checks alone do not establish it.

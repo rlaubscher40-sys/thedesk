@@ -23,9 +23,10 @@ const body =
 const schema = (date: string, section = "Financial Planning", target = url) =>
   `<script type="application/ld+json">${JSON.stringify({ "@graph": [{ "@type": "Article", "@id": target + "#article", datePublished: date, articleSection: [section] }] })}</script>`;
 
-it("reads the replacement feed with its own attribution and excludes the paused direct source", async () => {
+it("preserves RSS attribution while excluding production-denied direct sources", async () => {
   expect(SOURCES.some((s) => s.name === "Professional Planner")).toBe(false);
-  const source = SOURCES.find((s) => s.name === "Money Management")!;
+  const source = { name: "Money Management", url: "https://www.moneymanagement.com.au/feed/", category: "POLICY" as const, channel: "AU" as const };
+  expect(SOURCES.some(s => s.name === "Money Management")).toBe(false);
   const read = createSourceReader(
     async () =>
       `<rss version="2.0"><channel><title>Money Management</title><item><title>ASIC bans Australian financial adviser over superannuation advice</title><link>${url}</link><pubDate>Mon, 14 Sep 2026 06:30:02 +1000</pubDate></item></channel></rss>`

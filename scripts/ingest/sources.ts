@@ -53,7 +53,7 @@ export type Source = {
   kind?: "rss" | "index" | "nsw-index" | "asic-index" | "victoria-index";
   articlePath?: string;
   /** Require a publisher-declared article type around index links. */
-  articleContainerClass?: string;
+  articleContainerClass?: string | string[];
   /** Restrict discovery to the publisher's actual headline links. */
   articleLinkClass?: string;
   /** Verified public discovery alternatives. Same publisher, same beat;
@@ -257,8 +257,13 @@ export const SOURCES: Source[] = [
   // Professional Planner is paused after repeated article denials. Advice
   // coverage uses ASIC/FAAA originals plus this independently verified newsroom.
   {
-    name: "Money Management",
-    url: "https://www.moneymanagement.com.au/feed/",
+    name: "Financial Newswire",
+    // Its robots.txt disallows RSS; this public topic index is permitted.
+    // Money Management's feed is removed after a production HTTP 403.
+    url: "https://financialnewswire.com.au/financial-planning/",
+    kind: "index",
+    articlePath: "^/financial-planning/[^/]+/$",
+    articleContainerClass: ["rpsw-post-title", "post-header"],
     category: "POLICY",
     channel: "AU",
     maxItems: 20,

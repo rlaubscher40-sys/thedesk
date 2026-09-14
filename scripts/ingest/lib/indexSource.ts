@@ -20,13 +20,14 @@ function heading(node: Node): string | null {
     }
   return null;
 }
-function inArticleContainer(node: Node, requiredClass?: string): boolean {
+function inArticleContainer(node: Node, requiredClass?: string | string[]): boolean {
   if (!requiredClass) return true;
+  const classes = Array.isArray(requiredClass) ? requiredClass : [requiredClass];
   let ancestor: Node | null = node;
   while (ancestor) {
     if (
       "attrs" in ancestor &&
-      ancestor.attrs.some((a) => a.name === "class" && a.value.split(/\s+/).includes(requiredClass))
+      ancestor.attrs.some((a) => a.name === "class" && classes.some((name) => a.value.split(/\s+/).includes(name)))
     )
       return true;
     ancestor = "parentNode" in ancestor ? ancestor.parentNode : null;
