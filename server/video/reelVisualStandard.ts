@@ -10,11 +10,25 @@ export const REEL_SHOTS = {
   ...REEL_PHOTO_CATALOGUE,
   moving: {
     asset: "moving-home-cottonbro.jpg",
+    source:
+      "https://images.pexels.com/photos/4554242/pexels-photo-4554242.jpeg?cs=srgb&dl=pexels-cottonbro-4554242.jpg&fm=jpg",
+    licence: "https://www.pexels.com/license/",
+    reviewed: "2026-09-12",
+    sha256: "11bcc8a3663a1b4727affd220fcd5ececcb84f3133f321c636d7e7ab9413dc5e",
+    purpose:
+      "Moving illustration, not a named household or measured migration route. Gallery/download evidence at original review.",
     credit: "Moving-home illustration / cottonbro studio / Pexels",
     focus: 0.5,
   },
   construction: {
     asset: "sydney-construction-damon-hall.jpg",
+    source:
+      "https://unsplash.com/photos/a-very-tall-building-with-a-crane-on-top-of-it-jzEkzVq3Yp0",
+    licence: "https://unsplash.com/license",
+    reviewed: "2026-09-10",
+    sha256: "3242c737991f5100629fcfad7f6e74fbd2abc357547ea6d7737e8eefdd483691",
+    purpose:
+      "Sydney construction archive; not current footage or evidence of delay at this building.",
     credit: "Sydney construction archive / Damon Hall / Unsplash",
     focus: 0.5,
   },

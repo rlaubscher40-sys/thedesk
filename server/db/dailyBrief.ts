@@ -14,6 +14,18 @@ function database() {
   if (!db) throw new Error("Daily brief database unavailable");
   return db;
 }
+export async function briefStoriesStillPublic(ids: number[]) {
+  if (!ids.length || ids.length > 20 || ids.some((id) => !Number.isSafeInteger(id) || id < 1))
+    return false;
+  const unique = [...new Set(ids)];
+  const [rows] = await database().execute(
+    sql`SELECT id FROM daily_feed_items WHERE id IN (${sql.join(
+      unique.map((id) => sql`${id}`),
+      sql`, `
+    )}) AND channel IN ('AU','PROPERTY')`
+  );
+  return (rows as unknown as unknown[]).length === unique.length;
+}
 const key = (date: string, id: number) =>
   and(eq(deliveries.feedDate, date), eq(deliveries.subscriberId, id));
 export type BriefClaim = typeof deliveries.$inferSelect & { owner: string; payload: SendInput };

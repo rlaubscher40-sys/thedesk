@@ -3,6 +3,7 @@
  * a one-screen index of every callable procedure.
  */
 import { evidenceRouter } from "./evidence";
+import { legalRouter } from "./legal";
 import { router } from "../core/trpc";
 import { analyticsRouter } from "./analytics";
 import { askRouter } from "./ask";
@@ -26,6 +27,7 @@ import { topicsRouter } from "./topics";
 import { trendsRouter } from "./trends";
 
 export const appRouter = router({
+  legal: legalRouter,
   evidence: evidenceRouter,
   system: systemRouter,
   auth: authRouter,

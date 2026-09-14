@@ -258,6 +258,12 @@ async function startServer() {
         .catch(() => console.warn("[security] cleanup unavailable"));
     cleanup();
     setInterval(cleanup, 60 * 60_000).unref();
+    const privacyCleanup = () =>
+      void import("./db/privacyOperations")
+        .then((m) => m.cleanExpiredPrivatePayloads())
+        .catch(() => console.warn("[privacy] expired-payload cleanup unavailable"));
+    privacyCleanup();
+    setInterval(privacyCleanup, 60 * 60_000).unref();
     // Say now whether Tuesday's Reel can be made. Both of its dependencies are
     // invisible until the job runs, and a deploy log is where somebody looks.
     void import("./video/preflight").then((m) => m.logReelReadiness());

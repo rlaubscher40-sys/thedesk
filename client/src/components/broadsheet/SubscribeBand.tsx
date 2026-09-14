@@ -15,12 +15,14 @@ import { cn } from "@/lib/cn";
 import { Honeypot } from "@/components/Honeypot";
 import { hasSubscribed, useSubscribe } from "@/lib/useSubscribe";
 import { GUTTER_X } from "./tokens";
+import { Link } from "wouter";
+import { NEWSLETTER_NOTICE } from "@shared/legal";
 
 export function SubscribeBand({
   source,
   kicker = "The Daily Brief · free",
   headline = "Five stories and three ready-made lines, in your inbox at 7am.",
-  blurb = "Written each morning by Ruben Laubscher. Weekdays at 7am Sydney time, plus the Sunday edition. No tracking pixels. Unsubscribe in a click.",
+  blurb = "Curated by Ruben Laubscher with AI-assisted reporting. Weekdays at 7am Sydney time, plus the Sunday edition. Unsubscribe in a click.",
   showHeadshot = true,
   hideAfterSignup = true,
 }: {
@@ -114,7 +116,7 @@ export function SubscribeBand({
               type="email"
               required
               aria-invalid={!!error}
-              aria-describedby={error ? `subscribe-error-${source}` : undefined}
+              aria-describedby={`subscribe-notice-${source}${error ? ` subscribe-error-${source}` : ""}`}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@firm.com"
@@ -147,6 +149,13 @@ export function SubscribeBand({
                 {error}
               </p>
             )}
+            <p id={`subscribe-notice-${source}`} className="text-sm leading-6 sm:col-span-2">
+              {NEWSLETTER_NOTICE}{" "}
+              <Link href="/privacy" className="underline">
+                Privacy
+              </Link>
+              .
+            </p>
           </form>
         )}
 

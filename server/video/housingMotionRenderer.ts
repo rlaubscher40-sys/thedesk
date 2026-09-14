@@ -1,3 +1,4 @@
+import { assertReviewedPhotoBytes } from "./assetRights";
 import { createCanvas, loadImage, type Image } from "@napi-rs/canvas";
 import { spawn } from "node:child_process";
 import ffmpegPath from "ffmpeg-static";
@@ -131,6 +132,7 @@ export async function createHousingMotionRenderer(
       if (photographic) {
         const asset = await loadAsset(REEL_SHOTS[shot!].asset);
         if (!asset) throw new Error("Reviewed archive photograph is missing.");
+        assertReviewedPhotoBytes(REEL_SHOTS[shot!], asset);
         photo = await loadImage(asset);
       } else photo = undefined;
     }

@@ -1,3 +1,5 @@
+import { EDITORIAL_CONTACT, NEWSLETTER_NOTICE } from "../../shared/legal";
+import { assertPublicationAllowed } from "../db/publicationControls";
 /**
  * Minimal mailer over the Resend REST API.
  *
@@ -45,6 +47,8 @@ function esc(s: string): string {
 }
 
 export type SendInput = {
+  /** Explicit for new editorial templates; legacy frozen payloads use their unsubscribe header. */
+  publicationCategory?: "editorial";
   /** Frozen for durable sends so retries keep exactly the same payload. */
   from?: string;
   to: string;
@@ -84,9 +88,15 @@ export async function send(
   const from = input.from ?? process.env.MAIL_FROM ?? "The Desk <hello@thedesk.au>";
 
   if (!apiKey) {
-    console.log(`[mailer] no RESEND_API_KEY set, dry-run send to ${input.to}: ${input.subject}`);
+    console.log("[mailer] no RESEND_API_KEY set; no email sent");
     return { delivered: false, reason: "no-key" };
   }
+
+  if (
+    input.publicationCategory === "editorial" ||
+    Object.keys(input.headers ?? {}).some((k) => k.toLowerCase() === "list-unsubscribe")
+  )
+    await assertPublicationAllowed("email");
 
   try {
     const res = await fetch(RESEND_ENDPOINT, {
@@ -100,6 +110,7 @@ export async function send(
       body: JSON.stringify({
         from,
         to: [input.to],
+        reply_to: EDITORIAL_CONTACT,
         subject: input.subject,
         html: input.html,
         text: input.text,
@@ -324,6 +335,8 @@ export async function sendConfirmEmail({
     "The Desk · Intelligence",
     "",
     "Confirm your subscription.",
+    NEWSLETTER_NOTICE,
+    "Privacy: https://thedesk.au/privacy",
     "",
     "Tap the link below to lock in your subscription. It expires in 24 hours.",
     "",
@@ -613,6 +626,7 @@ export async function sendTalkingPointNudgeEmail({
   ].join("\n");
   return send({
     to,
+    publicationCategory: "editorial",
     subject: `Did the ${category} angle land? · The Desk`,
     html,
     text,
@@ -721,7 +735,7 @@ function confirmEmailHtml({ confirmUrl }: { confirmUrl: string }): string {
       <td class="em-bg" bgcolor="${L.bg}" style="padding:0 0 24px;background-color:${L.bg};">
         <div class="em-a" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;letter-spacing:0.22em;color:${L.accent};text-transform:uppercase;margin-bottom:12px;">One more step</div>
         <h1 class="em-h" style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:34px;line-height:1.05;color:${L.heading};margin:0 0 14px;letter-spacing:-0.02em;">Confirm your subscription.</h1>
-        <p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.6;color:${L.muted};margin:0 0 24px;">Tap the button below to lock it in. The link expires in 24 hours. If you didn't ask for this, ignore the message and nothing happens.</p>
+        <p class="em-m" style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.6;color:${L.muted};margin:0 0 24px;">${esc(NEWSLETTER_NOTICE)} <a href="https://thedesk.au/privacy">Privacy</a>. The link expires in 24 hours. If you didn't ask for this, ignore the message and nothing happens.</p>
       </td>
     </tr>
     ${ctaRow(confirmUrl, "Confirm subscription")}

@@ -1,4 +1,5 @@
 import { TaskDetails } from "@/components/admin/TaskDetails";
+import { LegalAdminPanel } from "@/components/admin/LegalAdminPanel";
 import { OperationsOverview } from "@/components/admin/OperationsOverview";
 /**
  * Admin console.
@@ -107,6 +108,11 @@ export default function AdminPage() {
         ))}
       </nav>
       {section === "overview" && <OperationsOverview />}
+      {(section === "settings" || section === "stories") && (
+        <SectionErrorBoundary section="Publishing controls">
+          <LegalAdminPanel />
+        </SectionErrorBoundary>
+      )}
       {section === "social" && (
         <div id="instagram" className="my-8 scroll-mt-20">
           <SectionErrorBoundary section="Instagram admin">

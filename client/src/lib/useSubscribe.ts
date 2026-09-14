@@ -16,6 +16,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { getArrival } from "@/lib/attribution";
 import { trpc } from "@/lib/trpc";
+import { NEWSLETTER_NOTICE_VERSION } from "@shared/legal";
 
 const SUBSCRIBED_KEY = "thedesk:subscribed";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -98,6 +99,7 @@ export function useSubscribe({
     mutation.mutate({
       email: email.trim(),
       source,
+      noticeVersion: NEWSLETTER_NOTICE_VERSION,
       arrivalSource: arrival?.source,
       arrivalCampaign: arrival?.campaign ?? undefined,
       _hp: hp,

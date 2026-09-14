@@ -1,4 +1,5 @@
 import { desc, eq, like, or, sql } from "drizzle-orm";
+import { assertPublicationAllowed } from "./publicationControls";
 import type { EditionTopic, Lookback, Signals } from "../../shared/schemas";
 import * as demoQueries from "../demo/queries";
 import { isDemoMode } from "../demo/store";
@@ -106,6 +107,7 @@ export async function getEditionByNumber(num: number): Promise<Edition | undefin
 }
 
 export async function createEdition(data: InsertEdition) {
+  await assertPublicationAllowed("website");
   if (isDemoMode()) return demoQueries.createEdition(data);
   const db = getDb();
   if (!db) throw new Error("createEdition: database unavailable");
@@ -129,6 +131,7 @@ function isDuplicateKeyError(err: unknown): boolean {
 export async function createEditionWithNextNumber(
   build: (editionNumber: number) => InsertEdition
 ): Promise<number> {
+  await assertPublicationAllowed("website");
   if (isDemoMode()) {
     const rows = demoQueries.listEditions();
     const editionNumber = rows.reduce((m, r) => Math.max(m, r.editionNumber), 0) + 1;

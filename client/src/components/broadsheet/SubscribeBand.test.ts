@@ -17,6 +17,7 @@ vi.mock("@/lib/trpc", () => ({
   },
 }));
 import { SubscribeBand } from "./SubscribeBand";
+import { NEWSLETTER_NOTICE, NEWSLETTER_NOTICE_VERSION } from "@shared/legal";
 beforeEach(() => {
   localStorage.clear();
   vi.clearAllMocks();
@@ -25,6 +26,18 @@ afterEach(cleanup);
 function open() {
   render(h(SubscribeBand, { source: "test", hideAfterSignup: false }));
 }
+it("shows the newsletter scope and sends the matching notice version", () => {
+  open();
+  expect(screen.getByText(NEWSLETTER_NOTICE, { exact: false })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Privacy" }).getAttribute("href")).toBe("/privacy");
+  fireEvent.change(screen.getByLabelText("Email address"), {
+    target: { value: "reader@example.com" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Subscribe" }));
+  expect(m.mutate).toHaveBeenCalledWith(
+    expect.objectContaining({ noticeVersion: NEWSLETTER_NOTICE_VERSION })
+  );
+});
 it("shows a visible label and inline validation without sending invalid addresses", () => {
   open();
   expect(screen.getByText("Email address").className).not.toContain("sr-only");

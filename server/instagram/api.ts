@@ -1,4 +1,5 @@
 import { completeInsightCounts, validMetricCount } from "../../shared/instagramMeasurement";
+import { assertPublicationAllowed, PublicationPausedError } from "../db/publicationControls";
 import { assertCaptionStyle, CaptionStyleError } from "./captionStyle";
 import { validateFirstComment } from "./firstCommentCopy";
 /**
@@ -78,7 +79,12 @@ export function isTransientServerError(err: unknown): boolean {
   );
 }
 
-async function igPost<T>(endpoint: string, params: Record<string, string>, signal?: AbortSignal): Promise<T> {
+async function igPost<T>(
+  endpoint: string,
+  params: Record<string, string>,
+  signal?: AbortSignal
+): Promise<T> {
+  await assertPublicationAllowed("social");
   if (params.caption) assertCaptionStyle(params.caption);
   const body = new URLSearchParams(params);
   const res = await fetch(`${BASE}${endpoint}`, {
@@ -94,12 +100,21 @@ async function igPost<T>(endpoint: string, params: Record<string, string>, signa
 }
 
 /** Non-idempotent: never wrap in withIgRetry. The caller must hold a durable claim. */
-export async function createMediaComment(opts: { mediaId: string; accessToken: string; message: string }) {
+export async function createMediaComment(opts: {
+  mediaId: string;
+  accessToken: string;
+  message: string;
+}) {
   if (!/^\d{1,32}$/.test(opts.mediaId)) throw new Error("Invalid comment media ID");
   validateFirstComment(opts.message);
-  const data = await igPost<{ id?: string }>(`/${opts.mediaId}/comments`, {
-    message: opts.message, access_token: opts.accessToken,
-  }, AbortSignal.timeout(15_000));
+  const data = await igPost<{ id?: string }>(
+    `/${opts.mediaId}/comments`,
+    {
+      message: opts.message,
+      access_token: opts.accessToken,
+    },
+    AbortSignal.timeout(15_000)
+  );
   if (typeof data.id !== "string" || !/^\d{1,32}$/.test(data.id))
     throw new Error("Meta returned no valid comment ID; outcome uncertain.");
   return data.id;
@@ -108,9 +123,14 @@ export async function createMediaComment(opts: { mediaId: string; accessToken: s
 /** A failed/missing response is ambiguous (deleted or inaccessible), not false. */
 export async function fetchCommentExists(opts: { commentId: string; accessToken: string }) {
   if (!/^\d{1,32}$/.test(opts.commentId)) throw new Error("Invalid comment ID");
-  const data = await igGet<{ id?: string }>(`/${opts.commentId}`, {
-    fields: "id", access_token: opts.accessToken,
-  }, AbortSignal.timeout(10_000));
+  const data = await igGet<{ id?: string }>(
+    `/${opts.commentId}`,
+    {
+      fields: "id",
+      access_token: opts.accessToken,
+    },
+    AbortSignal.timeout(10_000)
+  );
   if (data.id !== opts.commentId) throw new Error("Comment availability unknown");
   return true;
 }
@@ -119,13 +139,21 @@ export async function fetchCommentExists(opts: { commentId: string; accessToken:
 export async function checkCommentAccess(opts: { mediaId: string; accessToken: string }) {
   if (!/^\d{1,32}$/.test(opts.mediaId)) return "unavailable" as const;
   try {
-    const result = await igGet<{ data?: unknown[] }>(`/${opts.mediaId}/comments`, {
-      fields: "id", limit: "1", access_token: opts.accessToken,
-    }, AbortSignal.timeout(10_000));
-    return Array.isArray(result.data) ? "ready" as const : "unavailable" as const;
+    const result = await igGet<{ data?: unknown[] }>(
+      `/${opts.mediaId}/comments`,
+      {
+        fields: "id",
+        limit: "1",
+        access_token: opts.accessToken,
+      },
+      AbortSignal.timeout(10_000)
+    );
+    return Array.isArray(result.data) ? ("ready" as const) : ("unavailable" as const);
   } catch (error) {
     const reason = metricsFailure(error);
-    return reason === "access_denied" || reason === "rate_limited" ? reason : "unavailable" as const;
+    return reason === "access_denied" || reason === "rate_limited"
+      ? reason
+      : ("unavailable" as const);
   }
 }
 
@@ -176,7 +204,7 @@ async function withIgRetry<T>(
       return await fn();
     } catch (err) {
       lastErr = err;
-      if (err instanceof CaptionStyleError) throw err;
+      if (err instanceof CaptionStyleError || err instanceof PublicationPausedError) throw err;
       if (isRateLimitError(err)) {
         console.warn(`[instagram] ${label} hit a rate-limit/integrity block, not retrying.`);
         throw err;

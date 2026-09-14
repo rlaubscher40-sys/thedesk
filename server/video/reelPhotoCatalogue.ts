@@ -15,10 +15,12 @@ export const REEL_PHOTO_CATALOGUE = {
     asset: "residential-chapman.jpg",
     credit: "Home illustration / Brad Chapman / Unsplash",
     focus: 0.48,
+    evidenceNote:
+      "Gallery-linked individual download; metadata page unavailable at original review. See docs/reel-archive-photography.md.",
     // Keep the house in the clear upper image area, not mostly sky above copy.
     zoom: 1.55,
     verticalFocus: 0.9,
-    source: "https://unsplash.com/s/photos/australian-houses",
+    source: "https://unsplash.com/photos/MGVeR9PvB2g/download?force=true",
     licence: "https://unsplash.com/license",
     reviewed: "2026-09-12",
     sha256: "396468056d1d69d70b257078df79d0525b6c7b2c53d487560382543aa17d7f0d",
@@ -26,9 +28,12 @@ export const REEL_PHOTO_CATALOGUE = {
   },
   building: {
     asset: "house-building-goug.jpg",
+    evidenceNote:
+      "Individual public download identifies photo and creator; metadata page unavailable at original review. See docs/reel-archive-photography.md.",
     credit: "Building illustration / D Goug / Pexels",
     focus: 0.54,
-    source: "https://www.pexels.com/search/house%20construction/",
+    source:
+      "https://images.pexels.com/photos/39151690/pexels-photo-39151690.jpeg?cs=srgb&dl=pexels-d-goug-211350543-39151690.jpg&fm=jpg",
     licence: "https://www.pexels.com/license/",
     reviewed: "2026-09-12",
     sha256: "e97a89e1f94bcca862c7130f280aa205ee8c61012e657dec4548831748b594a7",

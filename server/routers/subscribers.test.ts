@@ -58,6 +58,22 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs());
 
 describe("subscription email acceptance", () => {
+  it("records only a recognised notice version supplied by the requesting client", async () => {
+    await caller.subscribe({ ...input, noticeVersion: "2026-09-14" });
+    expect(mocks.create).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        consentNoticeVersion: "2026-09-14",
+        consentRequestedAt: expect.any(Date),
+      })
+    );
+    await caller.subscribe(input);
+    expect(mocks.create).toHaveBeenLastCalledWith(
+      expect.objectContaining({ consentNoticeVersion: null })
+    );
+    await expect(
+      caller.subscribe({ ...input, noticeVersion: "invented" } as any)
+    ).rejects.toThrow();
+  });
   it("uses the persisted token and never exposes it to a production caller", async () => {
     expect(await caller.subscribe(input)).toEqual({
       status: "pending-confirm",

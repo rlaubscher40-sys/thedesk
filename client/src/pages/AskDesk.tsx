@@ -244,6 +244,10 @@ function AskDeskSession({ accountId }: { accountId: number | "guest" }) {
           . Review the question, then choose Ask.
         </p>
       )}
+      <p id="ask-privacy-notice" className="mt-6 text-sm leading-6 text-[var(--color-fg-muted)]">
+        Questions may be processed by our AI provider. Leave out personal or confidential details.
+        AI answers can be wrong. <a href="/privacy" className="underline">Privacy</a>.
+      </p>
       <form onSubmit={submit} className="rule-major rule-hair-b mt-10 lg:mt-12">
         <label htmlFor="ask-desk" className="sr-only">
           Ask The Desk a property intelligence question
@@ -257,6 +261,7 @@ function AskDeskSession({ accountId }: { accountId: number | "guest" }) {
           <textarea
             ref={inputRef}
             id="ask-desk"
+            aria-describedby="ask-privacy-notice"
             rows={1}
             value={question}
             maxLength={240}

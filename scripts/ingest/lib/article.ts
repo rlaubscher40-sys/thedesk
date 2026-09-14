@@ -1,4 +1,5 @@
 import { extractPublicationDate, missingPublicationDate } from "./publicationDate";
+import { sourceRightsHold } from "../../../shared/sourceRights";
 import type { SourceTiming } from "../../../shared/sourceTiming";
 import { publicFetch } from "./publicFetch";
 import { readableArticleHtml } from "./htmlText";
@@ -56,8 +57,7 @@ export function extractArticleText(
   let contentClass: string | undefined;
   try {
     const host = new URL(sourceUrl ?? "").hostname.replace(/^www\./, "");
-    if (host === "faaa.au")
-      contentClass = "elementor-widget-theme-post-content";
+    if (host === "faaa.au") contentClass = "elementor-widget-theme-post-content";
     if (host === "financialnewswire.com.au") contentClass = "content-inner";
     if (host === "moneymanagement.com.au") contentClass = "entry-content";
     if (host === "ausbanking.org.au") contentClass = "with-share";
@@ -74,7 +74,10 @@ export function extractArticleText(
   let m: RegExpExecArray | null;
   while ((m = re.exec(container)) !== null) {
     const txt = decodeEntities(stripHtml(m[2] ?? "")).trim();
-    if (contentClass === "entry-content" && /^If you enjoyed this article,.*preferred source/i.test(txt))
+    if (
+      contentClass === "entry-content" &&
+      /^If you enjoyed this article,.*preferred source/i.test(txt)
+    )
       continue;
     if (isInstitutionalBoilerplate(txt)) {
       removedInstitutionalFooter = true;
@@ -138,6 +141,10 @@ export async function fetchArticle(
   let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
   try {
     const res = await publicFetch(url, {
+      beforeRequest: (candidate) => {
+        const hold = sourceRightsHold(candidate.href);
+        if (hold) throw new Error(hold);
+      },
       maxBytes: (isResearchPdfUrl(url) ? 2 : 5) * 1024 * 1024,
       signal: controller.signal,
       redirect: "follow",
@@ -184,7 +191,10 @@ export async function fetchArticle(
 
     const editorialHold = articleDisclosureHold(html, url);
     if (editorialHold) return { ...empty, editorialHold };
-    if (new URL(url).hostname.replace(/^www\./, "") === "nationaltribune.com.au" && !isVerifiedReiwaRelease(html))
+    if (
+      new URL(url).hostname.replace(/^www\./, "") === "nationaltribune.com.au" &&
+      !isVerifiedReiwaRelease(html)
+    )
       return { ...empty, editorialHold: "unverified-public-release-attribution" };
 
     if (isAbcMarketLiveblog(url)) {
@@ -207,6 +217,8 @@ export async function fetchArticle(
       text: extractArticleText(html, maxChars, url),
     };
   } catch (error) {
+    if (error instanceof Error && error.message.startsWith("source-rights-review:"))
+      return { ...empty, fetchFailure: error.message };
     const timedOut =
       controller.signal.aborted ||
       (error instanceof Error && ["AbortError", "TimeoutError"].includes(error.name));

@@ -10,10 +10,12 @@ const m = vi.hoisted(() => ({
   finish: vi.fn(),
   feed: vi.fn(),
   send: vi.fn(),
+  stillPublic: vi.fn(),
 }));
 vi.mock("../demo/store", () => ({ isDemoMode: () => false }));
 vi.mock("../db/feed", () => ({ listFeedItems: m.feed }));
 vi.mock("../db/dailyBrief", () => ({
+  briefStoriesStillPublic: m.stillPublic,
   expireDailyBriefs: m.expire,
   readBriefBatch: m.batch,
   readReadyBriefStories: m.ready,
@@ -49,9 +51,17 @@ beforeEach(() => {
   m.candidates.mockResolvedValue([{ id: 1, email: payload.to }]);
   m.claim.mockResolvedValue({ payload });
   m.eligible.mockResolvedValue(true);
+  m.stillPublic.mockResolvedValue(true);
   m.send.mockResolvedValue({ delivered: true, id: "receipt" });
 });
 afterEach(() => vi.unstubAllEnvs());
+it("does not send a frozen batch after its story has been held", async () => {
+  m.batch.mockResolvedValue([item]);
+  m.stillPublic.mockResolvedValue(false);
+  await deliverDailyBrief(now);
+  expect(m.send).not.toHaveBeenCalled();
+  expect(m.claim).not.toHaveBeenCalled();
+});
 it("does not contact the provider outside the Sydney morning window or without a key", async () => {
   for (const stamp of ["2026-09-09T20:59:00Z", "2026-09-10T02:00:00Z", "2026-09-11T21:00:00Z"])
     await deliverDailyBrief(() => new Date(stamp));
