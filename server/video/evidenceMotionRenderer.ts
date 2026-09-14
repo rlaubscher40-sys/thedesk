@@ -1,3 +1,4 @@
+import { assertReviewedPhotoBytes } from "./assetRights";
 import { contextReelLayout, repaymentCueProgress } from "./contextReelLayout";
 import { createCanvas, loadImage, type Image } from "@napi-rs/canvas";
 import {
@@ -54,6 +55,7 @@ export async function createEvidenceMotionRenderer(
     const shot = REEL_SHOTS[key],
       bytes = await loadAsset(shot.asset);
     if (!bytes) throw new Error(`Reviewed Reel photograph is missing: ${shot.asset}`);
+    assertReviewedPhotoBytes(shot, bytes);
     photos.set(key, await loadImage(bytes));
   }
   const canvas = createCanvas(1080, 1920),
