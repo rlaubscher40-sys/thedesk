@@ -5,6 +5,9 @@ vi.mock("../db/instagramPosts", () => ({
   updateInstagramPostMetrics: m.save,
 }));
 vi.mock("./api", () => ({ fetchMediaMetricsResult: m.fetch }));
+vi.mock("./firstCommentAutomation", () => ({
+  excludeAutomatedFirstComment: async (_id: string, _token: string, result: unknown) => result,
+}));
 import { collectInstagramInsights } from "./collectInsights";
 beforeEach(() => {
   vi.resetAllMocks();

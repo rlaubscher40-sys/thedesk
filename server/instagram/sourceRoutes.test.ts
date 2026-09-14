@@ -54,8 +54,8 @@ beforeEach(() => {
   m.feed.mockResolvedValue([]);
   m.metrics.mockResolvedValue([]);
   m.editions.mockResolvedValue([]);
-  m.publish.mockResolvedValue({ postId: "fixture-media", headline: "Housing update" });
-  m.weekly.mockResolvedValue({ postId: "fixture-weekly", headline: "Housing update" });
+  m.publish.mockResolvedValue({ postId: "fixture-media", headline: "Housing update", publishedNow: true });
+  m.weekly.mockResolvedValue({ postId: "fixture-weekly", headline: "Housing update", publishedNow: true });
 });
 afterEach(() => vi.useRealTimers());
 describe("actual scheduled social entrypoints", () => {
@@ -97,8 +97,16 @@ describe("actual scheduled social entrypoints", () => {
     await request("/api/ingest/instagram-daily");
     expect(m.publish).toHaveBeenCalledOnce();
     expect(m.record).toHaveBeenCalledWith(
-      expect.objectContaining({ feedDate: "2026-09-09", mediaId: "fixture-media" })
+      expect.objectContaining({ feedDate: "2026-09-09", mediaId: "fixture-media" }),
+      { enrolFirstComment: true }
     );
+  });
+  it("does not enrol a recovered carousel even if its analytics record was missing", async () => {
+    m.feed.mockResolvedValue([{ id: 1, feedDate: "2026-09-09", channel: "PROPERTY", title: "Housing update" }]);
+    m.publish.mockResolvedValue({ postId: "fixture-media", headline: "Housing update" });
+    await request("/api/ingest/instagram-daily");
+    expect(m.record).toHaveBeenCalledWith(expect.objectContaining({ mediaId: "fixture-media" }),
+      { enrolFirstComment: false });
   });
   it("keeps unrelated FX and equities out of the daily cover strip", async () => {
     m.feed.mockResolvedValue([

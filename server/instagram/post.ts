@@ -445,7 +445,7 @@ export async function postDailyCarousel(
      */
     mode?: "daily" | "coverage";
   } = {}
-): Promise<{ postId: string; headline: string; coverVariant?: CardVariant }> {
+): Promise<{ postId: string; headline: string; coverVariant?: CardVariant; publishedNow?: boolean }> {
   const isCoverage = opts.mode === "coverage";
   const scope = `daily:${stories[0]?.feedDate ?? "missing"}`;
   const { instagramAccessToken: accessToken, instagramBusinessAccountId: igUserId } = env;
@@ -612,7 +612,7 @@ export async function postDailyCarousel(
       accessToken,
     });
 
-    return { postId, headline: sanitized[0]!.title, coverVariant: opts.variant ?? "navy" };
+    return { postId, headline: sanitized[0]!.title, coverVariant: opts.variant ?? "navy", publishedNow: true };
   } finally {
     carouselUuids.forEach(removeTempImage);
   }
@@ -622,7 +622,7 @@ export async function postWeeklyEdition(
   edition: Edition,
   siteUrl: string,
   variant: CardVariant = "navy"
-): Promise<{ postId: string; headline: string; coverVariant?: CardVariant }> {
+): Promise<{ postId: string; headline: string; coverVariant?: CardVariant; publishedNow?: boolean }> {
   const { instagramAccessToken: accessToken, instagramBusinessAccountId: igUserId } = env;
   if (!accessToken || !igUserId) {
     throw new Error("INSTAGRAM_ACCESS_TOKEN and INSTAGRAM_BUSINESS_ACCOUNT_ID must be set");
@@ -755,7 +755,7 @@ export async function postWeeklyEdition(
         siteUrl,
       }).catch((error) => console.error("[instagram] weekly Story delivery stopped", error));
 
-    return { postId, headline: editionAlt, coverVariant: variant };
+    return { postId, headline: editionAlt, coverVariant: variant, publishedNow: true };
   } finally {
     uuids.forEach(removeTempImage);
   }

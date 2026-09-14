@@ -1318,7 +1318,7 @@ function registerInstagramRoutes(app: Express): void {
           .catch(() => {});
       }
 
-      const { postId, headline, coverVariant } = await postDailyCarousel(items, siteOrigin(), {
+      const { postId, headline, coverVariant, publishedNow } = await postDailyCarousel(items, siteOrigin(), {
         variant,
         metrics,
       });
@@ -1329,7 +1329,7 @@ function registerInstagramRoutes(app: Express): void {
         feedDate: feedDate ?? null,
         headline,
         coverVariant: coverVariant ?? variant,
-      });
+      }, { enrolFirstComment: publishedNow === true });
       res.json({ success: true, postId, headline });
     } catch (err) {
       const e = err as Error;
@@ -1425,7 +1425,7 @@ function registerInstagramRoutes(app: Express): void {
         feedDate: feedDate ?? null,
         headline,
         coverVariant: variant,
-      });
+      }, { enrolFirstComment: true });
       res.json({ success: true, postId, headline });
     } catch (err) {
       const e = err as Error;
@@ -1544,7 +1544,7 @@ function registerInstagramRoutes(app: Express): void {
         feedDate: null,
         headline,
         coverVariant: variant,
-      });
+      }, { enrolFirstComment: true });
       res.json({ success: true, postId, headline, angle: pick.angle, score: pick.score });
     } catch (err) {
       const e = err as Error;
@@ -1655,7 +1655,7 @@ function registerInstagramRoutes(app: Express): void {
         feedDate: null,
         headline,
         coverVariant: variant,
-      });
+      }, { enrolFirstComment: true });
       res.json({ success: true, postId, headline });
     } catch (err) {
       const e = err as Error;
@@ -1783,7 +1783,7 @@ function registerInstagramRoutes(app: Express): void {
         feedDate: null,
         headline,
         coverVariant: variant,
-      });
+      }, { enrolFirstComment: true });
       res.json({ success: true, postId, headline, month: review.month });
     } catch (err) {
       const e = err as Error;
@@ -1830,7 +1830,7 @@ function registerInstagramRoutes(app: Express): void {
 
       // Same retry guard as the daily post — see the comment there.
 
-      const { postId, headline, coverVariant } = await postWeeklyEdition(
+      const { postId, headline, coverVariant, publishedNow } = await postWeeklyEdition(
         latest,
         siteOrigin(),
         variant
@@ -1842,7 +1842,7 @@ function registerInstagramRoutes(app: Express): void {
         editionNumber: latest.editionNumber,
         headline,
         coverVariant: coverVariant ?? variant,
-      });
+      }, { enrolFirstComment: publishedNow === true });
       res.json({ success: true, editionNumber: latest.editionNumber, postId, headline });
     } catch (err) {
       const e = err as Error;
