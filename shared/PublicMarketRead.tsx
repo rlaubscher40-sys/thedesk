@@ -99,7 +99,7 @@ export function PublicMarketRead({
         </h2>
         {lead && (
           <p className="text-base leading-7 mt-4 max-w-[70ch] text-[var(--color-fg-muted)]">
-            {lead.excerpt}
+            {lead.excerpt || "Headline-only reference. Read the original for context."}
           </p>
         )}
         <p className="text-sm mt-4 text-[var(--color-fg-muted)]">
@@ -168,7 +168,7 @@ export function PublicMarketRead({
               </a>
             </h3>
             <p className="text-sm leading-6 mt-2 max-w-[80ch] text-[var(--color-fg-muted)]">
-              {reference.excerpt}
+              {reference.excerpt || "Headline-only reference. Read the original for context."}
             </p>
             {reference.sourceUrl && (
               <a

@@ -25,6 +25,13 @@ export function propertyNewsHold(
   if (/^(google news|unknown|unknown publisher)$/i.test(input.source?.trim() ?? ""))
     return "unattributed-search";
   if (
+    // Event sales calls are not housing reporting. Do not blacklist awards,
+    // hotels or conferences themselves: redevelopment and policy news belong.
+    (/\b(?:awards?|conference|summit|gala|webinar)\b/i.test(title) &&
+      /\b(?:book (?:your |a |the )?(?:hotel(?: room)?|room|seat|table|tickets?)|(?:buy|secure|reserve) (?:your |a |the )?(?:seat|table|tickets?)|register now|nominate now|early[- ]bird tickets?)\b/i.test(
+        title
+      )) ||
+    /^(?:advertorial|sponsored (?:content|post))\s*[:|–—-]/i.test(title) ||
     /\b(guaranteed (?:rental )?(?:returns?|profits?)|risk[- ]free (?:property )?investment|casino bonus|promo code)\b/i.test(
       title
     ) ||

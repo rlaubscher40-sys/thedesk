@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-vi.mock("../ask/localFacts", () => ({retrieveLocalFacts: vi.fn(async () => [])}));
+vi.mock("../ask/localFacts", () => ({ retrieveLocalFacts: vi.fn(async () => []) }));
 vi.mock("../db", () => ({
   searchPropertyEvidence: vi.fn(async () => []),
   searchMarketContent: vi.fn(),
@@ -22,11 +22,49 @@ beforeEach(() => {
   vi.mocked(retrieveLocalFacts).mockResolvedValue([]);
 });
 describe("balanced local market retrieval", () => {
+  it("excludes promotions and roundup text before source budgets and marks headline-only evidence", async () => {
+    vi.mocked(searchMarketContent).mockResolvedValue({
+      editions: [],
+      feedItems: [
+        ...Array.from({ length: 5 }, (_, id) =>
+          feed(
+            id,
+            "Perth Mortgage Awards: Book your hotel room now",
+            `https://source.test/promo${id}`
+          )
+        ),
+        {
+          ...feed(6, "Sydney housing supply tightens", "https://news.google.com/rss/articles/6"),
+          summary: "Perth rents rise Another newspaper",
+        },
+        feed(7, "Perth housing supply tightens", "https://source.test/real"),
+      ],
+    });
+    const sources = await retrieveMarketEvidence("Perth", "Brisbane");
+    expect(sources).toHaveLength(1);
+    expect(sources[0]!.text).toContain("Headline-only reference");
+    expect(sources[0]!.text.match(/Perth housing supply tightens/g)).toHaveLength(1);
+    expect(sources[0]!.href).toBe("/story/7");
+  });
   it("keeps different observation periods from one workbook as separate citations", async () => {
     vi.mocked(searchMarketContent).mockResolvedValue({ editions: [], feedItems: [] });
     vi.mocked(retrieveLocalFacts).mockResolvedValue([
-      { title: "4000, QLD (postcode)", date: "2026-06-30", href: "/markets?q=4000&state=QLD&areaKind=postcode&period=2026-06-30#local-data", publisher: "RTA", sourceUrl: "https://source.test/rents.xlsx", text: "850 AUD/week in June 2026" },
-      { title: "4000, QLD (postcode)", date: "2025-06-30", href: "/markets?q=4000&state=QLD&areaKind=postcode&period=2025-06-30#local-data", publisher: "RTA", sourceUrl: "https://source.test/rents.xlsx", text: "800 AUD/week in June 2025" },
+      {
+        title: "4000, QLD (postcode)",
+        date: "2026-06-30",
+        href: "/markets?q=4000&state=QLD&areaKind=postcode&period=2026-06-30#local-data",
+        publisher: "RTA",
+        sourceUrl: "https://source.test/rents.xlsx",
+        text: "850 AUD/week in June 2026",
+      },
+      {
+        title: "4000, QLD (postcode)",
+        date: "2025-06-30",
+        href: "/markets?q=4000&state=QLD&areaKind=postcode&period=2025-06-30#local-data",
+        publisher: "RTA",
+        sourceUrl: "https://source.test/rents.xlsx",
+        text: "800 AUD/week in June 2025",
+      },
     ]);
     const sources = await retrieveMarketEvidence("4000", "4000 QLD");
     expect(sources).toHaveLength(2);

@@ -5,6 +5,7 @@ import { evidenceRegions, evidenceTopics } from "../../shared/propertyCoverage";
 import { looksLikeGarbage, looksLikeSiteBoilerplate } from "../../shared/headline";
 import { propertyNewsHold } from "../../shared/propertyNewsQuality";
 import { foreignHousingHeadline } from "../../shared/australianScope";
+import { evidenceText } from "../../shared/evidenceQuality";
 
 /** Public feed excerpts only. Never infer a publication date from collection time. */
 export function normaliseEvidence(item: FetchedItem, now = new Date()) {
@@ -14,7 +15,8 @@ export function normaliseEvidence(item: FetchedItem, now = new Date()) {
     foreignHousingHeadline(item.title, item.url, item.source)
   )
     return null;
-  const text = `${item.title} ${item.summary}`;
+  const clean = evidenceText({ ...item, sourceUrl: item.url });
+  const text = `${clean.title} ${clean.summary}`;
   const topics = evidenceTopics(text);
   if (!topics.length || looksLikeGarbage(text) || looksLikeSiteBoilerplate(text)) return null;
   const publishedAt = new Date(item.isoDate ?? "");
@@ -34,8 +36,8 @@ export function normaliseEvidence(item: FetchedItem, now = new Date()) {
   const identity = articleIdentity(item);
   return {
     identity: createHash("sha256").update(identity).digest("hex"),
-    title: item.title.slice(0, 480),
-    summary: item.summary.slice(0, 480),
+    title: clean.title.slice(0, 480),
+    summary: clean.summary.slice(0, 480),
     source: item.source.slice(0, 120),
     sourceUrl: identity.slice(4),
     publishedAt,
