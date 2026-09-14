@@ -1,4 +1,8 @@
 import { createHash } from "node:crypto";
+import { sensitiveStoryReasons } from "../../shared/publicationControls";
+import { sourceRightsHold } from "../../shared/sourceRights";
+import { assertPublicationAllowed } from "./publicationControls";
+import { legalStoryFingerprint } from "./legalReview";
 import { eq, sql } from "drizzle-orm";
 import { articleIdentity } from "../../scripts/ingest/lib/dedupe";
 import { getDb } from "./client";
@@ -26,10 +30,23 @@ export function feedClaimIdentity(
  */
 export type FeedIngestItem = InsertDailyFeedItem & { articleText?: string | null };
 export async function insertFeedOnce(input: FeedIngestItem, now = new Date()): Promise<number> {
+  await assertPublicationAllowed("website");
   const { articleText, ...item } = input;
+  const originalChannel = item.channel ?? "AU";
+  const rightsHold = item.sourceUrl ? sourceRightsHold(item.sourceUrl) : null;
+  const reasons =
+    originalChannel === "HOLD"
+      ? []
+      : [
+          ...sensitiveStoryReasons(
+            [item.title, item.summary, articleText].filter(Boolean).join("\n")
+          ),
+          ...(rightsHold ? [rightsHold] : []),
+        ];
+  if (reasons.length) item.channel = "HOLD";
   const db = getDb();
   if (!db) throw new Error("Feed database unavailable");
-  const identity = feedClaimIdentity(item);
+  const identity = feedClaimIdentity(input);
   return db.transaction(async (tx) => {
     await tx
       .insert(feedIngestClaims)
@@ -45,16 +62,20 @@ export async function insertFeedOnce(input: FeedIngestItem, now = new Date()): P
     const result = await tx.insert(dailyFeedItems).values(item);
     const id = Number((result as unknown as Array<{ insertId?: number }>)[0]?.insertId ?? 0);
     if (!Number.isSafeInteger(id) || id <= 0) throw new Error("Feed insertion returned no item ID");
+    if (reasons.length)
+      await tx.execute(sql`INSERT INTO legal_story_reviews (feedItemId, originalChannel, contentHash, reasons)
+      VALUES (${id}, ${originalChannel}, ${legalStoryFingerprint(item)}, ${JSON.stringify(reasons)})`);
     await tx
       .update(feedIngestClaims)
       .set({ feedItemId: id, acceptedAt: now })
       .where(eq(feedIngestClaims.identity, identity));
-    if (isEnrichedChannel(item.channel ?? "AU")) {
+    if (isEnrichedChannel(originalChannel)) {
       const fingerprint = fingerprintStory({ ...input, channel: item.channel ?? "AU" });
       if (fingerprint)
         await tx.insert(feedEvidenceFingerprints).values({ feedItemId: id, fingerprint });
       await tx.insert(feedEnrichmentJobs).values({
         feedItemId: id,
+        status: reasons.length ? "legal-held" : "pending",
         input: {
           title: item.title,
           summary: item.summary,
