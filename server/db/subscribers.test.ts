@@ -2,11 +2,24 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const state = vi.hoisted(() => ({
   row: {} as Record<string, unknown>,
   writes: [] as Record<string, unknown>[],
+  events: [] as Record<string, unknown>[],
 }));
 vi.mock("../demo/store", () => ({ isDemoMode: () => false }));
-vi.mock("./client", () => ({
-  getDb: () => ({
-    select: () => ({ from: () => ({ where: () => ({ limit: async () => [state.row] }) }) }),
+vi.mock("./client", () => {
+  const tx = {
+    select: () => ({
+      from: () => ({
+        where: () => ({ limit: async () => [state.row], for: async () => [state.row] }),
+      }),
+    }),
+    insert: () => ({
+      values: (values: Record<string, unknown>) => {
+        const pending = Promise.resolve().then(() => {
+          if (values.event) state.events.push(values);
+        });
+        return Object.assign(pending, { onDuplicateKeyUpdate: async () => undefined });
+      },
+    }),
     update: () => ({
       set: (values: Record<string, unknown>) => ({
         where: async () => {
@@ -15,8 +28,24 @@ vi.mock("./client", () => ({
         },
       }),
     }),
-  }),
-}));
+  };
+  return {
+    getDb: () => ({
+      ...tx,
+      transaction: async (run: (db: typeof tx) => Promise<unknown>) => {
+        const before = { ...state.row };
+        const eventCount = state.events.length;
+        try {
+          return await run(tx);
+        } catch (error) {
+          state.row = before;
+          state.events.length = eventCount;
+          throw error;
+        }
+      },
+    }),
+  };
+});
 import { createSubscriber, confirmSubscriber, unsubscribeByEmail } from "./subscribers";
 beforeEach(() => {
   state.row = {
@@ -28,6 +57,7 @@ beforeEach(() => {
     confirmTokenSentAt: null,
   };
   state.writes = [];
+  state.events = [];
 });
 describe("subscription consent lifecycle", () => {
   it("preserves the current request wording after confirmation and does not invent it for older clients", async () => {
@@ -48,6 +78,15 @@ describe("subscription consent lifecycle", () => {
     expect(state.row.consentNoticeVersion).toBeNull();
     expect(state.row.confirmedAt).toBeNull();
     expect(state.row.unsubscribedAt).toBeInstanceOf(Date);
+    expect(state.events.map((e) => e.event)).toEqual([
+      "requested",
+      "confirmed",
+      "unsubscribed",
+      "requested",
+    ]);
+    expect(state.events[0]?.noticeVersion).toBe("2026-09-14");
+    expect(state.events[3]?.noticeVersion).toBeNull();
+    expect(state.events.every((e) => !("confirmToken" in e) && !("email" in e))).toBe(true);
   });
   it("keeps a returning subscriber suppressed until the new confirmation", async () => {
     const oldOptOut = state.row.unsubscribedAt;
