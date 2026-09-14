@@ -23,15 +23,15 @@ The agency said the monthly figures should be read alongside the longer trend be
 For Australian renters and buyers, the immediate issue is the limited number of homes coming onto the market. Higher building costs and financing constraints continue to affect development. The report does not forecast a specific change in interest rates or establish that every suburb will experience the same price movement.`;
 const source: Source = {
   name: "Australian newsroom",
-  url: "https://www.abc.net.au/feed",
+  url: "https://www.sbs.com.au/feed",
   category: "PROPERTY",
   channel: "PROPERTY",
 };
 function item(over: Partial<FetchedItem> = {}): FetchedItem {
   return {
     title: "Australian dwelling approvals fall as housing supply tightens",
-    source: "ABC",
-    url: "https://www.abc.net.au/news/approvals",
+    source: "SBS",
+    url: "https://www.sbs.com.au/news/approvals",
     category: "PROPERTY",
     channel: "PROPERTY",
     summary: "New Australian housing figures show fewer homes approved.",
@@ -63,39 +63,33 @@ function preview(items: FetchedItem[], overrides: Parameters<typeof buildDailyBr
 }
 
 describe("editorial regression benchmark", () => {
-  it("reads a current mortgage report before higher-scoring old index paths", async () => {
-    const older = Array.from({ length: 10 }, (_, i) => item({
-      title: `Australian home values fall in city ${i}`,
-      url: `https://www.abc.net.au/news/2026-08-01/values-${i}/${i + 100}`,
-      isoDate: null, discovery: "publisher-index",
-    }));
-    const current = item({
-      title: "Mortgage war heats up as banks lower variable rates",
-      url: "https://www.abc.net.au/news/2026-09-10/mortgage-competition/1234",
-      isoDate: null, discovery: "publisher-index",
-    });
-    const requested: string[] = [];
-    const result = await preview([...older, current], { readArticle: async (url) => {
-      requested.push(url);
-      return url === current.url ? article : { ...article, publicationDate: { publisherPublishedAt: "2026-08-01T00:00:00Z", publisherDateStatus: "available" } };
-    } });
-    expect(requested[0]).toBe(current.url);
-    expect(result.items.map((row) => row.url)).toEqual([current.url]);
-    expect(result.items[0]?.sourceTiming.publisherPublishedAt).toBe(published);
-    expect(current.isoDate).toBeNull();
-    expect(result.report.decisions.filter((row) => row.reason === "old-or-future-publisher-date")).toHaveLength(10);
+  it("holds current and older ABC index stories before article reading", async () => {
+    const candidates = Array.from({ length: 11 }, (_, i) =>
+      item({
+        url: `https://www.abc.net.au/news/${i === 10 ? "2026-09-10" : "2026-08-01"}/housing/${i + 100}`,
+        isoDate: null,
+        discovery: "publisher-index",
+      })
+    );
+    const readArticle = vi.fn(async () => article);
+    const result = await preview(candidates, { readArticle });
+    expect(result.items).toEqual([]);
+    expect(readArticle).not.toHaveBeenCalled();
+    expect(
+      result.report.decisions.filter((d) => d.reason === "source-rights-review:abc").length
+    ).toBeGreaterThan(0);
   });
   it("reads a substantive RSS item before routine index entries exhaust the source cap", async () => {
     const routine = Array.from({ length: 10 }, (_, i) =>
       item({
         title: `Australian mortgage broker ${i} partners with a lender`,
-        url: `https://www.abc.net.au/news/index-partner-${i}`,
+        url: `https://www.sbs.com.au/news/index-partner-${i}`,
         discovery: "publisher-index",
       })
     );
     const important = item({
       title: "Australian dwelling values fall",
-      url: "https://www.abc.net.au/news/important-data",
+      url: "https://www.sbs.com.au/news/important-data",
     });
     const result = await preview([...routine, important]);
     expect(result.report.read).toBe(11);
@@ -111,11 +105,11 @@ describe("editorial regression benchmark", () => {
   it("keeps publication times and day-only originals on the same Sydney day tied", async () => {
     const first = item({
       title: "Australian housing construction remains constrained",
-      url: "https://www.abc.net.au/news/timestamp",
+      url: "https://www.sbs.com.au/news/timestamp",
     });
     const second = item({
       title: "Queensland rental outlook concerns tenants",
-      url: "https://www.abc.net.au/news/day-only",
+      url: "https://www.sbs.com.au/news/day-only",
     });
     const result = await preview([first, second], {
       readArticle: async (url) => ({
@@ -136,13 +130,13 @@ describe("editorial regression benchmark", () => {
     const routine = Array.from({ length: 3 }, (_, i) =>
       item({
         title: `Australian mortgage broker ${["Alpha", "Beta", "Gamma"][i]} partners with a new lender`,
-        url: `https://www.abc.net.au/news/partner-${i}`,
+        url: `https://www.sbs.com.au/news/partner-${i}`,
         channel: "AU",
       })
     );
     const important = item({
       title: "226 new social homes for Western Sydney families",
-      url: "https://www.abc.net.au/news/new-homes",
+      url: "https://www.sbs.com.au/news/new-homes",
       channel: "AU",
     });
     const result = await preview([...routine, important], {
@@ -163,11 +157,11 @@ describe("editorial regression benchmark", () => {
   it("uses original publication recency instead of length to break equal impact ties", async () => {
     const older = item({
       title: "Australian housing construction remains constrained",
-      url: "https://www.abc.net.au/news/older",
+      url: "https://www.sbs.com.au/news/older",
     });
     const newer = item({
       title: "Queensland rental outlook concerns tenants",
-      url: "https://www.abc.net.au/news/newer",
+      url: "https://www.sbs.com.au/news/newer",
     });
     const result = await preview([older, newer], {
       readArticle: async (url) => ({
@@ -249,7 +243,7 @@ describe("editorial regression benchmark", () => {
   });
   it("records total decision count even when early exclusions exceed the retained sample", async () => {
     const items = Array.from({ length: 320 }, (_, i) =>
-      item({ url: `https://www.abc.net.au/news/old-${i}`, isoDate: "2025-01-01T00:00:00Z" })
+      item({ url: `https://www.sbs.com.au/news/old-${i}`, isoDate: "2025-01-01T00:00:00Z" })
     );
     const result = await preview(items);
     expect(result.report.decisionCount).toBe(320);
@@ -259,7 +253,7 @@ describe("editorial regression benchmark", () => {
   });
   it("distinguishes a publisher reading cap from the overall reading budget", async () => {
     const result = await preview(
-      Array.from({ length: 22 }, (_, i) => item({ url: `https://www.abc.net.au/news/story-${i}` }))
+      Array.from({ length: 22 }, (_, i) => item({ url: `https://www.sbs.com.au/news/story-${i}` }))
     );
     expect(
       result.report.decisions.filter((d) => d.reason === "publisher-reading-limit")
@@ -275,7 +269,7 @@ describe("editorial regression benchmark", () => {
     ];
     const result = await preview(
       titles.map((title, i) =>
-        item({ title, summary: "", url: `https://www.abc.net.au/news/distinct-${i}` })
+        item({ title, summary: "", url: `https://www.sbs.com.au/news/distinct-${i}` })
       )
     );
     expect(result.items).toHaveLength(3);
@@ -434,7 +428,7 @@ describe("editorial regression benchmark", () => {
     const candidates = Array.from({ length: 19 }, (_, n) =>
       item({
         title: `Temporary traffic changes on Treasury Place ${n}`,
-        url: `https://www.abc.net.au/news/traffic-${n}`,
+        url: `https://www.sbs.com.au/news/traffic-${n}`,
       })
     );
     const read = vi.fn(async () => article);
@@ -453,7 +447,7 @@ describe("editorial regression benchmark", () => {
       }),
     });
     expect(result.items).toHaveLength(1);
-    expect(result.items[0]!.source).toBe("ABC");
+    expect(result.items[0]!.source).toBe("SBS");
     expect(result.report.decisions.find((d) => d.source === "AFR")?.reason).toBe(
       "insufficient-article-text"
     );
@@ -537,7 +531,7 @@ describe("editorial regression benchmark", () => {
   it("does not count two feeds from one publisher as independent corroboration", () => {
     const clusters = clusterByTitle([
       item({ source: "ABC Business" }),
-      item({ source: "ABC Housing", url: "https://abc.net.au/news/approvals-alias" }),
+      item({ source: "SBS Housing", url: "https://sbs.com.au/news/approvals-alias" }),
     ]);
     expect(clusters).toHaveLength(1);
     expect(clusters[0]!.corroborationCount).toBe(1);
@@ -627,26 +621,32 @@ it("records denied originals and full outcome totals before applying the sample 
   expect(editorialReportSchema.safeParse(legacyReport).success).toBe(true);
 });
 
-
 describe("bounded reading recovery", () => {
   function pool(count: number) {
-    return Array.from({ length: count }, (_, i) => item({
-      source: `Reviewed source ${Math.floor(i / 10)}`,
-      url: `https://www.abc.net.au/news/candidate-${i}`,
-      title: `Australian housing approvals fall in region ${i}`,
-    }));
+    return Array.from({ length: count }, (_, i) =>
+      item({
+        source: `Reviewed source ${Math.floor(i / 10)}`,
+        url: `https://www.sbs.com.au/news/candidate-${i}`,
+        title: `Australian housing approvals fall in region ${i}`,
+      })
+    );
   }
   it("reaches a useful report beyond the initial 100 local slots after failed downloads", async () => {
     const candidates = pool(110);
-    const readArticle = vi.fn(async (url: string) => url.endsWith("-109")
-      ? article : { ...article, text: null, fetchFailure: "article-http-403" });
+    const readArticle = vi.fn(async (url: string) =>
+      url.endsWith("-109") ? article : { ...article, text: null, fetchFailure: "article-http-403" }
+    );
     const result = await preview(candidates, { readArticle });
     expect(result.items.map((row) => row.url)).toContain(candidates[109]!.url);
     expect(result.report.read).toBe(110);
     expect(result.report.outcomes?.["article-http-403"]).toBe(109);
   });
   it("caps recovery at 60 extra local reads even when nothing is usable", async () => {
-    const readArticle = vi.fn(async () => ({ ...article, text: null, fetchFailure: "article-http-403" }));
+    const readArticle = vi.fn(async () => ({
+      ...article,
+      text: null,
+      fetchFailure: "article-http-403",
+    }));
     const result = await preview(pool(220), { readArticle });
     expect(readArticle).toHaveBeenCalledTimes(160);
     expect(result.items).toEqual([]);
@@ -654,22 +654,29 @@ describe("bounded reading recovery", () => {
   });
   it("does not download local articles from unreviewed resolved publishers", async () => {
     const readArticle = vi.fn(async () => article);
-    const result = await preview([item({ url: "https://unreviewed.example/report" })], { readArticle });
+    const result = await preview([item({ url: "https://unreviewed.example/report" })], {
+      readArticle,
+    });
     expect(readArticle).not.toHaveBeenCalled();
     expect(result.report.read).toBe(0);
     expect(result.report.outcomes?.["unreviewed-publisher"]).toBe(1);
   });
   it("coalesces two discovery URLs resolving to one original article", async () => {
     const readArticle = vi.fn(async () => article);
-    const result = await preview([item(), item({ url: "https://www.abc.net.au/news/alias" })], {
-      readArticle, resolve: async () => "https://www.abc.net.au/news/original",
+    const result = await preview([item(), item({ url: "https://www.sbs.com.au/news/alias" })], {
+      readArticle,
+      resolve: async () => "https://www.sbs.com.au/news/original",
     });
     expect(readArticle).toHaveBeenCalledTimes(1);
     expect(result.items).toHaveLength(1);
     expect(result.report.read).toBe(1);
   });
   it("defers further requests after a publisher rate limit, but tries again in a later run", async () => {
-    const readArticle = vi.fn(async () => ({ ...article, text: null, fetchFailure: "article-http-429" }));
+    const readArticle = vi.fn(async () => ({
+      ...article,
+      text: null,
+      fetchFailure: "article-http-429",
+    }));
     const candidates = pool(110);
     const result = await preview(candidates, { readArticle });
     expect(readArticle.mock.calls.length).toBeLessThanOrEqual(6);
@@ -680,24 +687,44 @@ describe("bounded reading recovery", () => {
   });
 });
 
-
 describe("reviewed free SBS reporting", () => {
-  const sbsUrl = "https://www.sbs.com.au/news/article/could-australias-housing-downturn-push-the-economy-into-recession/lxuxjoaaw";
+  const sbsUrl =
+    "https://www.sbs.com.au/news/article/could-australias-housing-downturn-push-the-economy-into-recession/lxuxjoaaw";
   it("discovers original articles, excluding audio, topic navigation and other hosts", () => {
     const source = SOURCES.find((s) => s.name === "SBS Economy and Finance")!;
-    const rows = parseIndexSource(`<a href="${sbsUrl}"><h3>Could Australia's housing downturn push the economy into recession?</h3></a>
+    const rows = parseIndexSource(
+      `<a href="${sbsUrl}"><h3>Could Australia's housing downturn push the economy into recession?</h3></a>
       <a href="/news/collection/economy-and-finance">More economy reporting</a>
       <a href="/news/podcast-episode/housing-news/abcdefghi">Australian housing news on audio</a>
-      <a href="https://example.org/news/article/housing/abcdefghi">Other publisher reporting</a>`, source);
+      <a href="https://example.org/news/article/housing/abcdefghi">Other publisher reporting</a>`,
+      source
+    );
     expect(rows.map((r) => r.url)).toEqual([sbsUrl]);
     expect(rows[0]).toMatchObject({ isoDate: null, discovery: "publisher-index", channel: "AU" });
   });
   it("admits reviewed SBS reporting while retaining date, subject and exact-host checks", () => {
-    const input = { title: "Could Australia's housing downturn push the economy into recession?",
-      url: sbsUrl, channel: "AU", articleText: body, sourceTiming: timing };
+    const input = {
+      title: "Could Australia's housing downturn push the economy into recession?",
+      url: sbsUrl,
+      channel: "AU",
+      articleText: body,
+      sourceTiming: timing,
+    };
     expect(assessStory(input, now).eligible).toBe(true);
-    expect(assessStory({ ...input, sourceTiming: { ...timing, publisherDateStatus: "missing", publisherPublishedAt: null } }, now).eligible).toBe(false);
-    expect(assessStory({ ...input, title: "New comedy film wins festival prize" }, now).eligible).toBe(false);
-    expect(assessStory({ ...input, url: "https://sbs.com.au.example.org/report" }, now).reason).toBe("unreviewed-publisher");
+    expect(
+      assessStory(
+        {
+          ...input,
+          sourceTiming: { ...timing, publisherDateStatus: "missing", publisherPublishedAt: null },
+        },
+        now
+      ).eligible
+    ).toBe(false);
+    expect(
+      assessStory({ ...input, title: "New comedy film wins festival prize" }, now).eligible
+    ).toBe(false);
+    expect(
+      assessStory({ ...input, url: "https://sbs.com.au.example.org/report" }, now).reason
+    ).toBe("unreviewed-publisher");
   });
 });
