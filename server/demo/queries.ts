@@ -551,7 +551,7 @@ export function findSubscriberByEmail(email: string): Subscriber | undefined {
   return demo.subscribers.find((s) => s.email.toLowerCase() === email.toLowerCase());
 }
 
-export function findSubscriberByToken(token: string): Subscriber | undefined {
+function findSubscriberByToken(token: string): Subscriber | undefined {
   return demo.subscribers.find((s) => s.confirmToken === token);
 }
 
