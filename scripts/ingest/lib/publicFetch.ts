@@ -59,7 +59,7 @@ export async function resolvePublicHost(host: string) {
 }
 export async function publicFetch(
   raw: string | URL,
-  init: RequestInit & { maxBytes?: number } = {}
+  init: RequestInit & { maxBytes?: number; beforeRequest?: (url: URL) => void } = {}
 ): Promise<Response> {
   const signal = AbortSignal.any([
     AbortSignal.timeout(10000),
@@ -71,6 +71,7 @@ export async function publicFetch(
   if (!["GET", "POST"].includes(method)) throw new Error("Unsupported outbound method");
   for (let hop = 0; hop <= 5; hop++) {
     signal.throwIfAborted();
+    init.beforeRequest?.(url);
     const headers = new Headers(init.headers);
     headers.set("accept-encoding", "identity");
     headers.delete("host");
