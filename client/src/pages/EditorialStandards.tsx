@@ -49,8 +49,8 @@ export default function EditorialStandards() {
         <h2 className="font-serif text-2xl mt-8">Conflicts of interest</h2>
         <p>
           Ruben may comment on markets, lenders, agencies or research firms with whom he has a
-          commercial relationship. Where that matters to a specific story, the story carries a
-          disclosure footer. When in doubt, we err toward disclosure.
+          commercial relationship. Paid placements and material commercial connections should be disclosed alongside the
+          affected content. Report a missing disclosure through our Corrections page.
         </p>
 
         <h2 className="font-serif text-2xl mt-8">Corrections</h2>
