@@ -1,7 +1,9 @@
 /** Read-only inventory. It does not grant rights or infer a publisher licence.
  * Run from the repository root: pnpm audit:legal > docs/legal/rights-register.json
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { sourceRightsHold } from "../shared/sourceRights";
 import { resolve } from "node:path";
 import { SOURCES, type Source } from "./ingest/sources";
 import { EVIDENCE_SOURCES } from "./ingest/propertySources";
@@ -22,6 +24,7 @@ const newsSources = [...sourceMap.values()].map((s) => ({
   name: s.name,
   discoveryUrl: s.url,
   channel: s.channel,
+  articleExtractionHold: sourceRightsHold(s.url),
   policyReviewId:
     policyReviews.policies.find((p) => p.host === new URL(s.url).hostname)?.id ?? null,
   kind: new URL(s.url).hostname === "news.google.com" ? "discovery-only" : (s.kind ?? "rss"),
@@ -59,13 +62,28 @@ const dependencies = Object.entries({
       "Package metadata only; examine licence text, notices, bundled code and transitive dependencies before distribution.",
   };
 });
+const bundledAssets = readdirSync("server/og/fonts")
+  .filter((name) => /\.(woff2?|ttf|otf|png|jpe?g|txt)$/i.test(name))
+  .sort()
+  .map((name) => {
+    const path = `server/og/fonts/${name}`;
+    const bytes = readFileSync(path);
+    return {
+      path,
+      bytes: bytes.length,
+      sha256: createHash("sha256").update(bytes).digest("hex"),
+      review: /\.license\.txt$|OFL-/.test(name)
+        ? "Bundled notice; retain with distribution"
+        : "Identity recorded; check the applicable font, image or other asset licence",
+    };
+  });
 console.log(
   JSON.stringify(
     {
-      version: 1,
+      version: 2,
       generatedAt: new Date().toISOString(),
       scope:
-        "Configured news discovery routes, bundled Reel photographs and direct npm dependencies. Not an exhaustive inventory of datasets, music, voices, fonts, generated assets, source article rights or transitive dependencies.",
+        "Configured news discovery routes and extraction holds, reviewed Reel photographs, bundled font/image/notice file identities and direct npm dependencies. Dataset-specific terms, voice model components, historical exports and transitive dependency obligations still need assessment.",
       applicationLicence: {
         declared: packageJson.license,
         status:
@@ -74,6 +92,7 @@ console.log(
       newsSources,
       photographs,
       dependencies,
+      bundledAssets,
     },
     null,
     2
