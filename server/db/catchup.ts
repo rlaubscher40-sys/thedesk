@@ -1,4 +1,6 @@
 import { WEB_VITALS_DDL } from "./webVitals";
+import { PUBLICATION_CONTROL_DDL } from "./publicationControls";
+import { CONSENT_EVENT_DDL } from "./consentSchema";
 import { EDITORIAL_DDL } from "./editorial";
 import { FEED_EVIDENCE_DDL } from "./feedEvidenceSchema";
 import { COVERAGE_DDL } from "./editorialCoverage";
@@ -32,6 +34,8 @@ import { sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 
 export const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
+  ...PUBLICATION_CONTROL_DDL,
+  CONSENT_EVENT_DDL,
   {
     name: "0029 · subscribers.consentNoticeVersion",
     sql: "ALTER TABLE subscribers ADD consentNoticeVersion varchar(32) NULL",
