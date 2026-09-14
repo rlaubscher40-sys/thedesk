@@ -70,7 +70,8 @@ describe("one-time Meta launch publication", () => {
     expect(mocks.publish).toHaveBeenCalledTimes(1);
     expect(mocks.publish).toHaveBeenCalledWith(expect.objectContaining({ creationId: "parent" }));
     expect(mocks.record).toHaveBeenCalledWith(
-      expect.objectContaining({ mediaId: "published-id", postType: "launch" })
+      expect.objectContaining({ mediaId: "published-id", postType: "launch" }),
+      { enrolFirstComment: true }
     );
     expect(mocks.remove).toHaveBeenCalledTimes(5);
   });

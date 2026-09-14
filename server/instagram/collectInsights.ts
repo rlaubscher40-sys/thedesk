@@ -1,5 +1,6 @@
 import { fetchMediaMetricsResult } from "./api";
 import { listInstagramPostsNeedingMetrics, updateInstagramPostMetrics } from "../db/instagramPosts";
+import { excludeAutomatedFirstComment } from "./firstCommentAutomation";
 
 /** Sequential bounded reads. An inaccessible old post must not abort its neighbours. */
 export async function collectInstagramInsights(accessToken: string) {
@@ -15,7 +16,8 @@ export async function collectInstagramInsights(accessToken: string) {
   };
   for (const post of posts) {
     try {
-      const result = await fetchMediaMetricsResult({ mediaId: post.mediaId, accessToken });
+      const raw = await fetchMediaMetricsResult({ mediaId: post.mediaId, accessToken });
+      const result = await excludeAutomatedFirstComment(post.mediaId, accessToken, raw);
       summary[result.status]++;
       const persisted = await updateInstagramPostMetrics(post.mediaId, result.metrics, result);
       if (!persisted) summary.persistenceFailed++;

@@ -433,7 +433,8 @@ function FormatPerformance({ posts, ready }: { posts: InsightRow[]; ready: boole
         “Posts” counts comparable reach snapshots; “+n” has no recorded snapshot yet.{" "}
         {summaries.reduce((n, s) => n + s.excluded, 0)} readings are excluded because their age or
         reach cannot support this comparison. They remain in the raw post list. Likes and comments
-        both need to be available for the engagement rate. These are platform actions, not confirmed
+        both need to be available for the engagement rate. Automatic first comments are excluded;
+        an uncertain comment outcome leaves comment-based comparisons unavailable. These are platform actions, not confirmed
         website visits or subscriptions.
       </p>
     </div>
@@ -513,7 +514,7 @@ export function InstagramAdminPanel() {
                   "Type",
                   "Headline",
                   "Likes",
-                  "Comments",
+                  "Comments (excl. auto)",
                   "Reach",
                   "Saved",
                   "Shares",

@@ -175,7 +175,7 @@ export async function publishLaunchPost(id: LaunchPostId, reviewedHash: string) 
       postType: "launch",
       headline: content.title,
       coverVariant: "navy",
-    });
+    }, { enrolFirstComment: true });
     return { postId, title: content.title };
   } finally {
     uuids.forEach(removeTempImage);

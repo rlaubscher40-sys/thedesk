@@ -20,6 +20,7 @@
  */
 import { env } from "../core/env";
 import { runReelStoryAutomation } from "../instagram/reelStoryAutomation";
+import { runFirstCommentAutomation } from "../instagram/firstCommentAutomation";
 import { isDemoMode } from "../demo/store";
 import { sendAdminAlertEmail } from "../core/mailer";
 import { recordServerError } from "../db/health";
@@ -214,6 +215,30 @@ export const ADVICE_NEWSROOM_RECOVERY_JOB: Job = {
 };
 
 const JOBS: Job[] = [
+  {
+    key: "instagram-comment-access-rollout",
+    claimDate: "2026-09-14",
+    at: "00:00",
+    graceMinutes: 24 * 60 - 1,
+    maxAttempts: 1,
+    run: async () => {
+      const { instagramAccessToken: accessToken, instagramBusinessAccountId: accountId } = env;
+      if (!accessToken || !accountId) return;
+      const { listInstagramPosts } = await import("../db/instagramPosts");
+      const { checkCommentAccess } = await import("../instagram/api");
+      const [post] = await listInstagramPosts(1, true);
+      const state = post ? await checkCommentAccess({ mediaId: post.mediaId, accessToken }) : "no-post";
+      console.log(`[first-comment-access] ${JSON.stringify({ state })}`);
+      if (state === "access_denied" || state === "rate_limited") {
+        const { pauseFirstComments } = await import("../db/instagramFirstComments");
+        await pauseFirstComments(accountId, state, new Date());
+      }
+      if (state !== "ready" && state !== "no-post")
+        await recordServerError({ level: "warn", route: "instagram/first-comment-access",
+          message: `First-comment access check: ${state}. Check instagram_manage_comments on the connected token.`
+        });
+    },
+  },
   ADVICE_NEWSROOM_RECOVERY_JOB,
   ADVICE_COVERAGE_RECOVERY_JOB,
   {
@@ -502,6 +527,13 @@ async function tick(baseUrl: string, apiKey: string): Promise<void> {
         ),
       }).catch(() => {});
     });
+    await runFirstCommentAutomation()
+      .then(result => console.log(`[first-comment-plan] ${JSON.stringify(result)}`))
+      .catch(async () => {
+        await recordServerError({ level: "warn", route: "scheduler/first-comment",
+          message: "First-comment check failed; durable records or account access need inspection."
+        }).catch(() => {});
+      });
     // Story delivery has its own claims and failure handling. It also runs
     // when today's Reel is already published, so preparation survives a restart.
     await runReelStoryAutomation()

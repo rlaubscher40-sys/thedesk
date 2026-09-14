@@ -23,7 +23,10 @@ import * as demoQueries from "../demo/queries";
 import { isDemoMode } from "../demo/store";
 import { getDb } from "./client";
 import { INSTAGRAM_POST_TYPES, type InstagramPostType } from "../../shared/const";
-import { instagramPosts, type InsertInstagramPost, type InstagramPost } from "./schema";
+import { instagramPosts, jobRuns, type InsertInstagramPost, type InstagramPost } from "./schema";
+import { env } from "../core/env";
+import { buildFirstComment } from "../instagram/firstCommentCopy";
+import { firstCommentSourceRow } from "./instagramFirstComments";
 import type { MediaMetricsResult } from "../instagram/api";
 
 export type InstagramPostMetrics = {
@@ -46,13 +49,24 @@ export async function recordInstagramPost(
   input: Pick<
     InsertInstagramPost,
     "mediaId" | "feedDate" | "editionNumber" | "headline" | "coverVariant"
-  > & { postType: InstagramPostType }
+  > & { postType: InstagramPostType },
+  opts: { enrolFirstComment?: boolean } = {}
 ): Promise<void> {
   if (isDemoMode()) return;
   const db = getDb();
   if (!db) return;
   try {
-    await db.insert(instagramPosts).values(input);
+    await db.transaction(async tx => {
+      await tx.insert(instagramPosts).values(input);
+      // New confirmed records only: duplicate inserts roll back before enrolment.
+      // Existing posts are never backfilled when this programme is deployed.
+      if (opts.enrolFirstComment && env.instagramBusinessAccountId && env.instagramAccessToken) {
+        await tx.insert(jobRuns).values(firstCommentSourceRow({
+          mediaId: input.mediaId, accountId: env.instagramBusinessAccountId,
+          message: buildFirstComment(input), enrolledAt: Date.now(),
+        }));
+      }
+    });
   } catch (err) {
     // Duplicate mediaId or missing table (pre-migration): log and move on.
     console.warn(`[instagramPosts] record skipped for ${input.mediaId}:`, (err as Error).message);
