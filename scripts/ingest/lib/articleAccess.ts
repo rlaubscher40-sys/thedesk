@@ -1,6 +1,9 @@
+import { sourceRightsHold } from "../../../shared/sourceRights";
 /** Explicit operational pause after repeated production denials. Re-enable only
  * after a reviewed publisher-approved route works. Covers rediscovered links. */
 export function publisherAccessPause(url: string | null): string | null {
+  const rights = sourceRightsHold(url ?? "");
+  if (rights) return rights;
   try {
     const host = new URL(url ?? "").hostname.toLowerCase();
     if (host === "professionalplanner.com.au" || host.endsWith(".professionalplanner.com.au"))
