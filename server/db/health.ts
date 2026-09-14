@@ -21,6 +21,11 @@ import {
 export async function recordServerError(
   data: InsertServerError
 ): Promise<void> {
+  // Tracking URLs and browser agents can exceed the database varchar limits.
+  data = { ...data, message: data.message.slice(0, 512),
+    level: data.level?.slice(0, 16), method: data.method?.slice(0, 16),
+    route: data.route?.split(/[?#]/, 1)[0]?.slice(0, 256),
+    userAgent: data.userAgent?.slice(0, 256) };
   if (isDemoMode()) return demoQueries.recordServerError(data);
   const db = getDb();
   if (!db) return;

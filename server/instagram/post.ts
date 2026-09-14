@@ -1,3 +1,4 @@
+import { readSocialRecords } from "../db/socialPublication";
 import { sourceTimingLabel } from "../../shared/sourceTiming";
 /**
  * High-level Instagram posting orchestration.
@@ -63,7 +64,7 @@ import {
 } from "./sourceContent";
 
 import { pickBriefingStories, unpublishedBriefingSelection } from "./briefingSelection";
-import { publishCarouselStoryOnce } from "./carouselStoryReceipt";
+import { carouselStoryKey, publishCarouselStoryOnce } from "./carouselStoryReceipt";
 import { postWeeklyStoryFrames } from "./weeklyStoryDelivery";
 import { weeklyTopicContent } from "../og/weeklyFeature";
 export const pickDailyTopStories = pickBriefingStories;
@@ -358,7 +359,7 @@ const STORY_FRAME_COUNT = 3;
  * problem is logged (and surfaced in the admin health panel) but never affects
  * the feed post or the caller. Each frame owns and cleans up its own temp image.
  */
-async function postStoryFrames(opts: {
+export async function postStoryFrames(opts: {
   stories: DailyFeedItem[];
   carouselId?: string;
   variant: CardVariant;
@@ -385,6 +386,7 @@ async function postStoryFrames(opts: {
     if (i > 0) await settle(45000);
     const uuids: string[] = [];
     try {
+      if (opts.carouselId && (await readSocialRecords([carouselStoryKey(opts.carouselId, frames[i]!.id)])).length) continue;
       const storyBuf =
         verticalOpts?.header === "Wider Lens"
           ? await renderDailyStoryVertical(frames[i]!, variant, verticalOpts)

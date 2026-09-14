@@ -37,3 +37,15 @@ it("fails closed without a durable database", async () => {
   m.db.mockReturnValue(null);
   await expect(reserveSocialRecords(["ig-news-" + "a".repeat(56)])).rejects.toThrow("unavailable");
 });
+
+it("accepts generated Story keys within the actual varchar limit", async () => {
+  const { carouselStoryKey } = await import("../instagram/carouselStoryReceipt");
+  const key = carouselStoryKey("18199775677333029", 3870099);
+  expect(key).toHaveLength(64);
+  await reserveSocialRecords([key]);
+  expect(m.values).toHaveBeenCalledWith([expect.objectContaining({ jobKey: key })]);
+});
+it("rejects the former 65-character Story key before any database insert", async () => {
+  await expect(reserveSocialRecords(["ig-story-" + "a".repeat(56)])).rejects.toThrow("Invalid");
+  expect(m.values).not.toHaveBeenCalled();
+});

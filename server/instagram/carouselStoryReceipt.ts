@@ -7,7 +7,7 @@ import { createHash } from "node:crypto";
 
 export const carouselStoryKey = (carouselId: string, storyId: number) =>
   "ig-story-" +
-  createHash("sha256").update(`carousel-story:${carouselId}:${storyId}`).digest("hex").slice(0, 56);
+  createHash("sha256").update(`carousel-story:${carouselId}:${storyId}`).digest("hex").slice(0, 55);
 
 /** A separate permanent claim for each actual Story. Never retry a Meta call
  * after uncertainty and never infer its result from another recent post. */
