@@ -1,4 +1,5 @@
 import { EDITORIAL_CONTACT, NEWSLETTER_NOTICE } from "../../shared/legal";
+import { assertPublicationAllowed } from "../db/publicationControls";
 /**
  * Minimal mailer over the Resend REST API.
  *
@@ -46,6 +47,8 @@ function esc(s: string): string {
 }
 
 export type SendInput = {
+  /** Explicit for new editorial templates; legacy frozen payloads use their unsubscribe header. */
+  publicationCategory?: "editorial";
   /** Frozen for durable sends so retries keep exactly the same payload. */
   from?: string;
   to: string;
@@ -85,9 +88,15 @@ export async function send(
   const from = input.from ?? process.env.MAIL_FROM ?? "The Desk <hello@thedesk.au>";
 
   if (!apiKey) {
-    console.log(`[mailer] no RESEND_API_KEY set, dry-run send to ${input.to}: ${input.subject}`);
+    console.log("[mailer] no RESEND_API_KEY set; no email sent");
     return { delivered: false, reason: "no-key" };
   }
+
+  if (
+    input.publicationCategory === "editorial" ||
+    Object.keys(input.headers ?? {}).some((k) => k.toLowerCase() === "list-unsubscribe")
+  )
+    await assertPublicationAllowed("email");
 
   try {
     const res = await fetch(RESEND_ENDPOINT, {
@@ -617,6 +626,7 @@ export async function sendTalkingPointNudgeEmail({
   ].join("\n");
   return send({
     to,
+    publicationCategory: "editorial",
     subject: `Did the ${category} angle land? · The Desk`,
     html,
     text,
