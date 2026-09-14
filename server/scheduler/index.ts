@@ -25,6 +25,7 @@ import { sendAdminAlertEmail } from "../core/mailer";
 import { recordServerError } from "../db/health";
 import { claimJobRun, markJobRun } from "../db/jobRuns";
 import { runDailyFeedIngest } from "../../scripts/ingest/dailyFeed";
+import { SOURCES } from "../../scripts/ingest/sources";
 import { runReelAutomation, REEL_MAX_ATTEMPTS } from "../instagram/reelAutomation";
 
 import { collectPropertyEvidence } from "../evidence/collect";
@@ -177,6 +178,17 @@ export const FEED_UPDATE_JOBS: Job[] = ["09:43", "12:43", "15:43", "18:43"].map(
   run: (b, k) => runDailyFeedIngest(b, k),
 }));
 
+export const MORTGAGE_COVERAGE_RECOVERY_JOB: Job = {
+  key: "mortgage-coverage-september-14-recovery",
+  at: "00:00",
+  graceMinutes: 24 * 60 - 1,
+  claimDate: "2026-09-14",
+  maxAttempts: 1,
+  run: (b, k) => runDailyFeedIngest(b, k, {
+    sources: SOURCES.filter((source) => source.name === "ABC Mortgages"),
+  }),
+};
+
 const JOBS: Job[] = [
   {
     key: REVIEWED_VIC_JOB,
@@ -211,6 +223,7 @@ const JOBS: Job[] = [
   // One bounded post-release collection. Original dates, reading/quality gates
   // and normal publication dedupe all remain in force; no social-post action.
   { key: "coverage-september-14-recovery", at: "00:00", graceMinutes: 24 * 60 - 1, claimDate: "2026-09-14", maxAttempts: 1, run: (b, k) => runDailyFeedIngest(b, k) },
+  MORTGAGE_COVERAGE_RECOVERY_JOB,
   { key: "daily-feed", at: "06:43", run: (b, k) => runDailyFeedIngest(b, k) },
   ...FEED_UPDATE_JOBS,
   {

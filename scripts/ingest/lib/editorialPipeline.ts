@@ -18,6 +18,7 @@ import { resolveArticleUrl } from "./gnews";
 import { articleIdentity } from "./dedupe";
 import { clusterByTitle } from "./cluster";
 import { originalPublicationDay } from "../../../shared/storyEvent";
+import { olderIndexPath } from "./indexReadingAge";
 import {
   createEvidenceDuplicateIndex,
   type EvidenceStory,
@@ -168,6 +169,7 @@ export async function buildDailyBrief(options: PipelineOptions = {}) {
       const score = (item: FetchedItem) =>
         discoveryScore(item) + (item.discovery === "publisher-index" ? 4 : 0);
       return (
+        Number(olderIndexPath(a, now)) - Number(olderIndexPath(b, now)) ||
         score(b) - score(a) ||
         Date.parse(b.isoDate ?? "1970-01-01") - Date.parse(a.isoDate ?? "1970-01-01")
       );

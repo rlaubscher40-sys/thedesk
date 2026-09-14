@@ -62,3 +62,9 @@ it("excludes the National Tribune global ticker and sidebar from REIWA discovery
     "https://www.nationaltribune.com.au/housing-release/",
   ]);
 });
+it("reads ABA's release body without the related transcript and news cards", () => {
+  const text = "The Australian Banking Association is reminding merchants about the implementation of card surcharge changes and the reduction in payment costs.";
+  const html = `<main><div class="with-share"><p>${text}</p></div><article><p>An unrelated mortgage fraud interview is not part of this original release.</p></article></main>`;
+  expect(extractArticleText(html, 6000, "https://www.ausbanking.org.au/release/")).toBe(text);
+  expect(extractArticleText("<article><p>An unrelated mortgage fraud interview is not part of this original release.</p></article>", 6000, "https://www.ausbanking.org.au/release/")).toBeNull();
+});

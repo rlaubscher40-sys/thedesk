@@ -63,6 +63,28 @@ function preview(items: FetchedItem[], overrides: Parameters<typeof buildDailyBr
 }
 
 describe("editorial regression benchmark", () => {
+  it("reads a current mortgage report before higher-scoring old index paths", async () => {
+    const older = Array.from({ length: 10 }, (_, i) => item({
+      title: `Australian home values fall in city ${i}`,
+      url: `https://www.abc.net.au/news/2026-08-01/values-${i}/${i + 100}`,
+      isoDate: null, discovery: "publisher-index",
+    }));
+    const current = item({
+      title: "Mortgage war heats up as banks lower variable rates",
+      url: "https://www.abc.net.au/news/2026-09-10/mortgage-competition/1234",
+      isoDate: null, discovery: "publisher-index",
+    });
+    const requested: string[] = [];
+    const result = await preview([...older, current], { readArticle: async (url) => {
+      requested.push(url);
+      return url === current.url ? article : { ...article, publicationDate: { publisherPublishedAt: "2026-08-01T00:00:00Z", publisherDateStatus: "available" } };
+    } });
+    expect(requested[0]).toBe(current.url);
+    expect(result.items.map((row) => row.url)).toEqual([current.url]);
+    expect(result.items[0]?.sourceTiming.publisherPublishedAt).toBe(published);
+    expect(current.isoDate).toBeNull();
+    expect(result.report.decisions.filter((row) => row.reason === "old-or-future-publisher-date")).toHaveLength(10);
+  });
   it("reads a substantive RSS item before routine index entries exhaust the source cap", async () => {
     const routine = Array.from({ length: 10 }, (_, i) =>
       item({

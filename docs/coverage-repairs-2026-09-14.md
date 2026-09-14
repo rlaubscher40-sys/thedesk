@@ -76,3 +76,39 @@ Check these existing records after deployment:
 The older Tasmania review was a non-binding motion on 9 September. It is not
 republished as a fresh compulsory review. Its historical coverage gap remains
 separate from the functioning Pulse discovery route.
+
+## Production verification and bounded follow-up
+
+PR #275 deployed successfully. The four existing corrections and the housing
+relationship were verified in public records; APRA, Bega and packaging remain.
+The recovery read 107 articles and inserted 15 rows. Actual publications include
+ABC's migration proposal (`3900001`), ABA's implementation reminder (`3900003`)
+and the REIWA republication (`3900004`). The mortgage event was still absent.
+Seven submitted rows were held at the final quality gate, but the logs did not
+name them; this is **not** evidence that the mortgage story was one of those
+seven. Protected decision records were not inspected.
+
+The follow-up prioritises potentially current ABC topic-index paths over
+clearly older paths. This is only a reading-order hint: URL dates do not become
+publication timestamps, older paths stay available in the reserve, and actual
+publisher evidence still decides freshness. The captured mortgage index had
+four older, higher-scoring headlines ahead of the current report. That is a
+reproduced reading inefficiency, not a proven explanation of its last outcome.
+
+A separate, single durable recovery claim reads only the configured ABC
+Mortgages source, excluding unrelated evidence-pool candidates while retaining
+recent-URL, duplicate, date, evidence and publication checks. Private logs now
+identify sampled candidate outcomes and final quality holds without article
+bodies, query strings, credentials or editorial notes. A bounded log sample
+still cannot prove failed discovery for omitted candidates.
+
+Live enrichment also exposed a mislabelled figure: ABA's $660 million estimate
+describes lower payment costs helping offset surcharge removal, not annual
+surcharge revenue. Exact-value corrections fix that card and preserve the
+eftpos/Visa/Mastercard scope. ABA extraction now excludes related transcripts.
+The REIWA takeaway is narrowed to WA's explicitly reported June-quarter
+affordability measures rather than an inferred Perth population scope.
+
+Professional Planner article 403s continued in production. REA discovery had no
+reported failure in this recovery. Working alternatives and cooldowns are not
+permission to bypass publisher restrictions and do not establish full coverage.
