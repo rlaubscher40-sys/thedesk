@@ -7,6 +7,7 @@ import { loanPhotoCrop } from "./loanStoryPhotography";
 import { smooth } from "./reelMotion";
 import type { MeasuredPhrase } from "./phraseSpeech";
 import { createPersonDocumentaryRenderer } from "./personDocumentaryRenderer";
+import { createSeriesDocumentaryRenderer } from "./documentarySeriesRenderer";
 
 const node = (style: object, children: unknown) => ({
   type: "div",
@@ -57,6 +58,8 @@ export async function createDocumentaryRenderer(
     throw new Error("Documentary motion requires the complete measured script.");
   if (story.treatment === "person-led-v2")
     return createPersonDocumentaryRenderer(story, scenes, total);
+  if (story.treatment === "series-led-v1")
+    return createSeriesDocumentaryRenderer(story, scenes, total);
   const photos = new Map<string, Image>();
   for (const key of new Set(scenes.map((s) => reelSceneShot(story.recipe, s.key)))) {
     if (!key) continue;

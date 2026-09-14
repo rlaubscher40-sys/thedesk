@@ -2,6 +2,7 @@ import type { DocumentaryEpisode } from "../instagram/documentaryEpisodes";
 import type { MeasuredPhrase } from "./phraseSpeech";
 import { DOCUMENTARY_DIRECTION } from "./documentaryDirection";
 import { reelSceneShot } from "./reelVisualStandard";
+import { seriesCuts, seriesShots } from "./documentarySeriesDirection";
 
 export type DocumentaryTimeline = Array<{
   key: string;
@@ -36,8 +37,18 @@ export function documentaryShotPlan(episode: DocumentaryEpisode) {
   return episode.scenes.flatMap((scene) =>
     scene.phrases.map((text, phraseIndex) => {
       const shot = phrase++;
-      const cuts: readonly number[] = episode.treatment ? DOCUMENTARY_DIRECTION.cuts[shot]! : [0];
-      const names = episode.treatment ? harryShots[shot]! : [scene.headline];
+      const cuts: readonly number[] =
+        episode.treatment === "series-led-v1"
+          ? seriesCuts(episode.id)[shot]!
+          : episode.treatment
+            ? DOCUMENTARY_DIRECTION.cuts[shot]!
+            : [0];
+      const names =
+        episode.treatment === "series-led-v1"
+          ? seriesShots(episode.id, shot).map((s) => s.title)
+          : episode.treatment
+            ? harryShots[shot]!
+            : [scene.headline];
       if (!cuts || names?.length !== cuts.length)
         throw new Error("Directed shot plan is incomplete.");
       return {

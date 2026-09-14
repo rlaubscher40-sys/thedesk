@@ -38,9 +38,11 @@ export function documentaryCandidate(episode: DocumentaryEpisode): ProductionRee
       "",
       `${episode.series} / ${reading.title}`,
       "",
-      episode.treatment ? "The missing decades behind Meriton's growth." : reading.meaning,
+      episode.treatment === "person-led-v2"
+        ? "The missing decades behind Meriton's growth."
+        : reading.meaning,
       "",
-      episode.treatment
+      episode.treatment === "person-led-v2"
         ? "AUD throughout. Early amounts aren't inflation-adjusted. Sales and rents aren't profit. Regis prices are individual contracts. Built doesn't mean still owned."
         : reading.limitation,
       "",

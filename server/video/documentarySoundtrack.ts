@@ -5,7 +5,8 @@ import type { MeasuredPhrase } from "./phraseSpeech";
  * external music licence, speech cloning, downloads or paid generation service. */
 export function documentarySoundtrack(
   scenes: Array<{ start: number; seconds: number; phrases: MeasuredPhrase[] }>,
-  total: number
+  total: number,
+  editCuts: readonly (readonly number[])[] = DOCUMENTARY_DIRECTION.cuts
 ) {
   if (!Number.isFinite(total) || total <= 0 || total > 180 || scenes.length !== 8)
     throw new Error("Invalid documentary score duration.");
@@ -32,6 +33,16 @@ export function documentarySoundtrack(
     )
   )
     throw new Error("Invalid documentary score timeline.");
+  if (
+    editCuts.length !== 16 ||
+    editCuts.some(
+      (cuts) =>
+        !cuts.length ||
+        cuts[0] !== 0 ||
+        cuts.some((v, i) => !Number.isFinite(v) || v < 0 || v >= 1 || (i > 0 && v <= cuts[i - 1]!))
+    )
+  )
+    throw new Error("Invalid documentary score cuts.");
   const sr = DOCUMENTARY_DIRECTION.sound.sampleRate;
   const frames = Math.ceil(sr * total);
   const left = new Float32Array(frames),
@@ -79,7 +90,7 @@ export function documentarySoundtrack(
   let shot = 0;
   for (const scene of scenes)
     for (const phrase of scene.phrases) {
-      const cuts = DOCUMENTARY_DIRECTION.cuts[shot++]!;
+      const cuts = editCuts[shot++]!;
       for (const cut of cuts) {
         const start = scene.start + phrase.start + phrase.seconds * cut;
         const first = Math.floor(start * sr);

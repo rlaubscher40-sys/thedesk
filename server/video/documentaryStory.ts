@@ -7,6 +7,7 @@ import { DEFAULT_SPEECH_PROFILE } from "./localVoice";
 import { REEL_SAFE_AREAS } from "./reelSafeAreas";
 import { PERSON_DOCUMENTARY_ASSETS } from "./personDocumentaryRenderer";
 import { DOCUMENTARY_DIRECTION } from "./documentaryDirection";
+import { SERIES_DIRECTION, SERIES_ASSETS } from "./documentarySeriesDirection";
 
 export type DocumentaryStory = DocumentaryEpisode & {
   version: 1;
@@ -50,7 +51,10 @@ export function validateDocumentary(
     !/^\d{4}-\d{2}-\d{2}$/.test(story.releaseDate) ||
     !story.period.trim() ||
     (story.treatment !== undefined &&
-      (story.treatment !== "person-led-v2" || story.id !== "triguboff-apartments")) ||
+      !(story.treatment === "person-led-v2" && story.id === "triguboff-apartments") &&
+      !(
+        story.treatment === "series-led-v1" && Object.hasOwn(SERIES_DIRECTION.episodes, story.id)
+      )) ||
     story.scenes.length !== 8 ||
     story.scenes.some(
       (s) =>
@@ -68,6 +72,7 @@ export function validateDocumentary(
         !s.sources.length ||
         s.sources.some((id) => !Object.hasOwn(DOCUMENTARY_SOURCES, id)) ||
         s.phrases.length < 1 ||
+        (story.treatment !== undefined && s.phrases.length !== 2) ||
         s.phrases.length > 2 ||
         s.phrases.some((t) => !t.trim() || t.length > 360)
     ) ||
@@ -89,9 +94,19 @@ export function documentaryReviewHash(story: DocumentaryStory) {
   return digest({
     story,
     rendererVersion: 8,
-    direction: story.treatment ? DOCUMENTARY_DIRECTION : null,
-    financialFacts: story.treatment ? TRIGUBOFF_FINANCIAL_FACTS : null,
-    personAssets: story.treatment ? PERSON_DOCUMENTARY_ASSETS : null,
+    direction:
+      story.treatment === "series-led-v1"
+        ? { version: SERIES_DIRECTION.version, shots: SERIES_DIRECTION.episodes[story.id] }
+        : story.treatment
+          ? DOCUMENTARY_DIRECTION
+          : null,
+    financialFacts: story.treatment === "person-led-v2" ? TRIGUBOFF_FINANCIAL_FACTS : null,
+    personAssets:
+      story.treatment === "series-led-v1"
+        ? SERIES_ASSETS
+        : story.treatment
+          ? PERSON_DOCUMENTARY_ASSETS
+          : null,
     voice: DEFAULT_SPEECH_PROFILE,
     safeAreas: REEL_SAFE_AREAS,
     sequence,
