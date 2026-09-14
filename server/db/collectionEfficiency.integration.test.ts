@@ -1,3 +1,4 @@
+import { PUBLICATION_CONTROL_DDL } from "./publicationControls";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { createPool, type Pool } from "mysql2/promise";
 import { drizzle } from "drizzle-orm/mysql2";
@@ -27,6 +28,33 @@ const item: InsertDailyFeedItem = {
   category: "PROPERTY",
   channel: "PROPERTY",
 };
+it.skipIf(!testUrl)(
+  "holds flagged stories and their enrichment input before public distribution",
+  async () => {
+    const id = await claims.insertFeedOnce({
+      ...item,
+      sourceUrl: "https://concurrency-test.example/legal-review",
+      title: "Developer charged with fraud",
+      articleText: "Synthetic allegation fixture for review.",
+    });
+    const [rows] = await pool.query("SELECT channel FROM daily_feed_items WHERE id=?", [id]);
+    expect(rows).toEqual([{ channel: "HOLD" }]);
+    const [jobs] = await pool.query("SELECT status FROM feed_enrichment_jobs WHERE feedItemId=?", [
+      id,
+    ]);
+    expect(jobs).toEqual([{ status: "legal-held" }]);
+    const [reviews] = await pool.query(
+      "SELECT status, originalChannel FROM legal_story_reviews WHERE feedItemId=?",
+      [id]
+    );
+    expect(reviews).toEqual([{ status: "pending", originalChannel: "PROPERTY" }]);
+    // Keep the fixture from affecting unrelated queue-count tests in this file.
+    await pool.query("DELETE FROM legal_story_reviews WHERE feedItemId=?", [id]);
+    await pool.query("DELETE FROM feed_enrichment_jobs WHERE feedItemId=?", [id]);
+    await pool.query("DELETE FROM feed_ingest_claims WHERE feedItemId=?", [id]);
+    await pool.query("DELETE FROM daily_feed_items WHERE id=?", [id]);
+  }
+);
 beforeAll(async () => {
   if (!testUrl) return;
   const url = new URL(testUrl);
@@ -34,6 +62,7 @@ beforeAll(async () => {
     throw new Error("Use the isolated local test database");
   pool = createPool(testUrl);
   for (const ddl of [
+    ...PUBLICATION_CONTROL_DDL,
     ...COLLECTION_EFFICIENCY_DDL,
     ...FEED_ENRICHMENT_DDL,
     ...FEED_EVIDENCE_DDL,
@@ -218,22 +247,43 @@ async function freshJob(key: string, extra: Partial<InsertDailyFeedItem> = {}) {
     ...extra,
   });
 }
-it.skipIf(!testUrl)("holds unsupported generated figures at the database boundary and records the review state", async () => {
-  const id = await freshJob("claim-evidence");
-  const claim = (await recovery.claimFeedEnrichment())!;
-  const before = (await feed.getFeedItemById(id))!;
-  await recovery.completeFeedEnrichment(claim, { ...emptyAngles, sayThis: "Rent rose 999%.", whyItMatters: "Check the original reporting." }, before);
-  expect(await feed.getFeedItemById(id)).toMatchObject({ sayThis: null, whyItMatters: "Check the original reporting." });
-  const [jobs] = await pool.query("SELECT status, reason, input FROM feed_enrichment_jobs WHERE feedItemId=?", [id]);
-  expect((jobs as any[])[0]).toMatchObject({ status: "completed", reason: "claim_fields_held", input: null });
-  expect((await recovery.feedEnrichmentHealth()).claimHolds.map((j) => j.feedItemId)).toContain(id);
-});
+it.skipIf(!testUrl)(
+  "holds unsupported generated figures at the database boundary and records the review state",
+  async () => {
+    const id = await freshJob("claim-evidence");
+    const claim = (await recovery.claimFeedEnrichment())!;
+    const before = (await feed.getFeedItemById(id))!;
+    await recovery.completeFeedEnrichment(
+      claim,
+      { ...emptyAngles, sayThis: "Rent rose 999%.", whyItMatters: "Check the original reporting." },
+      before
+    );
+    expect(await feed.getFeedItemById(id)).toMatchObject({
+      sayThis: null,
+      whyItMatters: "Check the original reporting.",
+    });
+    const [jobs] = await pool.query(
+      "SELECT status, reason, input FROM feed_enrichment_jobs WHERE feedItemId=?",
+      [id]
+    );
+    expect((jobs as any[])[0]).toMatchObject({
+      status: "completed",
+      reason: "claim_fields_held",
+      input: null,
+    });
+    expect((await recovery.feedEnrichmentHealth()).claimHolds.map((j) => j.feedItemId)).toContain(
+      id
+    );
+  }
+);
 
 it.skipIf(!testUrl)(
   "commits one durable job with the winning story and rolls both back on failure",
   async () => {
     const id = await freshJob("atomic");
-    expect(await recovery.feedEnrichmentStates([id])).toMatchObject([{ feedItemId: id, status: "pending", attempts: 0 }]);
+    expect(await recovery.feedEnrichmentStates([id])).toMatchObject([
+      { feedItemId: id, status: "pending", attempts: 0 },
+    ]);
     expect(
       await claims.insertFeedOnce({
         ...item,
