@@ -7,10 +7,8 @@
  *   · compact — every other page. A single hairline-topped row of
  *               publisher line and links.
  *
- * The disclaimer is required for an Australian audience: ASIC treats
- * commentary on rates / property as "general advice" by default and
- * expects a visible disclaimer that the content isn't personal advice.
- * Its wording is unchanged from the pre-redesign footer.
+ * The information notice describes the editorial scope. It is not a substitute
+ * for assessing the substance of financial-product or credit content.
  */
 import { Link } from "wouter";
 import { cn } from "@/lib/cn";
