@@ -81,7 +81,8 @@ export function documentaryProductionDossier(episode: DocumentaryEpisode) {
     // The complete catalogue is marked as such. A recipe can include other credited
     // images; its source details remain in the sequence registry and public notes.
     archiveCatalogue: DOCUMENTARY_PHOTOS,
-    referenceFinancialFacts: episode.treatment ? TRIGUBOFF_FINANCIAL_FACTS : null,
+    referenceFinancialFacts:
+      episode.treatment === "person-led-v2" ? TRIGUBOFF_FINANCIAL_FACTS : null,
     shotPlan: documentaryShotPlan(episode),
     manualReview: DOCUMENTARY_REVIEW_BAR.map((criterion) => ({
       ...criterion,

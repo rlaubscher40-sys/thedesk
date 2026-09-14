@@ -1,5 +1,19 @@
 # The Desk documentary Reel programme
 
+## Completing the launch buffer, 14 September 2026
+
+The user asked to build the other three films rather than waive the four-film launch gate. The three older scripts have been replaced with distinct, person-first historical stories:
+
+- **The half they kept:** Bruno and Rino Grollo, the move into part-ownership and the April 2020 Rialto transaction. A$644m is the transaction adviser's reported enterprise value of the 50% interest sold by St Martins to the GIC/Dexus joint venture. Grollo Australia retained its half. It is not a Grollo payout, a whole-building price or profit.
+- **Before the skyline:** Luigi and Emma, the 1928 arrival, 1948 weekend enterprise, 1952 full-time transition, workforce growth from 35 to 128, the Reserve Bank project setback, 1968 handover, Bruno and Rino's roles, Darwin reconstruction and Rialto. More than A$350m is reported company worth in 1994, not personal wealth or a current valuation.
+- **A different customer:** Harry's 2003 accommodation launch, operating model, 2017 rebrand, the Federal Court's 2018 A$3m company penalty for review manipulation and the September 2023 Melbourne opening with 298 suites. The penalty is attributed to Meriton Property Services, not Harry personally; no current misconduct or comparative profitability is asserted.
+
+`documentaryLaunchEpisodes.ts` holds the scripts. `documentarySeriesDirection.ts` and `documentarySeriesRenderer.ts` provide authored sequences, source-aware captions, exact-count grids, room plans, family-role diagrams and a single-building ownership split. These are explanatory illustrations, not fake archive footage. Existing individually licensed photographs retain their dates and provenance. No licensed Grollo portrait was obtained, so the films introduce family members by name rather than inventing a likeness.
+
+The `series-led-v1` treatment receives measured Fable narration, subtitles, an original score, cut-specific frame sheets and encoded audio checks. Its direction is bound separately by episode. A regression test preserves Harry's accepted input hash. The Deal remains capped at 90 seconds; the family film at 150. Ordinary Reels and Wednesday/Sunday publishing rules are unchanged.
+
+The final exports must still pass the exact-export editorial and complete-listening review. This implementation does not add approval records, bypass the launch gate, post to Instagram or pretend that technical audio measurements are a human listen. The dates below remain provisional until the reviewed buffer is complete. Older statuses below are historical.
+
 ## Current production status, 14 September 2026
 
 The user accepted the 41-section cinematic Harry direction and asked to make that standard repeatable. The reusable workflow is documented in [the production playbook](documentary-production-playbook.md) and maintained in the project’s `desk-documentaries` skill. A named subject can start a research-required brief; registered episodes export a measured shot list, source dossier, encoded audio/format audit, full section frame sheets and explicit editorial review questions alongside the MP4.

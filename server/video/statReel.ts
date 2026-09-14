@@ -768,12 +768,11 @@ export async function renderStatReel(
     for (const file of frameFiles) args.push("-i", file);
     for (const s of spokenSections) args.push("-i", s.file);
 
-    // Authored person documentary only. Other Reel audio paths remain unchanged.
-    const scored = Boolean(
-      spokenSections.length && stat.documentary?.treatment === "person-led-v2"
-    );
+    // Authored documentary treatments only. Ordinary Reel audio paths remain unchanged.
+    const scored = Boolean(spokenSections.length && stat.documentary?.treatment);
     if (scored) {
       const { documentarySoundtrack } = await import("./documentarySoundtrack");
+      const { seriesCuts } = await import("./documentarySeriesDirection");
       const scoreFile = path.join(dir, "documentary-score.wav");
       await fs.writeFile(
         scoreFile,
@@ -783,7 +782,10 @@ export async function renderStatReel(
             seconds: durations[s.key]!,
             phrases: phrases[s.key]!,
           })),
-          total
+          total,
+          stat.documentary?.treatment === "series-led-v1"
+            ? seriesCuts(stat.documentary.id)
+            : undefined
         )
       );
       args.push("-i", scoreFile);

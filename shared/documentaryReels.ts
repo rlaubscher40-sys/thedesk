@@ -1,5 +1,32 @@
 /** Public reading notes. Historical dates are not current portfolio estimates. */
 export const DOCUMENTARY_SOURCES = {
+  rialtoDeal: {
+    publisher: "Arnold Bloch Leibler",
+    published: "8 April 2020",
+    title: "Grollo family Rialto deal",
+    url: "https://www.abl.com.au/insights-and-news/grollo-family-rialto-deal/",
+    context:
+      "Transaction adviser: St Martins sold its 50% interest to a GIC/Dexus joint venture at A$644m enterprise value. Grollo Australia retained 50%. Not a Grollo payout, profit, whole-building price or current valuation.",
+    captionCitation: "Arnold Bloch Leibler: Grollo family Rialto deal, 8 Apr 2020.",
+  },
+  meritonPenalty: {
+    publisher: "ACCC",
+    published: "31 July 2018",
+    title: "Meriton to pay $3 million for misleading consumers on TripAdvisor",
+    url: "https://www.accc.gov.au/media-release/meriton-to-pay-3-million-for-misleading-consumers-on-tripadvisor",
+    context:
+      "Federal Court ordered Meriton Property Services Pty Ltd to pay A$3m for manipulating reviews. Historical company finding, not a personal penalty against Triguboff or a claim about current conduct.",
+    captionCitation: "ACCC: Meriton TripAdvisor penalty, 31 Jul 2018.",
+  },
+  meritonMelbourne: {
+    publisher: "Meriton Suites",
+    published: "Undated hotel page; September 2023 opening milestone",
+    title: "Meriton Suites Melbourne",
+    url: "https://www.meritonsuites.com.au/our-hotels/victoria/melbourne-cbd/",
+    context:
+      "Company reports September 2023 opening and 298 apartment-style hotel suites. Not occupancy, revenue or profit. Any other-city photography is labelled context, not the Melbourne hotel.",
+    captionCitation: "Meriton Suites: Melbourne hotel, September 2023 opening milestone.",
+  },
   meritonQueensland: {
     publisher: "Urban.com.au",
     published: "20 April 2023",
@@ -158,7 +185,10 @@ export type DocumentarySourceId = keyof typeof DOCUMENTARY_SOURCES;
 export type DocumentarySeries = "The Deal" | "Property Empires";
 
 /** Editorial budgets. The expanded person biography has its own ceiling. */
-export function documentaryDurationLimit(series: DocumentarySeries, treatment?: "person-led-v2") {
+export function documentaryDurationLimit(
+  series: DocumentarySeries,
+  treatment?: "person-led-v2" | "series-led-v1"
+) {
   return series === "The Deal" ? 90 : treatment === "person-led-v2" ? 180 : 150;
 }
 
@@ -233,8 +263,8 @@ export const DOCUMENTARY_READING = [
     meaning:
       "A construction contract and an ownership stake are different ways of participating in a project. The biography records a growing preference for part-ownership after the sons took over.",
     limitation:
-      "This is a documented change in business model, not a reconstruction of one contract, ownership percentage or investment return.",
-    sources: ["grolloBiography", "grolloSpeech"],
+      "A$644m was the reported enterprise value of St Martins' 50% interest in April 2020. Grollo Australia retained its half. Not a Grollo payout, investment return or current valuation.",
+    sources: ["grolloBiography", "grolloSpeech", "rialtoDeal"],
   },
   {
     id: "grollo-family",
@@ -243,7 +273,7 @@ export const DOCUMENTARY_READING = [
     meaning:
       "The story runs from Luigi and Emma's small enterprise to Bruno and Rino's distinct roles, larger projects and property interests.",
     limitation:
-      "A historical chapter, not a statement about today's Grollo businesses. Later corporate history needs its own episode.",
+      "1928–1994 historical chapter, not today's corporate structure. More than A$350m was reported company worth in 1994, not personal wealth or annual profit. Darwin's 400 houses is Bruno's recollection. Early dates follow ANU where accounts differ.",
     sources: ["grolloBiography", "grolloSpeech"],
   },
   {
@@ -254,7 +284,7 @@ export const DOCUMENTARY_READING = [
       "The 2003 serviced-apartment launch added an accommodation operation alongside apartment development. The Desk explains the different customer and operating model.",
     limitation:
       "No claim that every apartment was retained, that unsold stock caused the launch, or that hospitality was more profitable.",
-    sources: ["meritonHistory", "triguboffInduction"],
+    sources: ["meritonHistory", "meritonPenalty", "meritonMelbourne"],
   },
   {
     id: "triguboff-apartments",

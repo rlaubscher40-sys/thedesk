@@ -1,0 +1,61 @@
+import { describe, expect, it } from "vitest";
+import { DOCUMENTARY_EPISODES } from "../instagram/documentaryEpisodes";
+import { documentaryCandidate, documentaryLaunchReady } from "../instagram/verifiedDocumentaryReel";
+import {
+  documentaryReviewHash,
+  sealDocumentary,
+  validateDocumentary,
+  documentaryScript,
+} from "./documentaryStory";
+import { SERIES_DIRECTION, seriesCuts, seriesShots } from "./documentarySeriesDirection";
+import { documentaryShotPlan } from "./documentaryShotPlan";
+import { documentaryProductionDossier } from "./documentaryProduction";
+
+describe("authored launch films", () => {
+  it("preserves the accepted Harry input hash", () => {
+    const harry = DOCUMENTARY_EPISODES.find((e) => e.id === "triguboff-apartments")!;
+    expect(documentaryReviewHash(sealDocumentary(harry))).toBe(
+      "ee8cf73ded8469d8925262eb5917cd4fdc77cc853aca14bf0c9e6c51152d9aef"
+    );
+  });
+  it("gives every new phrase a story-specific directed visual and no Harry-only caption", () => {
+    for (const episode of DOCUMENTARY_EPISODES.filter((e) => e.treatment === "series-led-v1")) {
+      const plan = documentaryShotPlan(episode);
+      expect(plan).toHaveLength(16);
+      expect(plan.flatMap((p) => p.shots).length).toBeGreaterThan(16);
+      expect(seriesCuts(episode.id)).toHaveLength(16);
+      expect(plan.every((p) => p.authored)).toBe(true);
+      expect(documentaryCandidate(episode).caption).not.toContain("Regis prices");
+      expect(documentaryProductionDossier(episode).referenceFinancialFacts).toBeNull();
+      for (const phrase of SERIES_DIRECTION.episodes[episode.id]!)
+        for (const shot of phrase) {
+          expect(shot.lines.length).toBeGreaterThan(0);
+          if (shot.kind === "photo") expect(shot.photo).toBeDefined();
+          if (shot.kind === "grid") expect(shot.count).toBeGreaterThan(0);
+        }
+    }
+    expect(() => seriesShots("unwritten-film", 0)).toThrow();
+    expect(() => seriesCuts("unwritten-film")).toThrow();
+  });
+  it("binds new direction changes without invalidating another film", () => {
+    const [film, other] = DOCUMENTARY_EPISODES;
+    const before = documentaryReviewHash(sealDocumentary(film!));
+    const otherBefore = documentaryReviewHash(sealDocumentary(other!));
+    const shot = seriesShots(film!.id, 0)[0]!;
+    const title = shot.title;
+    try {
+      shot.title += " revised";
+      expect(documentaryReviewHash(sealDocumentary(film!))).not.toBe(before);
+      expect(documentaryReviewHash(sealDocumentary(other!))).toBe(otherBefore);
+    } finally {
+      shot.title = title;
+    }
+  });
+  it("rejects incomplete authored narration and leaves launch review closed", () => {
+    const episode = structuredClone(DOCUMENTARY_EPISODES[0]!);
+    episode.scenes[0]!.phrases.pop();
+    const story = sealDocumentary(episode);
+    expect(() => validateDocumentary(story, documentaryScript(story))).toThrow();
+    expect(documentaryLaunchReady()).toBe(false);
+  });
+});
