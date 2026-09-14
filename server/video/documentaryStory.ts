@@ -88,7 +88,7 @@ export function documentaryReviewHash(story: DocumentaryStory) {
   const sequence = REEL_VISUAL_SEQUENCES[story.recipe];
   return digest({
     story,
-    rendererVersion: 7,
+    rendererVersion: 8,
     direction: story.treatment ? DOCUMENTARY_DIRECTION : null,
     financialFacts: story.treatment ? TRIGUBOFF_FINANCIAL_FACTS : null,
     personAssets: story.treatment ? PERSON_DOCUMENTARY_ASSETS : null,

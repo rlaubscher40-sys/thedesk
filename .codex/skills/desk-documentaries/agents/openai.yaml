@@ -1,0 +1,4 @@
+interface:
+  display_name: "The Desk Documentaries"
+  short_description: "Research and produce The Desk property documentaries"
+  default_prompt: "Use $desk-documentaries to make the next The Desk documentary about the named person, with sourced AUD figures and a downloadable MP4."

@@ -13,7 +13,6 @@
     "scripts/renderEmails.ts",
     "scripts/review-housing-balance-reel.ts",
     "scripts/review-reel.ts",
-    "scripts/review-documentary.ts",
     "scripts/review-supply-reel.ts",
     "scripts/socialAudiencePreview.ts",
     "scripts/socialCreativePreview.ts",

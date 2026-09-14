@@ -286,7 +286,7 @@ export async function createPersonDocumentaryRenderer(
     };
     const stamp = (label: string, value: string, y: number, color = gold) => {
       txt(label, 84, y, 27, muted);
-      title([value], 84, y + 108, 105, color);
+      title([value], 84, y + 108, 132, color);
     };
     const card = (value: string, label: string, x: number, y: number, w = 385) => {
       rect(x, y, w, 174, "#e9e2d1");
@@ -301,7 +301,7 @@ export async function createPersonDocumentaryRenderer(
     };
     if (shot === 0) {
       if (stage === 0) {
-        photo(images.portrait, 0, 0, 1080, 1320, 1.8 + q * 0.09, 0.53, 0.56);
+        photo(images.portrait, 0, 0, 1080, 1320, 2.05 + q * 0.06, 0.53, 0.52);
         shade(650, 1300);
         title(["Harry", "Triguboff."], 84, 1000, 115);
         txt("THE MAN BEHIND MERITON", 84, 1250, 28, gold);
@@ -711,7 +711,12 @@ export async function createPersonDocumentaryRenderer(
         credit = "MERITON CRANES / PARRAMATTA / RCBUTCHER / 2015 / PD";
       }
     }
-    txt("THE DESK", 84, 125, 23, paper);
+    const masthead = c.createLinearGradient(0, 0, 0, 235);
+    masthead.addColorStop(0, "rgba(17,23,20,.85)");
+    masthead.addColorStop(1, "rgba(17,23,20,0)");
+    c.fillStyle = masthead;
+    c.fillRect(0, 0, 1080, 235);
+    txt("THE DESK", 84, 125, 26, paper);
     txt("PROPERTY EMPIRES", 660, 125, 22, muted, undefined, 260);
     // One fixed source zone; all visual content ends above the subtitle separator.
     rect(0, 1290, 1080, 165, ink);

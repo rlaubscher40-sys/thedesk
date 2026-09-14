@@ -1,6 +1,19 @@
 # The Desk documentary Reel programme
 
-## Current rollout status, 14 September 2026
+## Current production status, 14 September 2026
+
+The user accepted the 41-section cinematic Harry direction and asked to make that standard repeatable. The reusable workflow is documented in [the production playbook](documentary-production-playbook.md) and maintained in the project’s `desk-documentaries` skill. A named subject can start a research-required brief; registered episodes export a measured shot list, source dossier, encoded audio/format audit, full section frame sheets and explicit editorial review questions alongside the MP4.
+
+Renderer version 8 enlarges the opening portrait and key figures, improves masthead contrast and preserves the score fade through the final picture. The new Harry master is 169.7 seconds with 41 visual sections. All section frames plus opening and ending were inspected. It passed encoded media checks at -17.53 LUFS and -4.07 dBTP; audio covers the complete narration and picture. A complete human listen to this exact new MP4 remains a review item. The 8.07-second Regis illustration is a deliberate sustained explanation, retained after visual inspection.
+
+Input hash: `ee8cf73ded8469d8925262eb5917cd4fdc77cc853aca14bf0c9e6c51152d9aef`.
+Video SHA-256: `724fbffc77d3ee4fd5892134b053bbdc7146a90d048a9c66333ea0754bff72b9`.
+
+A separate Meriton accommodation export passed the same workflow: 69.6 seconds and 14 measured sections. This validates reuse, not a creative upgrade or publication approval for that older episode. A Lang Walker starter brief has no claims, release date or publication eligibility.
+
+The four-film launch gate remains closed. No changed export inherits earlier approval, no new review was added to `documentaryReviews.ts`, and no Instagram post was made by this production work. Wednesday/Sunday remain the intended cadence once the reviewed buffer is complete. The records below describe earlier revisions and retain their historical status.
+
+## Earlier research-led rollout status, 14 September 2026
 
 The user authorised proceeding after delivery of the revised 163.3-second Triguboff MP4. Its input fingerprint and video SHA-256 were rechecked against the final export and recorded in `documentaryReviews.ts`. Repository implementation and deployment may proceed. The creative holds described below are historical.
 
