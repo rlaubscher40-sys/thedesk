@@ -32,6 +32,14 @@ import { sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 
 export const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
+  {
+    name: "0029 · subscribers.consentNoticeVersion",
+    sql: "ALTER TABLE subscribers ADD consentNoticeVersion varchar(32) NULL",
+  },
+  {
+    name: "0029 · subscribers.consentRequestedAt",
+    sql: "ALTER TABLE subscribers ADD consentRequestedAt timestamp NULL",
+  },
   SIGNAL_SNAPSHOT_DDL,
   WEB_VITALS_DDL,
   ...SECURITY_DDL,
