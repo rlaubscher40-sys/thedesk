@@ -216,6 +216,17 @@ const JOBS: Job[] = [
     maxAttempts: 2,
     run: (b, k, a) => postLocal(b, k, "/api/ingest/instagram-daily", a),
   },
+  {
+    key: "carousel-story-recovery-rollout",
+    claimDate: "2026-09-14",
+    at: "00:00",
+    graceMinutes: 24 * 60 - 1,
+    maxAttempts: 1,
+    run: async () => {
+      const { recoverCarouselStories } = await import("../instagram/carouselStoryRecovery");
+      await recoverCarouselStories();
+    },
+  },
   ...["08:35", "12:35", "18:35"].map((at) => ({
     key: `carousel-story-recovery-${at.slice(0, 2)}`,
     at,
