@@ -189,7 +189,21 @@ export const MORTGAGE_COVERAGE_RECOVERY_JOB: Job = {
   }),
 };
 
+export const ADVICE_COVERAGE_RECOVERY_JOB: Job = {
+  key: "advice-source-replacement-recovery",
+  at: "00:00",
+  graceMinutes: 24 * 60 - 1,
+  claimDate: "2026-09-14",
+  maxAttempts: 1,
+  run: (b, k) => runDailyFeedIngest(b, k, {
+    sources: SOURCES.filter((source) => [
+      "ASIC Media Releases", "Financial Advice Association Australia", "Money Management",
+    ].includes(source.name)),
+  }),
+};
+
 const JOBS: Job[] = [
+  ADVICE_COVERAGE_RECOVERY_JOB,
   {
     key: REVIEWED_VIC_JOB,
     at: "00:00",

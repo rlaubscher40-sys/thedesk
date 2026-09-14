@@ -18,6 +18,7 @@ import { resolveArticleUrl } from "./gnews";
 import { articleIdentity } from "./dedupe";
 import { clusterByTitle } from "./cluster";
 import { originalPublicationDay } from "../../../shared/storyEvent";
+import { publisherAccessPause } from "./articleAccess";
 import { olderIndexPath } from "./indexReadingAge";
 import {
   createEvidenceDuplicateIndex,
@@ -155,6 +156,7 @@ export async function buildDailyBrief(options: PipelineOptions = {}) {
       if (seen.has(id)) return false;
       seen.add(id);
       const hold =
+        publisherAccessPause(item.url) ??
         referenceNewsHold(item) ??
         (discoveryScore(item) < 0 ? "off-topic" : null) ??
         (item.isoDate && !recentNewsTimestamp(item.isoDate, now)
@@ -208,6 +210,12 @@ export async function buildDailyBrief(options: PipelineOptions = {}) {
       }
       if (recent.has(articleIdentity({ url, title: item.title }))) {
         entry.reason = "already-published";
+        return null;
+      }
+      const pause = publisherAccessPause(url);
+      if (pause) {
+        entry.url = url;
+        entry.reason = pause;
         return null;
       }
       const resolved = { ...item, url };

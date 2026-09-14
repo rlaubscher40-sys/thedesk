@@ -1,6 +1,7 @@
 import { INSTAGRAM_FEED_SLOTS } from "../../shared/instagramSchedule";
 import { describe, expect, it } from "vitest";
 import {
+  ADVICE_COVERAGE_RECOVERY_JOB,
   MORTGAGE_COVERAGE_RECOVERY_JOB,
   EVIDENCE_JOBS,
   FEED_UPDATE_JOBS,
@@ -16,6 +17,13 @@ const baseClock = (over: Partial<SchedulerClock> = {}): SchedulerClock => ({
   dow: 4, // Thursday
   dom: 4,
   ...over,
+});
+
+it("bounds the advice replacement collection to one durable claim across restarts", () => {
+  expect(ADVICE_COVERAGE_RECOVERY_JOB).toMatchObject({
+    key: "advice-source-replacement-recovery", claimDate: "2026-09-14", maxAttempts: 1,
+  });
+  expect(isJobDue(ADVICE_COVERAGE_RECOVERY_JOB, baseClock({ minutes: 1439 }))).toBe(true);
 });
 
 it("bounds the reviewed mortgage recovery to one durable claim", () => {
