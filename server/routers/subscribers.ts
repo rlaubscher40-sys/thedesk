@@ -30,6 +30,7 @@ import {
 } from "../core/mailer";
 import { adminProcedure, publicProcedure, router } from "../core/trpc";
 import { DEFAULT_SITE_URL, isEnrichedChannel } from "../../shared/const";
+import { NEWSLETTER_NOTICE_VERSION } from "../../shared/legal";
 
 function todayAEST(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
@@ -73,6 +74,8 @@ export const subscribersRouter = router({
         /** Touchpoint identifier, "sidebar", "modal", "hero",
          *  "edition-footer", etc. Which form converted them. */
         source: z.string().min(1).max(64).optional(),
+        // Older clients may omit this. Never claim they saw today's wording.
+        noticeVersion: z.literal(NEWSLETTER_NOTICE_VERSION).optional(),
         /** Channel they arrived from at the start of the session, captured by
          *  client/src/lib/attribution.ts. Distinct from `source`: that says
          *  which form, this says which channel. Client-supplied and therefore
@@ -127,6 +130,8 @@ export const subscribersRouter = router({
           name: input.name ?? null,
           confirmToken: token,
           source: input.source ?? null,
+          consentNoticeVersion: input.noticeVersion ?? null,
+          consentRequestedAt: new Date(),
           // Empty string means the client had the field but nothing to put in
           // it (storage blocked, say). Store null rather than "" so a missing
           // arrival never reads as a channel named "".
