@@ -26,6 +26,9 @@ export function deliverDailyBrief(now: () => Date = () => new Date()): Promise<v
     ).replace(/\/+$/, "");
     for (const sub of await queue.dailyBriefCandidates(date)) {
       if (dailyBriefWindow(now()) !== date) break;
+      // A saved batch can outlive a correction or takedown. Do not distribute
+      // its frozen copy after one of its source stories has been held/deleted.
+      if (!(await queue.briefStoriesStillPublic(items.map((item) => item.id)))) break;
       const payload = buildDailyBriefEmail({
         to: sub.email,
         name: sub.name,
