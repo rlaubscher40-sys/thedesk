@@ -202,7 +202,19 @@ export const ADVICE_COVERAGE_RECOVERY_JOB: Job = {
   }),
 };
 
+export const ADVICE_NEWSROOM_RECOVERY_JOB: Job = {
+  key: "advice-public-newsroom-recovery",
+  at: "00:00",
+  graceMinutes: 24 * 60 - 1,
+  claimDate: "2026-09-14",
+  maxAttempts: 1,
+  run: (b, k) => runDailyFeedIngest(b, k, {
+    sources: SOURCES.filter((source) => source.name === "Financial Newswire"),
+  }),
+};
+
 const JOBS: Job[] = [
+  ADVICE_NEWSROOM_RECOVERY_JOB,
   ADVICE_COVERAGE_RECOVERY_JOB,
   {
     key: REVIEWED_VIC_JOB,

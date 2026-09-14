@@ -1,4 +1,5 @@
 import { parse, type DefaultTreeAdapterMap } from "parse5";
+import { readableArticleHtml } from "./htmlText";
 
 /** Publisher-declared commercial content is not editorial evidence. Match
  * rendered article markup, never CSS definitions, script strings, footer ads
@@ -10,7 +11,17 @@ export function articleDisclosureHold(html: string, sourceUrl: string): string |
   } catch {
     return null;
   }
-  if (!["realestate.com.au", "moneymanagement.com.au"].includes(host)) return null;
+  if (!["realestate.com.au", "moneymanagement.com.au", "financialnewswire.com.au"].includes(host)) return null;
+  if (host === "financialnewswire.com.au") {
+    // Only this article's declared body, not sponsored cards in sidebars.
+    const bodyNodes: DefaultTreeAdapterMap["node"][] = [parse(readableArticleHtml(html.slice(0, 1024 * 1024), "content-inner"))];
+    while (bodyNodes.length) {
+      const node = bodyNodes.pop()!;
+      if ("attrs" in node && node.attrs.some(a => a.name === "class" && a.value.split(/\s+/).includes("sponsored-by")))
+        return "publisher-disclosed-sponsored-content";
+      if ("childNodes" in node) bodyNodes.push(...node.childNodes);
+    }
+  }
   const articleUrl = (value: unknown): boolean => {
     if (typeof value !== "string") return false;
     try {
@@ -48,7 +59,7 @@ export function articleDisclosureHold(html: string, sourceUrl: string): string |
   while (nodes.length) {
     const node = nodes.pop()!;
     if (
-      host === "moneymanagement.com.au" &&
+      ["moneymanagement.com.au", "financialnewswire.com.au"].includes(host) &&
       node.nodeName === "script" &&
       "attrs" in node &&
       node.attrs.some((a) => a.name === "type" && a.value === "application/ld+json") &&

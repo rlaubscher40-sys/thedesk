@@ -58,6 +58,7 @@ export function extractArticleText(
     const host = new URL(sourceUrl ?? "").hostname.replace(/^www\./, "");
     if (host === "faaa.au")
       contentClass = "elementor-widget-theme-post-content";
+    if (host === "financialnewswire.com.au") contentClass = "content-inner";
     if (host === "moneymanagement.com.au") contentClass = "entry-content";
     if (host === "ausbanking.org.au") contentClass = "with-share";
   } catch {

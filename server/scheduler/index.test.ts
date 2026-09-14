@@ -2,6 +2,7 @@ import { INSTAGRAM_FEED_SLOTS } from "../../shared/instagramSchedule";
 import { describe, expect, it } from "vitest";
 import {
   ADVICE_COVERAGE_RECOVERY_JOB,
+  ADVICE_NEWSROOM_RECOVERY_JOB,
   MORTGAGE_COVERAGE_RECOVERY_JOB,
   EVIDENCE_JOBS,
   FEED_UPDATE_JOBS,
@@ -213,4 +214,10 @@ it("keeps midday claim identities and permits at most one daytime update after r
   }
   expect(FEED_UPDATE_JOBS.filter((job) => isJobDue(job, baseClock({ minutes: 15 * 60 + 43 })))[0]?.key)
     .toBe("daily-feed-update-15");
+});
+
+it("bounds the permitted newsroom recovery to one durable claim", () => {
+  expect(ADVICE_NEWSROOM_RECOVERY_JOB).toMatchObject({
+    key: "advice-public-newsroom-recovery", claimDate: "2026-09-14", maxAttempts: 1,
+  });
 });

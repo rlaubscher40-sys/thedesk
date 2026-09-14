@@ -43,7 +43,7 @@ describe("source audit regressions", () => {
     ["Cotality Australia", "cotality.com", 12],
     ["Treasury Ministerial Releases", "ministers.treasury.gov.au", 16],
     ["Australian Broker", "brokernews.com.au", 12],
-    ["Money Management", "moneymanagement.com.au", 12],
+    ["Financial Newswire", "financialnewswire.com.au", 12],
     ["Accountants Daily", "accountantsdaily.com.au", 12],
     ["SMSF Association", "smsfassociation.com", 8],
     ["UDIA National", "udia.com.au", 8],
