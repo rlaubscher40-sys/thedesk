@@ -1,4 +1,5 @@
-import { and, desc, eq, inArray, isNotNull, isNull, ne, or } from "drizzle-orm";
+import { subscriberConsentEvents } from "./consentSchema";
+import { and, desc, eq, inArray, isNotNull, isNull, ne, or, sql } from "drizzle-orm";
 import { CONFIRM_TOKEN_TTL_MS } from "../../shared/const";
 import * as demoQueries from "../demo/queries";
 import { isDemoMode } from "../demo/store";
@@ -19,62 +20,46 @@ export async function findSubscriberByEmail(email: string): Promise<Subscriber |
   return rows[0];
 }
 
-async function findSubscriberByToken(token: string): Promise<Subscriber | undefined> {
-  if (isDemoMode()) return demoQueries.findSubscriberByToken(token);
-  const db = getDb();
-  if (!db) return undefined;
-  const rows = await db
-    .select()
-    .from(subscribers)
-    .where(eq(subscribers.confirmToken, token))
-    .limit(1);
-  return rows[0];
-}
-
-/**
- * Insert a new subscriber, or, if the email already exists, return the
- * existing row so the caller can decide whether to re-send a confirm
- * email or treat the call as a no-op.
- */
+/** Row locks serialize confirmation, unsubscribe and a fresh request. Consent
+ * events commit with the state change, so a failed audit write rolls it back. */
 export async function createSubscriber(data: InsertSubscriber): Promise<Subscriber | undefined> {
   if (isDemoMode()) return demoQueries.createSubscriber(data);
   const db = getDb();
-  if (!db) return undefined;
-  // MySQL has no clean upsert-returning, so look up + insert. If a row
-  // already exists for this email we refresh its confirmToken instead
-  // of returning a stale row — the caller (subscribe mutation) generated
-  // a fresh token for the email it just sent, and persisting that token
-  // is the whole point of this call. Without the update the email links
-  // resolve to nothing and confirm fails with "invalid or expired".
-  // Confirmed rows are left untouched: a re-subscribe by a confirmed
-  // address is a no-op the router handles earlier.
-  const existing = await findSubscriberByEmail(data.email);
-  if (existing) {
-    // Leave confirmed+active rows alone; the router handles them.
-    if (existing.confirmedAt && !existing.unsubscribedAt) return existing;
-    if (data.confirmToken) {
-      // Refresh the token (and stamp its issue time so the 24h expiry runs
-      // from this send, not the original signup). Keep an unsubscribed address
-      // suppressed until its owner confirms again; the old confirmedAt must
-      // never make a public resubscribe request opt someone back in.
-      await db
-        .update(subscribers)
-        .set({
-          confirmToken: data.confirmToken,
-          confirmTokenSentAt: new Date(),
-          confirmedAt: null,
-          consentNoticeVersion: data.consentNoticeVersion ?? null,
-          consentRequestedAt: new Date(),
-          source: data.source ?? null,
-        })
-        .where(eq(subscribers.id, existing.id));
-    }
-    return findSubscriberByEmail(data.email);
-  }
-  await db
-    .insert(subscribers)
-    .values({ ...data, confirmTokenSentAt: new Date(), consentRequestedAt: new Date() });
-  return findSubscriberByEmail(data.email);
+  if (!db) throw new Error("Subscription database unavailable");
+  return db.transaction(async (tx) => {
+    const now = new Date();
+    await tx
+      .insert(subscribers)
+      .values({ ...data, confirmedAt: null, confirmTokenSentAt: now, consentRequestedAt: now })
+      .onDuplicateKeyUpdate({ set: { id: sql`${subscribers.id}` } });
+    const [row] = await tx
+      .select()
+      .from(subscribers)
+      .where(eq(subscribers.email, data.email))
+      .for("update");
+    if (!row) throw new Error("Subscriber row unavailable");
+    if (row.confirmedAt && !row.unsubscribedAt) return row;
+    if (!data.confirmToken) return row;
+    const patch = {
+      confirmToken: data.confirmToken,
+      confirmTokenSentAt: now,
+      confirmedAt: null,
+      consentNoticeVersion: data.consentNoticeVersion ?? null,
+      consentRequestedAt: now,
+      source: data.source ?? null,
+    };
+    await tx.update(subscribers).set(patch).where(eq(subscribers.id, row.id));
+    await tx
+      .insert(subscriberConsentEvents)
+      .values({
+        subscriberId: row.id,
+        event: "requested",
+        noticeVersion: patch.consentNoticeVersion,
+        source: patch.source,
+        requestedAt: now,
+      });
+    return { ...row, ...patch };
+  });
 }
 
 export async function confirmSubscriber(token: string): Promise<ConfirmResult> {
@@ -83,39 +68,64 @@ export async function confirmSubscriber(token: string): Promise<ConfirmResult> {
     return sub ? { status: "confirmed", subscriber: sub } : { status: "not-found" };
   }
   const db = getDb();
-  if (!db) return { status: "not-found" };
-  const row = await findSubscriberByToken(token);
-  if (!row) return { status: "not-found" };
-  // Enforce the 24h expiry the confirm email promises. A token with no
-  // sent-at (predates this column) is treated as still valid so links
-  // already in flight when this shipped keep working.
-  if (
-    row.confirmTokenSentAt &&
-    Date.now() - new Date(row.confirmTokenSentAt).getTime() > CONFIRM_TOKEN_TTL_MS
-  ) {
-    return { status: "expired" };
-  }
-  await db
-    .update(subscribers)
-    .set({
+  if (!db) throw new Error("Subscription database unavailable");
+  return db.transaction(async (tx) => {
+    const [row] = await tx
+      .select()
+      .from(subscribers)
+      .where(eq(subscribers.confirmToken, token))
+      .for("update");
+    if (!row) return { status: "not-found" as const };
+    if (
+      row.confirmTokenSentAt &&
+      Date.now() - new Date(row.confirmTokenSentAt).getTime() > CONFIRM_TOKEN_TTL_MS
+    )
+      return { status: "expired" as const };
+    const patch = {
       confirmedAt: new Date(),
       confirmToken: null,
       confirmTokenSentAt: null,
       unsubscribedAt: null,
-    })
-    .where(eq(subscribers.id, row.id));
-  const subscriber = await findSubscriberByEmail(row.email);
-  return subscriber ? { status: "confirmed", subscriber } : { status: "not-found" };
+    };
+    await tx.update(subscribers).set(patch).where(eq(subscribers.id, row.id));
+    await tx
+      .insert(subscriberConsentEvents)
+      .values({
+        subscriberId: row.id,
+        event: "confirmed",
+        noticeVersion: row.consentNoticeVersion,
+        source: row.source,
+        requestedAt: row.consentRequestedAt,
+      });
+    return { status: "confirmed" as const, subscriber: { ...row, ...patch } };
+  });
 }
 
 export async function unsubscribeByEmail(email: string): Promise<void> {
   if (isDemoMode()) return demoQueries.unsubscribeByEmail(email);
   const db = getDb();
-  if (!db) return;
-  await db
-    .update(subscribers)
-    .set({ unsubscribedAt: new Date(), confirmToken: null, confirmTokenSentAt: null })
-    .where(eq(subscribers.email, email));
+  if (!db) throw new Error("Subscription database unavailable");
+  await db.transaction(async (tx) => {
+    const [row] = await tx
+      .select()
+      .from(subscribers)
+      .where(eq(subscribers.email, email))
+      .for("update");
+    if (!row || (row.unsubscribedAt && !row.confirmToken)) return;
+    await tx
+      .update(subscribers)
+      .set({ unsubscribedAt: new Date(), confirmToken: null, confirmTokenSentAt: null })
+      .where(eq(subscribers.id, row.id));
+    await tx
+      .insert(subscriberConsentEvents)
+      .values({
+        subscriberId: row.id,
+        event: "unsubscribed",
+        noticeVersion: row.consentNoticeVersion,
+        source: row.source,
+        requestedAt: row.consentRequestedAt,
+      });
+  });
 }
 
 export async function listSubscribers(): Promise<Subscriber[]> {
