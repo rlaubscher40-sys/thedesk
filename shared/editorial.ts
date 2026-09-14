@@ -185,7 +185,7 @@ const conduct =
   /\b(?:ASIC|Tax Practitioners Board|TPB)\b.{0,70}\b(?:ban\w*|sanctions?|licen\w*|enforc\w*)\b|\b(?:ban\w*|sanctions?|licen\w*|enforc\w*)\b.{0,70}\b(?:ASIC|Tax Practitioners Board|TPB)\b/i;
 const markets = /\b(asx|australian shares|australian dollar|bond yields?)\b/i;
 const migrationPolicy =
-  /\b(?:net.negative migration|migration (?:policy|plan|program|reform)|immigration (?:policy|plan|program|reform)|temporary visas?|migrant workers?|international students?)\b|\bvisas?\b.{0,60}\b(?:cut|cap|plan|reform)\b/i;
+  /\b(?:net.negative migration|migration (?:policy|plan|program|reform)|immigration (?:policy|plan|program|reform))\b|\b(?:temporary visas?|migrant workers?|international students?)\b.{0,80}\b(?:policy|plan|cuts?|caps?|reforms?|rules?|work rights)\b|\b(?:policy|plan|cuts?|caps?|reforms?|rules?|work rights)\b.{0,80}\b(?:temporary visas?|migrant workers?|international students?)\b|\bvisas?\b.{0,60}\b(?:cut|cap|plan|reform)\b/i;
 const paymentPolicy = /\b(?:card surcharg(?:ing|es?)|interchange fees?)\b/i;
 const employmentVacancies =
   /\b(?:job|staff|employment|public.service) vacanc(?:y|ies)\b|\bvacan(?:t|cy|cies)\b.{0,80}\b(?:jobs?|positions?|departments?|staff)\b|\b(?:jobs?|positions?|departments?|staff)\b.{0,80}\bvacan(?:t|cy|cies)\b/i;

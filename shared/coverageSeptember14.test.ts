@@ -14,6 +14,12 @@ it("ranks a record affordability release as data, not routine industry news", ()
   expect(storySignificance("WA housing affordability could reach record lows").reason).toBe("analysis-or-proposal");
 });
 
+it("does not treat every story about students or migrants as economic policy", () => {
+  expect(editorialBeat("International students celebrate at a cultural festival")).toBeNull();
+  expect(editorialBeat("Migrant workers share their favourite recipes")).toBeNull();
+  expect(editorialBeat("New rules change work rights for international students")).toBe("policy");
+});
+
 const timing = {
   publisherDateStatus: "available" as const,
   publisherPublishedAt: null,
