@@ -5,6 +5,7 @@
  * correction is warranted, add an entry to the array below.
  */
 import { useDocumentTitle } from "@/lib/useDocumentTitle";
+import { EDITORIAL_CONTACT } from "../../../shared/legal";
 
 type Correction = {
   /** ISO date when the correction was issued. */
@@ -33,11 +34,33 @@ export default function Corrections() {
         </p>
         <h1 className="font-serif text-4xl sm:text-5xl font-bold leading-tight">Corrections</h1>
         <p className="text-sm text-[var(--color-fg-muted)]">
-          Where we've fixed something publicly. Reply to any brief to flag an error, you'll get a
-          same-day response.
+          Report an error, copyright concern or privacy issue using the contact details below.
         </p>
       </header>
       <div className="editorial-rule-soft" aria-hidden="true" />
+
+      <section className="panel rounded-sm p-6 space-y-3 text-sm">
+        <h2 className="font-serif text-2xl">Report a concern</h2>
+        <p>
+          Email{" "}
+          <a className="bs-link" href={`mailto:${EDITORIAL_CONTACT}`}>
+            {EDITORIAL_CONTACT}
+          </a>{" "}
+          with the story or post URL, what concerns you, supporting information and how we can
+          contact you.
+        </p>
+        <p>
+          For a copyright concern, identify the work, your connection to the rights holder and the
+          material in question. For a privacy request, describe the information or account involved.
+          Please do not send passwords, identity documents or other sensitive information in your
+          initial message.
+        </p>
+        <p>
+          Mark urgent matters clearly, especially a court restriction, safety concern or exposed
+          personal information. We may request further information to assess the concern or verify a
+          request.
+        </p>
+      </section>
 
       <section className="mt-8">
         {CORRECTIONS.length === 0 ? (
