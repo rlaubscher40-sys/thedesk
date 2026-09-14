@@ -1,6 +1,17 @@
 import { expect, it } from "vitest";
 import { captionChunks, subtitleAss, subtitleCues } from "./subtitles";
 
+it("retains all documentary cues while keeping the shorter standard limit", () => {
+  const script = Array.from({ length: 60 }, (_, i) => ({ key: `s${i}`, text: `Recorded fact ${i}.` }));
+  const timing = script.map((s, i) => ({ key: s.key, start: i * 2, seconds: 2 }));
+  expect(() => subtitleCues(script, timing)).toThrow("Too many");
+  const cues = subtitleCues(script, timing, 34, "documentary");
+  expect(cues.flatMap((c) => c.lines).join(" ")).toBe(script.map((s) => s.text).join(" "));
+  expect(cues.at(-1)!.end).toBe(120);
+  const over = Array.from({ length: 97 }, (_, i) => ({ key: `s${i}`, text: "One fact." }));
+  expect(() => subtitleCues(over, over.map((s, i) => ({ key: s.key, start: i, seconds: 1 })), 34, "documentary")).toThrow("Too many");
+});
+
 it("retains every word and figure in a bounded two-line layout", () => {
   const text =
     "Year to July 2026. That's the pace of change, not how expensive rents are. The gap is 0.7 percentage points.";

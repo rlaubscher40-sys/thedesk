@@ -6,6 +6,7 @@ import { assertCaptionStyle } from "../instagram/captionStyle";
 import { REEL_CAPTION_LIMIT } from "../instagram/reelCaption";
 import { validateEvidenceVisual } from "./evidenceVisual";
 import { assertReelVisualSequence } from "./reelVisualStandard";
+import { validateDocumentary } from "./documentaryStory";
 
 /** The approved settings are shared by review, admin preview and publication.
  * Auditions may override the low-level renderer, never the publishing wrapper. */
@@ -40,6 +41,8 @@ export function assertProductionCandidate(candidate: ProductionReelCandidate) {
   )
     throw new Error("Reel needs complete, uniquely keyed narration.");
   if (!scriptFitsClip(script, stat)) throw new Error("Reel script exceeds its duration budget.");
+  if (stat.documentary && (stat.visualStory || stat.storyboard))
+    throw new Error("A Reel must have one unambiguous scene recipe.");
   if (stat.storyboard) validateStoryboard(stat.storyboard, script);
   if (stat.visualStory) {
     validateEvidenceVisual(stat.visualStory, script, candidate.evidenceHash);
@@ -49,6 +52,8 @@ export function assertProductionCandidate(candidate: ProductionReelCandidate) {
     );
     if (stat.source !== stat.visualStory.source)
       throw new Error("Visual source attribution changed.");
+  } else if (stat.documentary) {
+    validateDocumentary(stat.documentary, script, candidate.evidenceHash);
   } else if (stat.storyboard?.kind !== "housing-balance") {
     throw new Error("Automatic production requires a reviewed scene recipe.");
   } else

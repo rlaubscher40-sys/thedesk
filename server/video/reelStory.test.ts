@@ -32,3 +32,16 @@ it("rejects missing narration or burned-in subtitles before encoding", async () 
     renderReelStory({ ...video, bytes: Buffer.alloc(0), narrated: true, subtitled: false })
   ).rejects.toThrow("subtitled");
 });
+it("uses complete opening and closing passages for a long documentary, within 35 seconds", () => {
+  const long = {
+    seconds: 120,
+    timeline: ["label", "value", "line", "turn", "mechanism", "stakes", "meaning", "signOff"].map(
+      (key, i) => ({ key, start: i * 15, seconds: 15 })
+    ),
+  };
+  expect(reelStorySegments(long)).toEqual([
+    { start: 0, seconds: 15 },
+    { start: 105, seconds: 15 },
+  ]);
+  expect(() => reelStorySegments({ ...long, seconds: 151 })).toThrow("timeline");
+});

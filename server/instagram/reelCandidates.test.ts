@@ -89,7 +89,7 @@ describe("repeatable automatic editorial selection", () => {
   });
   it("explains every withheld recipe without inventing a story", async () => {
     const programme = await getVerifiedReelProgramme();
-    expect(programme).toHaveLength(8);
+    expect(programme).toHaveLength(12);
     expect(programme.every((p) => !p.candidate && p.requirement.length > 10)).toBe(true);
     expect(await getVerifiedReelCandidates()).toEqual([]);
   });

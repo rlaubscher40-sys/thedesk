@@ -10,9 +10,17 @@ import { verifiedSupplyReel } from "./verifiedSupplyReel";
 import { verifiedCapitalRentReel } from "./verifiedCapitalRentReel";
 import { verifiedSydneyBeforeBuy, verifiedSydneyRentChange } from "./verifiedSydneyReels";
 import { assertProductionCandidate } from "../video/reelProduction";
+import { DOCUMENTARY_EPISODES } from "./documentaryEpisodes";
+import { getDocumentaryProgramme } from "./verifiedDocumentaryReel";
 
 /** Stable identities also retain rotation history when a topic's data is withheld. */
 export const REEL_PUBLICATION_FAMILIES: Readonly<Record<string, string>> = Object.freeze({
+  ...Object.fromEntries(
+    DOCUMENTARY_EPISODES.map((episode) => [
+      `instagram-reel-documentary-${episode.id}-v1`,
+      episode.series === "The Deal" ? "documentary-deal" : "documentary-empires",
+    ])
+  ),
   "instagram-reel-abs-rents-brisbane-perth-v1": "rents",
   "instagram-reel-abs-approvals-brisbane-perth-v1": "supply",
   "instagram-reel-abs-rents-eight-capitals-v1": "rents",
@@ -33,6 +41,7 @@ export async function getVerifiedReelProgramme(now = new Date()) {
     getReelLendingRates(),
   ]);
   return [
+    ...getDocumentaryProgramme(now),
     {
       topic: "Market vs Market · rents",
       family: "rents",
@@ -127,6 +136,8 @@ export function chooseReelCandidate<T extends { publication: { date: string }; f
       .filter(({ index }) => records[index]?.state === "available")
       .sort(
         (a, b) =>
+          Number(b.candidate.family.startsWith("documentary-")) -
+            Number(a.candidate.family.startsWith("documentary-")) ||
           (lastByFamily.get(a.candidate.family) ?? 0) -
             (lastByFamily.get(b.candidate.family) ?? 0) ||
           b.candidate.publication.date.localeCompare(a.candidate.publication.date) ||

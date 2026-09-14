@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createHash } from "node:crypto";
 import { REEL_PHOTO_CATALOGUE } from "./reelPhotoCatalogue";
+import { DOCUMENTARY_PHOTOS } from "../../shared/documentaryPhotos";
 import { loadImage } from "@napi-rs/canvas";
 import * as cards from "../og/instagramCards";
 import {
@@ -25,7 +26,7 @@ describe("mandatory repeatable full-screen visual standard", () => {
       openings.add(sequence.label!);
       expect(new Set(Object.values(sequence).filter(Boolean)).size).toBeGreaterThanOrEqual(2);
     }
-    expect(openings.size).toBe(7);
+    expect(openings.size).toBe(9);
     expect(REEL_VISUAL_SEQUENCES["approval-comparison"]).toMatchObject({
       construction: "building",
       completion: "residential",
@@ -50,7 +51,7 @@ describe("mandatory repeatable full-screen visual standard", () => {
     }
   });
   it("covers every current recipe and rejects incomplete or unknown future sequences", () => {
-    expect(Object.keys(REEL_VISUAL_SEQUENCES)).toHaveLength(8);
+    expect(Object.keys(REEL_VISUAL_SEQUENCES)).toHaveLength(10);
     for (const [recipe, sequence] of Object.entries(REEL_VISUAL_SEQUENCES)) {
       const kind = recipe as keyof typeof REEL_VISUAL_SEQUENCES;
       expect(() => assertReelVisualSequence(kind, Object.keys(sequence))).not.toThrow();
@@ -72,7 +73,16 @@ describe("mandatory repeatable full-screen visual standard", () => {
   it("ships credited assets that cover the canvas for the entire camera move", async () => {
     for (const shot of Object.values(REEL_SHOTS)) {
       const image = await loadImage((await cards.loadAsset(shot.asset))!);
-      expect(shot.credit).toMatch(/illustration|archive/);
+      const documentary = Object.values(DOCUMENTARY_PHOTOS).find((p) => p.asset === shot.asset);
+      if (documentary) {
+        expect(shot.credit).toBe(documentary.credit);
+        expect(shot.credit).toMatch(/\b(?:19|20)\d{2}\b/);
+        expect(shot.credit).toMatch(/public domain|CC BY|CC0/);
+        expect(documentary.source).toMatch(/^https:\/\/commons\.wikimedia\.org\/wiki\/File:/);
+        expect(documentary.licence).toMatch(/^https:\/\//);
+      } else {
+        expect(shot.credit).toMatch(/illustration|archive/);
+      }
       for (const p of [0, 0.5, 1]) {
         const crop = loanPhotoCrop(
           image.width,
@@ -103,7 +113,8 @@ describe("mandatory repeatable full-screen visual standard", () => {
   it("keeps each photographic composition legible within its actual rendered bounds", async () => {
     const template = verifiedInterstateMigration(testMigration(), contextNow)!.stat.visualStory!;
     for (const [recipe, sequence] of Object.entries(REEL_VISUAL_SEQUENCES)) {
-      if (["housing-balance", "new-loan-rates"].includes(recipe)) continue;
+      if (["housing-balance", "new-loan-rates"].includes(recipe) || recipe.endsWith("-documentary"))
+        continue;
       const v = {
         ...template,
         recipe,

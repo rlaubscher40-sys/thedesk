@@ -25,7 +25,7 @@ export function reelStorySegments(video: Pick<Video, "seconds" | "timeline">) {
     scenes[0]?.key !== "label" ||
     scenes.at(-1)?.key !== "signOff" ||
     !Number.isFinite(video.seconds) ||
-    video.seconds > 60 ||
+    video.seconds > 150 ||
     scenes.some(
       (s, i) =>
         !Number.isFinite(s.start) ||
@@ -37,7 +37,9 @@ export function reelStorySegments(video: Pick<Video, "seconds" | "timeline">) {
     )
   )
     throw new Error("Story needs a complete measured Reel timeline.");
-  const first = { start: 0, seconds: scenes[3]!.start };
+  // Long documentaries use the complete hook and takeaway, not a cut sentence
+  // or an overlong attempt to fit the full historical story into a Story.
+  const first = { start: 0, seconds: scenes[video.seconds > 60 ? 1 : 3]!.start };
   const last = scenes.at(-1)!;
   const segments = [first, { start: last.start, seconds: video.seconds - last.start }];
   if (segments.reduce((sum, s) => sum + s.seconds, 0) > 35)

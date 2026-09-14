@@ -1,5 +1,15 @@
 import { testLoanRates, testMigration } from "./fixtures/contextReels";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { DOCUMENTARY_EPISODES } from "./documentaryEpisodes";
+import { documentaryReviewHash, sealDocumentary } from "../video/documentaryStory";
+const documentaryReviews = vi.hoisted(
+  () =>
+    ({}) as Record<
+      string,
+      { hash: string; seconds: number; videoSha256: string; reviewedAt: string }
+    >
+);
+vi.mock("./documentaryReviews", () => ({ DOCUMENTARY_REVIEWS: documentaryReviews }));
 const m = vi.hoisted(() => ({
   env: {
     enableScheduler: true,
@@ -42,6 +52,7 @@ const now = new Date("2026-09-09T08:30:00Z"); // Wednesday 6:30pm Sydney.
 const publicationKey = "instagram-reel-abs-rents-brisbane-perth-v1";
 let published = false;
 beforeEach(() => {
+  for (const key of Object.keys(documentaryReviews)) delete documentaryReviews[key];
   vi.resetAllMocks();
   m.history.mockResolvedValue([]);
   published = false;
@@ -513,5 +524,57 @@ describe("new family permanent publication records", () => {
     expect((await readReelAutomation(date)).state).toBe("published");
     expect(m.post).not.toHaveBeenCalled();
     expect(m.claim).not.toHaveBeenCalled();
+  });
+});
+
+describe("documentary slots share the existing publication safeguards", () => {
+  function reviewedPilot() {
+    for (const episode of DOCUMENTARY_EPISODES)
+      documentaryReviews[episode.id] = {
+        hash: documentaryReviewHash(sealDocumentary(episode)),
+        seconds: episode.series === "The Deal" ? 75 : 110,
+        videoSha256: "a".repeat(64),
+        reviewedAt: "2026-09-14",
+      };
+  }
+  it("gives Wednesday's reviewed episode priority over eligible data, inside the same window", async () => {
+    reviewedPilot();
+    const date = new Date("2026-09-16T08:30:00Z");
+    expect((await readReelAutomation(date)).candidate?.family).toBe("documentary-deal");
+    expect((await readReelAutomation(new Date("2026-09-16T08:29:00Z"))).state).toBe("scheduled");
+    expect((await readReelAutomation(date)).state).toBe("ready");
+    expect((await readReelAutomation(new Date("2026-09-17T08:30:00Z"))).candidate?.family).toBe(
+      "rents"
+    );
+  });
+  it("uses data when the documentary buffer is not reviewed", async () => {
+    expect((await readReelAutomation(new Date("2026-09-16T08:30:00Z"))).candidate?.family).toBe(
+      "rents"
+    );
+  });
+  it("a data Reel already published today blocks the documentary too", async () => {
+    reviewedPilot();
+    const date = new Date("2026-09-16T08:30:00Z");
+    m.history.mockResolvedValue([
+      { key: publicationKey, date: "2026-07-01", postId: "9999", publishedAt: date },
+    ]);
+    expect((await readReelAutomation(date)).state).toBe("daily-limit");
+    expect(m.post).not.toHaveBeenCalled();
+  });
+  it("retains an uncertain documentary lock after its slot expires and its review is absent", async () => {
+    const key = "instagram-reel-documentary-grollo-ownership-v1";
+    m.read.mockImplementation(async (jobKey: string) =>
+      jobKey === key
+        ? {
+            status: "failed",
+            detail: "Outcome unknown; inspect Meta before retrying.",
+          }
+        : null
+    );
+    const plan = await readReelAutomation(new Date("2026-09-17T08:30:00Z"));
+    expect(plan.state).toBe("locked");
+    expect(plan.candidate?.publication.key).toBe(key);
+    expect(m.post).not.toHaveBeenCalled();
+    expect(m.expire).not.toHaveBeenCalled();
   });
 });

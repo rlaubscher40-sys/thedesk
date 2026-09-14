@@ -73,7 +73,8 @@ export function captionChunks(text: string, lineChars = LINE_CHARS): string[][] 
 export function subtitleCues(
   script: ScriptLine[],
   passages: Array<{ key: string; start: number; seconds: number }>,
-  lineChars = LINE_CHARS
+  lineChars = LINE_CHARS,
+  format: "standard" | "documentary" = "standard"
 ): SubtitleCue[] {
   if (!script.length || new Set(script.map((l) => l.key)).size !== script.length)
     throw new Error("Subtitle script keys are missing or duplicated.");
@@ -100,7 +101,9 @@ export function subtitleCues(
       cues.push({ start, end: p.start + (p.seconds * used) / total, lines });
     }
   }
-  if (cues.length > 48) throw new Error("Too many subtitle cues.");
+  // Longer biographies retain the same two-line layout and reading-time checks.
+  if (cues.length > (format === "documentary" ? 96 : 48))
+    throw new Error("Too many subtitle cues.");
   for (let i = 0; i < cues.length; i++) {
     const cue = cues[i]!,
       next = cues[i + 1];
