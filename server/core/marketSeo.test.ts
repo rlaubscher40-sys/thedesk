@@ -12,7 +12,7 @@ const shell =
 const directory = buildMarketDirectory(
   [1, 2, 3].map((id) => ({
     id,
-    title: `Perth report ${id} <script>alert("x")</script>`,
+    title: `Perth housing report ${id}`,
     summary: "Perth housing evidence.",
     source: `Publisher ${id}`,
     sourceUrl: `https://source-${id}.test/report`,
@@ -36,7 +36,22 @@ describe("public market HTML and cards", () => {
     expect(html).not.toContain('name="robots"');
   });
   it("escapes text in body, metadata and JSON-LD and keeps one canonical", () => {
-    const html = marketShell(shell, file, directory, "https://thedesk.au");
+    // Test the renderer independently of admission, which now rejects script
+    // debris. Escaping remains mandatory even if upstream validation is bypassed.
+    const unsafeFile = {
+      ...file,
+      references: file.references.map((reference) => ({
+        ...reference,
+        title: `${reference.title} <script>alert("x")</script>`,
+      })),
+    };
+    const unsafeDirectory = {
+      ...directory,
+      markets: directory.markets.map((market) =>
+        market.market.slug === "perth" ? unsafeFile : market
+      ),
+    };
+    const html = marketShell(shell, unsafeFile, unsafeDirectory, "https://thedesk.au");
     expect(html).not.toContain('<script>alert("x")</script>');
     expect(html).toContain("&lt;script&gt;");
     expect(html).toContain("\\u003cscript>");

@@ -39,6 +39,9 @@ describe("evidence source hygiene", () => {
       "x".repeat(21000),
     ])
       expect(evidenceText({ ...item, summary }).summary).toBe("");
+    expect(
+      evidenceEligible({ ...item, title: 'Perth report <script>alert("x")</script>' }, "2026-09-14")
+    ).toBe(false);
   });
   it("holds commercial event calls, not genuine housing news mentioning hotels or awards", () => {
     for (const title of [
