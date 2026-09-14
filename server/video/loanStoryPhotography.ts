@@ -4,16 +4,32 @@ import { smooth } from "./reelMotion";
 export const LOAN_SHOTS = {
   bank: {
     asset: "bank-etienne-martin.jpg",
+    source: "https://unsplash.com/photos/grey-concrete-building-2_K82gx9Uk8",
+    licence: "https://unsplash.com/license",
+    reviewed: "2026-09-11",
+    sha256: "c5c3813b3ea7e3ece390a0a03e40ef669f7b4e2236af2ea1de6efb33b3b9c01e",
+    purpose: "Montr\u00e9al bank illustration, not an Australian lender or endorsement.",
     credit: "Bank illustration / Montréal / Etienne Martin / Unsplash",
     focus: 0.42,
   },
   money: {
     asset: "australian-money-pixabay.jpg",
+    source: "https://www.pexels.com/video/australian-money-855198/",
+    licence: "https://www.pexels.com/video/australian-money-855198/",
+    reviewed: "2026-09-11",
+    sha256: "f3d46ebc5355cb5e49569d56dbcf7bec1197e5212df209e8eb852402a5b2ec62",
+    purpose: "Still extracted at four seconds; source identified CC0 at original review.",
     credit: "Australian money illustration / Pixabay / Pexels",
     focus: 0.3,
   },
   home: {
     asset: "architecture-phillip-flores.jpg",
+    source: "https://unsplash.com/photos/mikcmWSjlMw/download?force=true",
+    licence: "https://unsplash.com/license",
+    reviewed: "2026-09-10",
+    sha256: "86d3c4c6aefdc95ee191151f09eabbfe1f6901586302c5d47c96ea87ff2ddfc0",
+    purpose:
+      "Architecture illustration only; original review used gallery/download evidence, not individual metadata.",
     credit: "Architecture illustration / Phillip Flores / Unsplash",
     focus: 0.72,
   },
