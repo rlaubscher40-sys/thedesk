@@ -350,10 +350,10 @@ export const DOCUMENTARY_EPISODES: DocumentaryEpisode[] = [
         headline: "The man who built Meriton.",
         detail: "A person before a property empire",
         phrases: [
-          "This is Harry Triguboff, the founder of Meriton. His story starts decades before the towers.",
+          "This is Harry Triguboff. He built Meriton. But the road to the towers ran through a thirty million Australian dollar debt crisis.",
           "Born in Dalian to Russian Jewish parents, he grew up in Tianjin. In nineteen forty-eight, Harry and his brother came to Sydney.",
         ],
-        sources: ["triguboffInterview", "meritonFounder"],
+        sources: ["triguboffInterview", "meritonFounder", "triguboffHome"],
       },
       {
         key: "value",
@@ -361,7 +361,7 @@ export const DOCUMENTARY_EPISODES: DocumentaryEpisode[] = [
         headline: "Textiles. Taxis. Then apartments.",
         detail: "Early work / Roseville / Tempe",
         phrases: [
-          "Textiles took him to Leeds, Israel and South Africa. Back in Australia came taxis, a milk round, and finishing his Roseville home after problems with the builder.",
+          "Textiles took him to Leeds, Israel and South Africa. Back in Australia: taxis. A milk round. Then problems with his Roseville builder. Harry took over and finished the house.",
           "Then, in nineteen sixty-three, land in Tempe cost the equivalent of six thousand eight hundred Australian dollars. Eight flats sold within eight months for fifty-one thousand Australian dollars, before building and other costs.",
         ],
         sources: [
@@ -380,7 +380,7 @@ export const DOCUMENTARY_EPISODES: DocumentaryEpisode[] = [
           "Eighteen apartments followed on Meriton Street in Gladesville. The street gave the company its name. Harry shifted from selling whole blocks to individual apartments.",
           "Meriton floated in nineteen sixty-nine. Four years later, Harry bought it back. Then the property market crashed.",
         ],
-        sources: ["meritonTempe", "triguboffSpeech", "triguboffHome"],
+        sources: ["meritonTempe", "triguboffSpeech", "triguboffHome", "triguboffInterview"],
       },
       {
         key: "turn",
@@ -388,7 +388,7 @@ export const DOCUMENTARY_EPISODES: DocumentaryEpisode[] = [
         headline: "The debt. Then a new market.",
         detail: "1974\u201376 / Queensland in the 1980s",
         phrases: [
-          "Domain reports thirty million Australian dollars of debt in the nineteen seventy-four and seventy-five downturn, repaid by nineteen seventy-six. Harry also held apartments for rent.",
+          "The business had grown. Now it had to survive. Domain reports thirty million Australian dollars of debt in the nineteen seventy-four and seventy-five downturn. Repaid by nineteen seventy-six. Harry also held apartments for rent.",
           "By the nineteen eighties, Meriton was building on the Gold Coast. Florida and The Nelson came before Xanadu in the late nineteen nineties. The business had crossed state lines.",
         ],
         sources: ["triguboffHome", "triguboffInterview", "meritonQueensland"],
@@ -433,7 +433,7 @@ export const DOCUMENTARY_EPISODES: DocumentaryEpisode[] = [
         detail: "FY2020 rents / cumulative construction checked September 2026",
         phrases: [
           "For the twenty-twenty financial year, reported group rents were four hundred and forty-seven million Australian dollars. Rental income, not profit.",
-          "Meriton now reports over eighty thousand apartments built. The story is how Harry changed the business behind them: how he built, sold, financed, and earned from what he kept.",
+          "Eight flats became over eighty thousand apartments built, according to Meriton. Harry changed more than the skyline. He changed how he sold, financed, managed, and earned from the apartments he kept.",
         ],
         sources: ["meritonFY2020", "meritonFounder", "triguboffSpeech"],
       },

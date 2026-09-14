@@ -8,7 +8,6 @@ Only this revised film is currently approved. The other three historical records
 
 The earlier rollout push was rejected by automatic approval review because it could not verify permission for the specific GitHub destination. The user subsequently answered yes to explicitly authorising these changes to `https://github.com/rlaubscher40-sys/thedesk`, followed by merge and deployment after CI passes. That destination approval is resolved. Local type checking, dead-code audit and client/server production bundles passed, alongside 73 affected tests. The broader tests exposed an obsolete credit-wording assertion; documentary credits now check their recorded date, licence and Commons provenance, with the existing illustration/archive check retained for other photographs. This test-only correction does not change the approved video fingerprint.
 
-
 ## Research-led implementation, 14 September 2026
 
 The revised Triguboff film implements the completed 18-source research report. Its 408-word narration retains the person-first opening and restores the middle: individual apartment sales, the float and buyback, the 1974–76 debt episode, Queensland expansion, formal finance and property-management divisions, Regis, World Tower's staged occupation, hospitality, the GFC acquisition and the later return to borrowing.
@@ -107,3 +106,16 @@ Reviewed 14 September 2026: Grollo ownership 63.9 seconds; Grollo family 91.9 se
 Type checking, the production build, unused-code/dependency checks and 94 focused tests passed. The full local test suite was attempted but did not complete and was stopped. CI is still required before merge. The change was rebased onto main at `35297c2`, retaining the newer automatic first-comment workflow.
 
 An earlier automatic approval review rejected the GitHub branch push because the repository destination lacked explicit user approval at that point. The user subsequently authorised the destination, then requested creative revisions; rollout remains paused for those revisions. No Reel or Story was posted, and there is no deployment or Instagram publication receipt for this pilot.
+
+## Cinematic revision, 14 September 2026
+
+The new Harry preview has 41 authored visual sections within the 16 measured phrases. It opens on Harry and the reported debt crisis, develops the full business progression, and returns to the original eight-flat motif before the company-reported built total. New licensed archive images show Tianjin in 1930, World Tower in 2014 and Meriton construction in Parramatta in 2015. These are dated context images; original apartment and building diagrams remain explicitly illustrative.
+
+`documentaryDirection.ts` defines cuts within sample-measured phrase durations. `documentarySoundtrack.ts` supplies an original deterministic stereo score and soft transition taps. Music ducks under the existing Fable narration at speed 1.0. There are no external music samples or paid services. Renderer version 7 binds the direction and sound configuration to the review hash. The public source page includes the new credits and supplying Kyoto University Library archive link.
+
+The export is 169.7 seconds, H.264 1080 × 1920 at 30 fps with stereo AAC at 48 kHz. All 41 visual sections plus the opening and final frame were inspected from the encoded MP4. The full narration is present. Audio measured -17.54 LUFS and -4.07 dBTP; these are technical measurements, not human listening approval. Type checking, the frontend build and focused tests passed.
+
+Input hash: `101e731ba1207265635c280825d8e5b82121377558a04e147a9f5bdeca03dd88`.
+Video SHA-256: `15a53cce4a4bc1343e21e190b576df686abf382d740238fc798edec6b5c3c266`.
+
+This is a new creative preview. Historical review records do not approve this export, and the four-film publication gate remains closed.

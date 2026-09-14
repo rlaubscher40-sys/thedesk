@@ -6,6 +6,7 @@ import { REEL_SHOTS, REEL_VISUAL_SEQUENCES, assertReelVisualSequence } from "./r
 import { DEFAULT_SPEECH_PROFILE } from "./localVoice";
 import { REEL_SAFE_AREAS } from "./reelSafeAreas";
 import { PERSON_DOCUMENTARY_ASSETS } from "./personDocumentaryRenderer";
+import { DOCUMENTARY_DIRECTION } from "./documentaryDirection";
 
 export type DocumentaryStory = DocumentaryEpisode & {
   version: 1;
@@ -87,7 +88,8 @@ export function documentaryReviewHash(story: DocumentaryStory) {
   const sequence = REEL_VISUAL_SEQUENCES[story.recipe];
   return digest({
     story,
-    rendererVersion: 6,
+    rendererVersion: 7,
+    direction: story.treatment ? DOCUMENTARY_DIRECTION : null,
     financialFacts: story.treatment ? TRIGUBOFF_FINANCIAL_FACTS : null,
     personAssets: story.treatment ? PERSON_DOCUMENTARY_ASSETS : null,
     voice: DEFAULT_SPEECH_PROFILE,

@@ -1,5 +1,5 @@
-/** Exact voiced export records. Only the revised Triguboff cut is currently approved.
- * Historical records remain invalidated; the four-film launch gate stays closed.
+/** Historical exact-export reviews. The new cinematic Triguboff cut still needs review.
+ * Changed render inputs invalidate these records; the four-film launch gate stays closed.
  * A changed hash withholds publication.
  * See docs/documentary-reel-programme.md for the review workflow and source notes. */
 export const DOCUMENTARY_REVIEWS: Readonly<
