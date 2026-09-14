@@ -8,7 +8,7 @@ Prepared 14 September 2026. Implementation and legal-review handover, not a lega
 - Privacy copy reflecting newsletter attribution, account/bookmark data, AI questions, public share links, browser storage and service providers. Unsupported promises of absolute anonymity, no sharing and universal 30-day deletion are removed.
 - Reuse wording distinguishes original Desk content from third-party assets. Consumer rights are expressly preserved, and an automatic acceptance-by-continuing clause is removed. These pages are draft changes pending review and legal-operator confirmation.
 - Every SubscribeBand shows the same newsletter scope and privacy link. The form sends the current notice version; the server accepts only the recognised version or absence for older clients.
-- Nullable `consentNoticeVersion` and `consentRequestedAt` preserve the latest request's wording and time after confirmation. Existing `confirmedAt`, `unsubscribedAt` and `source` describe status and placement. Existing records are not backfilled. A new request never restores an unsubscribe without inbox confirmation. These are current subscription records, not a complete immutable history of every past consent event.
+- Nullable `consentNoticeVersion` and `consentRequestedAt` preserve the latest request's wording and time after confirmation. Existing `confirmedAt`, `unsubscribedAt` and `source` describe status and placement. Existing records are not backfilled. A new request never restores an unsubscribe without inbox confirmation. A new append-only application event table also records requests, confirmations and unsubscribes from deployment onward, transactionally with state changes. No historical events are invented. Database administrators can still alter records.
 - Confirmation emails repeat the scope. Replies are addressed to the contact already published by the site, `ruben@thedesk.au`. Mailbox delivery/monitoring was not independently tested.
 - Ask displays an AI collection notice. Generation and independent review instructions reject personal suitability assessments and recommendations involving financial products, specific loans or SMSF establishment/switching. Prompt instructions reduce risk; they are not a licensing determination or guaranteed enforcement.
 - All 17 bundled Reel photo records now contain individual source/download evidence, licence reference, credit, purpose, review date and SHA-256. Records reconstructed from earlier documented reviews retain those original dates. Some use gallery-linked individual download evidence because metadata was unavailable; that limitation remains visible.
@@ -22,17 +22,17 @@ Prepared 14 September 2026. Implementation and legal-review handover, not a lega
 | Now | Legal operator and ownership | No verified company name, ABN/ACN or ownership agreement found. Confirm whether Ruben personally or an existing company operates The Desk. Do not invent an entity or register a new company before checking this. |
 | Now | Existing MIT declaration | `package.json` says MIT and `private: true`. There is no root licence text. Private npm metadata does not determine GitHub visibility or revoke licences. Audit origin, contributors, previous distributions and valid grants before deciding future licensing. This change leaves the declaration intact. |
 | Now | Employment overlap | Privately review Search Property employment/contractor terms and any outside-business permission. Obtain an express exclusion for The Desk if needed. Do not put employment contracts or private commercial arrangements in a public repository. |
-| Now | Trade mark clearance | Search exact/similar names and logos in Australia, including unregistered market use. Assess distinctiveness and service specifications for publishing, property information and software. Name availability and domain ownership are not clearance. No search of the trade mark register or application has been completed. |
-| Now | Source permissions | Six publisher-level policies have been read in `source-policy-reviews.json`; item-level permission remains unassessed. Check each underlying publisher for automated access, excerpt use, AI processing, storage and redistribution. Google discovery is not the publisher. Record terms URL, dated evidence, scope, restrictions, reviewer and next review trigger. |
+| Now | Trade mark clearance | Search exact/similar names and logos in Australia, including unregistered market use. Assess distinctiveness and service specifications for publishing, property information and software. Name availability and domain ownership are not clearance. An initial exact-phrase and broader register search is recorded in `trademark-preliminary-search.md`; comprehensive clearance and filing remain outstanding. |
+| Now | Source permissions | Seven publisher-level policies have been read in `source-policy-reviews.json`; item-level permission remains unassessed. Check each underlying publisher for automated access, excerpt use, AI processing, storage and redistribution. Google discovery is not the publisher. Record terms URL, dated evidence, scope, restrictions, reviewer and next review trigger. |
 | Before legal pages go live | Identity and processor review | Confirm operator, ABN where applicable, actual host/database suppliers and regions, provider retention/training settings, real mailbox monitoring and complaint process. The source code identifies integrations but does not prove production configuration. |
 | Before licensing or sale | IP chain of title | Signed founder/contributor assignments, background IP schedule, open-source obligations, permitted moral-rights consents, and evidence of company control of domains/accounts. |
 | Before paid/referral features | Commercial terms and advice scope | Review actual features and promotions, including credit, SMSF, financial-product and referral arrangements. No AFSL/credit authorisation is established by a disclaimer. Set pricing, cancellation and refund terms before selling. |
-| Publishing operations | Sensitive claims and corrections | Define review ownership for serious allegations, court restrictions, privacy and contentious living-person claims. Existing evidence filters and documentary export review are not a general defamation review. A new cross-channel human review queue/kill switch is not implemented by this change. |
+| Publishing operations | Sensitive claims and corrections | Define review ownership for serious allegations, court restrictions, privacy and contentious living-person claims. Existing evidence filters and documentary export review are not a general defamation review. Admin publishing controls, a feed review queue and a website story hold are now implemented. See `operations-runbook.md` for coverage limits, cached/external copies and incident handling. |
 | Risk transfer | Insurance | Ask a broker about media liability, professional indemnity and cyber insurance that expressly accommodates AI-assisted publishing, copyright and defamation allegations. No insurance has been purchased. |
 
 ## Initial publisher-policy findings
 
-The RBA, ABS, APRA and NSW website policies provide useful conditional reuse routes, with important exclusions. ABC and Guardian policy reviews need priority before assuming commercial reuse rights. See the six dated primary-source records in `source-policy-reviews.json`. They do not grant permission or automatically change collection. An assessment of historical usage and any existing permissions is still required.
+The RBA, ABS, APRA and NSW website policies provide useful conditional reuse routes, with important exclusions. ABC and Guardian policy reviews need priority before assuming commercial reuse rights. See the seven dated primary-source records in `source-policy-reviews.json`. They do not grant permission. ABC and Guardian article extraction is now held pending review, including resolved publisher links and article-fetch redirects. An assessment of historical usage and any existing permissions is still required.
 
 ## Asset and data coverage limits
 
@@ -46,7 +46,7 @@ The two nullable columns appear in both `drizzle/0029_subscriber_consent_notice.
 
 Use local or test-only mail credentials for tests. Do not bulk email existing subscribers as part of this change. For a real smoke test, use an address explicitly authorised for that purpose: request subscription, inspect notice, confirm, unsubscribe, request again, and verify suppression remains until reconfirmation. This task does not send a real email.
 
-Read `owner-and-lawyer-brief.md` for the decision pack. Regenerate `rights-register.json` when sources, assets or dependencies change. Preserve dated permission evidence in a private rights archive, not merely mutable links.
+Read `owner-and-lawyer-brief.md` and `commercial-and-ownership-pack.md` for the decision pack, and `operations-runbook.md` for publishing/privacy controls and their limits. Regenerate `rights-register.json` when sources, assets or dependencies change. Preserve dated permission evidence in a private rights archive, not merely mutable links.
 
 ## Sources consulted
 
@@ -62,3 +62,13 @@ Read `owner-and-lawyer-brief.md` for the decision pack. Regenerate `rights-regis
 - [Pexels: licence](https://www.pexels.com/license/)
 
 These sources support the general framework. The Desk's actual obligations require assessment of its circumstances and operations.
+
+## Additional operational safeguards
+
+- Durable per-channel and all-publishing pauses with revision checks and audit events.
+- Sensitive-story triage before new feed publication; held enrichment work waits for review, with 30-day input expiry.
+- Admin website story holds, decision history and content-change checks.
+- Frozen daily email batches recheck that their stories remain public.
+- Privacy-request inventory and bounded cleanup of expired tokens and finished email payloads.
+- Public complaint guidance without an unverified response-time guarantee.
+- New schema is supplied by the established catch-up mechanism; verify all five new tables before deployment.
