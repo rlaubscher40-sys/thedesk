@@ -5,6 +5,38 @@ type Field = "title" | "summary" | "partnerTag" | "sayThis" | "whyItMatters" | "
 type Correction = { field: Field; before: string; after: string | null };
 const records: Array<{ sourceUrl: string; feedDate: string; changes: Correction[] }> = [
   {
+    sourceUrl: "https://www.ausbanking.org.au/preparing-for-the-removal-of-card-surcharging/",
+    feedDate: "2026-09-14",
+    changes: [
+      {
+        field: "whyItMatters",
+        before: "Businesses absorbing an estimated $660 million in annual surcharge revenue will face margin pressure from 1 October 2026, with lower interchange caps partially offsetting the cost.",
+        after: "The ABA says lower payment costs are expected to help offset the removal of card surcharges by an estimated $660 million a year. That figure describes payment-cost savings, not lost surcharge revenue.",
+      },
+      {
+        field: "sayThis",
+        before: "From 1 October 2026, the price on the tag is the price you pay at the register, full stop.",
+        after: "The ABA is reminding businesses to remove surcharges on eftpos, Visa and Mastercard payments from 1 October 2026. This is an implementation reminder, not a newly announced ban.",
+      },
+    ],
+  },
+  {
+    sourceUrl: "https://www.nationaltribune.com.au/wa-housing-and-rental-affordability-at-record-lows/",
+    feedDate: "2026-09-14",
+    changes: [
+      {
+        field: "whyItMatters",
+        before: "Investor lending fell 5.1 per cent in the June 2026 quarter after federal tax changes, and rental supply is barely back to its February 2021 peak while Perth's population has grown 12 per cent since then.",
+        after: "REIWA reports that WA families needed 47.5 per cent of income for mortgage repayments and 25.0 per cent for median rent in the June 2026 quarter. These are quarterly affordability measures, not September price changes.",
+      },
+      {
+        field: "sayThis",
+        before: "WA borrowers now need 47.5 per cent of family income to cover mortgage repayments, a record high and the steepest single-quarter drop in affordability of any state.",
+        after: "WA's mortgage-repayment share reached a record 47.5 per cent of family income in the June 2026 quarter, up 1.6 percentage points. REIWA says WA had the largest affordability decline among states and territories in that quarter.",
+      },
+    ],
+  },
+  {
     sourceUrl:
       "https://www.abc.net.au/news/2026-09-14/asx-markets-business-live-news-september-14/107148618",
     feedDate: "2026-09-14",

@@ -1,4 +1,5 @@
 import { assessStory, editorialReportSchema } from "../shared/editorial";
+import { editorialDecisionLog } from "../shared/editorialDecisionLog";
 import {
   recentEditorialCandidates,
   recentEditorialStories,
@@ -184,6 +185,10 @@ function registerDailyFeedRoute(app: Express): void {
       decision: assessStory(item, new Date(), item.feedDate),
     }));
     const heldForQuality = assessed.filter((row) => !row.decision.eligible).length;
+    const qualityHolds = assessed.filter((row) => !row.decision.eligible);
+    for (let start = 0; start < qualityHolds.length; start += 25) {
+      console.log(`[daily-feed-quality-holds] ${JSON.stringify(qualityHolds.slice(start, start + 25).map(({ item, decision }) => editorialDecisionLog({ sourceUrl: item.sourceUrl, reason: decision.reason })))}`);
+    }
     const items = assessed
       .filter((row) => row.decision.eligible)
       .map(({ item, decision }) => {

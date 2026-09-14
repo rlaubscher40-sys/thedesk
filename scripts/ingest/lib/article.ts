@@ -55,8 +55,10 @@ export function extractArticleText(
 ): string | null {
   let contentClass: string | undefined;
   try {
-    if (new URL(sourceUrl ?? "").hostname === "faaa.au")
+    const host = new URL(sourceUrl ?? "").hostname.replace(/^www\./, "");
+    if (host === "faaa.au")
       contentClass = "elementor-widget-theme-post-content";
+    if (host === "ausbanking.org.au") contentClass = "with-share";
   } catch {
     /* Generic semantic extraction. */
   }

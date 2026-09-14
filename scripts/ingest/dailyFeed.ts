@@ -3,10 +3,16 @@ import { buildDailyBrief, briefingSummary } from "./lib/editorialPipeline";
 import { postJSON } from "./lib/post";
 import type { FetchedItem } from "./lib/rss";
 import type { EvidenceStory } from "../../shared/storyEvidenceDuplicate";
-import { DAILY_ITEM_MIN } from "./sources";
+import { DAILY_ITEM_MIN, type Source } from "./sources";
 import { sydneySocialClock } from "../../shared/instagramSchedule";
+import { editorialDecisionLog } from "../../shared/editorialDecisionLog";
 
-export async function runDailyFeedIngest(rawBaseUrl: string, apiKey: string): Promise<void> {
+export async function runDailyFeedIngest(
+  rawBaseUrl: string,
+  apiKey: string,
+  recovery?: { sources: Source[] }
+): Promise<void> {
+  if (recovery && !recovery.sources.length) throw new Error("Recovery requires a configured source");
   const baseUrl = rawBaseUrl.replace(/\/+$/, "");
   let extras: FetchedItem[] = [];
   let recentUrls: string[] = [];
@@ -25,7 +31,10 @@ export async function runDailyFeedIngest(rawBaseUrl: string, apiKey: string): Pr
     poolError = "Evidence pool unavailable; direct discovery continued";
   }
   const { items, report } = await buildDailyBrief({
-    extraCandidates: extras,
+    // A scoped recovery still checks stored URLs and original-text duplicates,
+    // but does not open another broad publication run through the evidence pool.
+    ...(recovery ? { sources: recovery.sources } : {}),
+    extraCandidates: recovery ? [] : extras,
     recentUrls,
     recentStories,
   });
@@ -77,6 +86,11 @@ export async function runDailyFeedIngest(rawBaseUrl: string, apiKey: string): Pr
     throw error;
   } finally {
     report.finishedAt = new Date().toISOString();
+    // This is the existing bounded decision sample, not proof of undiscovered
+    // candidates. Include unread sampled holds as well as read/selected rows.
+    for (let start = 0; start < report.decisions.length; start += 25) {
+      console.log(`[editorial-decisions] ${JSON.stringify({ runId: report.runId, sampled: true, rows: report.decisions.slice(start, start + 25).map(editorialDecisionLog) })}`);
+    }
     console.log(
       `[editorial-outcomes] ${JSON.stringify({ runId: report.runId, status: report.status, decisionCount: report.decisionCount, outcomes: report.outcomes, failedSources: report.sources.filter((s) => s.error).map((s) => ({ name: s.name, error: s.error })), articleFailures: report.decisions.filter((d) => /^article-(?:http-|cooldown-http-|timeout|fetch-failed|unsupported-content-type|empty-response)/.test(d.reason)).map((d) => ({ source: d.source, reason: d.reason })) })}`
     );

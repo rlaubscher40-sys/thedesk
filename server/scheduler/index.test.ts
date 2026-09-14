@@ -1,6 +1,7 @@
 import { INSTAGRAM_FEED_SLOTS } from "../../shared/instagramSchedule";
 import { describe, expect, it } from "vitest";
 import {
+  MORTGAGE_COVERAGE_RECOVERY_JOB,
   EVIDENCE_JOBS,
   FEED_UPDATE_JOBS,
   METRIC_RECOVERY_JOBS,
@@ -15,6 +16,15 @@ const baseClock = (over: Partial<SchedulerClock> = {}): SchedulerClock => ({
   dow: 4, // Thursday
   dom: 4,
   ...over,
+});
+
+it("bounds the reviewed mortgage recovery to one durable claim", () => {
+  expect(MORTGAGE_COVERAGE_RECOVERY_JOB).toMatchObject({
+    key: "mortgage-coverage-september-14-recovery",
+    claimDate: "2026-09-14",
+    maxAttempts: 1,
+  });
+  expect(isJobDue(MORTGAGE_COVERAGE_RECOVERY_JOB, baseClock({ dateISO: "2026-09-14", minutes: 1439 }))).toBe(true);
 });
 
 it("allows missing-data recovery after an evening deployment without reopening publication windows", () => {

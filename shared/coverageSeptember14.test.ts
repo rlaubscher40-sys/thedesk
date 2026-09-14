@@ -9,6 +9,19 @@ import { relatedCoverageParent } from "./relatedCoverage";
 import { cleanHeadline } from "./headline";
 import { storySignificance } from "./editorialSignificance";
 
+it("does not relabel estimated payment-cost savings as surcharge revenue", () => {
+  const source = { title: "Card surcharge implementation", articleText: "Businesses will benefit from lower payment costs, helping offset the loss of card surcharges by an estimated $660 million per year." };
+  expect(checkClaimEvidence("Businesses lose $660 million in annual surcharge revenue.", source)).toContain("figure-scope");
+  expect(checkClaimEvidence("Estimated payment-cost savings of $660 million a year help offset lost surcharge revenue.", source)).not.toContain("figure-scope");
+});
+it("corrects only the exact audited surcharge wording and preserves editor changes", () => {
+  const row = { sourceUrl: "https://www.ausbanking.org.au/preparing-for-the-removal-of-card-surcharging/", feedDate: "2026-09-14", sayThis: "From 1 October 2026, the price on the tag is the price you pay at the register, full stop." };
+  const corrections = auditedRecordCorrections(row);
+  expect(corrections[0]?.after).toContain("eftpos, Visa and Mastercard");
+  expect(auditedRecordCorrections({ ...row, sayThis: corrections[0]?.after })).toEqual([]);
+  expect(auditedRecordCorrections({ ...row, sayThis: "Editor's wording" })).toEqual([]);
+});
+
 it("ranks a record affordability release as data, not routine industry news", () => {
   expect(storySignificance("WA housing and rental affordability at record lows").reason).toBe("market-data-development");
   expect(storySignificance("WA housing affordability could reach record lows").reason).toBe("analysis-or-proposal");

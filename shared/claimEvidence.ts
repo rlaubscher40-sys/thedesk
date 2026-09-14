@@ -107,7 +107,17 @@ export function checkClaimEvidence(
       .filter((s) => /APRA.*supervises institutions holding.*assets/i.test(s))
       .flatMap((s) => [...figures(s)].filter((n) => n.startsWith("$:")))
   );
+  const paymentSavings = new Set(
+    sourceSentences
+      .filter((s) => /\b(?:lower|reduced) payment costs\b/i.test(s))
+      .flatMap((s) => [...figures(s)].filter((n) => n.startsWith("$:")))
+  );
   for (const sentence of sentences(copy)) {
+    if (
+      /\bsurcharge (?:revenue|income)\b/i.test(sentence) &&
+      !/\b(?:savings?|lower payment costs|reduced payment costs)\b/i.test(sentence) &&
+      [...figures(sentence)].some((n) => paymentSavings.has(n))
+    ) issues.add("figure-scope");
     if (
       housingPeriod(sentence) &&
       years(sentence).some(
