@@ -562,6 +562,9 @@ export function createSubscriber(data: InsertSubscriber): Subscriber {
       existing.confirmToken = data.confirmToken;
       existing.confirmTokenSentAt = new Date();
       existing.confirmedAt = null;
+      existing.consentNoticeVersion = data.consentNoticeVersion ?? null;
+      existing.consentRequestedAt = new Date();
+      existing.source = data.source ?? null;
     }
     return existing;
   }
@@ -571,6 +574,8 @@ export function createSubscriber(data: InsertSubscriber): Subscriber {
     name: data.name ?? null,
     confirmToken: data.confirmToken ?? null,
     confirmTokenSentAt: data.confirmTokenSentAt ?? new Date(),
+    consentNoticeVersion: data.consentNoticeVersion ?? null,
+    consentRequestedAt: new Date(),
     confirmedAt: data.confirmedAt ?? null,
     unsubscribedAt: null,
     arrivalSource: data.arrivalSource ?? null,
