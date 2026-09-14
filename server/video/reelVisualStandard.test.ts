@@ -44,7 +44,9 @@ describe("mandatory repeatable full-screen visual standard", () => {
       expect(dataUrl).toMatch(/^data:image\/jpeg;base64,/);
       const bytes = Buffer.from(dataUrl!.split(",")[1]!, "base64");
       expect(createHash("sha256").update(bytes).digest("hex")).toBe(shot.sha256);
-      expect(shot.source).toMatch(/^https:\/\/(unsplash\.com|www\.pexels\.com)\//);
+      // A recorded individual CDN download is provenance; a generic search is not.
+      expect(shot.source).toMatch(/^https:\/\/(unsplash\.com|(?:www|images)\.pexels\.com)\//);
+      expect(shot.source).not.toMatch(/\/(?:search|s\/photos)\//);
       expect(shot.licence).toMatch(/^https:\/\/(unsplash\.com|www\.pexels\.com)\/license\/?$/);
       expect(shot.purpose).toContain("not");
       expect(shot.reviewed).toBe("2026-09-12");
