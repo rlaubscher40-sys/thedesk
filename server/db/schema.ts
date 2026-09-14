@@ -201,6 +201,10 @@ export const subscribers = mysqlTable("subscribers", {
   /** When the current confirmToken was issued. Used to expire the confirm
    *  link after CONFIRM_TOKEN_TTL_MS. Refreshed whenever the token is. */
   confirmTokenSentAt: timestamp("confirmTokenSentAt"),
+  /** Exact shared/legal.ts notice shown by the requesting client; legacy is NULL. */
+  consentNoticeVersion: varchar("consentNoticeVersion", { length: 32 }),
+  /** Persists after confirmTokenSentAt is cleared; records the latest request. */
+  consentRequestedAt: timestamp("consentRequestedAt"),
   confirmedAt: timestamp("confirmedAt"),
   unsubscribedAt: timestamp("unsubscribedAt"),
   /** Which form converted them: "sidebar", "modal", "hero", "edition-footer".
