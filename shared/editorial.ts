@@ -39,6 +39,7 @@ const specialist = new Set([
   "mpamag.com",
   "brokernews.com.au",
   "professionalplanner.com.au",
+  "moneymanagement.com.au",
   "accountantsdaily.com.au",
   "proptrack.com.au",
   "cotality.com",

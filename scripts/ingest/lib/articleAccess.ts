@@ -1,3 +1,16 @@
+/** Explicit operational pause after repeated production denials. Re-enable only
+ * after a reviewed publisher-approved route works. Covers rediscovered links. */
+export function publisherAccessPause(url: string | null): string | null {
+  try {
+    const host = new URL(url ?? "").hostname.toLowerCase();
+    if (host === "professionalplanner.com.au" || host.endsWith(".professionalplanner.com.au"))
+      return "article-source-paused";
+  } catch {
+    /* Invalid URLs are handled by the outbound URL guard. */
+  }
+  return null;
+}
+
 /** Bounded process-local pauses, separate from discovery-feed health.
  * A denied article does not prove every page on that publisher is denied.
  * Only rate limits pause an entire origin. No cached text or automatic retries. */
@@ -20,6 +33,8 @@ export function createArticleAccess({
   };
   return {
     check(url: string): string | null {
+      const paused = publisherAccessPause(url);
+      if (paused) return paused;
       const key = keys(url);
       if (!key) return null;
       for (const k of [key.origin, key.article]) {

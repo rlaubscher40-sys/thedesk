@@ -58,6 +58,7 @@ export function extractArticleText(
     const host = new URL(sourceUrl ?? "").hostname.replace(/^www\./, "");
     if (host === "faaa.au")
       contentClass = "elementor-widget-theme-post-content";
+    if (host === "moneymanagement.com.au") contentClass = "entry-content";
     if (host === "ausbanking.org.au") contentClass = "with-share";
   } catch {
     /* Generic semantic extraction. */
@@ -72,6 +73,8 @@ export function extractArticleText(
   let m: RegExpExecArray | null;
   while ((m = re.exec(container)) !== null) {
     const txt = decodeEntities(stripHtml(m[2] ?? "")).trim();
+    if (contentClass === "entry-content" && /^If you enjoyed this article,.*preferred source/i.test(txt))
+      continue;
     if (isInstitutionalBoilerplate(txt)) {
       removedInstitutionalFooter = true;
       continue;

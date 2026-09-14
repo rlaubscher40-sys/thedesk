@@ -92,7 +92,7 @@ export async function runDailyFeedIngest(
       console.log(`[editorial-decisions] ${JSON.stringify({ runId: report.runId, sampled: true, rows: report.decisions.slice(start, start + 25).map(editorialDecisionLog) })}`);
     }
     console.log(
-      `[editorial-outcomes] ${JSON.stringify({ runId: report.runId, status: report.status, decisionCount: report.decisionCount, outcomes: report.outcomes, failedSources: report.sources.filter((s) => s.error).map((s) => ({ name: s.name, error: s.error })), articleFailures: report.decisions.filter((d) => /^article-(?:http-|cooldown-http-|timeout|fetch-failed|unsupported-content-type|empty-response)/.test(d.reason)).map((d) => ({ source: d.source, reason: d.reason })) })}`
+      `[editorial-outcomes] ${JSON.stringify({ runId: report.runId, status: report.status, decisionCount: report.decisionCount, outcomes: report.outcomes, failedSources: report.sources.filter((s) => s.error).map((s) => ({ name: s.name, error: s.error })), articleFailures: report.decisions.filter((d) => /^article-(?:http-|cooldown-http-|source-paused|timeout|fetch-failed|unsupported-content-type|empty-response)/.test(d.reason)).map((d) => ({ source: d.source, reason: d.reason })) })}`
     );
     await postJSON(`${baseUrl}/api/ingest/editorial-report`, report, apiKey);
   }

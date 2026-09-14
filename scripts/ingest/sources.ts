@@ -254,12 +254,11 @@ export const SOURCES: Source[] = [
     channel: "PROPERTY",
     maxItems: 20,
   },
+  // Professional Planner is paused after repeated article denials. Advice
+  // coverage uses ASIC/FAAA originals plus this independently verified newsroom.
   {
-    name: "Professional Planner",
-    // RSS denies requests; the public newsroom advertises dated article links.
-    url: "https://www.professionalplanner.com.au/",
-    kind: "index",
-    articlePath: "^/20[0-9]{2}/[0-9]{2}/[^/]+/$",
+    name: "Money Management",
+    url: "https://www.moneymanagement.com.au/feed/",
     category: "POLICY",
     channel: "AU",
     maxItems: 20,

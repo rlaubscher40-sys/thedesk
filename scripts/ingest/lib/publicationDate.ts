@@ -12,6 +12,27 @@ export const missingPublicationDate: PublicationDate = {
   publisherDateStatus: "missing",
 };
 
+/** Money Management's second schema block appends an IANA zone to a local
+ * clock. Resolve only its observed format, checking the actual Melbourne wall
+ * clock (including DST). Ambiguous/nonexistent clocks remain invalid. */
+function moneyManagementClock(value: string): string {
+  const match = /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})Australia\/Melbourne$/.exec(value);
+  if (!match) return value;
+  const wall = `${match[1]}T${match[2]}`;
+  const matches: string[] = [];
+  for (const offset of ["+10:00", "+11:00"]) {
+    const date = new Date(wall + offset);
+    if (!Number.isFinite(date.getTime())) continue;
+    const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Australia/Melbourne", year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23",
+    }).formatToParts(date).map(({ type, value }) => [type, value]));
+    if (`${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}` === wall)
+      matches.push(date.toISOString());
+  }
+  return matches.length === 1 ? matches[0]! : value;
+}
+
 /** Metadata from the already-fetched page; never a second request or model call. */
 export function extractPublicationDate(html: string, sourceUrl?: string): PublicationDate {
   const candidates: unknown[] = [];
@@ -190,8 +211,9 @@ export function extractPublicationDate(html: string, sourceUrl?: string): Public
   // Publishers sometimes expose a day, a local time without a timezone, or
   // two conflicting clocks for the same calendar day. Retain only the
   // precision all declarations support; never choose or invent a clock.
-  const parsed = candidates.map((value) => {
-    if (typeof value !== "string") return null;
+  const parsed = candidates.map((candidate) => {
+    if (typeof candidate !== "string") return null;
+    const value = host === "moneymanagement.com.au" ? moneyManagementClock(candidate) : candidate;
     const timestamp = newsTimestamp(value);
     const literal =
       /^(\d{4}-\d{2}-\d{2})(?:[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?$/.exec(
