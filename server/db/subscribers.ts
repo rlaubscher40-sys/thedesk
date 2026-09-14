@@ -63,12 +63,17 @@ export async function createSubscriber(data: InsertSubscriber): Promise<Subscrib
           confirmToken: data.confirmToken,
           confirmTokenSentAt: new Date(),
           confirmedAt: null,
+          consentNoticeVersion: data.consentNoticeVersion ?? null,
+          consentRequestedAt: new Date(),
+          source: data.source ?? null,
         })
         .where(eq(subscribers.id, existing.id));
     }
     return findSubscriberByEmail(data.email);
   }
-  await db.insert(subscribers).values({ ...data, confirmTokenSentAt: new Date() });
+  await db
+    .insert(subscribers)
+    .values({ ...data, confirmTokenSentAt: new Date(), consentRequestedAt: new Date() });
   return findSubscriberByEmail(data.email);
 }
 
