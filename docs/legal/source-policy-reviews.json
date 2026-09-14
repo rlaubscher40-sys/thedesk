@@ -1,0 +1,49 @@
+{
+  "scope": "Publisher-level policy readings only. Individual materials, third-party exclusions, attribution and the actual processing/use still need assessment. No rights are granted by this file.",
+  "reviewedOn": "2026-09-14",
+  "reviewer": "Codex source review; not legal counsel",
+  "policies": [
+    {
+      "id": "rba",
+      "host": "www.rba.gov.au",
+      "url": "https://www.rba.gov.au/copyright/",
+      "finding": "Most original text is CC BY 4.0, with exclusions. Financial data and the cash rate have separate commercial-use conditions, attribution and no-endorsement requirements. Third-party data needs separate rights. Banknote imagery, logos and multimedia have distinct restrictions.",
+      "action": "Check each data series and underlying owner; add required attribution and changes notices. If charging for access to covered data, disclose that RBA provides it free. Separately check banknote reproductions used in Reel imagery."
+    },
+    {
+      "id": "abs",
+      "host": "www.abs.gov.au",
+      "url": "https://www.abs.gov.au/website-privacy-copyright-and-disclaimer",
+      "finding": "CC BY 4.0 generally covers website material. Exclusions include logos/branding, microdata and third-party content; customised products need their own licence check.",
+      "action": "Use original aggregate releases with licence-compliant attribution, source links and alteration notices. Do not apply this permission to microdata or third-party series."
+    },
+    {
+      "id": "apra",
+      "host": "www.apra.gov.au",
+      "url": "https://www.apra.gov.au/copyright",
+      "finding": "CC BY 4.0 generally applies, except coats of arms, APRA logos and third-party material.",
+      "action": "Retain the required attribution and check item-level exclusions. Logo use is not licensed by the general content permission."
+    },
+    {
+      "id": "nsw",
+      "host": "www.nsw.gov.au",
+      "url": "https://www.nsw.gov.au/nsw-government/about-website/copyright",
+      "finding": "CC BY 4.0 generally applies on this website, with exclusions for state symbols, third-party material, separately conditioned content and NESA content.",
+      "action": "Attribute the State of NSW and retain accompanying notices. Do not imply endorsement or assume all separate NSW agency domains have the same terms."
+    },
+    {
+      "id": "abc",
+      "host": "www.abc.net.au",
+      "url": "https://help.abc.net.au/hc/en-us/articles/360001548096-ABC-Terms-of-Use",
+      "finding": "The general content permission is for personal, non-commercial use. Other reproduction/adaptation ordinarily requires written permission unless specific service rules provide otherwise.",
+      "action": "Prioritise a licence/exception assessment for automated commercial summaries, AI inputs and media reuse. Check RSS-specific terms; do not treat public funding as an open licence."
+    },
+    {
+      "id": "guardian",
+      "host": "www.theguardian.com",
+      "url": "https://www.theguardian.com/help/terms-of-service",
+      "finding": "Commercial AI reuse needs written permission; review before ingestion.",
+      "action": "Prioritise permissions review."
+    }
+  ]
+}
