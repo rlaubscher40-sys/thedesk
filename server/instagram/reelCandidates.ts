@@ -10,11 +10,14 @@ import { verifiedSupplyReel } from "./verifiedSupplyReel";
 import { verifiedCapitalRentReel } from "./verifiedCapitalRentReel";
 import { verifiedSydneyBeforeBuy, verifiedSydneyRentChange } from "./verifiedSydneyReels";
 import { assertProductionCandidate } from "../video/reelProduction";
-import { DOCUMENTARY_EPISODES } from "./documentaryEpisodes";
+import { DOCUMENTARY_EPISODES, RETIRED_DOCUMENTARY_PUBLICATIONS } from "./documentaryEpisodes";
 import { getDocumentaryProgramme } from "./verifiedDocumentaryReel";
 
 /** Stable identities also retain rotation history when a topic's data is withheld. */
 export const REEL_PUBLICATION_FAMILIES: Readonly<Record<string, string>> = Object.freeze({
+  ...Object.fromEntries(
+    RETIRED_DOCUMENTARY_PUBLICATIONS.map((item) => [item.publication.key, item.family])
+  ),
   ...Object.fromEntries(
     DOCUMENTARY_EPISODES.map((episode) => [
       `instagram-reel-documentary-${episode.id}-v1`,

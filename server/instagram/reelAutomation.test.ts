@@ -561,20 +561,46 @@ describe("documentary slots share the existing publication safeguards", () => {
     expect((await readReelAutomation(date)).state).toBe("daily-limit");
     expect(m.post).not.toHaveBeenCalled();
   });
-  it("retains an uncertain documentary lock after its slot expires and its review is absent", async () => {
+  it.each(["grollo-ownership", "meriton-accommodation"])(
+    "retains a retired %s lock after its slot expires and its review is absent",
+    async (id) => {
+      const key = `instagram-reel-documentary-${id}-v1`;
+      m.read.mockImplementation(async (jobKey: string) =>
+        jobKey === key
+          ? {
+              status: "failed",
+              detail: "Outcome unknown; inspect Meta before retrying.",
+            }
+          : null
+      );
+      const date = new Date("2026-09-24T08:30:00Z");
+      const plan = await readReelAutomation(date);
+      expect(plan.state).toBe("locked");
+      expect(plan.candidate).toBeNull();
+      expect("blockedPublication" in plan && plan.blockedPublication.key).toBe(key);
+      expect(await runReelAutomation({ post: m.post, alert: m.alert, now: date })).toEqual({
+        state: "locked",
+      });
+      expect(m.post).not.toHaveBeenCalled();
+      expect(m.expire).not.toHaveBeenCalled();
+      expect(m.claim).not.toHaveBeenCalled();
+    }
+  );
+  it("withholds publication when a retired receipt cannot be read", async () => {
+    m.read.mockImplementation(async (key: string) => {
+      if (key === "instagram-reel-documentary-meriton-accommodation-v1")
+        throw new Error("database unavailable");
+      return null;
+    });
+    expect((await readReelAutomation(new Date("2026-09-24T08:30:00Z"))).state).toBe("unavailable");
+  });
+  it("keeps retired films in confirmed history and the shared daily cap", async () => {
     const key = "instagram-reel-documentary-grollo-ownership-v1";
-    m.read.mockImplementation(async (jobKey: string) =>
-      jobKey === key
-        ? {
-            status: "failed",
-            detail: "Outcome unknown; inspect Meta before retrying.",
-          }
-        : null
-    );
-    const plan = await readReelAutomation(new Date("2026-09-17T08:30:00Z"));
-    expect(plan.state).toBe("locked");
-    expect(plan.candidate?.publication.key).toBe(key);
-    expect(m.post).not.toHaveBeenCalled();
-    expect(m.expire).not.toHaveBeenCalled();
+    const date = new Date("2026-09-24T08:30:00Z");
+    m.history.mockResolvedValue([{ key, date: "2026-09-14", postId: "123456", publishedAt: date }]);
+    const plan = await readReelAutomation(date);
+    expect(m.history).toHaveBeenCalledWith(expect.arrayContaining([key]));
+    expect(plan.state).toBe("daily-limit");
+    expect(plan.lastConfirmedPublication?.family).toBe("documentary-deal");
   });
 });

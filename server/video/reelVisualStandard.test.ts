@@ -78,7 +78,9 @@ describe("mandatory repeatable full-screen visual standard", () => {
       const documentary = Object.values(DOCUMENTARY_PHOTOS).find((p) => p.asset === shot.asset);
       if (documentary) {
         expect(shot.credit).toBe(documentary.credit);
-        expect(shot.credit).toMatch(/\b(?:19|20)\d{2}\b/);
+        // Dates can be qualified in the provenance note (e.g. upload versus exposure).
+        // Do not invent a photograph date to force a year into a short credit.
+        expect(`${shot.credit} ${documentary.purpose}`).toMatch(/\b(?:19|20)\d{2}\b/);
         expect(shot.credit).toMatch(/public domain|CC BY|CC0/);
         expect(documentary.source).toMatch(/^https:\/\/commons\.wikimedia\.org\/wiki\/File:/);
         expect(documentary.licence).toMatch(/^https:\/\//);

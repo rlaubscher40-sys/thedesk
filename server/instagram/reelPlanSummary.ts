@@ -30,6 +30,7 @@ type Plan = {
   state: string;
   candidate?: { topic?: string; publication: { key: string; date: string } } | null;
   retryAt?: Date;
+  blockedPublication?: { key: string; date: string };
   postId?: string | null;
   lastConfirmedPublication?: {
     publication: { key: string; date: string };
@@ -70,6 +71,7 @@ export function describeReelPlan(
     blockers,
     selectedTopic: selection?.topic ?? null,
     selectedPublication: selection?.publication ?? null,
+    blockedPublication: plan.blockedPublication ?? null,
     confirmedPostId: plan.state === "published" ? (plan.postId ?? null) : null,
     lastConfirmedPublication: plan.lastConfirmedPublication
       ? {
@@ -101,6 +103,7 @@ export function logReelPlan(plan: Plan, enabled: boolean, configured: boolean, n
   const record = {
     state: plan.state,
     selectedPublication: summary.selectedPublication,
+    blockedPublication: summary.blockedPublication,
     selectedTopic: summary.selectedTopic,
     window: summary.window,
     blockers: summary.blockers,
