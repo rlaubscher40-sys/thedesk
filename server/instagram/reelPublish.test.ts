@@ -54,6 +54,15 @@ beforeEach(() => {
   m.publish.mockResolvedValue("media");
 });
 describe("narrated Reel publication", () => {
+  it("rejects invalid captions before quota requests, rendering or publication", async () => {
+    await expect(
+      postStatReel(stat, "https://thedesk.au", { ...options, caption: "x".repeat(2201) })
+    ).rejects.toThrow("no factual truncation");
+    expect(m.quota).not.toHaveBeenCalled();
+    expect(m.render).not.toHaveBeenCalled();
+    expect(m.create).not.toHaveBeenCalled();
+    expect(m.publish).not.toHaveBeenCalled();
+  });
   it("saves the Story source only after winning the Reel claim and before publication", async () => {
     const script = [{ key: "label", text: "A home." }];
     await postStatReel(stat, "https://thedesk.au", { ...options, script });

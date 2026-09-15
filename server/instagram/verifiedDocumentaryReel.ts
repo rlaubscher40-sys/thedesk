@@ -1,8 +1,4 @@
-import {
-  DOCUMENTARY_READING,
-  DOCUMENTARY_SOURCES,
-  documentaryDurationLimit,
-} from "../../shared/documentaryReels";
+import { DOCUMENTARY_READING, documentaryDurationLimit } from "../../shared/documentaryReels";
 import { DOCUMENTARY_EPISODES, type DocumentaryEpisode } from "./documentaryEpisodes";
 import { DOCUMENTARY_REVIEWS } from "./documentaryReviews";
 import {
@@ -13,6 +9,7 @@ import {
 } from "../video/documentaryStory";
 import type { ProductionReelCandidate } from "../video/reelProduction";
 import { documentarySlot, sydneySocialClock } from "../../shared/instagramSchedule";
+import { buildDocumentaryCaption } from "./documentaryCaption";
 
 export function documentaryCandidate(episode: DocumentaryEpisode): ProductionReelCandidate {
   const documentary = sealDocumentary(episode);
@@ -33,40 +30,7 @@ export function documentaryCandidate(episode: DocumentaryEpisode): ProductionRee
     evidenceHash: documentary.evidenceHash,
     // Identity is the episode, never its voice, release slot, design or revised script.
     publication: { key: `instagram-reel-documentary-${episode.id}-v1`, date: "2026-09-14" },
-    caption: [
-      episode.treatment ? episode.scenes[0]!.phrases[0]! : script[0]!.text,
-      "",
-      `${episode.series} / ${reading.title}`,
-      "",
-      episode.treatment === "person-led-v2"
-        ? "The missing decades behind Meriton's growth."
-        : reading.meaning,
-      "",
-      episode.treatment === "person-led-v2"
-        ? "AUD throughout. Early amounts aren't inflation-adjusted. Sales and rents aren't profit. Regis prices are individual contracts. Built doesn't mean still owned."
-        : reading.limitation,
-      "",
-      "Sources:",
-      ...reading.sources.map((id) => {
-        const source = DOCUMENTARY_SOURCES[id];
-        return "captionCitation" in source
-          ? source.captionCitation
-          : `${source.publisher}: ${source.title} (${source.published}).`;
-      }),
-      "",
-      episode.treatment === "person-led-v2"
-        ? ""
-        : "The Desk analysis is labelled. Archival photographs show their stated dates; they are not footage of the events described.",
-      `Sources and image licences: thedesk.au/social#${episode.id}`,
-      ...(episode.treatment === "series-led-v1"
-        ? [
-            "Adapted photographic sequences: CC BY-SA 4.0. Original image credits and licences in source notes.",
-          ]
-        : []),
-      "",
-      "Save this story. Follow The Desk for Australian property explained.",
-      "#TheDesk #AustralianProperty #PropertyHistory",
-    ].join("\n"),
+    caption: buildDocumentaryCaption(episode),
   };
 }
 

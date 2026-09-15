@@ -1767,6 +1767,9 @@ function registerInstagramRoutes(app: Express): void {
         line: lines[i]!,
         subtext: moveClaim(m),
         source: "The Desk",
+        captionSource: metrics.find((metric) => metric.metricKey === m.metricKey)?.source
+          ? `${metrics.find((metric) => metric.metricKey === m.metricKey)!.source} (series metadata); The Desk recorded-history calculation`
+          : "The Desk recorded-history calculation; original provider not recorded",
         asOf: null,
       }));
 

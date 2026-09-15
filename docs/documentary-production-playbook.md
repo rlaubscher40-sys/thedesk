@@ -76,6 +76,8 @@ After research and authoring, register the episode, public reading notes, source
 | Review criteria and research brief         | `server/video/documentaryProduction.ts`     |
 | Exact previously reviewed exports          | `server/instagram/documentaryReviews.ts`    |
 
+Written post captions live in `server/instagram/documentaryCaption.ts`. Give each researched film its own written hook, story, labelled interpretation and viewing prompt. The shared [social caption standard](social-caption-standard.md) automatically retains the registered limitations, source citations, image licences and AI narration disclosure. Caption composition is separate from the narration and does not grant export approval.
+
 Export a registered episode:
 
 ```sh

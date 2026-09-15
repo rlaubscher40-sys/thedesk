@@ -1,5 +1,6 @@
 import { readSocialRecords } from "../db/socialPublication";
 import { sourceTimingLabel } from "../../shared/sourceTiming";
+import { assertCaptionStyle } from "./captionStyle";
 /**
  * High-level Instagram posting orchestration.
  *
@@ -26,7 +27,21 @@ import { recordServerError } from "../db/health";
 import { generateCoverageBrief } from "../prompts/coverageBrief";
 import { generateInstagramHeadline } from "../prompts/instagramHeadline";
 import { renderPropertyDailyCover } from "./dailyCover";
-import { buildBriefingSlides, briefingAlt, briefingCaption } from "./briefing";
+import {
+  buildBriefingSlides,
+  briefingAlt,
+  briefingCaption,
+  briefingDetail,
+  briefingLens,
+} from "./briefing";
+import {
+  captionAction,
+  captionBeat,
+  captionClaim,
+  captionSentence,
+  composeEditorialCaption,
+  type CaptionBeat,
+} from "./editorialCaption";
 import { renderBriefingSlide } from "../og/briefingCards";
 import {
   type CardVariant,
@@ -54,13 +69,14 @@ import { renderStatReel } from "../video/statReel";
 import { renderReelCover } from "../video/reelCover";
 import { productionReelOptions } from "../video/reelProduction";
 import { captureReelRender } from "../video/reelRenderRecord";
-import { pickPropertyTopics, propertyComparisonCta } from "./propertyEditorial";
+import { pickPropertyTopics } from "./propertyEditorial";
 
 import {
   sourceGroundedStory,
   sourceGroundedTopic,
   editionDestination,
   marketDataCta,
+  storyDestination,
 } from "./sourceContent";
 
 import { pickBriefingStories, unpublishedBriefingSelection } from "./briefingSelection";
@@ -186,54 +202,39 @@ function sanitizeStory(story: DailyFeedItem): DailyFeedItem {
   };
 }
 
-/** Evergreen hashtags on every post, kept tight so the feed doesn't read as
- *  tag-stuffed. One beat-specific tag (below) is appended per post. */
-const CORE_HASHTAGS = "#AustralianProperty #AusProperty #TheDesk";
-
-/**
- * One discovery hashtag tuned to the lead story's beat, appended to the core
- * set so each post reaches the right niche without hand-curating tags.
- */
-const CATEGORY_HASHTAG: Record<string, string> = {
-  ECONOMY: "#InterestRates",
-  ECONOMICS: "#InterestRates",
-  MACRO: "#InterestRates",
-  PROPERTY: "#PropertyMarket",
-  MARKETS: "#ASX",
-  POLICY: "#AusPolicy",
-  AI: "#AI",
-  TECH: "#TechNews",
-  GEOPOLITICS: "#GlobalMarkets",
-};
-
-function categoryHashtag(category: string | null | undefined): string {
-  return CATEGORY_HASHTAG[(category ?? "").toUpperCase()] ?? "#Markets";
-}
-
 /** Captions keep source claims intact and give each slide its own reading link. */
 export function buildDailyCaption(stories: DailyFeedItem[]): string {
   return briefingCaption(pickDailyTopStories(stories, 3));
 }
 
 export function buildCoverageCaption(stories: DailyFeedItem[]): string {
-  const rundown = stories.flatMap((s, i) => [
-    `${i + 1}. ${sanitizeDashes(s.title).slice(0, 120)}`,
-    "",
-  ]);
-
-  const tags = `${CORE_HASHTAGS} #TechNews #BusinessNews #WorldNews ${categoryHashtag(stories[0]?.category)}`;
-
-  return [
-    "The wider lens, today in tech, science, business and the world beyond the property desk.",
-    "",
-    ...rundown,
-    "Which story should we dig into? Tell us below.",
-    "Save this for the headlines that matter.",
-    "",
-    "The full briefing, across every beat, is in our bio.",
-    "",
-    tags,
-  ].join("\n");
+  const lead = stories[0];
+  if (!lead) throw new Error("No coverage stories");
+  if (stories.some((story) => !story.title.trim() || !story.source?.trim()))
+    throw new Error("Coverage caption needs source-attributed stories");
+  const detail = briefingDetail(lead);
+  const beats: Record<string, CaptionBeat> = {
+    TECH: "tech",
+    AI: "tech",
+    SCIENCE: "science",
+    GEOPOLITICS: "world",
+  };
+  return composeEditorialCaption({
+    hook: lead.title,
+    paragraphs: [
+      ...(detail ? [`${lead.source} reports: ${detail}`] : []),
+      "The wider lens: reporting beyond the property desk.",
+    ],
+    action: "Read the original reporting behind the story that interests you.",
+    destination: "Full stories: bio → Recent carousel stories.",
+    references: stories.flatMap((story, i) => [
+      ...(i ? [`${i + 1}. ${story.title}`] : []),
+      `Source: ${story.source} · Briefing ${story.feedDate}`,
+      sourceTimingLabel(story.sourceTiming),
+      storyDestination(story),
+    ]),
+    beat: beats[lead.category?.toUpperCase() ?? ""] ?? "business",
+  });
 }
 
 /**
@@ -271,38 +272,27 @@ export async function loadEditionHeroDataUri(editionId: number): Promise<string 
   }
 }
 
-function buildWeeklyCaption(edition: Edition): string {
+export function buildWeeklyCaption(edition: Edition): string {
   const topics = pickPropertyTopics(edition.topics);
-  // Whole source sentences only. Optional lead detail is removed as a unit if
-  // source URLs and attribution use the available caption budget.
-  const assemble = (includeDetail: boolean) =>
-    [
-      sanitizeDashes(topics[0]?.title ?? "This week's property briefing."),
-      "",
-      ...(includeDetail && topics[0] ? [weeklyTopicContent(topics[0]).detail, ""] : []),
-      `${topics.length} property ${topics.length === 1 ? "story" : "stories"} · Edition ${edition.editionNumber} · ${sanitizeDashes(edition.weekRange ?? edition.weekOf)}`,
-      ...topics.flatMap((topic, i) => [
-        "",
-        ...(i ? [`${i + 1}. ${sanitizeDashes(topic.title)}`] : []),
-        ...(topic.socialSource
-          ? [
-              `Source: ${topic.socialSource.publisher} · Briefing ${topic.socialSource.feedDate}`,
-              sourceTimingLabel(topic.socialSource.sourceTiming),
-              topic.socialSource.url,
-            ]
-          : []),
-      ]),
-      "",
-      "Save your weekly property briefing.",
-      `Read Edition ${edition.editionNumber}: ${editionDestination(edition)}`,
-      "",
-      `${CORE_HASHTAGS} #WeeklyBriefing`,
-    ].join("\n");
-  const detailed = assemble(true);
-  const caption = detailed.length <= 2200 ? detailed : assemble(false);
-  if (caption.length > 2200)
-    throw new Error("Source-attributed weekly caption exceeds Instagram limit");
-  return caption;
+  const lead = topics[0];
+  if (!lead || topics.some((topic) => !topic.socialSource))
+    throw new Error("Weekly caption needs source-attributed topics");
+  return composeEditorialCaption({
+    hook: lead.title,
+    paragraphs: [
+      `${lead.socialSource!.publisher} reports: ${weeklyTopicContent(lead).detail}`,
+      `${topics.length} property ${topics.length === 1 ? "story" : "stories"} · Edition ${edition.editionNumber} · ${edition.weekRange ?? edition.weekOf}`,
+    ],
+    action: briefingLens(lead).takeaway,
+    destination: `Read Edition ${edition.editionNumber}: ${editionDestination(edition)}`,
+    references: topics.flatMap((topic, i) => [
+      ...(i ? [`${i + 1}. ${topic.title}`] : []),
+      `Source: ${topic.socialSource!.publisher} · Briefing ${topic.socialSource!.feedDate}`,
+      sourceTimingLabel(topic.socialSource!.sourceTiming),
+      topic.socialSource!.url,
+    ]),
+    beat: captionBeat(lead.title),
+  });
 }
 
 /** Daily carousel: at most three relevant source stories; quiet days stay thin. */
@@ -386,7 +376,11 @@ export async function postStoryFrames(opts: {
     if (i > 0) await settle(45000);
     const uuids: string[] = [];
     try {
-      if (opts.carouselId && (await readSocialRecords([carouselStoryKey(opts.carouselId, frames[i]!.id)])).length) continue;
+      if (
+        opts.carouselId &&
+        (await readSocialRecords([carouselStoryKey(opts.carouselId, frames[i]!.id)])).length
+      )
+        continue;
       const storyBuf =
         verticalOpts?.header === "Wider Lens"
           ? await renderDailyStoryVertical(frames[i]!, variant, verticalOpts)
@@ -445,7 +439,12 @@ export async function postDailyCarousel(
      */
     mode?: "daily" | "coverage";
   } = {}
-): Promise<{ postId: string; headline: string; coverVariant?: CardVariant; publishedNow?: boolean }> {
+): Promise<{
+  postId: string;
+  headline: string;
+  coverVariant?: CardVariant;
+  publishedNow?: boolean;
+}> {
   const isCoverage = opts.mode === "coverage";
   const scope = `daily:${stories[0]?.feedDate ?? "missing"}`;
   const { instagramAccessToken: accessToken, instagramBusinessAccountId: igUserId } = env;
@@ -516,6 +515,8 @@ export async function postDailyCarousel(
     : top.map(sourceGroundedStory);
 
   const sanitized = punched.map(sanitizeStory);
+  // Caption claims come from the original source, never the optional card rewrite.
+  const caption = isCoverage ? buildCoverageCaption(top) : buildDailyCaption(top);
   const carouselUuids: string[] = [];
   // alt_text per slide, kept in lockstep with the carousel images (cover + one per story).
   const altTexts: (string | undefined)[] = [];
@@ -558,8 +559,6 @@ export async function postDailyCarousel(
         altTexts.push(briefingAlt(slides[i]!, i, slides.length));
       }
     }
-
-    const caption = isCoverage ? buildCoverageCaption(sanitized) : buildDailyCaption(sanitized);
 
     // Create child containers in parallel — Instagram fetches each image URL.
     // alt_text per slide is the cover/story headline (accessibility + ranking).
@@ -612,7 +611,12 @@ export async function postDailyCarousel(
       accessToken,
     });
 
-    return { postId, headline: sanitized[0]!.title, coverVariant: opts.variant ?? "navy", publishedNow: true };
+    return {
+      postId,
+      headline: sanitized[0]!.title,
+      coverVariant: opts.variant ?? "navy",
+      publishedNow: true,
+    };
   } finally {
     carouselUuids.forEach(removeTempImage);
   }
@@ -622,7 +626,12 @@ export async function postWeeklyEdition(
   edition: Edition,
   siteUrl: string,
   variant: CardVariant = "navy"
-): Promise<{ postId: string; headline: string; coverVariant?: CardVariant; publishedNow?: boolean }> {
+): Promise<{
+  postId: string;
+  headline: string;
+  coverVariant?: CardVariant;
+  publishedNow?: boolean;
+}> {
   const { instagramAccessToken: accessToken, instagramBusinessAccountId: igUserId } = env;
   if (!accessToken || !igUserId) {
     throw new Error("INSTAGRAM_ACCESS_TOKEN and INSTAGRAM_BUSINESS_ACCOUNT_ID must be set");
@@ -776,28 +785,30 @@ export function buildStatCaption(stat: {
   line: string;
   subtext: string;
   source?: string | null;
+  asOf?: Date | null;
 }): string {
-  const claim = sanitizeDashes(stat.subtext);
-  // The subtext renders uppercase on the card for the typography; in the
-  // caption that would read as shouting, so sentence-case it here.
-  const claimSentence = claim.charAt(0) + claim.slice(1).toLowerCase();
-
-  return [
-    `${sanitizeDashes(stat.label)}: ${sanitizeDashes(stat.value)}.`,
-    "",
-    sanitizeDashes(stat.line),
-    "",
-    `${claimSentence}.`,
-    stat.source ? `Source: ${sanitizeDashes(stat.source)}.` : "",
-    "",
-    "Share this with someone comparing Australian property markets.",
-    "",
-    marketDataCta(),
-    "",
-    `${CORE_HASHTAGS} #PropertyData`,
-  ]
-    .filter((l, i, arr) => !(l === "" && arr[i - 1] === ""))
-    .join("\n");
+  if (!stat.source?.trim()) throw new Error("Stat caption needs a source");
+  const beat = captionBeat(stat.label);
+  const claim = captionClaim(stat.subtext);
+  const shortHook = captionSentence(`${stat.label}: ${stat.value}`);
+  const combined = `${shortHook} ${claim}`;
+  const hook = combined.length <= 110 ? combined : shortHook;
+  return composeEditorialCaption({
+    hook,
+    // The card's optional model-written line is not evidence for a new claim.
+    paragraphs: [
+      ...(hook === shortHook ? [claim] : []),
+      `Context: ${briefingLens({ title: stat.label, summary: "" }).meaning}`,
+    ],
+    action: captionAction(beat),
+    destination: marketDataCta(),
+    references: [
+      `Source: ${stat.source}`,
+      ...(stat.asOf ? [`Recorded reading: ${stat.asOf.toISOString().slice(0, 10)}`] : []),
+      "Comparisons use The Desk's recorded readings, not an all-time history.",
+    ],
+    beat,
+  });
 }
 
 /**
@@ -834,7 +845,7 @@ export async function postStatCard(
     line: sanitizeDashes(stat.line),
     subtext: sanitizeDashes(stat.subtext),
   };
-
+  const caption = buildStatCaption(stat);
   let uuid: string | null = null;
   try {
     const buf = await renderStatCard(sanitized, opts.variant ?? "navy");
@@ -844,7 +855,7 @@ export async function postStatCard(
       igUserId,
       accessToken,
       imageUrl: `${siteUrl}/instagram/temp/${uuid}.jpg`,
-      caption: buildStatCaption(sanitized),
+      caption,
       altText: `${sanitized.label}: ${sanitized.value}. ${sanitized.line}`,
     });
     await waitForContainerReady({ containerId, accessToken, timeoutMs: 60000 });
@@ -874,34 +885,35 @@ const MONTHLY_SLIDE_COUNT = 4;
  * it, and says where the numbers come from, because "our own history" is the
  * claim that makes this series worth following rather than another recap.
  */
-function buildMonthlyCaption(
+export function buildMonthlyCaption(
   review: { label: string; reading: string },
-  movers: Array<{ label: string; move: string; claim: string }>
+  movers: Array<{
+    label: string;
+    move: string;
+    claim: string;
+    source?: string | null;
+    asOf?: Date | null;
+  }>
 ): string {
-  const rundown = movers.flatMap((m) => [
-    `${sanitizeDashes(m.label)}: ${sanitizeDashes(m.move)} (${sanitizeDashes(m.claim.toLowerCase())})`,
-  ]);
-
-  return [
-    sanitizeDashes(review.reading),
-    "",
-    `The Month in Numbers, ${sanitizeDashes(review.label)}.`,
-    "",
-    ...rundown,
-    "",
-    // The honest description of the method, and the reason to follow: we are
-    // the only ones who can rank these against each other.
-    "Every move is measured against what that number normally does in a month, from our own daily records. A big percentage in a jumpy series is not news; a small one in a still series is.",
-    "",
-    "Which of these actually changed your thinking? Tell us below.",
-    "Save this, it is the month in one place.",
-    "",
-    "The full month, every number, is in our bio.",
-    "",
-    `${CORE_HASHTAGS} #PropertyData`,
-  ]
-    .filter((l, i, arr) => !(l === "" && arr[i - 1] === ""))
-    .join("\n");
+  const lead = movers[0];
+  if (!lead || movers.some((mover) => !mover.source?.trim()))
+    throw new Error("Monthly caption needs a source for every figure");
+  return composeEditorialCaption({
+    hook: captionSentence(`${lead.label}: ${lead.move}`),
+    paragraphs: [
+      `The Month in Numbers · ${review.label}`,
+      review.reading,
+      movers.map((m, i) => `${i + 1}. ${m.label}: ${m.move}. ${captionClaim(m.claim)}`).join("\n"),
+      "The Desk compares each move with that series' usual monthly movement in our recorded history. The ranking is not a measure of investment returns or a forecast.",
+    ],
+    action: "Save the month together so you can compare the next release with the same measures.",
+    destination: marketDataCta(),
+    references: movers.map(
+      (m, i) =>
+        `${i + 1}. Source: ${m.source}${m.asOf ? ` · Recorded reading: ${m.asOf.toISOString().slice(0, 10)}` : ""}`
+    ),
+    beat: captionBeat(lead.label),
+  });
 }
 
 /**
@@ -920,6 +932,7 @@ export async function postMonthlyReview(
     line: string;
     subtext: string;
     source?: string | null;
+    captionSource?: string | null;
     asOf?: Date | null;
   }>,
   review: { label: string; reading: string },
@@ -939,6 +952,16 @@ export async function postMonthlyReview(
     line: sanitizeDashes(c.line),
     subtext: sanitizeDashes(c.subtext),
   }));
+  const caption = buildMonthlyCaption(
+    review,
+    cards.slice(0, MONTHLY_SLIDE_COUNT).map((s) => ({
+      label: s.label,
+      move: s.value,
+      claim: s.subtext,
+      source: s.captionSource ?? s.source,
+      asOf: s.asOf,
+    }))
+  );
 
   const uuids: string[] = [];
   try {
@@ -967,10 +990,7 @@ export async function postMonthlyReview(
       igUserId,
       accessToken,
       childrenIds: childIds,
-      caption: buildMonthlyCaption(
-        review,
-        slides.map((s) => ({ label: s.label, move: s.value, claim: s.subtext }))
-      ),
+      caption,
     });
     await waitForContainerReady({ containerId: carouselId, accessToken, timeoutMs: 90000 });
     const postId = await publishCarouselConfirmed({
@@ -1000,20 +1020,11 @@ export function buildReelCaption(stat: {
   line: string;
   subtext: string;
   source?: string | null;
+  asOf?: Date | null;
 }): string {
-  return [
-    sanitizeDashes(stat.line),
-    "",
-    `${sanitizeDashes(stat.label)}: ${sanitizeDashes(stat.value)}.`,
-    `${sanitizeDashes(stat.subtext.charAt(0) + stat.subtext.slice(1).toLowerCase())}.`,
-    "",
-    "Measured against the recorded readings we hold, not an all-time history.",
-    stat.source ? `Source: ${sanitizeDashes(stat.source)}.` : "",
-    "",
-    propertyComparisonCta("reel"),
-    "",
-    `${CORE_HASHTAGS} #PropertyData`,
-  ].join("\n");
+  // Legacy/manual stat Reels use the same grounded reading as the number card.
+  // Never send an unrelated auction or cash-rate post to a rent comparison.
+  return buildStatCaption(stat);
 }
 
 /**
@@ -1094,6 +1105,7 @@ export async function postStatReel(
   if (!opts.publication)
     throw new Error("A durable evidence reservation is required for Reel publication.");
   const publication = opts.publication;
+  const caption = assertCaptionStyle(opts.caption ?? buildReelCaption(stat));
   const { fetchPublishingLimit } = await import("./api");
   const quota = await fetchPublishingLimit({ accessToken, igUserId });
   if (quota.usage == null || quota.quota == null || quota.usage >= quota.quota)
@@ -1134,7 +1146,7 @@ export async function postStatReel(
       accessToken,
       videoUrl: `${siteUrl}/instagram/temp/${videoUuid}.mp4`,
       coverUrl: `${siteUrl}/instagram/temp/${coverUuid}.jpg`,
-      caption: opts.caption ?? buildReelCaption(sanitized),
+      caption,
     });
     // Reels are transcoded server-side, so readiness takes far longer than an
     // image container. Publishing early returns "media not ready" and burns the

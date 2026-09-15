@@ -96,7 +96,11 @@ describe("repeatable concise Reel captions", () => {
       const url = new URL(caption.match(/https?:\/\/\S+/)![0]);
       expect(url.origin).toBe("https://thedesk.au");
       expect(url.hash).toBe("");
-      expect(caption.match(/#[\w-]+/g)).toEqual(["#AusProperty", "#PropertyData", "#TheDesk"]);
+      expect(caption.match(/#[\w-]+/g)).toEqual([
+        "#AusProperty",
+        read === "sydneySupply" ? "#HousingSupply" : "#RentalMarket",
+        "#TheDesk",
+      ]);
       expect(caption).not.toMatch(/data\.api\.abs|Verified series:/);
     }
     expect(recipes[3]!.caption).toContain("Includes provisional observations.");

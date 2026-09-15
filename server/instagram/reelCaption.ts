@@ -1,5 +1,5 @@
 import { SOCIAL_DESTINATIONS } from "../../shared/socialDestinations";
-import { assertCaptionStyle } from "./captionStyle";
+import { composeEditorialCaption, type CaptionBeat } from "./editorialCaption";
 
 export const REEL_READS = {
   rentComparison: SOCIAL_DESTINATIONS[0],
@@ -12,6 +12,16 @@ export const REEL_READS = {
   capitalRents: { label: "All eight capital-city rent figures", path: "/social" },
 } as const;
 export const REEL_CAPTION_LIMIT = 1400;
+const BEATS: Record<keyof typeof REEL_READS, CaptionBeat> = {
+  rentComparison: "rents",
+  sydneyRent: "rents",
+  capitalRents: "rents",
+  sydneySupply: "supply",
+  supplyComparison: "supply",
+  housingBalance: "supply",
+  newLoanRates: "loans",
+  interstateMigration: "population",
+};
 
 /** Narrative captions keep the source and material caveats without exposing pipeline metadata. */
 export function buildNarrativeReelCaption(input: {
@@ -30,16 +40,16 @@ export function buildNarrativeReelCaption(input: {
     fields.some((p) => !p.trim() || /https?:\/\/|#[\w-]/i.test(p))
   )
     throw new Error("Narrative caption requires complete plain-text editorial fields");
-  const caption = [
-    ...input.paragraphs.map((p) => p.trim()),
-    `Full comparison and sources: link in bio → ${REEL_READS[input.read].label}.`,
-    input.source.trim(),
-    ...(input.revision ? [input.revision.trim()] : []),
-    "AI narration.\n#AusProperty #HousingSupply #TheDesk",
-  ].join("\n\n");
-  if (caption.length > REEL_CAPTION_LIMIT)
-    throw new Error("Reel caption exceeds editorial length limit; no factual truncation allowed");
-  return assertCaptionStyle(caption);
+  return composeEditorialCaption({
+    hook: input.paragraphs[0]!,
+    paragraphs: input.paragraphs.slice(1),
+    action: `Full comparison and sources: link in bio → ${REEL_READS[input.read].label}.`,
+    references: [input.source, ...(input.revision ? [input.revision] : [])],
+    disclosure: "AI narration.",
+    beat: BEATS[input.read],
+    limit: REEL_CAPTION_LIMIT,
+    hookLimit: 110,
+  });
 }
 
 /** The spoken ending and video card name the same visible link as the caption. */
@@ -91,13 +101,19 @@ export function buildReelCaption(input: {
   url.searchParams.set("utm_source", "instagram");
   url.searchParams.set("utm_medium", "reel");
   url.searchParams.set("utm_campaign", CAMPAIGNS[input.read]);
-  const caption = [
-    ...paragraphs.map((p) => p.trim()),
-    `Bio → ${reading.label}. Figures, definitions and source links:\n${url}`,
-    "Source pages update; match the post's reference period.",
-    "AI narration.\n#AusProperty #PropertyData #TheDesk",
-  ].join("\n\n");
-  if (caption.length > REEL_CAPTION_LIMIT)
-    throw new Error("Reel caption exceeds editorial length limit; no factual truncation allowed");
-  return assertCaptionStyle(caption);
+  return composeEditorialCaption({
+    hook: input.hook,
+    paragraphs: [input.finding, input.meaning],
+    action: input.action,
+    destination: `Bio → ${reading.label}${/[.!?]$/.test(reading.label) ? "" : "."} Figures, definitions and source links:\n${url}`,
+    references: [
+      input.method,
+      input.revisions,
+      "Source pages update; match the post's reference period.",
+    ],
+    disclosure: "AI narration.",
+    beat: BEATS[input.read],
+    limit: REEL_CAPTION_LIMIT,
+    hookLimit: 110,
+  });
 }

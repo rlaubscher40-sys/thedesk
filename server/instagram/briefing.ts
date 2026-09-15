@@ -1,6 +1,7 @@
 import type { DailyFeedItem } from "../db/schema";
 import { sourceTimingLabel } from "../../shared/sourceTiming";
 import { storyDestination } from "./sourceContent";
+import { captionBeat, captionText, composeEditorialCaption } from "./editorialCaption";
 
 /** Source copy and reusable explanations have separate roles. No social model call. */
 const briefingText = (s: string) => s.replace(/[–—]/g, ", ").replace(/\s+/g, " ").trim();
@@ -205,44 +206,29 @@ export function briefingAlt(slide: BriefingSlide, index: number, count: number):
 export function briefingCaption(stories: DailyFeedItem[]): string {
   const lead = stories[0];
   if (!lead) throw new Error("No briefing stories");
+  if (stories.slice(0, 3).some((story) => !story.title.trim() || !story.source?.trim()))
+    throw new Error("Briefing caption needs source-attributed stories");
   const lens = briefingLens(lead);
-  // Add information in the opening, instead of repeating the image headline.
-  const opening = briefingDetail(lead) ?? briefingText(lead.title);
+  const detail = briefingDetail(lead);
+  if (!detail) throw new Error("Briefing caption needs usable source detail");
   const references = stories
     .slice(0, 3)
     .flatMap((story, i) => [
-      `${i === 0 ? "Lead" : "Also"}: ${briefingText(story.title)}`,
-      ...(briefingClaimLabel(story) === "REPORTED ESTIMATE"
-        ? ["Reported estimate; outcome is not established."]
-        : []),
+      ...(i ? [`${i + 1}. ${captionText(story.title)}`] : []),
       `Source: ${briefingText(story.source)} · Briefing ${story.feedDate}`,
       sourceTimingLabel(story.sourceTiming),
       `Read story ${story.id}: ${storyDestination(story)}`,
-      "",
     ]);
-  const compose = (detail: boolean) =>
-    [
-      `${briefingText(lead.source)} reports: ${detail ? opening : briefingText(lead.title)}`,
-      "",
-      "How to read it",
-      lens.meaning,
-      "",
-      "What to watch",
-      lens.takeaway,
-      "",
-      "Save this for your next local market comparison.",
-      "",
-      ...references,
-      "Sources and full stories: bio → Recent carousel stories.",
-      "",
-      "#AustralianProperty #PropertyMarket #TheDesk",
-    ].join("\n");
-  const caption = compose(true);
-  if (caption.length <= 2200) return caption;
-  const compact = compose(false);
-  if (compact.length > 2200)
-    throw new Error(
-      "Source-grounded caption exceeds Instagram limit; needs shorter source material"
-    );
-  return compact;
+  return composeEditorialCaption({
+    hook: captionText(lead.title),
+    paragraphs: [`${captionText(lead.source)} reports: ${detail}`, `Context: ${lens.meaning}`],
+    action: lens.takeaway,
+    destination: "Sources and full stories: bio → Recent carousel stories.",
+    references,
+    notes: stories.slice(0, 3).some((story) => briefingClaimLabel(story) === "REPORTED ESTIMATE")
+      ? ["Modelled figures are reported estimates, not established outcomes."]
+      : [],
+    beat: captionBeat(lead.title),
+    hookLimit: 170,
+  });
 }
