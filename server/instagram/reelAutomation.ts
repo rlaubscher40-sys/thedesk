@@ -10,7 +10,7 @@ import { reelPublicationRecord } from "./reelStatus";
 import { isRateLimitError } from "./api";
 import { logReelPlan } from "./reelPlanSummary";
 import { readReelPublicationHistory } from "../db/reelHistory";
-import { DOCUMENTARY_EPISODES } from "./documentaryEpisodes";
+import { DOCUMENTARY_EPISODES, RETIRED_DOCUMENTARY_PUBLICATIONS } from "./documentaryEpisodes";
 import { documentaryCandidate } from "./verifiedDocumentaryReel";
 const REEL_RETRY_MINUTES = 15;
 const REEL_STALE_MINUTES = 15;
@@ -64,25 +64,30 @@ async function readReelSelection(
   const date = sydneyDate(now);
   // A dated slot expiring must not hide an uncertain publication. Keep reading
   // permanent documentary receipts after their day, even if review is withdrawn.
-  const documentaries = DOCUMENTARY_EPISODES.filter((episode) => episode.releaseDate <= date).map(
-    (episode) => ({
+  const documentaries = [
+    ...DOCUMENTARY_EPISODES.filter((episode) => episode.releaseDate <= date).map((episode) => ({
       ...documentaryCandidate(episode),
       topic: episode.series,
       family: episode.series === "The Deal" ? "documentary-deal" : "documentary-empires",
-    })
-  );
+    })),
+    ...RETIRED_DOCUMENTARY_PUBLICATIONS.filter((episode) => episode.releaseDate <= date),
+  ];
   const documentaryRecords = await Promise.all(
     documentaries.map((item) => reelPublicationRecord(item.publication))
   );
   const documentaryBlock = documentaryRecords.findIndex(
     (r) => r.state === "locked" || r.state === "unavailable"
   );
-  if (documentaryBlock >= 0)
+  if (documentaryBlock >= 0) {
+    const blocked = documentaries[documentaryBlock]!;
     return {
       state: documentaryRecords[documentaryBlock]!.state as "locked" | "unavailable",
-      candidate: documentaries[documentaryBlock]!,
+      // Retired receipts are visible blockers, never renderable candidates.
+      candidate: "stat" in blocked ? blocked : null,
+      blockedPublication: blocked.publication,
       date,
     };
+  }
   let candidate = candidates[0] ?? null;
   if (!candidate) return { state: "no-evidence" as const, candidate, date };
   const records = await Promise.all(

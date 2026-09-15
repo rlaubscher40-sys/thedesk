@@ -1,5 +1,7 @@
+import { VARIED_DOCUMENTARY_PHOTOS } from "./documentaryVariedPhotos";
 /** Individually checked Commons records. Reading an article is not an image licence. */
 export const DOCUMENTARY_PHOTOS = {
+  ...VARIED_DOCUMENTARY_PHOTOS,
   tianjinView: {
     asset: "documentary-tianjin-view-1930.jpg",
     credit: "Tianjin archive, 1930 / Nikkodo / Kyoto University Library / public domain / adapted",

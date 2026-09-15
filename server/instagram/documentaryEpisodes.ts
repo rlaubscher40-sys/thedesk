@@ -129,3 +129,19 @@ export const DOCUMENTARY_EPISODES: DocumentaryEpisode[] = [
     ],
   },
 ];
+
+/** Retiring a film removes its script, never its permanent publication receipt. */
+export const RETIRED_DOCUMENTARY_PUBLICATIONS = [
+  {
+    releaseDate: "2026-09-16",
+    topic: "Retired documentary: Grollo ownership",
+    family: "documentary-deal",
+    publication: { key: "instagram-reel-documentary-grollo-ownership-v1", date: "2026-09-14" },
+  },
+  {
+    releaseDate: "2026-09-23",
+    topic: "Retired documentary: Meriton accommodation",
+    family: "documentary-deal",
+    publication: { key: "instagram-reel-documentary-meriton-accommodation-v1", date: "2026-09-14" },
+  },
+] as const;
