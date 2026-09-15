@@ -58,6 +58,11 @@ export function documentaryCandidate(episode: DocumentaryEpisode): ProductionRee
         ? ""
         : "The Desk analysis is labelled. Archival photographs show their stated dates; they are not footage of the events described.",
       `Sources and image licences: thedesk.au/social#${episode.id}`,
+      ...(episode.treatment === "series-led-v1"
+        ? [
+            "Adapted photographic sequences: CC BY-SA 4.0. Original image credits and licences in source notes.",
+          ]
+        : []),
       "",
       "Save this story. Follow The Desk for Australian property explained.",
       "#TheDesk #AustralianProperty #PropertyHistory",

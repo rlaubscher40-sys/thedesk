@@ -1,5 +1,45 @@
 /** Public reading notes. Historical dates are not current portfolio estimates. */
 export const DOCUMENTARY_SOURCES = {
+  westfieldHistory: {
+    publisher: "Scentre Group",
+    published: "Undated corporate history / 1959–2013 milestones",
+    title: "Westfield Group history",
+    url: "https://www.scentregroup.com/about-us/history/westfield-group-history",
+    context:
+      "1959 Blacktown; September 1960 issue of 300,000 shares at five shillings; 1961 Hornsby funded by the float, reported cost £345,000 and 22 stores; eight Sydney centres completed or developing by end 1962; Toombul 1967, Doncaster 1969, first US acquisition 1977, Stratford 2011. Historical decimal equivalents: A$0.50 per share, A$150,000 aggregate issue value, A$690,000 centre cost. The issue value is not net cash raised or the whole funding stack. No inflation adjustment or return calculation.",
+    captionCitation:
+      "Scentre Group: Westfield Group history; National Archives: decimal currency conversion.",
+  },
+  walkerHistory: {
+    publisher: "Wikipedia / cited historical reporting",
+    published: "Historical company chronology / accessed 15 September 2026",
+    title: "Walker Corporation: history",
+    url: "https://en.wikipedia.org/wiki/Walker_Corporation",
+    context:
+      "Chronology: 1972 development business; 1994 listing; 1999 Australand share sale with name rights retained; name reused in 2003; 2006 Mirvac portfolio sale over A$1.1bn, retaining industrial and some commercial/retail interests. The transaction is rounded as the readable secondary history reports it; not personal proceeds or profit. Underlying 2006 SMH article and Mirvac annual report were not accessible for full inspection. Do not state a more precise consideration, financing bridge, or that Walker predicted the GFC.",
+    captionCitation:
+      "Walker Corporation history, citing contemporary AFR and SMH reports; rounded transaction amount.",
+  },
+  walkerAward: {
+    publisher: "The Urban Developer",
+    published: "25 October 2019",
+    title: "Lang Walker Receives Lifetime Achievement Award",
+    url: "https://www.theurbandeveloper.com/articles/lang-walker-awarded-the-urban-developers-lifetime-achievement",
+    context:
+      "Award coverage labelled partner content. Records the 1964 father-and-son earthmoving/civil engineering start, Walker's account of diversification, two major sales in the late 1990s and 2006, and later Collins Square and Parramatta Square projects. Company account, not independent proof of investment performance.",
+    captionCitation:
+      "The Urban Developer: Lang Walker lifetime achievement award, 25 Oct 2019 (partner content).",
+  },
+  walkerObituary: {
+    publisher: "ABC News",
+    published: "28 January 2024",
+    title: "Billionaire property developer and businessman Lang Walker dies",
+    url: "https://www.abc.net.au/news/2024-01-28/property-developer-lang-walker-dies/103398278",
+    context:
+      "Reports Walker's waterfront developments and completed Parramatta Square as a A$3.5bn project at January 2024. A dated project-scale figure, not sale proceeds, profit or current value. Do not combine it with the older A$3.2bn estimate or infer that Mirvac proceeds funded this specific project.",
+    captionCitation:
+      "ABC News: Lang Walker obituary, 28 Jan 2024; Parramatta Square project figure.",
+  },
   rialtoDeal: {
     publisher: "Arnold Bloch Leibler",
     published: "8 April 2020",
@@ -257,14 +297,24 @@ export const TRIGUBOFF_FINANCIAL_FACTS = {
 
 export const DOCUMENTARY_READING = [
   {
-    id: "grollo-ownership",
+    id: "lowy-westfield",
     series: "The Deal",
-    title: "The Grollo move: from builder to part-owner",
+    title: "Frank Lowy: funding the next centre",
     meaning:
-      "A construction contract and an ownership stake are different ways of participating in a project. The biography records a growing preference for part-ownership after the sons took over.",
+      "Lowy and Saunders used a listed company to expand beyond their first shopping centre. The corporate history specifically connects the float to Hornsby.",
     limitation:
-      "A$644m was the reported enterprise value of St Martins' 50% interest in April 2020. Grollo Australia retained its half. Not a Grollo payout, investment return or current valuation.",
-    sources: ["grolloBiography", "grolloSpeech", "rialtoDeal"],
+      "A$150,000 is calculated aggregate share issue value, not net proceeds or the complete funding for Hornsby. A$690,000 is its reported historical cost converted at the official decimal rate, without inflation adjustment. Later photographs are dated context, not 1959 or 1961 footage.",
+    sources: ["westfieldHistory", "australianDecimalConversion"],
+  },
+  {
+    id: "walker-rebuild",
+    series: "The Deal",
+    title: "Lang Walker: selling and building again",
+    meaning:
+      "A development career can continue after selling major assets. Walker's sequence runs from earthmoving to listed development, two major exits and later city-scale projects.",
+    limitation:
+      "The 2006 transaction is a rounded historical secondary-source figure, not personal profit. No claim of predicting the GFC or tracing sale proceeds into Parramatta Square. A$3.5bn is ABC's January 2024 project figure. The source dossier records the limits of the available reporting.",
+    sources: ["walkerHistory", "walkerAward", "walkerObituary"],
   },
   {
     id: "grollo-family",
@@ -275,16 +325,6 @@ export const DOCUMENTARY_READING = [
     limitation:
       "1928–1994 historical chapter, not today's corporate structure. More than A$350m was reported company worth in 1994, not personal wealth or annual profit. Darwin's 400 houses is Bruno's recollection. Early dates follow ANU where accounts differ.",
     sources: ["grolloBiography", "grolloSpeech"],
-  },
-  {
-    id: "meriton-accommodation",
-    series: "The Deal",
-    title: "Meriton's second apartment business",
-    meaning:
-      "The 2003 serviced-apartment launch added an accommodation operation alongside apartment development. The Desk explains the different customer and operating model.",
-    limitation:
-      "No claim that every apartment was retained, that unsold stock caused the launch, or that hospitality was more profitable.",
-    sources: ["meritonHistory", "meritonPenalty", "meritonMelbourne"],
   },
   {
     id: "triguboff-apartments",

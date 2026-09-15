@@ -31,11 +31,27 @@ describe("authored launch films", () => {
         for (const shot of phrase) {
           expect(shot.lines.length).toBeGreaterThan(0);
           if (shot.kind === "photo") expect(shot.photo).toBeDefined();
-          if (shot.kind === "grid") expect(shot.count).toBeGreaterThan(0);
+          if (["workforce", "houses"].includes(shot.kind)) expect(shot.count).toBeGreaterThan(0);
         }
     }
     expect(() => seriesShots("unwritten-film", 0)).toThrow();
     expect(() => seriesCuts("unwritten-film")).toThrow();
+  });
+  it("keeps four distinct launch subjects and varied authored imagery", () => {
+    expect(DOCUMENTARY_EPISODES.map((episode) => episode.id).sort()).toEqual([
+      "grollo-family",
+      "lowy-westfield",
+      "triguboff-apartments",
+      "walker-rebuild",
+    ]);
+    for (const phrases of Object.values(SERIES_DIRECTION.episodes)) {
+      const shots = phrases.flat();
+      expect(new Set(shots.map((shot) => shot.kind)).size).toBeGreaterThanOrEqual(7);
+      expect(
+        new Set(shots.flatMap((shot) => [shot.photo, shot.secondPhoto]).filter(Boolean)).size
+      ).toBeGreaterThanOrEqual(3);
+      expect(shots.some((shot) => shot.kind === "photo" && shot.layout === "full")).toBe(true);
+    }
   });
   it("binds new direction changes without invalidating another film", () => {
     const [film, other] = DOCUMENTARY_EPISODES;

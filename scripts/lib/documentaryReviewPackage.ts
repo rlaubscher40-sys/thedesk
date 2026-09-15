@@ -74,6 +74,12 @@ export async function writeDocumentaryReviewPackage(input: {
     "## Archive catalogue",
     "",
     "Complete available documentary catalogue; filenames identify each asset. The film's on-screen credits identify the images used.",
+    ...(episode.treatment === "series-led-v1"
+      ? [
+          "The Desk's adapted photographic sequences are licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Individual source images retain their recorded licences. Cropping, reframing, camera movement, colour treatment, titles and credits are adaptations. This notice does not relicense the underlying sources or imply endorsement.",
+          "",
+        ]
+      : []),
     "",
     ...Object.values(dossier.archiveCatalogue).flatMap((photo) => [
       `- [${photo.credit}](${photo.source}) · [Reuse terms](${photo.licence})`,

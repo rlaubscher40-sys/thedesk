@@ -1,5 +1,15 @@
 # The Desk documentary Reel programme
 
+## Distinct four-subject lineup, 15 September 2026
+
+The active registry now contains **Harry Triguboff, the Grollo family, Frank Lowy and Lang Walker**. Grollo ownership and Meriton accommodation are superseded previews, removed from active scripts and public reading entries. The older records below document earlier work rather than additional scheduled films.
+
+Harry's accepted 169.7-second MP4 and input hash remain unchanged. Grollo's 106.4-second film adds dated Melbourne and Darwin photography, a labour camp, concreting, workforce growth, family roles, project risk and reconstruction. Lowy's 84-second film follows Blacktown, the 1960 float, Hornsby and later expansion using a portrait, shopping-centre photography, share arithmetic and opening-day imagery. Walker's 84.6-second film follows earthmoving, the listed business, two exits and later projects using waterfront exteriors and interiors, an excavator, transaction diagrams and Parramatta photographs.
+
+All values are AUD with periods and measure labels. The Lowy share issue is aggregate issue value, not net cash or Hornsby's complete financing. Walker's rounded 2006 amount comes from the readable secondary company history; the cited original deal documents were not accessible in full. It is not personal profit or a traced source of Parramatta funding. The archive register records each image's photographer, date, licence, adaptation and checksum. Adapted photographic sequences retain CC BY-SA terms in captions and public notes.
+
+The existing slot mapping is Lowy on Wednesday 16 September, Grollo on Sunday 20 September, Walker on Wednesday 23 September and Harry on Sunday 27 September, all provisional in the existing Sydney evening window. Subject-list order is not a change to these dates. The new films still require exact-export creative review and a complete listen. No approval or Instagram receipt is inferred from a successful render or deployment; missed dates must be reassigned after review. Ordinary daily Reels retain their separate programme.
+
 ## Completing the launch buffer, 14 September 2026
 
 The user asked to build the other three films rather than waive the four-film launch gate. The three older scripts have been replaced with distinct, person-first historical stories:

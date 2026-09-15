@@ -79,6 +79,15 @@ export default function SocialSources() {
             the historical event being narrated.
           </p>
           <ul className="mt-4 space-y-5">
+            <li className="text-sm leading-6">
+              The adapted photographic sequences in the Grollo family, Frank Lowy and Lang Walker
+              films are available under{" "}
+              <a className="bs-link" href="https://creativecommons.org/licenses/by-sa/4.0/">
+                CC BY-SA 4.0
+              </a>
+              . Individual photographs retain the licences below. Adaptations include cropping,
+              reframing, motion, colour treatment and overlaid titles.
+            </li>
             {Object.values(DOCUMENTARY_PHOTOS).map((photo) => (
               <li key={photo.asset} className="text-sm leading-6">
                 <a

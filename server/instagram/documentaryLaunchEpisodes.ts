@@ -1,5 +1,6 @@
 import type { DocumentaryEpisode } from "./documentaryEpisodes";
 import type { DocumentarySourceId } from "../../shared/documentaryReels";
+import { DOCUMENTARY_NEW_SUBJECTS } from "./documentaryNewSubjects";
 
 const keys = ["label", "value", "line", "turn", "mechanism", "stakes", "meaning", "signOff"];
 type Beat = [string, string, string, string, string, DocumentarySourceId[], boolean?];
@@ -14,84 +15,9 @@ const scenes = (beats: Beat[]): DocumentaryEpisode["scenes"] =>
     ...(b[6] ? { analysis: true } : {}),
   }));
 
-/** Three different stories, not biography scripts with the names swapped. */
+/** Distinct launch subjects; superseded scripts remain in git history. */
 export const DOCUMENTARY_LAUNCH_EPISODES: DocumentaryEpisode[] = [
-  {
-    id: "grollo-ownership",
-    series: "The Deal",
-    recipe: "grollo-documentary",
-    releaseDate: "2026-09-16",
-    period: "Rialto / ownership transaction, April 2020 / AUD",
-    treatment: "series-led-v1",
-    scenes: scenes([
-      [
-        "BRUNO AND RINO GROLLO",
-        "The half they kept.",
-        "Rialto / Melbourne",
-        "Bruno and Rino Grollo helped shape Melbourne's skyline.",
-        "But this story is about the half their family kept.",
-        ["grolloSpeech", "rialtoDeal"],
-      ],
-      [
-        "BEYOND THE CONTRACT",
-        "From builder to part-owner.",
-        "The business changes",
-        "The family began in concreting, then moved into major construction.",
-        "Under the sons, part-ownership became an increasingly important ambition.",
-        ["grolloBiography"],
-      ],
-      [
-        "1986 / RIALTO",
-        "A bigger commitment.",
-        "Bruno's account: a substantial risk",
-        "Rialto was developed in nineteen eighty-six.",
-        "Bruno later described the project as a huge risk, at what critics considered the wrong end of town.",
-        ["rialtoDeal", "grolloSpeech"],
-      ],
-      [
-        "APRIL 2020",
-        "A$644 million.",
-        "Enterprise value / a 50% interest",
-        "Then, in April twenty twenty, a fifty per cent interest changed hands at an enterprise value of six hundred and forty-four million Australian dollars.",
-        "That is the transaction adviser's reported figure for the half interest, not the entire building.",
-        ["rialtoDeal"],
-      ],
-      [
-        "WHO SOLD?",
-        "Not the Grollo half.",
-        "St Martins Properties was the seller",
-        "The seller was St Martins Properties.",
-        "The buyer was a joint venture between GIC and Dexus.",
-        ["rialtoDeal"],
-      ],
-      [
-        "WHO STAYED?",
-        "Grollo Australia: 50%.",
-        "The family retained its interest",
-        "Grollo Australia retained its fifty per cent interest.",
-        "So that six hundred and forty-four million dollars was not a reported payout to the Grollos.",
-        ["rialtoDeal"],
-      ],
-      [
-        "THE DISTINCTION",
-        "The contract ends. The stake stays.",
-        "The Desk analysis",
-        "A construction contract pays for delivering a building.",
-        "An ownership interest can continue long after the cranes leave, with continuing costs and risks.",
-        ["rialtoDeal"],
-        true,
-      ],
-      [
-        "THE HALF THEY KEPT",
-        "Read the ownership.",
-        "Historical transaction / not a current valuation",
-        "The headline was a sale. The Grollo story was staying invested.",
-        "A skyline tells you what was built. The ownership record tells you who remained.",
-        ["rialtoDeal"],
-        true,
-      ],
-    ]),
-  },
+  DOCUMENTARY_NEW_SUBJECTS[0]!,
   {
     id: "grollo-family",
     series: "Property Empires",
@@ -168,81 +94,5 @@ export const DOCUMENTARY_LAUNCH_EPISODES: DocumentaryEpisode[] = [
       ],
     ]),
   },
-  {
-    id: "meriton-accommodation",
-    series: "The Deal",
-    recipe: "meriton-documentary",
-    releaseDate: "2026-09-23",
-    period: "Meriton accommodation / 2003–2023 / AUD",
-    treatment: "series-led-v1",
-    scenes: scenes([
-      [
-        "HARRY TRIGUBOFF",
-        "A different customer.",
-        "Meriton's accommodation business",
-        "Harry Triguboff built Meriton around apartments.",
-        "In two thousand and three, he added another business: accommodation for paying guests.",
-        ["meritonHistory"],
-      ],
-      [
-        "2003 / THE LAUNCH",
-        "Sell a stay.",
-        "Meriton Serviced Apartments",
-        "Meriton's history says he saw a gap for luxury, self-contained stays.",
-        "That is Meriton's explanation, not a comparison of returns.",
-        ["meritonHistory"],
-      ],
-      [
-        "A DIFFERENT OPERATION",
-        "The keys come back.",
-        "The Desk analysis / illustrative",
-        "A buyer purchases a property interest. A guest pays to use the space temporarily.",
-        "The operator has to keep winning bookings, looking after guests and maintaining the rooms.",
-        ["meritonHistory"],
-        true,
-      ],
-      [
-        "JUNE 2017",
-        "Meriton Suites.",
-        "The accommodation brand changes",
-        "In June twenty seventeen, the business rebranded as Meriton Suites.",
-        "But hospitality also brought a very different kind of exposure: customer reviews.",
-        ["meritonHistory", "meritonPenalty"],
-        true,
-      ],
-      [
-        "31 JULY 2018",
-        "A$3 million.",
-        "Federal Court penalty / company, not Harry personally",
-        "In July twenty eighteen, the Federal Court ordered Meriton Property Services to pay three million Australian dollars.",
-        "The penalty was for manipulating TripAdvisor reviews, according to the competition regulator.",
-        ["meritonPenalty"],
-      ],
-      [
-        "WHAT HAPPENED",
-        "The missing invitations.",
-        "Historical court finding / reported by ACCC",
-        "Email addresses were masked so guests expected to leave negative reviews did not receive review invitations.",
-        "This was a company penalty, not Harry's personally.",
-        ["meritonPenalty"],
-      ],
-      [
-        "SEPTEMBER 2023",
-        "298 suites.",
-        "Melbourne CBD / opening milestone",
-        "The expansion continued. Meriton's Melbourne hotel opened in September twenty twenty-three, with two hundred and ninety-eight suites.",
-        "That is a room count, not sales proceeds, occupancy or profit.",
-        ["meritonMelbourne"],
-      ],
-      [
-        "BEYOND THE BUILDING",
-        "Build. Operate. Repeat.",
-        "The Desk analysis",
-        "The strategic change was not simply keeping apartments.",
-        "It was taking on a business that has to deliver the stay, every time the keys change hands.",
-        ["meritonHistory", "meritonMelbourne"],
-        true,
-      ],
-    ]),
-  },
+  DOCUMENTARY_NEW_SUBJECTS[1]!,
 ];

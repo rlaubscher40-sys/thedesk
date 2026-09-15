@@ -94,6 +94,14 @@ The maintained questions are in `DOCUMENTARY_REVIEW_BAR`. Record a verdict and a
 
 ## Schedule and release
 
+### Subject and visual variety
+
+The first four films cover Harry Triguboff, the Grollo family, Frank Lowy and Lang Walker. Treat a founder, their family company and subsidiaries as the same subject when selecting a launch slot. Do not pair a biography with a second company story in the same four-film buffer. The earlier Grollo ownership and Meriton accommodation cuts are superseded previews.
+
+For later automatic selection, check both the documentary buffer and ordinary Reel history. Prefer a different founder or family, location, business model and central decision. Require a documented business progression, a clearly labelled AUD financial measure, freely readable supporting sources, and usable imagery before promoting a research topic into production. A famous name alone is insufficient. A new subject should have at least three distinct licensed photographic assets and seven purposeful visual treatments; these are minimum production checks, not a creative score. Do not repeatedly cut between the same generic tower, number card and grid.
+
+Direct each phrase before rendering. Inspect the encoded section frames and ending, then fix concrete faults such as text overlapping a crane, an image of a different project, or repetitive layouts. Shared typography and subtitle clearance should be consistent; subject palettes, photographic compositions and event illustrations should vary. An unread primary document must remain an explicit research limitation, even when a clearly attributed secondary account supports the stated claim.
+
 Retain Wednesday's The Deal and Sunday's Property Empires within the existing Sydney publishing window. The approved launch buffer is four exact reviewed exports. A missed date does not backfill silently and new topics remain in the research backlog until their own evidence, film and review exist.
 
 Changing script, assets, direction, sound or render inputs invalidates an earlier review. Increment the renderer version when the rendered treatment changes. Keep technical checks and creative approval separate; the export command never posts or approves itself. Use the user's current authorisation for code and publication actions, then verify the required checks and deployment receipt.
