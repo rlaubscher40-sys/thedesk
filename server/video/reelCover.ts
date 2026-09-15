@@ -1,6 +1,3 @@
-import { createCanvas, loadImage } from "@napi-rs/canvas";
-import { createHash } from "node:crypto";
-import { loadAsset, renderEditorialLayer } from "../og/instagramCards";
 import type { ReelStat } from "./statReel";
 import type { ScriptLine } from "./narration";
 import { validateEvidenceVisual } from "./evidenceVisual";
@@ -8,8 +5,8 @@ import { validateStoryboard } from "./storyboard";
 import { matchedHousingBalance } from "../../shared/housingBalance";
 import { evidenceOpening, housingOpening } from "./reelOpening";
 import { assertReelVisualSequence, reelSceneShot, REEL_SHOTS } from "./reelVisualStandard";
-import { loanPhotoCrop } from "./loanStoryPhotography";
 import { validateDocumentary } from "./documentaryStory";
+import { renderCoverArtwork, type CoverArtwork } from "./reelCoverArtwork";
 
 export function reelCoverContent(stat: ReelStat, script: ScriptLine[]) {
   if (stat.documentary) {
@@ -63,111 +60,106 @@ export function reelCoverContent(stat: ReelStat, script: ScriptLine[]) {
   };
 }
 
-/** All essential copy stays inside the centre square (y=420..1500), also
- * retained by a centre 3:4 crop. The full portrait remains photographic. */
+/** Derive each cover from validated evidence, with a hook authored for a still. */
+export function reelCoverDesign(stat: ReelStat, script: ScriptLine[]): CoverArtwork {
+  const content = reelCoverContent(stat, script);
+  const design: CoverArtwork = {
+    treatment: "photograph",
+    photo: content.shot,
+    section: stat.documentary?.series ?? "The evidence",
+    headline: content.opening.headline,
+    detail: content.opening.detail,
+    period: content.period,
+    source: content.source,
+  };
+  if (stat.documentary?.id === "triguboff-apartments") {
+    return {
+      ...design,
+      treatment: "portrait",
+      subject: "Harry Triguboff",
+      headline: "Eight flats.\nThen an empire.",
+      detail: "The making of Meriton.",
+      period: "Meriton / founded 1963",
+    };
+  }
+  if (stat.documentary?.id === "grollo-family") {
+    return {
+      ...design,
+      treatment: "split",
+      subject: "The Grollos",
+      headline: "The family behind\nthe skyline.",
+      detail: "From concreting to Melbourne's towers.",
+      period: "The family business / founded 1948",
+    };
+  }
+  if (stat.documentary?.id === "grollo-ownership") {
+    return {
+      ...design,
+      subject: "Bruno + Rino Grollo",
+      headline: "Build it.\nOwn a share.",
+      detail: "The move beyond construction.",
+    };
+  }
+  const visual = stat.visualStory;
+  if (visual?.recipe === "interstate-migration") {
+    const value = visual.rows[0]!.value;
+    return {
+      ...design,
+      treatment: "split",
+      section: "Population",
+      subject: "Queensland",
+      figure: `${value > 0 ? "+" : value < 0 ? "−" : ""}${Math.abs(value).toLocaleString("en-AU")}`,
+      headline:
+        value === 0
+          ? "No net interstate change."
+          : value > 0
+            ? "Net interstate arrivals."
+            : "Net interstate departures.",
+      detail: "Arrivals minus departures. Across state borders.",
+    };
+  }
+  if (visual?.recipe === "supply-checklist") {
+    return {
+      ...design,
+      subject: "Greater Sydney",
+      section: "Housing supply",
+      headline: "Approved.\nWhen built?",
+      detail: `${visual.rows[0]!.value.toLocaleString("en-AU")} dwelling approvals. Timing matters.`,
+    };
+  }
+  if (visual?.recipe === "new-loan-rates") {
+    return {
+      ...design,
+      section: "Borrowing",
+      subject: "Same loan. Shorter term.",
+      headline: "Five fewer years.\nWhat changes?",
+      detail: "The trade-off in monthly repayments.",
+    };
+  }
+  if (stat.storyboard?.kind === "housing-balance" && stat.storyboard.opening === "question") {
+    const balance = matchedHousingBalance(stat.storyboard.evidence)!;
+    return {
+      ...design,
+      section: "Supply + demand",
+      subject: "Australia's new housing gap",
+      figure: `~${balance.shortfall.toLocaleString("en-AU")}`,
+      headline: "Homes short.",
+      detail: "New supply fell behind estimated new demand.",
+    };
+  }
+  if (visual?.recipe === "capital-rents" || visual?.recipe === "rent-comparison") {
+    design.treatment = "split";
+    design.section = "Rents";
+    design.subject = "Annual rent change";
+  }
+  if (visual?.recipe === "rent-change") design.subject = "Annual rent change / Sydney";
+  if (visual?.recipe === "approval-comparison") design.subject = "Brisbane + Perth";
+  if (stat.storyboard?.kind === "housing-balance" && stat.storyboard.opening === "consequence")
+    design.subject = "Modelled deposit-saving time";
+  return design;
+}
+
+/** The production publisher and offline review use exactly the same renderer. */
 export async function renderReelCover(stat: ReelStat, script: ScriptLine[]) {
-  const cover = reelCoverContent(stat, script);
-  const asset = await loadAsset(cover.shot.asset);
-  if (!asset) throw new Error(`Reviewed Reel cover photograph is missing: ${cover.shot.asset}`);
-  if (
-    stat.documentary &&
-    "sha256" in cover.shot &&
-    createHash("sha256")
-      .update(Buffer.from(asset.split(",")[1]!, "base64"))
-      .digest("hex") !== cover.shot.sha256
-  )
-    throw new Error("Reviewed documentary cover photograph changed.");
-  const photo = await loadImage(asset);
-  const canvas = createCanvas(1080, 1920),
-    ctx = canvas.getContext("2d");
-  const crop = loanPhotoCrop(photo.width, photo.height, cover.shot.focus, 0.35, {
-    zoom: "zoom" in cover.shot && typeof cover.shot.zoom === "number" ? cover.shot.zoom : undefined,
-    verticalFocus:
-      "verticalFocus" in cover.shot && typeof cover.shot.verticalFocus === "number"
-        ? cover.shot.verticalFocus
-        : undefined,
-  });
-  ctx.drawImage(photo, crop.x, crop.y, crop.width, crop.height);
-  const gradient = ctx.createLinearGradient(0, 0, 0, 1920);
-  for (const [stop, alpha] of [
-    [0, 0.3],
-    [0.3, 0.6],
-    [0.42, 0.78],
-    [0.62, 0.94],
-    [1, 0.98],
-  ])
-    gradient.addColorStop(stop!, `rgba(12,17,23,${alpha})`);
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, 1080, 1920);
-  const line = (
-    top: number,
-    text: string,
-    size: number,
-    height: number,
-    gold = false,
-    serif = false
-  ) => ({
-    type: "div",
-    props: {
-      "data-reel-safe-text": true,
-      "data-reel-max-height": height,
-      style: {
-        display: "flex",
-        position: "absolute",
-        left: 0,
-        top,
-        width: 840,
-        fontFamily: serif ? "Playfair Display" : "Desk Editorial Sans",
-        fontWeight: serif ? 700 : 400,
-        fontSize: size,
-        lineHeight: 1.12,
-        color: gold ? "#C5A267" : "#F0EDE6",
-      },
-      children: text,
-    },
-  });
-  const layer = await renderEditorialLayer(
-    {
-      type: "div",
-      props: {
-        style: { display: "flex", position: "relative", width: 840, height: 1000 },
-        children: [
-          line(0, "The Desk", 52, 65, false, true),
-          line(
-            82,
-            stat.documentary?.series.toUpperCase() ?? "THE EVIDENCE / EXPLAINED",
-            24,
-            35,
-            true
-          ),
-          line(350, cover.opening.headline, 82, 280, false, true),
-          line(650, cover.opening.detail, 38, 100, true),
-          line(780, cover.period, 27, 65),
-          line(880, cover.source, 24, 100),
-        ],
-      },
-    },
-    840,
-    1000
-  );
-  ctx.drawImage(await loadImage(layer), 84, 460);
-  const credit = await renderEditorialLayer(
-    {
-      type: "div",
-      props: {
-        style: {
-          display: "flex",
-          width: 840,
-          fontFamily: "Desk Editorial Sans",
-          fontSize: 22,
-          color: "#C0BDB5",
-        },
-        children: cover.shot.credit,
-      },
-    },
-    840,
-    90
-  );
-  ctx.drawImage(await loadImage(credit), 84, 1710);
-  return canvas.encode("jpeg", 90);
+  return renderCoverArtwork(reelCoverDesign(stat, script));
 }
