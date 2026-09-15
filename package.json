@@ -26,7 +26,8 @@
     "setup:voice": "node scripts/setup-reel-voice.mjs",
     "audit:security": "pnpm audit --audit-level=low",
     "audit:dead-code": "knip --treat-config-hints-as-errors",
-    "audit:legal": "node --import tsx scripts/legal-audit.ts"
+    "audit:legal": "node --import tsx scripts/legal-audit.ts",
+    "preview:covers": "node --import tsx scripts/preview-reel-covers.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.105.0",
