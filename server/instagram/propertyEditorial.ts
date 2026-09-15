@@ -2,7 +2,6 @@ import { datedBriefingHold } from "../../shared/sourceTiming";
 import { diverseCoverage } from "../../shared/coverageGroups";
 import type { DailyFeedItem, DailyMetric } from "../db/schema";
 import type { EditionTopic } from "../../shared/schemas";
-import { FEATURED_COMPARISON_PATH } from "../../shared/featuredComparison";
 import { foreignHousingHeadline } from "../../shared/australianScope";
 import { propertyNewsHold } from "../../shared/propertyNewsQuality";
 import { explainNoPick, pickStatOfTheDay, rehearsalStat, type HistoryPoint } from "./statPick";
@@ -159,9 +158,4 @@ export function explainNoPropertyStat(
   return eligible.length
     ? `No property or cash-rate metric cleared the evidence bar. ${explainNoPick(eligible, histories, now)}`
     : "No eligible property or cash-rate metrics. Unrelated market moves are not property posts.";
-}
-
-/** Do not claim the mobile bio link has been changed. This route already exists. */
-export function propertyComparisonCta(medium: "carousel" | "reel" | "stat"): string {
-  return `Compare Brisbane and Perth free: https://thedesk.au${FEATURED_COMPARISON_PATH}?utm_source=instagram&utm_medium=${medium}&utm_campaign=property_editorial_${medium}\nRent evidence, source dates and gaps. Not an investment ranking.`;
 }

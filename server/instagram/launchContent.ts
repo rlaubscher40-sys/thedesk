@@ -4,6 +4,7 @@ import { featuredComparison } from "../../shared/featuredComparison";
 import type { MarketDirectory } from "../../shared/marketDirectory";
 import { featuredComparisonCardInput } from "../core/marketSeo";
 import type { DeskTakeCardInput } from "../og/takeCard";
+import { composeEditorialCaption } from "./editorialCaption";
 
 type LaunchSlide = { title: string; body: string };
 export type LaunchContent = {
@@ -56,16 +57,34 @@ export function buildLaunchContent(id: LaunchPostId, directory?: MarketDirectory
       id,
       title: "Start here",
       slides: intro,
-      caption:
-        "Property decisions start with better questions. What changed? Why does it matter? What would make us rethink the view?\n\nThe Desk brings Australian property reporting and recorded signals into one place, with sources and evidence gaps visible.\n\nStart with our free Brisbane–Perth comparison. Then explore a market, save a signal or ask the next question.\n\nOpen The Desk through our bio, then tap Markets.",
+      caption: composeEditorialCaption({
+        hook: "Property decisions start with better questions.",
+        paragraphs: [
+          "What changed? Why does it matter? What would make us rethink the view?",
+          "The Desk brings Australian property reporting and recorded signals into one place, with sources and evidence gaps visible.",
+        ],
+        action:
+          "Start with the free Brisbane–Perth comparison to see the figures and what they cannot tell you.",
+        destination: "Open The Desk through our bio, then tap Markets.",
+        references: ["About The Desk: https://thedesk.au"],
+        beat: "property",
+      }),
     };
   if (id === "how")
     return {
       id,
       title: "How to use The Desk",
       slides: how,
-      caption:
-        "Start with the answer, then inspect it.\n\nOur Brisbane–Perth read shows one comparable measure, its sources and the evidence still needed for a wider market decision. The first read needs no account or question allowance.\n\nOpen The Desk through our bio and tap Markets. Which missing piece would you want to see next?",
+      caption: composeEditorialCaption({
+        hook: "Start with the answer, then inspect it.",
+        paragraphs: [
+          "Our Brisbane–Perth read shows one comparable measure, its sources and the evidence still needed for a wider market decision. The first read needs no account or question allowance.",
+        ],
+        action: "Use the source trail to separate what is known from what still needs checking.",
+        destination: "Open The Desk through our bio and tap Markets.",
+        references: ["The Desk reading guide: https://thedesk.au/social"],
+        beat: "property",
+      }),
     };
   if (!directory) throw new Error("Current ABS comparison evidence is unavailable.");
   const comparison = featuredComparisonCardInput(directory);
@@ -77,7 +96,19 @@ export function buildLaunchContent(id: LaunchPostId, directory?: MarketDirectory
     title: "Brisbane vs Perth",
     slides: [],
     comparison,
-    caption: `${read.summary}\n\n${comparison.take} The gap is ${comparison.figure} (percentage points).\n\n${comparison.context}\n\nOpen the free comparison for the figures, sources and missing pieces. Visit The Desk through our bio, then tap Markets.\n\nSource: Australian Bureau of Statistics, CPI rents, original series.`,
+    caption: composeEditorialCaption({
+      hook: "Brisbane vs Perth: compare rent growth, not an investment ranking.",
+      paragraphs: [
+        read.summary,
+        `${comparison.take} The gap is ${comparison.figure} (percentage points).`,
+        ...(comparison.context ? [comparison.context] : []),
+      ],
+      action: "Check rent levels, purchase prices and costs before comparing potential returns.",
+      destination:
+        "Open The Desk through our bio, then tap Markets for the figures, sources and missing pieces.",
+      references: ["Source: Australian Bureau of Statistics, CPI rents, original series."],
+      beat: "rents",
+    }),
   };
 }
 

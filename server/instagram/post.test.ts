@@ -124,9 +124,10 @@ describe("property conversion", () => {
 });
 
 describe("buildDailyCaption — source-grounded property briefing", () => {
-  it("opens with attributed detail and retains the source headline while excluding unrelated stories", () => {
+  it("opens with the source headline and follows with attributed detail, excluding unrelated stories", () => {
     const caption = buildDailyCaption(trio);
-    expect(caption.startsWith(`${trio[1]!.source} reports:`)).toBe(true);
+    expect(caption.startsWith(trio[1]!.title)).toBe(true);
+    expect(caption).toContain(`${trio[1]!.source} reports:`);
     expect(caption).toContain(trio[1]!.summary);
     expect(caption).toContain(trio[1]!.title);
     expect(caption).toContain(trio[0]!.title);

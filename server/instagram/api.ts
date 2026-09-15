@@ -85,7 +85,7 @@ async function igPost<T>(
   signal?: AbortSignal
 ): Promise<T> {
   await assertPublicationAllowed("social");
-  if (params.caption) assertCaptionStyle(params.caption);
+  if (params.caption !== undefined) assertCaptionStyle(params.caption);
   const body = new URLSearchParams(params);
   const res = await fetch(`${BASE}${endpoint}`, {
     method: "POST",
@@ -236,7 +236,7 @@ export async function createImageContainer(opts: {
     access_token: opts.accessToken,
   };
   if (opts.isCarouselItem) params.is_carousel_item = "true";
-  if (opts.caption) params.caption = opts.caption;
+  if (opts.caption !== undefined) params.caption = opts.caption;
   if (opts.altText) params.alt_text = opts.altText;
 
   const data = await withIgRetry("createImageContainer", () =>
@@ -278,7 +278,7 @@ export async function createReelContainer(opts: {
     share_to_feed: "true",
     access_token: opts.accessToken,
   };
-  if (opts.caption) params.caption = opts.caption;
+  if (opts.caption !== undefined) params.caption = opts.caption;
   if (opts.coverUrl) params.cover_url = opts.coverUrl;
   const data = await withIgRetry("createReelContainer", () =>
     igPost<{ id: string }>(`/${opts.igUserId}/media`, params)

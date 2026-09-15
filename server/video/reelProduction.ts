@@ -61,7 +61,9 @@ export function assertProductionCandidate(candidate: ProductionReelCandidate) {
       "housing-balance",
       script.map((s) => s.key)
     );
-  if (!caption.trim() || caption.length > REEL_CAPTION_LIMIT)
+  // Long-form documentary source/licence notes need the full caption allowance.
+  // Ordinary data Reels keep their tighter editorial budget.
+  if (!caption.trim() || caption.length > (stat.documentary ? 2200 : REEL_CAPTION_LIMIT))
     throw new Error("Reel needs a complete caption within the editorial budget.");
   assertCaptionStyle(caption);
 }
