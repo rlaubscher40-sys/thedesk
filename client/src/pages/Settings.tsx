@@ -8,7 +8,9 @@
  *, the shape is already JSON-friendly.
  */
 import { useState } from "react";
-import { Bell, Check, Layers, LogOut, Monitor, Moon, Sun, Trash2, Type } from "lucide-react";
+import { Bell, Check, Layers, LogOut, Monitor, Moon, Sun, Type } from "lucide-react";
+import { PrivacyChoices } from "@/components/PrivacyChoices";
+import { EDITORIAL_CONTACT } from "@shared/legal";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 import { PageHeader } from "@/components/PageHeader";
@@ -41,6 +43,12 @@ export default function SettingsPage() {
 
       <SectionErrorBoundary section="Notifications">
         <NotificationsCard />
+      </SectionErrorBoundary>
+
+      <SectionErrorBoundary section="Privacy">
+        <div className="panel rounded p-6 sm:p-8">
+          <PrivacyChoices />
+        </div>
       </SectionErrorBoundary>
 
       {isAuthenticated && (
@@ -343,20 +351,12 @@ function AccountCard() {
           <LogOut className="h-3 w-3" />
           {busy ? "Signing out…" : "Sign out"}
         </button>
-        <button
-          onClick={() =>
-            toast.message("Reader-level account deletion arrives when email delivery does.")
-          }
-          className="inline-flex items-center gap-2 rounded px-3.5 py-2 text-[0.75rem] font-mono uppercase tracking-[0.18em] transition-colors"
-          style={{
-            background: "oklch(0.68 0.20 15 / 8%)",
-            color: "oklch(0.78 0.16 15)",
-            boxShadow: "inset 0 0 0 1px oklch(0.68 0.20 15 / 30%)",
-          }}
+        <a
+          href={`mailto:${EDITORIAL_CONTACT}?subject=Account%20deletion%20request`}
+          className="inline-flex min-h-11 items-center rounded px-3.5 py-2 text-sm underline"
         >
-          <Trash2 className="h-3 w-3" />
-          Delete account
-        </button>
+          Request account deletion
+        </a>
       </div>
     </SettingsCard>
   );

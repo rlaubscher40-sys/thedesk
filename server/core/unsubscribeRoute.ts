@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import type { Express } from "express";
 import rateLimit from "express-rate-limit";
 import { BRAND_LIGHT } from "../../shared/brandPalette";
+import { EDITORIAL_CONTACT } from "../../shared/legal";
 import { signingSecret } from "./env";
 import * as db from "../db";
 
@@ -41,6 +42,7 @@ const PAGE = (msg: string, sub: boolean) => `<!doctype html>
     <div class="rule"></div>
     <h1>${sub ? "You're unsubscribed." : "Invalid link."}</h1>
     <p>${msg}</p>
+    <p>Need help? Email <a href="mailto:${EDITORIAL_CONTACT}?subject=Unsubscribe%20request">${EDITORIAL_CONTACT}</a>.</p>
     <a href="/">← Back to The Desk</a>
   </div>
 </body>
@@ -83,9 +85,12 @@ function validateUnsubscribe(rawEmail: unknown, rawSig: unknown, rawExp: unknown
     payload = rawEmail;
   }
   const expected = createHmac("sha256", signingSecret()).update(payload).digest("base64url");
+  // String length is not byte length: malformed Unicode must not throw from
+  // timingSafeEqual and turn a bad link into a server error.
+  const supplied = Buffer.from(rawSig);
+  const expectedBytes = Buffer.from(expected);
   const sigOk =
-    rawSig.length === expected.length &&
-    timingSafeEqual(Buffer.from(rawSig), Buffer.from(expected));
+    supplied.length === expectedBytes.length && timingSafeEqual(supplied, expectedBytes);
   if (!sigOk) {
     return { ok: false, status: 403, reason: "This unsubscribe link is invalid." };
   }
@@ -93,6 +98,14 @@ function validateUnsubscribe(rawEmail: unknown, rawSig: unknown, rawExp: unknown
 }
 
 export function registerUnsubscribeRoute(app: Express): void {
+  // Signed links carry an email address and authorisation token. Keep both
+  // out of caches, search indexes and navigation referrers, including errors.
+  app.use("/api/unsubscribe", (_req, res, next) => {
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Referrer-Policy", "no-referrer");
+    res.setHeader("X-Robots-Tag", "noindex, nofollow");
+    next();
+  });
   // Public (clicked from email, no session). The HMAC check is already
   // constant-time; the limiter keeps the endpoint from being used to
   // enumerate signatures or hammer the subscribers table.
@@ -113,7 +126,7 @@ export function registerUnsubscribeRoute(app: Express): void {
     await db.unsubscribeByEmail(result.email);
     res.send(
       PAGE(
-        "You won't receive any more emails from The Desk. If this was a mistake, just re-subscribe on the site.",
+        "You won't receive further newsletters from The Desk. If this was a mistake, request a new subscription on the site and confirm it using the email we send you.",
         true
       )
     );

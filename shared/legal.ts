@@ -2,7 +2,7 @@
  * Preserve old newsletter wording here when changing the version: subscriber
  * records refer to it. A version is evidence of the notice, not legal approval.
  */
-export const LEGAL_UPDATED_LABEL = "14 September 2026";
+export const LEGAL_UPDATED_LABEL = "16 September 2026";
 export const EDITORIAL_CONTACT = "ruben@thedesk.au";
 export const NEWSLETTER_NOTICE_VERSION = "2026-09-14";
 const NEWSLETTER_NOTICES = {

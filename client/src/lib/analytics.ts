@@ -13,6 +13,7 @@ import { getArrival } from "@/lib/attribution";
 import { socialCampaign } from "@shared/socialCampaign";
 import { analyticsReferrer } from "@shared/analyticsReferrer";
 import { ENGAGEMENT_EVENTS, ENGAGEMENT_SURFACES } from "@shared/analyticsEvents";
+import { optionalMeasurementAllowed, clearMeasurementSession } from "./privacyPreferences";
 
 const SESSION_KEY = "thedesk:session";
 
@@ -36,16 +37,6 @@ function sessionId(): string | null {
   } catch {
     return null;
   }
-}
-
-function dntEnabled(): boolean {
-  if (typeof navigator === "undefined") return false;
-  const nav = navigator as Navigator & { doNotTrack?: string | null };
-  return (
-    nav.doNotTrack === "1" ||
-    (typeof window !== "undefined" &&
-      (window as Window & { doNotTrack?: string | null }).doNotTrack === "1")
-  );
 }
 
 function send(path: "/api/analytics/pageview" | "/api/analytics/event", body: object): void {
@@ -75,7 +66,11 @@ let lastPath: string | null = null;
 /** Fire a page-view beacon for the current location. Debounced against the
  * previous fired path so duplicate-route renders don't double-count. */
 export function trackPageView(): void {
-  if (typeof window === "undefined" || dntEnabled()) return;
+  if (!optionalMeasurementAllowed()) {
+    clearMeasurementSession();
+    lastPath = null;
+    return;
+  }
   const id = sessionId();
   if (!id) return;
 
@@ -109,7 +104,10 @@ export function trackPageView(): void {
  * not arbitrary metadata.
  */
 export function trackEvent(event: EngagementEvent, surface?: EngagementSurface): void {
-  if (typeof window === "undefined" || dntEnabled()) return;
+  if (!optionalMeasurementAllowed()) {
+    clearMeasurementSession();
+    return;
+  }
   if (!ENGAGEMENT_EVENTS.includes(event) || (surface && !ENGAGEMENT_SURFACES.includes(surface)))
     return;
   const id = sessionId();

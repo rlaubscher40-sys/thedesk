@@ -1,15 +1,14 @@
 import { onCLS, onINP, onLCP, type Metric } from "web-vitals";
 import { analyticsPath } from "@shared/analyticsPath";
+import { optionalMeasurementAllowed } from "./privacyPreferences";
 /** No account, session, element selector, query text or raw URL is transmitted. */
 export function initWebVitals() {
-  if (
-    navigator.doNotTrack === "1" ||
-    (window as Window & { doNotTrack?: string }).doNotTrack === "1"
-  )
-    return;
+  if (!optionalMeasurementAllowed()) return;
   const path = analyticsPath(window.location.pathname);
   const device = window.innerWidth < 768 ? "mobile" : "desktop";
   const report = ({ id, name, value }: Metric) => {
+    // Observers can fire long after registration, including at page exit.
+    if (!optionalMeasurementAllowed()) return;
     const body = JSON.stringify({ id, name, value, path, device });
     try {
       if (

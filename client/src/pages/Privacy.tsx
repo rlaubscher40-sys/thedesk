@@ -1,5 +1,6 @@
 import { useDocumentTitle } from "@/lib/useDocumentTitle";
 import { EDITORIAL_CONTACT, LEGAL_UPDATED_LABEL } from "@shared/legal";
+import { PrivacyChoices } from "@/components/PrivacyChoices";
 
 export default function Privacy() {
   useDocumentTitle("Privacy");
@@ -11,6 +12,7 @@ export default function Privacy() {
         <p className="text-sm text-[var(--color-fg-muted)]">Last updated: {LEGAL_UPDATED_LABEL}</p>
       </header>
       <div className="editorial-rule-soft" aria-hidden="true" />
+      <PrivacyChoices />
       <section className="space-y-3">
         <h2 className="font-serif text-2xl mt-8">About this notice</h2>
         <p>
@@ -29,7 +31,9 @@ export default function Privacy() {
           channel or campaign. We keep subscription requests, the notice version supplied by the
           form, confirmation and unsubscribe status to manage delivery and consent. Emails include
           the weekday morning briefing and Sunday edition. Enquiries contain whatever information
-          you choose to send us.
+          you choose to send us. Feedback also includes the page address with query parameters
+          removed and browser information to help diagnose problems. Providing a name or reply email
+          is optional and does not subscribe you to marketing.
         </p>
       </section>
       <section className="space-y-3">
@@ -57,11 +61,23 @@ export default function Privacy() {
         <p>
           Our own analytics record page paths, limited product actions, referring hostnames,
           campaign labels and a temporary browser-session identifier. This is not a guarantee of
-          anonymity. Analytics exclude question text and respect Do Not Track. Performance samples
-          use a rolling 30-day window as new measurements arrive. Browser storage also remembers
-          arrival campaigns and preferences. Security controls and infrastructure process connection
-          information and identifiers to prevent abuse; infrastructure providers may maintain their
-          own logs.
+          anonymity. Optional analytics, campaign attribution and performance measurements respect
+          Do Not Track, Global Privacy Control and the choice above. Analytics exclude question
+          text. Performance samples use a rolling 30-day window as new measurements arrive. Browser
+          storage also remembers arrival campaigns when measurement is enabled, and your
+          preferences. Security controls and infrastructure process connection information and
+          identifiers to prevent abuse; infrastructure providers may maintain their own logs.
+        </p>
+      </section>
+      <section className="space-y-3">
+        <h2 className="font-serif text-2xl mt-8">Cookies and browser storage</h2>
+        <p>
+          Sign-in uses a session cookie. Reading preferences, theme, saved items and your privacy
+          choice use local browser storage until you change or clear them. Optional measurement uses
+          session storage for a temporary identifier and arrival campaign; these are removed when
+          you turn measurement off. Infrastructure may use additional security cookies. Clearing
+          browser storage also removes your saved privacy choice. This control does not delete
+          information already received by us or control external websites.
         </p>
       </section>
       <section className="space-y-3">

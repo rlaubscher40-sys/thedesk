@@ -109,4 +109,12 @@ describe("bounded Instagram website measurements", () => {
     await request("/api/analytics/event", body, { dnt: "1" });
     expect(m.event).not.toHaveBeenCalled();
   });
+  it("honours Global Privacy Control on every measurement endpoint before processing payloads", async () => {
+    for (const path of ["pageview", "event", "vitals"]) {
+      const res = await request(`/api/analytics/${path}`, { invalid: true }, { "sec-gpc": "1" });
+      expect(res.status).toHaveBeenCalledWith(204);
+    }
+    expect(m.page).not.toHaveBeenCalled();
+    expect(m.event).not.toHaveBeenCalled();
+  });
 });

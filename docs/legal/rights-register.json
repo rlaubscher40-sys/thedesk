@@ -1,12 +1,90 @@
 {
-  "version": 2,
-  "generatedAt": "2026-09-14T23:33:11.727Z",
-  "scope": "Configured news discovery routes and extraction holds, reviewed Reel photographs, bundled font/image/notice file identities and direct npm dependencies. Dataset-specific terms, voice model components, historical exports and transitive dependency obligations still need assessment.",
+  "version": 3,
+  "generatedAt": "2026-09-16T16:28:24.964Z",
+  "scope": "Configured news discovery routes and extraction holds, reviewed Reel photographs, browser font/notice integrity, bundled server font/image/notice file identities and direct npm dependencies. Dataset-specific terms, voice model components, historical exports and transitive dependency obligations still need assessment.",
   "applicationLicence": {
     "declared": "MIT",
     "status": "Owner decision required. No licence changed; previous valid grants are not revoked."
   },
   "newsSources": [
+    {
+      "name": "Business Times Australian Property",
+      "discoveryUrl": "https://www.businesstimes.com.sg/property",
+      "channel": "PROPERTY",
+      "articleExtractionHold": null,
+      "policyReviewId": null,
+      "kind": "index",
+      "permissionStatus": "not-assessed-by-this-inventory",
+      "licenceUrl": null,
+      "checkedAt": null,
+      "reviewer": null,
+      "requiredReview": "Check publisher terms for automated access, excerpts, AI processing, storage and commercial reuse. A working feed or robots permission is not a copyright licence. Google discovery does not license the underlying publisher."
+    },
+    {
+      "name": "Australian Migration Policy",
+      "discoveryUrl": "https://news.google.com/rss/search?q=Australia+%28migration+OR+immigration+OR+visas%29+%28Burke+OR+government+OR+policy+OR+legislation%29&hl=en-AU&gl=AU&ceid=AU%3Aen",
+      "channel": "AU",
+      "articleExtractionHold": null,
+      "policyReviewId": null,
+      "kind": "discovery-only",
+      "permissionStatus": "not-assessed-by-this-inventory",
+      "licenceUrl": null,
+      "checkedAt": null,
+      "reviewer": null,
+      "requiredReview": "Check publisher terms for automated access, excerpts, AI processing, storage and commercial reuse. A working feed or robots permission is not a copyright licence. Google discovery does not license the underlying publisher."
+    },
+    {
+      "name": "CBA Australian Market Close",
+      "discoveryUrl": "https://www.commbank.com.au/articles/newsroom.html",
+      "channel": "AU",
+      "articleExtractionHold": null,
+      "policyReviewId": null,
+      "kind": "index",
+      "permissionStatus": "not-assessed-by-this-inventory",
+      "licenceUrl": null,
+      "checkedAt": null,
+      "reviewer": null,
+      "requiredReview": "Check publisher terms for automated access, excerpts, AI processing, storage and commercial reuse. A working feed or robots permission is not a copyright licence. Google discovery does not license the underlying publisher."
+    },
+    {
+      "name": "Westpac IQ Economics",
+      "discoveryUrl": "https://www.westpaciq.com.au/",
+      "channel": "AU",
+      "articleExtractionHold": null,
+      "policyReviewId": null,
+      "kind": "index",
+      "permissionStatus": "not-assessed-by-this-inventory",
+      "licenceUrl": null,
+      "checkedAt": null,
+      "reviewer": null,
+      "requiredReview": "Check publisher terms for automated access, excerpts, AI processing, storage and commercial reuse. A working feed or robots permission is not a copyright licence. Google discovery does not license the underlying publisher."
+    },
+    {
+      "name": "CPA Australia Releases",
+      "discoveryUrl": "https://www.cpaaustralia.com.au/about-cpa-australia/media/media-releases",
+      "channel": "AU",
+      "articleExtractionHold": null,
+      "policyReviewId": null,
+      "kind": "index",
+      "permissionStatus": "not-assessed-by-this-inventory",
+      "licenceUrl": null,
+      "checkedAt": null,
+      "reviewer": null,
+      "requiredReview": "Check publisher terms for automated access, excerpts, AI processing, storage and commercial reuse. A working feed or robots permission is not a copyright licence. Google discovery does not license the underlying publisher."
+    },
+    {
+      "name": "Australian State Revenue",
+      "discoveryUrl": "https://news.google.com/rss/search?q=%28NSW+OR+%22New+South+Wales%22+OR+Victoria+OR+Queensland%29+%28%22stamp+duty%22+OR+%22tax+receipts%22%29+%28revenue+OR+falls+OR+rises+OR+budget%29&hl=en-AU&gl=AU&ceid=AU%3Aen",
+      "channel": "PROPERTY",
+      "articleExtractionHold": null,
+      "policyReviewId": null,
+      "kind": "discovery-only",
+      "permissionStatus": "not-assessed-by-this-inventory",
+      "licenceUrl": null,
+      "checkedAt": null,
+      "reviewer": null,
+      "requiredReview": "Check publisher terms for automated access, excerpts, AI processing, storage and commercial reuse. A working feed or robots permission is not a copyright licence. Google discovery does not license the underlying publisher."
+    },
     {
       "name": "Financial Advice Association Australia",
       "discoveryUrl": "https://faaa.au/feed/",
@@ -1258,6 +1336,166 @@
   ],
   "photographs": [
     {
+      "key": "lowyPortrait",
+      "asset": "documentary-lowy-archive.jpg",
+      "sha256": "fc77e0ed6eac07be094f1e5b9b4b36804f44738e2a3c94d720b840fe11159a8c",
+      "credit": "Frank Lowy / Union20 / public domain / adapted",
+      "source": "https://commons.wikimedia.org/wiki/File:Frank_Lowy_presented_with_Woodrow_Wilson_Award.jpg",
+      "licence": "https://commons.wikimedia.org/wiki/File:Frank_Lowy_presented_with_Woodrow_Wilson_Award.jpg#Licensing",
+      "purpose": "Frank Lowy at an award event. Uploaded in 2008; the precise exposure date is not established. Never label as his 1960 portrait.",
+      "focus": 0.3,
+      "verticalFocus": 0.7,
+      "changes": "Resized for production; cropped, reframed, animated and captioned in the film. Adapted photographic sequences retain the source's Creative Commons licence where required.",
+      "reviewed": "2026-09-15",
+      "recordedEvidence": "Existing source records and docs/reel-archive-photography.md; documentary entries in shared/documentaryPhotos.ts",
+      "integrity": "hash-matched",
+      "legalClearance": "Recorded provenance, not a legal clearance opinion. Check context, endorsement, moral rights and any other applicable rights before a materially different use."
+    },
+    {
+      "key": "lowyLaunch",
+      "asset": "documentary-lowyLaunch.jpg",
+      "sha256": "167c0784455109bb03b10c0cb9d5cd71b21139f5bd544752712875cb2fc7a17f",
+      "credit": "Stratford, 2011 / PlanningResource / CC BY 2.0 / adapted",
+      "source": "https://commons.wikimedia.org/wiki/File:London_mayor_Boris_Johnson_and_Westfield_group_chairman_Frank_Lowy_launch_Westfield_Stratford_(6146924573).jpg",
+      "licence": "https://creativecommons.org/licenses/by/2.0/",
+      "purpose": "Actual Stratford opening ceremony, 13 September 2011, with Lowy and Boris Johnson. Used only for that later chapter.",
+      "focus": 0.58,
+      "verticalFocus": 0.6,
+      "changes": "Resized for production; cropped, reframed, animated and captioned in the film. Adapted photographic sequences retain the source's Creative Commons licence where required.",
+      "reviewed": "2026-09-15",
+      "recordedEvidence": "Existing source records and docs/reel-archive-photography.md; documentary entries in shared/documentaryPhotos.ts",
+      "integrity": "hash-matched",
+      "legalClearance": "Recorded provenance, not a legal clearance opinion. Check context, endorsement, moral rights and any other applicable rights before a materially different use."
+    },
+    {
+      "key": "hornsby",
+      "asset": "documentary-hornsby.jpg",
+      "sha256": "bce990407e79c219d1f77d2d8a388c1491656fa6e21478b56aac9d45b575415e",
+      "credit": "Hornsby, 2018 / Sardaka / CC BY-SA 4.0 / adapted",
+      "source": "https://commons.wikimedia.org/wiki/File:(1)Hornsby_Westfield-1.jpg",
+      "licence": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "purpose": "Westfield Hornsby photographed 1 July 2018. The centre was redeveloped; this is later place context, not the 1961 centre.",
+      "focus": 0.5,
+      "verticalFocus": 0.5,
+      "changes": "Resized for production; cropped, reframed, animated and captioned in the film. Adapted photographic sequences retain the source's Creative Commons licence where required.",
+      "reviewed": "2026-09-15",
+      "recordedEvidence": "Existing source records and docs/reel-archive-photography.md; documentary entries in shared/documentaryPhotos.ts",
+      "integrity": "hash-matched",
+      "legalClearance": "Recorded provenance, not a legal clearance opinion. Check context, endorsement, moral rights and any other applicable rights before a materially different use."
+    },
+    {
+      "key": "tracy",
+      "asset": "documentary-tracy.jpg",
+      "sha256": "f24dc1d67cfc446cb88f69926a9d4c0a4edaebb5e169abd7671d512d9d2d05d4",
+      "credit": "Darwin after Tracy / Billbeee / CC BY-SA 3.0 / adapted",
+      "source": "https://commons.wikimedia.org/wiki/File:Houses-after-tracy.jpg",
+      "licence": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "purpose": "Cyclone Tracy aftermath in Darwin, Christmas 1974. Metadata dates the later digitisation in 2007. Does not identify Grollo houses or workers.",
+      "focus": 0.5,
+      "verticalFocus": 0.5,
+      "changes": "Resized for production; cropped, reframed, animated and captioned in the film. Adapted photographic sequences retain the source's Creative Commons licence where required.",
+      "reviewed": "2026-09-15",
+      "recordedEvidence": "Existing source records and docs/reel-archive-photography.md; documentary entries in shared/documentaryPhotos.ts",
+      "integrity": "hash-matched",
+      "legalClearance": "Recorded provenance, not a legal clearance opinion. Check context, endorsement, moral rights and any other applicable rights before a materially different use."
+    },
+    {
+      "key": "rialtoPark",
+      "asset": "documentary-rialtoPark.jpg",
+      "sha256": "ece6cfe38944b251cbe471e16b7d8233e3178c48572cf559a7e774348a7b591d",
+      "credit": "Rialto, 2008 / Nick carson / public domain / adapted",
+      "source": "https://commons.wikimedia.org/wiki/File:Rialto_Towers_From_Batman_Park.JPG",
+      "licence": "https://commons.wikimedia.org/wiki/File:Rialto_Towers_From_Batman_Park.JPG#Licensing",
+      "purpose": "Rialto from Batman Park, December 2008. Later architecture, not construction-period archive.",
+      "focus": 0.5,
+      "verticalFocus": 0.15,
+      "changes": "Resized for production; cropped, reframed, animated and captioned in the film. Adapted photographic sequences retain the source's Creative Commons licence where required.",
+      "reviewed": "2026-09-15",
+      "recordedEvidence": "Existing source records and docs/reel-archive-photography.md; documentary entries in shared/documentaryPhotos.ts",
+      "integrity": "hash-matched",
+      "legalClearance": "Recorded provenance, not a legal clearance opinion. Check context, endorsement, moral rights and any other applicable rights before a materially different use."
+    },
+    {
+      "key": "collinsStreet",
+      "asset": "documentary-collinsStreet.jpg",
+      "sha256": "a9905e63a048ff37378b185664b6f476682fbcb6b097e089c0e41f3fe0b8713d",
+      "credit": "Collins St, 2010 / Rexness / CC BY-SA 2.0 / adapted",
+      "source": "https://commons.wikimedia.org/wiki/File:Collins_Street_architecture.jpg",
+      "licence": "https://creativecommons.org/licenses/by-sa/2.0/",
+      "purpose": "Collins Street architecture in May 2010. Later Melbourne context. Not the Reserve Bank, Collins Square, or 1928 Melbourne.",
+      "focus": 0.5,
+      "verticalFocus": 0.5,
+      "changes": "Resized for production; cropped, reframed, animated and captioned in the film. Adapted photographic sequences retain the source's Creative Commons licence where required.",
+      "reviewed": "2026-09-15",
+      "recordedEvidence": "Existing source records and docs/reel-archive-photography.md; documentary entries in shared/documentaryPhotos.ts",
+      "integrity": "hash-matched",
+      "legalClearance": "Recorded provenance, not a legal clearance opinion. Check context, endorsement, moral rights and any other applicable rights before a materially different use."
+    },
+    {
+      "key": "wharf",
+      "asset": "documentary-wharf.jpg",
+      "sha256": "4f69407ec2e9d90edeb78f16b416436c81c466d18c34aa4bec14c8c690953157",
+      "credit": "Finger Wharf, 2023 / DXR / CC BY-SA 4.0 / adapted",
+      "source": "https://commons.wikimedia.org/wiki/File:Finger_Wharf,_Sydney,_southeast_view_20230206_1.jpg",
+      "licence": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "purpose": "Finger Wharf exterior, 6 February 2023. Later project photograph, not construction or evidence of current Walker ownership.",
+      "focus": 0.5,
+      "verticalFocus": 0.5,
+      "changes": "Resized for production; cropped, reframed, animated and captioned in the film. Adapted photographic sequences retain the source's Creative Commons licence where required.",
+      "reviewed": "2026-09-15",
+      "recordedEvidence": "Existing source records and docs/reel-archive-photography.md; documentary entries in shared/documentaryPhotos.ts",
+      "integrity": "hash-matched",
+      "legalClearance": "Recorded provenance, not a legal clearance opinion. Check context, endorsement, moral rights and any other applicable rights before a materially different use."
+    },
+    {
+      "key": "wharfInterior",
+      "asset": "documentary-wharfInterior.jpg",
+      "sha256": "62c3a9ff652f2d8990ee72b97fde9b94f588b5c8ee0fe2bb397f031eddc473c8",
+      "credit": "Finger Wharf, 2018 / Nick-D / CC BY-SA 4.0 / adapted",
+      "source": "https://commons.wikimedia.org/wiki/File:Interior_of_the_Finger_Wharf_in_Woolloomooloo_April_2018.jpg",
+      "licence": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "purpose": "Finger Wharf interior, 26 April 2018. Later architectural context, not a claimed transaction asset.",
+      "focus": 0.5,
+      "verticalFocus": 0.5,
+      "changes": "Resized for production; cropped, reframed, animated and captioned in the film. Adapted photographic sequences retain the source's Creative Commons licence where required.",
+      "reviewed": "2026-09-15",
+      "recordedEvidence": "Existing source records and docs/reel-archive-photography.md; documentary entries in shared/documentaryPhotos.ts",
+      "integrity": "hash-matched",
+      "legalClearance": "Recorded provenance, not a legal clearance opinion. Check context, endorsement, moral rights and any other applicable rights before a materially different use."
+    },
+    {
+      "key": "parramattaBuild",
+      "asset": "documentary-parramattaBuild.jpg",
+      "sha256": "c351de53b1b2c4057f0934f233ced100cec63eb08a91e0da1cba18c030044123",
+      "credit": "Parramatta, 2020 / Xing Lin / CC BY 2.0 / adapted",
+      "source": "https://commons.wikimedia.org/wiki/File:Parramatta_Square_from_Valentine_Square_(cropped).jpg",
+      "licence": "https://creativecommons.org/licenses/by/2.0/",
+      "purpose": "Parramatta Square in March 2020 during the precinct's development. Not evidence that Mirvac sale proceeds funded this project.",
+      "focus": 0.5,
+      "verticalFocus": 0.5,
+      "changes": "Resized for production; cropped, reframed, animated and captioned in the film. Adapted photographic sequences retain the source's Creative Commons licence where required.",
+      "reviewed": "2026-09-15",
+      "recordedEvidence": "Existing source records and docs/reel-archive-photography.md; documentary entries in shared/documentaryPhotos.ts",
+      "integrity": "hash-matched",
+      "legalClearance": "Recorded provenance, not a legal clearance opinion. Check context, endorsement, moral rights and any other applicable rights before a materially different use."
+    },
+    {
+      "key": "parramatta",
+      "asset": "documentary-parramatta.jpg",
+      "sha256": "d96debf8bdbb52814d819c5cb7574af5f568692be8dcc3e5ac5077e9bd481059",
+      "credit": "6 & 8 PSQ, 2023 / Kgbo / CC BY-SA 4.0 / adapted",
+      "source": "https://commons.wikimedia.org/wiki/File:6_&_8_Parramatta_Square,_Parramatta,_2023.jpg",
+      "licence": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "purpose": "6 and 8 Parramatta Square, 15 October 2023. One part of the precinct; the A$3.5bn figure describes the project, not this tower alone.",
+      "focus": 0.5,
+      "verticalFocus": 0.2,
+      "changes": "Resized for production; cropped, reframed, animated and captioned in the film. Adapted photographic sequences retain the source's Creative Commons licence where required.",
+      "reviewed": "2026-09-15",
+      "recordedEvidence": "Existing source records and docs/reel-archive-photography.md; documentary entries in shared/documentaryPhotos.ts",
+      "integrity": "hash-matched",
+      "legalClearance": "Recorded provenance, not a legal clearance opinion. Check context, endorsement, moral rights and any other applicable rights before a materially different use."
+    },
+    {
       "key": "tianjinView",
       "asset": "documentary-tianjin-view-1930.jpg",
       "credit": "Tianjin archive, 1930 / Nikkodo / Kyoto University Library / public domain / adapted",
@@ -1518,6 +1756,80 @@
       "recordedEvidence": "Existing source records and docs/reel-archive-photography.md; documentary entries in shared/documentaryPhotos.ts",
       "integrity": "hash-matched",
       "legalClearance": "Recorded provenance, not a legal clearance opinion. Check context, endorsement, moral rights and any other applicable rights before a materially different use."
+    }
+  ],
+  "webFonts": [
+    {
+      "path": "client/public/fonts/JetBrainsMono-Italic-Variable.woff2",
+      "sha256": "cff3b1c6817ce1e613902558ea16a2a5b7d7c6a6e295f268bca19590fb5a5497",
+      "family": "JetBrains Mono",
+      "version": "Version 2.211",
+      "embeddedCopyright": "Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)",
+      "embeddedLicence": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: https://scripts.sil.org/OFL",
+      "notice": "client/public/fonts/OFL-JetBrainsMono.txt",
+      "noticeSha256": "b2fe5e8987594e9ffd1d2ca52a2f5d73eb8335243893c5d6254b5ad69269591d",
+      "upstreamNotice": "https://github.com/google/fonts/blob/main/ofl/jetbrainsmono/OFL.txt",
+      "reviewedOn": "2026-09-16"
+    },
+    {
+      "path": "client/public/fonts/JetBrainsMono-Variable.woff2",
+      "sha256": "fd6149512ae23df45d472c458e8f7a244acff60c9309f2826ed78bca0fe44a84",
+      "family": "JetBrains Mono",
+      "version": "Version 2.211",
+      "embeddedCopyright": "Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)",
+      "embeddedLicence": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: https://scripts.sil.org/OFL",
+      "notice": "client/public/fonts/OFL-JetBrainsMono.txt",
+      "noticeSha256": "b2fe5e8987594e9ffd1d2ca52a2f5d73eb8335243893c5d6254b5ad69269591d",
+      "upstreamNotice": "https://github.com/google/fonts/blob/main/ofl/jetbrainsmono/OFL.txt",
+      "reviewedOn": "2026-09-16"
+    },
+    {
+      "path": "client/public/fonts/PlayfairDisplay-Italic-Variable.woff2",
+      "sha256": "d9614f6469f6d2ec6d9f26cfaaf91015b320837e8d99ac1c5a4f8ab3f9ba7d80",
+      "family": "Playfair Display",
+      "version": "Version 1.203",
+      "embeddedCopyright": "Copyright 2017 The Playfair Display Project Authors (https://github.com/clauseggers/Playfair-Display), with Reserved Font Name \"Playfair Display\".",
+      "embeddedLicence": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL",
+      "notice": "client/public/fonts/OFL-PlayfairDisplay.txt",
+      "noticeSha256": "566be814f8e96e93dfa16101331557eb6b5467e9e03f627c0910fe93ca12300e",
+      "upstreamNotice": "https://github.com/google/fonts/blob/main/ofl/playfairdisplay/OFL.txt",
+      "reviewedOn": "2026-09-16"
+    },
+    {
+      "path": "client/public/fonts/PlayfairDisplay-Variable.woff2",
+      "sha256": "f401b33d31d33fc4b0f7d3fadf9e9285102ecf7019c8e6782c9c1ea865e116df",
+      "family": "Playfair Display",
+      "version": "Version 1.203",
+      "embeddedCopyright": "Copyright 2017 The Playfair Display Project Authors (https://github.com/clauseggers/Playfair-Display), with Reserved Font Name \"Playfair Display\".",
+      "embeddedLicence": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL",
+      "notice": "client/public/fonts/OFL-PlayfairDisplay.txt",
+      "noticeSha256": "566be814f8e96e93dfa16101331557eb6b5467e9e03f627c0910fe93ca12300e",
+      "upstreamNotice": "https://github.com/google/fonts/blob/main/ofl/playfairdisplay/OFL.txt",
+      "reviewedOn": "2026-09-16"
+    },
+    {
+      "path": "client/public/fonts/SourceSans3-Italic-Variable.woff2",
+      "sha256": "6ec538ba7280d7bb9322d37dd9f6fb2e0d772c6bf3532573dea4c45f44b6ffeb",
+      "family": "Source Sans 3 ExtraLight",
+      "version": "Version 3.052;hotconv 1.1.0;makeotfexe 2.6.0",
+      "embeddedCopyright": "© 2023 Adobe (http://www.adobe.com/), with Reserved Font Name ‘Source’",
+      "embeddedLicence": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL. This Font Software is distributed on an ‘AS IS’ BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the SIL Open Font License for the specific language, permissions and limitations governing your use of this Font Software.",
+      "notice": "client/public/fonts/OFL-SourceSans3.txt",
+      "noticeSha256": "09746787287a289323b0ec3cff4d1a4a801331b82b7207c1e186f5d26619a392",
+      "upstreamNotice": "https://github.com/google/fonts/blob/main/ofl/sourcesans3/OFL.txt",
+      "reviewedOn": "2026-09-16"
+    },
+    {
+      "path": "client/public/fonts/SourceSans3-Variable.woff2",
+      "sha256": "1b49ae04c461c654093975541c1efbddf746682659ea458d86d85665982aa2b4",
+      "family": "Source Sans 3 ExtraLight",
+      "version": "Version 3.052;hotconv 1.1.0;makeotfexe 2.6.0",
+      "embeddedCopyright": "© 2023 Adobe (http://www.adobe.com/), with Reserved Font Name ‘Source’",
+      "embeddedLicence": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL. This Font Software is distributed on an ‘AS IS’ BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the SIL Open Font License for the specific language, permissions and limitations governing your use of this Font Software.",
+      "notice": "client/public/fonts/OFL-SourceSans3.txt",
+      "noticeSha256": "09746787287a289323b0ec3cff4d1a4a801331b82b7207c1e186f5d26619a392",
+      "upstreamNotice": "https://github.com/google/fonts/blob/main/ofl/sourcesans3/OFL.txt",
+      "reviewedOn": "2026-09-16"
     }
   ],
   "dependencies": [
@@ -2020,9 +2332,33 @@
       "review": "Identity recorded; check the applicable font, image or other asset licence"
     },
     {
+      "path": "server/og/fonts/documentary-collinsStreet.jpg",
+      "bytes": 724350,
+      "sha256": "a9905e63a048ff37378b185664b6f476682fbcb6b097e089c0e41f3fe0b8713d",
+      "review": "Identity recorded; check the applicable font, image or other asset licence"
+    },
+    {
       "path": "server/og/fonts/documentary-gold-coast-2008.jpg",
       "bytes": 1092511,
       "sha256": "4e83b7984493431663b51c0d813991511d75a72bc499a5c93bc6f00beb7e9837",
+      "review": "Identity recorded; check the applicable font, image or other asset licence"
+    },
+    {
+      "path": "server/og/fonts/documentary-hornsby.jpg",
+      "bytes": 435438,
+      "sha256": "bce990407e79c219d1f77d2d8a388c1491656fa6e21478b56aac9d45b575415e",
+      "review": "Identity recorded; check the applicable font, image or other asset licence"
+    },
+    {
+      "path": "server/og/fonts/documentary-lowy-archive.jpg",
+      "bytes": 966610,
+      "sha256": "fc77e0ed6eac07be094f1e5b9b4b36804f44738e2a3c94d720b840fe11159a8c",
+      "review": "Identity recorded; check the applicable font, image or other asset licence"
+    },
+    {
+      "path": "server/og/fonts/documentary-lowyLaunch.jpg",
+      "bytes": 388682,
+      "sha256": "167c0784455109bb03b10c0cb9d5cd71b21139f5bd544752712875cb2fc7a17f",
       "review": "Identity recorded; check the applicable font, image or other asset licence"
     },
     {
@@ -2038,9 +2374,27 @@
       "review": "Identity recorded; check the applicable font, image or other asset licence"
     },
     {
+      "path": "server/og/fonts/documentary-parramatta.jpg",
+      "bytes": 520897,
+      "sha256": "d96debf8bdbb52814d819c5cb7574af5f568692be8dcc3e5ac5077e9bd481059",
+      "review": "Identity recorded; check the applicable font, image or other asset licence"
+    },
+    {
+      "path": "server/og/fonts/documentary-parramattaBuild.jpg",
+      "bytes": 463484,
+      "sha256": "c351de53b1b2c4057f0934f233ced100cec63eb08a91e0da1cba18c030044123",
+      "review": "Identity recorded; check the applicable font, image or other asset licence"
+    },
+    {
       "path": "server/og/fonts/documentary-rialto-2009.jpg",
       "bytes": 814058,
       "sha256": "717b826c889636918df9bef75668ff1f8e55b11a3546c11cd829b99279c57d85",
+      "review": "Identity recorded; check the applicable font, image or other asset licence"
+    },
+    {
+      "path": "server/og/fonts/documentary-rialtoPark.jpg",
+      "bytes": 598949,
+      "sha256": "ece6cfe38944b251cbe471e16b7d8233e3178c48572cf559a7e774348a7b591d",
       "review": "Identity recorded; check the applicable font, image or other asset licence"
     },
     {
@@ -2056,9 +2410,27 @@
       "review": "Identity recorded; check the applicable font, image or other asset licence"
     },
     {
+      "path": "server/og/fonts/documentary-tracy.jpg",
+      "bytes": 155941,
+      "sha256": "f24dc1d67cfc446cb88f69926a9d4c0a4edaebb5e169abd7671d512d9d2d05d4",
+      "review": "Identity recorded; check the applicable font, image or other asset licence"
+    },
+    {
       "path": "server/og/fonts/documentary-triguboff-2008.jpg",
       "bytes": 417690,
       "sha256": "3e0aedd356f240b5b447dcd7b472a88e86d24aefb5a063adb6856db7f7207dba",
+      "review": "Identity recorded; check the applicable font, image or other asset licence"
+    },
+    {
+      "path": "server/og/fonts/documentary-wharf.jpg",
+      "bytes": 409086,
+      "sha256": "4f69407ec2e9d90edeb78f16b416436c81c466d18c34aa4bec14c8c690953157",
+      "review": "Identity recorded; check the applicable font, image or other asset licence"
+    },
+    {
+      "path": "server/og/fonts/documentary-wharfInterior.jpg",
+      "bytes": 622990,
+      "sha256": "62c3a9ff652f2d8990ee72b97fde9b94f588b5c8ee0fe2bb397f031eddc473c8",
       "review": "Identity recorded; check the applicable font, image or other asset licence"
     },
     {
