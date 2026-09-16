@@ -22,6 +22,49 @@ async function request(path: string, body: unknown, headers: Record<string, stri
 }
 beforeEach(() => vi.clearAllMocks());
 describe("bounded Instagram website measurements", () => {
+  it("accepts the new bounded reader actions but rejects private labels", async () => {
+    for (const event of [
+      "story_open",
+      "story_source",
+      "story_ask",
+      "newsletter_request",
+      "ask_answer",
+      "ask_unavailable",
+      "ask_error",
+    ]) {
+      const res = await request("/api/analytics/event", {
+        event,
+        surface: "subscribe",
+        sessionId: "fixture-session",
+      });
+      expect(res.status).toHaveBeenCalledWith(204);
+    }
+    const res = await request("/api/analytics/event", {
+      event: "story_open",
+      surface: "reader@example.com",
+      sessionId: "fixture-session",
+    });
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(m.event).toHaveBeenCalledTimes(7);
+  });
+  it("keeps old clients compatible while dropping unsafe referrer fallbacks", async () => {
+    for (const referrer of [
+      "https://example.com/private?token=123",
+      "example.com",
+      "reader@example.com",
+    ]) {
+      await request("/api/analytics/pageview", {
+        path: "/",
+        sessionId: "fixture-session",
+        referrer,
+      });
+    }
+    expect(m.page.mock.calls.map(([row]) => row.referrer)).toEqual([
+      "example.com",
+      "example.com",
+      null,
+    ]);
+  });
   it("records a first landing separately from page views, with a fixed topic", async () => {
     await request("/api/analytics/pageview", {
       path: "/markets/sydney?private=data",

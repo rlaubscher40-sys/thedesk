@@ -1,4 +1,5 @@
 import { frontPageDate } from "@shared/frontPageDate";
+import { trackEvent } from "@/lib/analytics";
 import { ConnectionNotice } from "@/components/ConnectionNotice";
 import { preferenceStorage } from "@/lib/storage";
 /**
@@ -287,6 +288,7 @@ export default function DailyFeed() {
                       lead.sourceUrl ? (
                         <a
                           href={lead.sourceUrl}
+                          onClick={() => trackEvent("story_source", "today")}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="bs-btn bs-btn-outline"

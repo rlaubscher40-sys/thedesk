@@ -22,6 +22,9 @@ const windowSchema = z
   .optional();
 
 export const analyticsRouter = router({
+  journey: adminProcedure
+    .input(windowSchema)
+    .query(({ input }) => db.readerJourney(input?.hours ?? 24 * 7)),
   vitals: adminProcedure.query(() => webVitalSummary()),
   social: adminProcedure
     .input(windowSchema)

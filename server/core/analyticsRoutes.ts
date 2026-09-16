@@ -14,6 +14,8 @@ import { z } from "zod";
 import * as db from "../db";
 import { analyticsPath } from "../../shared/analyticsPath";
 import { SOCIAL_CAMPAIGNS } from "../../shared/socialCampaign";
+import { ENGAGEMENT_EVENTS, ENGAGEMENT_SURFACES } from "../../shared/analyticsEvents";
+import { analyticsReferrer } from "../../shared/analyticsReferrer";
 
 const pageViewSchema = z.object({
   socialCampaign: z.enum(SOCIAL_CAMPAIGNS).optional(),
@@ -33,31 +35,8 @@ const pageViewSchema = z.object({
 });
 
 const engagementEventSchema = z.object({
-  event: z.enum([
-    "social_open",
-    "ask_query",
-    "ask_share",
-    "market_watch",
-    "market_discover",
-    "market_file_ask",
-    "market_file_compare",
-    "market_file_source",
-    "market_file_share",
-    "market_file_export",
-    "market_compare",
-    "market_compare_share",
-    "comparison_watch",
-    "comparison_refresh",
-    "comparison_baseline_reset",
-    "signal_watch",
-    "signal_share",
-    "story_share",
-    "take_share",
-    "brief_reshare",
-  ]),
-  surface: z
-    .enum(["ask", "markets", "signals", "trends", "story", "brief", "today", "social"])
-    .optional(),
+  event: z.enum(ENGAGEMENT_EVENTS),
+  surface: z.enum(ENGAGEMENT_SURFACES).optional(),
   socialCampaign: z.enum(SOCIAL_CAMPAIGNS).optional(),
   sessionId: z.string().min(8).max(64),
 });
@@ -72,18 +51,6 @@ function looksLikeBot(ua: string | undefined): boolean {
 
 function analyticsBlocked(req: Request): boolean {
   return looksLikeBot(req.header("user-agent")) || req.header("dnt") === "1";
-}
-
-/** Reduce a referrer string to just its hostname, never the full URL. */
-function reduceReferrer(raw: string | undefined): string | null {
-  if (!raw) return null;
-  try {
-    const u = new URL(raw);
-    return u.hostname.slice(0, 256);
-  } catch {
-    const trimmed = raw.split(/[/?#]/, 1)[0]?.slice(0, 256) ?? "";
-    return trimmed.length > 0 ? trimmed : null;
-  }
 }
 
 /** Hostname from a Host header, dropping the port. Handles bracketed IPv6. */
@@ -104,7 +71,7 @@ async function handlePageView(req: Request, res: Response): Promise<void> {
     res.status(400).json({ error: "Bad page-view payload" });
     return;
   }
-  const refHost = reduceReferrer(parsed.data.referrer);
+  const refHost = analyticsReferrer(parsed.data.referrer);
   const ownHost = hostnameOnly(req.header("host"));
   const referrer = refHost && refHost !== ownHost ? refHost : null;
 

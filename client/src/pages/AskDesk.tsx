@@ -109,10 +109,12 @@ function AskDeskSession({ accountId }: { accountId: number | "guest" }) {
       { question: value },
       {
         onSuccess: (result) => {
+          trackEvent(result.status === "answered" ? "ask_answer" : "ask_unavailable", "ask");
           const completed = { question: value, result };
           cache.setQueryData(["desk-completed-brief", accountId], completed);
           setCompleted(completed);
         },
+        onError: () => trackEvent("ask_error", "ask"),
         onSettled: () => {
           requestInFlight.current = false;
         },

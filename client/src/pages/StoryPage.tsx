@@ -16,7 +16,7 @@ import { sourceTimingLabel } from "@shared/sourceTiming";
  * The day-paging logic and the same-category-first ordering of the rail
  * are unchanged — only the presentation moved.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "wouter";
 import type { DailyFeedItem } from "@shared/types";
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
@@ -46,25 +46,32 @@ import { buildStoryShareDraft } from "@/lib/shareDraft";
 import { markStoryRead } from "@/lib/useReadStories";
 import { useBookmarks } from "@/lib/useBookmarks";
 import { trpc } from "@/lib/trpc";
+import { trackEvent } from "@/lib/analytics";
 
 export default function StoryPage() {
   const params = useParams<{ id: string }>();
-  const id = parseInt(params.id ?? "", 10);
+  const id = /^\d+$/.test(params.id ?? "") ? Number(params.id) : NaN;
   const [linkedInOpen, setLinkedInOpen] = useState(false);
   const colourFor = useCategoryColour();
   const { isBookmarked, toggle } = useBookmarks();
 
   const itemQuery = trpc.feed.getById.useQuery({ id }, { enabled: Number.isFinite(id) && id > 0 });
 
-  // Mark this story read so the Today index can show what's still unopened.
+  const opened = useRef<number | null>(null);
+  const story = itemQuery.data;
+  // Failed/held/missing stories must stay unread. Refetches and StrictMode
+  // effects are not another opening; leaving and returning is.
   useEffect(() => {
-    if (Number.isFinite(id) && id > 0) markStoryRead(id);
-  }, [id]);
+    if (!story || story.id !== id) return;
+    markStoryRead(id);
+    if (opened.current === id) return;
+    opened.current = id;
+    trackEvent("story_open", "story");
+  }, [id, story]);
 
   // Pull the rest of the story's day so the page is never a dead-end: it
   // powers prev/next paging and the "More from this day" rail. Cheap — the day
   // is already cached from the Today page.
-  const story = itemQuery.data;
   const dayQuery = trpc.feed.getByDate.useQuery(
     { date: story?.feedDate ?? "" },
     { enabled: !!story?.feedDate, staleTime: 60_000 }
@@ -220,6 +227,7 @@ export default function StoryPage() {
                             `${window.location.origin}/story/${story.id}`
                           );
                           toast.success("Story link copied");
+                          trackEvent("story_share", "story");
                         } catch {
                           toast.error("Could not copy. Copy the address from your browser.");
                         }
@@ -236,6 +244,7 @@ export default function StoryPage() {
                               title: cleanHeadline(story.title),
                               url: `${window.location.origin}/story/${story.id}`,
                             })
+                            .then(() => trackEvent("story_share", "story"))
                             .catch((error: Error) => {
                               if (error.name !== "AbortError")
                                 toast.error("Sharing is unavailable. Try Copy link.");
@@ -262,6 +271,7 @@ export default function StoryPage() {
             {story.sourceUrl && /^https?:\/\//i.test(story.sourceUrl) ? (
               <a
                 href={story.sourceUrl}
+                onClick={() => trackEvent("story_source", "story")}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bs-link min-h-11 inline-flex items-center underline"
@@ -273,6 +283,7 @@ export default function StoryPage() {
             )}
             <Link
               href={`/ask?story=${story.id}&q=${encodeURIComponent(`What does this story mean for property? ${cleanHeadline(story.title)}`.slice(0, 240))}`}
+              onClick={() => trackEvent("story_ask", "story")}
               className="bs-btn bs-btn-outline"
             >
               Ask about this story
@@ -430,7 +441,7 @@ export default function StoryPage() {
 
       <SubscribeBand
         source="story-foot"
-        headline="Tomorrow's five stories, with the lines already written."
+        headline="Understand what changed in Australian property."
         blurb=""
         showHeadshot={false}
       />
