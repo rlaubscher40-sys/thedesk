@@ -83,6 +83,8 @@ type SocialMeta = {
   imageHeight: number;
   type?: "website" | "article";
   noindex?: boolean;
+  /** Plain text evidence visible before the interactive app loads. */
+  evidence?: { heading: string; observation: string; context: string; source: string };
 };
 
 async function sendSocialShell(
@@ -112,6 +114,13 @@ async function sendSocialShell(
   html = replaceMeta(html, "name", "twitter:image", meta.image);
   html = replaceCanonical(html, meta.canonical);
   if (meta.noindex) html = replaceMeta(html, "name", "robots", "noindex, nofollow, noarchive");
+  if (meta.evidence) {
+    const e = meta.evidence;
+    html = html.replace(
+      '<div id="root"></div>',
+      `<div id="root"><main class="max-w-6xl mx-auto px-5 py-8"><h1>${htmlEscape(e.heading)}</h1><p>${htmlEscape(e.observation)}</p><p>${htmlEscape(e.context)}</p><p>Source: ${htmlEscape(e.source)}</p><a href="/signals">Explore the signals</a></main></div>`
+    );
+  }
 
   res.set("Content-Type", "text/html; charset=utf-8");
   res.set("Cache-Control", meta.noindex ? "private, no-cache" : "no-cache");
@@ -247,6 +256,12 @@ async function handleSignalMeta(req: Request, res: Response, next: NextFunction)
       imageWidth: 1080,
       imageHeight: 1350,
       type: "website",
+      evidence: {
+        heading: metric.label,
+        observation: `${value}. Observation ${formatAsOf(metric.asOf)}.`,
+        context: `${metric.context ?? "Recorded Australian property signal."}${movement}`,
+        source: metric.source ?? "Source not recorded",
+      },
     });
   } catch (error) {
     console.warn("[distribution-seo] signal meta failed:", (error as Error).message);

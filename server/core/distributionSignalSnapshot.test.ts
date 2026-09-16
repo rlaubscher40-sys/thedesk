@@ -152,3 +152,21 @@ it("does not turn saved undated release samples into a chart or directional clai
   expect(res.send.mock.calls[0][0]).not.toContain("/og/charts/");
   expect(res.send.mock.calls[0][0]).toContain("Release-based figure");
 });
+
+it("serves the saved signal evidence in visible initial HTML and escapes source text", async () => {
+  m.read.mockResolvedValue({
+    ...structuredClone(frozen),
+    metric: {
+      ...frozen.metric,
+      label: "<script>alert(1)</script>",
+      context: "Saved & dated context",
+    },
+  });
+  const { res } = await request("/signals", { metric: "cash_rate", snapshot: id });
+  const html = res.send.mock.calls[0][0];
+  expect(html).toContain("<main");
+  expect(html).toContain("Observation 1 Jan 2024");
+  expect(html).toContain("Source: RBA");
+  expect(html).toContain("Saved &amp; dated context");
+  expect(html).not.toContain("<script>alert(1)</script>");
+});

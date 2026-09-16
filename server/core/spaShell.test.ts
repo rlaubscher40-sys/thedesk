@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { isKnownRoute, isNoindexRoute, withNoindex } from "./spaShell";
+import { isKnownRoute, isNoindexRoute, withNoindex, withCanonical } from "./spaShell";
 
 describe("isKnownRoute", () => {
   it("accepts the public pages", () => {
@@ -101,4 +101,12 @@ describe("withNoindex", () => {
     );
     expect(withNoindex(shell)).toContain('content="noindex, follow"');
   });
+});
+
+it("gives fallback topic pages their own escaped canonical and removes duplicates", () => {
+  const shell =
+    '<html><head><link rel="canonical" href="https://thedesk.au/" /><link rel="canonical" href="https://thedesk.au/" /></head></html>';
+  const out = withCanonical(shell, 'https://thedesk.au/topics/PROPERTY?x=1&y="2"');
+  expect(out.match(/rel="canonical"/g)).toHaveLength(1);
+  expect(out).toContain('href="https://thedesk.au/topics/PROPERTY?x=1&amp;y=&quot;2&quot;"');
 });
