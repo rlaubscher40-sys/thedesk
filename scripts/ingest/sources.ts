@@ -96,6 +96,62 @@ function googleNewsGlobal(query: string): string {
 
 export const SOURCES: Source[] = [
   {
+    name: "Business Times Australian Property",
+    url: "https://www.businesstimes.com.sg/property",
+    kind: "index",
+    articlePath:
+      "^/property/(?:australia|australian|sydney|melbourne|brisbane|perth|nsw|victoria)[^/]+$",
+    category: "PROPERTY",
+    channel: "PROPERTY",
+    maxItems: 12,
+  },
+  {
+    name: "Australian Migration Policy",
+    url: googleNews(
+      "Australia (migration OR immigration OR visas) (Burke OR government OR policy OR legislation)"
+    ),
+    category: "POLICY",
+    channel: "AU",
+    maxItems: 8,
+  },
+  {
+    name: "CBA Australian Market Close",
+    url: "https://www.commbank.com.au/articles/newsroom.html",
+    kind: "index",
+    articlePath:
+      "^/articles/newsroom/20[0-9]{2}/[0-9]{2}/(?:asx-close|australian-shares)-[^/]+\\.html$",
+    category: "MARKETS",
+    channel: "AU",
+    maxItems: 8,
+  },
+  {
+    name: "Westpac IQ Economics",
+    url: "https://www.westpaciq.com.au/",
+    kind: "index",
+    articlePath: "^/economics/20[0-9]{2}/[0-9]{2}/[^/]+$",
+    category: "MACRO",
+    channel: "AU",
+    maxItems: 16,
+  },
+  {
+    name: "CPA Australia Releases",
+    url: "https://www.cpaaustralia.com.au/about-cpa-australia/media/media-releases",
+    kind: "index",
+    articlePath: "^/about-cpa-australia/media/media-releases/[^/]+$",
+    category: "POLICY",
+    channel: "AU",
+    maxItems: 20,
+  },
+  {
+    name: "Australian State Revenue",
+    url: googleNews(
+      '(NSW OR "New South Wales" OR Victoria OR Queensland) ("stamp duty" OR "tax receipts") (revenue OR falls OR rises OR budget)'
+    ),
+    category: "PROPERTY",
+    channel: "PROPERTY",
+    maxItems: 8,
+  },
+  {
     name: "Financial Advice Association Australia",
     url: "https://faaa.au/feed/",
     category: "POLICY",

@@ -6,6 +6,7 @@ import { dailyFeedItems } from "./schema";
 const fixture = vi.hoisted(() => ({ db: null as unknown }));
 vi.mock("./client", () => ({ getDb: () => fixture.db }));
 import { repairCoverageAudit } from "./editorial";
+import { auditedCoverageGroups } from "../../shared/auditedCoverageGroups";
 const testUrl = process.env.SECURITY_TEST_DATABASE_URL;
 it.skipIf(!testUrl)(
   "repairs published angles and relationships idempotently without overwriting editorial notes",
@@ -177,6 +178,37 @@ it.skipIf(!testUrl)(
       ]);
       await repairCoverageAudit(september14);
       expect(await read()).toEqual(updated);
+      for (const [i, group] of auditedCoverageGroups.entries()) {
+        for (const [j, [feedDate, sourceUrl]] of group.entries()) {
+          await connection.execute(
+            "INSERT INTO daily_feed_items (id,title,summary,channel,feedDate,sourceUrl,rubensNote) VALUES (?,?,'Verified report','PROPERTY',?,?,'Keep audit note')",
+            [100 + i * 2 + j, `Audited event ${i} version ${j}`, feedDate, sourceUrl]
+          );
+        }
+      }
+      const captionUrl =
+        "https://www.realestate.com.au/news/queensland-developers-tackle-housing-crisis-with-unconventional-homes-for-first-home-buyers/";
+      await connection.execute(
+        "INSERT INTO daily_feed_items (id,title,summary,channel,feedDate,sourceUrl,rubensNote) VALUES (120,'Queensland development','Renders for one bedroom terrace homes by Azure Group at its The Arbory development on the Sunshine Coast','PROPERTY','2026-09-16',?,'Keep caption note')",
+        [captionUrl]
+      );
+      await repairCoverageAudit(new Date("2026-09-16T12:00:00Z"));
+      const [repaired] = await connection.query(
+        "SELECT id,summary,threadParentId,rubensNote FROM daily_feed_items WHERE id>=100 ORDER BY id"
+      );
+      for (let i = 0; i < 3; i++)
+        expect(
+          (repaired as Array<Record<string, unknown>>).find((r) => r.id === 101 + i * 2)
+        ).toMatchObject({ threadParentId: 100 + i * 2, rubensNote: "Keep audit note" });
+      expect((repaired as Array<Record<string, unknown>>).find((r) => r.id === 120)).toMatchObject({
+        summary: expect.stringContaining("council assessment"),
+        rubensNote: "Keep caption note",
+      });
+      await repairCoverageAudit(new Date("2026-09-16T12:00:00Z"));
+      const [again] = await connection.query(
+        "SELECT id,summary,threadParentId,rubensNote FROM daily_feed_items WHERE id>=100 ORDER BY id"
+      );
+      expect(again).toEqual(repaired);
     } finally {
       fixture.db = null;
       await connection.end();

@@ -31,6 +31,7 @@ import { pickOgImage } from "./og";
 import { isInstitutionalBoilerplate } from "../../../shared/sourceBoilerplate";
 import { createArticleAccess } from "./articleAccess";
 import { isVerifiedReiwaRelease } from "./reiwaRelease";
+import { isPhotoCaption } from "../../../shared/reportingExcerpt";
 
 const SITE_URL = process.env.SITE_URL ?? DEFAULT_SITE_URL;
 const articleAccess = createArticleAccess();
@@ -55,16 +56,24 @@ export function extractArticleText(
   sourceUrl?: string
 ): string | null {
   let contentClass: string | undefined;
+  let host = "";
   try {
-    const host = new URL(sourceUrl ?? "").hostname.replace(/^www\./, "");
+    host = new URL(sourceUrl ?? "").hostname.replace(/^www\./, "");
     if (host === "faaa.au") contentClass = "elementor-widget-theme-post-content";
     if (host === "financialnewswire.com.au") contentClass = "content-inner";
     if (host === "moneymanagement.com.au") contentClass = "entry-content";
     if (host === "ausbanking.org.au") contentClass = "with-share";
+    if (host === "businesstimes.com.sg") contentClass = "typo-article-body";
+    if (host === "commbank.com.au") contentClass = "article-text";
   } catch {
     /* Generic semantic extraction. */
   }
-  const container = readableArticleHtml(html, contentClass);
+  const container =
+    host === "westpaciq.com.au"
+      ? ["article-header-detail", "bodycopy"]
+          .map((name) => readableArticleHtml(html, name))
+          .join("\n")
+      : readableArticleHtml(html, contentClass);
 
   const paras: string[] = [];
   let removedInstitutionalFooter = false;
@@ -74,6 +83,11 @@ export function extractArticleText(
   let m: RegExpExecArray | null;
   while ((m = re.exec(container)) !== null) {
     const txt = decodeEntities(stripHtml(m[2] ?? "")).trim();
+    if (isPhotoCaption(txt)) {
+      removedInstitutionalFooter = true;
+      continue;
+    }
+    if (/^(?:Read full report|Click on above PDF)/i.test(txt)) continue;
     if (
       contentClass === "entry-content" &&
       /^If you enjoyed this article,.*preferred source/i.test(txt)

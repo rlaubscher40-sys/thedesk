@@ -6,6 +6,23 @@ export function nonNewsFormatHold(input: {
 }): string | null {
   const title = input.title.trim();
   const text = `${title} ${input.summary ?? ""}`;
+  const publicConsequence =
+    /\b(?:court|tribunal|ruling|fraud|scam|compensation|rights|law|legislation|compulsory acquisition)\b/i.test(
+      title
+    );
+  if (
+    !publicConsequence &&
+    (/\b(?:couple|family|owner|homeowner|man|woman)\b.{0,85}\b(?:lists?|selling|sells?|downsizing|downsize)\b.{0,85}\b(?:home|house|mansion|apartment|property)\b/i.test(
+      title
+    ) ||
+      /\b(?:couple|family|owner|homeowner)\b.{0,30}\blists?\b.{0,100}\b(?:downsize|downsizing)\b/i.test(
+        title
+      ) ||
+      /^how (?:a |one |former )?(?:renter|couple|family|man|woman)\b.{0,60}\b(?:built|converted|renovated)\b.{0,60}\b(?:home|house|cottage)\b/i.test(
+        title
+      ))
+  )
+    return "individual-property-promotion";
   if (
     /\b(?:book|reserve|buy)\s+(?:your |an? |the )?(?:exhibit table|booth|tickets?|conference pass)\b/i.test(
       text
