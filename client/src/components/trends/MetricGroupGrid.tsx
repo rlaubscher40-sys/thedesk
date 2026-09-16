@@ -1,3 +1,4 @@
+import { comparableMetricPrior, hasDailyObservations } from "@shared/metricPresentation";
 import { formatMetricValue, metricTiming, historyChange } from "@shared/metricPresentation";
 /**
  * Trends metric index — every live `daily_metrics` row with its 30-day
@@ -95,12 +96,12 @@ function MetricRow({
   history: Array<{ value: number; recordedAt: Date }>;
   last: boolean;
 }) {
-  const values = history.map((p) => p.value);
+  const values = hasDailyObservations(metric.metricKey) ? history.map((p) => p.value) : [];
   const suffix = metric.unit ?? "";
   const { sentiment, trend, hasDelta } = resolveMetricTrend(
     metric.label,
     `${metric.value}${suffix}`,
-    metric.previousValue != null ? `${metric.previousValue}${suffix}` : null
+    comparableMetricPrior(metric) != null ? `${comparableMetricPrior(metric)}${suffix}` : null
   );
 
   return (

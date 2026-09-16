@@ -17,7 +17,6 @@ import { ShareIntelligenceCardButton } from "@/components/ask/ShareIntelligenceC
 import { GUTTER_X } from "@/components/broadsheet/tokens";
 import { trackEvent } from "@/lib/analytics";
 import { readAskHistory, rememberAskQuestion } from "@/lib/askHistory";
-import { getLoginUrl } from "@/lib/auth";
 import { cn } from "@/lib/cn";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/lib/useAuth";
@@ -246,7 +245,11 @@ function AskDeskSession({ accountId }: { accountId: number | "guest" }) {
       )}
       <p id="ask-privacy-notice" className="mt-6 text-sm leading-6 text-[var(--color-fg-muted)]">
         Questions may be processed by our AI provider. Leave out personal or confidential details.
-        AI answers can be wrong. <a href="/privacy" className="underline">Privacy</a>.
+        AI answers can be wrong.{" "}
+        <a href="/privacy" className="underline">
+          Privacy
+        </a>
+        .
       </p>
       <form onSubmit={submit} className="rule-major rule-hair-b mt-10 lg:mt-12">
         <label htmlFor="ask-desk" className="sr-only">
@@ -308,9 +311,9 @@ function AskDeskSession({ accountId }: { accountId: number | "guest" }) {
           <p className="text-[0.875rem] text-[var(--color-fg-muted)]">
             No account required · 3 grounded intelligence questions free each day.
           </p>
-          <a href={getLoginUrl()} className="bs-label bs-link">
-            Sign in for unlimited Ask →
-          </a>
+          <Link href="/signals" className="bs-label bs-link">
+            Explore the data without using a question →
+          </Link>
         </div>
       )}
 
@@ -425,9 +428,9 @@ function AskDeskSession({ accountId }: { accountId: number | "guest" }) {
                 Search the archive
               </Link>
               {isQuotaError && !isAuthenticated && (
-                <a href={getLoginUrl()} className="bs-btn bs-btn-solid">
-                  Sign in
-                </a>
+                <Link href="/signals" className="bs-btn bs-btn-solid">
+                  Explore the data
+                </Link>
               )}
             </div>
           </div>

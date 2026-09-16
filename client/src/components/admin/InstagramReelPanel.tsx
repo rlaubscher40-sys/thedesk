@@ -164,6 +164,11 @@ export function InstagramReelPanel() {
                 ))}
               </ul>
             )}
+            {plan.data.summary.nextAction && (
+              <p className="text-sm">
+                <strong>Next action:</strong> {plan.data.summary.nextAction}
+              </p>
+            )}
             <p className="text-xs text-[var(--color-fg-muted)]">{plan.data.summary.timingNote}</p>
           </div>
           <details>
@@ -195,7 +200,7 @@ export function InstagramReelPanel() {
             recorded grid post. Pinned posts keep their existing colours.
           </p>
           <p className="text-sm" role="status">
-            {plan.data.publication === "published"
+            {plan.data.publication === "exhausted"
               ? "All currently eligible stories have confirmed publication receipts. Another episode needs new qualifying evidence."
               : !plan.data.schedulerEnabled || !plan.data.accountConfigured
                 ? "Automatic publishing is off. Check the scheduler and connected account configuration."

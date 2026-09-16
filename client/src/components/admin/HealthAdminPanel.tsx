@@ -1,3 +1,4 @@
+import { monitoringCoverage } from "@shared/monitoringCoverage";
 import { EditorialHealth } from "./EditorialHealth";
 import { CoverageReview } from "./CoverageReview";
 /**
@@ -46,6 +47,10 @@ export function HealthAdminPanel() {
   const summary = summaryQuery.data;
   const errors = errorsQuery.data ?? [];
   const pings = pingsQuery.data ?? [];
+  const monitoring = monitoringCoverage(
+    summary?.uptime.last24h.total ?? 0,
+    pings[0]?.pingedAt ?? null
+  );
 
   return (
     <section className="panel rounded p-6 sm:p-8 space-y-7">
@@ -86,7 +91,7 @@ export function HealthAdminPanel() {
             />
             <StatTile label="Errors · 7d" value={String(summary.errors.last7d).padStart(2, "0")} />
             <StatTile
-              label="Uptime · 24h"
+              label="Successful checks · 24h"
               value={
                 summary.uptime.last24h.percent !== null
                   ? `${summary.uptime.last24h.percent.toFixed(1)}%`
@@ -99,7 +104,7 @@ export function HealthAdminPanel() {
               }
             />
             <StatTile
-              label="Uptime · 7d"
+              label="Successful checks · 7d"
               value={
                 summary.uptime.last7d.percent !== null
                   ? `${summary.uptime.last7d.percent.toFixed(1)}%`
@@ -113,6 +118,22 @@ export function HealthAdminPanel() {
             />
           </div>
 
+          <div className="panel p-4 text-sm" role="status">
+            <p>
+              {monitoring.observed} checks recorded in 24 hours; the configured five-minute schedule
+              would produce about {monitoring.expected}.
+            </p>
+            {(monitoring.sparse || monitoring.stale) && (
+              <p className="mt-2 font-semibold">
+                Monitoring coverage is incomplete. Last check:{" "}
+                {monitoring.ageMinutes === null
+                  ? "unknown"
+                  : `${monitoring.ageMinutes} minutes ago`}
+                . Inspect the external schedule and notifications.
+              </p>
+            )}
+            <p className="mt-2 text-[var(--color-fg-muted)]">{monitoring.note}</p>
+          </div>
           {/* Two-column: env coverage + ingest + subscribers. */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <EnvCoverage env={summary.env} />

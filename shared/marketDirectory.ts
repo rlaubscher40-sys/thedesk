@@ -67,5 +67,7 @@ export function coverageLabel(file: PublicMarketFile): string {
   if (file.coverage === "none") return "No recent coverage";
   if (file.coverage === "older") return "Older reporting only";
   if (file.coverage === "limited") return "Limited recent coverage";
-  return "Recent reporting available";
+  return file.latestMention
+    ? `Reporting through ${file.latestMention}`
+    : "Recent reporting available";
 }

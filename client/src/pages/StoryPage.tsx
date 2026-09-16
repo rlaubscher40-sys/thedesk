@@ -1,3 +1,4 @@
+import { REVIEWED_STORY_CORRECTIONS } from "@shared/reviewedStoryCorrections";
 import { ConnectionNotice } from "@/components/ConnectionNotice";
 import { ThreadLink } from "@/components/feed/ThreadLink";
 import { sourceTimingLabel } from "@shared/sourceTiming";
@@ -277,6 +278,16 @@ export default function StoryPage() {
               Ask about this story
             </Link>
           </div>
+          {REVIEWED_STORY_CORRECTIONS.some(
+            (c) => c.id === story.id && c.sourceUrl === story.sourceUrl
+          ) && (
+            <p className="text-sm mt-5" role="note">
+              Corrected 16 September 2026.{" "}
+              <Link href="/corrections" className="bs-link">
+                Read what changed →
+              </Link>
+            </p>
+          )}
           <p className="bs-label mt-5">The Desk summary and interpretation</p>
 
           {/* Body prose with the existing `.has-dropcap` treatment.

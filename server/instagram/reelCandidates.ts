@@ -1,3 +1,4 @@
+import { APPROVAL_REGIONS } from "../../shared/cityApprovals";
 import { getStateDemographics } from "../markets/absDemographics";
 import { getReelLendingRates } from "../markets/reelLendingRates";
 import { verifiedInterstateMigration, verifiedNewLoanRates } from "./verifiedContextReels";
@@ -8,7 +9,11 @@ import { getCityApprovals } from "../markets/absApprovals";
 import { verifiedRentReel } from "./verifiedReel";
 import { verifiedSupplyReel } from "./verifiedSupplyReel";
 import { verifiedCapitalRentReel } from "./verifiedCapitalRentReel";
-import { verifiedSydneyBeforeBuy, verifiedSydneyRentChange } from "./verifiedSydneyReels";
+import {
+  verifiedSydneyBeforeBuy,
+  verifiedSydneyRentChange,
+  verifiedCapitalBeforeBuy,
+} from "./verifiedSydneyReels";
 import { assertProductionCandidate } from "../video/reelProduction";
 import { DOCUMENTARY_EPISODES, RETIRED_DOCUMENTARY_PUBLICATIONS } from "./documentaryEpisodes";
 import { getDocumentaryProgramme } from "./verifiedDocumentaryReel";
@@ -29,6 +34,11 @@ export const REEL_PUBLICATION_FAMILIES: Readonly<Record<string, string>> = Objec
   "instagram-reel-abs-rents-eight-capitals-v1": "rents",
   "instagram-reel-abs-sydney-rent-change-v1": "rents",
   "instagram-reel-abs-sydney-before-buy-v1": "supply",
+  ...Object.fromEntries(
+    Object.values(APPROVAL_REGIONS)
+      .filter((city) => city !== "Sydney")
+      .map((city) => [`instagram-reel-abs-${city.toLowerCase()}-before-buy-v1`, "supply"])
+  ),
   "instagram-reel-nhsac-housing-balance-v1": "supply",
   "instagram-reel-rba-new-loan-rates-v1": "borrowing",
   "instagram-reel-abs-interstate-qld-wa-v1": "population",
@@ -45,6 +55,14 @@ export async function getVerifiedReelProgramme(now = new Date()) {
   ]);
   return [
     ...getDocumentaryProgramme(now),
+    ...Object.values(APPROVAL_REGIONS)
+      .filter((city) => city !== "Sydney")
+      .map((city) => ({
+        topic: `Before You Buy · ${city} supply`,
+        family: "supply",
+        candidate: verifiedCapitalBeforeBuy(approvals, city, now),
+        requirement: `Twelve consecutive verified ${city} approvals; current source retrieval and a new unpublished observation period.`,
+      })),
     {
       topic: "Market vs Market · rents",
       family: "rents",

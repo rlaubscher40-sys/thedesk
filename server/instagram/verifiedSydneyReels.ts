@@ -1,6 +1,12 @@
 import { createHash } from "node:crypto";
 import { rentPeriod, type CityRents } from "../../shared/cityRents";
-import { annualApprovals, APPROVAL_FLOW, type CityApprovals } from "../../shared/cityApprovals";
+import {
+  annualApprovals,
+  APPROVAL_FLOW,
+  APPROVAL_REGIONS,
+  approvalGeography,
+  type CityApprovals,
+} from "../../shared/cityApprovals";
 import type { verifiedRentReel } from "./verifiedReel";
 import { buildReelCaption, reelReadingCta } from "./reelCaption";
 import { withEvidenceVisual } from "../video/evidenceVisual";
@@ -122,14 +128,21 @@ export function verifiedSydneyRentChange(data: CityRents, now = new Date()): Ver
   );
 }
 
-/** A buyer's evidence checklist anchored to twelve observed Sydney approval counts. */
-export function verifiedSydneyBeforeBuy(
+/** The same reviewed evidence checklist, bound to one official capital geography. */
+export function verifiedCapitalBeforeBuy(
   data: CityApprovals,
+  city: string,
   now = new Date()
 ): VerifiedReel | null {
   if (!fresh(data, now)) return null;
+  const region = Object.entries(APPROVAL_REGIONS).find(([, name]) => name === city)?.[0];
+  if (!region) return null;
+  const geography = approvalGeography(city);
+  const read = city === "Sydney" ? "sydneySupply" : "capitalSupply";
+  const cta = reelReadingCta(read);
+  if (city !== "Sydney") cta.voice += ` Then choose ${city}.`;
   const rows = data.observations
-    .filter((row) => row.city === "Sydney")
+    .filter((row) => row.city === city)
     .sort((a, b) => b.period.localeCompare(a.period));
   if (
     rows.some(
@@ -143,59 +156,82 @@ export function verifiedSydneyBeforeBuy(
     new Set(rows.map((row) => row.period)).size !== rows.length
   )
     return null;
-  const annual = annualApprovals(data, "Sydney", now.toISOString());
+  const annual = annualApprovals(data, city, now.toISOString());
   if (!annual || !Number.isSafeInteger(annual.total)) return null;
   const count = annual.total.toLocaleString("en-AU"),
     period = rentPeriod(annual.period);
-  const opening = evidenceOpening("supply-checklist", [
-    { label: "Greater Sydney", value: annual.total },
-  ]);
+  const opening = evidenceOpening("supply-checklist", [{ label: geography, value: annual.total }]);
   return withEvidenceVisual(
     {
       stat: {
         editorialLabel: "Before You Buy",
-        label: "Greater Sydney dwelling approvals",
+        label: `${geography} dwelling approvals`,
         value: count,
         line: "Approved over twelve months. Not completed homes.",
         subtext: `Year to ${period} · Original counts`,
         source: `ABS Building Approvals · Year to ${period}`,
         facts: [
           { figure: "1 · Stage", caption: "Permission, construction or completion?" },
-          { figure: "2 · Place", caption: "Greater Sydney is not your suburb" },
+          { figure: "2 · Place", caption: `${geography} is not your suburb` },
           { figure: "3 · Timing", caption: "When might homes become available?" },
         ],
       },
       script: [
         { key: "label", text: opening.voice },
-        { key: "value", text: `Greater Sydney recorded ${count} dwelling approvals.` },
+        {
+          key: "value",
+          text: `${city === "Canberra" ? "The ACT" : geography} recorded ${count} dwelling approvals.`,
+        },
         { key: "line", text: `That's twelve months to ${period}. Not completed homes.` },
-        { key: "claim", text: "Before using it, check the building stage and the local area." },
-        { key: "facts", text: "A city total can't tell you when homes near you will be ready." },
-        { key: "signOff", text: reelReadingCta("sydneySupply").voice },
+        {
+          key: "claim",
+          text:
+            city === "Sydney"
+              ? "Before using it, check the building stage and the local area."
+              : "Check the building stage and local area.",
+        },
+        {
+          key: "facts",
+          text:
+            city === "Sydney"
+              ? "A city total can't tell you when homes near you will be ready."
+              : "City totals don't tell you when nearby homes will be ready.",
+        },
+        { key: "signOff", text: cta.voice },
       ],
-      publication: { key: "instagram-reel-abs-sydney-before-buy-v1", date: `${annual.period}-01` },
+      publication: {
+        key: `instagram-reel-abs-${city.toLowerCase()}-before-buy-v1`,
+        date: `${annual.period}-01`,
+      },
       evidenceHash: hash({
         series: APPROVAL_FLOW,
-        key: "1.1.9.TOT.TOT.10.1GSYD.M/NUM",
+        key: `1.1.9.TOT.TOT.10.${region}.M/NUM`,
         rows: rows.slice(0, 12),
       }),
       caption: buildReelCaption({
         hook: opening.voice,
-        finding: `${count} dwelling units approved across Greater Sydney in the year to ${period}.`,
-        meaning:
-          "1. Stage: permission, not a start or a completion.\n2. Place: Greater Sydney, not your suburb or all NSW.\n3. Timing: check construction and completions before assuming homes are available. Counts alone don't establish shortage, future prices or investment quality.",
+        finding: `${count} dwelling units approved across ${geography} in the year to ${period}.`,
+        meaning: `1. Stage: permission, not a start or a completion.\n2. Place: ${geography}, not your suburb${city === "Sydney" ? " or all NSW" : ""}.\n3. Timing: check construction and completions before assuming homes are available. Counts alone don't establish shortage, future prices or investment quality.`,
         method:
           "Source: ABS Building Approvals; twelve monthly original counts, all sectors and dwelling types. Not seasonally or population-adjusted.",
         revisions: `${annual.preliminary ? "Includes provisional observations. " : ""}${annual.revised ? "Includes revised observations. " : ""}Data can be revised.`,
         action: "Save the stage, place and timing checklist for your next property comparison.",
-        read: "sydneySupply",
+        read,
       }),
     },
     {
       recipe: "supply-checklist",
       period: `Year to ${period}`,
-      rows: [{ label: "Greater Sydney", value: annual.total }],
-      readLabel: reelReadingCta("sydneySupply").fact.caption,
+      rows: [{ label: geography, value: annual.total }],
+      readLabel: cta.fact.caption,
     }
   );
+}
+
+/** Preserve the established Sydney publication identity and copy. */
+export function verifiedSydneyBeforeBuy(
+  data: CityApprovals,
+  now = new Date()
+): VerifiedReel | null {
+  return verifiedCapitalBeforeBuy(data, "Sydney", now);
 }

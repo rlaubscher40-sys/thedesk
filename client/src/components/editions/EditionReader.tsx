@@ -114,7 +114,7 @@ export function EditionReader({
           className="font-serif italic mt-4 max-w-[60ch]"
           style={{ fontSize: 21, lineHeight: 1.4, color: "var(--color-fg-muted)" }}
         >
-          Weekly intelligence for property partnerships.
+          The week in Australian property: what changed and why it matters.
         </p>
       </div>
 

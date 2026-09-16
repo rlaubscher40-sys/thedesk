@@ -21,7 +21,7 @@ describe("honest Sydney posting status", () => {
     expect(scheduled.confirmedPostId).toBeNull();
     expect(scheduled.earliestCheckAt).toBe("2026-09-11T08:30:00.000Z");
     expect(scheduled.timingNote).toContain("not a reserved posting time");
-    for (const state of ["locked", "unavailable", "no-evidence", "published"])
+    for (const state of ["locked", "unavailable", "no-evidence", "exhausted", "published"])
       expect(describeReelPlan({ state, candidate }, true, true, now).selectedTopic).toBeNull();
     for (const state of ["locked", "unavailable", "running", "daily-limit", "paused"])
       expect(describeReelPlan({ state, candidate }, true, true, now).earliestCheckAt).toBeNull();
@@ -41,7 +41,7 @@ describe("honest Sydney posting status", () => {
     );
     expect(result.earliestCheckAt).toBe("2026-09-12T08:30:00.000Z");
   });
-  it.each(["daily-limit", "scheduled", "no-evidence", "locked", "published"])(
+  it.each(["daily-limit", "scheduled", "no-evidence", "exhausted", "locked", "published"])(
     "keeps a dated historical receipt separate from the %s selection",
     (state) => {
       const lastConfirmedPublication = {
@@ -64,4 +64,13 @@ describe("honest Sydney posting status", () => {
       expect(summary.selectedPublication?.key).not.toBe("loans");
     }
   );
+});
+
+it("describes exhausted supply as requiring fresh evidence, not a confirmed publication", () => {
+  const plan = describeReelPlan({ state: "exhausted", candidate, postId: "old" }, true, true);
+  expect(plan.selectedTopic).toBeNull();
+  expect(plan.confirmedPostId).toBeNull();
+  expect(plan.earliestCheckAt).toBeNull();
+  expect(plan.nextAction).toContain("Never reset publication locks");
+  expect(plan.blockers.join(" ")).toContain("already been published");
 });

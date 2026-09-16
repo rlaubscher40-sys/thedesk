@@ -21,7 +21,7 @@ import { NEWSLETTER_NOTICE } from "@shared/legal";
 export function SubscribeBand({
   source,
   kicker = "The Daily Brief · free",
-  headline = "Five stories and three ready-made lines, in your inbox at 7am.",
+  headline = "What changed in Australian property, in your inbox at 7am.",
   blurb = "Curated by Ruben Laubscher with AI-assisted reporting. Weekdays at 7am Sydney time, plus the Sunday edition. Unsubscribe in a click.",
   showHeadshot = true,
   hideAfterSignup = true,
@@ -119,7 +119,7 @@ export function SubscribeBand({
               aria-describedby={`subscribe-notice-${source}${error ? ` subscribe-error-${source}` : ""}`}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@firm.com"
+              placeholder="you@example.com"
               autoComplete="email"
               className="flex-1 min-w-0 rounded-sm px-4 py-3.5"
               style={{
@@ -171,7 +171,7 @@ export function SubscribeBand({
               className="h-10 w-10 rounded-full object-cover shrink-0"
             />
             <p className="bs-label" style={{ lineHeight: 1.6, letterSpacing: "0.14em" }}>
-              Read by brokers, advisers and buyer&apos;s agents across Australia
+              For people buying, holding or following Australian property
             </p>
           </div>
         ) : (

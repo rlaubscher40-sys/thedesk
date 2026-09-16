@@ -20,6 +20,13 @@ export function formatMetricValue(metric: { value: string; unit?: string | null 
 export function hasDailyObservations(key: string): boolean {
   return ["cash_rate", "asx200", "audusd", "audgbp", "audeur", "us10y"].includes(key);
 }
+/** An undated prior is not a previous publisher release. */
+export function comparableMetricPrior(metric: {
+  metricKey: string;
+  previousValue?: string | null;
+}): string | null {
+  return hasDailyObservations(metric.metricKey) ? (metric.previousValue ?? null) : null;
+}
 export function metricTiming(metric: MetricObservationInput): string {
   const observation = describeMetricObservation(metric);
   const cadence =

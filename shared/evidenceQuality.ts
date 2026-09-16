@@ -6,6 +6,7 @@ import {
 } from "./headline";
 import { foreignHousingHeadline } from "./australianScope";
 import { propertyNewsHold } from "./propertyNewsQuality";
+import { cleanReportingExcerpt } from "./reportingExcerpt";
 
 type EvidenceInput = {
   title: string;
@@ -18,7 +19,7 @@ const tidy = (text: string) => text.replace(/\s+/gu, " ").trim();
 /** A read projection, never a rewrite of archived source records. No generated prose. */
 export function evidenceText(input: EvidenceInput) {
   const title = tidy(cleanHeadline(input.title, input.source ?? undefined));
-  let summary = tidy(input.summary ?? "");
+  let summary = cleanReportingExcerpt(input.summary ?? "");
   try {
     // Google descriptions may concatenate several publishers' headlines. Even an
     // attributed search result is not an excerpt of the linked article.
@@ -44,6 +45,19 @@ export function evidenceText(input: EvidenceInput) {
 }
 
 export function evidenceEligible(input: EvidenceInput, asOf: string): boolean {
+  // Entertainment about landlords is not market evidence. Company publicity
+  // is not independent analysis, even when its headline names a city.
+  if (
+    /\b(?:film|movie|sitcom|comedy|television|tv show)\b/i.test(input.title) &&
+    !/\b(?:studio (?:approval|development)|housing policy|planning approval)\b/i.test(input.title)
+  )
+    return false;
+  if (
+    /\b(?:highlights the (?:role|importance)|showcases? (?:its|their)|leading (?:valuation|real estate|property) (?:firm|company)|unveils? (?:its|their) (?:new )?(?:website|branding|service))\b/i.test(
+      input.title
+    )
+  )
+    return false;
   return (
     Boolean(input.title.trim()) &&
     !looksLikeGarbage(input.title) &&

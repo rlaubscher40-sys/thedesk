@@ -121,9 +121,12 @@ export function reelCoverDesign(stat: ReelStat, script: ScriptLine[]): CoverArtw
   if (visual?.recipe === "supply-checklist") {
     return {
       ...design,
-      subject: "Greater Sydney",
+      subject: visual.rows[0]!.label,
       section: "Housing supply",
-      headline: "Approved.\nWhen built?",
+      headline:
+        visual.rows[0]!.label === "Greater Sydney"
+          ? "Approved.\nWhen built?"
+          : `${visual.rows[0]!.label.replace(/^Greater /, "").replace("Australian Capital Territory", "ACT")} supply.\nWhen built?`,
       detail: `${visual.rows[0]!.value.toLocaleString("en-AU")} dwelling approvals. Timing matters.`,
     };
   }

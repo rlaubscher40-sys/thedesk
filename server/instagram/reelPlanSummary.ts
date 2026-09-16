@@ -55,18 +55,29 @@ export function describeReelPlan(
     paused:
       "Today's attempts are paused. A later attempt still depends on an unused publication record.",
     "daily-limit": "Today's automatic Reel slot has already been used.",
-    published: "All currently eligible stories have already been published.",
+    exhausted:
+      "All currently eligible stories have already been published. No new publication is selected.",
   };
   const blockers = [
     ...(!enabled ? ["Automatic scheduling is disabled."] : []),
     ...(!configured ? ["Instagram is not configured."] : []),
     ...(blocked[plan.state] ? [blocked[plan.state]!] : []),
   ];
-  const selection = !["published", "no-evidence", "locked", "unavailable"].includes(plan.state)
+  const selection = !["published", "exhausted", "no-evidence", "locked", "unavailable"].includes(
+    plan.state
+  )
     ? plan.candidate
     : null;
   return {
     checkedAt: now.toISOString(),
+    nextAction:
+      plan.state === "exhausted"
+        ? "Wait for a new verified source period or add a reviewed evidence-backed recipe. Never reset publication locks to fill the calendar."
+        : plan.state === "no-evidence"
+          ? "Inspect source availability, reference periods and creative approval requirements."
+          : plan.state === "locked" || plan.state === "unavailable"
+            ? "Inspect the publication record before any retry."
+            : null,
     window,
     blockers,
     selectedTopic: selection?.topic ?? null,
@@ -107,6 +118,7 @@ export function logReelPlan(plan: Plan, enabled: boolean, configured: boolean, n
     selectedTopic: summary.selectedTopic,
     window: summary.window,
     blockers: summary.blockers,
+    nextAction: summary.nextAction,
     retryAt: summary.retryAt,
     confirmedPostId: summary.confirmedPostId,
     lastConfirmedPublication: summary.lastConfirmedPublication,

@@ -1,3 +1,4 @@
+import { acceptsHtml } from "./acceptsHtml";
 /**
  * SEO routes, sitemap.xml + feed.xml + per-page meta tag injection.
  *
@@ -196,8 +197,7 @@ async function handleEditionMeta(req: Request, res: Response, next: NextFunction
     const editionNumber = parseInt(routeParam(req.params.n), 10);
     if (!Number.isFinite(editionNumber)) return next();
 
-    const accept = req.headers.accept ?? "";
-    if (!accept.includes("text/html")) return next();
+    if (!acceptsHtml(req.headers.accept)) return next();
 
     const shell = await readShell();
     if (shell === null) return next();
@@ -311,8 +311,7 @@ async function handleStoryMeta(req: Request, res: Response, next: NextFunction):
     const id = parseInt(routeParam(req.params.id), 10);
     if (!Number.isFinite(id) || id <= 0) return next();
 
-    const accept = req.headers.accept ?? "";
-    if (!accept.includes("text/html")) return next();
+    if (!acceptsHtml(req.headers.accept)) return next();
 
     const shell = await readShell();
     if (shell === null) return next();

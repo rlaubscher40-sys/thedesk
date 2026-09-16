@@ -285,7 +285,7 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
                 value={contactEmail}
                 onChange={(e) => setContactEmail(e.target.value)}
                 maxLength={320}
-                placeholder="you@firm.com"
+                placeholder="you@example.com"
                 className="w-full px-3 py-2 rounded text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors"
               />
             </label>

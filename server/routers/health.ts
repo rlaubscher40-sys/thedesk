@@ -14,6 +14,7 @@ import { coverageDaySchema, coverageSaveSchema } from "../../shared/editorialCov
  */
 import { sydneySocialClock } from "../../shared/instagramSchedule";
 import { dailyBriefHealth } from "../db/dailyBrief";
+import { dailyBriefRecoveryStatus } from "../brief/delivery";
 import { metricHealth } from "../../shared/metricHealth";
 import { metricRefreshStatus, refreshOfficialMetrics } from "../metrics/recovery";
 import { z } from "zod";
@@ -58,17 +59,29 @@ type ServiceInfo = {
 };
 
 export const healthRouter = router({
-  coverageReview: adminProcedure.input(z.object({day:coverageDaySchema})).query(({input})=>readCoverage(input.day)),
-  saveCoverageReview: adminProcedure.input(coverageSaveSchema).mutation(({input,ctx})=>saveCoverage(input,ctx.user.id)),
+  coverageReview: adminProcedure
+    .input(z.object({ day: coverageDaySchema }))
+    .query(({ input }) => readCoverage(input.day)),
+  saveCoverageReview: adminProcedure
+    .input(coverageSaveSchema)
+    .mutation(({ input, ctx }) => saveCoverage(input, ctx.user.id)),
   editorial: adminProcedure.query(() => editorialHealth()),
-  importVicWorkbook: adminProcedure.input(z.object({
-    base64: z.string().min(1).max(2_800_000),
-    resourceUrl: z.string().max(300),
-    commit: z.boolean(),
-    expectedHash: z.string().regex(/^[a-f0-9]{64}$/).optional(),
-  })).mutation(({ input }) => uploadVicWorkbook(input)),
+  importVicWorkbook: adminProcedure
+    .input(
+      z.object({
+        base64: z.string().min(1).max(2_800_000),
+        resourceUrl: z.string().max(300),
+        commit: z.boolean(),
+        expectedHash: z
+          .string()
+          .regex(/^[a-f0-9]{64}$/)
+          .optional(),
+      })
+    )
+    .mutation(({ input }) => uploadVicWorkbook(input)),
   localDataCoverage: adminProcedure.query(() => getLocalCoverage()),
   dailyBriefDelivery: adminProcedure.query(() => dailyBriefHealth(sydneySocialClock().dateISO)),
+  dailyBriefRecovery: adminProcedure.query(() => dailyBriefRecoveryStatus()),
   feedEnrichment: adminProcedure.query(() => feedEnrichmentHealth()),
   localTransferStats: adminProcedure.query(() => readLocalTransfers()),
   refreshMetrics: adminProcedure.mutation(async () => refreshOfficialMetrics()),

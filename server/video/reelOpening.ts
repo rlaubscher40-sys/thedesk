@@ -72,8 +72,8 @@ export function evidenceOpening(
     case "supply-checklist":
       return {
         headline: `${count(a.value)} approvals.`,
-        detail: "Greater Sydney / when will homes be ready?",
-        voice: "Sydney's dwelling approvals don't tell you when homes will be ready.",
+        detail: `${a.label} / when will homes be ready?`,
+        voice: `${a.label.replace(/^Greater /, "").replace("Australian Capital Territory", "The ACT")}'s dwelling approvals don't tell you when homes will be ready.`,
       };
     default:
       throw new Error(`Unreviewed Reel opening: ${recipe}`);

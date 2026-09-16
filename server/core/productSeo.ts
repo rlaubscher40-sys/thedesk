@@ -1,3 +1,4 @@
+import { acceptsHtml } from "./acceptsHtml";
 import type { Express, NextFunction, Request, Response } from "express";
 import fs from "node:fs";
 import path from "node:path";
@@ -52,8 +53,7 @@ async function sendProductShell(
   next: NextFunction,
   meta: ProductMeta
 ): Promise<void> {
-  const accept = req.headers.accept ?? "";
-  if (!accept.includes("text/html")) return next();
+  if (!acceptsHtml(req.headers.accept)) return next();
 
   const indexPath = path.resolve(process.cwd(), "dist", "public", "index.html");
   if (!fs.existsSync(indexPath)) return next();

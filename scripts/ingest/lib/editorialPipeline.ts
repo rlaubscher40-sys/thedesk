@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { reportingExcerpt } from "../../../shared/reportingExcerpt";
 import {
   assessStory,
   discoveryScore,
@@ -297,14 +298,18 @@ export async function buildDailyBrief(options: PipelineOptions = {}) {
   // has enough distinct eligible events. Every ordinary evidence gate still runs.
   const attempted = new Set(selectedToRead);
   const recoveryCounts = new Map<string, number>();
-  for (const item of selectedToRead) recoveryCounts.set(item.source, (recoveryCounts.get(item.source) ?? 0) + 1);
-  const reserve = readingBudget(candidates.filter((item) => {
-    if (!["AU", "PROPERTY"].includes(item.channel) || attempted.has(item)) return false;
-    const count = recoveryCounts.get(item.source) ?? 0;
-    if (count >= 20) return false;
-    recoveryCounts.set(item.source, count + 1);
-    return true;
-  }), 60);
+  for (const item of selectedToRead)
+    recoveryCounts.set(item.source, (recoveryCounts.get(item.source) ?? 0) + 1);
+  const reserve = readingBudget(
+    candidates.filter((item) => {
+      if (!["AU", "PROPERTY"].includes(item.channel) || attempted.has(item)) return false;
+      const count = recoveryCounts.get(item.source) ?? 0;
+      if (count >= 20) return false;
+      recoveryCounts.set(item.source, count + 1);
+      return true;
+    }),
+    60
+  );
   const hasLocalSupply = () => {
     const published = createEvidenceDuplicateIndex(options.recentStories);
     const unique = new Map<string, PreparedStory>();
@@ -319,13 +324,16 @@ export async function buildDailyBrief(options: PipelineOptions = {}) {
       for (const { item } of clusters.filter((c) => c.item.channel === channel)) {
         const host = new URL(item.url!).hostname.replace(/^www\./, "");
         const used = counts.get(host) ?? 0;
-        if (used < 3) { counts.set(host, used + 1); count++; }
+        if (used < 3) {
+          counts.set(host, used + 1);
+          count++;
+        }
       }
       return count >= CHANNEL_TARGETS[channel as "AU" | "PROPERTY"];
     });
   };
   for (let start = 0; start < reserve.length && !hasLocalSupply(); start += 20) {
-    read.push(...await mapLimit(reserve.slice(start, start + 20), 6, readCandidate));
+    read.push(...(await mapLimit(reserve.slice(start, start + 20), 6, readCandidate)));
   }
   // Prefer significance, then original publication day. Length is evidence
   // for eligibility, not a reason to lead with a longer article.
@@ -400,6 +408,5 @@ export async function buildDailyBrief(options: PipelineOptions = {}) {
 
 /** Use extracted reporting, never a Google roundup masquerading as a summary. */
 export function briefingSummary(item: PreparedStory): string {
-  const opening = item.articleText.split(/\n\n/).find((p) => p.length >= 80) ?? item.articleText;
-  return opening.length > 380 ? opening.slice(0, 377).trimEnd() + "…" : opening;
+  return reportingExcerpt(item.title, item.articleText);
 }

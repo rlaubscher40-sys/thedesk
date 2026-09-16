@@ -9,6 +9,7 @@ export const REEL_READS = {
   housingBalance: SOCIAL_DESTINATIONS[4],
   newLoanRates: SOCIAL_DESTINATIONS[5],
   interstateMigration: SOCIAL_DESTINATIONS[6],
+  capitalSupply: SOCIAL_DESTINATIONS[7],
   capitalRents: { label: "All eight capital-city rent figures", path: "/social" },
 } as const;
 export const REEL_CAPTION_LIMIT = 1400;
@@ -17,6 +18,7 @@ const BEATS: Record<keyof typeof REEL_READS, CaptionBeat> = {
   sydneyRent: "rents",
   capitalRents: "rents",
   sydneySupply: "supply",
+  capitalSupply: "supply",
   supplyComparison: "supply",
   housingBalance: "supply",
   newLoanRates: "loans",
@@ -67,6 +69,7 @@ const CAMPAIGNS = {
   rentComparison: "property_editorial_reel",
   sydneyRent: "sydney_rent_change",
   sydneySupply: "sydney_before_buy",
+  capitalSupply: "capital_before_buy",
   supplyComparison: "supply_comparison",
   capitalRents: "eight_capital_rents",
   housingBalance: "national_housing_balance",

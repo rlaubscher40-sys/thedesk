@@ -1,8 +1,16 @@
 import { describe, it, expect } from "vitest";
-import { verifiedSydneyBeforeBuy, verifiedSydneyRentChange } from "./verifiedSydneyReels";
+import {
+  verifiedCapitalBeforeBuy,
+  verifiedSydneyBeforeBuy,
+  verifiedSydneyRentChange,
+} from "./verifiedSydneyReels";
 import { scriptFitsClip } from "../video/statReel";
 import type { CityRents } from "../../shared/cityRents";
-import type { CityApprovals } from "../../shared/cityApprovals";
+import {
+  APPROVAL_REGIONS,
+  approvalGeography,
+  type CityApprovals,
+} from "../../shared/cityApprovals";
 const now = new Date("2026-09-09T08:30:00Z");
 const rents = (): CityRents => ({
   status: "available",
@@ -132,4 +140,31 @@ describe("automatic Sydney story recipes", () => {
       expect(after.caption).toContain("revised");
     }
   });
+});
+
+describe("capital-city supply evidence", () => {
+  it.each(Object.values(APPROVAL_REGIONS))(
+    "binds %s to its own geography, period, script and publication",
+    (city) => {
+      const data = approvals();
+      data.observations = data.observations.map((r) => ({ ...r, city }));
+      const c = verifiedCapitalBeforeBuy(data, city, now)!;
+      expect(c).not.toBeNull();
+      expect(c.stat.label).toBe(`${approvalGeography(city)} dwelling approvals`);
+      expect(c.publication).toEqual({
+        key: `instagram-reel-abs-${city.toLowerCase()}-before-buy-v1`,
+        date: "2026-07-01",
+      });
+      expect(c.caption).toContain(approvalGeography(city));
+      expect(c.caption).toContain("12,066");
+      expect(c.caption).toContain("not a start or a completion");
+      expect(scriptFitsClip(c.script)).toBe(true);
+      if (city !== "Sydney") expect(JSON.stringify(c)).not.toContain("Sydney");
+      if (city === "Canberra") expect(JSON.stringify(c)).not.toContain("Greater Canberra");
+      expect(verifiedCapitalBeforeBuy(data, "Unknown", now)).toBeNull();
+      expect(verifiedCapitalBeforeBuy(data, city, new Date("2026-10-01"))).toBeNull();
+      data.observations.pop();
+      expect(verifiedCapitalBeforeBuy(data, city, now)).toBeNull();
+    }
+  );
 });

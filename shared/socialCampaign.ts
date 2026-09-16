@@ -31,6 +31,7 @@ export function socialCampaign(
     supply_comparison: "supply_comparison",
     sydney_rent_change: "rent_change",
     sydney_before_buy: "before_buy",
+    capital_before_buy: "before_buy",
   };
   return Object.hasOwn(known, value) ? known[value] : "other";
 }

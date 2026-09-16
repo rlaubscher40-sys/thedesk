@@ -44,6 +44,18 @@ export function AnalyticsAdminPanel() {
         </p>
       </header>
 
+      {summaryQuery.isLoading && <p role="status">Loading readership measurements…</p>}
+      {[summaryQuery, breakdownQuery, byDayQuery, engagementQuery].some((q) => q.isError) && (
+        <p role="alert">
+          Some measurements could not be loaded. Missing data does not mean zero activity.
+        </p>
+      )}
+      {engagementQuery.isSuccess && engagement.length === 0 && (
+        <p className="text-sm">
+          No product actions were recorded in the last seven days. Blocked analytics and unmeasured
+          activity are not included.
+        </p>
+      )}
       {summary && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <Tile

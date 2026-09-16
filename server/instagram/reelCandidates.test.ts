@@ -34,7 +34,7 @@ beforeEach(() => {
   m.lending.mockResolvedValue([]);
 });
 describe("repeatable automatic editorial selection", () => {
-  it("passes all eight recipes through the shared production and full-screen visual gates", async () => {
+  it("passes available capital and existing recipes through the shared production and full-screen visual gates", async () => {
     const now = new Date("2026-09-10T12:00:00Z");
     m.rents.mockResolvedValue({
       status: "available",
@@ -66,8 +66,8 @@ describe("repeatable automatic editorial selection", () => {
     m.demographics.mockResolvedValue(demographics);
     m.lending.mockResolvedValue(testLoanRates());
     const candidates = await getVerifiedReelCandidates(now);
-    expect(candidates).toHaveLength(8);
-    expect(new Set(candidates.map((candidate) => candidate.publication.key)).size).toBe(8);
+    expect(candidates).toHaveLength(10);
+    expect(new Set(candidates.map((candidate) => candidate.publication.key)).size).toBe(10);
     for (const candidate of candidates) {
       const cover = reelCoverContent(candidate.stat, candidate.script);
       expect(candidate.script[0]!.text).toBe(cover.opening.voice);
@@ -89,7 +89,7 @@ describe("repeatable automatic editorial selection", () => {
   });
   it("explains every withheld recipe without inventing a story", async () => {
     const programme = await getVerifiedReelProgramme();
-    expect(programme).toHaveLength(12);
+    expect(programme).toHaveLength(19);
     expect(programme.every((p) => !p.candidate && p.requirement.length > 10)).toBe(true);
     expect(await getVerifiedReelCandidates()).toEqual([]);
   });

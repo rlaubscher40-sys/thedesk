@@ -1,3 +1,4 @@
+import { acceptsHtml } from "./acceptsHtml";
 import { formatMetricValue, historyChange } from "../../shared/metricPresentation";
 import type { Express, NextFunction, Request, Response } from "express";
 import rateLimit from "express-rate-limit";
@@ -84,8 +85,7 @@ async function sendSocialShell(
   next: NextFunction,
   meta: SocialMeta
 ): Promise<void> {
-  const accept = req.headers.accept ?? "";
-  if (!accept.includes("text/html")) return next();
+  if (!acceptsHtml(req.headers.accept)) return next();
 
   const indexPath = path.resolve(process.cwd(), "dist", "public", "index.html");
   if (!fs.existsSync(indexPath)) return next();

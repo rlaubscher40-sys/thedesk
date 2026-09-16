@@ -27,7 +27,9 @@ describe("social destination and attribution boundaries", () => {
     expect(
       SOCIAL_DESTINATIONS.every(
         (d) =>
-          (d.path.startsWith("/markets/") || d.path === "/social#new-loan-rates") &&
+          (d.path.startsWith("/markets/") ||
+            d.path === "/markets" ||
+            d.path === "/social#new-loan-rates") &&
           !d.path.includes("?")
       )
     ).toBe(true);
