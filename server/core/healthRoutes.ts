@@ -1,8 +1,8 @@
 /**
  * Health + error-tracking routes.
  *
- * Three endpoints registered here:
- *   · GET  /api/healthz  — public, lightweight liveness check used by
+ * Endpoints registered here:
+ *   · GET  /api/healthz  — public, lightweight readiness check used by
  *                          the external uptime cron. Returns 200 with
  *                          a small JSON body when the DB and basic
  *                          deps respond.
@@ -27,9 +27,12 @@ function authorised(req: Request): boolean {
   const expected = process.env.SCHEDULED_API_KEY;
   if (!expected) return false;
   const got = req.header(SCHEDULED_KEY_HEADER);
-  if (typeof got !== "string" || got.length !== expected.length) return false;
+  if (typeof got !== "string") return false;
+  const receivedBytes = Buffer.from(got);
+  const expectedBytes = Buffer.from(expected);
+  if (receivedBytes.length !== expectedBytes.length) return false;
   // Constant-time compare so response latency doesn't leak the key.
-  return timingSafeEqual(Buffer.from(got), Buffer.from(expected));
+  return timingSafeEqual(receivedBytes, expectedBytes);
 }
 
 async function handleHealthz(_req: Request, res: Response): Promise<void> {
@@ -39,7 +42,8 @@ async function handleHealthz(_req: Request, res: Response): Promise<void> {
   let dbOk = false;
   try {
     // Cheap probe: list the most recent uptime ping. Demo mode and
-    // real DB both work; failure means the DB layer is broken.
+    // real DB both work. A missing production client must reject, not
+    // return an empty history that would incorrectly pass this probe.
     await db.listRecentUptimePings(1);
     dbOk = true;
   } catch {
@@ -80,12 +84,17 @@ async function handleRecordPing(req: Request, res: Response): Promise<void> {
     res.status(400).json({ error: "Bad ping payload", issues: parsed.error.issues });
     return;
   }
-  await db.recordUptimePing({
-    statusCode: parsed.data.statusCode,
-    latencyMs: parsed.data.latencyMs,
-    source: parsed.data.source,
-    region: parsed.data.region ?? null,
-  });
+  try {
+    await db.recordUptimePing({
+      statusCode: parsed.data.statusCode,
+      latencyMs: parsed.data.latencyMs,
+      source: parsed.data.source,
+      region: parsed.data.region ?? null,
+    });
+  } catch {
+    res.status(503).json({ error: "Monitoring storage unavailable" });
+    return;
+  }
   res.json({ ok: true });
 }
 

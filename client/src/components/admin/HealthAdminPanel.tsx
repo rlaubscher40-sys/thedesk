@@ -66,7 +66,6 @@ export function HealthAdminPanel() {
             utils.health.summary.invalidate();
             utils.health.recentErrors.invalidate();
             utils.health.uptimePings.invalidate();
-            toast.message("Refreshed");
           }}
           className="inline-flex items-center gap-1.5 rounded px-3 py-2 text-[10px] font-mono uppercase tracking-[0.18em] border border-[var(--color-border)] hover:border-[var(--color-amber)]/40 transition-colors"
         >
@@ -138,6 +137,10 @@ export function HealthAdminPanel() {
               </p>
             )}
             <p className="mt-2 text-[var(--color-fg-muted)]">{monitoring.note}</p>
+            <p className="mt-2 text-[var(--color-fg-muted)]">
+              This history contains checks recorded by The Desk. External monitors keep their own
+              history unless configured to submit results here.
+            </p>
           </div>
           {/* Two-column: env coverage + ingest + subscribers. */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -157,17 +160,32 @@ export function HealthAdminPanel() {
       <LocalDataHealth />
 
       {/* Uptime sparkline. */}
+      {pingsQuery.isError && (
+        <p role="alert" className="text-sm">
+          Recent monitoring checks are unavailable. Any displayed history may be stale.
+        </p>
+      )}
       {pings.length > 0 && <UptimeSparkline pings={pings} />}
 
       {/* Error log. */}
-      <ErrorLog
-        errors={errors}
-        onClear={() => {
-          if (!confirm("Clear every entry from server_errors? This can't be undone.")) return;
-          clearErrors.mutate();
-        }}
-        clearing={clearErrors.isPending}
-      />
+      {errorsQuery.isError ? (
+        <p role="alert" className="text-sm">
+          Error history is unavailable. Retry with Refresh.
+        </p>
+      ) : errorsQuery.isPending ? (
+        <p role="status" className="text-sm">
+          Loading error history…
+        </p>
+      ) : (
+        <ErrorLog
+          errors={errors}
+          onClear={() => {
+            if (!confirm("Clear every entry from server_errors? This can't be undone.")) return;
+            clearErrors.mutate();
+          }}
+          clearing={clearErrors.isPending}
+        />
+      )}
     </section>
   );
 }
@@ -477,7 +495,7 @@ function ErrorLog({
             className="font-serif italic text-[var(--color-fg-muted)]"
             style={{ fontSize: "14px" }}
           >
-            No errors recorded. The desk is quiet.
+            No errors recorded.
           </p>
         </div>
       ) : (

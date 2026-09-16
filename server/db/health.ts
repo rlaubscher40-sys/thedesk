@@ -44,14 +44,14 @@ export async function recordServerError(data: InsertServerError): Promise<void> 
 export async function listRecentServerErrors(limit = 50): Promise<ServerError[]> {
   if (isDemoMode()) return demoQueries.listRecentServerErrors(limit);
   const db = getDb();
-  if (!db) return [];
+  if (!db) throw new Error("Error history unavailable");
   return db.select().from(serverErrors).orderBy(desc(serverErrors.occurredAt)).limit(limit);
 }
 
 export async function countServerErrorsSince(since: Date): Promise<number> {
   if (isDemoMode()) return demoQueries.countServerErrorsSince(since);
   const db = getDb();
-  if (!db) return 0;
+  if (!db) throw new Error("Error counts unavailable");
   const rows = await db
     .select({ n: sql<number>`count(*)` })
     .from(serverErrors)
@@ -62,21 +62,21 @@ export async function countServerErrorsSince(since: Date): Promise<number> {
 export async function clearServerErrors(): Promise<void> {
   if (isDemoMode()) return demoQueries.clearServerErrors();
   const db = getDb();
-  if (!db) return;
+  if (!db) throw new Error("Error history unavailable");
   await db.delete(serverErrors);
 }
 
 export async function recordUptimePing(data: InsertUptimePing): Promise<void> {
   if (isDemoMode()) return demoQueries.recordUptimePing(data);
   const db = getDb();
-  if (!db) return;
+  if (!db) throw new Error("Monitoring storage unavailable");
   await db.insert(uptimePings).values(data);
 }
 
 export async function listRecentUptimePings(limit = 288): Promise<UptimePing[]> {
   if (isDemoMode()) return demoQueries.listRecentUptimePings(limit);
   const db = getDb();
-  if (!db) return [];
+  if (!db) throw new Error("Monitoring history unavailable");
   return db.select().from(uptimePings).orderBy(desc(uptimePings.pingedAt)).limit(limit);
 }
 
@@ -113,7 +113,7 @@ export async function uptimeWindowStats(
   const since = new Date(Date.now() - windowHours * 60 * 60 * 1000);
   if (isDemoMode()) return demoQueries.uptimeWindowStats(since);
   const db = getDb();
-  if (!db) return { total: 0, up: 0, avgLatencyMs: 0 };
+  if (!db) throw new Error("Monitoring statistics unavailable");
   const rows = await db
     .select({
       total: sql<number>`count(*)`,
