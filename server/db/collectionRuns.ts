@@ -12,7 +12,7 @@ export function isCollectionJob(key: string): boolean {
     key === "local-data-vic-reviewed-release" ||
     key === "daily-metrics" ||
     /^local-data-(?:abs-sa2-population|nsw-bond-rents|qld-bond-rents|sa-bond-rents|wa-bond-rents|tas-bond-rents)$/.test(
-      key,
+      key
     ) ||
     /^official-metrics-(?:12|18)$/.test(key) ||
     /^official-metrics-recovery-(?:00|04|08|12|16|20)$/.test(key) ||
@@ -31,9 +31,7 @@ export type CollectionLease = {
   attempt: number;
 };
 type Database = NonNullable<ReturnType<typeof getDb>>;
-export type CollectionTransaction = Parameters<
-  Parameters<Database["transaction"]>[0]
->[0];
+export type CollectionTransaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
 const context = new AsyncLocalStorage<{
   lease: CollectionLease;
   signal: AbortSignal;
@@ -46,8 +44,7 @@ export function collectionSignal(): AbortSignal | undefined {
 
 function requireDb() {
   const db = getDb();
-  if (!db || isDemoMode())
-    throw new Error("Collection requires a live database");
+  if (!db || isDemoMode()) throw new Error("Collection requires a live database");
   return db;
 }
 
@@ -57,11 +54,21 @@ export async function claimCollectionRun(
   jobKey: string,
   runDate: string,
   maxAttempts = 3,
-  now = new Date(),
+  now = new Date()
 ): Promise<CollectionLease | null> {
-  if (!isCollectionJob(jobKey))
-    throw new Error("Only data collection jobs can expire");
-  return requireDb().transaction(async (tx) => {
+  if (!isCollectionJob(jobKey)) throw new Error("Only data collection jobs can expire");
+  const db = requireDb();
+  // Finished collectors are polled repeatedly within their due window. A
+  // point read avoids a transaction, duplicate-key write and row lock each
+  // time. Do not cache this result or use it to grant ownership: pending,
+  // failed and running rows still go through the existing locked checks.
+  const [existing] = await db
+    .select({ status: jobRuns.status })
+    .from(jobRuns)
+    .where(and(eq(jobRuns.jobKey, jobKey), eq(jobRuns.runDate, runDate)))
+    .limit(1);
+  if (existing?.status === "success") return null;
+  return db.transaction(async (tx) => {
     await tx
       .insert(jobRuns)
       .values({
@@ -95,16 +102,12 @@ export async function claimCollectionRun(
       }
       return null;
     }
-    if (
-      row.status === "running" &&
-      now.getTime() - row.startedAt.getTime() < COLLECTION_LEASE_MS
-    )
+    if (row.status === "running" && now.getTime() - row.startedAt.getTime() < COLLECTION_LEASE_MS)
       return null;
     if (
       row.status === "failed" &&
       (!row.finishedAt ||
-        now.getTime() - row.finishedAt.getTime() <
-          collectionRetryDelay(row.attempts))
+        now.getTime() - row.finishedAt.getTime() < collectionRetryDelay(row.attempts))
     )
       return null;
     if (!["pending", "running", "failed"].includes(row.status)) return null;
@@ -128,14 +131,14 @@ function owned(lease: CollectionLease) {
     eq(jobRuns.jobKey, lease.jobKey),
     eq(jobRuns.runDate, lease.runDate),
     eq(jobRuns.status, "running"),
-    eq(jobRuns.attempts, lease.attempt),
+    eq(jobRuns.attempts, lease.attempt)
   );
 }
 
 export async function finishCollectionRun(
   lease: CollectionLease,
   status: "success" | "failed",
-  detail?: string,
+  detail?: string
 ): Promise<boolean> {
   const result = await requireDb()
     .update(jobRuns)
@@ -145,17 +148,13 @@ export async function finishCollectionRun(
       finishedAt: new Date(),
     })
     .where(owned(lease));
-  return (
-    Number(
-      (result as unknown as Array<{ affectedRows?: number }>)[0]?.affectedRows,
-    ) === 1
-  );
+  return Number((result as unknown as Array<{ affectedRows?: number }>)[0]?.affectedRows) === 1;
 }
 
 /** Hold the job row lock until the data transaction commits. An expired
  * worker cannot race a new claim and overwrite the replacement's results. */
 export async function withCollectionWrite<T>(
-  write: (db: Database | CollectionTransaction) => Promise<T>,
+  write: (db: Database | CollectionTransaction) => Promise<T>
 ): Promise<T> {
   const active = context.getStore();
   const db = requireDb();
@@ -164,11 +163,7 @@ export async function withCollectionWrite<T>(
   const currentTransaction = writeContext.getStore();
   if (currentTransaction) return write(currentTransaction);
   return db.transaction(async (tx) => {
-    const [row] = await tx
-      .select()
-      .from(jobRuns)
-      .where(owned(active.lease))
-      .for("update");
+    const [row] = await tx.select().from(jobRuns).where(owned(active.lease)).for("update");
     active.signal.throwIfAborted();
     if (!row) throw new Error("Collection attempt no longer owns its lease");
     const result = await writeContext.run(tx, () => write(tx));
@@ -183,7 +178,7 @@ export async function withCollectionWrite<T>(
 export async function runCollectionAttempt(
   lease: CollectionLease,
   run: () => Promise<void>,
-  timeoutMs = COLLECTION_DEADLINE_MS,
+  timeoutMs = COLLECTION_DEADLINE_MS
 ) {
   const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
