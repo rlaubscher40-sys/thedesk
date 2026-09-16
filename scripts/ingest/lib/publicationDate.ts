@@ -23,11 +23,24 @@ function moneyManagementClock(value: string): string {
   for (const offset of ["+10:00", "+11:00"]) {
     const date = new Date(wall + offset);
     if (!Number.isFinite(date.getTime())) continue;
-    const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Australia/Melbourne", year: "numeric", month: "2-digit", day: "2-digit",
-      hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23",
-    }).formatToParts(date).map(({ type, value }) => [type, value]));
-    if (`${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}` === wall)
+    const parts = Object.fromEntries(
+      new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Australia/Melbourne",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hourCycle: "h23",
+      })
+        .formatToParts(date)
+        .map(({ type, value }) => [type, value])
+    );
+    if (
+      `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}` ===
+      wall
+    )
       matches.push(date.toISOString());
   }
   return matches.length === 1 ? matches[0]! : value;
@@ -143,6 +156,22 @@ export function extractPublicationDate(html: string, sourceUrl?: string): Public
         host === "ministers.treasury.gov.au" &&
         node.tagName === "meta" &&
         attrs.name === "dcterms.date"
+      )
+        namedDay(attrs.content ?? "");
+      if (
+        host === "commbank.com.au" &&
+        path.startsWith("/articles/newsroom/") &&
+        (attrs.class ?? "").split(/\s+/).includes("article-upload-date")
+      )
+        namedDay(collect(node).replace(/\s+/g, " "));
+      // CPA release pages declare their original day in description metadata.
+      // Accept only a standalone calendar date on this reviewed article path.
+      if (
+        host === "cpaaustralia.com.au" &&
+        /^\/about-cpa-australia\/media\/media-releases\/[^/]+$/.test(path) &&
+        node.tagName === "meta" &&
+        attrs.name === "description" &&
+        /^\d{1,2} [A-Z][a-z]+ 20\d{2}$/.test((attrs.content ?? "").trim())
       )
         namedDay(attrs.content ?? "");
       if (

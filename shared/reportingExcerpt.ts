@@ -13,6 +13,16 @@ const words = (s: string) => [
   ),
 ];
 
+/** Captions are not reporting evidence, even when they repeat the headline. */
+export function isPhotoCaption(text: string): boolean {
+  return (
+    /\b(?:picture|photo|photograph|image)(?:s)?\s*(?:credit)?\s*:/i.test(text) ||
+    /^(?:artist'?s? impressions?|renders? (?:for|of)|pictured (?:above|below|here)|image supplied)\b/i.test(
+      text.trim()
+    )
+  );
+}
+
 /** Remove recognisable syndication chrome, never silently complete clipped prose. */
 export function cleanReportingExcerpt(text: string): string {
   return text
@@ -27,7 +37,10 @@ export function cleanReportingExcerpt(text: string): string {
  * No model call, rewritten fact, heading, byline or invented continuation. */
 export function reportingExcerpt(title: string, articleText: string, max = 380): string {
   const terms = words(title);
-  const paragraphs = articleText.slice(0, 16000).split(/\n+/);
+  const paragraphs = articleText
+    .slice(0, 16000)
+    .split(/\n+/)
+    .filter((p) => !isPhotoCaption(p));
   const candidates = paragraphs
     .flatMap((p) => p.split(/(?<=[.!?])\s+/))
     .map(cleanReportingExcerpt)

@@ -21,6 +21,7 @@ import { clusterByTitle } from "./cluster";
 import { originalPublicationDay } from "../../../shared/storyEvent";
 import { publisherAccessPause } from "./articleAccess";
 import { olderIndexPath } from "./indexReadingAge";
+import { storySignificance } from "../../../shared/editorialSignificance";
 import {
   createEvidenceDuplicateIndex,
   type EvidenceStory,
@@ -67,8 +68,21 @@ export type PipelineOptions = {
 export function readingBudget(items: FetchedItem[], limit: number): FetchedItem[] {
   const selected = new Set<FetchedItem>();
   const counts = new Map<string, number>();
+  // Reserve part of the existing budget for concrete decisions and data.
+  // Publisher rotation must not strand a release behind that publisher's
+  // two earlier stories. Eligibility, dates and evidence still run afterwards.
+  const significant = items
+    .filter((item) => storySignificance(item.title).baseline >= 88)
+    .sort((a, b) => discoveryScore(b) - discoveryScore(a));
+  for (const item of significant) {
+    if (selected.size >= Math.ceil(limit / 3)) break;
+    if ((counts.get(item.source) ?? 0) >= 3) continue;
+    selected.add(item);
+    counts.set(item.source, (counts.get(item.source) ?? 0) + 1);
+  }
   for (const item of items) {
     if (selected.size >= limit) break;
+    if (selected.has(item)) continue;
     const count = counts.get(item.source) ?? 0;
     if (count >= 2) continue;
     selected.add(item);

@@ -40,6 +40,33 @@ function crisisGrantClaims(story: RelatedStory): Set<string> {
     [...text.matchAll(/\$([\d,]+)\s*(million|m)\b/gi)].map((m) => m[1]!.replace(/,/g, ""))
   );
 }
+function namedReleaseClaims(story: RelatedStory): Set<string> {
+  const text = `${story.title} ${story.summary ?? ""} ${story.articleText?.slice(0, 6000) ?? ""}`;
+  const series =
+    /\b(?:HIA|Housing Industry Association)\b/i.test(text) && /\bnew.home sales\b/i.test(text)
+      ? "hia-sales"
+      : /\bEquifax\b/i.test(text) && /\b(?:credit|mortgage|first.home.buyer) demand\b/i.test(text)
+        ? "equifax-demand"
+        : /\bANZ[–—-]?\s*Roy Morgan\b/i.test(text) && /\bconsumer confidence\b/i.test(text)
+          ? "anz-confidence"
+          : null;
+  if (!series) return new Set();
+  const months = [
+    ...text.matchAll(
+      /\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\b/gi
+    ),
+  ].map((m) => m[0].toLowerCase());
+  // Monthly series need a common reporting month as well as a common figure.
+  if (series !== "anz-confidence" && !months.length) return new Set();
+  const figures = [
+    ...text.matchAll(/\b(\d+(?:\.\d+)?)\s*(?:%|per cent\b|percent\b|points\b)/gi),
+  ].map((m) => m[1]);
+  return new Set(
+    (series === "anz-confidence" ? ["weekly"] : months).flatMap((month) =>
+      figures.map((n) => `${series}:${month}:${n}`)
+    )
+  );
+}
 export function relatedCoverageParent<T extends RelatedStory & { id: number }>(
   story: RelatedStory,
   candidates: T[]
@@ -66,6 +93,14 @@ export function relatedCoverageParent<T extends RelatedStory & { id: number }>(
   const modelParent =
     local(story) && eligible.find((c) => [...housingModelClaims(c)].some((n) => claims.has(n)));
   const grants = crisisGrantClaims(story);
+  const release = namedReleaseClaims(story);
+  const releaseParent =
+    local(story) &&
+    eligible.find(
+      (c) =>
+        originalPublicationDay(c) === day &&
+        [...namedReleaseClaims(c)].some((key) => release.has(key))
+    );
   const grantParent =
     local(story) &&
     eligible.find(
@@ -76,6 +111,7 @@ export function relatedCoverageParent<T extends RelatedStory & { id: number }>(
     eligible.find((c) => sharesReporting(story, c)) ||
     modelParent ||
     grantParent ||
+    releaseParent ||
     bestMatch(
       titleTokens(story.title),
       eligible.map((value) => ({ value, tokens: titleTokens(value.title) }))

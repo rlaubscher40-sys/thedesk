@@ -298,6 +298,14 @@ const JOBS: Job[] = [
     run: (b, k) => runDailyFeedIngest(b, k),
   },
   MORTGAGE_COVERAGE_RECOVERY_JOB,
+  {
+    key: "coverage-september-16-recovery",
+    at: "00:00",
+    graceMinutes: 24 * 60 - 1,
+    claimDate: "2026-09-16",
+    maxAttempts: 1,
+    run: (b, k) => runDailyFeedIngest(b, k),
+  },
   { key: "daily-feed", at: "06:43", run: (b, k) => runDailyFeedIngest(b, k) },
   ...FEED_UPDATE_JOBS,
   {
