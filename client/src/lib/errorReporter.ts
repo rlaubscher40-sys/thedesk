@@ -16,8 +16,15 @@
  *     one render-loop bug doesn't carpet-bomb the log.
  */
 
+import { clientErrorReport } from "@shared/clientErrorReport";
+
 const DEDUPE_WINDOW_MS = 5_000;
+const REPORT_WINDOW_MS = 60_000;
+const MAX_REPORTS_PER_WINDOW = 10;
 const recentlySent = new Map<string, number>();
+let windowStarted = 0;
+let reportCount = 0;
+let initialized = false;
 
 /**
  * Errors thrown by code that isn't ours — in-app browser / WebView native
@@ -55,6 +62,12 @@ function shouldSkip(key: string): boolean {
   }
   const last = recentlySent.get(key);
   if (last !== undefined && now - last < DEDUPE_WINDOW_MS) return true;
+  if (now - windowStarted >= REPORT_WINDOW_MS || now < windowStarted) {
+    windowStarted = now;
+    reportCount = 0;
+  }
+  if (reportCount >= MAX_REPORTS_PER_WINDOW) return true;
+  reportCount++;
   recentlySent.set(key, now);
   return false;
 }
@@ -65,13 +78,16 @@ async function report(payload: {
   url: string;
 }): Promise<void> {
   try {
+    const safe = clientErrorReport(payload);
+    if (isIgnorableError(safe.message, safe.stack)) return;
+    if (shouldSkip(dedupeKey(safe.message, safe.stack))) return;
     await fetch("/api/errors/client", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       // Keepalive so the report still flies if the user is navigating
       // away when the error fired.
       keepalive: true,
-      body: JSON.stringify(payload),
+      body: JSON.stringify(safe),
     });
   } catch {
     // Error reporting must never throw — this network call is
@@ -80,16 +96,14 @@ async function report(payload: {
 }
 
 export function initErrorReporter(): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || initialized) return;
+  initialized = true;
 
   window.addEventListener("error", (event) => {
     const message =
-      event.message ||
-      (event.error instanceof Error ? event.error.message : "Unknown error");
-    const stack = event.error instanceof Error ? event.error.stack ?? null : null;
+      event.message || (event.error instanceof Error ? event.error.message : "Unknown error");
+    const stack = event.error instanceof Error ? (event.error.stack ?? null) : null;
     if (isIgnorableError(message, stack)) return;
-    const key = dedupeKey(message, stack);
-    if (shouldSkip(key)) return;
     void report({ message, stack, url: window.location.href });
   });
 
@@ -101,10 +115,8 @@ export function initErrorReporter(): void {
         : typeof reason === "string"
           ? reason
           : "Unhandled promise rejection";
-    const stack = reason instanceof Error ? reason.stack ?? null : null;
+    const stack = reason instanceof Error ? (reason.stack ?? null) : null;
     if (isIgnorableError(message, stack)) return;
-    const key = dedupeKey(message, stack);
-    if (shouldSkip(key)) return;
     void report({ message, stack, url: window.location.href });
   });
 }
@@ -112,15 +124,14 @@ export function initErrorReporter(): void {
 /** Explicit one-shot capture for code paths that catch an error and
  *  want it recorded (ErrorBoundary, tRPC error hooks, etc.). */
 export function reportError(err: unknown, context?: { url?: string }): void {
-  const e = err instanceof Error ? err : new Error(String(err));
-  const message = e.message;
-  const stack = e.stack ?? null;
-  if (isIgnorableError(message, stack)) return;
-  const key = dedupeKey(message, stack);
-  if (shouldSkip(key)) return;
-  void report({
-    message,
-    stack,
-    url: context?.url ?? (typeof window !== "undefined" ? window.location.href : ""),
-  });
+  try {
+    const e = err instanceof Error ? err : new Error(String(err));
+    void report({
+      message: e.message,
+      stack: e.stack ?? null,
+      url: context?.url ?? (typeof window !== "undefined" ? window.location.href : ""),
+    });
+  } catch {
+    // Even unusual thrown objects/getters must not make reporting throw.
+  }
 }

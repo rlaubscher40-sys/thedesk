@@ -20,6 +20,7 @@ import type { Express, NextFunction, Request, Response } from "express";
 import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import * as db from "../db";
+import { clientErrorReport } from "../../shared/clientErrorReport";
 
 const SCHEDULED_KEY_HEADER = "x-scheduled-key";
 
@@ -68,11 +69,13 @@ const recordPingSchema = z.object({
   region: z.string().max(32).optional(),
 });
 
-const clientErrorSchema = z.object({
-  message: z.string().min(1).max(512),
-  stack: z.string().max(8_000).nullable().optional(),
-  url: z.string().max(512).optional(),
-});
+const clientErrorSchema = z
+  .object({
+    message: z.string().min(1).max(16_000),
+    stack: z.string().max(32_000).nullable().optional(),
+    url: z.string().max(4_096).optional(),
+  })
+  .transform(clientErrorReport);
 
 async function handleRecordPing(req: Request, res: Response): Promise<void> {
   if (!authorised(req)) {

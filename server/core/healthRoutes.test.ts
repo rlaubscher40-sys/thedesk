@@ -21,6 +21,7 @@ function response() {
     set: vi.fn().mockReturnThis(),
     json: vi.fn(),
     send: vi.fn(),
+    end: vi.fn(),
   };
 }
 async function request(path: string, key = "test-key") {
@@ -130,4 +131,24 @@ it("retains the explicit local demo flow without requiring a real database", asy
   expect(res.status).toHaveBeenCalledWith(200);
   await expect(health.listRecentServerErrors()).resolves.toEqual([]);
   expect(m.getDb).not.toHaveBeenCalled();
+});
+
+it("scrubs legacy client reports again before persistence and fits long reports to storage limits", async () => {
+  const values = vi.fn().mockResolvedValue(undefined);
+  m.getDb.mockReturnValue({ insert: () => ({ values }) });
+  const res = response();
+  await routes.get("/api/errors/client")!({
+    header: () => "test-agent",
+    body: {
+      message: "Failed https://reader:password@thedesk.au/ask?q=private " + "x".repeat(700),
+      stack: "url: https://thedesk.au/unsubscribe?token=private#fragment\n" + "s".repeat(9_000),
+      url: "https://reader:password@thedesk.au/ask?q=private#fragment",
+    },
+  } as unknown as Request, res as unknown as Response);
+  const stored = values.mock.calls[0]![0];
+  expect(stored.message).toHaveLength(512);
+  expect(stored.stack).toHaveLength(8_000);
+  expect(stored.route).toBe("https://thedesk.au/ask");
+  for (const secret of ["private", "password", "fragment", "reader:"]) expect(JSON.stringify(stored)).not.toContain(secret);
+  expect(res.status).toHaveBeenCalledWith(204);
 });
