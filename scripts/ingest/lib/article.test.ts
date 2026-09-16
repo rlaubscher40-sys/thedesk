@@ -12,6 +12,26 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+it.each([
+  [Object.assign(new Error("private URL"), { code: "EAI_AGAIN" }), "article-dns"],
+  [Object.assign(new Error("private URL"), { code: "CERT_HAS_EXPIRED" }), "article-tls"],
+  [new Error("Outbound response too large"), "article-response-too-large"],
+  [new Error("Non-public outbound DNS answer"), "article-unsafe-destination"],
+])(
+  "reports a safe operational article failure without admitting missing evidence",
+  async (error, expected) => {
+    const request = vi.fn().mockRejectedValue(error);
+    vi.stubGlobal("fetch", request);
+    expect(await fetchArticle("https://example.com/article")).toMatchObject({
+      fetchFailure: expected,
+      text: null,
+      imageUrl: null,
+      publicationDate: { publisherDateStatus: "missing" },
+    });
+    expect(request).toHaveBeenCalledOnce();
+  }
+);
+
 it("stops a denied article from causing another network request during its cooldown", async () => {
   const access = createArticleAccess();
   const request = vi.fn(async () => new Response("Denied", { status: 403 }));

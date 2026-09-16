@@ -2,6 +2,7 @@ import { extractPublicationDate, missingPublicationDate } from "./publicationDat
 import { sourceRightsHold } from "../../../shared/sourceRights";
 import type { SourceTiming } from "../../../shared/sourceTiming";
 import { publicFetch } from "./publicFetch";
+import { requestFailure } from "./requestFailure";
 import { readableArticleHtml } from "./htmlText";
 import { articleDisclosureHold } from "./articleDisclosure";
 import { extractResearchPdf, isResearchPdfUrl } from "./researchPdf";
@@ -236,7 +237,10 @@ export async function fetchArticle(
     const timedOut =
       controller.signal.aborted ||
       (error instanceof Error && ["AbortError", "TimeoutError"].includes(error.name));
-    return { ...empty, fetchFailure: timedOut ? "article-timeout" : "article-fetch-failed" };
+    return {
+      ...empty,
+      fetchFailure: timedOut ? "article-timeout" : `article-${requestFailure(error)}`,
+    };
   } finally {
     clearTimeout(timer);
     try {

@@ -4,6 +4,7 @@ import { parseNswSource } from "./nswSource";
 import { parseAsicSource } from "./asicSource";
 import { parseVictoriaSource, VICTORIA_SEARCH_URL, VICTORIA_SEARCH_BODY } from "./victoriaSource";
 import { publicFetch } from "./publicFetch";
+import { requestFailure, requestFailureDescription } from "./requestFailure";
 /**
  * Thin wrapper around rss-parser. Returns normalised items plus the source's
  * fixed category, with a per-fetch timeout so one slow site can't stall
@@ -124,7 +125,10 @@ export function createSourceReader(
     const response = await publicFetch(url, {
       ...(url === VICTORIA_SEARCH_URL ? { method: "POST", body: VICTORIA_SEARCH_BODY } : {}),
       signal: AbortSignal.timeout(8000),
-      maxBytes: 2 * 1024 * 1024,
+      // Verified public homepage was 2.58 MB on 16 September. Its smaller
+      // economics landing page omitted the Leading Index release. Keep this
+      // exception exact and bounded; other discovery routes retain 2 MiB.
+      maxBytes: (url === "https://www.westpaciq.com.au/" ? 4 : 2) * 1024 * 1024,
       headers: {
         "User-Agent": `TheDesk/1.0 (+${SITE_URL})`,
         ...(url === VICTORIA_SEARCH_URL ? { "Content-Type": "application/json" } : {}),
@@ -152,14 +156,19 @@ export function createSourceReader(
             err.retryAfterMs,
             [401, 403].includes(err.status) ? 6 * 3600_000 : err.status === 429 ? 3600_000 : 60_000
           )
-        : err instanceof Error && ["AbortError", "TimeoutError"].includes(err.name)
+        : ["timeout", "aborted", "dns", "connection"].includes(requestFailure(err))
           ? 60_000
           : 0,
-    failureReason: (err) => (err instanceof FeedHttpError ? err.message : "Feed request timed out"),
+    failureReason: (err) =>
+      err instanceof FeedHttpError
+        ? err.message
+        : `Source ${requestFailureDescription[requestFailure(err)]}`,
   });
   const readOne = async (src: Source): Promise<SourceReport> => {
+    let parsing = false;
     try {
       const { value: xml, checkedAt } = await read(src.url);
+      parsing = true;
       if (
         src.kind === "index" ||
         src.kind === "nsw-index" ||
@@ -219,10 +228,13 @@ export function createSourceReader(
       };
     } catch (err) {
       const kind = src.kind && src.kind !== "rss" ? "Publisher index" : "RSS";
+      const label = kind === "RSS" ? "Feed" : kind;
       const message =
         err instanceof FeedCooldownError || err instanceof FeedHttpError
-          ? err.message.replace(/^RSS HTTP/, `${kind} HTTP`)
-          : `${kind === "RSS" ? "Feed" : kind} request or parsing failed`;
+          ? err.message.replace(/^RSS HTTP/, `${kind} HTTP`).replace(/^Source /, `${label} `)
+          : parsing
+            ? `${label} parsing failed`
+            : `${label} ${requestFailureDescription[requestFailure(err)]}`;
       if (!(err instanceof FeedCooldownError))
         console.warn(`[source-discovery] ${src.name} failed: ${message}`);
       return {
