@@ -62,8 +62,10 @@ function excerpt(text: string, market: string): string {
   const clean = normaliseText(text);
   // Keep a literal local excerpt. Ellipses mark both clipped boundaries.
   const index = clean.toLowerCase().indexOf(market.toLowerCase());
-  const start = Math.max(0, index - 100);
-  const end = Math.min(clean.length, start + 360);
+  const rawStart = Math.max(0, index - 100);
+  const start = rawStart ? clean.indexOf(" ", rawStart) + 1 : 0;
+  const rawEnd = Math.min(clean.length, start + 360);
+  const end = rawEnd < clean.length ? clean.lastIndexOf(" ", rawEnd) : rawEnd;
   return `${start ? "…" : ""}${clean.slice(start, end)}${end < clean.length ? "…" : ""}`;
 }
 

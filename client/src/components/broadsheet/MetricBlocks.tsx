@@ -1,4 +1,9 @@
-import { formatMetricValue, metricTiming } from "@shared/metricPresentation";
+import {
+  formatMetricValue,
+  metricTiming,
+  comparableMetricPrior,
+  hasDailyObservations,
+} from "@shared/metricPresentation";
 import { preferenceStorage } from "@/lib/storage";
 /**
  * The numbers, in broadsheet dress.
@@ -53,8 +58,8 @@ function useMetricTiles(): { tiles: MetricTile[]; isLoading: boolean } {
       const suffix = m.unit ?? "";
       const value = formatMetricValue(m);
       const prior =
-        m.previousValue != null
-          ? formatMetricValue({ value: m.previousValue, unit: suffix })
+        comparableMetricPrior(m) != null
+          ? formatMetricValue({ value: comparableMetricPrior(m)!, unit: suffix })
           : null;
       const { delta, hasDelta, trend, sentiment } = resolveMetricTrend(m.label, value, prior);
       return {
@@ -63,7 +68,9 @@ function useMetricTiles(): { tiles: MetricTile[]; isLoading: boolean } {
         value,
         prior,
         context: `${metricTiming(m)}${m.context ? `. ${m.context}` : ""}`,
-        history: histories?.[m.metricKey]?.map((p) => p.value) ?? [],
+        history: hasDailyObservations(m.metricKey)
+          ? (histories?.[m.metricKey]?.map((p) => p.value) ?? [])
+          : [],
         delta,
         hasDelta,
         trend,

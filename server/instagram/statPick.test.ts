@@ -64,7 +64,8 @@ describe("pickStatOfTheDay", () => {
     expect(pick!.angle).toBe("streak");
     // Five history steps plus the live value's own step = six falls.
     expect(pick!.subtext).toBe("SIX RECORDED FALLS IN A ROW");
-    expect(pick!.direction).toBe("down");
+    expect(pick!.direction).toBe("flat"); // Undated release prior cannot supply a direction.
+    expect(pick!.delta).toBeNull();
   });
 
   it("spells small streak counts as words, not numerals", () => {
@@ -346,4 +347,18 @@ describe("explainNoPick", () => {
   it("names metrics that are current but have nothing behind them", () => {
     expect(explainNoPick([metric()], {}, NOW)).toContain("none has history");
   });
+});
+
+it("uses a dated daily-observation metric for directions but withholds release priors", () => {
+  const m = metric({ metricKey: "cash_rate", value: "4.35", previousValue: "4.1" });
+  const pick = rehearsalStat([m], {}, NOW)!;
+  expect(pick.direction).toBe("up");
+  expect(pick.delta).toBeCloseTo(0.25);
+  const release = rehearsalStat(
+    [metric({ metricKey: "consumer_confidence", value: "84.4", previousValue: "80.6" })],
+    {},
+    NOW
+  )!;
+  expect(release.delta).toBeNull();
+  expect(release.direction).toBe("flat");
 });

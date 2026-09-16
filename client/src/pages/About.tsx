@@ -26,7 +26,7 @@ const INSTAGRAM_URL = "https://www.instagram.com/thedesk.au/";
 
 const HOW_TO_USE = [
   "Open Today first thing. Five stories, each one already read for you.",
-  "Save what you can't read now. The queue keeps it, and syncs when you sign in.",
+  "Save what you can't read now. Your reading queue stays on this browser; no account is required.",
   "Open the edition on Sunday for the deep dive, the signals and the dates to watch.",
   "Press / to search from anywhere. ⌘K opens the command palette.",
 ];
@@ -80,7 +80,7 @@ export default function About() {
           sub={editionCount > 0 ? `${editionCount} published` : "In production"}
         />
         <Fact label="Written by" value="One editor" sub="Ruben Laubscher" />
-        <Fact label="Tracking" value="None" sub="No pixels, self-hosted" last />
+        <Fact label="Analytics" value="Our own" sub="No advertising pixels · see Privacy" last />
       </div>
 
       {/* Body + sidebar */}

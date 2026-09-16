@@ -80,3 +80,21 @@ describe("source claim checks", () => {
     ]);
   });
 });
+
+it("preserves the multiple causes of repayment changes and holds invented delivery timing", () => {
+  const source = {
+    title: "WA affordability",
+    articleText:
+      "Three rate rises combined with a higher average loan size added over $1,000 to monthly repayments.",
+  };
+  expect(
+    checkClaimEvidence("Three rate rises added over $1,000 to monthly repayments.", source)
+  ).toContain("figure-scope");
+  expect(checkClaimEvidence(source.articleText, source)).toEqual([]);
+  expect(
+    checkClaimEvidence("These 710 lots are years from settlement.", {
+      title: "710 new lots",
+      summary: "Infrastructure funding will enable 710 lots.",
+    })
+  ).toContain("period-scope");
+});

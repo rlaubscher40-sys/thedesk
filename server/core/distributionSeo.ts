@@ -1,4 +1,9 @@
-import { formatMetricValue, historyChange } from "../../shared/metricPresentation";
+import { acceptsHtml } from "./acceptsHtml";
+import {
+  formatMetricValue,
+  historyChange,
+  hasDailyObservations,
+} from "../../shared/metricPresentation";
 import type { Express, NextFunction, Request, Response } from "express";
 import rateLimit from "express-rate-limit";
 import fs from "node:fs";
@@ -84,8 +89,7 @@ async function sendSocialShell(
   next: NextFunction,
   meta: SocialMeta
 ): Promise<void> {
-  const accept = req.headers.accept ?? "";
-  if (!accept.includes("text/html")) return next();
+  if (!acceptsHtml(req.headers.accept)) return next();
 
   const indexPath = path.resolve(process.cwd(), "dist", "public", "index.html");
   if (!fs.existsSync(indexPath)) return next();
@@ -129,7 +133,12 @@ async function getMetricPresentation(metricKey: string, snapshotId?: string) {
   if (snapshotId !== undefined) {
     const snapshot = await db.readSignalSnapshot(snapshotId);
     if (!snapshot || snapshot.metric.metricKey !== metricKey) return null;
-    return { ...snapshot, value: displayValue(snapshot.metric.value, snapshot.metric.unit) };
+    return {
+      ...snapshot,
+      series: hasDailyObservations(metricKey) ? snapshot.series : [],
+      move: hasDailyObservations(metricKey) ? snapshot.move : historyChange(snapshot.metric, []),
+      value: displayValue(snapshot.metric.value, snapshot.metric.unit),
+    };
   }
   const [metrics, histories, editions] = await Promise.all([
     db.listDailyMetrics(),
@@ -138,7 +147,7 @@ async function getMetricPresentation(metricKey: string, snapshotId?: string) {
   ]);
   const metric = metrics.find((row) => row.metricKey === metricKey);
   if (!metric) return null;
-  const series = histories[metric.metricKey] ?? [];
+  const series = hasDailyObservations(metric.metricKey) ? (histories[metric.metricKey] ?? []) : [];
   return {
     metric,
     series,
@@ -308,7 +317,7 @@ async function handleStoryMeta(req: Request, res: Response, next: NextFunction):
   if (!Number.isInteger(id) || id <= 0) return next();
   try {
     const item = await db.getFeedItemById(id);
-    if (!item) return next();
+    if (!item || item.channel === "HOLD") return next();
     const canonical = `${siteUrl()}/story/${item.id}`;
     await sendSocialShell(req, res, next, {
       title: `${clean(item.title, 115)} | The Desk`,
@@ -333,7 +342,7 @@ async function handleStoryOg(req: Request, res: Response): Promise<void> {
   }
   try {
     const item = await db.getFeedItemById(id);
-    if (!item) {
+    if (!item || item.channel === "HOLD") {
       res.redirect(302, "/og-card.png");
       return;
     }

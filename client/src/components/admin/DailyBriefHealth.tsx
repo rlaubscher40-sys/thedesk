@@ -1,6 +1,7 @@
 import { trpc } from "@/lib/trpc";
 export function DailyBriefHealth() {
   const query = trpc.health.dailyBriefDelivery.useQuery(undefined, { refetchInterval: 60_000 });
+  const recovery = trpc.health.dailyBriefRecovery.useQuery(undefined, { refetchInterval: 60_000 });
   return (
     <section className="border border-[var(--color-rule)] rounded-lg p-4">
       <h3 className="font-semibold">Daily brief delivery</h3>
@@ -8,6 +9,17 @@ export function DailyBriefHealth() {
         Weekdays, 7am–noon Sydney time. Delivery waits for the selected stories to finish
         processing. Three attempts per subscriber; older briefs are never sent automatically.
       </p>
+      {recovery.data && (
+        <p className="mt-2 text-sm" role="status">
+          Recovery poll:{" "}
+          {recovery.data.consecutiveFailures
+            ? `${recovery.data.consecutiveFailures} consecutive failures (${recovery.data.reason}). Inspect database availability and the delivery queue.`
+            : "No current poll failure recorded."}
+          {recovery.data.lastCompletedPollAt &&
+            ` Last completed poll: ${new Date(recovery.data.lastCompletedPollAt).toLocaleString("en-AU", { timeZone: "Australia/Sydney" })} Sydney.`}{" "}
+          Poll completion does not establish email delivery.
+        </p>
+      )}
       {query.isLoading ? (
         <p className="mt-2 text-sm">Loading delivery status…</p>
       ) : query.isError ? (
@@ -16,9 +28,7 @@ export function DailyBriefHealth() {
         <>
           <p className="mt-2 text-sm">
             {query.data?.date} ·{" "}
-            {query.data?.prepared
-              ? "Story selection saved"
-              : "No story selection saved yet"}
+            {query.data?.prepared ? "Story selection saved" : "No story selection saved yet"}
           </p>
           <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
             {Object.entries({

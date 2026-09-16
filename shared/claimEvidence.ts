@@ -113,11 +113,37 @@ export function checkClaimEvidence(
       .flatMap((s) => [...figures(s)].filter((n) => n.startsWith("$:")))
   );
   for (const sentence of sentences(copy)) {
+    // Do not collapse a reported combination of rates and loan size into a
+    // rates-only repayment effect. Mere numeric overlap does not prove causation.
+    if (
+      /\brepayments?\b/i.test(sentence) &&
+      /\brate (?:rises?|increases?|hikes?)\b/i.test(sentence) &&
+      /\b(?:average|larger|higher|bigger|increased) (?:home )?loan (?:size|amount)\b/i.test(
+        evidence
+      ) &&
+      /\b(?:combined|combination|together|alongside)\b/i.test(evidence) &&
+      !/\bloan (?:size|amount)|\blarger (?:loans?|borrowing)\b/i.test(sentence) &&
+      [...figures(sentence)].some((n) => n.startsWith("$:"))
+    )
+      issues.add("figure-scope");
+    if (
+      /\byears (?:away|from (?:settlement|completion|delivery))\b/i.test(sentence) &&
+      !/\byears (?:away|from (?:settlement|completion|delivery))\b/i.test(evidence)
+    )
+      issues.add("period-scope");
+    if (
+      /\b(?:almost certainly|structurally finished|guaranteed to|will definitely)\b/i.test(
+        sentence
+      ) &&
+      !sourceSentences.some((s) => s.includes(sentence))
+    )
+      issues.add("forecast-as-fact");
     if (
       /\bsurcharge (?:revenue|income)\b/i.test(sentence) &&
       !/\b(?:savings?|lower payment costs|reduced payment costs)\b/i.test(sentence) &&
       [...figures(sentence)].some((n) => paymentSavings.has(n))
-    ) issues.add("figure-scope");
+    )
+      issues.add("figure-scope");
     if (
       housingPeriod(sentence) &&
       years(sentence).some(

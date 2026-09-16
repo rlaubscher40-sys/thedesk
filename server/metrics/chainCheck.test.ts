@@ -1,15 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { parseSdmxCsv } from "../../scripts/ingest/lib/absApi";
 import { observationsToHistory } from "../../scripts/ingest/lib/backfill";
-import { buildMonthlyReview, describeReach, readMonth } from "./monthlyReview";
+import { buildMonthlyReview } from "./monthlyReview";
 
 /**
- * The whole point of moving to the API, exercised in one test: an SDMX-CSV
- * response becomes history, and that history lets the review make the claim
- * the series exists to make.
+ * Official API observations remain useful history, but this legacy history
+ * shape cannot distinguish reference periods from daily collection dates.
+ * Release series must stay out of monthly rankings until that distinction is
+ * preserved in the storage and review contract.
  */
-describe("API response to a since-when claim", () => {
-  it("turns years of official observations into a dated reach claim", () => {
+describe("API response to monthly review", () => {
+  it("retains official history without ranking an ambiguous release series", () => {
     // Unemployment, monthly, drifting gently for years and then dropping hard.
     const rows = ["REGION,TIME_PERIOD,OBS_VALUE"];
     let v = 5.0;
@@ -35,17 +36,9 @@ describe("API response to a since-when claim", () => {
       new Date("2026-02-01T00:00:00Z")
     );
 
-    const move = review.movers[0]!;
-    expect(move.metricKey).toBe("unemployment");
-    // Years of history, from one API call, rather than the months we would
-    // have accumulated by waiting.
-    expect(move.monthsOfHistory).toBeGreaterThan(60);
-    // No publication lag is set here, so a move is attributed to the period it
-    // describes: the June observation, not the July release that carried it.
-    expect(move.biggestSince).toBe("2022-06");
-    expect(describeReach(move)).toBe("biggest fall since June 2022");
-    expect(readMonth(review)).toContain("biggest fall since June 2022");
-    // And it is still stated in points, because it is a percent metric.
-    expect(readMonth(review)).toContain("points");
+    expect(history.length).toBeGreaterThan(70);
+    expect(review.movers).toEqual([]);
+    expect(review.unchanged).toEqual([]);
+    expect(review.unranked).toEqual([]);
   });
 });

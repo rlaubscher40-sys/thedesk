@@ -1,12 +1,20 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { comparableMetricPrior } from "../../shared/metricPresentation";
 import { displayMetricValue, rankAskMetrics } from "../ask/metricRetrieval";
 import { askQueryTerms, rankAskRecords } from "../ask/relevance";
 import { retrieveLocalFacts } from "../ask/localFacts";
 import { describeMetricObservation } from "../../shared/metricObservation";
 import { directLocalRentAnswer } from "../ask/directLocalRent";
+import { directCpiRentAnswer } from "../ask/directCpiRent";
 import { directApprovalsSignalAnswer } from "../ask/directSignal";
-import { deduplicateAnswerRefs, numberAskEvidence, packAskEvidence, requestedSourceLimit, validateAnswerRefs } from "../ask/evidencePolicy";
+import {
+  deduplicateAnswerRefs,
+  numberAskEvidence,
+  packAskEvidence,
+  requestedSourceLimit,
+  validateAnswerRefs,
+} from "../ask/evidencePolicy";
 import { reviewAskAnswer } from "../ask/review";
 import * as db from "../db";
 import {
@@ -22,7 +30,11 @@ import {
 import { invokeLLMJson } from "../core/llm";
 import { renderIntelligenceCard } from "../core/publicRender";
 import { publicProcedure, router } from "../core/trpc";
-import { askDeskResponseFormatForLimit, buildAskDeskMessages, type AskContextSource } from "../prompts/ask";
+import {
+  askDeskResponseFormatForLimit,
+  buildAskDeskMessages,
+  type AskContextSource,
+} from "../prompts/ask";
 
 const signalSchema = z.object({
   label: z.string().min(1).max(80),
@@ -153,7 +165,7 @@ async function enforceAnonymousQuota(
   if (!quota.allowed) {
     throw new TRPCError({
       code: "TOO_MANY_REQUESTS",
-      message: `You've used today's ${quota.limit} free Ask The Desk questions. Sign in to keep going.`,
+      message: `You've used today's ${quota.limit} free Ask The Desk questions. Your allowance resets tomorrow, Sydney time. You can still read Markets, Data and the archive.`,
     });
   }
   return quota.remaining;
@@ -178,7 +190,8 @@ export const askRouter = router({
             matches.archive.length === 0 &&
             matches.feed.length === 0 &&
             matches.editions.length === 0 &&
-            matches.metrics.length === 0 && matches.facts.length === 0
+            matches.metrics.length === 0 &&
+            matches.facts.length === 0
           ) {
             return {
               status: "insufficient" as const,
@@ -204,15 +217,31 @@ export const askRouter = router({
 
           for (const fact of matches.facts) {
             const ref = evidence.length + 1;
-            evidence.push({ref, kind: "metric", title: fact.title, date: fact.date, category: "LOCAL DATA", text: fact.text});
-            sourceMeta.push({ref, kind: "metric", title: fact.title, date: fact.date, category: "LOCAL DATA", href: fact.href, publisher: fact.publisher, externalUrl: fact.sourceUrl});
+            evidence.push({
+              ref,
+              kind: "metric",
+              title: fact.title,
+              date: fact.date,
+              category: "LOCAL DATA",
+              text: fact.text,
+            });
+            sourceMeta.push({
+              ref,
+              kind: "metric",
+              title: fact.title,
+              date: fact.date,
+              category: "LOCAL DATA",
+              href: fact.href,
+              publisher: fact.publisher,
+              externalUrl: fact.sourceUrl,
+            });
           }
 
           for (const metric of matches.metrics) {
             const ref = evidence.length + 1;
             const currentValue = displayMetricValue(metric.value, metric.unit);
-            const previousValue = metric.previousValue
-              ? displayMetricValue(metric.previousValue, metric.unit)
+            const previousValue = comparableMetricPrior(metric)
+              ? displayMetricValue(comparableMetricPrior(metric)!, metric.unit)
               : null;
             const observation = describeMetricObservation(metric);
             const date = observation.date ?? "Observation date unavailable";
@@ -247,10 +276,7 @@ export const askRouter = router({
 
           for (const item of matches.feed) {
             const ref = evidence.length + 1;
-            const text = compactText([
-              item.summary,
-              item.snippet,
-            ]);
+            const text = compactText([item.summary, item.snippet]);
             if (!text) continue;
             evidence.push({
               ref,
@@ -344,7 +370,8 @@ export const askRouter = router({
             return {
               status: "insufficient" as const,
               question: input.question,
-              message: "The matching local rent values are unavailable for the reporting periods shown in the sources. No numeric rent is available for the requested category. A reason is known only where the source explicitly states suppression or a sample-size rule. A different category, place or period would not answer the same question.",
+              message:
+                "The matching local rent values are unavailable for the reporting periods shown in the sources. No numeric rent is available for the requested category. A reason is known only where the source explicitly states suppression or a sample-size rule. A different category, place or period would not answer the same question.",
               sources: sourceMeta.slice(0, Math.min(matches.facts.length, 3, sourceLimit)),
               anonymousRemaining: null,
             };
@@ -356,7 +383,8 @@ export const askRouter = router({
             return {
               status: "insufficient" as const,
               question: input.question,
-              message: "This question needs more separately dated local records than the requested source limit allows. Increase the source limit or narrow the places and reporting periods.",
+              message:
+                "This question needs more separately dated local records than the requested source limit allows. Increase the source limit or narrow the places and reporting periods.",
               sources: [],
               anonymousRemaining: null,
             };
@@ -367,12 +395,15 @@ export const askRouter = router({
           const unverified = () => ({
             status: "insufficient" as const,
             question: input.question,
-            message: "We could not verify a complete answer from these records. Try a narrower question or inspect the dated sources below. No unverified answer has been shared.",
+            message:
+              "We could not verify a complete answer from these records. Try a narrower question or inspect the dated sources below. No unverified answer has been shared.",
             sources: packedSources.slice(0, Math.min(sourceLimit, 3)),
             anonymousRemaining: null,
           });
           const packedRefs = new Set(packedEvidence.map((source) => source.ref));
-          const directAnswer = directLocalRentAnswer(input.question, matches.facts) ??
+          const directAnswer =
+            directCpiRentAnswer(input.question, matches.facts, packedEvidence) ??
+            directLocalRentAnswer(input.question, matches.facts) ??
             directApprovalsSignalAnswer(input.question, matches.metrics, packedEvidence);
           if (!ctx.user) {
             reservation.current = await reserveAnonymousAsk(ctx.req);
@@ -384,14 +415,14 @@ export const askRouter = router({
               throw new TRPCError({
                 code: "TOO_MANY_REQUESTS",
                 message:
-                  "You've used today's 3 free questions, or they are still processing. Sign in to keep going.",
+                  "You've used today's 3 free questions, or they are still processing. Your allowance resets tomorrow, Sydney time. You can still read Markets, Data and the archive.",
               });
             }
             if (!(await consumeAnonymousAskAttempt(ctx.req)).allowed) {
               throw new TRPCError({
                 code: "TOO_MANY_REQUESTS",
                 message:
-                  "You've reached today's retry limit. Your unanswered questions have not used your free answer allowance. Try tomorrow or sign in to continue.",
+                  "You've reached today's retry limit. Your unanswered questions have not used your free answer allowance. Try tomorrow, Sydney time. Markets, Data and the archive remain available.",
               });
             }
           }
@@ -399,14 +430,16 @@ export const askRouter = router({
 
           let parsed: z.infer<typeof askAnswerSchema>;
           try {
-            const raw = directAnswer ?? await invokeLLMJson<unknown>({
-              messages: buildAskDeskMessages(input.question, packedEvidence, sourceLimit),
-              responseFormat: askDeskResponseFormatForLimit(sourceLimit),
-              maxTokens: 1800,
-              tier: "standard",
-              thinking: false,
-              signal,
-            });
+            const raw =
+              directAnswer ??
+              (await invokeLLMJson<unknown>({
+                messages: buildAskDeskMessages(input.question, packedEvidence, sourceLimit),
+                responseFormat: askDeskResponseFormatForLimit(sourceLimit),
+                maxTokens: 1800,
+                tier: "standard",
+                thinking: false,
+                signal,
+              }));
             signal.throwIfAborted();
             const response = askResponseSchema.parse(deduplicateAnswerRefs(raw));
             if (response.status === "insufficient") {
@@ -416,8 +449,9 @@ export const askRouter = router({
                 message: response.reason,
                 // Only offer useful follow-up reading; generic keyword matches
                 // should not become recommendations just by arriving first.
-                sources: packedSources.filter((source) =>
-                  packedRefs.has(source.ref) && response.relatedSourceRefs.includes(source.ref)
+                sources: packedSources.filter(
+                  (source) =>
+                    packedRefs.has(source.ref) && response.relatedSourceRefs.includes(source.ref)
                 ),
                 anonymousRemaining: null,
               };
@@ -435,7 +469,9 @@ export const askRouter = router({
           try {
             validateAnswerRefs(parsed, packedEvidence, sourceLimit);
           } catch (error) {
-            console.info("[ask] reference check withheld draft", { reason: (error as Error).message });
+            console.info("[ask] reference check withheld draft", {
+              reason: (error as Error).message,
+            });
             return unverified();
           }
 
@@ -447,15 +483,25 @@ export const askRouter = router({
             // Only the completed, reviewed answer consumes an answer allowance.
             signal.throwIfAborted();
             if (!ctx.user && !(await consumeAnonymousAskAttempt(ctx.req)).allowed) {
-              throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Today's answer-processing limit has been reached. This unanswered question has not used your free answer allowance." });
+              throw new TRPCError({
+                code: "TOO_MANY_REQUESTS",
+                message:
+                  "Today's answer-processing limit has been reached. This unanswered question has not used your free answer allowance.",
+              });
             }
             let supported: boolean;
             try {
-              supported = await reviewAskAnswer(input.question, parsed,
-                packedEvidence.filter((source) => selected.has(source.ref)), signal);
+              supported = await reviewAskAnswer(
+                input.question,
+                parsed,
+                packedEvidence.filter((source) => selected.has(source.ref)),
+                signal
+              );
             } catch (error) {
               signal.throwIfAborted();
-              console.info("[ask] evidence review unavailable", { type: error instanceof Error ? error.name : "unknown" });
+              console.info("[ask] evidence review unavailable", {
+                type: error instanceof Error ? error.name : "unknown",
+              });
               return unverified();
             }
             signal.throwIfAborted();
@@ -463,7 +509,8 @@ export const askRouter = router({
               return {
                 status: "insufficient" as const,
                 question: input.question,
-                message: "We could not support every part of an answer with the cited records. Try a narrower question or inspect the dated sources below. No unverified answer has been shared.",
+                message:
+                  "We could not support every part of an answer with the cited records. Try a narrower question or inspect the dated sources below. No unverified answer has been shared.",
                 sources: selectedSources.slice(0, 3),
                 anonymousRemaining: null,
               };

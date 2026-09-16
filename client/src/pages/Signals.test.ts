@@ -2,7 +2,11 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, expect, it, vi } from "vitest";
 import type { SignalSnapshot } from "@shared/signalSnapshot";
-const sharedState = vi.hoisted(() => ({ data: null as SignalSnapshot | null, isError: false, isLoading: false }));
+const sharedState = vi.hoisted(() => ({
+  data: null as SignalSnapshot | null,
+  isError: false,
+  isLoading: false,
+}));
 
 vi.mock("@/lib/trpc", () => ({
   trpc: {
@@ -38,7 +42,11 @@ vi.mock("@/components/planning/NswPlanningRead", () => ({ NswPlanningPanel: () =
 import SignalsPage from "./Signals";
 import { Router } from "wouter";
 
-afterEach(() => { vi.useRealTimers(); sharedState.data = null; sharedState.isError = false; });
+afterEach(() => {
+  vi.useRealTimers();
+  sharedState.data = null;
+  sharedState.isError = false;
+});
 it("dates the hero and board, labels an old observation, and sends its date to Ask", () => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date("2026-09-09T08:00:00Z"));
@@ -57,7 +65,9 @@ it("dates the hero and board, labels an old observation, and sends its date to A
 });
 
 function renderSearch(search: string) {
-  return renderToStaticMarkup(React.createElement(Router, { ssrPath: `/signals?${search}` }, React.createElement(SignalsPage)));
+  return renderToStaticMarkup(
+    React.createElement(Router, { ssrPath: `/signals?${search}` }, React.createElement(SignalsPage))
+  );
 }
 
 it("shows a gap for a missing shared signal without a substitute hero", () => {
@@ -68,12 +78,28 @@ it("shows a gap for a missing shared signal without a substitute hero", () => {
 });
 
 it("renders saved evidence despite a different live value and retains its chart link", () => {
-  sharedState.data = { version: 1, metric: {
-    metricKey: "cash_rate", label: "RBA cash rate", value: "3.5", unit: "%", source: "Saved RBA",
-    sourceUrl: null, previousValue: null, context: "Saved context", asOf: new Date("2024-01-01Z"),
-    updatedAt: new Date("2024-01-02Z"),
-  }, series: [{ value: 3.4, recordedAt: new Date("2023-12-01Z") }, { value: 3.5, recordedAt: new Date("2024-01-01Z") }],
-  move: "Saved change", deskTake: "Original edition take", editionNumber: 6 };
+  sharedState.data = {
+    version: 1,
+    metric: {
+      metricKey: "cash_rate",
+      label: "RBA cash rate",
+      value: "3.5",
+      unit: "%",
+      source: "Saved RBA",
+      sourceUrl: null,
+      previousValue: null,
+      context: "Saved context",
+      asOf: new Date("2024-01-01Z"),
+      updatedAt: new Date("2024-01-02Z"),
+    },
+    series: [
+      { value: 3.4, recordedAt: new Date("2023-12-01Z") },
+      { value: 3.5, recordedAt: new Date("2024-01-01Z") },
+    ],
+    move: "Saved change",
+    deskTake: "Original edition take",
+    editionNumber: 6,
+  };
   const id = "a".repeat(64);
   const html = renderSearch(`metric=cash_rate&snapshot=${id}`);
   expect(html).toContain("Saved shared observation");
@@ -83,17 +109,49 @@ it("renders saved evidence despite a different live value and retains its chart 
   expect(html).toContain(`snapshot=${id}&amp;view=chart`);
 });
 
-it.each(["snapshot=invalid", `snapshot=${"a".repeat(64)}`, `metric=cash_rate&snapshot=${"b".repeat(64)}`])(
-  "does not replace unavailable snapshot requests (%s) with live data", search => {
-    const html = renderSearch(search);
-    expect(html).toContain("That shared observation is unavailable");
-    expect(html).not.toContain("Ask what it means");
-  }
-);
+it.each([
+  "snapshot=invalid",
+  `snapshot=${"a".repeat(64)}`,
+  `metric=cash_rate&snapshot=${"b".repeat(64)}`,
+])("does not replace unavailable snapshot requests (%s) with live data", (search) => {
+  const html = renderSearch(search);
+  expect(html).toContain("That shared observation is unavailable");
+  expect(html).not.toContain("Ask what it means");
+});
 
 it("distinguishes a failed evidence read from missing evidence", () => {
   sharedState.isError = true;
   const html = renderSearch(`metric=cash_rate&snapshot=${"a".repeat(64)}`);
   expect(html).toContain("could not be retrieved");
   expect(html).not.toContain("Ask what it means");
+});
+
+it("preserves a release's saved value while withholding an unsupported comparison/chart", () => {
+  sharedState.data = {
+    version: 1,
+    metric: {
+      metricKey: "consumer_confidence",
+      label: "Consumer sentiment",
+      value: "84.4",
+      unit: "index",
+      source: "Westpac",
+      sourceUrl: null,
+      previousValue: "80.6",
+      context: "Saved release",
+      asOf: new Date("2026-09-01Z"),
+      updatedAt: new Date("2026-09-01Z"),
+    },
+    series: [
+      { value: 80.6, recordedAt: new Date("2026-08-01Z") },
+      { value: 84.4, recordedAt: new Date("2026-09-01Z") },
+    ],
+    move: "Unsupported upward comparison",
+    deskTake: null,
+    editionNumber: null,
+  };
+  const html = renderSearch(`metric=consumer_confidence&snapshot=${"a".repeat(64)}&view=chart`);
+  expect(html).toContain("84.4");
+  expect(html).toContain("Release-based figure");
+  expect(html).not.toContain("Unsupported upward comparison");
+  expect(html).not.toContain("Open chart");
 });

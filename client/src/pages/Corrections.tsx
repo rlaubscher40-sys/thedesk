@@ -4,6 +4,7 @@
  * so the log itself is in version control (no CMS overhead). When a
  * correction is warranted, add an entry to the array below.
  */
+import { REVIEWED_STORY_CORRECTIONS } from "@shared/reviewedStoryCorrections";
 import { useDocumentTitle } from "@/lib/useDocumentTitle";
 import { EDITORIAL_CONTACT } from "../../../shared/legal";
 
@@ -22,7 +23,7 @@ type Correction = {
  * The log itself. Empty is a perfectly reasonable initial state, we keep
  * the page live so readers know the channel exists.
  */
-const CORRECTIONS: Correction[] = [];
+const CORRECTIONS: readonly Correction[] = REVIEWED_STORY_CORRECTIONS;
 
 export default function Corrections() {
   useDocumentTitle("Corrections");
@@ -133,9 +134,10 @@ export default function Corrections() {
       <section className="mt-10 pt-6 border-t border-[var(--color-border)]">
         <h2 className="font-serif text-2xl mt-2">How we handle them</h2>
         <p className="mt-3 text-[var(--color-fg-muted)]">
-          Factual errors are corrected at the source, the affected story is updated with an
-          "Updated" timestamp and a brief note explaining what changed. The fix is then logged here
-          so the record is public, not just patched. Edits that don't change meaning (typos, copy
+          Factual errors are corrected in the affected website story and recorded here with the
+          correction date and a note explaining what changed. Previously distributed material is
+          identified separately when it still contains the original copy. The fix is logged here so
+          the record is public, not just patched. Edits that don't change meaning (typos, copy
           polish) don't appear in this log.
         </p>
       </section>

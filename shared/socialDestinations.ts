@@ -35,6 +35,11 @@ export const SOCIAL_DESTINATIONS = [
     detail: "State population and net migration in the comparison's demand context.",
     path: "/markets/compare/brisbane-vs-perth#state-population",
   },
+  {
+    label: "Capital city supply",
+    detail: "Choose a capital, inspect its approvals and follow the ABS source.",
+    path: "/markets",
+  },
 ] as const;
 export function socialStoryPath(value: string): string | null {
   if (!/^[1-9]\d{0,9}$/.test(value)) return null;

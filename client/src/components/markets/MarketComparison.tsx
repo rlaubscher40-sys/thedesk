@@ -4,7 +4,6 @@ import { comparisonInputSchema } from "@shared/marketComparison";
 import { comparisonPairKey } from "@shared/comparisonChanges";
 import { trpc } from "@/lib/trpc";
 import { trackEvent } from "@/lib/analytics";
-import { getLoginUrl } from "@/lib/auth";
 import { ComparisonRead } from "./ComparisonRead";
 import { MarketRentConditions } from "./MarketRentConditions";
 import { ComparisonChangeSummary } from "./ComparisonChangeSummary";
@@ -187,9 +186,9 @@ export function MarketComparison({
             </button>
           )}
           {compare.error.data?.code === "TOO_MANY_REQUESTS" && (
-            <a href={getLoginUrl()} className="bs-btn bs-btn-outline mt-3">
-              Sign in
-            </a>
+            <Link href="/signals" className="bs-btn bs-btn-outline mt-3">
+              Explore data
+            </Link>
           )}
         </div>
       )}

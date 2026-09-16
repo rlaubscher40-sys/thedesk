@@ -15,7 +15,7 @@ import { documentaryCandidate } from "./verifiedDocumentaryReel";
 const REEL_RETRY_MINUTES = 15;
 const REEL_STALE_MINUTES = 15;
 export const REEL_MAX_ATTEMPTS = 2;
-export const REEL_SCHEDULE = `Wednesday: The Deal. Sunday: Property Empires. Reviewed documentary episodes take that day's slot at 6:30pm Sydney, within ${REEL_WINDOW.label}. Four finished episodes are required before launch. Eight data topics fill other days or an empty documentary slot. At most one automatic Reel per Sydney day, checked every 5 minutes; daily posts are not guaranteed`;
+export const REEL_SCHEDULE = `Wednesday: The Deal. Sunday: Property Empires. Reviewed documentary episodes take that day's slot at 6:30pm Sydney, within ${REEL_WINDOW.label}. Four finished episodes are required before launch. Fifteen data topics fill other days or an empty documentary slot. At most one automatic Reel per Sydney day, checked every 5 minutes; daily posts are not guaranteed`;
 const REEL_DELIVERY_KEY = "instagram-reel-delivery-programme-v1";
 
 function sydneyDate(now: Date) {
@@ -112,8 +112,7 @@ async function readReelSelection(
       return family ? [{ family, publishedAt: item.publishedAt }] : [];
     })
   );
-  if (available < 0)
-    return { state: "published" as const, candidate, date, postId: records[0]!.postId };
+  if (available < 0) return { state: "exhausted" as const, candidate: null, date };
   candidate = candidates[available]!;
   // Also recover the daily cap from the permanent publication record if the
   // delivery response or the best-effort day watermark was lost after posting.

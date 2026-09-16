@@ -18,6 +18,7 @@
  * Gated by env.enableScheduler (ENABLE_SCHEDULER=true). Off by default so it
  * can be rolled out deliberately alongside retiring the GitHub crons.
  */
+import { describeScheduledOutcome } from "./outcome";
 import { env } from "../core/env";
 import { runReelStoryAutomation } from "../instagram/reelStoryAutomation";
 import { runFirstCommentAutomation } from "../instagram/firstCommentAutomation";
@@ -103,7 +104,7 @@ type Job = {
    * matters: a transient Graph API 500 no longer costs the whole day's post.
    */
   maxAttempts?: number;
-  run: (baseUrl: string, apiKey: string, attempt: number) => Promise<void>;
+  run: (baseUrl: string, apiKey: string, attempt: number) => Promise<unknown>;
 };
 
 /**
@@ -116,10 +117,7 @@ export function isJobDue(job: Job, clock: SchedulerClock): boolean {
   if (job.dom && !job.dom.includes(clock.dom)) return false;
   if (job.excludeDom?.includes(clock.dom)) return false;
   const at = hhmmToMinutes(job.at);
-  return (
-    clock.minutes >= at &&
-    clock.minutes <= at + (job.graceMinutes ?? GRACE_MINUTES)
-  );
+  return clock.minutes >= at && clock.minutes <= at + (job.graceMinutes ?? GRACE_MINUTES);
 }
 
 /**
@@ -132,8 +130,8 @@ async function postLocal(
   baseUrl: string,
   apiKey: string,
   path: string,
-  attempt = 1,
-): Promise<void> {
+  attempt = 1
+): Promise<unknown> {
   const res = await fetch(`${baseUrl}${path}`, {
     method: "POST",
     headers: { "content-type": "application/json", "x-scheduled-key": apiKey },
@@ -143,6 +141,7 @@ async function postLocal(
     const body = await res.text().catch(() => "");
     throw new Error(`POST ${path} → ${res.status} ${body.slice(0, 200)}`);
   }
+  return res.json().catch(() => null);
 }
 
 /**
@@ -160,22 +159,22 @@ export const EVIDENCE_JOBS: Job[] = Array.from({ length: 24 }, (_, hour) => ({
   },
 }));
 
-export const METRIC_RECOVERY_JOBS: Job[] = [0, 4, 8, 12, 16, 20].map(
-  (hour) => ({
-    key: `official-metrics-recovery-${String(hour).padStart(2, "0")}`,
-    at: `${String(hour).padStart(2, "0")}:00`,
-    graceMinutes: 239,
-    maxAttempts: 3,
-    run: async () => {
-      await recoverMissingMetrics();
-    },
-  }),
-);
+export const METRIC_RECOVERY_JOBS: Job[] = [0, 4, 8, 12, 16, 20].map((hour) => ({
+  key: `official-metrics-recovery-${String(hour).padStart(2, "0")}`,
+  at: `${String(hour).padStart(2, "0")}:00`,
+  graceMinutes: 239,
+  maxAttempts: 3,
+  run: async () => {
+    await recoverMissingMetrics();
+  },
+}));
 
 /** Keep existing noon/evening claim keys. An update expires before the next
  * update starts, so a late restart does not replay several full collections. */
-export const FEED_UPDATE_JOBS: Job[] = ["09:43", "12:43", "15:43", "18:43"].map(at => ({
-  key: `daily-feed-update-${at.slice(0, 2)}`, at, graceMinutes: 179,
+export const FEED_UPDATE_JOBS: Job[] = ["09:43", "12:43", "15:43", "18:43"].map((at) => ({
+  key: `daily-feed-update-${at.slice(0, 2)}`,
+  at,
+  graceMinutes: 179,
   run: (b, k) => runDailyFeedIngest(b, k),
 }));
 
@@ -185,9 +184,10 @@ export const MORTGAGE_COVERAGE_RECOVERY_JOB: Job = {
   graceMinutes: 24 * 60 - 1,
   claimDate: "2026-09-14",
   maxAttempts: 1,
-  run: (b, k) => runDailyFeedIngest(b, k, {
-    sources: SOURCES.filter((source) => source.name === "ABC Mortgages"),
-  }),
+  run: (b, k) =>
+    runDailyFeedIngest(b, k, {
+      sources: SOURCES.filter((source) => source.name === "ABC Mortgages"),
+    }),
 };
 
 export const ADVICE_COVERAGE_RECOVERY_JOB: Job = {
@@ -196,11 +196,16 @@ export const ADVICE_COVERAGE_RECOVERY_JOB: Job = {
   graceMinutes: 24 * 60 - 1,
   claimDate: "2026-09-14",
   maxAttempts: 1,
-  run: (b, k) => runDailyFeedIngest(b, k, {
-    sources: SOURCES.filter((source) => [
-      "ASIC Media Releases", "Financial Advice Association Australia", "Money Management",
-    ].includes(source.name)),
-  }),
+  run: (b, k) =>
+    runDailyFeedIngest(b, k, {
+      sources: SOURCES.filter((source) =>
+        [
+          "ASIC Media Releases",
+          "Financial Advice Association Australia",
+          "Money Management",
+        ].includes(source.name)
+      ),
+    }),
 };
 
 export const ADVICE_NEWSROOM_RECOVERY_JOB: Job = {
@@ -209,9 +214,10 @@ export const ADVICE_NEWSROOM_RECOVERY_JOB: Job = {
   graceMinutes: 24 * 60 - 1,
   claimDate: "2026-09-14",
   maxAttempts: 1,
-  run: (b, k) => runDailyFeedIngest(b, k, {
-    sources: SOURCES.filter((source) => source.name === "Financial Newswire"),
-  }),
+  run: (b, k) =>
+    runDailyFeedIngest(b, k, {
+      sources: SOURCES.filter((source) => source.name === "Financial Newswire"),
+    }),
 };
 
 const JOBS: Job[] = [
@@ -227,15 +233,19 @@ const JOBS: Job[] = [
       const { listInstagramPosts } = await import("../db/instagramPosts");
       const { checkCommentAccess } = await import("../instagram/api");
       const [post] = await listInstagramPosts(1, true);
-      const state = post ? await checkCommentAccess({ mediaId: post.mediaId, accessToken }) : "no-post";
+      const state = post
+        ? await checkCommentAccess({ mediaId: post.mediaId, accessToken })
+        : "no-post";
       console.log(`[first-comment-access] ${JSON.stringify({ state })}`);
       if (state === "access_denied" || state === "rate_limited") {
         const { pauseFirstComments } = await import("../db/instagramFirstComments");
         await pauseFirstComments(accountId, state, new Date());
       }
       if (state !== "ready" && state !== "no-post")
-        await recordServerError({ level: "warn", route: "instagram/first-comment-access",
-          message: `First-comment access check: ${state}. Check instagram_manage_comments on the connected token.`
+        await recordServerError({
+          level: "warn",
+          route: "instagram/first-comment-access",
+          message: `First-comment access check: ${state}. Check instagram_manage_comments on the connected token.`,
         });
     },
   },
@@ -270,10 +280,23 @@ const JOBS: Job[] = [
     run: () => runScheduledMetricRefresh(),
   })),
   { key: "daily-metrics", at: "06:33", run: () => runScheduledMetricRefresh() },
-  { key: "editorial-pipeline-v4", at: "00:00", graceMinutes: 24 * 60, claimDate: "2026-09-10", run: (b, k) => runDailyFeedIngest(b, k) },
+  {
+    key: "editorial-pipeline-v4",
+    at: "00:00",
+    graceMinutes: 24 * 60,
+    claimDate: "2026-09-10",
+    run: (b, k) => runDailyFeedIngest(b, k),
+  },
   // One bounded post-release collection. Original dates, reading/quality gates
   // and normal publication dedupe all remain in force; no social-post action.
-  { key: "coverage-september-14-recovery", at: "00:00", graceMinutes: 24 * 60 - 1, claimDate: "2026-09-14", maxAttempts: 1, run: (b, k) => runDailyFeedIngest(b, k) },
+  {
+    key: "coverage-september-14-recovery",
+    at: "00:00",
+    graceMinutes: 24 * 60 - 1,
+    claimDate: "2026-09-14",
+    maxAttempts: 1,
+    run: (b, k) => runDailyFeedIngest(b, k),
+  },
   MORTGAGE_COVERAGE_RECOVERY_JOB,
   { key: "daily-feed", at: "06:43", run: (b, k) => runDailyFeedIngest(b, k) },
   ...FEED_UPDATE_JOBS,
@@ -363,7 +386,7 @@ async function alertTerminalFailure(
   clock: SchedulerClock,
   detail: string,
   attempt: number,
-  maxAttempts: number,
+  maxAttempts: number
 ): Promise<void> {
   const to = env.adminAlertEmail;
   if (!to) return;
@@ -379,10 +402,7 @@ async function alertTerminalFailure(
       maxAttempts,
     });
   } catch (err) {
-    console.warn(
-      `[scheduler] alert email for ${jobKey} failed:`,
-      (err as Error).message,
-    );
+    console.warn(`[scheduler] alert email for ${jobKey} failed:`, (err as Error).message);
   }
 }
 
@@ -392,21 +412,20 @@ async function tick(baseUrl: string, apiKey: string): Promise<void> {
   if (ticking) return; // a slow run must not overlap the next interval
   ticking = true;
   try {
-    const pausedLocalJobs = pausedLocalSourceJobs(
-      await readLocalDataHealth().catch(() => []),
-    );
+    const pausedLocalJobs = pausedLocalSourceJobs(await readLocalDataHealth().catch(() => []));
     for (const job of JOBS) {
-      if (job.key === REVIEWED_VIC_JOB && !(await reviewedVicReleasePending().catch(err => {
-        console.warn("[scheduler] cannot check reviewed VIC import:", (err as Error).message);
-        return false;
-      }))) continue;
+      if (
+        job.key === REVIEWED_VIC_JOB &&
+        !(await reviewedVicReleasePending().catch((err) => {
+          console.warn("[scheduler] cannot check reviewed VIC import:", (err as Error).message);
+          return false;
+        }))
+      )
+        continue;
       if (
         job.key === REVIEWED_SA_JOB &&
         !(await reviewedSaReleasePending().catch((err) => {
-          console.warn(
-            "[scheduler] cannot check reviewed SA import:",
-            (err as Error).message,
-          );
+          console.warn("[scheduler] cannot check reviewed SA import:", (err as Error).message);
           return false;
         }))
       )
@@ -417,47 +436,37 @@ async function tick(baseUrl: string, apiKey: string): Promise<void> {
       const maxAttempts = job.maxAttempts ?? 3;
       const collection = isCollectionJob(job.key);
       const lease = collection
-        ? await claimCollectionRun(job.key, clock.dateISO, maxAttempts).catch(
-            (err) => {
-              console.error(
-                `[scheduler] cannot claim ${job.key}:`,
-                (err as Error).message,
-              );
-              return null;
-            },
-          )
+        ? await claimCollectionRun(job.key, clock.dateISO, maxAttempts).catch((err) => {
+            console.error(`[scheduler] cannot claim ${job.key}:`, (err as Error).message);
+            return null;
+          })
         : null;
       const attempt = collection
         ? (lease?.attempt ?? 0)
         : await claimJobRun(job.key, job.claimDate ?? clock.dateISO, maxAttempts);
       if (!attempt) continue;
       console.log(
-        `[scheduler] running ${job.key} (${clock.dateISO}, attempt ${attempt}/${maxAttempts})`,
+        `[scheduler] running ${job.key} (${clock.dateISO}, attempt ${attempt}/${maxAttempts})`
       );
       try {
         if (lease) {
-          await runCollectionAttempt(lease, () =>
-            job.run(baseUrl, apiKey, attempt),
-          );
+          await runCollectionAttempt(lease, async () => {
+            await job.run(baseUrl, apiKey, attempt);
+          });
           if (!(await finishCollectionRun(lease, "success"))) continue;
         } else {
-          await job.run(baseUrl, apiKey, attempt);
-          await markJobRun(job.key, job.claimDate ?? clock.dateISO, "success");
+          const result = await job.run(baseUrl, apiKey, attempt);
+          const outcome = describeScheduledOutcome(job.key, result);
+          await markJobRun(job.key, job.claimDate ?? clock.dateISO, "success", outcome);
+          console.log(`[scheduler-outcome] ${job.key}: ${outcome}`);
         }
-        console.log(`[scheduler] ${job.key} ✓`);
+        console.log(`[scheduler] ${job.key} completed; publication outcome is recorded separately`);
       } catch (err) {
         const msg = (err as Error)?.message ?? String(err);
         const accessPaused = err instanceof LocalSourceAccessPaused;
-        console.error(
-          `[scheduler] ${job.key} ${accessPaused ? "paused" : "failed"}:`,
-          msg,
-        );
+        console.error(`[scheduler] ${job.key} ${accessPaused ? "paused" : "failed"}:`, msg);
         if (lease) {
-          const finished = await finishCollectionRun(
-            lease,
-            "failed",
-            msg,
-          ).catch(() => false);
+          const finished = await finishCollectionRun(lease, "failed", msg).catch(() => false);
           if (!finished) continue;
         } else {
           await markJobRun(job.key, job.claimDate ?? clock.dateISO, "failed", msg.slice(0, 480));
@@ -499,39 +508,27 @@ async function tick(baseUrl: string, apiKey: string): Promise<void> {
           } catch {
             /* Non-JSON proxy errors retain their bounded text. */
           }
-          throw new Error(
-            `Reel delivery ${response.status}: ${String(detail).slice(0, 450)}`,
-          );
+          throw new Error(`Reel delivery ${response.status}: ${String(detail).slice(0, 450)}`);
         }
         return JSON.parse(body);
       },
       alert: (detail, attempt) =>
-        alertTerminalFailure(
-          "instagram-reel",
-          sydneyClock(),
-          detail,
-          attempt,
-          REEL_MAX_ATTEMPTS,
-        ),
+        alertTerminalFailure("instagram-reel", sydneyClock(), detail, attempt, REEL_MAX_ATTEMPTS),
     }).catch(async (err) => {
-      console.error(
-        "[scheduler] Reel delivery check failed:",
-        (err as Error).message,
-      );
+      console.error("[scheduler] Reel delivery check failed:", (err as Error).message);
       await recordServerError({
         level: "error",
         route: "scheduler/reel",
-        message: `Reel delivery check failed: ${(err as Error).message}`.slice(
-          0,
-          512,
-        ),
+        message: `Reel delivery check failed: ${(err as Error).message}`.slice(0, 512),
       }).catch(() => {});
     });
     await runFirstCommentAutomation()
-      .then(result => console.log(`[first-comment-plan] ${JSON.stringify(result)}`))
+      .then((result) => console.log(`[first-comment-plan] ${JSON.stringify(result)}`))
       .catch(async () => {
-        await recordServerError({ level: "warn", route: "scheduler/first-comment",
-          message: "First-comment check failed; durable records or account access need inspection."
+        await recordServerError({
+          level: "warn",
+          route: "scheduler/first-comment",
+          message: "First-comment check failed; durable records or account access need inspection.",
         }).catch(() => {});
       });
     // Story delivery has its own claims and failure handling. It also runs
@@ -569,7 +566,7 @@ export function startScheduler(opts: { port: number }): void {
   }
   if (!env.scheduledApiKey) {
     console.warn(
-      "[scheduler] SCHEDULED_API_KEY not set — cannot authenticate self-calls; not starting",
+      "[scheduler] SCHEDULED_API_KEY not set — cannot authenticate self-calls; not starting"
     );
     return;
   }
@@ -577,7 +574,7 @@ export function startScheduler(opts: { port: number }): void {
   const baseUrl = `http://127.0.0.1:${opts.port}`;
   const apiKey = env.scheduledApiKey;
   console.log(
-    `[scheduler] enabled — ${JOBS.length} jobs, polling every ${TICK_MINUTES}m (Sydney time)`,
+    `[scheduler] enabled — ${JOBS.length} jobs, polling every ${TICK_MINUTES}m (Sydney time)`
   );
   const fire = () => void tick(baseUrl, apiKey);
   setTimeout(fire, BOOT_DELAY_MS); // catch-up shortly after boot

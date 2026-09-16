@@ -31,7 +31,7 @@ vi.mock("../core/mailer", () => ({
   editionUnsubscribeUrl: () => "signed-unsubscribe",
   send: m.send,
 }));
-import { deliverDailyBrief } from "./delivery";
+import { deliverDailyBrief, dailyBriefRecoveryStatus } from "./delivery";
 const now = () => new Date("2026-09-09T21:00:00Z");
 const item = {
   id: 1,
@@ -104,5 +104,37 @@ it("rechecks the delivery window after claiming a recipient", async () => {
   let calls = 0;
   await deliverDailyBrief(() => (++calls <= 3 ? now() : new Date("2026-09-10T02:00:00Z")));
   expect(m.claim).toHaveBeenCalled();
+  expect(m.send).not.toHaveBeenCalled();
+});
+
+it("records bounded recovery reasons without exposing provider or recipient details", async () => {
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  m.ready.mockRejectedValueOnce(
+    Object.assign(new Error("private recipient@example.test SQL payload"), {
+      code: "ER_LOCK_WAIT_TIMEOUT",
+    })
+  );
+  await expect(deliverDailyBrief(now)).rejects.toThrow();
+  expect(dailyBriefRecoveryStatus()).toMatchObject({
+    reason: "ER_LOCK_WAIT_TIMEOUT",
+    consecutiveFailures: 1,
+  });
+  expect(JSON.stringify(warn.mock.calls)).not.toContain("recipient@example.test");
+  m.ready.mockResolvedValue(null);
+  await deliverDailyBrief(now);
+  expect(dailyBriefRecoveryStatus()).toMatchObject({
+    reason: null,
+    consecutiveFailures: 0,
+    lastCompletedPollAt: now().toISOString(),
+  });
+  warn.mockRestore();
+});
+it("expires old batches once per Sydney date/window instead of every minute", async () => {
+  const date = new Date("2026-09-16T19:00:00Z");
+  await deliverDailyBrief(() => date);
+  await deliverDailyBrief(() => new Date(date.getTime() + 60_000));
+  expect(m.expire).toHaveBeenCalledTimes(1);
+  await deliverDailyBrief(() => new Date("2026-09-17T02:00:00Z"));
+  expect(m.expire).toHaveBeenCalledTimes(2);
   expect(m.send).not.toHaveBeenCalled();
 });

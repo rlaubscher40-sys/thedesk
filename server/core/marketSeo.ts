@@ -1,3 +1,4 @@
+import { acceptsHtml } from "./acceptsHtml";
 import { marketBootstrapTag } from "../../shared/marketBootstrap";
 import type { Express } from "express";
 import rateLimit from "express-rate-limit";
@@ -179,8 +180,7 @@ export function registerMarketSeoRoutes(app: Express): void {
     "/markets/:slug",
     rateLimit({ windowMs: 60_000, limit: 120, standardHeaders: "draft-7", legacyHeaders: false }),
     async (req, res, next) => {
-      const accept = req.headers.accept ?? "*/*";
-      if (!accept.includes("text/html") && !accept.includes("*/*")) return next();
+      if (!acceptsHtml(req.headers.accept)) return next();
       const slug = routeParam(req.params.slug);
       if (!publicMarket(slug)) {
         res.status(404);

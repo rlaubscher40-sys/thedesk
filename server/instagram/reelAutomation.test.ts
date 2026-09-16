@@ -226,7 +226,7 @@ describe("automatic verified Reel delivery", () => {
   });
   it("does not repeat a confirmed reference month on the next poll/restart", async () => {
     await run();
-    expect(await run()).toEqual({ state: "published" });
+    expect(await run()).toEqual({ state: "exhausted" });
     expect(m.post).toHaveBeenCalledTimes(1);
   });
   it("does not call Meta when disabled or account credentials are absent", async () => {
@@ -521,7 +521,7 @@ describe("new family permanent publication records", () => {
       detail: "Published media 234567",
       finishedAt: new Date("2026-09-10T08:45:00Z"),
     });
-    expect((await readReelAutomation(date)).state).toBe("published");
+    expect((await readReelAutomation(date)).state).toBe("exhausted");
     expect(m.post).not.toHaveBeenCalled();
     expect(m.claim).not.toHaveBeenCalled();
   });

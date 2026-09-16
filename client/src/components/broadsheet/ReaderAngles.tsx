@@ -78,7 +78,7 @@ export function ReaderAngleRows({
 
 export function ReaderAngleColumns({
   raw,
-  heading = "How it lands for each partner",
+  heading = "What it means for you",
   className,
 }: {
   raw: string | null;

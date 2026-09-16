@@ -134,3 +134,41 @@ it("keeps render quotas before retrieval and rejects invalid snapshot IDs", asyn
   ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   expect(m.read).not.toHaveBeenCalled();
 });
+
+it("withholds release charts and old directional copy across both card APIs", async () => {
+  saved = signalSnapshotSchema.parse({
+    version: 1,
+    metric: {
+      ...metric(),
+      metricKey: "consumer_confidence",
+      label: "Consumer sentiment",
+      value: "84.4",
+      unit: "index",
+    },
+    series: [
+      { value: 80.6, recordedAt: new Date("2026-08-01Z") },
+      { value: 84.4, recordedAt: new Date("2026-09-01Z") },
+    ],
+    move: "Unsupported upward comparison",
+    deskTake: null,
+    editionNumber: null,
+  });
+  await expect(
+    metricsRouter
+      .createCaller(ctx)
+      .shareTrendCard({ metricKey: "consumer_confidence", snapshot: id })
+  ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  expect(m.chart).not.toHaveBeenCalled();
+  await signalsRouter
+    .createCaller(ctx)
+    .shareCard({ metricKey: "consumer_confidence", snapshot: id });
+  await metricsRouter
+    .createCaller(ctx)
+    .shareCard({ metricKey: "consumer_confidence", snapshot: id });
+  expect(
+    m.number.mock.calls.every(
+      ([card]) => card.move.includes("Release-based figure") && !card.move.includes("Unsupported")
+    )
+  ).toBe(true);
+  expect(saved.move).toBe("Unsupported upward comparison"); // Archived evidence is not mutated.
+});

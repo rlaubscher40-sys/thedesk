@@ -5,12 +5,27 @@ import * as queue from "../db/dailyBrief";
 import { buildDailyBriefEmail, editionUnsubscribeUrl, send } from "../core/mailer";
 
 let active: Promise<void> | undefined;
+let expiryCheckpoint = "";
+let recovery = {
+  lastPollAt: null as string | null,
+  lastCompletedPollAt: null as string | null,
+  lastFailureAt: null as string | null,
+  consecutiveFailures: 0,
+  reason: null as string | null,
+};
+export const dailyBriefRecoveryStatus = () => ({ ...recovery });
 export function deliverDailyBrief(now: () => Date = () => new Date()): Promise<void> {
   if (isDemoMode() || !process.env.RESEND_API_KEY) return Promise.resolve();
   if (active) return active;
   active = (async () => {
-    const clock = sydneySocialClock(now());
-    await queue.expireDailyBriefs(clock.dateISO, clock.minutes >= 720);
+    const startedAt = now();
+    recovery.lastPollAt = startedAt.toISOString();
+    const clock = sydneySocialClock(startedAt);
+    const expiry = `${clock.dateISO}:${clock.minutes >= 720 ? "closed" : "open"}`;
+    if (expiryCheckpoint !== expiry) {
+      await queue.expireDailyBriefs(clock.dateISO, clock.minutes >= 720);
+      expiryCheckpoint = expiry;
+    }
     const date = dailyBriefWindow(now());
     if (!date) return;
     let items = await queue.readBriefBatch(date);
@@ -55,17 +70,49 @@ export function deliverDailyBrief(now: () => Date = () => new Date()): Promise<v
       );
       await new Promise((resolve) => setTimeout(resolve, 600));
     }
-  })().finally(() => {
-    active = undefined;
-  });
+  })()
+    .then(() => {
+      recovery = {
+        ...recovery,
+        lastCompletedPollAt: now().toISOString(),
+        consecutiveFailures: 0,
+        reason: null,
+      };
+    })
+    .catch((error: unknown) => {
+      const code =
+        typeof error === "object" && error !== null && "code" in error ? String(error.code) : "";
+      const reason = [
+        "ECONNREFUSED",
+        "ETIMEDOUT",
+        "ER_LOCK_DEADLOCK",
+        "ER_LOCK_WAIT_TIMEOUT",
+        "ER_NO_SUCH_TABLE",
+        "ER_BAD_FIELD_ERROR",
+      ].includes(code)
+        ? code
+        : "delivery_or_storage_unavailable";
+      recovery = {
+        ...recovery,
+        lastFailureAt: now().toISOString(),
+        consecutiveFailures: recovery.consecutiveFailures + 1,
+        reason,
+      };
+      // Never log provider payloads, recipient addresses or unrestricted DB errors.
+      if (recovery.consecutiveFailures === 1 || recovery.consecutiveFailures % 5 === 0)
+        console.warn(`[daily-brief] recovery ${JSON.stringify(recovery)}`);
+      throw error;
+    })
+    .finally(() => {
+      active = undefined;
+    });
   return active;
 }
 let started = false;
 export function startDailyBriefDelivery() {
   if (started || isDemoMode()) return;
   started = true;
-  const run = () =>
-    void deliverDailyBrief().catch(() => console.warn("[daily-brief] recovery poll unavailable"));
+  const run = () => void deliverDailyBrief().catch(() => {}); // Classified privately above; next bounded poll retries.
   run();
   setInterval(run, 60_000).unref();
   console.log("[daily-brief] delivery recovery started; weekdays 7am–noon Sydney");

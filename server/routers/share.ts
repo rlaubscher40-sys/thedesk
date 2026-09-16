@@ -15,7 +15,7 @@ async function enforceRenderQuota(
   if (!quota.allowed) {
     throw new TRPCError({
       code: "TOO_MANY_REQUESTS",
-      message: `You've used today's ${quota.limit} free share renders. Sign in to keep going.`,
+      message: `You've used today's ${quota.limit} free share renders. Your allowance resets tomorrow, Sydney time.`,
     });
   }
 }
@@ -61,7 +61,7 @@ export const shareRouter = router({
     .input(z.object({ id: z.number().int().positive() }))
     .mutation(async ({ input, ctx }) => {
       const item = await db.getFeedItemById(input.id);
-      if (!item) {
+      if (!item || item.channel === "HOLD") {
         throw new TRPCError({ code: "NOT_FOUND", message: "Story not found." });
       }
 
@@ -103,7 +103,7 @@ export const shareRouter = router({
     .input(z.object({ id: z.number().int().positive() }))
     .mutation(async ({ input, ctx }) => {
       const item = await db.getFeedItemById(input.id);
-      if (!item) {
+      if (!item || item.channel === "HOLD") {
         throw new TRPCError({ code: "NOT_FOUND", message: "Story not found." });
       }
       const take = storyDeskTake(item);

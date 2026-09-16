@@ -1,4 +1,4 @@
-import { and, between, desc, eq, isNotNull, isNull } from "drizzle-orm";
+import { and, between, desc, eq, ne, isNotNull, isNull } from "drizzle-orm";
 import * as demoQueries from "../demo/queries";
 import { isDemoMode } from "../demo/store";
 import { getDb } from "./client";
@@ -19,15 +19,17 @@ export async function getEnrichedQueue(userId: number) {
     .where(eq(readingQueue.userId, userId))
     .orderBy(desc(readingQueue.createdAt));
 
-  return rows.map(({ queue, feed }) => ({
-    ...queue,
-    feedTitle: feed?.title ?? null,
-    feedSummary: feed?.summary ?? null,
-    feedCategory: feed?.category ?? null,
-    feedSource: feed?.source ?? null,
-    feedSourceUrl: feed?.sourceUrl ?? null,
-    feedDate: feed?.feedDate ?? null,
-  }));
+  return rows
+    .filter(({ queue, feed }) => !queue.feedItemId || (feed && feed.channel !== "HOLD"))
+    .map(({ queue, feed }) => ({
+      ...queue,
+      feedTitle: feed?.title ?? null,
+      feedSummary: feed?.summary ?? null,
+      feedCategory: feed?.category ?? null,
+      feedSource: feed?.source ?? null,
+      feedSourceUrl: feed?.sourceUrl ?? null,
+      feedDate: feed?.feedDate ?? null,
+    }));
 }
 
 export async function addToQueue(item: InsertReadingQueueItem) {
@@ -121,6 +123,7 @@ export async function findQueueItemsNeedingNudge(): Promise<NudgeCandidate[]> {
       and(
         isNull(readingQueue.nudgeSentAt),
         isNotNull(dailyFeedItems.sayThis),
+        ne(dailyFeedItems.channel, "HOLD"),
         between(readingQueue.createdAt, fourDaysAgo, twoDaysAgo)
       )
     );

@@ -25,3 +25,12 @@ it("keeps zero baselines and missing history distinct from flat observations", (
     historyChange({ metricKey: "asx200" }, [{ ...series[0]!, value: 0 }, series[1]!])
   ).toContain("unavailable from a zero");
 });
+
+it("never treats an undated release prior as comparable movement", async () => {
+  const { comparableMetricPrior } = await import("./metricPresentation");
+  expect(
+    comparableMetricPrior({ metricKey: "consumer_confidence", previousValue: "80.6" })
+  ).toBeNull();
+  expect(comparableMetricPrior({ metricKey: "cpi_trimmed", previousValue: "-0.3" })).toBeNull();
+  expect(comparableMetricPrior({ metricKey: "cash_rate", previousValue: "4.35" })).toBe("4.35");
+});

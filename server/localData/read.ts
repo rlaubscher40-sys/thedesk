@@ -59,24 +59,18 @@ export function matchLocalAreas(
     kind?: LocalArea["kind"];
     question?: boolean;
   } = {},
-  now = new Date(),
+  now = new Date()
 ): LocalMatch[] {
   const states = options.state
     ? [options.state]
     : STATE_CODES.filter((state, i) =>
-        new RegExp(
-          `\\b(?:${state}|${STATE_NAMES[i]})\\b`,
-          state === "ACT" ? "u" : "iu",
-        ).test(query),
+        new RegExp(`\\b(?:${state}|${STATE_NAMES[i]})\\b`, state === "ACT" ? "u" : "iu").test(query)
       );
   let place = normaliseArea(query);
   for (const state of states)
     place = place.replace(
-      new RegExp(
-        `\\b(?:${state}|${STATE_NAMES[STATE_CODES.indexOf(state)]})\\b`,
-        "giu",
-      ),
-      " ",
+      new RegExp(`\\b(?:${state}|${STATE_NAMES[STATE_CODES.indexOf(state)]})\\b`, "giu"),
+      " "
     );
   place = place
     .replace(/\b(?:postcode|sa2|suburb|lga|council)\b/g, " ")
@@ -90,11 +84,14 @@ export function matchLocalAreas(
         (options.kind && options.kind !== area.kind)
       )
         continue;
-      if (options.question && area.kind === "LGA" && /\b(suburb|postcode)\b/i.test(query) && !/\b(lga|council|local government|city of)\b/i.test(query)) continue;
-      const alias = normaliseArea(area.name).replace(
-        / \((?:c|s|r|rc|m)\)$/i,
-        "",
-      );
+      if (
+        options.question &&
+        area.kind === "LGA" &&
+        /\b(suburb|postcode)\b/i.test(query) &&
+        !/\b(lga|council|local government|city of)\b/i.test(query)
+      )
+        continue;
+      const alias = normaliseArea(area.name).replace(/ \((?:c|s|r|rc|m)\)$/i, "");
       if (options.question) {
         if (!boundary(alias).test(query)) continue;
         if (
@@ -108,8 +105,7 @@ export function matchLocalAreas(
           !/\b(sa2|council|lga|local government|city of|suburb)\b/i.test(query)
         )
           continue;
-      } else if (place !== alias && place !== normaliseArea(area.name))
-        continue;
+      } else if (place !== alias && place !== normaliseArea(area.name)) continue;
       matches.push({
         area,
         sourceKey: data.sourceKey,
@@ -128,39 +124,27 @@ export function matchLocalAreas(
       if (
         !states.length &&
         matches.some(
-          (other) =>
-            other.alias === match.alias &&
-            other.area.state !== match.area.state,
+          (other) => other.alias === match.alias && other.area.state !== match.area.state
         )
       )
         return false;
       return !matches.some(
         (other) =>
-          other.alias.length > match.alias.length &&
-          boundary(match.alias).test(other.alias),
+          other.alias.length > match.alias.length && boundary(match.alias).test(other.alias)
       );
     })
-    .sort(
-      (a, b) =>
-        b.alias.length - a.alias.length || a.area.id.localeCompare(b.area.id),
-    )
+    .sort((a, b) => b.alias.length - a.alias.length || a.area.id.localeCompare(b.area.id))
     .slice(0, 6)
     .map(({ alias: _alias, ...match }) => match);
 }
 
 export async function localDatasets(): Promise<LocalDataset[]> {
-  const results = await Promise.allSettled(
-    LOCAL_SOURCE_KEYS.map(readLocalDataset),
-  );
+  const results = await Promise.allSettled(LOCAL_SOURCE_KEYS.map(readLocalDataset));
   return results.flatMap((result) =>
-    result.status === "fulfilled" && result.value ? [result.value] : [],
+    result.status === "fulfilled" && result.value ? [result.value] : []
   );
 }
-export async function getLocalData(
-  query: string,
-  state?: StateCode,
-  kind?: LocalArea["kind"],
-) {
+export async function getLocalData(query: string, state?: StateCode, kind?: LocalArea["kind"]) {
   const datasets = await localDatasets();
   return {
     matches: matchLocalAreas(query, datasets, { state, kind }),
@@ -170,7 +154,9 @@ export async function getLocalData(
 export async function getLocalCoverage() {
   const [datasets, health] = await Promise.all([
     // Admin must not mislabel a database read failure as an absent release.
-    Promise.all(LOCAL_SOURCE_KEYS.map(readLocalDataset)).then((rows) => rows.filter((row): row is LocalDataset => row !== null)),
+    Promise.all(LOCAL_SOURCE_KEYS.map(readLocalDataset)).then((rows) =>
+      rows.filter((row): row is LocalDataset => row !== null)
+    ),
     readLocalDataHealth(),
   ]);
   return LOCAL_SOURCE_KEYS.map((sourceKey) => {
@@ -196,13 +182,14 @@ export async function getLocalCoverage() {
         STATE_CODES.map((state) => [
           state,
           data?.areas.filter((a) => a.state === state).length ?? 0,
-        ]),
+        ])
       ),
     };
   });
 }
 
 export type FactEvidence = {
+  cpiRent?: { city: string; period: string; annualPercent: number; status: "" | "p" | "r" };
   title: string;
   date: string;
   href: string;
@@ -216,15 +203,18 @@ export type FactEvidence = {
     observations: Array<LocalObservation & { periodLabel: string; sampleLabel: string }>;
   };
 };
-export function localFactEvidence(
-  match: LocalMatch,
-  question = "",
-): FactEvidence[] {
+export function localFactEvidence(match: LocalMatch, question = ""): FactEvidence[] {
   const source = LOCAL_SOURCES[match.sourceKey];
   const requestedPeriods = requestedLocalPeriods(question);
   const bedroomWords = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
-  const bedroomMatch = question.match(/\b([0-9]+|one|two|three|four|five|six|seven|eight|nine)[ -]?(?:bed|bedroom)/i)?.[1]?.toLowerCase();
-  const beds = bedroomMatch && (bedroomWords.includes(bedroomMatch) ? String(bedroomWords.indexOf(bedroomMatch) + 1) : bedroomMatch);
+  const bedroomMatch = question
+    .match(/\b([0-9]+|one|two|three|four|five|six|seven|eight|nine)[ -]?(?:bed|bedroom)/i)?.[1]
+    ?.toLowerCase();
+  const beds =
+    bedroomMatch &&
+    (bedroomWords.includes(bedroomMatch)
+      ? String(bedroomWords.indexOf(bedroomMatch) + 1)
+      : bedroomMatch);
   const house = /\bhouses?\b/i.test(question),
     flat = /\b(flats?|units?|apartments?)\b/i.test(question),
     town = /\btownhouses?\b/i.test(question);
@@ -236,8 +226,7 @@ export function localFactEvidence(
     )
       return false;
     if (o.measure !== "weekly-rent") return true;
-    if (beds && !new RegExp(`(?:^|\\s)${beds}(?:\\s|$)`).test(o.category))
-      return false;
+    if (beds && !new RegExp(`(?:^|\\s)${beds}(?:\\s|$)`).test(o.category)) return false;
     if (town && !/townhouse/i.test(o.category)) return false;
     if (house && !town && !/^house/i.test(o.category)) return false;
     if (flat && !/flat/i.test(o.category)) return false;
@@ -246,9 +235,7 @@ export function localFactEvidence(
   const area = match.area;
   // A source card links to one exact table period. Never mix dates under a
   // citation that opens only one of them. Bound each group independently.
-  const periods = [...new Set(observations.map((o) => o.period))]
-    .sort()
-    .reverse();
+  const periods = [...new Set(observations.map((o) => o.period))].sort().reverse();
   return periods.slice(0, 6).map((period) => {
     const rows = observations.filter((o) => o.period === period).slice(0, 12);
     return {
@@ -257,18 +244,26 @@ export function localFactEvidence(
       href: localAreaHref(area, period),
       publisher: source.publisher,
       sourceUrl: match.resourceUrl,
-      withheldRent: rows.every((o) => o.measure === "weekly-rent" && o.value === null && o.status !== "published"),
-      ...(rows.every((o) => o.measure === "weekly-rent") ? {
-        localRent: {
-          method: source.method,
-          observations: rows.map((o) => ({ ...o, periodLabel: localPeriodLabel(match.sourceKey, period, o.measure), sampleLabel: localSampleLabel(match.sourceKey) })),
-        },
-      } : {}),
+      withheldRent: rows.every(
+        (o) => o.measure === "weekly-rent" && o.value === null && o.status !== "published"
+      ),
+      ...(rows.every((o) => o.measure === "weekly-rent")
+        ? {
+            localRent: {
+              method: source.method,
+              observations: rows.map((o) => ({
+                ...o,
+                periodLabel: localPeriodLabel(match.sourceKey, period, o.measure),
+                sampleLabel: localSampleLabel(match.sourceKey),
+              })),
+            },
+          }
+        : {}),
       text: [
         `Geography: ${area.name}, ${area.state}; ${area.kind}; ${area.boundaryVersion}. Do not extend these observations to another geographic boundary.`,
         ...rows.map(
           (o) =>
-            `${o.measure}; ${o.category}; ${localPeriodLabel(match.sourceKey, o.period, o.measure)}; ${o.value === null ? (o.status === "source-unavailable" ? "unavailable in source; reason not stated" : "withheld: " + o.status) : `${o.value} ${o.unit}`}${o.sample === null ? "" : `; ${localSampleLabel(match.sourceKey)}: ${o.sample}`}.`,
+            `${o.measure}; ${o.category}; ${localPeriodLabel(match.sourceKey, o.period, o.measure)}; ${o.value === null ? (o.status === "source-unavailable" ? "unavailable in source; reason not stated" : "withheld: " + o.status) : `${o.value} ${o.unit}`}${o.sample === null ? "" : `; ${localSampleLabel(match.sourceKey)}: ${o.sample}`}.`
         ),
         source.method,
         ...(rows.every((o) => o.value === null)

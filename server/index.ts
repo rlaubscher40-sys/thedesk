@@ -1,5 +1,6 @@
 import { repairEditorialReferences, repairCoverageAudit } from "./db/editorial";
 import { repairEditorialCategories, repairFeedGeography } from "./db/feedGeography";
+import { applyReviewedStoryCorrections } from "./db/reviewedCorrections";
 /**
  * Express + tRPC + Vite entry point. In dev the Vite middleware serves the
  * client; in production it falls back to the static bundle in dist/public.
@@ -215,6 +216,8 @@ async function startServer() {
   // never hits a column the database is missing.
   await applyPendingMigrations();
   if (!isDemoMode()) {
+    // These public correction notices must not go live ahead of their guarded edits.
+    await applyReviewedStoryCorrections();
     try {
       const corrected = await repairEditorialCategories();
       console.log(`[editorial] corrected ${corrected} topic category labels`);

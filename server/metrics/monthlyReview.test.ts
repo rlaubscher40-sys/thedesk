@@ -233,7 +233,9 @@ describe("buildMonthlyReview", () => {
 
 describe("readMonth", () => {
   it("says so when there are no readings at all", () => {
-    expect(readMonth(buildMonthlyReview([], {}, "2026-08", NOW))).toContain("No readings recorded");
+    expect(readMonth(buildMonthlyReview([], {}, "2026-08", NOW))).toContain(
+      "No comparable daily observations"
+    );
   });
 
   it("refuses to rank a basket without the history to rank it", () => {
@@ -367,4 +369,20 @@ describe("biggestSince / describeReach", () => {
     const move = buildMonthlyReview([meta()], histories, "2026-08", NOW).movers[0]!;
     expect(move.historyStart).toBe("2026-04");
   });
+});
+
+it("withholds release-based samples from monthly movement rankings", () => {
+  const review = buildMonthlyReview(
+    [meta({ metricKey: "consumer_confidence", label: "Consumer sentiment" })],
+    {
+      consumer_confidence: calmMonths(["2026-05", "2026-06", "2026-07"], 75, 1).concat(
+        month("2026-08", 80.6, 84.4)
+      ),
+    },
+    "2026-08",
+    NOW
+  );
+  expect(review.movers).toEqual([]);
+  expect(review.unchanged).toEqual([]);
+  expect(review.unranked).toEqual([]);
 });

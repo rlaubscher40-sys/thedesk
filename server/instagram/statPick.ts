@@ -24,6 +24,7 @@
  * this decides. That makes the editorial judgement unit-testable without a
  * database, an LLM, or the Graph API.
  */
+import { comparableMetricPrior } from "../../shared/metricPresentation";
 import type { DailyMetric } from "../db/schema";
 
 type StatAngleKind = "streak" | "extreme" | "jump" | "threshold" | "latest";
@@ -294,7 +295,8 @@ export function pickStatOfTheDay(
     const candidate = bestAngle(metric, current, history);
     if (!candidate || candidate.score < MIN_SCORE) continue;
 
-    const prev = metric.previousValue ? parseNumeric(metric.previousValue) : null;
+    const prior = comparableMetricPrior(metric);
+    const prev = prior === null ? null : parseNumeric(prior);
     const delta = prev === null ? null : current - prev;
 
     picks.push({
@@ -367,7 +369,8 @@ export function rehearsalStat(
   const best = candidates[0];
   if (!best) return null;
 
-  const prev = best.metric.previousValue ? parseNumeric(best.metric.previousValue) : null;
+  const prior = comparableMetricPrior(best.metric);
+  const prev = prior === null ? null : parseNumeric(prior);
   const delta = prev === null ? null : best.current - prev;
   return {
     metricKey: best.metric.metricKey,

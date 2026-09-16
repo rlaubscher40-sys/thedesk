@@ -147,7 +147,9 @@ export function evidenceVisualLayout(
   if (key === "label") {
     nodes = counts
       ? heading(
-          supplyCheck ? "Buying in Sydney?" : "More approvals.",
+          supplyCheck
+            ? `Buying in ${v.rows[0]!.label.replace(/^Greater /, "").replace("Australian Capital Territory", "the ACT")}?`
+            : "More approvals.",
           supplyCheck ? "Read the supply signal." : "Enough new homes?"
         )
       : heading(
