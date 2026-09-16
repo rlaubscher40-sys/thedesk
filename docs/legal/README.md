@@ -4,6 +4,8 @@ Prepared 14 September 2026. Implementation and legal-review handover, not a lega
 
 Follow-up: [20-point review, implementation and remaining owner decisions](./compliance-checklist-2026-09-16.md). The earlier foundations are merged; wording below describing their original pre-merge status is historical. Identity, permissions and operational verification do not become resolved merely through a merge.
 
+Further review: [runtime licences, dataset evidence, provider settings and chart accessibility](./compliance-depth-review-2026-09-16.md). Refresh the generated inventory with `pnpm audit:legal --write-register`; it records unknowns rather than granting permission. Production builds generate browser licence notices and fail on unreviewed missing text.
+
 ## What this change establishes
 
 - Fixed dates for Privacy and Terms, replacing a date that changed on every visit.

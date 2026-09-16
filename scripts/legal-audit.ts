@@ -1,7 +1,7 @@
 /** Read-only inventory. It does not grant rights or infer a publisher licence.
  * Run from the repository root: pnpm audit:legal > docs/legal/rights-register.json
  */
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { sourceRightsHold } from "../shared/sourceRights";
 import { resolve } from "node:path";
@@ -9,6 +9,7 @@ import { SOURCES, type Source } from "./ingest/sources";
 import { EVIDENCE_SOURCES } from "./ingest/propertySources";
 import { REEL_SHOTS } from "../server/video/reelVisualStandard";
 import { assertReviewedPhotoBytes } from "../server/video/assetRights";
+import { dependencyRights } from "./lib/dependencyRights";
 
 const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
 const webFontRegister = JSON.parse(readFileSync("docs/legal/web-fonts.json", "utf8")) as {
@@ -95,25 +96,29 @@ const bundledAssets = readdirSync("server/og/fonts")
         : "Identity recorded; check the applicable font, image or other asset licence",
     };
   });
-console.log(
-  JSON.stringify(
-    {
-      version: 3,
-      generatedAt: new Date().toISOString(),
-      scope:
-        "Configured news discovery routes and extraction holds, reviewed Reel photographs, browser font/notice integrity, bundled server font/image/notice file identities and direct npm dependencies. Dataset-specific terms, voice model components, historical exports and transitive dependency obligations still need assessment.",
-      applicationLicence: {
-        declared: packageJson.license,
-        status:
-          "Owner decision required. No licence changed; previous valid grants are not revoked.",
-      },
-      newsSources,
-      photographs,
-      webFonts: webFontRegister.fonts,
-      dependencies,
-      bundledAssets,
+const report = JSON.stringify(
+  {
+    version: 4,
+    generatedAt: new Date().toISOString(),
+    scope:
+      "Configured news discovery routes and extraction holds, reviewed Reel photographs, browser font/notice integrity, bundled server assets, direct packages and installed runtime transitive dependency notice inventory. See compliance-depth-review-2026-09-16.md for dataset/model/provider findings and remaining limitations.",
+    applicationLicence: {
+      declared: packageJson.license,
+      status: "Owner decision required. No licence changed; previous valid grants are not revoked.",
     },
-    null,
-    2
-  )
+    newsSources,
+    photographs,
+    webFonts: webFontRegister.fonts,
+    dependencies,
+    runtimeDependencies: dependencyRights(),
+    bundledAssets,
+  },
+  null,
+  2
 );
+if (process.argv.includes("--write-register")) {
+  writeFileSync("docs/legal/rights-register.json", `${report}\n`);
+  console.log("Updated docs/legal/rights-register.json");
+} else {
+  console.log(report);
+}

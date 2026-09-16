@@ -134,7 +134,7 @@ export const LOCAL_SOURCES = {
     url: "https://housing-data-exchange.ahdap.org/dataset/west-australia-rental-bonds-data-2023-current",
     licence: "https://creativecommons.org/licenses/by/4.0/",
     attribution:
-      "Government of Western Australia rental bonds (CC BY 4.0); medians calculated by The Desk",
+      "© Government of Western Australia (Department of Mines, Industry Regulation and Safety) 2023, rental bonds (CC BY 4.0); medians calculated by The Desk",
     cadence: "Monthly",
     states: ["WA"],
     maxAgeMonths: 3,

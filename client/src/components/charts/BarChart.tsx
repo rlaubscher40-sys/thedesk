@@ -5,6 +5,7 @@
  * mono axis labels.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ChartDataTable } from "./ChartDataTable";
 
 type BarSeries = {
   key: string;
@@ -14,6 +15,7 @@ type BarSeries = {
 };
 
 type Props = {
+  label: string;
   xLabels: string[];
   series: BarSeries[];
   height?: number;
@@ -21,13 +23,7 @@ type Props = {
   padX?: number;
 };
 
-export function BarChart({
-  xLabels,
-  series,
-  height = 280,
-  padY = 16,
-  padX = 44,
-}: Props) {
+export function BarChart({ label, xLabels, series, height = 280, padY = 16, padX = 44 }: Props) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const [width, setWidth] = useState(720);
@@ -47,7 +43,7 @@ export function BarChart({
   const innerH = height - padY * 2 - 12; // extra room for x labels
   const groups = xLabels.length;
   const groupSlot = innerW / Math.max(1, groups);
-  const barWidth = Math.max(4, Math.min(22, (groupSlot - 12) / series.length));
+  const barWidth = Math.max(4, Math.min(22, (groupSlot - 12) / Math.max(1, series.length)));
   const all = series.flatMap((s) => s.values).filter(Number.isFinite);
   const max = all.length ? Math.max(...all, 1) : 1;
 
@@ -67,7 +63,7 @@ export function BarChart({
         viewBox={`0 0 ${width} ${height}`}
         preserveAspectRatio="none"
         role="img"
-        aria-label="Bar chart"
+        aria-label={`${label}. Exact values in the View data table below.`}
         onPointerMove={(e) => {
           const rect = (e.currentTarget as SVGSVGElement).getBoundingClientRect();
           const px = ((e.clientX - rect.left) / rect.width) * width - padX;
@@ -91,11 +87,7 @@ export function BarChart({
         ))}
 
         {/* Y-axis labels. */}
-        <g
-          fontFamily="JetBrains Mono, monospace"
-          fontSize="10"
-          fill="oklch(0.56 0.012 260)"
-        >
+        <g fontFamily="JetBrains Mono, monospace" fontSize="10" fill="var(--color-fg-muted)">
           {yTicks.map((t, i) => (
             <text key={i} x={padX - 8} y={yToPx(t) + 3} textAnchor="end">
               {Math.round(t)}
@@ -121,7 +113,8 @@ export function BarChart({
           const totalWidth = barWidth * seriesCount + 4 * (seriesCount - 1);
           const startX = groupCenter - totalWidth / 2;
           return series.map((s, sIdx) => {
-            const v = s.values[i] ?? 0;
+            const v = s.values[i];
+            if (typeof v !== "number" || !Number.isFinite(v)) return null;
             const h = Math.max(0, (v / max) * innerH);
             const x = startX + sIdx * (barWidth + 4);
             const y = padY + innerH - h;
@@ -135,14 +128,7 @@ export function BarChart({
                   }ms forwards`,
                 }}
               >
-                <rect
-                  x={x}
-                  y={y}
-                  width={barWidth}
-                  height={h}
-                  fill={s.colour}
-                  fillOpacity="0.6"
-                />
+                <rect x={x} y={y} width={barWidth} height={h} fill={s.colour} fillOpacity="0.6" />
                 {/* Top cap, heavier 2px slab on top for newspaper feel. */}
                 <rect x={x} y={y} width={barWidth} height={2} fill={s.colour} />
               </g>
@@ -151,11 +137,7 @@ export function BarChart({
         })}
 
         {/* X-axis labels. */}
-        <g
-          fontFamily="JetBrains Mono, monospace"
-          fontSize="10"
-          fill="oklch(0.56 0.012 260)"
-        >
+        <g fontFamily="JetBrains Mono, monospace" fontSize="10" fill="var(--color-fg-muted)">
           {xLabels.map((label, i) => (
             <text key={i} x={groupCx(i)} y={height - 4} textAnchor="middle">
               {label}
@@ -182,19 +164,24 @@ export function BarChart({
           {series.map((s) => (
             <div key={s.key} className="flex items-center justify-between gap-3 py-0.5">
               <span className="flex items-center gap-1.5 text-[var(--color-fg-muted)]">
-                <span
-                  className="h-1.5 w-1.5 rounded-full"
-                  style={{ background: s.colour }}
-                />
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.colour }} />
                 {s.label ?? s.key}
               </span>
               <span className="tabular-nums text-[var(--color-fg)]">
-                {s.values[hoverIdx] ?? 0}
+                {Number.isFinite(s.values[hoverIdx]) ? s.values[hoverIdx] : "Not available"}
               </span>
             </div>
           ))}
         </div>
       )}
+      <ChartDataTable
+        caption={label}
+        columns={["Edition", ...series.map((s) => s.label ?? s.key)]}
+        rows={xLabels.map((name, i) => [
+          name,
+          ...series.map((s) => (Number.isFinite(s.values[i]) ? s.values[i]! : "Not available")),
+        ])}
+      />
     </div>
   );
 }

@@ -57,6 +57,11 @@ export default function Terms() {
           redistributing bulk content or using our branding in a way that suggests endorsement.
           Rights and licences already validly granted are not revoked by this notice.
         </p>
+        <p>
+          <a className="underline" href="/third-party-licenses.txt">Browser software licences</a>
+          {" "}list the open-source components shipped with this website. These software licences
+          do not grant rights to our reporting or third-party content.
+        </p>
       </section>
       <section className="space-y-3">
         <h2 className="font-serif text-2xl mt-8">Acceptable use</h2>
