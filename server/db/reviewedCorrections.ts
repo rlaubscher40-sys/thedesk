@@ -17,7 +17,7 @@ export async function applyReviewedStoryCorrections() {
           and(
             eq(dailyFeedItems.id, correction.id),
             sql`CAST(${dailyFeedItems.sourceUrl} AS BINARY) = CAST(${correction.sourceUrl} AS BINARY)`,
-            eq(dailyFeedItems[change.field], change.before)
+            sql`CAST(${dailyFeedItems[change.field]} AS BINARY) = CAST(${change.before} AS BINARY)`
           )
         );
     }
