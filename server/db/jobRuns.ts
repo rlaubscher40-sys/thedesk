@@ -74,40 +74,51 @@ export async function claimJobRun(
   if (!db) return 0;
 
   try {
-    await db.insert(jobRuns).values({ jobKey, runDate, status: "running", attempts: 1 });
-    return 1; // first claim of the day
-  } catch {
-    // Row exists. Re-claim only if the last attempt failed and we're under the
-    // retry cap. The WHERE status='failed' makes this atomic: if two ticks race,
-    // the first flips it to 'running' and the second matches zero rows.
-    try {
-      const result = await db
-        .update(jobRuns)
-        .set({
-          status: "running",
-          attempts: sql`${jobRuns.attempts} + 1`,
-          startedAt: new Date(),
-          finishedAt: null,
-        })
-        .where(
-          and(
-            eq(jobRuns.jobKey, jobKey),
-            eq(jobRuns.runDate, runDate),
-            eq(jobRuns.status, "failed"),
-            lt(jobRuns.attempts, maxAttempts)
-          )
-        );
-      if (affectedRows(result) === 0) return 0; // lost the race / out of retries
-      // We won the re-claim; read back the now-incremented attempt number.
-      const rows = await db
-        .select({ attempts: jobRuns.attempts })
-        .from(jobRuns)
-        .where(and(eq(jobRuns.jobKey, jobKey), eq(jobRuns.runDate, runDate)))
-        .limit(1);
-      return rows[0]?.attempts ?? 2;
-    } catch {
-      return 0;
+    // Most polls revisit a completed/owned job. Read its indexed key instead
+    // of attempting a duplicate INSERT and a no-op UPDATE on every tick.
+    // This read can only decline work: the writes below still arbitrate races.
+    const [existing] = await db
+      .select({ status: jobRuns.status, attempts: jobRuns.attempts })
+      .from(jobRuns)
+      .where(and(eq(jobRuns.jobKey, jobKey), eq(jobRuns.runDate, runDate)))
+      .limit(1);
+    if (existing && (existing.status !== "failed" || existing.attempts >= maxAttempts)) return 0;
+    if (!existing) {
+      try {
+        await db.insert(jobRuns).values({ jobKey, runDate, status: "running", attempts: 1 });
+        return 1;
+      } catch {
+        // A competing instance may have inserted first. Never infer ownership
+        // from the earlier read; only the conditional update may grant a retry.
+      }
     }
+    // Re-claim only if the durable row is still failed and under the retry cap.
+    const result = await db
+      .update(jobRuns)
+      .set({
+        status: "running",
+        attempts: sql`${jobRuns.attempts} + 1`,
+        startedAt: new Date(),
+        finishedAt: null,
+      })
+      .where(
+        and(
+          eq(jobRuns.jobKey, jobKey),
+          eq(jobRuns.runDate, runDate),
+          eq(jobRuns.status, "failed"),
+          lt(jobRuns.attempts, maxAttempts)
+        )
+      );
+    if (affectedRows(result) === 0) return 0; // lost the race / out of retries
+    // We won the re-claim; read back the now-incremented attempt number.
+    const rows = await db
+      .select({ attempts: jobRuns.attempts })
+      .from(jobRuns)
+      .where(and(eq(jobRuns.jobKey, jobKey), eq(jobRuns.runDate, runDate)))
+      .limit(1);
+    return rows[0]?.attempts ?? 2;
+  } catch {
+    return 0;
   }
 }
 
