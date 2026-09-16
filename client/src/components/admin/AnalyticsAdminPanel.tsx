@@ -10,6 +10,10 @@ import { BarChart3, Share2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 
 export function AnalyticsAdminPanel() {
+  const journeyQuery = trpc.analytics.journey.useQuery(
+    { hours: 24 * 7 },
+    { refetchInterval: 60_000 }
+  );
   const summaryQuery = trpc.analytics.summary.useQuery(undefined, {
     refetchInterval: 60_000,
   });
@@ -76,6 +80,56 @@ export function AnalyticsAdminPanel() {
         </div>
       )}
 
+      <div className="rule-hair pt-5 space-y-3" aria-label="Reader actions by session">
+        <h3 className="font-serif text-xl">Sessions with useful actions · 7d</h3>
+        <p className="text-sm text-[var(--color-fg-muted)]">
+          Each count includes only tab sessions with a page view in the same seven-day window. A
+          session can appear in several counts. These are observed actions, not a conversion funnel,
+          unique people or returning readers. Blocked analytics are missing.
+        </p>
+        {journeyQuery.isLoading && <p role="status">Loading reader actions…</p>}
+        {(journeyQuery.isError || journeyQuery.data?.available === false) && (
+          <p role="alert">
+            Reader-action measurements are unavailable. This does not mean zero activity.
+          </p>
+        )}
+        {journeyQuery.data?.available && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <Tile
+              label="Sessions with page views"
+              value={journeyQuery.data.sessions.toLocaleString("en-AU")}
+            />
+            <Tile
+              label="Opened a loaded story"
+              value={journeyQuery.data.stories.toLocaleString("en-AU")}
+            />
+            <Tile
+              label="Opened original reporting"
+              value={journeyQuery.data.sources.toLocaleString("en-AU")}
+            />
+            <Tile
+              label="Submitted an Ask question"
+              value={journeyQuery.data.questions.toLocaleString("en-AU")}
+            />
+            <Tile
+              label="Received an Ask answer"
+              value={journeyQuery.data.answers.toLocaleString("en-AU")}
+            />
+            <Tile
+              label="Requested newsletter email"
+              value={journeyQuery.data.requests.toLocaleString("en-AU")}
+            />
+          </div>
+        )}
+        <p className="text-sm text-[var(--color-fg-muted)]">
+          Story openings, story-source clicks, Ask outcomes and email requests started being
+          recorded with the 16 September 2026 reader-measurement release. Earlier actions cannot be
+          recovered. An email request is not confirmation or delivery; confirmed subscriptions
+          remain in Subscribers. An Ask answer is a returned response, not an assessment of its
+          accuracy.
+        </p>
+      </div>
+
       {engagement.length > 0 && (
         <div className="rule-hair rule-hair-b py-5">
           <div className="flex items-center gap-2 mb-4">
@@ -136,6 +190,13 @@ export function AnalyticsAdminPanel() {
 
 function eventLabel(value: string): string {
   const labels: Record<string, string> = {
+    story_open: "Story opened",
+    story_source: "Original reporting opened",
+    story_ask: "Story → Ask",
+    newsletter_request: "Newsletter email requested",
+    ask_answer: "Ask answer returned",
+    ask_unavailable: "Ask returned no answer",
+    ask_error: "Ask request failed",
     ask_query: "Ask query",
     ask_share: "Ask shared",
     market_watch: "Market watched",

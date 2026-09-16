@@ -7,7 +7,7 @@
  * aggregate. Both record only an ephemeral session id; no IP or persistent
  * identity is stored.
  */
-import { and, gte, like, notLike, sql } from "drizzle-orm";
+import { and, gte, lte, like, notLike, sql } from "drizzle-orm";
 import * as demoQueries from "../demo/queries";
 import { isDemoMode } from "../demo/store";
 import { getDb } from "./client";
@@ -58,7 +58,7 @@ export async function socialPerformance(windowHours = 24 * 28) {
         campaign: pageViews.campaign,
         landings: sql<number>`count(distinct case when ${pageViews.path} = '@event/social_landing' then ${pageViews.sessionId} end)`,
         onward: sql<number>`count(distinct case when ${pageViews.path} = '@event/social_open/social' then ${pageViews.sessionId} end)`,
-        sources: sql<number>`count(distinct case when ${pageViews.path} like '@event/market_file_source/%' then ${pageViews.sessionId} end)`,
+        sources: sql<number>`count(distinct case when ${pageViews.path} like '@event/market_file_source/%' or ${pageViews.path} like '@event/story_source/%' then ${pageViews.sessionId} end)`,
         shares: sql<number>`count(distinct case when ${pageViews.path} like '@event/market_file_share/%' or ${pageViews.path} like '@event/market_compare_share/%' or ${pageViews.path} like '@event/story_share/%' then ${pageViews.sessionId} end)`,
       })
       .from(pageViews)
@@ -94,7 +94,7 @@ export async function pageViewSummary(
   const since = new Date(Date.now() - windowHours * 60 * 60 * 1000);
   if (isDemoMode()) return demoQueries.pageViewSummary(since);
   const db = getDb();
-  if (!db) return { views: 0, sessions: 0 };
+  if (!db) throw new Error("Readership measurements unavailable");
   const rows = await db
     .select({
       views: sql<number>`count(*)`,
@@ -114,7 +114,7 @@ export async function topPaths(
   const since = new Date(Date.now() - windowHours * 60 * 60 * 1000);
   if (isDemoMode()) return demoQueries.topPaths(since, limit);
   const db = getDb();
-  if (!db) return [];
+  if (!db) throw new Error("Readership measurements unavailable");
   const rows = await db
     .select({
       path: pageViews.path,
@@ -136,7 +136,7 @@ export async function topReferrers(
   const since = new Date(Date.now() - windowHours * 60 * 60 * 1000);
   if (isDemoMode()) return demoQueries.topReferrers(since, limit);
   const db = getDb();
-  if (!db) return [];
+  if (!db) throw new Error("Readership measurements unavailable");
   const rows = await db
     .select({
       referrer: pageViews.referrer,
@@ -159,7 +159,7 @@ export async function pageViewsByDay(
   const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000);
   if (isDemoMode()) return demoQueries.pageViewsByDay(since);
   const db = getDb();
-  if (!db) return [];
+  if (!db) throw new Error("Readership measurements unavailable");
   const rows = await db
     .select({
       day: sql<string>`date(viewedAt)`,
@@ -184,7 +184,7 @@ export async function engagementSummary(
   const since = new Date(Date.now() - windowHours * 60 * 60 * 1000);
   if (isDemoMode()) return [];
   const db = getDb();
-  if (!db) return [];
+  if (!db) throw new Error("Readership measurements unavailable");
   const rows = await db
     .select({
       path: pageViews.path,
@@ -206,4 +206,71 @@ export async function engagementSummary(
       sessions: Number(row.sessions),
     };
   });
+}
+
+/** Same-window tab sessions with a recorded page view, not people or a funnel.
+ * One session can take several actions. Events without a matching page view
+ * are excluded here but remain visible in the separate action totals.
+ * Aggregate in SQL so no session identifiers leave the data layer.
+ */
+export async function readerJourney(windowHours = 24 * 7, now = new Date()) {
+  const db = getDb();
+  if (isDemoMode() || !db) return { available: false as const };
+  const hours = Math.min(24 * 90, Math.max(1, windowHours));
+  const since = new Date(now.getTime() - hours * 3_600_000);
+  try {
+    const sessions = db
+      .select({
+        viewed:
+          sql<number>`max(case when ${pageViews.path} not like ${EVENT_PATTERN} then 1 else 0 end)`.as(
+            "viewed"
+          ),
+        stories:
+          sql<number>`max(case when ${pageViews.path} = '@event/story_open/story' then 1 else 0 end)`.as(
+            "stories"
+          ),
+        sources:
+          sql<number>`max(case when ${pageViews.path} like '@event/story_source/%' or ${pageViews.path} like '@event/market_file_source/%' then 1 else 0 end)`.as(
+            "sources"
+          ),
+        questions:
+          sql<number>`max(case when ${pageViews.path} = '@event/ask_query/ask' then 1 else 0 end)`.as(
+            "questions"
+          ),
+        answers:
+          sql<number>`max(case when ${pageViews.path} = '@event/ask_answer/ask' then 1 else 0 end)`.as(
+            "answers"
+          ),
+        requests:
+          sql<number>`max(case when ${pageViews.path} = '@event/newsletter_request/subscribe' then 1 else 0 end)`.as(
+            "requests"
+          ),
+      })
+      .from(pageViews)
+      .where(and(gte(pageViews.viewedAt, since), lte(pageViews.viewedAt, now)))
+      .groupBy(pageViews.sessionId)
+      .as("reader_sessions");
+    const [row] = await db
+      .select({
+        sessions: sql<number>`count(*)`,
+        stories: sql<number>`coalesce(sum(${sessions.stories}), 0)`,
+        sources: sql<number>`coalesce(sum(${sessions.sources}), 0)`,
+        questions: sql<number>`coalesce(sum(${sessions.questions}), 0)`,
+        answers: sql<number>`coalesce(sum(${sessions.answers}), 0)`,
+        requests: sql<number>`coalesce(sum(${sessions.requests}), 0)`,
+      })
+      .from(sessions)
+      .where(sql`${sessions.viewed} = 1`);
+    return {
+      available: true as const,
+      sessions: Number(row?.sessions ?? 0),
+      stories: Number(row?.stories ?? 0),
+      sources: Number(row?.sources ?? 0),
+      questions: Number(row?.questions ?? 0),
+      answers: Number(row?.answers ?? 0),
+      requests: Number(row?.requests ?? 0),
+    };
+  } catch {
+    return { available: false as const };
+  }
 }

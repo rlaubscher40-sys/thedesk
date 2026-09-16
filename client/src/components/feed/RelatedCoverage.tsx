@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { trackEvent } from "@/lib/analytics";
 
 type Story = { id: number; title: string; source: string; sourceUrl: string | null };
 export function RelatedCoverage({ groups }: { groups: Array<{ lead: Story; related: Story[] }> }) {
@@ -33,6 +34,7 @@ export function RelatedCoverage({ groups }: { groups: Array<{ lead: Story; relat
                       ·{" "}
                       <a
                         href={story.sourceUrl}
+                        onClick={() => trackEvent("story_source", "today")}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="underline"

@@ -11,30 +11,13 @@
 import { analyticsPath } from "@shared/analyticsPath";
 import { getArrival } from "@/lib/attribution";
 import { socialCampaign } from "@shared/socialCampaign";
+import { analyticsReferrer } from "@shared/analyticsReferrer";
+import { ENGAGEMENT_EVENTS, ENGAGEMENT_SURFACES } from "@shared/analyticsEvents";
 
 const SESSION_KEY = "thedesk:session";
 
-export type EngagementEvent =
-  | "social_open"
-  | "ask_query"
-  | "ask_share"
-  | "market_watch"
-  | "market_discover"
-  | "market_file_ask"
-  | "market_file_compare"
-  | "market_file_source"
-  | "market_file_share"
-  | "market_file_export"
-  | "market_compare"
-  | "market_compare_share"
-  | "comparison_watch"
-  | "comparison_refresh"
-  | "comparison_baseline_reset"
-  | "signal_watch"
-  | "signal_share"
-  | "story_share"
-  | "take_share"
-  | "brief_reshare";
+export type EngagementEvent = (typeof ENGAGEMENT_EVENTS)[number];
+type EngagementSurface = (typeof ENGAGEMENT_SURFACES)[number];
 
 function sessionId(): string | null {
   try {
@@ -70,20 +53,21 @@ function send(path: "/api/analytics/pageview" | "/api/analytics/event", body: ob
   try {
     if (typeof navigator !== "undefined" && navigator.sendBeacon) {
       const blob = new Blob([payload], { type: "application/json" });
-      navigator.sendBeacon(path, blob);
-      return;
+      if (navigator.sendBeacon(path, blob)) return;
     }
   } catch {
     // Older browsers can reject Beacon payloads. Fall through to fetch.
   }
-  void fetch(path, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    keepalive: true,
-    body: payload,
-  }).catch(() => {
-    // Analytics must never leak into product behaviour.
-  });
+  try {
+    void fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      keepalive: true,
+      body: payload,
+    }).catch(() => {});
+  } catch {
+    // Blocked or unavailable transport must never break the reader's action.
+  }
 }
 
 let lastPath: string | null = null;
@@ -104,7 +88,7 @@ export function trackPageView(): void {
 
   send("/api/analytics/pageview", {
     path: analyticsPath(route),
-    referrer: document.referrer || "",
+    referrer: analyticsReferrer(document.referrer) ?? "",
     // The path deliberately drops the query string (it can carry identifiers),
     // but that also discarded the campaign tag on an inbound link. Instagram's
     // in-app browser frequently sends no Referer, so without the tag its
@@ -124,13 +108,15 @@ export function trackPageView(): void {
  * user-entered content is sent. `surface` is an optional fixed product label,
  * not arbitrary metadata.
  */
-export function trackEvent(event: EngagementEvent, surface?: string): void {
+export function trackEvent(event: EngagementEvent, surface?: EngagementSurface): void {
   if (typeof window === "undefined" || dntEnabled()) return;
+  if (!ENGAGEMENT_EVENTS.includes(event) || (surface && !ENGAGEMENT_SURFACES.includes(surface)))
+    return;
   const id = sessionId();
   if (!id) return;
   send("/api/analytics/event", {
     event,
-    surface: surface?.slice(0, 32),
+    surface,
     path: analyticsPath(window.location.pathname),
     socialCampaign: socialCampaign(getArrival()),
     sessionId: id,

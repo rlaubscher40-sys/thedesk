@@ -1,4 +1,5 @@
 import { ConnectionNotice } from "@/components/ConnectionNotice";
+import { trackEvent } from "@/lib/analytics";
 /**
  * Reading queue. Two modes driven by auth:
  *
@@ -493,6 +494,7 @@ function QueueRowIndex({
             {row.sourceUrl ? (
               <a
                 href={row.sourceUrl}
+                onClick={() => trackEvent("story_source", "queue")}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bs-label bs-link"

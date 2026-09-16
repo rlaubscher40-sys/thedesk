@@ -2,7 +2,8 @@
 import { createElement as h } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-const m = vi.hoisted(() => ({ mutate: vi.fn(), options: null as any }));
+const m = vi.hoisted(() => ({ mutate: vi.fn(), track: vi.fn(), options: null as any }));
+vi.mock("@/lib/analytics", () => ({ trackEvent: m.track }));
 vi.mock("@/lib/attribution", () => ({ getArrival: () => null }));
 vi.mock("@/lib/trpc", () => ({
   trpc: {
@@ -44,6 +45,7 @@ it("shows a visible label and inline validation without sending invalid addresse
   fireEvent.click(screen.getByRole("button", { name: "Subscribe" }));
   expect(screen.getByRole("alert").textContent).toContain("valid email");
   expect(m.mutate).not.toHaveBeenCalled();
+  expect(m.track).not.toHaveBeenCalled();
 });
 it("keeps the submitted address visible and lets the reader correct it", () => {
   open();
@@ -52,6 +54,7 @@ it("keeps the submitted address visible and lets the reader correct it", () => {
   });
   fireEvent.click(screen.getByRole("button", { name: "Subscribe" }));
   act(() => m.options.onSuccess({}, { email: "typo@example.com" }));
+  expect(m.track).toHaveBeenCalledExactlyOnceWith("newsletter_request", "subscribe");
   expect(screen.getByRole("status").textContent).toContain("typo@example.com");
   fireEvent.click(screen.getByRole("button", { name: /Edit address/ }));
   fireEvent.change(screen.getByLabelText("Email address"), {
@@ -69,10 +72,17 @@ it("shows service failures inline and rate-limits immediate resend", () => {
   });
   fireEvent.click(screen.getByRole("button", { name: "Subscribe" }));
   act(() => m.options.onError());
+  expect(m.track).not.toHaveBeenCalled();
   expect(screen.getByRole("alert").textContent).toContain("try again");
   act(() => m.options.onSuccess({}, { email: "test@example.com" }));
   fireEvent.click(screen.getByRole("button", { name: /Edit address/ }));
   fireEvent.click(screen.getByRole("button", { name: "Subscribe" }));
   expect(screen.getByRole("alert").textContent).toContain("wait a minute");
   expect(m.mutate).toHaveBeenCalledTimes(1);
+});
+
+it("does not count honeypot acceptance as a reader request", () => {
+  open();
+  act(() => m.options.onSuccess({}, { email: "bot@example.com", _hp: "filled" }));
+  expect(m.track).not.toHaveBeenCalled();
 });

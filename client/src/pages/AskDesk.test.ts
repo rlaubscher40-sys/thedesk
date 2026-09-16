@@ -1,11 +1,12 @@
 // @vitest-environment happy-dom
 import { createElement as h } from "react";
 import { afterEach, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Router } from "wouter";
 import { memoryLocation } from "wouter/memory-location";
-const m = vi.hoisted(() => ({ mutate: vi.fn(), reset: vi.fn() }));
+const m = vi.hoisted(() => ({ mutate: vi.fn(), reset: vi.fn(), track: vi.fn() }));
+vi.mock("@/lib/analytics", () => ({ trackEvent: m.track }));
 vi.mock("@/lib/useAuth", () => ({ useAuth: () => ({ isAuthenticated: false, isLoading: false }) }));
 vi.mock("@/lib/trpc", () => ({
   trpc: {
@@ -48,7 +49,49 @@ it("prepares a story question without automatically spending an answer", () => {
   );
   expect(screen.getByRole("link", { name: "this story" }).getAttribute("href")).toBe("/story/42");
   expect(m.mutate).not.toHaveBeenCalled();
+  expect(m.track).not.toHaveBeenCalled();
 });
+
+it.each(["answered", "unavailable", "error"])(
+  "records the actual %s outcome separately from submitting",
+  (status) => {
+    open(new QueryClient());
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: "What changed in housing?" },
+    });
+    fireEvent.submit(screen.getByRole("textbox").closest("form")!);
+    expect(m.track).toHaveBeenCalledExactlyOnceWith("ask_query", "ask");
+    const callbacks = m.mutate.mock.calls[0]![1];
+    act(() => {
+      if (status === "error") callbacks.onError(new Error("offline"));
+      else
+        callbacks.onSuccess({
+          status,
+          searchedRecords: 0,
+          sources: [],
+          ...(status === "answered"
+            ? {
+                answer: {
+                  headline: "A response",
+                  answer: "Evidence",
+                  signals: [],
+                  whyItMatters: "Context",
+                  deskTake: "Read sources",
+                  whatWouldChangeOurMind: "New evidence",
+                  confidence: "moderate",
+                },
+              }
+            : {}),
+        });
+      callbacks.onSettled();
+    });
+    expect(m.track).toHaveBeenLastCalledWith(
+      status === "answered" ? "ask_answer" : status === "error" ? "ask_error" : "ask_unavailable",
+      "ask"
+    );
+    expect(JSON.stringify(m.track.mock.calls)).not.toContain("housing");
+  }
+);
 it("restores a completed brief after navigating away and back without regeneration", () => {
   const cache = new QueryClient();
   cache.setQueryData(["desk-completed-brief", "guest"], {

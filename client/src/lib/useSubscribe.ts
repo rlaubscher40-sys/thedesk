@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { getArrival } from "@/lib/attribution";
 import { trpc } from "@/lib/trpc";
 import { NEWSLETTER_NOTICE_VERSION } from "@shared/legal";
+import { trackEvent } from "@/lib/analytics";
 
 const SUBSCRIBED_KEY = "thedesk:subscribed";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -61,6 +62,8 @@ export function useSubscribe({
 
   const mutation = trpc.subscribers.subscribe.useMutation({
     onSuccess: (_res, vars) => {
+      // An accepted request is not inbox delivery or a confirmed subscription.
+      if (!vars._hp) trackEvent("newsletter_request", "subscribe");
       setError("");
       setLastSent(Date.now());
       setEmail("");
