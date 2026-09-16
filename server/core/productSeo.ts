@@ -2,13 +2,12 @@ import { acceptsHtml } from "./acceptsHtml";
 import type { Express, NextFunction, Request, Response } from "express";
 import fs from "node:fs";
 import path from "node:path";
-import { DEFAULT_SITE_URL } from "../../shared/const";
+import { siteUrl } from "./siteUrl";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { DocumentarySources } from "../../shared/DocumentarySources";
 import { getMarketDirectory } from "../markets/discovery";
 import { marketPath } from "../../shared/marketDirectory";
-
-function siteUrl(): string {
-  return (process.env.SITE_URL || DEFAULT_SITE_URL).replace(/\/+$/, "");
-}
 
 function htmlEscape(value: string): string {
   return value
@@ -73,6 +72,13 @@ async function sendProductShell(
   html = replaceMeta(html, "name", "twitter:description", meta.description);
   html = replaceMeta(html, "name", "twitter:image", image);
   html = replaceCanonical(html, canonical);
+  if (meta.path === "/social") {
+    const sources = renderToStaticMarkup(createElement(DocumentarySources));
+    html = html.replace(
+      '<div id="root"></div>',
+      `<div id="root"><main class="max-w-6xl mx-auto px-5 py-8"><h1>From the post to the evidence.</h1>${sources}</main></div>`
+    );
+  }
 
   res.set("Content-Type", "text/html; charset=utf-8");
   res.set("Cache-Control", "no-cache");
@@ -80,6 +86,65 @@ async function sendProductShell(
 }
 
 const PRODUCT_META: ProductMeta[] = [
+  {
+    path: "/social",
+    title: "Reel sources and property evidence | The Desk",
+    description:
+      "Read the sources, historical context and limitations behind The Desk's Australian property Reels and documentaries.",
+  },
+  {
+    path: "/archive",
+    title: "Australian property news archive | The Desk",
+    description:
+      "Search The Desk's dated reporting on Australian property, lending, supply and the economy.",
+  },
+  {
+    path: "/editions",
+    title: "Weekly property intelligence editions | The Desk",
+    description:
+      "Read The Desk's weekly editions, with sourced property reporting, market signals and analysis.",
+  },
+  {
+    path: "/trends",
+    title: "Property and economic trends | The Desk",
+    description: "Explore trends across The Desk's property, market and economic reporting.",
+  },
+  {
+    path: "/topics",
+    title: "Property news by topic | The Desk",
+    description:
+      "Follow Australian property, macroeconomics, markets and business through The Desk's topic threads.",
+  },
+  {
+    path: "/about",
+    title: "About The Desk | Australian property intelligence",
+    description:
+      "Learn about The Desk, curated by Ruben Laubscher, and how to use its daily reporting, weekly editions and sourced market evidence.",
+  },
+  {
+    path: "/editorial-standards",
+    title: "Editorial standards | The Desk",
+    description:
+      "How The Desk handles sourcing, verification, AI assistance, corrections and editorial independence.",
+  },
+  {
+    path: "/corrections",
+    title: "Corrections and feedback | The Desk",
+    description:
+      "Review The Desk's published corrections and report an error in its property reporting or market evidence.",
+  },
+  {
+    path: "/privacy",
+    title: "Privacy policy | The Desk",
+    description:
+      "How The Desk handles personal information, subscriptions, analytics and your privacy choices.",
+  },
+  {
+    path: "/terms",
+    title: "Terms of use | The Desk",
+    description:
+      "The terms for using The Desk's property intelligence, reporting, market data and tools.",
+  },
   {
     path: "/subscribe",
     title: "The free daily brief | The Desk",
@@ -149,6 +214,12 @@ export function registerProductSeoRoutes(app: Express): void {
     res.send(
       `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join("\n")}\n</urlset>`
     );
+  });
+
+  // Retired structured-data placeholder crawled literally by Google. Keep real searches intact.
+  app.get("/archive", (req, res, next) => {
+    if (req.query.q === "{search_term_string}") return res.redirect(301, "/archive");
+    next();
   });
 
   for (const meta of PRODUCT_META) {

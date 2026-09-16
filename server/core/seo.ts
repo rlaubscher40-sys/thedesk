@@ -492,7 +492,13 @@ export function registerSeoRoutes(app: Express): void {
 
   app.get("/sitemap.xml", async (_req: Request, res: Response) => {
     const base = siteUrl();
-    const editions = await db.listEditions().catch(() => []);
+    let editions: Awaited<ReturnType<typeof db.listEditions>>;
+    try {
+      editions = await db.listEditions();
+    } catch {
+      res.set("Cache-Control", "no-store").set("Retry-After", "60").status(503).end();
+      return;
+    }
 
     // Every public page, and only public pages: /admin, /login, /settings,
     // /queue, /install and the confirm links serve `noindex` (see
@@ -501,6 +507,8 @@ export function registerSeoRoutes(app: Express): void {
       "/",
       "/editions",
       "/archive",
+      "/social",
+      "/subscribe",
       "/trends",
       "/topics",
       "/about",
@@ -550,6 +558,8 @@ ${urls.join("\n")}
   });
 
   app.get("/feed.xml", async (_req: Request, res: Response) => {
+    // RSS is a discovery feed, not a search-result landing page.
+    res.set("X-Robots-Tag", "noindex, follow");
     const base = siteUrl();
     const editions = (await db.listEditions().catch(() => [])).slice(0, 50);
 

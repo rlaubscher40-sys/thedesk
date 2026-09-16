@@ -108,3 +108,15 @@ export function withNoindex(html: string): string {
   if (/<meta\s+name="robots"/i.test(html)) return html;
   return html.replace(/<head>/i, `<head>\n    ${NOINDEX_TAG}`);
 }
+
+/** A fallback public route must never inherit the homepage canonical. */
+export function withCanonical(html: string, canonical: string): string {
+  const escaped = canonical
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+  const tag = `<link rel="canonical" href="${escaped}" />`;
+  const pattern = /<link\s+rel="canonical"\s+href="[^"]*"\s*\/?>/gi;
+  return html.replace(pattern, "").replace("</head>", `${tag}\n</head>`);
+}

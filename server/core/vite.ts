@@ -1,9 +1,11 @@
+import { pageCanonical } from "../../shared/pageCanonical";
+import { siteUrl } from "./siteUrl";
 import express, { type Express } from "express";
 import fs from "node:fs";
 import path from "node:path";
 import type { Server } from "node:http";
 import { createServer as createViteServer } from "vite";
-import { isKnownRoute, isNoindexRoute, withNoindex } from "./spaShell";
+import { isKnownRoute, isNoindexRoute, withNoindex, withCanonical } from "./spaShell";
 
 export async function setupVite(app: Express, server: Server): Promise<void> {
   // Lazy import the config so production bundles don't pull in vite at runtime.
@@ -74,7 +76,8 @@ export function serveStatic(app: Express): void {
       res.setHeader("Cache-Control", "no-store");
       // A 404 must never be indexed, and neither must the private routes.
       if (known && !isNoindexRoute(req.path)) {
-        res.sendFile(indexPath);
+        const html = await fs.promises.readFile(indexPath, "utf-8");
+        res.type("html").send(withCanonical(html, pageCanonical(req.path, "", siteUrl())));
         return;
       }
       const html = await fs.promises.readFile(indexPath, "utf-8");

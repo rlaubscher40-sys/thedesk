@@ -1,10 +1,11 @@
+import { pageCanonical } from "@shared/pageCanonical";
 /**
  * Top-level routing + global providers. Pages are lazy-loaded so the initial
  * bundle stays under what one screen needs.
  */
 import { withDeadline } from "@shared/requestDeadline";
 import { FEATURED_COMPARISON_PATH } from "@shared/featuredComparison";
-import { Suspense, useEffect, type ComponentType } from "react";
+import { Suspense, useEffect, useRef, type ComponentType } from "react";
 import { Route, Switch, useLocation, useSearch } from "wouter";
 import { BookmarkProvider } from "./lib/useBookmarks";
 import { AppLayout } from "./components/AppLayout";
@@ -114,19 +115,18 @@ function PageFallback() {
 
 function Routes() {
   const [location] = useLocation();
+  const search = useSearch();
+  const initialDocument = useRef({
+    url: window.location.href,
+    canonical: document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.href,
+  });
 
   // Fire a privacy-preserving page-view beacon on every route change.
   // Replaces the Plausible script; persists to the page_views table
   // and surfaces in the admin /analytics panel.
   //
-  // Also keep a self-referencing <link rel="canonical"> in sync with the
-  // active route. The static index.html shell ships without one, so every
-  // URL variant (tracking params like ?fbclid / ?utm_*, trailing slashes)
-  // otherwise looks like a separate duplicate page to Google. We strip the
-  // query string and hash so the canonical is the bare path. Per-edition
-  // pages already get a canonical injected server-side (server/core/seo.ts)
-  // before the bundle loads; this keeps that element pointing at the live
-  // path during client-side navigation rather than adding a second one.
+  // Preserve the server's validated canonical on the initial document, including
+  // dated signal shares. On client navigation retain only content-identifying params.
   useEffect(() => {
     // Before the first beacon: works out which channel brought this session in
     // and holds it for the rest of it. A no-op after the first page, which is
@@ -140,8 +140,11 @@ function Routes() {
       link.rel = "canonical";
       document.head.appendChild(link);
     }
-    link.href = window.location.origin + window.location.pathname;
-  }, [location]);
+    link.href =
+      window.location.href === initialDocument.current.url && initialDocument.current.canonical
+        ? initialDocument.current.canonical
+        : pageCanonical(window.location.pathname, search);
+  }, [location, search]);
 
   const routes = (
     <Suspense fallback={<PageFallback />}>
