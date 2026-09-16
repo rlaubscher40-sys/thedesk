@@ -14,6 +14,7 @@ import { feedEvidenceFingerprints } from "./feedEvidenceSchema";
 import { relatedCoverageParent, type RelatedStory } from "../../shared/relatedCoverage";
 import { staleFutureDeadline, unstableEditorialTiming } from "../../shared/editorialTiming";
 import { auditedRecordCorrections } from "../../shared/auditedRecordCorrections";
+import { auditedCoverageGroups } from "../../shared/auditedCoverageGroups";
 import { nonNewsFormatHold } from "../../shared/editorialPageTypes";
 
 /** Authenticated ingest context only: private hashes, never article text.
@@ -255,7 +256,18 @@ export async function repairCoverageAudit(now = new Date()) {
       }
     }
   }
-  const linked = await linkPublishedCoverage(rows);
+  let linked = await linkPublishedCoverage(rows);
+  for (const [parentKey, childKey] of auditedCoverageGroups) {
+    const parent = rows.find((r) => r.feedDate === parentKey[0] && r.sourceUrl === parentKey[1]);
+    const child = rows.find((r) => r.feedDate === childKey[0] && r.sourceUrl === childKey[1]);
+    // Preserve existing editorial threads and avoid turning a child into a root.
+    if (!parent || !child || parent.id === child.id || parent.threadParentId) continue;
+    const [result] = await db
+      .update(dailyFeedItems)
+      .set({ threadParentId: parent.id, threadParentTitle: parent.title })
+      .where(and(eq(dailyFeedItems.id, child.id), sql`${dailyFeedItems.threadParentId} IS NULL`));
+    linked += result.affectedRows;
+  }
   // Verified original/industry reporting of the same 14 September grant
   // conversion. A relationship, not independent corroboration or suppression.
   const crisisParent = rows.find(

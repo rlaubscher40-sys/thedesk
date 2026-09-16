@@ -47,6 +47,11 @@ export function storySignificance(title: string): { reason: string; baseline: nu
   const metric =
     /\b(?:affordability|values?|prices?|approvals?|completions?|vacanc(?:y|ies)|rents?|inflation|unemployment|wages?|GDP|consumer confidence)\b/i;
   if (
+    /\bleading index\b/i.test(headline) &&
+    /\b(?:growth|momentum|activity|trend|lifts?|improv\w*|falls?|rises?|slows?)\b/i.test(headline)
+  )
+    return result("market-data-development", 88);
+  if (
     metric.test(headline) &&
     /\b(?:falls?|fell|rises?|rose|rising|drops?|dropped|declines?|declining|slows?|grows?|grew|hits?|reaches?|record (?:lows?|highs?)|first quarterly fall)\b/i.test(
       headline

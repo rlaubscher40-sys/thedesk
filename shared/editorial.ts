@@ -33,6 +33,7 @@ const primary = new Set([
   "treasury.gov.au",
   "ministers.treasury.gov.au",
   "ato.gov.au",
+  "westpaciq.com.au",
 ]);
 const specialist = new Set([
   "theadviser.com.au",
@@ -62,6 +63,9 @@ const newsroom = new Set([
   "realestate.com.au",
   "domain.com.au",
   "pulsetasmania.com.au",
+  "news.com.au",
+  "businesstimes.com.sg",
+  "commbank.com.au",
 ]);
 // Useful original statements, but an industry position is not corroboration
 // of its own claims. Keep below official releases and specialist reporting.
@@ -71,6 +75,7 @@ const industryBody = new Set([
   "masterbuilders.com.au",
   "ausbanking.org.au",
   "faaa.au",
+  "cpaaustralia.com.au",
 ]);
 export function publisherWeight(input: EditorialInput): number {
   const host = publisherHost(input);
@@ -174,7 +179,7 @@ export function referenceNewsHold(input: EditorialInput): string | null {
   return null;
 }
 const macro =
-  /\b(inflation|cash rate|interest rates?|rba|reserve bank|gdp|Australian economy|national accounts|productivity|construction workforce|employment|filled jobs|unemployment|wage growth|household spending|consumer (?:sentiment|confidence)|population growth|net overseas migration|lending standards|serviceability)\b/i;
+  /\b(inflation|cash rate|interest rates?|rba|reserve bank|gdp|Australian economy|national accounts|leading index|economic (?:activity|growth|momentum)|productivity|construction workforce|employment|filled jobs|unemployment|wage growth|household spending|consumer (?:sentiment|confidence)|population growth|net overseas migration|lending standards|serviceability)\b/i;
 const policy =
   /\b(negative gearing|land tax|stamp duty|capital gains|tenancy|rent(?:al)? (?:law|reform|cap)|housing (?:policy|reform)|first.home buyers?|deposit scheme)\b/i;
 const accommodationPolicy =
@@ -195,7 +200,12 @@ const noise =
   /\b(celebrity|obituary|sexual touching|gangsters?|shooting|murder|dingo|sheep (?:theft|stolen)|poetry|horoscope|casino|promo code)\b/i;
 export function editorialBeat(text: string): string | null {
   if (employmentVacancies.test(text) && !hasHousingEvidence(text)) return "rates-economy";
-  if (advice.test(text) || conduct.test(text)) return "advice-tax";
+  if (
+    advice.test(text) ||
+    conduct.test(text) ||
+    /\b(?:super funds?|retirement (?:income|phase|savings))\b/i.test(text)
+  )
+    return "advice-tax";
   if (markets.test(text)) return "markets";
   if (
     policy.test(text) ||
