@@ -5,7 +5,8 @@
  * each, so a long-running demo doesn't grow unbounded. Production
  * persists to MySQL.
  */
-import { desc, gte, sql } from "drizzle-orm";
+import { and, desc, gte, lte, sql } from "drizzle-orm";
+import { monitoringCoverage } from "../../shared/monitoringCoverage";
 import * as demoQueries from "../demo/queries";
 import { isDemoMode } from "../demo/store";
 import { getDb } from "./client";
@@ -18,14 +19,16 @@ import {
   type UptimePing,
 } from "./schema";
 
-export async function recordServerError(
-  data: InsertServerError
-): Promise<void> {
+export async function recordServerError(data: InsertServerError): Promise<void> {
   // Tracking URLs and browser agents can exceed the database varchar limits.
-  data = { ...data, message: data.message.slice(0, 512),
-    level: data.level?.slice(0, 16), method: data.method?.slice(0, 16),
+  data = {
+    ...data,
+    message: data.message.slice(0, 512),
+    level: data.level?.slice(0, 16),
+    method: data.method?.slice(0, 16),
     route: data.route?.split(/[?#]/, 1)[0]?.slice(0, 256),
-    userAgent: data.userAgent?.slice(0, 256) };
+    userAgent: data.userAgent?.slice(0, 256),
+  };
   if (isDemoMode()) return demoQueries.recordServerError(data);
   const db = getDb();
   if (!db) return;
@@ -34,23 +37,15 @@ export async function recordServerError(
   } catch (err) {
     // Don't let error-logging fail loudly inside the error handler
     // path. Console.warn so the operator sees it without re-throwing.
-    console.warn(
-      `[health] couldn't persist server error: ${(err as Error).message}`
-    );
+    console.warn(`[health] couldn't persist server error: ${(err as Error).message}`);
   }
 }
 
-export async function listRecentServerErrors(
-  limit = 50
-): Promise<ServerError[]> {
+export async function listRecentServerErrors(limit = 50): Promise<ServerError[]> {
   if (isDemoMode()) return demoQueries.listRecentServerErrors(limit);
   const db = getDb();
   if (!db) return [];
-  return db
-    .select()
-    .from(serverErrors)
-    .orderBy(desc(serverErrors.occurredAt))
-    .limit(limit);
+  return db.select().from(serverErrors).orderBy(desc(serverErrors.occurredAt)).limit(limit);
 }
 
 export async function countServerErrorsSince(since: Date): Promise<number> {
@@ -71,29 +66,47 @@ export async function clearServerErrors(): Promise<void> {
   await db.delete(serverErrors);
 }
 
-export async function recordUptimePing(
-  data: InsertUptimePing
-): Promise<void> {
+export async function recordUptimePing(data: InsertUptimePing): Promise<void> {
   if (isDemoMode()) return demoQueries.recordUptimePing(data);
   const db = getDb();
   if (!db) return;
   await db.insert(uptimePings).values(data);
 }
 
-export async function listRecentUptimePings(
-  limit = 288
-): Promise<UptimePing[]> {
+export async function listRecentUptimePings(limit = 288): Promise<UptimePing[]> {
   if (isDemoMode()) return demoQueries.listRecentUptimePings(limit);
   const db = getDb();
   if (!db) return [];
-  return db
-    .select()
-    .from(uptimePings)
-    .orderBy(desc(uptimePings.pingedAt))
-    .limit(limit);
+  return db.select().from(uptimePings).orderBy(desc(uptimePings.pingedAt)).limit(limit);
 }
 
-/** Aggregate uptime stats over a rolling window (defaults to 24h). */
+/** At most 289 groups, regardless of retries or number of probe sources. */
+export async function uptimeMonitoringCoverage(now = new Date()) {
+  if (isDemoMode())
+    return monitoringCoverage(
+      demoQueries.listRecentUptimePings(10000).map((p) => p.pingedAt),
+      now
+    );
+  const db = getDb();
+  if (!db) throw new Error("Monitoring coverage unavailable");
+  const since = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  // Both edges preserve long gaps; a raw row limit would truncate the window
+  // when retries cluster, so aggregate across the entire interval in SQL.
+  const rows = await db
+    .select({
+      first: sql<Date>`min(${uptimePings.pingedAt})`,
+      last: sql<Date>`max(${uptimePings.pingedAt})`,
+    })
+    .from(uptimePings)
+    .where(and(gte(uptimePings.pingedAt, since), lte(uptimePings.pingedAt, now)))
+    .groupBy(sql`floor(timestampdiff(microsecond, ${since}, ${uptimePings.pingedAt}) / 300000000)`);
+  return monitoringCoverage(
+    rows.flatMap((row) => [row.first, row.last]),
+    now
+  );
+}
+
+/** Aggregate successful sampled requests, not wall-clock uptime. */
 export async function uptimeWindowStats(
   windowHours = 24
 ): Promise<{ total: number; up: number; avgLatencyMs: number }> {
