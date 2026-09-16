@@ -2,6 +2,8 @@
 
 Prepared 14 September 2026. Implementation and legal-review handover, not a legal clearance, executed contract or filing.
 
+Follow-up: [20-point review, implementation and remaining owner decisions](./compliance-checklist-2026-09-16.md). The earlier foundations are merged; wording below describing their original pre-merge status is historical. Identity, permissions and operational verification do not become resolved merely through a merge.
+
 ## What this change establishes
 
 - Fixed dates for Privacy and Terms, replacing a date that changed on every visit.

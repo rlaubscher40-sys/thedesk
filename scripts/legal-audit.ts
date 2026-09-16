@@ -11,6 +11,24 @@ import { REEL_SHOTS } from "../server/video/reelVisualStandard";
 import { assertReviewedPhotoBytes } from "../server/video/assetRights";
 
 const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
+const webFontRegister = JSON.parse(readFileSync("docs/legal/web-fonts.json", "utf8")) as {
+  fonts: Array<{ path: string; sha256: string; notice: string; noticeSha256: string }>;
+};
+for (const font of webFontRegister.fonts) {
+  for (const [path, expected] of [
+    [font.path, font.sha256],
+    [font.notice, font.noticeSha256],
+  ]) {
+    const actual = createHash("sha256").update(readFileSync(path!)).digest("hex");
+    if (actual !== expected) throw new Error(`Font or licence changed without review: ${path}`);
+  }
+}
+for (const name of readdirSync("client/public/fonts").filter((name) =>
+  /\.(woff2?|ttf|otf)$/i.test(name)
+)) {
+  if (!webFontRegister.fonts.some((font) => font.path === `client/public/fonts/${name}`))
+    throw new Error(`Browser font missing from rights register: ${name}`);
+}
 const policyReviews = JSON.parse(readFileSync("docs/legal/source-policy-reviews.json", "utf8")) as {
   policies: Array<{ id: string; host: string }>;
 };
@@ -80,10 +98,10 @@ const bundledAssets = readdirSync("server/og/fonts")
 console.log(
   JSON.stringify(
     {
-      version: 2,
+      version: 3,
       generatedAt: new Date().toISOString(),
       scope:
-        "Configured news discovery routes and extraction holds, reviewed Reel photographs, bundled font/image/notice file identities and direct npm dependencies. Dataset-specific terms, voice model components, historical exports and transitive dependency obligations still need assessment.",
+        "Configured news discovery routes and extraction holds, reviewed Reel photographs, browser font/notice integrity, bundled server font/image/notice file identities and direct npm dependencies. Dataset-specific terms, voice model components, historical exports and transitive dependency obligations still need assessment.",
       applicationLicence: {
         declared: packageJson.license,
         status:
@@ -91,6 +109,7 @@ console.log(
       },
       newsSources,
       photographs,
+      webFonts: webFontRegister.fonts,
       dependencies,
       bundledAssets,
     },

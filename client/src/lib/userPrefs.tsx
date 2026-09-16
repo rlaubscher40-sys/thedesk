@@ -21,6 +21,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { preferenceStorage } from "./storage";
 
 const STORAGE_KEY = "thedesk:prefs";
 
@@ -78,7 +79,7 @@ export function UserPrefsProvider({ children }: { children: ReactNode }) {
   const [prefs, setPrefs] = useState<UserPrefs>(() => read());
 
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+    preferenceStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
   }, [prefs]);
 
   const setTopicAllowlist = useCallback((categories: string[]) => {

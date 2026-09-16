@@ -79,27 +79,6 @@ export async function prepareMarketDocument(path: string): Promise<void> {
   }
 }
 
-function KeyboardShortcuts() {
-  const [, navigate] = useLocation();
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-      if (
-        e.target instanceof HTMLElement &&
-        (e.target.isContentEditable || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName))
-      )
-        return;
-      if (e.key === "/") {
-        e.preventDefault();
-        window.dispatchEvent(new Event("thedesk:open-search"));
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [navigate]);
-  return null;
-}
-
 /** Legacy /search → /archive redirect that carries the query string across. */
 function SearchRedirect() {
   const [, navigate] = useLocation();
@@ -219,7 +198,6 @@ export default function App() {
             <BookmarkProvider>
               <Toaster />
               <AppLayout>
-                <KeyboardShortcuts />
                 <Routes />
               </AppLayout>
               <CommandPalette />

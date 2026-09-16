@@ -32,6 +32,8 @@
  * lower-cased, and nothing else from the query string is retained anywhere.
  */
 
+import { optionalMeasurementAllowed, clearMeasurementSession } from "./privacyPreferences";
+
 /** The only query keys ever read. Anything else in the URL is ignored, so a
  *  link carrying a token or an email cannot leak into storage or the database. */
 const CAMPAIGN_KEYS = ["utm_source", "ref"] as const;
@@ -156,7 +158,10 @@ function readStored(): Arrival | null {
  * nothing useful with something actively misleading.
  */
 export function captureArrival(): Arrival | null {
-  if (typeof window === "undefined") return null;
+  if (!optionalMeasurementAllowed()) {
+    clearMeasurementSession();
+    return null;
+  }
   const existing = readStored();
   if (existing) return existing;
 
@@ -179,6 +184,9 @@ export function captureArrival(): Arrival | null {
 /** The stored arrival, for the subscribe forms to send. Null when storage is
  *  unavailable or this session was never captured. */
 export function getArrival(): Arrival | null {
-  if (typeof window === "undefined") return null;
+  if (!optionalMeasurementAllowed()) {
+    clearMeasurementSession();
+    return null;
+  }
   return readStored();
 }

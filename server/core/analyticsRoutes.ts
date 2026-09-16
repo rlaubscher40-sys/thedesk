@@ -50,7 +50,11 @@ function looksLikeBot(ua: string | undefined): boolean {
 }
 
 function analyticsBlocked(req: Request): boolean {
-  return looksLikeBot(req.header("user-agent")) || req.header("dnt") === "1";
+  return (
+    looksLikeBot(req.header("user-agent")) ||
+    req.header("dnt") === "1" ||
+    req.header("sec-gpc") === "1"
+  );
 }
 
 /** Hostname from a Host header, dropping the port. Handles bracketed IPv6. */

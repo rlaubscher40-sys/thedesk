@@ -55,3 +55,15 @@ it("still opens and accepts input when browser storage is blocked", async () => 
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   expect(m.mutate).not.toHaveBeenCalled();
 });
+it("does not remember a name on a shared device or prefill a previously stored name", async () => {
+  localStorage.setItem("thedesk:feedback-reporter-label", "Previous visitor");
+  render(h(FeedbackButton));
+  fireEvent.click(screen.getByRole("button", { name: "Send feedback" }));
+  const name = await screen.findByRole("textbox", { name: "Your name (optional)" });
+  expect((name as HTMLInputElement).value).toBe("");
+  fireEvent.change(name, { target: { value: "New visitor" } });
+  expect(localStorage.getItem("thedesk:feedback-reporter-label")).toBeNull();
+  expect(screen.getByRole("link", { name: "Privacy notice" }).getAttribute("href")).toBe(
+    "/privacy"
+  );
+});

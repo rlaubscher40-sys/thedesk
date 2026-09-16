@@ -99,16 +99,12 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
   const [message, setMessage] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [hp, setHp] = useState("");
-  const [reporterLabel, setReporterLabel] = useState(() => {
-    if (typeof window === "undefined") return "";
-    return preferenceStorage.getItem(STORAGE_LABEL_KEY) ?? "";
-  });
+  const [reporterLabel, setReporterLabel] = useState("");
 
-  // Persist the reporter label so a tester only types their name once.
+  // Retire the previous automatic name persistence on shared devices.
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    preferenceStorage.setItem(STORAGE_LABEL_KEY, reporterLabel);
-  }, [reporterLabel]);
+    preferenceStorage.removeItem(STORAGE_LABEL_KEY);
+  }, []);
 
   const submit = trpc.feedback.submit.useMutation({
     onSuccess: () => {
@@ -281,7 +277,12 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
           <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0 text-amber-400/60" />
           <span>
             We include the page address without query parameters and your browser type with your
-            message. Your name and reply email are optional.
+            message. Your name and reply email are optional and are not used to subscribe you to
+            marketing.{" "}
+            <a href="/privacy" className="underline">
+              Privacy notice
+            </a>
+            .
           </span>
         </p>
 

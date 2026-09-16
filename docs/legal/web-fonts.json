@@ -1,0 +1,77 @@
+{
+  "scope": "Existing unmodified browser font bytes, embedded name-table evidence and accompanying upstream OFL notices. Preserve embedded copyright statements as well as the notices. No typeface replacement or ownership claim.",
+  "fonts": [
+    {
+      "path": "client/public/fonts/JetBrainsMono-Italic-Variable.woff2",
+      "sha256": "cff3b1c6817ce1e613902558ea16a2a5b7d7c6a6e295f268bca19590fb5a5497",
+      "family": "JetBrains Mono",
+      "version": "Version 2.211",
+      "embeddedCopyright": "Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)",
+      "embeddedLicence": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: https://scripts.sil.org/OFL",
+      "notice": "client/public/fonts/OFL-JetBrainsMono.txt",
+      "noticeSha256": "b2fe5e8987594e9ffd1d2ca52a2f5d73eb8335243893c5d6254b5ad69269591d",
+      "upstreamNotice": "https://github.com/google/fonts/blob/main/ofl/jetbrainsmono/OFL.txt",
+      "reviewedOn": "2026-09-16"
+    },
+    {
+      "path": "client/public/fonts/JetBrainsMono-Variable.woff2",
+      "sha256": "fd6149512ae23df45d472c458e8f7a244acff60c9309f2826ed78bca0fe44a84",
+      "family": "JetBrains Mono",
+      "version": "Version 2.211",
+      "embeddedCopyright": "Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)",
+      "embeddedLicence": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: https://scripts.sil.org/OFL",
+      "notice": "client/public/fonts/OFL-JetBrainsMono.txt",
+      "noticeSha256": "b2fe5e8987594e9ffd1d2ca52a2f5d73eb8335243893c5d6254b5ad69269591d",
+      "upstreamNotice": "https://github.com/google/fonts/blob/main/ofl/jetbrainsmono/OFL.txt",
+      "reviewedOn": "2026-09-16"
+    },
+    {
+      "path": "client/public/fonts/PlayfairDisplay-Italic-Variable.woff2",
+      "sha256": "d9614f6469f6d2ec6d9f26cfaaf91015b320837e8d99ac1c5a4f8ab3f9ba7d80",
+      "family": "Playfair Display",
+      "version": "Version 1.203",
+      "embeddedCopyright": "Copyright 2017 The Playfair Display Project Authors (https://github.com/clauseggers/Playfair-Display), with Reserved Font Name \"Playfair Display\".",
+      "embeddedLicence": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL",
+      "notice": "client/public/fonts/OFL-PlayfairDisplay.txt",
+      "noticeSha256": "566be814f8e96e93dfa16101331557eb6b5467e9e03f627c0910fe93ca12300e",
+      "upstreamNotice": "https://github.com/google/fonts/blob/main/ofl/playfairdisplay/OFL.txt",
+      "reviewedOn": "2026-09-16"
+    },
+    {
+      "path": "client/public/fonts/PlayfairDisplay-Variable.woff2",
+      "sha256": "f401b33d31d33fc4b0f7d3fadf9e9285102ecf7019c8e6782c9c1ea865e116df",
+      "family": "Playfair Display",
+      "version": "Version 1.203",
+      "embeddedCopyright": "Copyright 2017 The Playfair Display Project Authors (https://github.com/clauseggers/Playfair-Display), with Reserved Font Name \"Playfair Display\".",
+      "embeddedLicence": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL",
+      "notice": "client/public/fonts/OFL-PlayfairDisplay.txt",
+      "noticeSha256": "566be814f8e96e93dfa16101331557eb6b5467e9e03f627c0910fe93ca12300e",
+      "upstreamNotice": "https://github.com/google/fonts/blob/main/ofl/playfairdisplay/OFL.txt",
+      "reviewedOn": "2026-09-16"
+    },
+    {
+      "path": "client/public/fonts/SourceSans3-Italic-Variable.woff2",
+      "sha256": "6ec538ba7280d7bb9322d37dd9f6fb2e0d772c6bf3532573dea4c45f44b6ffeb",
+      "family": "Source Sans 3 ExtraLight",
+      "version": "Version 3.052;hotconv 1.1.0;makeotfexe 2.6.0",
+      "embeddedCopyright": "\u00a9 2023 Adobe (http://www.adobe.com/), with Reserved Font Name \u2018Source\u2019",
+      "embeddedLicence": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL. This Font Software is distributed on an \u2018AS IS\u2019 BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the SIL Open Font License for the specific language, permissions and limitations governing your use of this Font Software.",
+      "notice": "client/public/fonts/OFL-SourceSans3.txt",
+      "noticeSha256": "09746787287a289323b0ec3cff4d1a4a801331b82b7207c1e186f5d26619a392",
+      "upstreamNotice": "https://github.com/google/fonts/blob/main/ofl/sourcesans3/OFL.txt",
+      "reviewedOn": "2026-09-16"
+    },
+    {
+      "path": "client/public/fonts/SourceSans3-Variable.woff2",
+      "sha256": "1b49ae04c461c654093975541c1efbddf746682659ea458d86d85665982aa2b4",
+      "family": "Source Sans 3 ExtraLight",
+      "version": "Version 3.052;hotconv 1.1.0;makeotfexe 2.6.0",
+      "embeddedCopyright": "\u00a9 2023 Adobe (http://www.adobe.com/), with Reserved Font Name \u2018Source\u2019",
+      "embeddedLicence": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL. This Font Software is distributed on an \u2018AS IS\u2019 BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the SIL Open Font License for the specific language, permissions and limitations governing your use of this Font Software.",
+      "notice": "client/public/fonts/OFL-SourceSans3.txt",
+      "noticeSha256": "09746787287a289323b0ec3cff4d1a4a801331b82b7207c1e186f5d26619a392",
+      "upstreamNotice": "https://github.com/google/fonts/blob/main/ofl/sourcesans3/OFL.txt",
+      "reviewedOn": "2026-09-16"
+    }
+  ]
+}
