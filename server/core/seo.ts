@@ -1,4 +1,5 @@
 import { acceptsHtml } from "./acceptsHtml";
+import { contentRouteId } from "../../shared/contentRouteId";
 /**
  * SEO routes, sitemap.xml + feed.xml + per-page meta tag injection.
  *
@@ -187,20 +188,20 @@ function sendArticleNotFound(res: Response, shell: string): void {
  * Production only, in dev the vite middleware owns the catch-all.
  *
  * Calls next() (falling through to the SPA shell) when we can't do the
- * job: bad editionNumber, non-HTML accept header, missing build, or any
+ * job: non-HTML accept header, missing build, or any
  * DB error. The client-side useEditionMeta hook still runs after load, so
  * the live page is correct either way. An edition that genuinely isn't
- * there is the one case that stops rather than falling through — it 404s.
+ * there, or a malformed ID, stops rather than falling through: it 404s.
  */
 async function handleEditionMeta(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const editionNumber = parseInt(routeParam(req.params.n), 10);
-    if (!Number.isFinite(editionNumber)) return next();
-
     if (!acceptsHtml(req.headers.accept)) return next();
 
     const shell = await readShell();
     if (shell === null) return next();
+
+    const editionNumber = contentRouteId(routeParam(req.params.n));
+    if (editionNumber === null) return sendArticleNotFound(res, shell);
 
     const edition = await db.getEditionByNumber(editionNumber);
     if (!edition) return sendArticleNotFound(res, shell);
@@ -308,13 +309,13 @@ export function clampDescription(text: string, max = 160): string {
  */
 async function handleStoryMeta(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const id = parseInt(routeParam(req.params.id), 10);
-    if (!Number.isFinite(id) || id <= 0) return next();
-
     if (!acceptsHtml(req.headers.accept)) return next();
 
     const shell = await readShell();
     if (shell === null) return next();
+
+    const id = contentRouteId(routeParam(req.params.id));
+    if (id === null) return sendArticleNotFound(res, shell);
 
     const story = await db.getFeedItemById(id);
     if (!story || story.channel === "HOLD") return sendArticleNotFound(res, shell);
@@ -373,9 +374,9 @@ async function handleStoryMeta(req: Request, res: Response, next: NextFunction):
  * Aggressively cacheable, images regenerate at most once a week.
  */
 async function handleEditionImage(req: Request, res: Response): Promise<void> {
-  const id = parseInt(routeParam(req.params.id), 10);
+  const id = contentRouteId(routeParam(req.params.id));
   const kind = req.params.kind === "substack" ? "substack" : "hero";
-  if (!Number.isFinite(id) || id <= 0) {
+  if (id === null) {
     res.status(400).send("Bad id");
     return;
   }
@@ -415,8 +416,8 @@ async function handleEditionImage(req: Request, res: Response): Promise<void> {
  * safe.
  */
 async function handleHeroLibraryImage(req: Request, res: Response): Promise<void> {
-  const id = parseInt(routeParam(req.params.id), 10);
-  if (!Number.isFinite(id) || id <= 0) {
+  const id = contentRouteId(routeParam(req.params.id));
+  if (id === null) {
     res.status(400).send("Bad id");
     return;
   }
@@ -443,8 +444,8 @@ async function handleHeroLibraryImage(req: Request, res: Response): Promise<void
  * propagates to the next preview without manual purging.
  */
 async function handleEditionOgCard(req: Request, res: Response): Promise<void> {
-  const editionNumber = parseInt(routeParam(req.params.n), 10);
-  if (!Number.isFinite(editionNumber) || editionNumber <= 0) {
+  const editionNumber = contentRouteId(routeParam(req.params.n));
+  if (editionNumber === null) {
     res.status(400).send("Bad edition number");
     return;
   }

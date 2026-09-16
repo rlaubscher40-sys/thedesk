@@ -1,4 +1,5 @@
 import { REVIEWED_STORY_CORRECTIONS } from "@shared/reviewedStoryCorrections";
+import { contentRouteId } from "@shared/contentRouteId";
 import { ConnectionNotice } from "@/components/ConnectionNotice";
 import { ThreadLink } from "@/components/feed/ThreadLink";
 import { sourceTimingLabel } from "@shared/sourceTiming";
@@ -50,7 +51,7 @@ import { trackEvent } from "@/lib/analytics";
 
 export default function StoryPage() {
   const params = useParams<{ id: string }>();
-  const id = /^\d+$/.test(params.id ?? "") ? Number(params.id) : NaN;
+  const id = contentRouteId(params.id) ?? NaN;
   const [linkedInOpen, setLinkedInOpen] = useState(false);
   const colourFor = useCategoryColour();
   const { isBookmarked, toggle } = useBookmarks();

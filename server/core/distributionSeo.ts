@@ -1,4 +1,6 @@
 import { acceptsHtml } from "./acceptsHtml";
+import { contentRouteId } from "../../shared/contentRouteId";
+import { routeParam } from "./requestParams";
 import {
   formatMetricValue,
   historyChange,
@@ -313,8 +315,8 @@ async function handleChartOg(req: Request, res: Response): Promise<void> {
 }
 
 async function handleStoryMeta(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const id = Number(req.params.id);
-  if (!Number.isInteger(id) || id <= 0) return next();
+  const id = contentRouteId(routeParam(req.params.id));
+  if (id === null) return next();
   try {
     const item = await db.getFeedItemById(id);
     if (!item || item.channel === "HOLD") return next();
@@ -335,8 +337,8 @@ async function handleStoryMeta(req: Request, res: Response, next: NextFunction):
 }
 
 async function handleStoryOg(req: Request, res: Response): Promise<void> {
-  const id = Number(req.params.id);
-  if (!Number.isInteger(id) || id <= 0) {
+  const id = contentRouteId(routeParam(req.params.id));
+  if (id === null) {
     res.redirect(302, "/og-card.png");
     return;
   }
