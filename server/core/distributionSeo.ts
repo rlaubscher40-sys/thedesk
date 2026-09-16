@@ -317,7 +317,7 @@ async function handleStoryMeta(req: Request, res: Response, next: NextFunction):
   if (!Number.isInteger(id) || id <= 0) return next();
   try {
     const item = await db.getFeedItemById(id);
-    if (!item) return next();
+    if (!item || item.channel === "HOLD") return next();
     const canonical = `${siteUrl()}/story/${item.id}`;
     await sendSocialShell(req, res, next, {
       title: `${clean(item.title, 115)} | The Desk`,
@@ -342,7 +342,7 @@ async function handleStoryOg(req: Request, res: Response): Promise<void> {
   }
   try {
     const item = await db.getFeedItemById(id);
-    if (!item) {
+    if (!item || item.channel === "HOLD") {
       res.redirect(302, "/og-card.png");
       return;
     }

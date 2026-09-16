@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import * as db from "../db";
 import { protectedProcedure, router } from "../core/trpc";
@@ -33,6 +34,8 @@ export const readingQueueRouter = router({
       let resolvedUrl = input.customUrl ?? null;
       if (input.feedItemId) {
         const item = await db.getFeedItemById(input.feedItemId);
+        if (!item || item.channel === "HOLD")
+          throw new TRPCError({ code: "NOT_FOUND", message: "Story not found." });
         if (item) {
           resolvedTitle ??= item.title;
           resolvedUrl ??= item.sourceUrl ?? null;

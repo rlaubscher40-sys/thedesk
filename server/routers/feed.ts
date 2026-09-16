@@ -107,7 +107,10 @@ export const feedRouter = router({
   /** A single feed item by id, used by the /story/:id page. */
   getById: publicProcedure
     .input(z.object({ id: z.number().int().positive() }))
-    .query(async ({ input }) => db.getFeedItemById(input.id)),
+    .query(async ({ input }) => {
+      const item = await db.getFeedItemById(input.id);
+      return item?.channel === "HOLD" ? undefined : item;
+    }),
 
   /**
    * Batch fetch, used by the anonymous reading queue which keeps a
@@ -118,7 +121,7 @@ export const feedRouter = router({
     .input(z.object({ ids: z.array(z.number().int().positive()).max(60) }))
     .query(async ({ input }) => {
       if (input.ids.length === 0) return [];
-      return db.getFeedItemsByIds(input.ids);
+      return (await db.getFeedItemsByIds(input.ids)).filter((item) => item.channel !== "HOLD");
     }),
 
   /** Dates that have at least one feed item, newest first. */

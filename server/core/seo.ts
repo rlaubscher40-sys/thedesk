@@ -317,7 +317,7 @@ async function handleStoryMeta(req: Request, res: Response, next: NextFunction):
     if (shell === null) return next();
 
     const story = await db.getFeedItemById(id);
-    if (!story) return sendArticleNotFound(res, shell);
+    if (!story || story.channel === "HOLD") return sendArticleNotFound(res, shell);
 
     const title = story.title;
     const description = clampDescription(

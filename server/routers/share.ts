@@ -61,7 +61,7 @@ export const shareRouter = router({
     .input(z.object({ id: z.number().int().positive() }))
     .mutation(async ({ input, ctx }) => {
       const item = await db.getFeedItemById(input.id);
-      if (!item) {
+      if (!item || item.channel === "HOLD") {
         throw new TRPCError({ code: "NOT_FOUND", message: "Story not found." });
       }
 
@@ -103,7 +103,7 @@ export const shareRouter = router({
     .input(z.object({ id: z.number().int().positive() }))
     .mutation(async ({ input, ctx }) => {
       const item = await db.getFeedItemById(input.id);
-      if (!item) {
+      if (!item || item.channel === "HOLD") {
         throw new TRPCError({ code: "NOT_FOUND", message: "Story not found." });
       }
       const take = storyDeskTake(item);
