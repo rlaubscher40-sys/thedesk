@@ -122,10 +122,9 @@ export function BarChart({ label, xLabels, series, height = 280, padY = 16, padX
               <g
                 key={`${s.key}-${i}`}
                 style={{
-                  opacity: 0,
                   animation: `first-paint-fade 600ms cubic-bezier(0.16,1,0.3,1) ${
                     100 + i * 40 + sIdx * 30
-                  }ms forwards`,
+                  }ms both`,
                 }}
               >
                 <rect x={x} y={y} width={barWidth} height={h} fill={s.colour} fillOpacity="0.6" />

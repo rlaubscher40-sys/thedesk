@@ -161,8 +161,7 @@ export function HeatTreemap({
             <g
               key={t.category}
               style={{
-                opacity: 0,
-                animation: `first-paint-fade 480ms cubic-bezier(0.16,1,0.3,1) ${80 + i * 60}ms forwards`,
+                animation: `first-paint-fade 480ms cubic-bezier(0.16,1,0.3,1) ${80 + i * 60}ms both`,
               }}
             >
               <rect
@@ -179,7 +178,7 @@ export function HeatTreemap({
               <rect
                 x={t.x + 1}
                 y={t.y + 1}
-                width={Math.min(t.w - 2, 4)}
+                width={Math.max(0, Math.min(t.w - 2, 4))}
                 height={Math.max(0, t.h - 2)}
                 fill={colour}
                 fillOpacity={0.65}

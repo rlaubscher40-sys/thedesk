@@ -8,6 +8,27 @@ import { HeatTreemap } from "./HeatTreemap";
 vi.mock("@/lib/category", () => ({ useCategoryColour: () => () => "#555555" }));
 afterEach(cleanup);
 
+it("does not leave chart marks transparent when lite/reduced-motion disables animation", () => {
+  const { container } = render(
+    h(
+      "div",
+      null,
+      h(BarChart, {
+        label: "Cadence",
+        xLabels: ["#1"],
+        series: [{ key: "signals", values: [3], colour: "#555" }],
+      }),
+      h(HeatTreemap, { data: [{ category: "PROPERTY", total: 3, daily: 2, weekly: 1 }] })
+    )
+  );
+  const animated = container.querySelectorAll<SVGGElement>("svg g[style]");
+  expect(animated.length).toBeGreaterThan(0);
+  for (const mark of animated) {
+    expect(mark.style.opacity).toBe("");
+    expect(mark.style.animation).toContain("both");
+  }
+});
+
 it("exposes every edition value through a native disclosure and labelled table", () => {
   render(
     h(BarChart, {

@@ -10,6 +10,8 @@ engineering/evidence review, not legal clearance or WCAG certification.
   readable; missing bar values say unavailable rather than inventing zero.
   Zero-area treemap inputs are excluded from layout but retained in the table.
 - Bar axis labels use theme-aware text colours rather than a fixed colour.
+- Chart entry animations no longer depend on permanent inline zero opacity:
+  lite/reduced-motion users still see the bars and tiles when animations stop.
 - Every production browser build emits `third-party-licenses.txt`, linked from
   Terms. Vite derives the list from actual bundled modules, including transitive
   packages. Two npm packages omit their licence text: exact-version fallbacks
