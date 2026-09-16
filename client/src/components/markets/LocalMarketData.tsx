@@ -178,6 +178,14 @@ export function LocalMarketData({
             </a>
             <a
               className="bs-link"
+              href={LOCAL_SOURCES[match.sourceKey].licence}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Source licence ↗
+            </a>
+            <a
+              className="bs-link"
               href={match.resourceUrl}
               target="_blank"
               rel="noopener noreferrer"

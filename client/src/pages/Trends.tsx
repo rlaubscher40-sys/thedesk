@@ -183,6 +183,7 @@ function SignalCadence({
   return (
     <>
       <BarChart
+        label="Signals and topics by edition"
         xLabels={data.map((d) => `#${d.editionNumber}`)}
         series={[
           {

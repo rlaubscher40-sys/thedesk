@@ -70,6 +70,8 @@ it("shows the latest period when no citation period was requested", () => {
   const html = render();
   expect(html).toContain("$850 / week");
   expect(html).not.toContain("$800 / week");
+  expect(html).toContain("Source licence");
+  expect(html).toContain('href="https://creativecommons.org/licenses/by/4.0/"');
 });
 it("opens the historical observation cited by Ask, with a historical notice", () => {
   const html = render("2025-06-30");

@@ -83,9 +83,10 @@ export default function Privacy() {
       <section className="space-y-3">
         <h2 className="font-serif text-2xl mt-8">Service providers and overseas processing</h2>
         <p>
-          We use providers for hosting, databases, email and AI. The application uses Resend for
-          email and Anthropic for AI text processing, and supports OpenAI for production assets such
-          as narration. Providers receive the information needed for those functions. Processing or
+          We use providers for hosting, databases, email and AI. Our application hosting is
+          configured on Railway in Singapore. The application uses Resend for email and Anthropic
+          for AI text processing, and supports OpenAI for production images. Current Reel speech
+          is generated locally on our server. Providers receive the information needed for those functions. Processing or
           storage may occur outside Australia. Provider retention and account settings can differ
           from The Desk's own storage. Links to other websites and social platforms are subject to
           their privacy practices.
