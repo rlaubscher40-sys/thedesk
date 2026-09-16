@@ -113,6 +113,10 @@ it("reads CBA's dated closing report without adjacent overseas market cards", ()
     publisherPublishedAt: null,
   });
   expect(extractArticleText(html, 6000, url)).toBe(body);
+  expect(storySignificance("Mining rebound helps Australian shares creep higher").baseline).toBe(
+    88
+  );
+  expect(storySignificance("ASX expected to close higher").baseline).toBe(74);
 });
 
 it("repairs only the verified old caption on its exact published record", () => {

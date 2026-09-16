@@ -96,6 +96,16 @@ function googleNewsGlobal(query: string): string {
 
 export const SOURCES: Source[] = [
   {
+    name: "Business Times Australian Property",
+    url: "https://www.businesstimes.com.sg/property",
+    kind: "index",
+    articlePath:
+      "^/property/(?:australia|australian|sydney|melbourne|brisbane|perth|nsw|victoria)[^/]+$",
+    category: "PROPERTY",
+    channel: "PROPERTY",
+    maxItems: 12,
+  },
+  {
     name: "Australian Migration Policy",
     url: googleNews(
       "Australia (migration OR immigration OR visas) (Burke OR government OR policy OR legislation)"

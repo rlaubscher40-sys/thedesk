@@ -1,5 +1,11 @@
 # September 16 coverage repairs
 
+Final source check: the Business Times property index returned 200 and exposes
+the audited Sydney stamp-duty article directly. Added a bounded index route
+restricted to Australian place-name article paths; this reduces dependence on
+the state-revenue Google query. Australian market-move headlines receive data
+priority, with forecasts still ranked below reported developments.
+
 Ruben authorised implementation of the assistant-reviewed provisional audit.
 This is neither a human-approved benchmark nor a comprehensive recall score.
 
