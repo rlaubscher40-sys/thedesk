@@ -10,10 +10,11 @@
 import { z } from "zod";
 import * as db from "../db";
 import { adminProcedure, publicProcedure, router } from "../core/trpc";
+import { feedbackPageUrl } from "../../shared/feedbackPageUrl";
 
 const submitInput = z.object({
   kind: z.enum(["bug", "idea", "praise"]),
-  message: z.string().min(3).max(2000),
+  message: z.string().trim().min(3).max(2000),
   // Honeypot, the client never sets this. Form-filler bots will set
   // every field. A non-empty value here means it's a bot; reject.
   // Field name intentionally bland so signature-based bots can't spot
@@ -43,7 +44,7 @@ export const feedbackRouter = router({
     await db.createFeedback({
       kind: input.kind,
       message: input.message.trim(),
-      pageUrl: input.pageUrl ?? null,
+      pageUrl: feedbackPageUrl(input.pageUrl),
       userAgent: input.userAgent ?? null,
       contactEmail: input.contactEmail?.trim() || null,
       reporterLabel: input.reporterLabel?.trim() || null,
@@ -54,8 +55,8 @@ export const feedbackRouter = router({
   /** Admin: list every submission, newest first. */
   list: adminProcedure.query(async () => db.listFeedback()),
 
-  /** Public: how many "new" entries, used to badge the admin nav. */
-  newCount: publicProcedure.query(async () => {
+  /** Admin-only: private inbox counts must not be publicly enumerable. */
+  newCount: adminProcedure.query(async () => {
     return { count: await db.countNewFeedback() };
   }),
 

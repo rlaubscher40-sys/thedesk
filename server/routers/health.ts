@@ -102,7 +102,7 @@ export const healthRouter = router({
     const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-    const [errors24h, errors7d, uptime24h, uptime7d, editions, feed, metrics, subs] =
+    const [errors24h, errors7d, uptime24h, uptime7d, editions, feed, metrics, subs, monitoring] =
       await Promise.all([
         db.countServerErrorsSince(dayAgo),
         db.countServerErrorsSince(weekAgo),
@@ -112,6 +112,7 @@ export const healthRouter = router({
         db.listFeedItems().catch(() => []),
         db.listDailyMetrics().catch((): DailyMetric[] => []),
         db.listSubscribers().catch((): Subscriber[] => []),
+        db.uptimeMonitoringCoverage(),
       ]);
 
     const latestEdition = editions[0] ?? null;
@@ -137,6 +138,7 @@ export const healthRouter = router({
         last7d: errors7d,
       },
       uptime: {
+        monitoring,
         last24h: {
           total: uptime24h.total,
           up: uptime24h.up,

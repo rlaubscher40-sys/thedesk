@@ -119,3 +119,15 @@ The code can expose and reduce risk; it cannot manufacture provider access, hist
 - Complete ACT QA output after shortening: 28.7 seconds, six scenes, narration and subtitles enabled, no publication. Layout QA uses synthetic figures and does not certify any source observation.
 
 - Final comparison coverage includes Number/Chart download APIs and monthly movement rankings. Collection dates are not used to assign release changes to a calendar month. Market comparison and card-limit messages now describe the actual reset allowance instead of offering unavailable reader sign-in. Focused final cross-surface suite: 82 passed.
+
+### Released baseline and next follow-through · 16 September 2026
+
+PR288 is merged as `b958ba8c75341702e1cf81b4a9f1f6f4a3516a11` and deployed. All 2,563 tests passed in CI, including MySQL and full narrated-video tests; security and production build passed. Thirteen live HTTP checks passed. The three corrections, exact July Brisbane/Perth rent answer and removal of unsupported sentiment movement were verified live. The existing ABC Instagram caption was corrected and verified after reload; original slide images remain. Release PR288 records the detailed evidence.
+
+The next patch addresses two further reproducible gaps:
+
+- **Sampling distribution:** raw ping totals can conceal clustered retries and long gaps. Coverage now comes from all five-minute intervals across the rolling day, with the longest gap including both window edges. SQL aggregates both edges per bucket without truncating a busy day to the most recent 288 rows. A fresh probe cannot hide a long earlier gap; failed status refreshes are explicit. This does not repair GitHub's external schedule or turn samples into continuous uptime.
+- **Feedback and short-screen dialogs:** the live form left focus behind the declared modal. It now uses the existing accessible dialog primitives, restores focus, traps Tab/Shift-Tab and closes with Escape. Shared dialogs have bounded scrolling; Feedback additionally follows visual-viewport keyboard/pan changes without counteracting pinch zoom. Blocked preference storage cannot prevent opening it, and key controls have 44px minimum targets. Tests exercise these behaviours; actual iPhone/Android and in-app-browser checks remain separate evidence.
+- **Feedback privacy:** automatic diagnostic URLs drop query strings, fragments and embedded credentials before transmission and again on the server. The form explains its actual submitted fields. Whitespace-only reports are rejected, and private inbox counts require admin access.
+
+No new vendor, cost, schema migration, source entitlement or security-setting change is introduced. Exact-head CI, production deployment and live checks remain required before calling this follow-through released; its release PR records those outcomes.

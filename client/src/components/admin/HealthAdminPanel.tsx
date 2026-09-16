@@ -1,4 +1,3 @@
-import { monitoringCoverage } from "@shared/monitoringCoverage";
 import { EditorialHealth } from "./EditorialHealth";
 import { CoverageReview } from "./CoverageReview";
 /**
@@ -47,10 +46,7 @@ export function HealthAdminPanel() {
   const summary = summaryQuery.data;
   const errors = errorsQuery.data ?? [];
   const pings = pingsQuery.data ?? [];
-  const monitoring = monitoringCoverage(
-    summary?.uptime.last24h.total ?? 0,
-    pings[0]?.pingedAt ?? null
-  );
+  const monitoring = summary?.uptime.monitoring;
 
   return (
     <section className="panel rounded p-6 sm:p-8 space-y-7">
@@ -79,7 +75,12 @@ export function HealthAdminPanel() {
         </button>
       </header>
 
-      {summary && (
+      {summaryQuery.isError && (
+        <p role="alert" className="text-sm">
+          Service status could not be refreshed. Existing readings may be stale. Retry with Refresh.
+        </p>
+      )}
+      {summary && monitoring && (
         <>
           {/* Top-level stat grid: errors and uptime. */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -120,10 +121,14 @@ export function HealthAdminPanel() {
 
           <div className="panel p-4 text-sm" role="status">
             <p>
-              {monitoring.observed} checks recorded in 24 hours; the configured five-minute schedule
-              would produce about {monitoring.expected}.
+              {summary.uptime.last24h.total} checks recorded in 24 hours, covering{" "}
+              {monitoring.observedIntervals} of {monitoring.expected} five-minute intervals (
+              {monitoring.coveragePercent}%). Repeated checks in one interval count once.
             </p>
-            {(monitoring.sparse || monitoring.stale) && (
+            <p className="mt-2">
+              Longest gap between checks or window edges: {monitoring.longestGapMinutes} minutes.
+            </p>
+            {(monitoring.sparse || monitoring.stale || monitoring.hasLongGap) && (
               <p className="mt-2 font-semibold">
                 Monitoring coverage is incomplete. Last check:{" "}
                 {monitoring.ageMinutes === null
