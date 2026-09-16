@@ -15,7 +15,7 @@ async function enforceRenderQuota(
   if (!quota.allowed) {
     throw new TRPCError({
       code: "TOO_MANY_REQUESTS",
-      message: `You've used today's ${quota.limit} free share renders. Sign in to keep going.`,
+      message: `You've used today's ${quota.limit} free share renders. Your allowance resets tomorrow, Sydney time.`,
     });
   }
 }

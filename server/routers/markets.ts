@@ -19,7 +19,15 @@ import { groundComparison } from "../markets/grounding";
 import { buildComparisonMessages, comparisonResponseFormat } from "../prompts/marketComparison";
 
 export const marketsRouter = router({
-  localData: publicProcedure.input(z.object({query: z.string().trim().min(2).max(80), state: z.enum(STATE_CODES).optional(), kind: z.enum(["SA2", "postcode", "suburb", "LGA", "state"]).optional()})).query(({input}) => getLocalData(input.query, input.state, input.kind)),
+  localData: publicProcedure
+    .input(
+      z.object({
+        query: z.string().trim().min(2).max(80),
+        state: z.enum(STATE_CODES).optional(),
+        kind: z.enum(["SA2", "postcode", "suburb", "LGA", "state"]).optional(),
+      })
+    )
+    .query(({ input }) => getLocalData(input.query, input.state, input.kind)),
   newLoanRates: publicProcedure.query(() => getReelLendingRates()),
   rentalConditions: publicProcedure.query(() => getCityRents()),
   discovery: publicProcedure.query(() => getMarketDirectory()),
@@ -39,7 +47,8 @@ export const marketsRouter = router({
     if (quota && !quota.allowed)
       throw new TRPCError({
         code: "TOO_MANY_REQUESTS",
-        message: "You've used today's free intelligence questions. Sign in to keep comparing.",
+        message:
+          "You've used today's free intelligence questions. Your allowance resets tomorrow, Sydney time. You can still read Markets and Data.",
       });
     if (!ctx.user && !(await consumeAnonymousAskAttempt(ctx.req)).allowed) {
       throw new TRPCError({

@@ -1,3 +1,4 @@
+import { hasDailyObservations } from "../../shared/metricPresentation";
 /**
  * The month, told through our own numbers.
  *
@@ -278,6 +279,8 @@ export function buildMonthlyReview(
   const unranked: MetricMove[] = [];
 
   for (const meta of metrics) {
+    // Collection timestamps cannot assign a release change to a calendar month.
+    if (!hasDailyObservations(meta.metricKey)) continue;
     const move = moveFor(meta, byMonth(histories[meta.metricKey] ?? []), target);
     if (!move) continue;
     if (move.direction === "flat") unchanged.push(move);
@@ -360,7 +363,7 @@ export function describeReach(move: MetricMove, minMonths = 12): string | null {
 export function readMonth(review: MonthlyReview): string {
   const { movers, unchanged, label } = review;
   if (movers.length === 0 && review.unranked.length === 0 && unchanged.length === 0) {
-    return `No readings recorded for ${label}.`;
+    return `No comparable daily observations for ${label}.`;
   }
   if (movers.length === 0) {
     return `Nothing in ${label} has enough history behind it to rank yet. The comparison needs ${MIN_MONTHS_FOR_RANK} complete prior months per metric.`;
