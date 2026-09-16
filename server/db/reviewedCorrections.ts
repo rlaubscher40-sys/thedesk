@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { REVIEWED_STORY_CORRECTIONS } from "../../shared/reviewedStoryCorrections";
 import { getDb } from "./client";
 import { dailyFeedItems } from "./schema";
@@ -16,7 +16,7 @@ export async function applyReviewedStoryCorrections() {
         .where(
           and(
             eq(dailyFeedItems.id, correction.id),
-            eq(dailyFeedItems.sourceUrl, correction.sourceUrl),
+            sql`CAST(${dailyFeedItems.sourceUrl} AS BINARY) = CAST(${correction.sourceUrl} AS BINARY)`,
             eq(dailyFeedItems[change.field], change.before)
           )
         );

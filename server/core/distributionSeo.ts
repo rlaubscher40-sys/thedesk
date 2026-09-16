@@ -1,5 +1,9 @@
 import { acceptsHtml } from "./acceptsHtml";
-import { formatMetricValue, historyChange } from "../../shared/metricPresentation";
+import {
+  formatMetricValue,
+  historyChange,
+  hasDailyObservations,
+} from "../../shared/metricPresentation";
 import type { Express, NextFunction, Request, Response } from "express";
 import rateLimit from "express-rate-limit";
 import fs from "node:fs";
@@ -129,7 +133,12 @@ async function getMetricPresentation(metricKey: string, snapshotId?: string) {
   if (snapshotId !== undefined) {
     const snapshot = await db.readSignalSnapshot(snapshotId);
     if (!snapshot || snapshot.metric.metricKey !== metricKey) return null;
-    return { ...snapshot, value: displayValue(snapshot.metric.value, snapshot.metric.unit) };
+    return {
+      ...snapshot,
+      series: hasDailyObservations(metricKey) ? snapshot.series : [],
+      move: hasDailyObservations(metricKey) ? snapshot.move : historyChange(snapshot.metric, []),
+      value: displayValue(snapshot.metric.value, snapshot.metric.unit),
+    };
   }
   const [metrics, histories, editions] = await Promise.all([
     db.listDailyMetrics(),
@@ -138,7 +147,7 @@ async function getMetricPresentation(metricKey: string, snapshotId?: string) {
   ]);
   const metric = metrics.find((row) => row.metricKey === metricKey);
   if (!metric) return null;
-  const series = histories[metric.metricKey] ?? [];
+  const series = hasDailyObservations(metric.metricKey) ? (histories[metric.metricKey] ?? []) : [];
   return {
     metric,
     series,

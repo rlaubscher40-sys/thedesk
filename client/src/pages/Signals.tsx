@@ -99,7 +99,9 @@ export default function SignalsPage() {
 
   const rows = useMemo(() => {
     return (metrics.data ?? []).map((metric) => {
-      const series = histories.data?.[metric.metricKey] ?? [];
+      const series = hasDailyObservations(metric.metricKey)
+        ? (histories.data?.[metric.metricKey] ?? [])
+        : [];
       const first = series[0]?.value;
       const last = series[series.length - 1]?.value;
       const move =
@@ -124,9 +126,9 @@ export default function SignalsPage() {
   const frozenHero = frozen
     ? {
         metric: frozen.metric,
-        series: frozen.series,
+        series: hasDailyObservations(frozen.metric.metricKey) ? frozen.series : [],
         move:
-          frozen.series.length >= 2
+          hasDailyObservations(frozen.metric.metricKey) && frozen.series.length >= 2
             ? pctMove(frozen.series[0]!.value, frozen.series[frozen.series.length - 1]!.value)
             : null,
         observation: describeMetricObservation(frozen.metric),
@@ -286,7 +288,13 @@ export default function SignalsPage() {
                 the original share.
               </p>
             )}
-            {snapshotId !== null && frozen?.move && <p className="mt-2 text-sm">{frozen.move}</p>}
+            {snapshotId !== null && frozen?.move && (
+              <p className="mt-2 text-sm">
+                {hasDailyObservations(frozen.metric.metricKey)
+                  ? frozen.move
+                  : historyChange(frozen.metric, [])}
+              </p>
+            )}
             {hero.metric.context && (
               <p className="font-serif mt-3 max-w-[58ch] text-xl leading-8 text-[var(--color-fg-body)]">
                 {hero.metric.context}

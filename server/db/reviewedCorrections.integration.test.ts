@@ -49,6 +49,17 @@ it.skipIf(!testUrl)(
     }
     await apply();
     const [first, second] = REVIEWED_STORY_CORRECTIONS;
+    const original = first!.fields.find((f) => f.field === "summary")!.before;
+    await pool!.query("UPDATE daily_feed_items SET summary=? WHERE id=?", [
+      original.toUpperCase(),
+      first!.id,
+    ]);
+    await apply();
+    const [caseEdit] = await pool!.query<RowDataPacket[]>(
+      "SELECT summary FROM daily_feed_items WHERE id=?",
+      [first!.id]
+    );
+    expect(caseEdit[0]!.summary).toBe(original.toUpperCase());
     await pool!.query("UPDATE daily_feed_items SET summary=? WHERE id=?", [
       "A later editor's source-checked correction",
       first!.id,

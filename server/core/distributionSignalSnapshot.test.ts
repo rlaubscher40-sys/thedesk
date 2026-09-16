@@ -129,3 +129,26 @@ it("serves the same specific sharing metadata to wildcard crawlers", async () =>
   expect(res.send.mock.calls[0][0]).toContain("3.5%");
   expect(res.send.mock.calls[0][0]).toContain(`snapshot=${id}`);
 });
+
+it("does not turn saved undated release samples into a chart or directional claim", async () => {
+  m.read.mockResolvedValue({
+    ...structuredClone(frozen),
+    metric: {
+      ...frozen.metric,
+      metricKey: "consumer_confidence",
+      label: "Consumer sentiment",
+      value: "84.4",
+      unit: "index",
+    },
+    move: "Misleading old upward movement",
+  });
+  const { res } = await request("/signals", {
+    metric: "consumer_confidence",
+    snapshot: id,
+    view: "chart",
+  });
+  expect(res.send.mock.calls[0][0]).toContain("84.4");
+  expect(res.send.mock.calls[0][0]).not.toContain("Misleading old upward movement");
+  expect(res.send.mock.calls[0][0]).not.toContain("/og/charts/");
+  expect(res.send.mock.calls[0][0]).toContain("Release-based figure");
+});
