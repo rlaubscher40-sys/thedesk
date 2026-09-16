@@ -81,7 +81,7 @@ it("separates an empty feed from a failed request", async () => {
   fixture.parseString.mockRejectedValue(new Error("timeout"));
   expect(await fetchSourceReport(source)).toMatchObject({
     items: [],
-    error: "Feed request or parsing failed",
+    error: "Feed parsing failed",
   });
 });
 
@@ -125,7 +125,7 @@ it("does not cache a rejected destination or bypass the guarded transport on ret
   fixture.publicFetch.mockRejectedValueOnce(new Error("Blocked destination"));
   fixture.parseString.mockResolvedValue({ items: [] });
   expect(await fetchSourceReport(source)).toMatchObject({
-    error: "Feed request or parsing failed",
+    error: "Feed request failed",
   });
   expect(fixture.parseString).not.toHaveBeenCalled();
   expect(await fetchSourceReport(source)).toMatchObject({ error: "Feed returned no items" });
@@ -174,4 +174,34 @@ it("labels index HTTP denials and cooldowns as index failures, not RSS", async (
   expect((await fetchSourceReport(index)).error).toBe("Publisher index HTTP 403");
   expect((await fetchSourceReport(index)).error).toMatch(/^Publisher index HTTP 403; retry after/);
   expect(fixture.publicFetch).toHaveBeenCalledOnce();
+});
+
+it.each([
+  ["EAI_AGAIN", "DNS lookup failed"],
+  ["ECONNRESET", "connection failed"],
+  ["ETIMEDOUT", "request timed out"],
+])(
+  "retains the %s cause during a short cooldown and retries after expiry",
+  async (code, description) => {
+    let now = Date.now();
+    const reader = createSourceReader(undefined, { now: () => now });
+    fixture.publicFetch.mockRejectedValue(
+      Object.assign(new Error("private URL details"), { code })
+    );
+    const index = { ...source, kind: "index" as const };
+    expect((await reader(index)).error).toBe(`Publisher index ${description}`);
+    expect((await reader(index)).error).toMatch(`Publisher index ${description}; retry after`);
+    expect(fixture.publicFetch).toHaveBeenCalledOnce();
+    expect(fixture.parseString).not.toHaveBeenCalled();
+    now += 60_000;
+    await reader(index);
+    expect(fixture.publicFetch).toHaveBeenCalledTimes(2);
+  }
+);
+
+it("never leaks raw parser messages or labels them as a network timeout", async () => {
+  fixture.parseString.mockRejectedValue(
+    Object.assign(new Error("https://user:secret@example.org?token=secret"), { code: "ETIMEDOUT" })
+  );
+  expect((await fetchSourceReport(source)).error).toBe("Feed parsing failed");
 });

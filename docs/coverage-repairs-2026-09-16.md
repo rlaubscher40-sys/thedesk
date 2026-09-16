@@ -2,6 +2,28 @@
 
 ## Production verification
 
+Follow-up: a fresh ordinary request with the collector's User-Agent and identity
+encoding returned Westpac's public homepage as HTTP 200, **2,579,526 bytes**.
+That exceeds discovery's 2 MiB transport ceiling (2,097,152 bytes). Replaying
+the size through the actual guarded transport reproduces the rejection; the
+old generic production error cannot establish that this was its only cause.
+The smaller `/economics` page is 365,497 bytes but omits the audited Leading
+Index link. Allow at most 4 MiB for the exact homepage URL only. All other
+discovery URLs keep 2 MiB, including other Westpac paths and query variants.
+The real-page parser replay recovers the release URL without inventing a date.
+
+Discovery and article diagnostics now distinguish size, DNS, connection, TLS,
+timeout, decoding and safety failures using fixed messages, never raw exception
+text. Parser failures remain separate from downloads. Short transient discovery
+cooldowns preserve the original reason; HTTP access pauses are unchanged. The
+guarded-transport regression checks cover the original size, the new upper
+bound, other URLs and a non-public DNS answer.
+
+PR292 has deployed the 200-source report limit. At the follow-up's first runtime
+check no later briefing collection had run, so a successful new report save was
+not yet observed. Keep the historical failed report intact; do not manufacture
+evidence or rerun publication merely to verify reporting.
+
 PR290 deployed as `246a37e`. Verified public records: both features are held;
 three summaries corrected; HIA/Equifax/consumer-confidence pairs linked.
 The recovery inserted 18 rows. All five previously unmatched events are now
