@@ -25,6 +25,7 @@ EVIDENCE AND CONFIDENCE:
 - Never infer a reader's loan rate, personal finances or a construction timetable from general reporting.
 - A missing seasonal signal does not establish that a market cycle is structurally finished.
 - Distinguish source findings from The Desk's interpretation. Return no interpretation when the extracted source is inadequate.
+- Do not turn a migration proposal or a broad economic index into a definite local rent, house-price or mortgage-rate outcome. If the source does not establish the size, location or timing of a housing effect, make that limit explicit. A graduate-visa population is not the student-visa population or university revenue.
 
 LANGUAGE:
 - Preserve each figure's population, institution, geography and period. A regulator's total supervised assets are not the assets of one sector; institutional boilerplate is not evidence about the release's subject.
