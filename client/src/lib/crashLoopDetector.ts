@@ -29,6 +29,7 @@
  */
 import { reportError } from "./errorReporter";
 import { enableLiteMode } from "./liteMode";
+import { feedbackPageUrl } from "@shared/feedbackPageUrl";
 
 const BOOTS_KEY = "thedesk:pending-boots:v2";
 const RECOVERY_KEY = "thedesk:crash-recovery-at";
@@ -94,7 +95,9 @@ function isFreshNavigation(): boolean {
   try {
     // New tabs can inherit an opener's sessionStorage. A fresh navigation must
     // not inherit its interrupted starts. Reloads retain the recovery trail.
-    const navigation = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
+    const navigation = performance.getEntriesByType("navigation")[0] as
+      | PerformanceNavigationTiming
+      | undefined;
     return navigation?.type === "navigate" || navigation?.type === "back_forward";
   } catch {
     return false;
@@ -112,7 +115,7 @@ function diagnostics(bootCount: number): string {
     // deviceMemory is Chromium-only; absent on Safari but worth capturing when present.
     `deviceMemory: ${(nav as { deviceMemory?: number } | undefined)?.deviceMemory ?? "n/a"}`,
     `viewport: ${typeof window !== "undefined" ? `${window.innerWidth}x${window.innerHeight}` : "n/a"}`,
-    `url: ${typeof window !== "undefined" ? window.location.href : "n/a"}`,
+    `url: ${typeof window !== "undefined" ? (feedbackPageUrl(window.location.href) ?? "n/a") : "n/a"}`,
   ];
   return lines.join("\n");
 }
