@@ -380,7 +380,9 @@ export const editorialReportSchema = z.object({
           .optional(),
       })
     )
-    .max(100),
+    // The configured discovery inventory exceeds 100 inputs. Retain all
+    // source outcomes, including the optional evidence-pool failure record.
+    .max(200),
   decisions: z
     .array(
       z.object({
