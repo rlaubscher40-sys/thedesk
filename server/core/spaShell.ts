@@ -23,6 +23,7 @@
  */
 
 import { publicMarket } from "../../shared/marketDirectory";
+import { contentRouteId } from "../../shared/contentRouteId";
 
 /** Exact-match public routes. */
 const STATIC_ROUTES = new Set([
@@ -59,12 +60,7 @@ const STATIC_ROUTES = new Set([
 ]);
 
 /** Parameterised routes. One segment each, no nesting below them. */
-const DYNAMIC_ROUTES = [
-  /^\/evidence\/[1-9][0-9]*$/,
-  /^\/editions\/[^/]+$/,
-  /^\/topics\/[^/]+$/,
-  /^\/story\/[^/]+$/,
-];
+const DYNAMIC_ROUTES = [/^\/topics\/[^/]+$/];
 
 /**
  * Real pages we don't want in search results: nothing here has content a
@@ -85,6 +81,8 @@ const NOINDEX_ROUTES = new Set([
 
 export function isKnownRoute(pathname: string): boolean {
   if (STATIC_ROUTES.has(pathname)) return true;
+  const content = pathname.match(/^\/(?:story|editions|evidence)\/([^/]+)$/);
+  if (content) return contentRouteId(content[1]) !== null;
   if (pathname.startsWith("/markets/"))
     return Boolean(publicMarket(pathname.slice("/markets/".length)));
   return DYNAMIC_ROUTES.some((re) => re.test(pathname));

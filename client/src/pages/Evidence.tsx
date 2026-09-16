@@ -1,9 +1,10 @@
 import { Link, useRoute } from "wouter";
+import { contentRouteId } from "@shared/contentRouteId";
 import { trpc } from "@/lib/trpc";
 
 export default function Evidence() {
   const [, params] = useRoute("/evidence/:id");
-  const id = Number(params?.id);
+  const id = contentRouteId(params?.id) ?? NaN;
   const query = trpc.evidence.get.useQuery(
     { id },
     { enabled: Number.isSafeInteger(id) && id > 0, retry: false }

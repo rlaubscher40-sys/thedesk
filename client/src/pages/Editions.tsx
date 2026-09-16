@@ -13,6 +13,7 @@ import { ConnectionNotice } from "@/components/ConnectionNotice";
  */
 import { useEffect, useMemo } from "react";
 import { Link, useLocation, useParams } from "wouter";
+import { contentRouteId } from "@shared/contentRouteId";
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
 import { EditionReader } from "@/components/editions/EditionReader";
 import { EditionReaderSkeleton } from "@/components/editions/EditionReaderSkeleton";
@@ -30,8 +31,7 @@ export default function EditionsPage() {
 
   const selectedNumber = useMemo(() => {
     if (params.editionNumber) {
-      const n = parseInt(params.editionNumber, 10);
-      return Number.isFinite(n) ? n : null;
+      return contentRouteId(params.editionNumber);
     }
     return listQuery.data?.[0]?.editionNumber ?? null;
   }, [params.editionNumber, listQuery.data]);
