@@ -18,6 +18,7 @@
     "preview:weekly": "node --import tsx scripts/weeklyBriefingPreview.ts",
     "documentary:brief": "node --import tsx scripts/new-documentary.ts",
     "documentary:review": "node --import tsx scripts/review-documentary.ts",
+    "documentary:status": "node --import tsx scripts/documentary-status.ts",
     "probe:abs": "tsx scripts/ingest/probe-abs.ts",
     "probe:nsw-da": "tsx scripts/ingest/probe-nsw-da.ts",
     "ingest:daily": "INGEST_CLI=1 tsx scripts/ingest/dailyFeed.ts",
