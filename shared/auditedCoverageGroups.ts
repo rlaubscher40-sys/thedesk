@@ -17,7 +17,7 @@ export const auditedCoverageGroups = [
       "https://www.brokernews.com.au/news/breaking-news/firsthome-buyers-sink-as-older-australians-drive-a-credit-rebound-289977.aspx",
     ],
     [
-      "2026-09-16",
+      "2026-09-15",
       "https://www.realestate.com.au/news/labors-housing-dream-shattered-as-firsthome-buyer-demand-collapses/",
     ],
   ],
