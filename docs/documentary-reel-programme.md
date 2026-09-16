@@ -1,5 +1,55 @@
 # The Desk documentary Reel programme
 
+## Producer recovery, 17 September 2026 (Sydney)
+
+The durable work queue is [documentary-editorial-queue.json](documentary-editorial-queue.json).
+Run `pnpm documentary:status` to check its recovered input identities against the
+current registered films, report expired provisional slots and find the oldest
+continuation. This is a read-only recovery preflight, not a publishing gate or a
+claim that autonomous production is commissioned. It accepts held records only;
+promoting a film requires the actual evidence/review and publishing integration.
+
+Recovered main `efab66ba440cf6fef8a4cd5cab3ac1f2fd672ecf` was deployed successfully
+as Railway deployment `4e52b7a6-ad31-4b5e-afcc-b9e922045bb2`. No documentary PR was
+open. PR 286 had already delivered the four distinct previews and merged them;
+do not redo that production. All four saved input fingerprints match current
+main. Current exact-export reviews do not match these four films, so the launch
+gate remains closed. There is no verified four-film reviewed/unpublished buffer.
+
+The producer can inspect code, retrieve files, measure media and inspect still
+frames. It has no exposed capability for a full perceptual listen or continuous
+audiovisual review. No listening, human approval or delegated creative approval
+was fabricated. No film was rendered, approved, reserved or posted in this run.
+The next continuation is Harry's existing exact master, not another Harry story.
+The expired 16 September Lowy slot is not backfilled; assign future Wednesday
+and Sunday slots only once every release gate has passed.
+
+The saved four-preview ZIP is incomplete: it ends after Harry's frame 28 with no
+central directory. Recovery verified CRCs for all 115 complete members, including
+Grollo and Lowy's complete packages and the four-export manifest. The separate
+Harry review ZIP passed its archive integrity test. Standalone Grollo, Lowy and
+Walker MP4s match that manifest. Walker's original detailed review package is
+missing from the incomplete archive; preserve this limitation when reconstructing
+source notes. Do not call an archive repaired merely because the MP4s are intact.
+
+Live scheduler logs identify the 16 September Melbourne approvals Reel
+`17908474461521259` and its companion Story `18185474161365503`, with Brisbane
+approvals selected for 17 September. The public gallery also exposes the national
+housing-gap and Sydney-approvals Reels. These underlying events and takeaways
+differ from the four historical documentary treatments. However, the authenticated
+Reel plan returned HTTP 403, so these observations do not establish complete
+publication history, every permanent receipt or the entire future queue.
+
+Existing code retains Wednesday/Sunday slots, the shared daily cap, retired-film
+receipt locks and ordinary fallback. It does **not** yet enforce a semantic
+subject/event/takeaway duplicate review across both programmes. Before promoting
+any film, recover the complete authenticated history and upcoming queue, complete
+that comparison, record the exact export and reviewer authority (delegated is not
+human), and implement/test the missing queue-to-publisher integration. Neither this
+ledger nor a green deployment claims those outstanding gates are enforced.
+
+All ordinary news, housing, market-data and supply/demand production is untouched.
+
 ## Distinct four-subject lineup, 15 September 2026
 
 The active registry now contains **Harry Triguboff, the Grollo family, Frank Lowy and Lang Walker**. Grollo ownership and Meriton accommodation are superseded previews, removed from active scripts and public reading entries. The older records below document earlier work rather than additional scheduled films.
