@@ -1,5 +1,25 @@
 # September 16 coverage repairs
 
+## Production verification
+
+PR290 deployed as `246a37e`. Verified public records: both features are held;
+three summaries corrected; HIA/Equifax/consumer-confidence pairs linked.
+The recovery inserted 18 rows. All five previously unmatched events are now
+published: Westpac #3930083 (Broker; MPA #3930085 linked), ASX #3930084 (CBA/AAP),
+CPA #3930086, migration preview #3930087 (SBS), NSW stamp duty #3930089 (BT/Reuters).
+The migration summary identifies a forthcoming announcement, not enacted policy.
+
+Westpac's direct index failed in production with an unspecified request/parsing
+error; the broker route recovered the event. This is not proof of a publisher
+denial or proof that the direct route works reliably. Existing access holds remain.
+
+The report save then returned HTTP 400: the 101 configured source outcomes
+exceeded the schema's 100-entry limit. Publication had already succeeded.
+Increase the bounded report capacity to 200 and test the complete configured
+inventory plus the optional evidence-pool diagnostic. Do not truncate source
+failures, fabricate the unsaved report, clear its failed scheduler status, or
+repeat publication merely to make that historical status green.
+
 Final source check: the Business Times property index returned 200 and exposes
 the audited Sydney stamp-duty article directly. Added a bounded index route
 restricted to Australian place-name article paths; this reduces dependence on
