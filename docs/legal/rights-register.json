@@ -1,6 +1,6 @@
 {
   "version": 4,
-  "generatedAt": "2026-09-16T21:57:21.046Z",
+  "generatedAt": "2026-09-17T14:16:04.855Z",
   "scope": "Configured news discovery routes and extraction holds, reviewed Reel photographs, browser font/notice integrity, bundled server assets, direct packages and installed runtime transitive dependency notice inventory. See compliance-depth-review-2026-09-16.md for dataset/model/provider findings and remaining limitations.",
   "applicationLicence": {
     "declared": "MIT",
@@ -191,7 +191,7 @@
     },
     {
       "name": "NSW Housing Releases",
-      "discoveryUrl": "https://www.nsw.gov.au/api/v1/elasticsearch/prod_content/_search?q=status%3Atrue+AND+subtype%3Aministerialmediarelease+AND+%28title%3Ahousing+OR+title%3Arent*+OR+title%3Aplanning+OR+title%3Ahomes%29&sort=display_date%3Adesc&size=30&_source=url%2Ctitle%2Csubtype%2Cstatus",
+      "discoveryUrl": "https://www.nsw.gov.au/api/v1/elasticsearch/prod_content/_search?q=status%3Atrue+AND+subtype%3Aministerialmediarelease+AND+%28content%3Ahousing+OR+content%3Arent*+OR+content%3Aplanning+OR+content%3Ahomes+OR+content%3Aconstruction+OR+content%3Aapprentice*+OR+content%3Adevelopment+OR+content%3Aland%29&sort=display_date%3Adesc&size=30&_source=url%2Ctitle%2Csubtype%2Cstatus%2Csummary",
       "channel": "PROPERTY",
       "articleExtractionHold": null,
       "policyReviewId": "nsw",
@@ -205,6 +205,19 @@
     {
       "name": "Queensland Housing Releases",
       "discoveryUrl": "https://statements.qld.gov.au/?Search=True&Text=housing",
+      "channel": "PROPERTY",
+      "articleExtractionHold": null,
+      "policyReviewId": null,
+      "kind": "index",
+      "permissionStatus": "not-assessed-by-this-inventory",
+      "licenceUrl": null,
+      "checkedAt": null,
+      "reviewer": null,
+      "requiredReview": "Check publisher terms for automated access, excerpts, AI processing, storage and commercial reuse. A working feed or robots permission is not a copyright licence. Google discovery does not license the underlying publisher."
+    },
+    {
+      "name": "Queensland Land Releases",
+      "discoveryUrl": "https://statements.qld.gov.au/?Search=True&Text=land",
       "channel": "PROPERTY",
       "articleExtractionHold": null,
       "policyReviewId": null,
@@ -634,6 +647,32 @@
     {
       "name": "South Coast Housing",
       "discoveryUrl": "https://news.google.com/rss/search?q=%28Bega+OR+%22Bega+Valley%22+OR+Eurobodalla+OR+Shoalhaven%29+%28housing+OR+homes+OR+planning+OR+subdivision%29&hl=en-AU&gl=AU&ceid=AU%3Aen",
+      "channel": "PROPERTY",
+      "articleExtractionHold": null,
+      "policyReviewId": null,
+      "kind": "discovery-only",
+      "permissionStatus": "not-assessed-by-this-inventory",
+      "licenceUrl": null,
+      "checkedAt": null,
+      "reviewer": null,
+      "requiredReview": "Check publisher terms for automated access, excerpts, AI processing, storage and commercial reuse. A working feed or robots permission is not a copyright licence. Google discovery does not license the underlying publisher."
+    },
+    {
+      "name": "Townsville Housing",
+      "discoveryUrl": "https://news.google.com/rss/search?q=Townsville+%28housing+OR+rents+OR+%22property+market%22+OR+%22building+approvals%22%29+when%3A14d&hl=en-AU&gl=AU&ceid=AU%3Aen",
+      "channel": "PROPERTY",
+      "articleExtractionHold": null,
+      "policyReviewId": null,
+      "kind": "discovery-only",
+      "permissionStatus": "not-assessed-by-this-inventory",
+      "licenceUrl": null,
+      "checkedAt": null,
+      "reviewer": null,
+      "requiredReview": "Check publisher terms for automated access, excerpts, AI processing, storage and commercial reuse. A working feed or robots permission is not a copyright licence. Google discovery does not license the underlying publisher."
+    },
+    {
+      "name": "Newcastle Housing",
+      "discoveryUrl": "https://news.google.com/rss/search?q=Newcastle+%28housing+OR+rents+OR+%22property+market%22+OR+%22building+approvals%22%29+%28NSW+OR+Australia+OR+Hunter%29+when%3A14d&hl=en-AU&gl=AU&ceid=AU%3Aen",
       "channel": "PROPERTY",
       "articleExtractionHold": null,
       "policyReviewId": null,

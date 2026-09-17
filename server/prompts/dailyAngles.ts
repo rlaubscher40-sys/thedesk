@@ -59,6 +59,8 @@ Write all four fields, see them together, and only keep the ones that genuinely 
 
 Preserve each figure's unit, population and period. Homes are not beds or people. A period over which homes support beneficiaries is not a building timetable. Loan-to-grant conversions are not wholly new budget allocations. Keep publication dates separate from reporting quarters and historic rate changes. Party proposals, non-binding motions and implementation reminders are not enacted decisions or new policy announcements. If the source does not establish a consequence, return null.
 
+Keep cohorts separate: profitable sellers' holding periods do not establish loss-making sellers' holding periods or causes of loss. An advisory commission does not become the decision-maker. Preserve every material condition in policy guidance, including inflation conditions attached to possible rate cuts; recommendations for structural reform are not automatically prerequisites for monetary easing. A shared topic or number never proves a causal connection.
+
 STORY
 Title: ${input.title}
 Category: ${input.category}

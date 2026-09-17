@@ -41,12 +41,16 @@ export function CityRentRead({
     >
       <p className="bs-label-accent">Official rental conditions · ABS</p>
       <h2 className="font-serif text-3xl mt-3">The pace of rent growth.</h2>
-      <p className="text-sm mt-3 text-[var(--color-fg-muted)]">
+      <p className="text-sm leading-6 mt-3 text-[var(--color-fg-muted)]">
         Annual change in rents actually paid · CPI capital-city series · Original
       </p>
-      {pinned && <p className="text-sm mt-3" role="status">
-        {validPeriod ? `Requested observation: year to ${rentPeriod(period)}. No other month is substituted.` : "Invalid requested reporting month. Use YYYY-MM; latest figures have not been substituted."}
-      </p>}
+      {pinned && (
+        <p className="text-sm mt-3" role="status">
+          {validPeriod
+            ? `Requested observation: year to ${rentPeriod(period)}. No other month is substituted.`
+            : "Invalid requested reporting month. Use YYYY-MM; latest figures have not been substituted."}
+        </p>
+      )}
       <div className={`grid gap-6 mt-6 ${marketB ? "sm:grid-cols-2" : ""}`}>
         {[{ name: marketA, row: a }, ...(marketB ? [{ name: marketB, row: b }] : [])].map(
           ({ name, row }) => (
@@ -92,15 +96,17 @@ export function CityRentRead({
                     {pinned && row.period !== latestRent(data, name)?.period
                       ? "Historical observation · not the latest available month"
                       : rentIsOlder(row, asOf)
-                      ? "Older observation · more than three months behind"
-                      : "Latest available in the retrieved series"}
+                        ? "Older observation · more than three months behind"
+                        : "Latest available in the retrieved series"}
                     {row.status === "p" ? " · Preliminary" : row.status === "r" ? " · Revised" : ""}
                   </p>
                 </>
               ) : (
-                <p className="text-sm mt-3 text-[var(--color-fg-muted)]">
+                <p className="text-sm leading-6 mt-3 text-[var(--color-fg-muted)]">
                   {rentCity(name)
-                    ? pinned ? "The requested month's observation is not available in the retained series. A newer figure has not been substituted." : "Official rent data is temporarily unavailable for this city."
+                    ? pinned
+                      ? "The requested month's observation is not available in the retained series. A newer figure has not been substituted."
+                      : "Official rent data is temporarily unavailable for this city."
                     : "This series covers capital cities. No regional or suburb estimate is substituted."}
                 </p>
               )}
@@ -123,7 +129,7 @@ export function CityRentRead({
         establish the stronger investment setup.
       </p>
       {marketB && (
-        <p className="text-sm mt-3 text-[var(--color-fg-muted)]">
+        <p className="text-sm leading-6 mt-3 text-[var(--color-fg-muted)]">
           This data panel is separate from the dated intelligence brief and its saved or shared
           snapshot.
         </p>
@@ -148,7 +154,7 @@ export function CityRentRead({
           Source observations ({data?.delivery === "workbook" ? "XLSX" : "CSV"}) ↗
         </a>
       </div>
-      <p className="text-xs text-[var(--color-fg-muted)] mt-3">
+      <p className="text-sm text-[var(--color-fg-muted)] mt-3">
         {data?.retrievedAt ? `Retrieved ${data.retrievedAt.slice(0, 10)}. ` : ""}
         {data?.delivery === "workbook"
           ? "Read from the published ABS workbook. Revisions may be incorporated in the file without cell-level flags."

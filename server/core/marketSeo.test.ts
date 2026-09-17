@@ -25,6 +25,23 @@ const directory = buildMarketDirectory(
 const file = directory.markets.find((item) => item.market.slug === "perth")!;
 
 describe("public market HTML and cards", () => {
+  it.each(["perth", "townsville"])(
+    "keeps every section shortcut attached to visible content for %s",
+    (slug) => {
+      const selected = directory.markets.find((item) => item.market.slug === slug)!;
+      for (const demo of [false, true]) {
+        const html = marketShell(shell, selected, { ...directory, demo }, "https://thedesk.au");
+        const nav = html.match(
+          /<nav aria-label="Market file sections"[^>]*>([\s\S]*?)<\/nav>/
+        )?.[1];
+        expect(nav).toBeTruthy();
+        for (const [, id] of nav!.matchAll(/href="#([^"]+)"/g))
+          expect(html).toContain(`id="${id}"`);
+        expect(nav).toContain('href="#source-trail"');
+        if (slug === "townsville" || demo) expect(nav).not.toContain('href="#rental-conditions"');
+      }
+    }
+  );
   it("serves actual visible evidence and actionable links before JavaScript", () => {
     const html = marketShell(shell, file, directory, "https://thedesk.au");
     expect(html).toContain("The source trail");

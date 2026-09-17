@@ -40,7 +40,12 @@ export function TransferRead({
             {quarterLabel(row.period)} · Original ·{" "}
             {row.period === data?.period ? "Preliminary" : "Revisions may apply"}
           </p>
-          <div className="overflow-x-auto mt-4">
+          <div
+            className="overflow-x-auto mt-4"
+            role="region"
+            aria-label="Sale-price table"
+            tabIndex={0}
+          >
             <table className="w-full text-sm text-left">
               <caption className="sr-only">Recorded property transfers in {area}</caption>
               <thead>
@@ -87,7 +92,7 @@ export function TransferRead({
             : "A current verified sale-price table is unavailable for this exact area. Missing values are not zero."}
         </p>
       )}
-      <p className="text-xs mt-3 text-[var(--color-fg-muted)]">
+      <p className="text-sm leading-6 mt-3 text-[var(--color-fg-muted)]">
         Australian Bureau of Statistics
         {row && data?.retrievedAt ? ` · Retrieved ${data.retrievedAt.slice(0, 10)}` : ""}
       </p>
@@ -106,7 +111,7 @@ export function TransferRead({
             .map((r) => (
               <a
                 key={r.period}
-                className="bs-link"
+                className="bs-link bs-period-link"
                 aria-current={r.period === selected ? "page" : undefined}
                 href={housingHref("transfers", area, r.period)}
               >
@@ -173,7 +178,7 @@ export function CompletionRead({
             : "A current verified completions table is unavailable. Missing observations are not zero."}
         </p>
       )}
-      <p className="text-xs mt-3 text-[var(--color-fg-muted)]">
+      <p className="text-sm leading-6 mt-3 text-[var(--color-fg-muted)]">
         Australian Bureau of Statistics
         {row && data?.retrievedAt ? ` · Retrieved ${data.retrievedAt.slice(0, 10)}` : ""}
       </p>
@@ -195,7 +200,7 @@ export function CompletionRead({
             .map((r) => (
               <a
                 key={r.period}
-                className="bs-link"
+                className="bs-link bs-period-link"
                 aria-current={r.period === selected ? "page" : undefined}
                 href={housingHref("completions", LABOUR_STATES[state], r.period)}
               >

@@ -575,6 +575,27 @@ export const SOURCES: Source[] = [
     maxItems: 6,
   },
   {
+    name: "Townsville Housing",
+    // Local reporting can omit Queensland; do not require a state keyword.
+    url: googleNews(
+      'Townsville (housing OR rents OR "property market" OR "building approvals") when:14d'
+    ),
+    category: "PROPERTY",
+    channel: "PROPERTY",
+    maxItems: 12,
+  },
+  {
+    name: "Newcastle Housing",
+    // Disambiguate Newcastle, NSW from the UK without relying on a broad
+    // state feed's first page. Publisher geography checks still apply.
+    url: googleNews(
+      'Newcastle (housing OR rents OR "property market" OR "building approvals") (NSW OR Australia OR Hunter) when:14d'
+    ),
+    category: "PROPERTY",
+    channel: "PROPERTY",
+    maxItems: 12,
+  },
+  {
     name: "Short-stay Housing Policy",
     url: googleNews(
       '(Australia OR Tasmania OR Victoria OR NSW) ("short-stay" OR "short-term accommodation" OR Airbnb) (levy OR tax OR bill OR regulation)'

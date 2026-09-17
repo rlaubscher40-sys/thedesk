@@ -14,6 +14,9 @@ export type ClaimIssue =
   | "unsupported-date"
   | "delivery-status"
   | "forecast-as-fact"
+  | "cohort-scope"
+  | "decision-authority"
+  | "conditional-guidance"
   | "allegation-as-fact";
 
 function figures(text: string): Set<string> {
@@ -186,6 +189,52 @@ export function checkClaimEvidence(
       /\b(?:repeal|remove|abolish)\w*\b/i.test(s)
   );
   for (const sentence of sentences(copy)) {
+    // A profitable seller's holding period cannot explain the behaviour of
+    // loss-making sellers. Require independent evidence for that conclusion.
+    if (
+      /\bprofitable\b/i.test(sentence) &&
+      /\bmedian\b/i.test(sentence) &&
+      /\b(?:means|shows|therefore|so)\b/i.test(sentence) &&
+      /\b(?:most|majority of)\b.{0,40}\bloss.making\b.{0,70}\bshort\b/i.test(sentence) &&
+      !/\b(?:does not|doesn't|cannot|can't|never) (?:mean|show|establish|imply)\b/i.test(
+        sentence
+      ) &&
+      !planningBody.some((s) =>
+        /\b(?:most|majority of)\b.{0,40}\bloss.making\b.{0,70}\bshort\b/i.test(s)
+      )
+    )
+      issues.add("cohort-scope");
+    // Preserve the distinction between the IPC's advice and the minister's
+    // decision in the reviewed Town Hall planning process.
+    if (
+      /\b(?:IPC|Independent Planning Commission)\b.{0,35}\b(?:decides?|determines?|approves?)\b/i.test(
+        sentence
+      ) &&
+      !/\b(?:not|never|doesn't|cannot|can't)\b/i.test(sentence) &&
+      /\b(?:IPC|Independent Planning Commission)\b/i.test(evidence) &&
+      /\badvice\b/i.test(evidence) &&
+      /\b(?:my decision|minister.{0,50}(?:decid|decision))\b/i.test(evidence)
+    )
+      issues.add("decision-authority");
+    // Conditional easing guidance must retain its inflation condition as well
+    // as the growth condition; a separate reform recommendation is not a veto.
+    const conditionalEasing =
+      /\bIMF\b/i.test(evidence) &&
+      planningBody.some(
+        (s) => /\brate cuts?\b/i.test(s) && /\bif\b/i.test(s) && /\binflation\b/i.test(s)
+      );
+    if (
+      conditionalEasing &&
+      ((/\brate cuts?\b/i.test(sentence) &&
+        /\b(?:should|could|consider)\w*\b/i.test(sentence) &&
+        /\bgrowth\b/i.test(sentence) &&
+        !/\binflation\b/i.test(sentence)) ||
+        (/\brate (?:relief|cuts?)\b.{0,45}\b(?:depends? on|requires?)\b.{0,35}\b(?:structural )?reform\b/i.test(
+          sentence
+        ) &&
+          !/\b(?:does not|doesn't|never) (?:depend|require)\b/i.test(sentence)))
+    )
+      issues.add("conditional-guidance");
     percentageScopeIssues(sentence, planningBody).forEach((issue) => issues.add(issue));
     if (
       repealProposal &&

@@ -7,6 +7,80 @@ const source = {
     "NSW plans to deliver 226 new social homes in Sydney. Funding of $1.5 billion was announced in September 2026. Rent growth was 4.3 per cent.",
 };
 describe("source claim checks", () => {
+  it("does not infer losing sellers' behaviour from profitable sellers' holding periods", () => {
+    const source = {
+      title: "Resale profits",
+      articleText:
+        "Profitable resales were held for a median 9.1 years, compared with 8.1 years for loss-making sales.",
+    };
+    const bad =
+      "Profitable resales were held a median 9.1 years, which means most of the loss-making sales reflect short holds, not broad market destruction.";
+    expect(checkClaimEvidence(bad, source)).toContain("cohort-scope");
+    expect(checkedContext({ counterpoint: bad }, source).values.counterpoint).toBeNull();
+    expect(checkClaimEvidence(source.articleText, source)).toEqual([]);
+    expect(
+      checkClaimEvidence(
+        "The median for profitable resales does not mean most loss-making sales reflect short holds.",
+        source
+      )
+    ).not.toContain("cohort-scope");
+    expect(
+      checkClaimEvidence(bad, {
+        ...source,
+        articleText: source.articleText + " Most loss-making resales were short holds.",
+      })
+    ).not.toContain("cohort-scope");
+  });
+  it("keeps the planning commission's advice separate from the minister's decision", () => {
+    const source = {
+      title: "Town Hall Square",
+      articleText:
+        "The minister requested advice from the Independent Planning Commission (IPC). The minister's decision will follow the advice.",
+    };
+    expect(
+      checkClaimEvidence("The IPC now decides whether it becomes a state matter.", source)
+    ).toContain("decision-authority");
+    expect(
+      checkClaimEvidence("The minister will decide after receiving IPC advice.", source)
+    ).toEqual([]);
+    expect(
+      checkClaimEvidence("The IPC does not decide whether it becomes a state matter.", source)
+    ).not.toContain("decision-authority");
+  });
+  it("retains the inflation condition on easing and does not invent reform prerequisites", () => {
+    const source = {
+      title: "IMF rate guidance",
+      articleText:
+        "If growth slows sharply, rate cuts should be considered, but only if inflation looks to be coming under control, the IMF said. Structural reform could improve productivity.",
+    };
+    expect(
+      checkClaimEvidence(
+        "The IMF also said rate cuts should be considered if growth slows sharply.",
+        source
+      )
+    ).toContain("conditional-guidance");
+    expect(
+      checkClaimEvidence(
+        "Rate relief depends on structural reform, not just monthly CPI readings.",
+        source
+      )
+    ).toContain("conditional-guidance");
+    expect(
+      checkClaimEvidence(
+        "The IMF says rate cuts should be considered if growth slows sharply and inflation is coming under control.",
+        source
+      )
+    ).toEqual([]);
+    expect(
+      checkClaimEvidence("Rate relief does not depend on structural reform alone.", source)
+    ).not.toContain("conditional-guidance");
+    expect(
+      checkClaimEvidence("Rate cuts should be considered if growth slows.", {
+        title: "A different forecast",
+        articleText: "Rate cuts should be considered if growth slows.",
+      })
+    ).toEqual([]);
+  });
   it("does not turn an introduced repeal bill into a removed housing obligation", () => {
     const proposed = {
       title: "Pathway forward for Glenden",
