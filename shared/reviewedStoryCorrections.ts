@@ -169,4 +169,94 @@ export const REVIEWED_STORY_CORRECTIONS = [
     }
   ]
 },
+{
+  "id": 3960056,
+  "sourceUrl": "https://www.nsw.gov.au/ministerial-releases/nsw-government-to-double-length-of-aquaculture-leases-driving-regional-growth",
+  "issuedOn": "2026-09-17",
+  "reference": "Story 3960056",
+  "what": "An expanded government discovery route admitted a release whose main subject was outside the property briefing.",
+  "now": "The release is withdrawn from public feeds. Government-source selection now requires a housing or planning subject in the opening reporting, and excludes awards and animal rehoming. The database record and reader notes are retained.",
+  "fields": [
+    {
+      "field": "channel",
+      "before": "AU",
+      "after": "HOLD"
+    }
+  ]
+},
+{
+  "id": 3960057,
+  "sourceUrl": "https://statements.qld.gov.au/statements/106056",
+  "issuedOn": "2026-09-17",
+  "reference": "Story 3960057",
+  "what": "An expanded government discovery route admitted a release whose main subject was outside the property briefing.",
+  "now": "The release is withdrawn from public feeds. Government-source selection now requires a housing or planning subject in the opening reporting, and excludes awards and animal rehoming. The database record and reader notes are retained.",
+  "fields": [
+    {
+      "field": "channel",
+      "before": "AU",
+      "after": "HOLD"
+    }
+  ]
+},
+{
+  "id": 3960059,
+  "sourceUrl": "https://www.nsw.gov.au/ministerial-releases/new-14-million-partnership-to-boost-drought-resilience-australian-cropping-systems",
+  "issuedOn": "2026-09-17",
+  "reference": "Story 3960059",
+  "what": "An expanded government discovery route admitted a release whose main subject was outside the property briefing.",
+  "now": "The release is withdrawn from public feeds. Government-source selection now requires a housing or planning subject in the opening reporting, and excludes awards and animal rehoming. The database record and reader notes are retained.",
+  "fields": [
+    {
+      "field": "channel",
+      "before": "AU",
+      "after": "HOLD"
+    }
+  ]
+},
+{
+  "id": 3960060,
+  "sourceUrl": "https://www.nsw.gov.au/ministerial-releases/nsw-winners-announced-at-2026-resilient-australia-awards-0",
+  "issuedOn": "2026-09-17",
+  "reference": "Story 3960060",
+  "what": "An expanded government discovery route admitted a release whose main subject was outside the property briefing.",
+  "now": "The release is withdrawn from public feeds. Government-source selection now requires a housing or planning subject in the opening reporting, and excludes awards and animal rehoming. The database record and reader notes are retained.",
+  "fields": [
+    {
+      "field": "channel",
+      "before": "PROPERTY",
+      "after": "HOLD"
+    }
+  ]
+},
+{
+  "id": 3960061,
+  "sourceUrl": "https://www.nsw.gov.au/ministerial-releases/companion-animal-welfare-program-reopens",
+  "issuedOn": "2026-09-17",
+  "reference": "Story 3960061",
+  "what": "An expanded government discovery route admitted a release whose main subject was outside the property briefing.",
+  "now": "The release is withdrawn from public feeds. Government-source selection now requires a housing or planning subject in the opening reporting, and excludes awards and animal rehoming. The database record and reader notes are retained.",
+  "fields": [
+    {
+      "field": "channel",
+      "before": "PROPERTY",
+      "after": "HOLD"
+    }
+  ]
+},
+{
+  "id": 3960062,
+  "sourceUrl": "https://www.nsw.gov.au/ministerial-releases/town-hall-square",
+  "issuedOn": "2026-09-17",
+  "reference": "Story 3960062",
+  "what": "The extracted first-person statement was clipped before the full planning-process qualification.",
+  "now": "The summary identifies the NSW direction and distinguishes a pause in determination from rejection of the proposal.",
+  "fields": [
+    {
+      "field": "summary",
+      "before": "The NSW Minister for Planning and Public Spaces stated: I have today issued a direction under Section 9.1 of the Environmental Planning & Assessment Act 1979 to the City of Sydney Council to prevent determination of any development applications for its Town Hall Square proposal until I receive and make public advice on its State Significance from the Independent Planning...",
+      "after": "NSW has directed City of Sydney Council to pause determination of development applications for Town Hall Square until the planning minister receives and publishes advice from the Independent Planning Commission. This delays determination while state significance is considered; it does not reject the proposal."
+    }
+  ]
+},
 ] as const;
