@@ -4,6 +4,7 @@ import { TransferRead, CompletionRead } from "./QuarterlyHousingRead";
 import { transferForMarket } from "./quarterlyHousing";
 import { CityRentRead } from "./CityRentRead";
 import { CityApprovalRead } from "./CityApprovalRead";
+import { rentCity } from "./cityRents";
 import {
   coverageLabel,
   marketPath,
@@ -64,6 +65,41 @@ export function PublicMarketRead({
         </p>
       </header>
 
+      <nav aria-label="Market file sections" className="flex flex-wrap gap-2 mt-5">
+        {!directory.demo && (
+          <>
+            <a className="bs-link bs-period-link text-sm" href="#transfers">
+              Sale prices
+            </a>
+            <a className="bs-link bs-period-link text-sm" href="#completions">
+              State completions
+            </a>
+            <a className="bs-link bs-period-link text-sm" href="#state-demographics">
+              State population
+            </a>
+            <a className="bs-link bs-period-link text-sm" href="#state-labour">
+              State employment
+            </a>
+            {rentCity(market.name) && (
+              <>
+                <a className="bs-link bs-period-link text-sm" href="#rental-conditions">
+                  Rents
+                </a>
+                <a className="bs-link bs-period-link text-sm" href="#housing-approvals">
+                  Approvals
+                </a>
+              </>
+            )}
+          </>
+        )}
+        <a className="bs-link bs-period-link text-sm" href="#latest-reporting">
+          Latest reporting
+        </a>
+        <a className="bs-link bs-period-link text-sm" href="#source-trail">
+          Source trail
+        </a>
+      </nav>
+
       {!directory.demo && (
         <TransferRead
           data={file.transfers}
@@ -96,7 +132,11 @@ export function PublicMarketRead({
           onSource={() => onAction?.("source")}
         />
       )}
-      <section className="rule-hair rule-hair-b mt-6 py-6" aria-label="Latest reporting">
+      <section
+        id="latest-reporting"
+        className="rule-hair rule-hair-b mt-6 py-6"
+        aria-label="Latest reporting"
+      >
         <p className="bs-label-accent">
           {lead ? `Latest selected report · ${lead.date}` : "An open evidence gap"}
         </p>
@@ -138,7 +178,7 @@ export function PublicMarketRead({
             Compare another market
           </a>
         </div>
-        <p className="text-xs mt-3 text-[var(--color-fg-muted)]">
+        <p className="text-sm leading-6 mt-3 text-[var(--color-fg-muted)]">
           Reading this file is free. Questions and comparisons use your intelligence allowance.
         </p>
       </section>
@@ -163,7 +203,7 @@ export function PublicMarketRead({
         consistent city boundary or property type.
       </p>
 
-      <section className="mt-9" aria-label="Market source trail">
+      <section id="source-trail" className="mt-9" aria-label="Market source trail">
         <h2 className="font-serif text-3xl">The source trail</h2>
         <p className="bs-label mt-3">
           {file.since} to {file.asOf} · Newest first · Up to 12 references shown
@@ -211,7 +251,7 @@ export function PublicMarketRead({
         <section className="rule-major mt-9 pt-5">
           <p className="bs-label-accent">Put the evidence to the test</p>
           <h2 className="font-serif text-3xl mt-3">{market.name} versus…</h2>
-          <p className="text-sm mt-3 text-[var(--color-fg-muted)]">
+          <p className="text-sm leading-6 mt-3 text-[var(--color-fg-muted)]">
             Other markets with recent reporting. These are starting points, not ranked
             opportunities. A comparison may still lack matching evidence.
           </p>

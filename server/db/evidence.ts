@@ -7,6 +7,7 @@ import { isDemoMode } from "../demo/store";
 import { EVIDENCE_SOURCES } from "../../scripts/ingest/propertySources";
 import { PROPERTY_REGIONS, sourceHealth } from "../../shared/propertyCoverage";
 import { evidenceEligible, evidenceText } from "../../shared/evidenceQuality";
+import { PUBLIC_REGIONAL_MARKETS } from "../../shared/marketDirectory";
 
 type EvidenceRow = typeof propertyEvidence.$inferSelect;
 /** Bounded backfill: held rows cannot consume the first page's usable slots. */
@@ -69,8 +70,8 @@ export async function getPropertyEvidence(id: number) {
 export async function listPropertyMarketEvidence() {
   const db = getDb();
   if (!db || isDemoMode()) return [];
-  const bundles = await Promise.all(
-    PROPERTY_REGIONS.map((region) =>
+  const bundles = await Promise.all([
+    ...PROPERTY_REGIONS.map((region) =>
       usableEvidencePages(
         (offset) =>
           db
@@ -90,8 +91,32 @@ export async function listPropertyMarketEvidence() {
         100,
         (row) => hasHousingEvidence(`${row.title} ${row.summary}`)
       )
-    )
-  );
+    ),
+    ...PUBLIC_REGIONAL_MARKETS.map((market) => {
+      const pattern = `%${escapeLike(market.name)}%`;
+      return usableEvidencePages(
+        (offset) =>
+          db
+            .select()
+            .from(propertyEvidence)
+            .where(
+              and(
+                or(like(propertyEvidence.title, pattern), like(propertyEvidence.summary, pattern)),
+                gte(propertyEvidence.publishedAt, new Date(Date.now() - 90 * 86_400_000)),
+                lte(propertyEvidence.publishedAt, new Date()),
+                sql`LOWER(CONCAT(${propertyEvidence.title}, ' ', ${propertyEvidence.summary})) REGEXP ${HOUSING_TOPIC_PATTERN}`
+              )
+            )
+            .orderBy(desc(propertyEvidence.publishedAt), desc(propertyEvidence.id))
+            .limit(40)
+            .offset(offset),
+        40,
+        (row) =>
+          new RegExp(`\\b${market.name}\\b`, "i").test(`${row.title} ${row.summary}`) &&
+          hasHousingEvidence(`${row.title} ${row.summary}`)
+      );
+    }),
+  ]);
   return [...new Map(bundles.flat().map((row) => [row.id, row])).values()];
 }
 

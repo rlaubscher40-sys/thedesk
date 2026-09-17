@@ -76,7 +76,8 @@ export function MarketDiscovery({ compact = false }: { compact?: boolean }) {
                 "The evidence gap is visible. Explore the file or ask a broader question."}
             </p>
             <p className="bs-label mt-4">
-              {file.referenceCount} selected references
+              {file.referenceCount} selected{" "}
+              {file.referenceCount === 1 ? "reference" : "references"}
               {file.latestMention ? ` · ${file.latestMention}` : ""}
             </p>
           </Link>

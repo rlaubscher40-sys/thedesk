@@ -59,7 +59,7 @@ export function NewLoanRatesRead({
         like-for-like price premium. Compare rates, fees, repayments and loan terms. A comparison
         rate includes interest and most fees, using a specified loan amount and term.
       </p>
-      <p className="text-xs mt-3">
+      <p className="text-sm mt-3">
         Original monthly series FLRHOFTA and FLRHIFTA. Rates shown to one decimal place. Figures can
         be revised. Match the reference period shown in the post; this page updates with the source.
       </p>

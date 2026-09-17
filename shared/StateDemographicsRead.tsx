@@ -18,7 +18,11 @@ export function StateDemographicsRead({
   if (!state) return null;
   const read = annualStateDemographics(data, state, asOf);
   return (
-    <section className="rule-hair mt-6 py-6" aria-label="State population and migration">
+    <section
+      id="state-demographics"
+      className="rule-hair mt-6 py-6"
+      aria-label="State population and migration"
+    >
       <p className="bs-label-accent">Demand · State context</p>
       <h2 className="font-serif text-3xl mt-3">Population and migration in {state}.</h2>
       <p className="text-sm mt-3">

@@ -55,7 +55,7 @@ export function StateLabourRead({
             monthly change is ABS's published percentage, not annual growth. These figures alone do
             not establish a housing price outlook.
           </p>
-          <p className="text-xs mt-3 text-[var(--color-fg-muted)]">
+          <p className="text-sm leading-6 mt-3 text-[var(--color-fg-muted)]">
             Australian Bureau of Statistics · Retrieved {data!.retrievedAt?.slice(0, 10)}; retrieval
             is not publication.
           </p>

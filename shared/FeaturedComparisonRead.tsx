@@ -160,7 +160,7 @@ export function FeaturedComparisonRead({
         <a href="/markets?q=Brisbane&vs=Perth#comparison-form" className="bs-btn bs-btn-solid">
           Build the wider intelligence brief →
         </a>
-        <p className="text-xs mt-3 text-[var(--color-fg-muted)]">
+        <p className="text-sm leading-6 mt-3 text-[var(--color-fg-muted)]">
           Generating a brief uses your question allowance. The Desk will state when the evidence
           cannot support a call.
         </p>

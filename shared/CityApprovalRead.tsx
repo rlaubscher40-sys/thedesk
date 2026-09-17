@@ -43,8 +43,8 @@ export function CityApprovalRead({
       {period != null && (
         <p className="text-sm mt-3" role="status">
           Requested year-ending month: {period}. This is a dated observation, not a claim about
-          current conditions. If its complete twelve-month window is unavailable, a different
-          period is not substituted.
+          current conditions. If its complete twelve-month window is unavailable, a different period
+          is not substituted.
         </p>
       )}
       {matched ? (
@@ -76,7 +76,7 @@ export function CityApprovalRead({
           That evidence is unavailable right now.
         </p>
       )}
-      <p className="text-xs leading-5 mt-5 text-[var(--color-fg-muted)]">
+      <p className="text-sm leading-5 mt-5 text-[var(--color-fg-muted)]">
         ABS Greater Capital City Statistical Areas; Canberra uses the whole Australian Capital
         Territory. These counts are not adjusted for population or existing housing stock and are
         not seasonally adjusted. They use a different series from CPI rents.

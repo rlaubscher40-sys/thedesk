@@ -29,7 +29,11 @@ export function StatePopulationRead({
     read: annualStateDemographics(data, state, asOf),
   }));
   return (
-    <section id="state-population" className="rule-hair pt-5 mt-5" aria-label="State population and migration context">
+    <section
+      id="state-population"
+      className="rule-hair pt-5 mt-5"
+      aria-label="State population and migration context"
+    >
       <p className="bs-label-accent">Demand context · State population</p>
       <h2 className="font-serif text-3xl mt-2">Where population changed.</h2>
       <div className="grid sm:grid-cols-2 gap-x-8 mt-4">
@@ -55,7 +59,7 @@ export function StatePopulationRead({
                     <dd className="font-mono text-xl mt-1">{signed(read.netOverseasMigration)}</dd>
                   </div>
                 </dl>
-                <p className="text-xs mt-3 text-[var(--color-fg-muted)]">
+                <p className="text-sm leading-6 mt-3 text-[var(--color-fg-muted)]">
                   Year to {quarter(read.period)} · quarterly components
                   {read.preliminary ? " · includes preliminary observations" : ""}
                   {read.revised ? " · includes revised observations" : ""}
