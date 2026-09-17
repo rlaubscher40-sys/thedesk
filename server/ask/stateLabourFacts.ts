@@ -6,10 +6,10 @@ import type { FactEvidence } from "../localData/read";
 
 /** Conservative state-only question scope. An unrecognised locality or measure
  * must not silently become a whole-state employment answer. */
-export async function stateLabourFacts(question: string): Promise<FactEvidence[]> {
+export function stateLabourScope(question: string) {
   if (!/\b(?:employment|unemployment|employed|participation|labour|labor|jobs)\b/i.test(question))
-    return [];
-  if (/\b(?:how many|number of|count of) jobs\b/i.test(question)) return [];
+    return null;
+  if (/\b(?:how many|number of|count of) jobs\b/i.test(question)) return null;
   let rest = question;
   const states = STATE_CODES.filter((state) => {
     const pattern = new RegExp(
@@ -21,14 +21,14 @@ export async function stateLabourFacts(question: string): Promise<FactEvidence[]
     rest = rest.replace(pattern, " ");
     return found;
   });
-  if (!states.length || states.length > 6) return [];
+  if (!states.length || states.length > 6) return null;
   const periods = requestedLocalPeriods(question);
   if (
     periods.length > 1 ||
     periods.some((p) => !/^20\d{2}-(0[1-9]|1[0-2])$/.test(p)) ||
     /\b(?:quarter|Q[1-4])\b/i.test(question)
   )
-    return [];
+    return null;
   rest = rest
     .replace(/\b20\d{2}-(?:0[1-9]|1[0-2])\b/g, " ")
     .replace(
@@ -40,19 +40,27 @@ export async function stateLabourFacts(question: string): Promise<FactEvidence[]
       " "
     )
     .replace(/[\s?,.:;'’()-]/g, "");
-  if (rest) return [];
+  if (rest) return null;
+  return { states, period: periods[0] };
+}
+
+export async function stateLabourFacts(question: string): Promise<FactEvidence[]> {
+  const scope = stateLabourScope(question);
+  if (!scope) return [];
+  const { states, period } = scope;
   const data = await getStateLabour();
   return states.flatMap((state) => {
-    const row = readStateLabour(data, state, new Date().toISOString(), periods[0]);
+    const row = readStateLabour(data, state, new Date().toISOString(), period);
     if (!row || !data.period) return [];
     return [
       {
+        stateLabour: { period: data.period, observation: row },
         title: `${LABOUR_STATES[state]}: state labour market`,
         date: data.period,
         href: labourHref(state, data.period),
         publisher: "Australian Bureau of Statistics",
         sourceUrl: data.sourceUrl,
-        text: `Geography: whole ${LABOUR_STATES[state]} state/territory, not a city, suburb or local employment market. Reporting month ${data.period}. All measures are TREND, not seasonally adjusted or original. Employed people: ${row.employedPeople}; monthly employment change: ${row.employmentMonthlyPercent}%; unemployment rate: ${row.unemploymentPercent}%; participation rate: ${row.participationPercent}%. Employment counts people, not jobs or job vacancies. Monthly change is not annual growth. Trend estimates are revised and smooth short-term volatility. ${periods.length ? "Requested reporting period; not necessarily current conditions. " : ""}Retrieved ${data.retrievedAt}; retrieval is not publication. Do not infer a housing price forecast or rank investment markets from these figures.`,
+        text: `Geography: whole ${LABOUR_STATES[state]} state/territory, not a city, suburb or local employment market. Reporting month ${data.period}. All measures are TREND, not seasonally adjusted or original. Employed people: ${row.employedPeople}; monthly employment change: ${row.employmentMonthlyPercent}%; unemployment rate: ${row.unemploymentPercent}%; participation rate: ${row.participationPercent}%. Employment counts people, not jobs or job vacancies. Monthly change is not annual growth. Trend estimates are revised and smooth short-term volatility. ${period ? "Requested reporting period; not necessarily current conditions. " : ""}Retrieved ${data.retrievedAt}; retrieval is not publication. Do not infer a housing price forecast or rank investment markets from these figures.`,
       },
     ];
   });

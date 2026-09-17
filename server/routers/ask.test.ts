@@ -67,6 +67,25 @@ afterEach(() => {
 });
 
 describe("Ask answer recovery", () => {
+  it("answers verified state unemployment without generation or model review", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date("2026-09-17"));
+    vi.mocked(retrieveLocalFacts).mockResolvedValue(["NSW", "QLD"].map((state) => ({
+      stateLabour: {period: "2026-07", observation: {state: state as "NSW" | "QLD", employedPeople: 3052100, employmentMonthlyPercent: 0.2, unemploymentPercent: 4.2, participationPercent: 67.1}},
+      title: `${state}: state labour market`, date: "2026-07", href: `/markets?q=${state}&labourPeriod=2026-07#state-labour`,
+      publisher: "Australian Bureau of Statistics", sourceUrl: "https://www.abs.gov.au/statistics/labour/employment-and-unemployment/labour-force-australia/jul-2026",
+      text: `${state} unemployment rate 4.2%, ABS trend, July 2026.`
+    })));
+    vi.mocked(reviewAskAnswer).mockResolvedValue(false);
+    const result = await askRouter.createCaller(ctx).answer({question: "Compare NSW and Queensland unemployment in July 2026"});
+    expect(result.status).toBe("answered");
+    if (result.status === "answered") {
+      expect(result.answer.answer).toContain("Queensland — unemployment rate: 4.2%");
+      expect(result.sources).toHaveLength(2);
+      expect(result.sources.every((source) => source.href.includes("labourPeriod=2026-07"))).toBe(true);
+    }
+    expect(invokeLLMJson).not.toHaveBeenCalled();
+    expect(reviewAskAnswer).not.toHaveBeenCalled();
+  });
   it("answers the approvals Signals hand-off without either model invocation", async () => {
     vi.useFakeTimers(); vi.setSystemTime(new Date("2026-09-09"));
     vi.mocked(db.listDailyMetrics).mockResolvedValue([{
