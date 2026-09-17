@@ -1,3 +1,7 @@
+import {
+  documentaryPublicationGuard,
+  logDocumentaryReleaseReadiness,
+} from "./documentaryPublicationGuard";
 import { inReelWindow, REEL_WINDOW } from "../../shared/instagramSchedule";
 import { env } from "../core/env";
 import { claimJobRun, markJobRun, readJobRun, expireReelDelivery } from "../db/jobRuns";
@@ -60,12 +64,20 @@ async function readReelSelection(
   now: Date,
   history: Awaited<ReturnType<typeof readReelPublicationHistory>>
 ) {
-  const candidates = await getVerifiedReelCandidates(now);
+  const offered = await getVerifiedReelCandidates(now);
+  const candidates = [];
+  for (const item of offered) {
+    if ("documentary" in item.stat && item.stat.documentary) {
+      const guard = await documentaryPublicationGuard(item.stat.documentary.id, now);
+      if (!guard.ready) continue; // Retain the ordinary programme's existing fallback.
+    }
+    candidates.push(item);
+  }
   const date = sydneyDate(now);
   // A dated slot expiring must not hide an uncertain publication. Keep reading
   // permanent documentary receipts after their day, even if review is withdrawn.
   const documentaries = [
-    ...DOCUMENTARY_EPISODES.filter((episode) => episode.releaseDate <= date).map((episode) => ({
+    ...DOCUMENTARY_EPISODES.map((episode) => ({
       ...documentaryCandidate(episode),
       topic: episode.series,
       family: episode.series === "The Deal" ? "documentary-deal" : "documentary-empires",
@@ -179,6 +191,9 @@ export async function runReelAutomation(options: {
     !env.instagramBusinessAccountId
   )
     return { state: "disabled" as const };
+  await logDocumentaryReleaseReadiness(options.now).catch((error) =>
+    console.warn("[instagram] documentary readiness unavailable:", String(error))
+  );
   const plan = await readReelAutomation(options.now);
   logReelPlan(plan, true, true, options.now);
   if (plan.state !== "ready") return { state: plan.state };

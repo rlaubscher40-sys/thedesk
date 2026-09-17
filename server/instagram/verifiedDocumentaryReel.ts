@@ -1,3 +1,4 @@
+import { DOCUMENTARY_RELEASE_DATES } from "./documentaryReleasePlan";
 import { DOCUMENTARY_READING, documentaryDurationLimit } from "../../shared/documentaryReels";
 import { DOCUMENTARY_EPISODES, type DocumentaryEpisode } from "./documentaryEpisodes";
 import { DOCUMENTARY_REVIEWS } from "./documentaryReviews";
@@ -66,9 +67,9 @@ export function getDocumentaryProgramme(now = new Date()) {
       ready &&
       documentaryEpisodeReviewed(episode) &&
       slot === episode.series &&
-      date === episode.releaseDate
+      date === DOCUMENTARY_RELEASE_DATES[episode.id]
         ? documentaryCandidate(episode)
         : null,
-    requirement: `${episode.series} · ${episode.releaseDate} · 6:30pm Sydney. ${ready ? "Four-episode launch buffer reviewed." : "Waiting for four complete, reviewed exports."} Each episode publishes only in its assigned day slot.`,
+    requirement: `${episode.series} · ${DOCUMENTARY_RELEASE_DATES[episode.id] ?? "unscheduled"} · 6:30pm Sydney. ${ready ? "Four exact exports authorised for release." : "Waiting for four complete, reviewed exports."} Each episode publishes only in its assigned day slot.`,
   }));
 }

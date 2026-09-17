@@ -206,3 +206,46 @@ Input hash: `101e731ba1207265635c280825d8e5b82121377558a04e147a9f5bdeca03dd88`.
 Video SHA-256: `15a53cce4a4bc1343e21e190b576df686abf382d740238fc798edec6b5c3c266`.
 
 This is a new creative preview. Historical review records do not approve this export, and the four-film publication gate remains closed.
+
+## Release authorisation, 17 September 2026
+
+Ruben's instruction, “I trust them to be good lets start posting etx”, authorises
+release of the four recovered exact exports after the disclosed review limitations.
+This is user release authorisation, not a claim that Ruben watched or listened to
+them, and not a newly performed full listening or continuous-motion review. It
+applies to the four SHA-256 identities in `documentaryReviews.ts`; changed inputs
+or bytes invalidate it. The original source qualifications and recovered review
+packages remain attached in `documentary-editorial-queue.json`.
+
+`documentaryReleasePlan.ts` assigns Harry to Sunday 20 September, Lowy to Wednesday
+23 September, Grollo to Sunday 27 September and Walker to Wednesday 30 September,
+all in the existing 18:30–20:00 Sydney window. Scheduling is deliberately separate
+from the old render-input `releaseDate` and the permanent episode receipt identity.
+No expired slot is reused and no receipt is reset. The scheduler's one-Reel-per-day
+claim, ordinary fallback and uncertain-publication locks remain in force.
+
+Delivery reconstructs the saved MP4 from repository binary parts, verifies its
+complete hash and submits those exact bytes. It does not regenerate approved
+films. All four archives must validate before a documentary can clear the launch
+buffer. This adds no service, paid storage, commercial assets or new voice API.
+
+Before a documentary becomes eligible, the server compares its authored subject,
+underlying event and central takeaway against every ordinary programme recipe,
+future documentary releases and all recorded Reel receipts from the previous 90
+days. Founder/company/family aliases share identities. Unknown recipes, unlinked
+recorded Reels, unavailable or over-limit history and repeated subjects are held;
+a changed title is not a sourced distinction. Stored export hashes are compared
+where historical render provenance exists. Older receipts without a render hash
+are classified by their registered recipe, not misrepresented as byte-verified.
+This covers the existing application's two Reel programmes, not unrecorded posts
+made outside this application. Documentary bytes cannot be submitted through an
+ordinary publication identity. The same check runs again immediately before
+preparing a documentary for Meta delivery.
+
+Private deployment logs report `documentary release readiness` for the future
+slots using live database reads, permanent receipt states and archive integrity.
+These are readiness records, not publication receipts. Only a confirmed permanent
+`Published media <id>` receipt establishes publication. The production worker
+continues to check at the existing five-minute cadence; no extra releases or daily
+documentary cadence are introduced. Future new films still need their own review
+and release authorisation under the production playbook.

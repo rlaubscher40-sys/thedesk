@@ -1,3 +1,8 @@
+import { DOCUMENTARY_RELEASE_DATES } from "../../server/instagram/documentaryReleasePlan";
+import {
+  DOCUMENTARY_RELEASE_AUTHORISATION,
+  DOCUMENTARY_REVIEWS,
+} from "../../server/instagram/documentaryReviews";
 import { DOCUMENTARY_EPISODES } from "../../server/instagram/documentaryEpisodes";
 import { documentaryReviewHash, sealDocumentary } from "../../server/video/documentaryStory";
 import { documentaryLaunchReady } from "../../server/instagram/verifiedDocumentaryReel";
@@ -17,7 +22,11 @@ const queueSchema = z.object({
         episodeId: z.string().min(1),
         family: z.enum(["documentary-deal", "documentary-empires"]),
         firstRecordedDate: date,
-        stage: z.enum(["blocked-review", "blocked-evidence-and-review"]),
+        stage: z.enum([
+          "blocked-review",
+          "blocked-evidence-and-review",
+          "authorised-for-scheduled-release",
+        ]),
         selectionReason: z.string().min(1),
         underlyingEvent: z.string().min(1),
         centralTakeaway: z.string().min(1),
@@ -29,13 +38,23 @@ const queueSchema = z.object({
           sampledFrames: z.literal("previously-inspected"),
           fullListening: z.literal("blocked"),
           continuousMotion: z.literal("not-reviewed"),
-          approval: z.null(),
+          approval: z.union([
+            z.null(),
+            z.object({
+              kind: z.literal("user-release-authorisation"),
+              author: z.literal("Ruben Laubscher"),
+              date: z.literal("2026-09-17"),
+              instruction: z.literal("I trust them to be good lets start posting etx"),
+              fullListening: z.literal("not-performed"),
+              continuousMotion: z.literal("not-reviewed"),
+            }),
+          ]),
         }),
         publication: z.object({
           key: z.string(),
           date,
           receiptStatus: z.literal("unavailable"),
-          reservedSydneyDate: z.null(),
+          reservedSydneyDate: date.nullable(),
           legacyProvisionalDate: date,
         }),
       })
@@ -43,9 +62,8 @@ const queueSchema = z.object({
     .min(1),
 });
 
-/** Recovery ledger preflight only. Never approves, reschedules, renders or posts.
- * Deliberately accepts only held recovery records. A ready-state transition needs
- * a separate reviewed implementation, not a JSON edit that invents approval. */
+/** Read-only durable checkpoint. Live receipts and cross-programme checks are
+ * separately read by the production scheduler; JSON is never proof of publication. */
 export function documentaryQueueStatus(input: unknown, now: Date) {
   if (!Number.isFinite(now.getTime())) throw new Error("Invalid status clock.");
   const queue = queueSchema.parse(input);
@@ -64,21 +82,29 @@ export function documentaryQueueStatus(input: unknown, now: Date) {
       item.publication.date !== "2026-09-14"
     )
       throw new Error("Permanent receipt identity changed.");
+    if (
+      item.review.approval &&
+      (JSON.stringify(item.review.approval) !== JSON.stringify(DOCUMENTARY_RELEASE_AUTHORISATION) ||
+        item.export.videoSha256 !== DOCUMENTARY_REVIEWS[episode.id]?.videoSha256 ||
+        item.publication.reservedSydneyDate !== DOCUMENTARY_RELEASE_DATES[episode.id])
+    )
+      throw new Error("Release authorisation or reserved date mismatch.");
     return {
       episodeId: item.episodeId,
       stage: item.stage,
       currentInputMatchesRecoveredExport:
         item.export.inputHash === documentaryReviewHash(sealDocumentary(episode)),
       legacySlotExpired: item.publication.legacyProvisionalDate < today,
-      reservedSydneyDate: null,
-      approval: null,
+      reservedSydneyDate: item.publication.reservedSydneyDate,
+      approval: item.review.approval,
       receiptStatus: item.publication.receiptStatus,
     };
   });
   return {
     asOfSydneyDate: today,
     checkpointAt: queue.checkedAt,
-    scope: "Read-only recovery preflight, not publishing enforcement or creative approval",
+    scope:
+      "Read-only release checkpoint. Live readiness and receipts are in private scheduler logs.",
     runtimeLaunchGateReady: documentaryLaunchReady(),
     verifiedReviewedUnpublishedCount: 0,
     nextContinuation: [...queue.episodes].sort((a, b) =>
