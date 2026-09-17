@@ -14,6 +14,8 @@ import { getCityApprovals } from "./absApprovals";
 import { getStateDemographics } from "./absDemographics";
 import { getStateLabour } from "./absLabour";
 import { getHousingTransfers, getHousingCompletions } from "./absQuarterlyHousing";
+import { readLocalDataset } from "../db/localData";
+import { matchLocalAreas } from "../localData/read";
 
 async function optionalSource<T>(read: Promise<T>): Promise<T | undefined> {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -190,17 +192,27 @@ export async function getMarketDirectory(): Promise<MarketDirectory> {
   }).format(new Date());
   return cached(`feed:market-directory:${asOf}`, 60_000, async () => {
     const demo = isDemoMode();
-    const [items, rents, approvals, demographics, archive, labour, transfers, completions] =
-      await Promise.all([
-        db.listMarketDiscoveryItems(daysBefore(asOf, 89), asOf, 1001),
-        demo ? undefined : optionalSource(getCityRents()),
-        demo ? undefined : optionalSource(getCityApprovals()),
-        demo ? undefined : optionalSource(getStateDemographics()),
-        db.listPropertyMarketEvidence(),
-        demo ? undefined : optionalSource(getStateLabour()),
-        demo ? undefined : optionalSource(getHousingTransfers()),
-        demo ? undefined : optionalSource(getHousingCompletions()),
-      ]);
+    const [
+      items,
+      rents,
+      approvals,
+      demographics,
+      archive,
+      labour,
+      transfers,
+      completions,
+      qldRents,
+    ] = await Promise.all([
+      db.listMarketDiscoveryItems(daysBefore(asOf, 89), asOf, 1001),
+      demo ? undefined : optionalSource(getCityRents()),
+      demo ? undefined : optionalSource(getCityApprovals()),
+      demo ? undefined : optionalSource(getStateDemographics()),
+      db.listPropertyMarketEvidence(),
+      demo ? undefined : optionalSource(getStateLabour()),
+      demo ? undefined : optionalSource(getHousingTransfers()),
+      demo ? undefined : optionalSource(getHousingCompletions()),
+      demo ? undefined : optionalSource(readLocalDataset("qld-bond-rents")),
+    ]);
     const directory = buildMarketDirectory(
       [
         ...items,
@@ -229,6 +241,10 @@ export async function getMarketDirectory(): Promise<MarketDirectory> {
         labour,
         transfers,
         completions,
+        councilRents:
+          !demo && qldRents && file.market.state === "QLD"
+            ? matchLocalAreas(file.market.name, [qldRents], { state: "QLD", kind: "LGA" })[0]
+            : undefined,
       })),
     };
   });

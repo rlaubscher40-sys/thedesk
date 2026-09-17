@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+vi.mock("../db/localData", () => ({ readLocalDataset: vi.fn(async () => null) }));
 vi.mock("./absQuarterlyHousing", () => ({
   getHousingTransfers: vi.fn(async () => ({
     status: "unavailable",
@@ -43,6 +44,8 @@ vi.mock("./absDemographics", () => ({
   })),
 }));
 import { listMarketDiscoveryItems } from "../db";
+import { readLocalDataset } from "../db/localData";
+import type { LocalDataset } from "../../shared/localData";
 import { invalidate } from "../core/cache";
 import { buildMarketDirectory, getMarketDirectory, MARKET_SAMPLE_LIMIT } from "./discovery";
 
@@ -64,7 +67,56 @@ const perth = (items: Item[], demo = false) =>
   )!;
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(readLocalDataset).mockResolvedValue(null);
   invalidate();
+});
+
+it("adds council rents by exact state and LGA without changing reporting counts", async () => {
+  vi.mocked(listMarketDiscoveryItems).mockResolvedValue([]);
+  const dataset: LocalDataset = {
+    sourceKey: "qld-bond-rents",
+    period: "2026-06-30",
+    retrievedAt: "2026-09-17T00:00:00Z",
+    resourceUrl: "https://www.rta.qld.gov.au/source.xlsx",
+    fingerprint: "fixture",
+    excludedRows: 0,
+    areas: [
+      {
+        id: "council",
+        name: "Townsville (C)",
+        kind: "LGA",
+        state: "QLD",
+        boundaryVersion: "RTA",
+        observations: [],
+      },
+      {
+        id: "suburb",
+        name: "Townsville",
+        kind: "suburb",
+        state: "QLD",
+        boundaryVersion: "RTA",
+        observations: [],
+      },
+    ],
+  };
+  vi.mocked(readLocalDataset).mockResolvedValue(dataset);
+  const directory = await getMarketDirectory();
+  const townsville = directory.markets.find((f) => f.market.slug === "townsville")!;
+  expect(townsville.councilRents?.area.id).toBe("council");
+  expect(townsville.referenceCount).toBe(0);
+  expect(
+    directory.markets.find((f) => f.market.slug === "newcastle")?.councilRents
+  ).toBeUndefined();
+  expect(readLocalDataset).toHaveBeenCalledTimes(1);
+  expect(readLocalDataset).toHaveBeenCalledWith("qld-bond-rents");
+});
+
+it("retains reporting when the optional council dataset read fails", async () => {
+  vi.mocked(listMarketDiscoveryItems).mockResolvedValue([item(1)]);
+  vi.mocked(readLocalDataset).mockRejectedValue(new Error("fixture database unavailable"));
+  const directory = await getMarketDirectory();
+  expect(directory.markets.find((f) => f.market.slug === "perth")?.referenceCount).toBe(1);
+  expect(directory.markets.every((f) => !f.councilRents)).toBe(true);
 });
 
 describe("public market discovery", () => {
