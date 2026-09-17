@@ -16,9 +16,11 @@ const words = (s: string) => [
 /** A standalone excerpt must not leave the speaker or subject in an omitted paragraph. */
 function needsPreviousContext(text: string): boolean {
   return (
-    /^(?:he|she|they|it|this|that|these|those|for people already living that reality)\b/i.test(
+    /^(?:i|we|our|he|she|they|it|this|that|these|those|for people already living that reality)\b/i.test(
       text
-    ) || /["”']?,?\s+(?:he|she|they)\s+(?:said|added|warned|told|argued)\b/i.test(text)
+    ) ||
+    /^(?:it comes as|in (?:other|earlier) news|meanwhile)\b/i.test(text) ||
+    /["”']?,?\s+(?:he|she|they)\s+(?:said|added|warned|told|argued)\b/i.test(text)
   );
 }
 
@@ -87,7 +89,10 @@ export function reportingExcerpt(title: string, articleText: string, max = 380):
     })
     .filter((c) => c.overlap > 0)
     .sort((a, b) => b.score - a.score || a.index - b.index);
-  const first = ranked[0];
+  // A relevant opening finding should beat a later keyword-rich aside or quote.
+  // Keep the strongest match when the lead is an analogy or off-topic.
+  const lead = ranked.find((candidate) => candidate.index === 0);
+  const first = lead && lead.overlap >= 2 ? lead : ranked[0];
   if (!first) return "";
   if (first.text.length > max) {
     const clip = first.text.slice(0, max - 1);

@@ -41,3 +41,14 @@ describe("article URL identity", () => {
     ).toHaveLength(1);
   });
 });
+
+it("collapses Al Jazeera traffic_source across lanes without stripping other publishers' content keys", () => {
+  const url = "https://www.aljazeera.com/news/2026/9/16/federal-reserve";
+  expect(articleIdentity(item(url + "?traffic_source=rss"))).toBe(articleIdentity(item(url)));
+  expect(articleIdentity(item("https://other.test/news?traffic_source=rss"))).not.toBe(
+    articleIdentity(item("https://other.test/news"))
+  );
+  expect(articleIdentity(item(url + "?id=1&traffic_source=rss"))).not.toBe(
+    articleIdentity(item(url + "?id=2"))
+  );
+});

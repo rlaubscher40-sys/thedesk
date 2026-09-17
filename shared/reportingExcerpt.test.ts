@@ -92,3 +92,21 @@ it("preserves decimal figures within reporting sentences", () => {
     )
   ).toContain("3.5 percent from 3.8 percent");
 });
+
+it("prefers a relevant opening finding over a keyword-rich historical aside", () => {
+  const lead =
+    "Australia's migration intake fell over the year, according to new national figures released today.";
+  const background =
+    "It comes as analysis of older migration data showed areas with lower migration intake had slower home price and rent growth.";
+  expect(
+    reportingExcerpt("Latest migration figures and home prices, rents", lead + "\n\n" + background)
+  ).toBe(lead);
+});
+it("does not publish a standalone first-person statement without attribution", () => {
+  expect(
+    reportingExcerpt(
+      "Town Hall Square",
+      "I have issued a direction preventing determination of development applications for the Town Hall Square proposal."
+    )
+  ).toBe("");
+});

@@ -27,3 +27,10 @@ it("keeps URL-less generic headlines scoped to the publisher and publication day
   );
   expect(feedClaimIdentity(row)).not.toBe(feedClaimIdentity({ ...row, feedDate: "2026-09-10" }));
 });
+
+it("uses the same durable claim for tracked and untracked Al Jazeera links in Global and Business", () => {
+  const sourceUrl = "https://www.aljazeera.com/news/2026/9/16/federal-reserve";
+  expect(
+    feedClaimIdentity({ ...item, channel: "GLOBAL", sourceUrl: sourceUrl + "?traffic_source=rss" })
+  ).toBe(feedClaimIdentity({ ...item, channel: "BUSINESS", sourceUrl }));
+});

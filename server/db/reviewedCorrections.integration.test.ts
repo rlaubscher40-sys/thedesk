@@ -17,7 +17,7 @@ beforeAll(async () => {
   url.pathname = "/" + databaseName;
   pool = createPool(url.toString());
   await pool.query(
-    "CREATE TABLE daily_feed_items (id INT PRIMARY KEY, title TEXT, sourceUrl TEXT, summary TEXT, partnerTag TEXT, whyItMatters TEXT, sayThis TEXT)"
+    "CREATE TABLE daily_feed_items (id INT PRIMARY KEY, title TEXT, sourceUrl TEXT, summary TEXT, partnerTag TEXT, whyItMatters TEXT, sayThis TEXT, counterpoint TEXT, channel TEXT, rubensNote TEXT)"
   );
   vi.doMock("./client", () => ({ getDb: () => drizzle(pool!) }));
   apply = (await import("./reviewedCorrections")).applyReviewedStoryCorrections;
@@ -36,6 +36,7 @@ it.skipIf(!testUrl)(
       await pool!.query("INSERT INTO daily_feed_items SET ?", {
         id: c.id,
         sourceUrl: c.sourceUrl,
+        rubensNote: "Preserve the reader note",
         ...Object.fromEntries(c.fields.map((f) => [f.field, f.before])),
       });
     }
@@ -46,6 +47,7 @@ it.skipIf(!testUrl)(
         [c.id]
       );
       for (const f of c.fields) expect(rows[0]![f.field]).toBe(f.after);
+      expect(rows[0]!.rubensNote).toBe("Preserve the reader note");
     }
     await apply();
     const [first, second] = REVIEWED_STORY_CORRECTIONS;

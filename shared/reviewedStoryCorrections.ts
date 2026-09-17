@@ -128,4 +128,45 @@ export const REVIEWED_STORY_CORRECTIONS = [
   }
 ]
 },
+{
+  "id": 3960017,
+  "sourceUrl": "https://www.realestate.com.au/news/latest-migration-figures-will-have-deep-impact-on-home-prices-rents/",
+  "reviewSourceUrl": "https://www.abs.gov.au/media-centre/media-releases/australias-population-grows-14-march-2026",
+  "issuedOn": "2026-09-17",
+  "reference": "Story 3960017",
+  "what": "The summary foregrounded older suburb analysis rather than the new national release. The counterpoint equated slower price growth with a capital loss.",
+  "now": "The website leads with the year-to-March national population and migration figures and distinguishes the older observational analysis from established causal effects.",
+  "fields": [
+    {
+      "field": "summary",
+      "before": "It comes as analysis of ABS data for the 2024/25 financial year, the latest with available suburb-level data, showed areas where migration intake dropped the most over the year had the slowest growing unit prices and rents in their cities.",
+      "after": "ABS figures show Australia’s population grew 1.4% to 27.9 million in the year to March 2026. Net overseas migration contributed 292,100 people, down from 309,500 a year earlier. The accompanying suburb analysis uses older 2024–25 data."
+    },
+    {
+      "field": "sayThis",
+      "before": "Migration relief on rents is real, but the data says it takes 12 to 15 months to show up, and most of the cut has already happened.",
+      "after": "Net overseas migration slowed to 292,100 in the year to March 2026. The separate suburb analysis reports an association with price and rent growth, not a guaranteed rental-relief timetable."
+    },
+    {
+      "field": "counterpoint",
+      "before": "The same analysis shows migration cuts correlate with slower unit price growth, which is rent relief for tenants but a capital loss for landlords already holding in those suburbs.",
+      "after": "Slower price growth is not the same as a capital loss. The suburb analysis is observational and does not establish that migration changes alone caused local price or rent movements."
+    }
+  ]
+},
+{
+  "id": 3960020,
+  "sourceUrl": "https://www.aljazeera.com/news/2026/9/16/what-to-know-about-us-federal-reserves-first-interest-rate-hike-in-3-years",
+  "issuedOn": "2026-09-17",
+  "reference": "Story 3960020",
+  "what": "The same Al Jazeera article appeared in both Global and Business because a tracking parameter produced separate URL identities.",
+  "now": "The later duplicate is withdrawn from public feeds. Story 3960010 remains available; both database records and any reader notes are retained.",
+  "fields": [
+    {
+      "field": "channel",
+      "before": "BUSINESS",
+      "after": "HOLD"
+    }
+  ]
+},
 ] as const;
