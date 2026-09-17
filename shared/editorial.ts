@@ -27,6 +27,18 @@ function publisherHost(input: EditorialInput): string {
     return "";
   }
 }
+function isStateGovernmentRelease(input: EditorialInput): boolean {
+  try {
+    const url = new URL(input.sourceUrl ?? input.url ?? "");
+    const host = url.hostname.replace(/^www\./, "");
+    return (
+      (host === "nsw.gov.au" && /^\/ministerial-releases\/[^/]+$/.test(url.pathname)) ||
+      (host === "statements.qld.gov.au" && /^\/statements\/\d+$/.test(url.pathname))
+    );
+  } catch {
+    return false;
+  }
+}
 const primary = new Set([
   "rba.gov.au",
   "abs.gov.au",
@@ -88,17 +100,7 @@ export function publisherWeight(input: EditorialInput): number {
     input.source === "REIWA public releases (National Tribune)"
   )
     return 8;
-  const path = (() => {
-    try {
-      return new URL(input.sourceUrl ?? input.url ?? "").pathname;
-    } catch {
-      return "";
-    }
-  })();
-  const officialRelease =
-    (host === "nsw.gov.au" && /^\/ministerial-releases\/[^/]+$/.test(path)) ||
-    (host === "statements.qld.gov.au" && /^\/statements\/\d+$/.test(path));
-  return primary.has(host) || officialRelease
+  return primary.has(host) || isStateGovernmentRelease(input)
     ? 16
     : specialist.has(host)
       ? 12
@@ -112,6 +114,13 @@ export function publisherWeight(input: EditorialInput): number {
 /** Page types are evidence/reference material, not automatically a dated news event. */
 export function referenceNewsHold(input: EditorialInput): string | null {
   const title = input.title.trim();
+  if (
+    isStateGovernmentRelease(input) &&
+    /\b(?:animal welfare|animal rescue|rehoming|bird flu)\b/i.test(title)
+  )
+    return "animal-news-not-residential-housing";
+  if (/\b(?:winners?|ceremony)\b/i.test(title) && /\bawards\b/i.test(title))
+    return "awards-announcement";
   const formatHold = nonNewsFormatHold(input);
   if (formatHold) return formatHold;
   // A rolling national-news page is not a housing article. In particular,
@@ -240,6 +249,11 @@ export function editorialBeat(text: string): string | null {
   )
     return "policy";
   if (
+    /\b(?:construction trades|apprentices?\w*)\b/i.test(text) &&
+    /\bbuild (?:more |new )?homes\b/i.test(text)
+  )
+    return "supply";
+  if (
     /\b(?:DA|development|planning) approval\b.{0,100}\b(?:homes|housing|dwellings)\b/i.test(text) ||
     /\b(?:(?:new|social|affordable) homes|homes (?:built|delivered)|making way for more homes)\b/i.test(
       text
@@ -272,7 +286,8 @@ export function discoveryScore(input: EditorialInput): number {
     return -100;
   if (["AU", "PROPERTY"].includes(input.channel ?? "AU"))
     return editorialBeat(text) ||
-      (publisherWeight(input) === 16 && /\b(?:apprentices?|apprenticeships?|skills pipeline)\b/i.test(input.title))
+      (publisherWeight(input) === 16 &&
+        /\b(?:apprentices?|apprenticeships?|skills pipeline)\b/i.test(input.title))
       ? editorialPriority(input)
       : publisherWeight(input);
   return (editorialBeat(text) ? 40 : 0) + publisherWeight(input) + (/\d/.test(input.title) ? 3 : 0);
@@ -286,6 +301,31 @@ export function editorialPriority(input: EditorialInput): number {
 /** The subject must be in the headline/dek. Only designated official releases
  * may use a generic interview/release title and establish their beat in the body. */
 function subjectBeat(input: EditorialInput): string | null {
+  if (isStateGovernmentRelease(input)) {
+    // State release bodies can explain a generic headline, but distant mentions
+    // of productivity, employment or housing must not redefine the main subject.
+    const workforceRelease = /\b(?:apprentices?|apprenticeships?|skills pipeline)\b/i.test(
+      input.title
+    );
+    const lead = (input.articleText ?? input.summary ?? "")
+      .split(/\n+/)
+      .filter((p) => !/^(?:published|minister for|deputy premier|the honourable)\b/i.test(p.trim()))
+      .filter((p) => p.trim())
+      .slice(0, workforceRelease ? 4 : 2)
+      .join(" ")
+      .slice(0, 1800);
+    const subject = `${input.title} ${lead}`;
+    const housing =
+      hasHousingEvidence(subject) ||
+      /\b(?:worker accommodation|stamp duty|land tax|build (?:more |new )?homes|construction trades)\b/i.test(
+        subject
+      ) ||
+      (/\b(?:development applications?|state significant development|planning commission)\b/i.test(
+        subject
+      ) &&
+        /\b(?:council|minister|determination|direction|demolition)\b/i.test(subject));
+    return housing ? editorialBeat(subject) : null;
+  }
   return (
     editorialBeat(`${input.title} ${input.summary ?? ""}`) ??
     (publisherWeight(input) === 16 ? editorialBeat((input.articleText ?? "").slice(0, 4500)) : null)

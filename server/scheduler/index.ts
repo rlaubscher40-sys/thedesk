@@ -209,7 +209,7 @@ export const ADVICE_COVERAGE_RECOVERY_JOB: Job = {
 };
 
 export const SEPTEMBER_17_COVERAGE_RECOVERY_JOB: Job = {
-  key: "coverage-september-17-source-recovery",
+  key: "coverage-september-17-relevance-recovery",
   at: "00:00",
   graceMinutes: 24 * 60 - 1,
   claimDate: "2026-09-17",

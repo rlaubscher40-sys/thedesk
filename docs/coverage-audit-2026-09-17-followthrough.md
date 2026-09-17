@@ -17,3 +17,13 @@ The audit identified four unmatched events, one duplicate and a misleading popul
 Captured live index/article replay selected the four audited URLs through ordinary selection gates, with original dates and non-empty excerpts. Other index candidates were excluded from that replay, so it is not a full production ranking benchmark. Local checks passed 838 tests, TypeScript and dead-code checks; two database-dependent tests await full CI, including exact correction guards and a 170-source/300-decision report round trip.
 
 Production publication, correction visibility and report read-back receipts must be checked after deployment. Recurring ATO/Victorian timeout reports and Reuters access denials are not established causes of these misses. Access restrictions and source-rights holds remain enforced.
+
+## Production follow-up
+
+PR #310 passed all 2,791 tests and deployed. The scoped recovery saved and read back its complete report (3 sources, 50 retained decisions) and published the IMF, Town Hall and Glenden events. Live checking also exposed a regression: generic economic/housing mentions in state-government releases admitted five unrelated articles; publisher limits then excluded the apprenticeship report.
+
+The corrective change requires state-release relevance in the title and first two substantive paragraphs, extending to four for apprenticeship/workforce headlines (bounded to 1,800 characters), with a housing, planning, worker-accommodation or property-tax subject. Generic productivity/employment language and distant background mentions cannot qualify these releases. Animal rehoming and award-winner announcements are excluded explicitly. Five exact new records are withdrawn without deleting notes; the Town Hall excerpt is corrected to preserve the procedural qualification. A distinct, one-time claim collects the repaired routes again while normal duplicate checks prevent replaying published stories.
+
+The corrective patch passes 846 local tests, TypeScript and the dead-code check. Its full CI and production result remain separate gates. The initial four-URL replay was insufficient to detect competition from unrelated candidates; subsequent verification uses the entire captured set of 50 candidates and independently retrieved articles.
+
+The full captured-source replay retrieved all 50 candidate article pages. With no prior-publication set, all four audited events pass and the unrelated releases are excluded. With the URLs observed as already published, only the missing apprenticeship release is selected.
