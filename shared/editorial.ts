@@ -5,6 +5,7 @@ import { sourceTimingHold, type SourceTiming } from "./sourceTiming";
 import { storyChannel } from "./storyGeography";
 import { storySignificance } from "./editorialSignificance";
 import { nonNewsFormatHold } from "./editorialPageTypes";
+import { checkClaimEvidence } from "./claimEvidence";
 
 export const EDITORIAL_VERSION = "2026-09-10-v4";
 export type EditorialInput = {
@@ -339,6 +340,20 @@ export function assessStory(input: EditorialInput, now = new Date(), feedDate?: 
     return reject("insufficient-article-text");
   if (looksLikeGarbage(text) || looksLikeSiteBoilerplate(text))
     return reject("unusable-article-text");
+  // A publisher headline is not independent evidence for its own claim.
+  // Only bounded contradictions hold intake; omitted headline details do not.
+  const contradiction = checkClaimEvidence(input.title, { title: "", articleText: text }).find(
+    (issue) =>
+      [
+        "figure-scope",
+        "period-scope",
+        "series-basis",
+        "proposal-as-fact",
+        "delivery-status",
+        "forecast-as-fact",
+      ].includes(issue)
+  );
+  if (contradiction) return reject(`headline-evidence:${contradiction}`);
   const category = local
     ? beat === "rates-economy"
       ? "MACRO"

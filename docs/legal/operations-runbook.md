@@ -4,7 +4,7 @@ Prepared 14 September 2026. Implementation instructions and proposed operating p
 
 ## Responsibility
 
-Ruben is the current project/editorial contact, not a verified legal operator. Confirm the legal operator, nominate an incident deputy, and verify that ruben@thedesk.au receives mail and is monitored. Keep real case records, identity evidence, employment agreements and credentials in a restricted business workspace, never in this repository. Use an incident reference in admin notes instead of personal details or privileged advice.
+Ruben Laubscher confirmed on 17 September 2026 that he owns and operates The Desk. Ruben is the responsible operator and editorial/incident contact. This owner declaration resolves the outstanding operating-identity question; it is not evidence of a particular company registration, ABN, third-party content rights or provider account security. Confirm monitored contact delivery and a deputy if one is appointed. Keep real case records, employment agreements and credentials in a restricted business workspace, never in this repository. Use an incident reference in admin notes instead of personal details or privileged advice.
 
 ## Emergency publishing pause
 

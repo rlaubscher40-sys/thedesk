@@ -7,6 +7,7 @@ export type ClaimIssue =
   | "unsupported-figure"
   | "figure-scope"
   | "period-scope"
+  | "series-basis"
   | "figure-unit"
   | "proposal-as-fact"
   | "unsupported-place"
@@ -58,6 +59,8 @@ const placeGroups = [
   /\b(?:WA|Western Australia)\b/g,
   /\b(?:SA|South Australia)\b/g,
   /\b(?:TAS|Tasmania)\b/gi,
+  /\b(?:NT|Northern Territory)\b/g,
+  /\b(?:ACT|Australian Capital Territory)\b/g,
 ];
 const months =
   /\b(?:January|February|March|April|June|July|August|September|October|November|December)\b/gi;
@@ -73,6 +76,55 @@ const delivered =
 const future =
   /\b(?:will|would|could|may|might|plans?|planned|planning|propos\w*|target\w*|aim\w*|expect\w*|forecast\w*|project\w*|modelling|modeling|if|once|not yet)\b/i;
 const sentences = (text: string) => text.split(/(?<=[.!?])\s+|\n+/).filter(Boolean);
+
+const measures = [
+  /\b(?:rents?|rental)\b/i,
+  /\b(?:house|home|dwelling|property) (?:prices?|values?)\b/i,
+  /\bunemployment\b/i,
+  /\b(?:employment|employed)\b/i,
+  /\bparticipation\b/i,
+  /\b(?:wages?|WPI)\b/i,
+  /\b(?:inflation|CPI)\b/i,
+  /\bvacanc(?:y|ies)\b/i,
+];
+const cadences = [
+  /\b(?:annual|annually|yearly|year.on.year|year to|year ending)\b/i,
+  /\b(?:quarterly|quarter.on.quarter|quarter to|quarter ending)\b/i,
+  /\b(?:monthly|month.on.month|month to|month ending)\b/i,
+];
+const bases = [/\btrend\b/i, /\bseasonally adjusted\b/i, /\b(?:original|unadjusted)\b/i];
+function scopes(text: string, patterns: RegExp[]): number[] {
+  return patterns.flatMap((pattern, index) => {
+    pattern.lastIndex = 0;
+    return pattern.test(text) ? [index] : [];
+  });
+}
+function conflicts(a: string, b: string, patterns: RegExp[]) {
+  const left = scopes(a, patterns),
+    right = scopes(b, patterns);
+  return left.length > 0 && right.length > 0 && !left.some((value) => right.includes(value));
+}
+
+/** Bind percentage figures to the original sentence's geography, measure,
+ * cadence and adjustment. Global numeric overlap alone cannot verify them.
+ * Ambiguous/unlabelled source sentences remain outside this bounded check. */
+function percentageScopeIssues(copy: string, body: string[]): ClaimIssue[] {
+  const issues = new Set<ClaimIssue>();
+  for (const value of figures(copy)) {
+    if (!value.startsWith("%:")) continue;
+    const matching = body.filter((sentence) => figures(sentence).has(value));
+    const mismatches = matching.map((sentence) => [
+      ...(conflicts(copy, sentence, measures) || conflicts(copy, sentence, placeGroups)
+        ? ["figure-scope" as const]
+        : []),
+      ...(conflicts(copy, sentence, cadences) ? ["period-scope" as const] : []),
+      ...(conflicts(copy, sentence, bases) ? ["series-basis" as const] : []),
+    ]);
+    if (mismatches.length && mismatches.every((list) => list.length))
+      mismatches.flat().forEach((issue) => issues.add(issue));
+  }
+  return [...issues];
+}
 
 export function checkClaimEvidence(
   copy: string | null | undefined,
@@ -114,18 +166,31 @@ export function checkClaimEvidence(
   );
   // A definitive headline cannot verify implementation when the reporting says draft.
   const planningBody = sentences(source.articleText?.slice(0, 6000) || source.summary || "");
-  const planningProposal = planningBody.some(s =>
-    /\b(?:propos\w*|draft|consultation)\b/i.test(s) &&
-    /\b(?:height limits?|rezoning|development scheme|planning changes|amendments)\b/i.test(s)
+  const planningProposal = planningBody.some(
+    (s) =>
+      /\b(?:propos\w*|draft|consultation)\b/i.test(s) &&
+      /\b(?:height limits?|rezoning|development scheme|planning changes|amendments)\b/i.test(s)
   );
   for (const sentence of sentences(copy)) {
+    percentageScopeIssues(sentence, planningBody).forEach((issue) => issues.add(issue));
     if (
       planningProposal &&
-      /\b(?:height limits?|rezoning|development scheme|planning changes|amendments)\b/i.test(sentence) &&
-      /\b(?:already|now|just had|has been|have been|was|were)\b.{0,70}\b(?:lifted|raised|increased|approved|implemented|enacted)\b/i.test(sentence) &&
-      !/\b(?:propos\w*|draft|would|could|if|not|yet)\b/i.test(sentence) &&
-      !planningBody.some(s => s.trim() === sentence.trim() && !future.test(s))
-    ) issues.add("proposal-as-fact");
+      (/\b(?:rezoned|(?:after|following|with) rezoning)\b/i.test(sentence) ||
+        (/\b(?:height limits?|rezoning|development scheme|planning changes|amendments)\b/i.test(
+          sentence
+        ) &&
+          (/\b(?:already|now|just had|has been|have been|was|were)\b.{0,70}\b(?:lifted|raised|increased|approved|implemented|enacted)\b/i.test(
+            sentence
+          ) ||
+            /\bheight limits?\b.{0,30}\b(?:lifted|raised|increased|approved)\b/i.test(
+              sentence
+            )))) &&
+      !/\b(?:propos\w*|draft|would|could|if|to be|will be|may be)\b|\b(?:not|never)\s+(?:yet\s+)?(?:been\s+)?(?:rezoned|raised|lifted|increased|approved|implemented|enacted)\b/i.test(
+        sentence
+      ) &&
+      !planningBody.some((s) => s.trim() === sentence.trim() && !future.test(s))
+    )
+      issues.add("proposal-as-fact");
     // Do not collapse a reported combination of rates and loan size into a
     // rates-only repayment effect. Mere numeric overlap does not prove causation.
     if (

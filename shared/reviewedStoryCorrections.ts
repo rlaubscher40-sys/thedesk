@@ -107,6 +107,11 @@ export const REVIEWED_STORY_CORRECTIONS = [
   "now": "The website identifies Bowen Hills' changes as proposed, distinguishes projected capacity from delivery, and withdraws the unsupported reader angles. Already distributed copies are not rewritten.",
   "fields": [
   {
+    "after": null,
+    "before": "Height limits rising on paper and towers rising on site are different things; feasibility concerns that UDIA flagged for inner-city delivery have not disappeared with rezoning.",
+    "field": "counterpoint"
+  },
+  {
     "after": "Bowen Hills planning changes proposed for capacity of up to 27,000 homes",
     "before": "Brisbane 2032: The inner-city suburb rezoned for 27,000 new homes",
     "field": "title"

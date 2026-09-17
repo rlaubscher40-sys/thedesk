@@ -14,8 +14,8 @@ export default function Terms() {
       <section className="space-y-3">
         <h2 className="font-serif text-2xl mt-8">About The Desk</h2>
         <p>
-          The Desk publishes Australian property reporting, data and editorial analysis. Ruben
-          Laubscher is the editorial contact at{" "}
+          The Desk is owned and operated by Ruben Laubscher and publishes Australian property
+          reporting, data and editorial analysis. Contact Ruben at{" "}
           <a className="underline" href={`mailto:${EDITORIAL_CONTACT}`}>
             {EDITORIAL_CONTACT}
           </a>
@@ -58,9 +58,11 @@ export default function Terms() {
           Rights and licences already validly granted are not revoked by this notice.
         </p>
         <p>
-          <a className="underline" href="/third-party-licenses.txt">Browser software licences</a>
-          {" "}list the open-source components shipped with this website. These software licences
-          do not grant rights to our reporting or third-party content.
+          <a className="underline" href="/third-party-licenses.txt">
+            Browser software licences
+          </a>{" "}
+          list the open-source components shipped with this website. These software licences do not
+          grant rights to our reporting or third-party content.
         </p>
       </section>
       <section className="space-y-3">
