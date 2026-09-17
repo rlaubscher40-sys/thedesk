@@ -50,11 +50,16 @@ export function isPhotoCaption(text: string): boolean {
 
 /** Remove recognisable syndication chrome, never silently complete clipped prose. */
 export function cleanReportingExcerpt(text: string): string {
-  return text
-    .replace(/\bThe post\s+.{0,500}?\s+appeared first on\s+.{0,150}?(?:\.|$)/gi, "")
-    .replace(/\s*\(pictured\)\s*/gi, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  return (
+    text
+      .replace(/\bThe post\s+.{0,500}?\s+appeared first on\s+.{0,150}?(?:\.|$)/gi, "")
+      .replace(/\s*\(pictured\)\s*/gi, " ")
+      .replace(/\s+/g, " ")
+      // Broken publisher suffix observed in archived realestate.com.au excerpts.
+      // Require sentence punctuation; preserve domains within actual reporting.
+      .replace(/(?<=[.!?…])\s+com\.au\.?\s*$/i, "")
+      .trim()
+  );
 }
 
 /** Extractive fallback, not a semantic summary. Choose a relevant complete
