@@ -100,6 +100,7 @@ export type FetchedItem = {
   imageUrl: string | null;
   isoDate: string | null;
   discovery?: "publisher-index" | "evidence-pool";
+  discoveryText?: string;
   /** How many distinct sources reported this story (set by the clustering
    *  pass; absent/1 means a single outlet). */
   corroborationCount?: number;

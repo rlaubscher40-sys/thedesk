@@ -76,6 +76,19 @@ export function extractArticleText(
           .join("\n")
       : readableArticleHtml(html, contentClass);
 
+  // Official first-person statements need their declared speaker in an excerpt.
+  // Use the release's own role, never infer a person from the subject or URL.
+  const declaredRole =
+    host === "nsw.gov.au" && /\/ministerial-releases\//.test(sourceUrl ?? "")
+      ? decodeEntities(
+          stripHtml(
+            html.match(/<dt[^>]*>\s*Released by:\s*<\/dt>\s*<dd[^>]*>([\s\S]*?)<\/dd>/i)?.[1] ?? ""
+          )
+        ).trim()
+      : "";
+  const statementAttribution = /^Minister for [A-Za-z ,&-]{3,120}$/.test(declaredRole)
+    ? `The NSW ${declaredRole} stated: `
+    : "";
   const paras: string[] = [];
   let removedInstitutionalFooter = false;
   // Research releases often put their actual findings in lists. Retain those
@@ -100,7 +113,9 @@ export function extractArticleText(
     }
     // Drop scraps: share prompts, captions, bylines, single words.
     if (txt.length >= 40 && !looksLikeSiteBoilerplate(txt) && !looksLikeGarbage(txt))
-      paras.push(txt);
+      paras.push(
+        statementAttribution && /^I (?:have|am|will)\b/.test(txt) ? statementAttribution + txt : txt
+      );
   }
 
   let text = paras.join("\n\n").trim();

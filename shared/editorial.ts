@@ -16,6 +16,7 @@ export type EditorialInput = {
   category?: string | null;
   channel?: string | null;
   articleText?: string | null;
+  discoveryText?: string;
   sourceTiming?: SourceTiming | null;
 };
 function publisherHost(input: EditorialInput): string {
@@ -86,7 +87,17 @@ export function publisherWeight(input: EditorialInput): number {
     input.source === "REIWA public releases (National Tribune)"
   )
     return 8;
-  return primary.has(host)
+  const path = (() => {
+    try {
+      return new URL(input.sourceUrl ?? input.url ?? "").pathname;
+    } catch {
+      return "";
+    }
+  })();
+  const officialRelease =
+    (host === "nsw.gov.au" && /^\/ministerial-releases\/[^/]+$/.test(path)) ||
+    (host === "statements.qld.gov.au" && /^\/statements\/\d+$/.test(path));
+  return primary.has(host) || officialRelease
     ? 16
     : specialist.has(host)
       ? 12
@@ -208,6 +219,18 @@ export function editorialBeat(text: string): string | null {
     return "advice-tax";
   if (markets.test(text)) return "markets";
   if (
+    /\bworker accommodation\b/i.test(text) &&
+    /\b(?:legislation|obligations?|laws?|bill|repeal)\b/i.test(text)
+  )
+    return "policy";
+  if (
+    /\b(?:development applications?|planning (?:approval|commission)|state significant development)\b/i.test(
+      text
+    ) &&
+    /\b(?:direction|determination|minister|council|approv\w*|reject\w*|demolition)\b/i.test(text)
+  )
+    return "supply";
+  if (
     policy.test(text) ||
     accommodationPolicy.test(text) ||
     industryRegulation.test(text) ||
@@ -240,7 +263,7 @@ export function editorialBeat(text: string): string | null {
   return null;
 }
 export function discoveryScore(input: EditorialInput): number {
-  const text = `${input.title} ${input.summary ?? ""}`;
+  const text = `${input.title} ${input.summary ?? ""} ${input.discoveryText ?? ""}`;
   if (
     referenceNewsHold(input) ||
     (["AU", "PROPERTY"].includes(input.channel ?? "AU") && noise.test(input.title))

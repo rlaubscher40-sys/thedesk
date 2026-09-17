@@ -9,7 +9,10 @@ export function articleIdentity(item: Pick<FetchedItem, "url" | "title">): strin
       if (["http:", "https:"].includes(url.protocol)) {
         url.hash = "";
         for (const key of [...url.searchParams.keys()]) {
-          if (/^(utm_.+|fbclid|gclid|dclid|msclkid|mc_cid|mc_eid)$/i.test(key))
+          if (
+            (url.hostname.replace(/^www\./, "") === "aljazeera.com" && key === "traffic_source") ||
+            /^(utm_.+|fbclid|gclid|dclid|msclkid|mc_cid|mc_eid)$/i.test(key)
+          )
             url.searchParams.delete(key);
         }
         url.searchParams.sort();

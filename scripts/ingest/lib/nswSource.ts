@@ -22,7 +22,7 @@ export function parseNswSource(json: string, source: Source): FetchedItem[] {
         url.username ||
         url.password ||
         !/^\/ministerial-releases\/[^/]+$/.test(url.pathname) ||
-        title.length < 18
+        title.length < 8
       )
         continue;
       url.search = "";
@@ -31,6 +31,8 @@ export function parseNswSource(json: string, source: Source): FetchedItem[] {
         title,
         url: url.href,
         summary: "",
+        // Ranking hint only. Article evidence and publication dates are read separately.
+        discoveryText: typeof row.summary?.[0] === "string" ? plainText(row.summary[0], 800) : "",
         source: source.name,
         category: source.category,
         channel: source.channel,
