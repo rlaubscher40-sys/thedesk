@@ -83,6 +83,9 @@ export const comparisonSnapshotSchema = comparisonAnswerSchema
             ref: z.number().int().positive().max(8),
             title: z.string().max(240),
             date: z.string().max(32),
+            // Optional for old signed snapshots; reference periods are not release dates.
+            dateKind: z.enum(["observation", "publication"]).optional(),
+            measureKind: z.literal("dwelling-approvals").optional(),
             publisher: z.string().max(120).nullable(),
             href: z
               .string()

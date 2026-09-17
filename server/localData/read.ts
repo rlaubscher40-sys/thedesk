@@ -189,6 +189,7 @@ export async function getLocalCoverage() {
 }
 
 export type FactEvidence = {
+  measureKind?: "dwelling-approvals";
   cpiRent?: { city: string; period: string; annualPercent: number; status: "" | "p" | "r" };
   title: string;
   date: string;

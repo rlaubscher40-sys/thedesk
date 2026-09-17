@@ -18,6 +18,7 @@ type Correction = {
   what: string;
   /** What now stands corrected. */
   now: string;
+  reviewSourceUrl?: string;
 };
 
 /**
@@ -127,6 +128,11 @@ export default function Corrections() {
                   <div>
                     <p className="overline mb-1.5">Now stands</p>
                     <p className="leading-relaxed">{c.now}</p>
+                    {c.reviewSourceUrl && (
+                      <a className="bs-link inline-block mt-2" href={c.reviewSourceUrl} target="_blank" rel="noopener noreferrer">
+                        Primary source checked for this correction
+                      </a>
+                    )}
                   </div>
                 </div>
               </li>

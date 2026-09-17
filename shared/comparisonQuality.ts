@@ -57,6 +57,13 @@ export function observationPeriodEnd(period: string): number | null {
       value: validUtcDate(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3])),
     });
   }
+  for (const month of text.matchAll(/\b(20\d{2})-(\d{2})(?![\d-])/g)) {
+    const year = Number(month[1]), index = Number(month[2]) - 1;
+    endpoints.push({
+      index: month.index,
+      value: index >= 0 && index < 12 ? Date.UTC(year, index + 1, 0) : null,
+    });
+  }
   for (const month of text.matchAll(
     /\b(?:(\d{1,2})\s+)?(january|february|march|april|may|june|july|august|september|october|november|december)\s+(20\d{2})\b/g
   )) {
@@ -91,6 +98,12 @@ export function evidenceFreshness(
   return reference - timestamp <= COMPARISON_EVIDENCE_WINDOW_DAYS * DAY ? "recent" : "older";
 }
 
+/** A reference month is not the first day of a publication month. */
+export function comparisonSourceDate(source: ComparisonSource): string {
+  if (source.dateKind !== "observation") return source.date;
+  const end = observationPeriodEnd(source.date);
+  return end == null ? "" : new Date(end).toISOString().slice(0, 10);
+}
 function cadence(quote: string): string {
   const windows = [
     ["annual", /\b(?:annual(?:ly)?|year(?:ly)?|yoy)\b/i],
@@ -118,7 +131,7 @@ export function comparisonQuality(
     sources.find((source) => source.ref === item.sourceRef)
   );
   if (citedSources.some((source) => !source)) reasons.push("A cited source is unavailable.");
-  else if (citedSources.some((source) => evidenceFreshness(source!.date, asOf) !== "recent"))
+  else if (citedSources.some((source) => evidenceFreshness(comparisonSourceDate(source!), asOf) !== "recent"))
     reasons.push("Source dates are older than the evidence window or cannot be verified.");
   const missing: string[] = [];
   const different: string[] = [];
@@ -152,9 +165,9 @@ export function comparisonQuality(
   if (
     periods.some(
       (period, index) =>
-        period != null && citedSources[index] && period > Date.parse(citedSources[index]!.date)
+        period != null && citedSources[index] && period > Date.parse(comparisonSourceDate(citedSources[index]!))
     )
   )
-    reasons.push("An observation endpoint is later than its source publication.");
+    reasons.push("An observation endpoint is later than its source publication or recorded observation period.");
   return { comparable: reasons.length === 0, reasons };
 }

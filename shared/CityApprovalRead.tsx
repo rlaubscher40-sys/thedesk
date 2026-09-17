@@ -13,17 +13,19 @@ export function CityApprovalRead({
   cities,
   asOf,
   onSource,
+  period,
 }: {
   data: CityApprovals | undefined;
   cities: string[];
   asOf: string;
   onSource?: () => void;
+  period?: string | null;
 }) {
   const supported = cities.filter((city) =>
     Object.values(APPROVAL_REGIONS).some((name) => name === city)
   );
   if (!supported.length) return null;
-  const reads = supported.map((city) => annualApprovals(data, city, asOf));
+  const reads = supported.map((city) => annualApprovals(data, city, asOf, period));
   const matched = reads.every(Boolean) && new Set(reads.map((read) => read?.period)).size === 1;
   return (
     <section
@@ -38,6 +40,13 @@ export function CityApprovalRead({
         starts, completions or homes available today. Larger counts do not establish a stronger
         market.
       </p>
+      {period != null && (
+        <p className="text-sm mt-3" role="status">
+          Requested year-ending month: {period}. This is a dated observation, not a claim about
+          current conditions. If its complete twelve-month window is unavailable, a different
+          period is not substituted.
+        </p>
+      )}
       {matched ? (
         <div className="grid sm:grid-cols-2 gap-6 mt-5">
           {reads.map(

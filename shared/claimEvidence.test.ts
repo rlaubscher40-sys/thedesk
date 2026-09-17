@@ -98,3 +98,15 @@ it("preserves the multiple causes of repayment changes and holds invented delive
     })
   ).toContain("period-scope");
 });
+
+it("does not let a definitive headline or consultation date turn draft height limits into law", () => {
+  const source = {
+    title: "Harbour Ward height limits raised",
+    articleText: "Proposed amendments would raise Harbour Ward height limits from 12 to 20 storeys. Consultation closes in October. Valley Ward's height limit was raised last year.",
+  };
+  expect(checkClaimEvidence("Harbour Ward just had its height limit lifted from 12 to 20 storeys, and consultation closes in October.", source)).toContain("proposal-as-fact");
+  expect(checkClaimEvidence("Harbour Ward's height limit has been raised.", source)).toContain("proposal-as-fact");
+  expect(checkClaimEvidence("The proposed height limit would rise from 12 to 20 storeys.", source)).toEqual([]);
+  expect(checkClaimEvidence("Valley Ward's height limit was raised last year.", source)).toEqual([]);
+  expect(checkClaimEvidence("The height limit has not yet been raised.", source)).toEqual([]);
+});

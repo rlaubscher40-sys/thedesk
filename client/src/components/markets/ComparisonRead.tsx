@@ -2,6 +2,7 @@ import {
   COMPARISON_BASIS_LABELS,
   COMPARISON_EVIDENCE_WINDOW_DAYS,
   comparisonQuality,
+  comparisonSourceDate,
   evidenceFreshness,
   type BasisField,
 } from "@shared/comparisonQuality";
@@ -107,8 +108,10 @@ export function ComparisonRead({
                             [{source.ref}] {source.publisher ?? "Desk reporting"} · {source.date}
                           </a>
                           <p className="bs-label mt-2">
-                            {evidenceFreshness(source.date, c.asOf) === "recent"
-                              ? "Published within the evidence window"
+                            {evidenceFreshness(comparisonSourceDate(source), c.asOf) === "recent"
+                              ? source.dateKind === "observation"
+                                ? "Observation within the evidence window; publication date not supplied"
+                                : "Published within the evidence window"
                               : "Source date needs caution"}
                           </p>
                           <details className="mt-3">
@@ -212,7 +215,7 @@ export function ComparisonRead({
               [{source.ref}] {source.title}
             </Link>
             <p className="bs-label mt-2">
-              {source.publisher ?? "Desk reporting"} · {source.date} ·{" "}
+              {source.publisher ?? "Desk reporting"} · {source.dateKind === "observation" ? "Observation period: " : ""}{source.date} ·{" "}
               {source.markets.map((side) => (side === "a" ? c.marketA : c.marketB)).join(" / ")}
             </p>
           </div>
