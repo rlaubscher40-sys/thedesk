@@ -1,5 +1,7 @@
 import { StateDemographicsRead } from "./StateDemographicsRead";
 import { StateLabourRead } from "./StateLabourRead";
+import { TransferRead, CompletionRead } from "./QuarterlyHousingRead";
+import { transferForMarket } from "./quarterlyHousing";
 import { CityRentRead } from "./CityRentRead";
 import { CityApprovalRead } from "./CityApprovalRead";
 import {
@@ -62,6 +64,16 @@ export function PublicMarketRead({
         </p>
       </header>
 
+      {!directory.demo && (
+        <TransferRead
+          data={file.transfers}
+          area={transferForMarket(market.name) ?? market.name}
+          asOf={file.asOf}
+        />
+      )}
+      {!directory.demo && (
+        <CompletionRead data={file.completions} stateCode={market.state} asOf={file.asOf} />
+      )}
       {!directory.demo && (
         <StateDemographicsRead data={file.demographics} stateCode={market.state} asOf={file.asOf} />
       )}

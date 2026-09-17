@@ -9,6 +9,11 @@ import { getCityRents } from "../markets/absRents";
 import { readPlanningSnapshots } from "../db/planningSnapshots";
 import { readLocalDataset } from "../db/localData";
 import { retrieveLocalFacts } from "./localFacts";
+vi.mock("./quarterlyHousing", () => ({
+  quarterlyHousingScope: () => null,
+  quarterlyHousingContext: async () => [],
+  quarterlyHousingFacts: async () => [],
+}));
 import { STATE_CODES, type LocalDataset } from "../../shared/localData";
 beforeEach(() => {
   vi.resetAllMocks();

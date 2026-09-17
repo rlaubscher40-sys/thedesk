@@ -7,6 +7,32 @@ const source = {
     "NSW plans to deliver 226 new social homes in Sydney. Funding of $1.5 billion was announced in September 2026. Rent growth was 4.3 per cent.",
 };
 describe("source claim checks", () => {
+  it("does not turn an introduced repeal bill into a removed housing obligation", () => {
+    const proposed = {
+      title: "Pathway forward for Glenden",
+      articleText:
+        "Queensland introduced legislation that will repeal worker-accommodation obligations for the Byerwen mine.",
+    };
+    for (const copy of [
+      "Queensland just stripped a coal mine's obligation to house workers.",
+      "Removing QCoal's obligation reduces local economic activity.",
+      "The housing obligation has been repealed.",
+    ])
+      expect(checkClaimEvidence(copy, proposed)).toContain("proposal-as-fact");
+    for (const copy of [
+      "Queensland introduced a bill to remove worker-accommodation obligations.",
+      "The obligation has not yet been removed.",
+      "The proposed repeal would remove the housing obligation.",
+    ])
+      expect(checkClaimEvidence(copy, proposed)).not.toContain("proposal-as-fact");
+    expect(
+      checkClaimEvidence("The housing obligation has been repealed.", {
+        ...proposed,
+        articleText:
+          proposed.articleText + " The legislation to repeal the obligation received royal assent.",
+      })
+    ).not.toContain("proposal-as-fact");
+  });
   it("keeps percentage points, percent changes and negative figures distinct", () => {
     const rate = {
       title: "Cash rate decision",

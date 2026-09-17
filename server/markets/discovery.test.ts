@@ -1,4 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+vi.mock("./absQuarterlyHousing", () => ({
+  getHousingTransfers: vi.fn(async () => ({
+    status: "unavailable",
+    observations: [],
+    period: null,
+  })),
+  getHousingCompletions: vi.fn(async () => ({
+    status: "unavailable",
+    observations: [],
+    period: null,
+  })),
+}));
 vi.mock("./absLabour", () => ({
   getStateLabour: vi.fn(async () => ({
     status: "unavailable",

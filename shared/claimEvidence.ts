@@ -171,8 +171,34 @@ export function checkClaimEvidence(
       /\b(?:propos\w*|draft|consultation)\b/i.test(s) &&
       /\b(?:height limits?|rezoning|development scheme|planning changes|amendments)\b/i.test(s)
   );
+  const repealProposal =
+    planningBody.some(
+      (s) =>
+        /\b(?:bill|legislation)\b/i.test(s) &&
+        /\b(?:introduced|tabled|proposed|will repeal|would repeal)\b/i.test(s)
+    ) &&
+    planningBody.some((s) =>
+      /\b(?:repeal|remove|abolish)\w*\b.{0,100}\b(?:obligations?|requirements?)\b/i.test(s)
+    );
+  const enactedRepeal = planningBody.some(
+    (s) =>
+      /\b(?:received royal assent|became law|has passed|was passed|was enacted)\b/i.test(s) &&
+      /\b(?:repeal|remove|abolish)\w*\b/i.test(s)
+  );
   for (const sentence of sentences(copy)) {
     percentageScopeIssues(sentence, planningBody).forEach((issue) => issues.add(issue));
+    if (
+      repealProposal &&
+      !enactedRepeal &&
+      /\b(?:obligations?|requirements?)\b/i.test(sentence) &&
+      /\b(?:stripped|removed|repealed|abolished|ended|lifting|removing|repealing)\b/i.test(
+        sentence
+      ) &&
+      !/\b(?:propos\w*|would|could|if|will|to be|not yet|has not|hasn't|bill to|legislation to)\b/i.test(
+        sentence
+      )
+    )
+      issues.add("proposal-as-fact");
     if (
       planningProposal &&
       (/\b(?:rezoned|(?:after|following|with) rezoning)\b/i.test(sentence) ||
