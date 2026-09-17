@@ -1,3 +1,4 @@
+import { REVIEWED_METRIC_CORRECTIONS } from "@shared/reviewedMetricCorrections";
 /**
  * Public corrections log. A newsroom-grade trust signal, we publish the
  * mistakes we've made and how we fixed them. Entries are kept in this file
@@ -23,7 +24,10 @@ type Correction = {
  * The log itself. Empty is a perfectly reasonable initial state, we keep
  * the page live so readers know the channel exists.
  */
-const CORRECTIONS: readonly Correction[] = REVIEWED_STORY_CORRECTIONS;
+const CORRECTIONS: readonly Correction[] = [
+  ...REVIEWED_METRIC_CORRECTIONS,
+  ...REVIEWED_STORY_CORRECTIONS,
+];
 
 export default function Corrections() {
   useDocumentTitle("Corrections");

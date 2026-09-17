@@ -38,6 +38,8 @@ Audience growth, subscriber retention, revenue, inbox placement, legal ownership
 
 Implementation and validation results are appended here as work completes. Open items must retain their owner, required evidence and next action. Never close this programme merely because a deployment succeeds.
 
+Latest audit reconciliation: [17 September completion review and remaining evidence](operation-audit-completion-2026-09-17.md).
+
 Latest follow-through: [17 September live audit and release record](operation-followthrough-2026-09-17.md). This records the owner-set $8 TiDB cap, newer backup-console uncertainty, source-reviewed story corrections, missing social-gallery coverage and metric provenance/timestamp repairs. Cloudflare is deferred until Ruben can provide access next week. Historical provider readings below are dated observations, not the current account state.
 
 ## Editorial and distribution programme

@@ -28,9 +28,10 @@ export const METRIC_EXPECTATIONS: Expectation[] = [
     (key) => ({
       key,
       label: key.replaceAll("_", " "),
-      period: key === "unemployment" || key === "building_approvals" ? "Monthly" : "Release based",
-      maxAgeDays:
-        key === "net_migration" ? 300 : key === "wage_growth" || key === "cpi_trimmed" ? 180 : 100,
+      period: ["cpi_trimmed", "unemployment", "building_approvals"].includes(key)
+        ? "Monthly"
+        : "Quarterly release · annual measure",
+      maxAgeDays: key === "net_migration" ? 300 : key === "wage_growth" ? 180 : 100,
     })
   ),
   ...["owner_occupier_new_lending_rate", "investor_new_lending_rate"].map((key) => ({
