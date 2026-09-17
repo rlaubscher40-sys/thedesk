@@ -8,20 +8,23 @@ const ledger = JSON.parse(
 const now = new Date("2026-09-16T23:00:00Z");
 
 describe("documentary recovery queue", () => {
-  it("continues existing work without converting previews or old approvals into a launch buffer", () => {
+  it("continues existing work with explicit user release authorisation and honest review limitations", () => {
     const result = documentaryQueueStatus(ledger, now);
     expect(result.nextContinuation).toBe("triguboff-apartments");
-    expect(result.runtimeLaunchGateReady).toBe(false);
+    expect(result.runtimeLaunchGateReady).toBe(true);
     expect(result.verifiedReviewedUnpublishedCount).toBe(0);
     expect(result.newProductionNeeded).toBe(false);
     expect(result.episodes).toHaveLength(4);
     expect(
-      result.episodes.every((e) => e.currentInputMatchesRecoveredExport && e.approval === null)
+      result.episodes.every(
+        (e) =>
+          e.currentInputMatchesRecoveredExport && e.approval?.kind === "user-release-authorisation"
+      )
     ).toBe(true);
     expect(result.episodes.find((e) => e.episodeId === "lowy-westfield")?.legacySlotExpired).toBe(
       true
     );
-    expect(result.episodes.every((e) => e.reservedSydneyDate === null)).toBe(true);
+    expect(result.episodes.every((e) => Boolean(e.reservedSydneyDate))).toBe(true);
   });
   it("reports changed render inputs without updating the recovered export", () => {
     const changed = structuredClone(ledger);

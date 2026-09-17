@@ -67,11 +67,22 @@ describe("authored launch films", () => {
       shot.title = title;
     }
   });
-  it("rejects incomplete authored narration and leaves launch review closed", () => {
+  it("rejects incomplete authored narration", () => {
     const episode = structuredClone(DOCUMENTARY_EPISODES[0]!);
     episode.scenes[0]!.phrases.pop();
     const story = sealDocumentary(episode);
     expect(() => validateDocumentary(story, documentaryScript(story))).toThrow();
-    expect(documentaryLaunchReady()).toBe(false);
+  });
+  it("closes the authorised launch buffer when an authored film changes", () => {
+    expect(documentaryLaunchReady()).toBe(true);
+    const episode = DOCUMENTARY_EPISODES[0]!;
+    const phrase = episode.scenes[0]!.phrases[0]!;
+    try {
+      episode.scenes[0]!.phrases[0] = phrase + " Revised introduction.";
+      expect(documentaryLaunchReady()).toBe(false);
+    } finally {
+      episode.scenes[0]!.phrases[0] = phrase;
+    }
+    expect(documentaryLaunchReady()).toBe(true);
   });
 });

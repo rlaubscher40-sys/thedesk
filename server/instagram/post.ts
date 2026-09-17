@@ -1,3 +1,6 @@
+import { approvedDocumentaryExport } from "./documentaryExports";
+import { documentaryPublicationGuard } from "./documentaryPublicationGuard";
+import type { DocumentaryStory } from "../video/documentaryStory";
 import { readSocialRecords } from "../db/socialPublication";
 import { sourceTimingLabel } from "../../shared/sourceTiming";
 import { assertCaptionStyle } from "./captionStyle";
@@ -1066,6 +1069,7 @@ export function containerWaitBudgetMs(deadlineAt: number | undefined, now = Date
  */
 export async function postStatReel(
   stat: {
+    documentary?: DocumentaryStory;
     editorialLabel?: "What Changed" | "Before You Buy" | "Supply and Demand";
     label: string;
     value: string;
@@ -1105,6 +1109,17 @@ export async function postStatReel(
   if (!opts.publication)
     throw new Error("A durable evidence reservation is required for Reel publication.");
   const publication = opts.publication;
+  if (stat.documentary) {
+    if (
+      publication.key !== `instagram-reel-documentary-${stat.documentary.id}-v1` ||
+      publication.date !== "2026-09-14"
+    )
+      throw new Error("Approved documentary cannot be published under another programme identity.");
+    const guard = await documentaryPublicationGuard(stat.documentary.id);
+    if (!guard.ready) throw new Error(`Documentary held: ${guard.reason}`);
+  } else if (publication.key.startsWith("instagram-reel-documentary-")) {
+    throw new Error("Documentary publication requires its approved documentary export.");
+  }
   const caption = assertCaptionStyle(opts.caption ?? buildReelCaption(stat));
   const { fetchPublishingLimit } = await import("./api");
   const quota = await fetchPublishingLimit({ accessToken, igUserId });
@@ -1126,7 +1141,9 @@ export async function postStatReel(
   try {
     const renderOptions = productionReelOptions(opts.script);
     const [video, cover] = await Promise.all([
-      renderStatReel(sanitized, variant, renderOptions),
+      sanitized.documentary
+        ? approvedDocumentaryExport(sanitized.documentary)
+        : renderStatReel(sanitized, variant, renderOptions),
       renderReelCover(sanitized, opts.script ?? []),
     ]);
     console.log(

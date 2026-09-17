@@ -1,3 +1,4 @@
+import { DOCUMENTARY_RELEASE_DATES } from "./documentaryReleasePlan";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createHash } from "node:crypto";
 import { DOCUMENTARY_EPISODES } from "./documentaryEpisodes";
@@ -66,13 +67,13 @@ describe("documentary publishing gate", () => {
   it("selects only the assigned Sydney day and series, never catches up another episode", () => {
     reviewAll();
     for (const episode of DOCUMENTARY_EPISODES) {
-      const now = new Date(`${episode.releaseDate}T08:30:00Z`);
+      const now = new Date(`${DOCUMENTARY_RELEASE_DATES[episode.id]}T08:30:00Z`);
       expect(documentarySlot(now)).toBe(episode.series);
       const candidates = getDocumentaryProgramme(now).filter((e) => e.candidate);
       expect(candidates).toHaveLength(1);
       expect(candidates[0]!.candidate!.stat.documentary!.id).toBe(episode.id);
     }
-    for (const date of ["2026-09-15", "2026-09-17", "2026-09-30", "2026-10-04"])
+    for (const date of ["2026-09-15", "2026-09-17", "2026-10-01", "2026-10-04"])
       expect(
         getDocumentaryProgramme(new Date(`${date}T08:30:00Z`)).every((e) => !e.candidate)
       ).toBe(true);
