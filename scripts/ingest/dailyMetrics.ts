@@ -48,11 +48,12 @@ export type MetricOut = {
 
 /**
  * Yahoo Finance unofficial chart endpoint — has been stable for years.
- * Returns the latest close + previous close.
+ * Keeps each quote paired with its own observation time and source.
  */
-async function fetchYahooQuote(symbol: string): Promise<{
+export async function fetchYahooQuote(symbol: string): Promise<{
   price: number;
   asOf: Date;
+  sourceUrl: string;
 } | null> {
   try {
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=5d`;
@@ -77,13 +78,27 @@ async function fetchYahooQuote(symbol: string): Promise<{
     };
     const r = json.chart?.result?.[0];
     if (!r) return null;
-    const price =
-      r.meta?.regularMarketPrice ??
-      r.indicators?.quote?.[0]?.close?.filter((c): c is number => c !== null).pop();
-    if (typeof price !== "number" || !Number.isFinite(price)) return null;
-    const tsSeconds = r.meta?.regularMarketTime ?? r.timestamp?.[r.timestamp.length - 1];
-    const asOf = tsSeconds ? new Date(tsSeconds * 1000) : new Date();
-    return { price, asOf };
+    const datedQuote = (price: unknown, timestamp: unknown) => {
+      if (
+        typeof price !== "number" ||
+        !Number.isFinite(price) ||
+        typeof timestamp !== "number" ||
+        !Number.isFinite(timestamp) ||
+        timestamp <= 0
+      )
+        return null;
+      const asOf = new Date(timestamp * 1000);
+      if (!Number.isFinite(asOf.getTime()) || asOf.getTime() > Date.now()) return null;
+      return { price, asOf, sourceUrl: url };
+    };
+    const live = datedQuote(r.meta?.regularMarketPrice, r.meta?.regularMarketTime);
+    if (live) return live;
+    const closes = r.indicators?.quote?.[0]?.close ?? [];
+    for (let index = closes.length - 1; index >= 0; index--) {
+      const historical = datedQuote(closes[index], r.timestamp?.[index]);
+      if (historical) return historical;
+    }
+    return null;
   } catch (err) {
     console.warn(`[metrics] yahoo ${symbol} error:`, (err as Error).message);
     return null;
@@ -179,6 +194,7 @@ export async function runDailyMetricsIngest(
       value: fmtNumber(asx.price, 2),
       unit: null,
       source: "Yahoo Finance",
+      sourceUrl: asx.sourceUrl,
       groupKey: "MARKETS",
       asOf: asx.asOf.toISOString(),
       displayOrder: 90,
@@ -192,6 +208,7 @@ export async function runDailyMetricsIngest(
       value: fmtNumber(audusd.price, 4),
       unit: null,
       source: "Yahoo Finance",
+      sourceUrl: audusd.sourceUrl,
       groupKey: "MARKETS",
       asOf: audusd.asOf.toISOString(),
       displayOrder: 100,
@@ -205,6 +222,7 @@ export async function runDailyMetricsIngest(
       value: fmtNumber(audgbp.price, 4),
       unit: null,
       source: "Yahoo Finance",
+      sourceUrl: audgbp.sourceUrl,
       groupKey: "MARKETS",
       asOf: audgbp.asOf.toISOString(),
       displayOrder: 105,
@@ -218,6 +236,7 @@ export async function runDailyMetricsIngest(
       value: fmtNumber(audeur.price, 4),
       unit: null,
       source: "Yahoo Finance",
+      sourceUrl: audeur.sourceUrl,
       groupKey: "MARKETS",
       asOf: audeur.asOf.toISOString(),
       displayOrder: 110,
@@ -231,6 +250,7 @@ export async function runDailyMetricsIngest(
       value: fmtNumber(us10y.price, 2),
       unit: "%",
       source: "Yahoo Finance",
+      sourceUrl: us10y.sourceUrl,
       groupKey: "MARKETS",
       asOf: us10y.asOf.toISOString(),
       displayOrder: 115,
@@ -247,6 +267,7 @@ export async function runDailyMetricsIngest(
       value: r.value,
       unit: r.unit || null,
       source: r.source,
+      sourceUrl: r.sourceUrl,
       context: r.context,
       groupKey: r.groupKey,
       asOf: r.asOf.toISOString(),

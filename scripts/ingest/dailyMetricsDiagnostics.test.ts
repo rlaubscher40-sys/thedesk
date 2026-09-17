@@ -11,7 +11,23 @@ vi.mock("./lib/rbaCashRate", () => ({
 vi.mock("./lib/auctionClearance", () => ({ fetchAuctionMetrics: async () => [] }));
 vi.mock("./lib/propertyReleases", () => ({ fetchPropertyReleaseMetrics: async () => [] }));
 vi.mock("./lib/rbaHousingRates", () => ({ fetchRbaHousingRateMetrics: async () => [] }));
-vi.mock("./lib/abs", () => ({ fetchAllAbs: async () => [] }));
+vi.mock("./lib/abs", () => ({
+  fetchAllAbs: async () => [
+    {
+      metricKey: "unemployment",
+      label: "Unemployment rate",
+      value: "4.3",
+      unit: "%",
+      source: "ABS",
+      sourceUrl:
+        "https://www.abs.gov.au/statistics/labour/employment-and-unemployment/labour-force-australia/latest-release",
+      asOf: new Date("2026-07-01T00:00:00Z"),
+      groupKey: "LABOUR",
+      context: null,
+      displayOrder: 70,
+    },
+  ],
+}));
 vi.mock("../../server/markets/absDemographics", () => ({
   getStateDemographics: async () => ({ status: "unavailable", observations: [] }),
 }));
@@ -58,7 +74,16 @@ it("forwards the cash-rate diagnosis while persisting successful sources without
   expect(onSourceError).toHaveBeenCalledWith("cash_rate", "RBA F1 HTTP 403");
   expect(persist).toHaveBeenCalledOnce();
   const metrics = persist.mock.calls[0] as unknown as [Array<{ metricKey: string }>];
-  expect(metrics[0]).toHaveLength(6);
+  expect(metrics[0]).toHaveLength(7);
+  expect(metrics[0].find((m) => m.metricKey === "asx200")).toMatchObject({
+    sourceUrl: "https://query1.finance.yahoo.com/v8/finance/chart/%5EAXJO?interval=1d&range=5d",
+    asOf: "2026-09-08T00:00:00.000Z",
+  });
+  expect(metrics[0].find((m) => m.metricKey === "unemployment")).toMatchObject({
+    sourceUrl:
+      "https://www.abs.gov.au/statistics/labour/employment-and-unemployment/labour-force-australia/latest-release",
+    asOf: "2026-07-01T00:00:00.000Z",
+  });
   expect(metrics[0].find((m) => m.metricKey === "melbourne_rent_growth_annual")).toMatchObject({
     value: "2.5",
     unit: "%",

@@ -13,6 +13,29 @@ const words = (s: string) => [
   ),
 ];
 
+/** A standalone excerpt must not leave the speaker or subject in an omitted paragraph. */
+function needsPreviousContext(text: string): boolean {
+  return (
+    /^(?:he|she|they|it|this|that|these|those|for people already living that reality)\b/i.test(
+      text
+    ) || /["”']?,?\s+(?:he|she|they)\s+(?:said|added|warned|told|argued)\b/i.test(text)
+  );
+}
+
+/** Suppress a short restatement only when it adds neither vocabulary nor figures.
+ * Negations and changed numbers remain significant; this is not semantic deduplication. */
+function repeatsFinding(first: string, next: string): boolean {
+  const known = new Set(words(first));
+  const terms = words(next);
+  const figures = (text: string) => text.match(/[+-]?\d[\d,.]*(?:%|\b)/g) ?? [];
+  const knownFigures = new Set(figures(first));
+  return (
+    terms.length >= 6 &&
+    terms.every((word) => known.has(word)) &&
+    figures(next).every((figure) => knownFigures.has(figure))
+  );
+}
+
 /** Captions are not reporting evidence, even when they repeat the headline. */
 export function isPhotoCaption(text: string): boolean {
   return (
@@ -50,6 +73,7 @@ export function reportingExcerpt(title: string, articleText: string, max = 380):
         s.length <= 1800 &&
         /[.!?]$/.test(s) &&
         !looksLikeGarbage(s) &&
+        !needsPreviousContext(s) &&
         !looksLikeSiteBoilerplate(s) &&
         !/^(?:by |published|updated|minister for|deputy premier|the honourable|share this|read more|image:|photo:)/i.test(
           s
@@ -70,7 +94,9 @@ export function reportingExcerpt(title: string, articleText: string, max = 380):
     return clip.slice(0, clip.lastIndexOf(" ")).trimEnd() + "…";
   }
   const following = candidates[first.index + 1];
-  return following && first.text.length + following.length + 1 <= max
+  return following &&
+    !repeatsFinding(first.text, following) &&
+    first.text.length + following.length + 1 <= max
     ? `${first.text} ${following}`
     : first.text;
 }

@@ -4,7 +4,24 @@ import { cached } from "../core/cache";
 import { recentSocialReceipts } from "../db/socialPublication";
 import { readReelPublicationHistory } from "../db/reelHistory";
 import { REEL_PUBLICATION_FAMILIES } from "./reelCandidates";
+import { APPROVAL_REGIONS } from "../../shared/cityApprovals";
+import { DOCUMENTARY_READING } from "../../shared/documentaryReels";
 const REEL_READS: Record<string, { title: string; path: string }> = {
+  ...Object.fromEntries(
+    Object.values(APPROVAL_REGIONS).map((city) => [
+      `instagram-reel-abs-${city.toLowerCase()}-before-buy-v1`,
+      {
+        title: `Before you buy in ${city}`,
+        path: `/markets/${city.toLowerCase()}#housing-approvals`,
+      },
+    ])
+  ),
+  ...Object.fromEntries(
+    DOCUMENTARY_READING.map((episode) => [
+      `instagram-reel-documentary-${episode.id}-v1`,
+      { title: episode.title, path: `/social#${episode.id}` },
+    ])
+  ),
   "instagram-reel-abs-rents-brisbane-perth-v1": {
     title: "Brisbane vs Perth rents",
     path: "/markets/compare/brisbane-vs-perth",
@@ -21,10 +38,6 @@ const REEL_READS: Record<string, { title: string; path: string }> = {
     title: "Sydney rent changes",
     path: "/markets/sydney#rental-conditions",
   },
-  "instagram-reel-abs-sydney-before-buy-v1": {
-    title: "Before you buy in Sydney",
-    path: "/markets/sydney#housing-approvals",
-  },
   "instagram-reel-nhsac-housing-balance-v1": {
     title: "Australia’s housing supply gap",
     path: "/markets/housing-balance",
@@ -38,6 +51,9 @@ const REEL_READS: Record<string, { title: string; path: string }> = {
     path: "/markets/compare/brisbane-vs-perth#state-population",
   },
 };
+export function reelEvidenceLink(key: string) {
+  return Object.hasOwn(REEL_READS, key) ? REEL_READS[key] : undefined;
+}
 const receipt = z.object({
   postId: z.string().regex(/^\d{1,64}$/),
   headline: z.string().max(512),
@@ -119,7 +135,7 @@ export async function publicPostGallery(now = new Date()) {
     }
   );
   const reels = (reelRead.status === "fulfilled" ? reelRead.value : []).flatMap((row) => {
-    const read = REEL_READS[row.key];
+    const read = reelEvidenceLink(row.key);
     return read
       ? [
           {

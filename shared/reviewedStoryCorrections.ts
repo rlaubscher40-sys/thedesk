@@ -78,4 +78,23 @@ export const REVIEWED_STORY_CORRECTIONS = [
       },
     ],
   },
+  {
+    id: 3930102,
+    sourceUrl:
+      "https://www.sbs.com.au/news/article/temporary-migrants-cuts-voting-rights-one-nation/97u096arb",
+    issuedOn: "2026-09-17",
+    reference: "Story 3930102",
+    what: "The standfirst lost the speaker's attribution. Reader commentary conflated graduate visas with student revenue and asserted local rental effects beyond the source's evidence.",
+    now: "The website identifies the policy as a proposal, distinguishes its student and graduate components, and states that SBS does not establish the size, location or timing of rental effects. Previously distributed copies are not changed by this website correction.",
+    fields: [],
+  },
+  {
+    id: 3930101,
+    sourceUrl: "https://www.westpaciq.com.au/economics/2026/09/leading-index-september-2026",
+    issuedOn: "2026-09-17",
+    reference: "Story 3930101",
+    what: "The summary repeated the index movement, and reader commentary inferred mortgage-rate timing and support for property values from the index.",
+    now: "The website retains the August and July readings and Westpac's uncertainty. It clarifies that the index does not establish local property values or a mortgage-relief timetable.",
+    fields: [],
+  },
 ] as const;
