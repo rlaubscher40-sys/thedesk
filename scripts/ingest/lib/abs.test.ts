@@ -22,7 +22,9 @@ it.each(cases)(
     const result = parseAbsRelease(key!, fixture(file!), now)!;
     expect(result.value).toBe(value);
     expect(result.asOf.toISOString().slice(0, 7)).toBe(period);
-    expect(result.sourceUrl).toMatch(/^https:\/\/www.abs.gov.au\/statistics\/.+\/latest-release$/);
+    const source = new URL(result.sourceUrl);
+    expect(source.origin).toBe("https://www.abs.gov.au");
+    expect(source.pathname).toMatch(/^\/statistics\/.+\/latest-release$/);
   }
 );
 it("selects annual wages, not the adjacent quarterly figure or page prose", () => {
