@@ -5,6 +5,9 @@ import { transferForMarket } from "./quarterlyHousing";
 import { CityRentRead } from "./CityRentRead";
 import { CityApprovalRead } from "./CityApprovalRead";
 import { rentCity } from "./cityRents";
+import { CouncilRentRead, councilRentObservations } from "./CouncilRentRead";
+import { RegionalContextRead } from "./RegionalContextRead";
+import { regionalContext } from "./regionalContext";
 import {
   coverageLabel,
   marketPath,
@@ -90,6 +93,16 @@ export function PublicMarketRead({
                 </a>
               </>
             )}
+            {councilRentObservations(file.councilRents).length > 0 && (
+              <a className="bs-link bs-period-link text-sm" href="#council-rents">
+                Council rents
+              </a>
+            )}
+            {regionalContext(market.slug, file.asOf).length > 0 && (
+              <a className="bs-link bs-period-link text-sm" href="#primary-context">
+                Primary sources
+              </a>
+            )}
           </>
         )}
         <a className="bs-link bs-period-link text-sm" href="#latest-reporting">
@@ -107,6 +120,7 @@ export function PublicMarketRead({
           asOf={file.asOf}
         />
       )}
+      {!directory.demo && <CouncilRentRead data={file.councilRents} />}
       {!directory.demo && (
         <CompletionRead data={file.completions} stateCode={market.state} asOf={file.asOf} />
       )}
@@ -132,6 +146,7 @@ export function PublicMarketRead({
           onSource={() => onAction?.("source")}
         />
       )}
+      {!directory.demo && <RegionalContextRead market={market.slug} asOf={file.asOf} />}
       <section
         id="latest-reporting"
         className="rule-hair rule-hair-b mt-6 py-6"

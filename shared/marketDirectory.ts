@@ -4,6 +4,7 @@ import type { StateDemographics } from "./stateDemographics";
 import type { StateLabour } from "./stateLabour";
 import type { HousingTransfers, HousingCompletions } from "./quarterlyHousing";
 import { PROPERTY_REGIONS } from "./propertyCoverage";
+import type { CouncilRents } from "./CouncilRentRead";
 /** A deliberately small public directory, not a claim of suburb-wide coverage. */
 export const PUBLIC_MARKETS = [
   { slug: "sydney", name: "Sydney", state: "NSW" },
@@ -59,6 +60,7 @@ export type PublicMarketFile = {
   labour?: StateLabour;
   transfers?: HousingTransfers;
   completions?: HousingCompletions;
+  councilRents?: CouncilRents;
 };
 export type MarketDirectory = {
   asOf: string;
