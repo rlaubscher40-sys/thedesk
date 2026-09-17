@@ -67,6 +67,23 @@ afterEach(() => {
 });
 
 describe("Ask answer recovery", () => {
+  it("answers an exact quarterly sales request with the dated source and no model calls", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date("2026-09-17"));
+    vi.mocked(retrieveLocalFacts).mockResolvedValue([{
+      quarterlyHousing: {kind: "transfers", place: "Brisbane", period: "2026-Q2"},
+      title: "Brisbane: sale medians and transfers", date: "2026-Q2", href: "/markets?q=Brisbane&transferPeriod=2026-Q2#transfers",
+      publisher: "Australian Bureau of Statistics", sourceUrl: "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/total-value-dwellings/jun-quarter-2026",
+      text: "Brisbane, June quarter 2026. Established houses: median sale price $1,155,000, recorded transfers 6,559. ABS original, unstratified median; not a price-growth index."
+    }]);
+    vi.mocked(reviewAskAnswer).mockResolvedValue(false);
+    const result = await askRouter.createCaller(ctx).answer({question: "What are median sale prices and recorded transfers in Brisbane in 2026-Q2?"});
+    expect(result.status).toBe("answered");
+    if (result.status === "answered") {
+      expect(result.answer.answer).toContain("$1,155,000");
+      expect(result.sources).toMatchObject([{date:"2026-Q2",href:"/markets?q=Brisbane&transferPeriod=2026-Q2#transfers"}]);
+    }
+    expect(invokeLLMJson).not.toHaveBeenCalled();expect(reviewAskAnswer).not.toHaveBeenCalled();
+  });
   it("answers verified state unemployment without generation or model review", async () => {
     vi.useFakeTimers(); vi.setSystemTime(new Date("2026-09-17"));
     vi.mocked(retrieveLocalFacts).mockResolvedValue(["NSW", "QLD"].map((state) => ({

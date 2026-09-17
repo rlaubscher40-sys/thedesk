@@ -1,6 +1,43 @@
 /** Source-reviewed corrections. Exact prior values protect later manual edits. */
 export const REVIEWED_STORY_CORRECTIONS = [
   {
+    fields: [
+      {
+        after:
+          "Queensland opened a Register of Interest for land in Glenden and introduced legislation to repeal worker-accommodation obligations on the Byerwen mine. The release describes a bill introduced to Parliament, not a completed repeal.",
+        before:
+          "The Crisafulli Government is delivering a practical pathway forward for Glenden, opening a Register of Interest for parties interested in buying land.",
+        field: "summary",
+      },
+      {
+        after:
+          "Queensland has introduced a bill to remove the Byerwen mine’s worker-accommodation obligations and opened a Register of Interest for Glenden land.",
+        before:
+          "Queensland just stripped a coal mine's obligation to house workers in a struggling town, and opened the land to anyone who wants it instead.",
+        field: "sayThis",
+      },
+      {
+        after:
+          "The announcement combines proposed changes to worker-accommodation obligations with a land registration process. It does not establish that the repeal has passed or that private investment will follow.",
+        before:
+          "Whether repealing a mandated workforce-housing obligation revives or further hollows out Glenden depends on private-sector appetite that has not yet been tested.",
+        field: "whyItMatters",
+      },
+      {
+        after: null,
+        before:
+          "Removing QCoal's obligation to house workers there reduces the one guaranteed source of local economic activity, which is the opposite of a revival plan.",
+        field: "counterpoint",
+      },
+    ],
+    id: 3960063,
+    issuedOn: "2026-09-17",
+    now: "The website distinguishes a bill introduced to Parliament from an enacted repeal, and withdraws the unsupported economic claim. Already distributed copies are not rewritten.",
+    reference: "Story 3960063",
+    sourceUrl: "https://statements.qld.gov.au/statements/106053",
+    what: "Reader commentary described proposed legislation as an already completed removal of worker-housing obligations and asserted a guaranteed local economic effect.",
+  },
+  {
     id: 3900020,
     sourceUrl:
       "https://www.abc.net.au/news/2026-09-15/rba-inflation-economy-interest-rates/107151344",

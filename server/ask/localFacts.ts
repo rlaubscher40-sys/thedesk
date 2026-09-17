@@ -22,6 +22,11 @@ import {
 } from "../../shared/cityApprovals";
 import { getCityApprovals } from "../markets/absApprovals";
 import { stateLabourFacts } from "./stateLabourFacts";
+import {
+  quarterlyHousingFacts,
+  quarterlyHousingScope,
+  quarterlyHousingContext,
+} from "./quarterlyHousing";
 import { readPlanningSnapshots } from "../db/planningSnapshots";
 import { requestedLocalPeriods } from "../localData/requestedPeriods";
 import {
@@ -45,8 +50,11 @@ export async function retrieveLocalFacts(question: string): Promise<FactEvidence
   const planning =
     /\b(planning|development|applications?|dwellings?|approvals?|supply)\b/i.test(question) &&
     /\b(?:city of sydney|sydney council|sydney lga)\b/i.test(question);
-  if (!rent && !population && !broad && !planning && !approvals && !labour) return [];
+  const housing = quarterlyHousingScope(question);
+  if (!rent && !population && !broad && !planning && !approvals && !labour && !housing) return [];
   const work: Array<Promise<FactEvidence[]>> = [];
+  if (housing) work.push(quarterlyHousingFacts(question));
+  else if (broad || approvals) work.push(quarterlyHousingContext(question));
   if (labour) work.push(stateLabourFacts(question));
   if (rent || population || broad)
     work.push(

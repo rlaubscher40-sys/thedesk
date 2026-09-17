@@ -18,6 +18,8 @@ import { AuctionClearance } from "@/components/markets/AuctionClearance";
 import { MarketRentConditions } from "@/components/markets/MarketRentConditions";
 import { MarketApprovalConditions } from "@/components/markets/MarketApprovalConditions";
 import { MarketLabourConditions } from "@/components/markets/MarketLabourConditions";
+import { MarketQuarterlyHousing } from "@/components/markets/MarketQuarterlyHousing";
+import { evidenceText } from "@shared/evidenceQuality";
 import { LocalMarketData } from "@/components/markets/LocalMarketData";
 import { ComparisonWatchlist } from "@/components/markets/ComparisonWatchlist";
 import { ShareIntelligenceCardButton } from "@/components/ask/ShareIntelligenceCardButton";
@@ -76,6 +78,8 @@ export default function MarketsPage() {
       "rentPeriod",
       "approvalPeriod",
       "labourPeriod",
+      "transferPeriod",
+      "completionPeriod",
       "period",
       "state",
       "areaKind",
@@ -172,9 +176,13 @@ export default function MarketsPage() {
             ? params.get("labourPeriod")
             : "";
     ask.mutate({
-      question: params.has("labourPeriod")
-        ? `What are employment, unemployment and participation in ${market.slice(0, 64)}${period ? ` in ${period}` : ""}?`
-        : `Assess ${kind} ${market.slice(0, 64)} ${state}${period ? ` for reporting period ${period}` : ""}: price momentum, rents, supply, credit, population and risks. Use Desk evidence only; state gaps and what would change the call.`,
+      question: params.has("transferPeriod")
+        ? `What are median sale prices and recorded transfers in ${market.slice(0, 64)} in ${params.get("transferPeriod")}?`
+        : params.has("completionPeriod")
+          ? `What are dwelling completions in ${market.slice(0, 64)} in ${params.get("completionPeriod")}?`
+          : params.has("labourPeriod")
+            ? `What are employment, unemployment and participation in ${market.slice(0, 64)}${period ? ` in ${period}` : ""}?`
+            : `Assess ${kind} ${market.slice(0, 64)} ${state}${period ? ` for reporting period ${period}` : ""}: price momentum, rents, supply, credit, population and risks. Use Desk evidence only; state gaps and what would change the call.`,
     });
   }
 
@@ -244,6 +252,13 @@ export default function MarketsPage() {
         <MarketRentConditions
           marketA={market}
           period={new URLSearchParams(search).get("rentPeriod")}
+        />
+      )}
+      {!comparisonMode && market && (
+        <MarketQuarterlyHousing
+          market={market}
+          transferPeriod={new URLSearchParams(search).get("transferPeriod")}
+          completionPeriod={new URLSearchParams(search).get("completionPeriod")}
         />
       )}
       {!comparisonMode && market && (
@@ -430,7 +445,10 @@ export default function MarketsPage() {
                             {item.title}
                           </p>
                           <p className="mt-2 text-[0.9375rem] leading-6 text-[var(--color-fg-muted)]">
-                            {cleanSnippet(item.snippet || item.summary)}
+                            {cleanSnippet(
+                              evidenceText({ ...item, summary: item.snippet || item.summary })
+                                .summary
+                            )}
                           </p>
                         </Link>
                       ))}

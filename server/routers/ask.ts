@@ -8,6 +8,7 @@ import { describeMetricObservation } from "../../shared/metricObservation";
 import { directLocalRentAnswer } from "../ask/directLocalRent";
 import { directCpiRentAnswer } from "../ask/directCpiRent";
 import { directStateLabourAnswer } from "../ask/directStateLabour";
+import { directQuarterlyHousingAnswer } from "../ask/quarterlyHousing";
 import { directApprovalsSignalAnswer } from "../ask/directSignal";
 import {
   deduplicateAnswerRefs,
@@ -403,6 +404,7 @@ export const askRouter = router({
           });
           const packedRefs = new Set(packedEvidence.map((source) => source.ref));
           const directAnswer =
+            directQuarterlyHousingAnswer(input.question, matches.facts, packedEvidence) ??
             directStateLabourAnswer(input.question, matches.facts, packedEvidence) ??
             directCpiRentAnswer(input.question, matches.facts, packedEvidence) ??
             directLocalRentAnswer(input.question, matches.facts) ??
