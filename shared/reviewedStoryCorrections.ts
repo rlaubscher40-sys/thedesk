@@ -97,47 +97,81 @@ export const REVIEWED_STORY_CORRECTIONS = [
     now: "The website retains the August and July readings and Westpac's uncertainty. It clarifies that the index does not establish local property values or a mortgage-relief timetable.",
     fields: [],
   },
+{
+  "id": 3960032,
+  "sourceUrl": "https://www.realestate.com.au/news/brisbane-2032-the-inner-city-suburb-rezoned-for-27000-new-homes/",
+  "reviewSourceUrl": "https://statements.qld.gov.au/statements/106069",
+  "issuedOn": "2026-09-17",
+  "reference": "Story 3960032",
+  "what": "The headline and talking point treated proposed Bowen Hills planning changes as implemented. The summary instead described Woolloongabba, and reader angles asserted unsupported timing and price effects.",
+  "now": "The website identifies Bowen Hills' changes as proposed, distinguishes projected capacity from delivery, and withdraws the unsupported reader angles. Already distributed copies are not rewritten.",
+  "fields": [
   {
-    id: 3960032,
-    sourceUrl:
-      "https://www.realestate.com.au/news/brisbane-2032-the-inner-city-suburb-rezoned-for-27000-new-homes/",
-    reviewSourceUrl: "https://statements.qld.gov.au/statements/106069",
-    issuedOn: "2026-09-17",
-    reference: "Story 3960032",
-    what: "The headline and talking point treated proposed Bowen Hills planning changes as implemented. The summary instead described Woolloongabba, and reader angles asserted unsupported timing and price effects.",
-    now: "The website identifies Bowen Hills' changes as proposed, distinguishes projected capacity from delivery, and withdraws the unsupported reader angles. Already distributed copies are not rewritten.",
-    fields: [
-      {
-        after: null,
-        before:
-          "Height limits rising on paper and towers rising on site are different things; feasibility concerns that UDIA flagged for inner-city delivery have not disappeared with rezoning.",
-        field: "counterpoint",
-      },
-      {
-        after: "Bowen Hills planning changes proposed for capacity of up to 27,000 homes",
-        before: "Brisbane 2032: The inner-city suburb rezoned for 27,000 new homes",
-        field: "title",
-      },
-      {
-        after:
-          "Queensland proposes lifting Bowen Hills height limits from 30 to 50 storeys, adding capacity for up to 4,000 homes within a projected total of 27,000 across the PDA's lifetime. Consultation closes on 9 October 2026. These are proposed planning changes, not completed rezoning or home delivery.",
-        before:
-          "In October 2025 , the state officially amended and implemented another inner-city PDA in Woolloongabba, which is expected to fast-track more than 16,000 new homes. The scheme also enables the development of key infrastructure projects, including a new indoor sports stadium, planning for the future of the Gabba Stadium and the retention of East Brisbane State School.",
-        field: "summary",
-      },
-      {
-        after:
-          "Bowen Hills' proposed height increase remains under consultation. Planning capacity is not a delivery timetable.",
-        before:
-          "Brisbane's Bowen Hills just had its height limit lifted from 30 to 50 storeys, and consultation closes October 9, 2026.",
-        field: "sayThis",
-      },
-      {
-        after: null,
-        before:
-          "Buying: More supply near the CBD means less heat in that pocket, but only once approvals convert to completions years from now.\nHolding: If you own in Bowen Hills, a 50-storey height limit reshapes the precinct's character and your future neighbours before it reshapes your price.\nWatching: The Woolloongabba PDA logged a 466% rise in housing development applications in roughly 12 months after its October 2025 amendment, which is the number to track here.",
-        field: "partnerTag",
-      },
-    ],
+    "after": null,
+    "before": "Height limits rising on paper and towers rising on site are different things; feasibility concerns that UDIA flagged for inner-city delivery have not disappeared with rezoning.",
+    "field": "counterpoint"
   },
+  {
+    "after": "Bowen Hills planning changes proposed for capacity of up to 27,000 homes",
+    "before": "Brisbane 2032: The inner-city suburb rezoned for 27,000 new homes",
+    "field": "title"
+  },
+  {
+    "after": "Queensland proposes lifting Bowen Hills height limits from 30 to 50 storeys, adding capacity for up to 4,000 homes within a projected total of 27,000 across the PDA's lifetime. Consultation closes on 9 October 2026. These are proposed planning changes, not completed rezoning or home delivery.",
+    "before": "In October 2025 , the state officially amended and implemented another inner-city PDA in Woolloongabba, which is expected to fast-track more than 16,000 new homes. The scheme also enables the development of key infrastructure projects, including a new indoor sports stadium, planning for the future of the Gabba Stadium and the retention of East Brisbane State School.",
+    "field": "summary"
+  },
+  {
+    "after": "Bowen Hills' proposed height increase remains under consultation. Planning capacity is not a delivery timetable.",
+    "before": "Brisbane's Bowen Hills just had its height limit lifted from 30 to 50 storeys, and consultation closes October 9, 2026.",
+    "field": "sayThis"
+  },
+  {
+    "after": null,
+    "before": "Buying: More supply near the CBD means less heat in that pocket, but only once approvals convert to completions years from now.\nHolding: If you own in Bowen Hills, a 50-storey height limit reshapes the precinct's character and your future neighbours before it reshapes your price.\nWatching: The Woolloongabba PDA logged a 466% rise in housing development applications in roughly 12 months after its October 2025 amendment, which is the number to track here.",
+    "field": "partnerTag"
+  }
+]
+},
+{
+  "id": 3960017,
+  "sourceUrl": "https://www.realestate.com.au/news/latest-migration-figures-will-have-deep-impact-on-home-prices-rents/",
+  "reviewSourceUrl": "https://www.abs.gov.au/media-centre/media-releases/australias-population-grows-14-march-2026",
+  "issuedOn": "2026-09-17",
+  "reference": "Story 3960017",
+  "what": "The summary foregrounded older suburb analysis rather than the new national release. The counterpoint equated slower price growth with a capital loss.",
+  "now": "The website leads with the year-to-March national population and migration figures and distinguishes the older observational analysis from established causal effects.",
+  "fields": [
+    {
+      "field": "summary",
+      "before": "It comes as analysis of ABS data for the 2024/25 financial year, the latest with available suburb-level data, showed areas where migration intake dropped the most over the year had the slowest growing unit prices and rents in their cities.",
+      "after": "ABS figures show Australia’s population grew 1.4% to 27.9 million in the year to March 2026. Net overseas migration contributed 292,100 people, down from 309,500 a year earlier. The accompanying suburb analysis uses older 2024–25 data."
+    },
+    {
+      "field": "sayThis",
+      "before": "Migration relief on rents is real, but the data says it takes 12 to 15 months to show up, and most of the cut has already happened.",
+      "after": "Net overseas migration slowed to 292,100 in the year to March 2026. The separate suburb analysis reports an association with price and rent growth, not a guaranteed rental-relief timetable."
+    },
+    {
+      "field": "counterpoint",
+      "before": "The same analysis shows migration cuts correlate with slower unit price growth, which is rent relief for tenants but a capital loss for landlords already holding in those suburbs.",
+      "after": "Slower price growth is not the same as a capital loss. The suburb analysis is observational and does not establish that migration changes alone caused local price or rent movements."
+    }
+  ]
+},
+{
+  "id": 3960020,
+  "sourceUrl": "https://www.aljazeera.com/news/2026/9/16/what-to-know-about-us-federal-reserves-first-interest-rate-hike-in-3-years",
+  "issuedOn": "2026-09-17",
+  "reference": "Story 3960020",
+  "what": "The same Al Jazeera article appeared in both Global and Business because a tracking parameter produced separate URL identities.",
+  "now": "The later duplicate is withdrawn from public feeds. Story 3960010 remains available; both database records and any reader notes are retained.",
+  "fields": [
+    {
+      "field": "channel",
+      "before": "BUSINESS",
+      "after": "HOLD"
+    }
+  ]
+},
 ] as const;
