@@ -225,7 +225,7 @@ it("bounds the permitted newsroom recovery to one durable claim", () => {
 
 it("bounds the September 17 coverage recovery to one durable collection claim", () => {
   expect(SEPTEMBER_17_COVERAGE_RECOVERY_JOB).toMatchObject({
-    key: "coverage-september-17-source-recovery", claimDate: "2026-09-17", maxAttempts: 1,
+    key: "coverage-september-17-relevance-recovery", claimDate: "2026-09-17", maxAttempts: 1,
   });
   expect(isJobDue(SEPTEMBER_17_COVERAGE_RECOVERY_JOB, baseClock({ minutes: 1439 }))).toBe(true);
 });

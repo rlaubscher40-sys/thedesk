@@ -114,7 +114,111 @@ it("attributes first-person NSW statements only to an explicitly declared minist
 });
 
 it("gives official workforce releases a reading opportunity without waiving body relevance", () => {
-  const item = { title: "More apprentices picking up tools as the skills pipeline rebuilds", url: "https://www.nsw.gov.au/ministerial-releases/workforce", channel: "PROPERTY" };
+  const item = {
+    title: "More apprentices picking up tools as the skills pipeline rebuilds",
+    url: "https://www.nsw.gov.au/ministerial-releases/workforce",
+    channel: "PROPERTY",
+  };
   expect(discoveryScore(item)).toBeGreaterThan(50);
-  expect(assessStory({ ...item, articleText: "Training in unrelated beauty services expanded across the state. ".repeat(15), sourceTiming }, now).eligible).toBe(false);
+  expect(
+    assessStory(
+      {
+        ...item,
+        articleText: "Training in unrelated beauty services expanded across the state. ".repeat(15),
+        sourceTiming,
+      },
+      now
+    ).eligible
+  ).toBe(false);
+});
+
+it.each([
+  [
+    "Aquaculture leases extended",
+    "The fisheries reform supports investment and productivity in oyster farming.",
+  ],
+  [
+    "Mining lease approvals streamlined",
+    "The bill reduces duplication in mining approval applications.",
+  ],
+  [
+    "Drought resilience research partnership",
+    "Funding supports research into cotton and grain cropping systems.",
+  ],
+])("does not let a distant economic aside redefine a state release: %s", (title, lead) => {
+  const articleText = [
+    lead,
+    "The release explains the industry programme and its implementation details.",
+    "The programme follows consultation with participating businesses.",
+    "Further details will be released as implementation proceeds.",
+    "A background paragraph discusses employment, productivity and housing supply.",
+  ].join("\n\n");
+  expect(
+    assessStory(
+      {
+        title,
+        url: "https://www.nsw.gov.au/ministerial-releases/example",
+        channel: "AU",
+        articleText,
+        sourceTiming,
+      },
+      now
+    ).eligible
+  ).toBe(false);
+});
+it.each([
+  [
+    "Applications open for animal welfare and rehoming grants",
+    "Animal rescue groups can apply for funding to find cats and dogs safe new homes.",
+  ],
+  [
+    "NSW winners announced at the Resilient Australia Awards",
+    "A project protecting social housing is among the winners at this year's awards ceremony.",
+  ],
+])("rejects a non-housing main subject even with housing vocabulary: %s", (title, lead) => {
+  expect(
+    assessStory(
+      {
+        title,
+        url: "https://www.nsw.gov.au/ministerial-releases/example",
+        channel: "PROPERTY",
+        articleText: lead.repeat(15),
+        sourceTiming,
+      },
+      now
+    ).eligible
+  ).toBe(false);
+});
+it("retains a housing-focused workforce release", () => {
+  const articleText =
+    "Apprenticeship commencements grew over three consecutive quarters.\n\nConstruction trades commencements increased by 12 percent over the year.\n\nThe trades are needed to build more homes and deliver essential infrastructure.\n\nThese apprenticeship starts are not a count of qualified workers or completed homes, and qualifications require further training.";
+  expect(
+    assessStory(
+      {
+        title: "More NSW apprentices picking up tools",
+        url: "https://www.nsw.gov.au/ministerial-releases/example",
+        channel: "PROPERTY",
+        articleText,
+        sourceTiming,
+      },
+      now
+    )
+  ).toMatchObject({ eligible: true, beat: "supply" });
+});
+
+it("does not borrow housing relevance from a service-directory topic list", () => {
+  const articleText =
+    "Government information is now easier to understand through a new accessibility programme.\n\nThe programme simplifies language and improves legibility for readers.\n\nResources cover emergency services, housing, transport and fees.\n\nFurther resources are being developed with community organisations.";
+  expect(
+    assessStory(
+      {
+        title: "NSW leads on accessible government information",
+        url: "https://www.nsw.gov.au/ministerial-releases/example",
+        channel: "PROPERTY",
+        articleText,
+        sourceTiming,
+      },
+      now
+    ).eligible
+  ).toBe(false);
 });
