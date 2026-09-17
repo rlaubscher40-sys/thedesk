@@ -1,4 +1,5 @@
 import { StateDemographicsRead } from "./StateDemographicsRead";
+import { StateLabourRead } from "./StateLabourRead";
 import { CityRentRead } from "./CityRentRead";
 import { CityApprovalRead } from "./CityApprovalRead";
 import {
@@ -63,6 +64,9 @@ export function PublicMarketRead({
 
       {!directory.demo && (
         <StateDemographicsRead data={file.demographics} stateCode={market.state} asOf={file.asOf} />
+      )}
+      {!directory.demo && (
+        <StateLabourRead data={file.labour} stateCode={market.state} asOf={file.asOf} />
       )}
       {!directory.demo && (
         <CityRentRead

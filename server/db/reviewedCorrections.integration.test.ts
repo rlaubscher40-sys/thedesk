@@ -17,7 +17,7 @@ beforeAll(async () => {
   url.pathname = "/" + databaseName;
   pool = createPool(url.toString());
   await pool.query(
-    "CREATE TABLE daily_feed_items (id INT PRIMARY KEY, title TEXT, sourceUrl TEXT, summary TEXT, partnerTag TEXT, whyItMatters TEXT, sayThis TEXT)"
+    "CREATE TABLE daily_feed_items (id INT PRIMARY KEY, title TEXT, sourceUrl TEXT, summary TEXT, partnerTag TEXT, whyItMatters TEXT, sayThis TEXT, counterpoint TEXT)"
   );
   vi.doMock("./client", () => ({ getDb: () => drizzle(pool!) }));
   apply = (await import("./reviewedCorrections")).applyReviewedStoryCorrections;

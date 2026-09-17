@@ -1,4 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+vi.mock("./absLabour", () => ({
+  getStateLabour: vi.fn(async () => ({
+    status: "unavailable",
+    observations: [],
+    period: null,
+    retrievedAt: null,
+  })),
+}));
 vi.mock("../db", () => ({
   listPropertyMarketEvidence: vi.fn(async () => []),
   listMarketDiscoveryItems: vi.fn(),
