@@ -12,6 +12,7 @@
  * already knowing the background.
  */
 import { invokeLLM } from "../core/llm";
+import { checkClaimEvidence } from "../../shared/claimEvidence";
 import { editorialTimeContext, validEditorialAngle } from "../../shared/editorialTiming";
 
 export type WhyItMattersInput = {
@@ -76,7 +77,8 @@ export async function generateWhyItMatters(input: WhyItMattersInput): Promise<st
       console.log(`[whyItMatters] skipped (trivial): ${input.title.slice(0, 80)}`);
       return null;
     }
-    return validEditorialAngle(trimmed);
+    const line = validEditorialAngle(trimmed);
+    return checkClaimEvidence(line, input).length ? null : line;
   } catch (err) {
     console.error("[whyItMatters] generation error:", err);
     return null;
