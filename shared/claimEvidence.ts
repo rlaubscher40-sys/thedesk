@@ -112,7 +112,20 @@ export function checkClaimEvidence(
       .filter((s) => /\b(?:lower|reduced) payment costs\b/i.test(s))
       .flatMap((s) => [...figures(s)].filter((n) => n.startsWith("$:")))
   );
+  // A definitive headline cannot verify implementation when the reporting says draft.
+  const planningBody = sentences(source.articleText?.slice(0, 6000) || source.summary || "");
+  const planningProposal = planningBody.some(s =>
+    /\b(?:propos\w*|draft|consultation)\b/i.test(s) &&
+    /\b(?:height limits?|rezoning|development scheme|planning changes|amendments)\b/i.test(s)
+  );
   for (const sentence of sentences(copy)) {
+    if (
+      planningProposal &&
+      /\b(?:height limits?|rezoning|development scheme|planning changes|amendments)\b/i.test(sentence) &&
+      /\b(?:already|now|just had|has been|have been|was|were)\b.{0,70}\b(?:lifted|raised|increased|approved|implemented|enacted)\b/i.test(sentence) &&
+      !/\b(?:propos\w*|draft|would|could|if|not|yet)\b/i.test(sentence) &&
+      !planningBody.some(s => s.trim() === sentence.trim() && !future.test(s))
+    ) issues.add("proposal-as-fact");
     // Do not collapse a reported combination of rates and loan size into a
     // rates-only repayment effect. Mere numeric overlap does not prove causation.
     if (

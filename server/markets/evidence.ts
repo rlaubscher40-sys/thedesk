@@ -52,7 +52,7 @@ export async function retrieveMarketEvidence(
     Promise.all([db.searchPropertyEvidence(marketA), db.searchPropertyEvidence(marketB)]),
     Promise.all(
       [marketA, marketB].map((market) =>
-        retrieveLocalFacts(`Property rents and population outlook for ${market}`)
+        retrieveLocalFacts(`Property rents, dwelling approvals and population outlook for ${market}`)
       )
     ),
   ]);
@@ -117,6 +117,8 @@ export async function retrieveMarketEvidence(
           ref: evidence.size + 1,
           title: item.title.slice(0, 240),
           date: item.date.slice(0, 32),
+          dateKind: "fact" in item ? "observation" : "publication",
+          ...("measureKind" in item && item.measureKind === "dwelling-approvals" ? { measureKind: item.measureKind } : {}),
           publisher: item.publisher?.slice(0, 120) ?? null,
           href: item.href,
           text: passage,

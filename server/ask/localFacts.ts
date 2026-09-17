@@ -4,6 +4,7 @@ import {
   latestRent,
   rentIsOlder,
   cityRentHref,
+  rentPeriod,
 } from "../../shared/cityRents";
 import {
   NSW_PILOT_COUNCIL,
@@ -13,6 +14,8 @@ import {
   planningEvidenceHref,
 } from "../../shared/nswPlanning";
 import { getCityRents } from "../markets/absRents";
+import { annualApprovals, approvalGeography, approvalsDataUrl, cityApprovalHref } from "../../shared/cityApprovals";
+import { getCityApprovals } from "../markets/absApprovals";
 import { readPlanningSnapshots } from "../db/planningSnapshots";
 import { requestedLocalPeriods } from "../localData/requestedPeriods";
 import {
@@ -29,10 +32,11 @@ export async function retrieveLocalFacts(question: string): Promise<FactEvidence
   const rent = /\brent(?:s|al)?\b/i.test(question),
     population = /\b(population|migration|demographic|residents)\b/i.test(question);
   const broad = /\b(property|market|outlook|compare)\b/i.test(question);
+  const approvals = /\b(approvals?|supply|construction|dwellings?)\b/i.test(question);
   const planning =
     /\b(planning|development|applications?|dwellings?|approvals?|supply)\b/i.test(question) &&
     /\b(?:city of sydney|sydney council|sydney lga)\b/i.test(question);
-  if (!rent && !population && !broad && !planning) return [];
+  if (!rent && !population && !broad && !planning && !approvals) return [];
   const work: Array<Promise<FactEvidence[]>> = [];
   if (rent || population || broad)
     work.push(
@@ -55,6 +59,36 @@ export async function retrieveLocalFacts(question: string): Promise<FactEvidence
       })
     );
   const cities = RENT_CITIES.filter((city) => new RegExp(`\\b${city}\\b`, "i").test(question));
+  if (
+    approvals && cities.length &&
+    !/\b(suburb|postcode|lga|council|city of|western|eastern|northern|southern|north|south|east|west)\b/i.test(question)
+  ) {
+    work.push(getCityApprovals().then((data) => {
+      if (data.status !== "available" || !data.retrievedAt) return [];
+      const asOf = new Date().toISOString().slice(0, 10);
+      return cities.flatMap((city) => {
+        // Explicit months only; a calendar year or quarter is not a trailing year.
+        if (requestedPeriods.length && (
+          requestedPeriods.some((period) => !/^20\d{2}-(0[1-9]|1[0-2])$/.test(period)) ||
+          /\b(?:quarter|Q[1-4])\b/i.test(question)
+        )) return [];
+        const periods = requestedPeriods.length ? requestedPeriods : [null];
+        return periods.flatMap((period) => {
+          const read = annualApprovals(data, city, asOf, period);
+          if (!read) return [];
+          return [{
+            measureKind: "dwelling-approvals" as const,
+            title: city + ": annual dwelling approvals",
+            date: read.period,
+            href: cityApprovalHref(city, read.period),
+            publisher: "Australian Bureau of Statistics",
+            sourceUrl: approvalsDataUrl(data.retrievedAt!),
+            text: city + " (" + approvalGeography(city) + "): " + read.total + " dwellings approved, year to " + rentPeriod(read.period) + " (" + read.period + "). Measure: dwelling approvals; all dwelling types; original series; " + (city === "Canberra" ? "territory" : "Greater Capital City Statistical Area") + "; unit: dwellings. Sum of twelve consecutive observed months, not a single month's approvals, construction starts, completions, available homes or population-adjusted supply. " + (read.preliminary ? "Includes preliminary observations. " : "") + (read.revised ? "Includes revised observations. " : "") + (period ? "Requested historical window; not a claim about current conditions. " : "") + "Retrieved " + data.retrievedAt + "; retrieval is not publication. Larger counts do not establish an investment advantage.",
+          }];
+        });
+      });
+    }));
+  }
   if (
     rent &&
     cities.length &&
@@ -142,13 +176,14 @@ export async function retrieveLocalFacts(question: string): Promise<FactEvidence
       );
   }
   let timer: ReturnType<typeof setTimeout> | undefined;
-  const collected: FactEvidence[] = [];
+  // Deterministic source slots: response speed must not decide evidence coverage.
+  const collected: FactEvidence[][] = work.map(() => []);
   try {
     await Promise.race([
       Promise.allSettled(
-        work.map((promise) =>
+        work.map((promise, index) =>
           promise.then((facts) => {
-            collected.push(...facts);
+            collected[index] = facts;
           })
         )
       ),
@@ -156,7 +191,11 @@ export async function retrieveLocalFacts(question: string): Promise<FactEvidence
         timer = setTimeout(resolve, 12_000);
       }),
     ]);
-    return collected.slice(0, 6);
+    const facts: FactEvidence[] = [];
+    for (let round = 0; round < 6 && facts.length < 6; round++)
+      for (const group of collected)
+        if (group[round] && facts.length < 6) facts.push(group[round]!);
+    return facts;
   } finally {
     clearTimeout(timer);
   }

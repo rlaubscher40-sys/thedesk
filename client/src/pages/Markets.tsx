@@ -16,6 +16,7 @@ import { MarketComparison } from "@/components/markets/MarketComparison";
 import { MarketDiscovery } from "@/components/markets/MarketDiscovery";
 import { AuctionClearance } from "@/components/markets/AuctionClearance";
 import { MarketRentConditions } from "@/components/markets/MarketRentConditions";
+import { MarketApprovalConditions } from "@/components/markets/MarketApprovalConditions";
 import { LocalMarketData } from "@/components/markets/LocalMarketData";
 import { ComparisonWatchlist } from "@/components/markets/ComparisonWatchlist";
 import { ShareIntelligenceCardButton } from "@/components/ask/ShareIntelligenceCardButton";
@@ -70,7 +71,7 @@ export default function MarketsPage() {
     const city = PUBLIC_MARKETS.find((city) => city.name.toLowerCase() === initial.toLowerCase());
     const params = new URLSearchParams(search);
     // Keep explicitly dated evidence links on their original period-aware reader.
-    const periodLink = ["rentPeriod", "period", "state", "areaKind"].some((key) => params.has(key));
+    const periodLink = ["rentPeriod", "approvalPeriod", "period", "state", "areaKind"].some((key) => params.has(key));
     if (city && !comparisonMode && !periodLink)
       navigate(marketPath(city.slug) + window.location.hash, { replace: true });
   }, [initial, comparisonMode, navigate, search]);
@@ -157,7 +158,9 @@ export default function MarketsPage() {
       ? params.get("period")
       : /^20\d{2}-(0[1-9]|1[0-2])$/.test(params.get("rentPeriod") ?? "")
         ? params.get("rentPeriod")
-        : "";
+        : /^20\d{2}-(0[1-9]|1[0-2])$/.test(params.get("approvalPeriod") ?? "")
+          ? params.get("approvalPeriod")
+          : "";
     ask.mutate({
       question: `Assess ${kind} ${market.slice(0, 64)} ${state}${period ? ` for reporting period ${period}` : ""}: price momentum, rents, supply, credit, population and risks. Use Desk evidence only; state gaps and what would change the call.`,
     });
@@ -213,6 +216,9 @@ export default function MarketsPage() {
         </Link>
       </nav>
 
+      {!comparisonMode && market && new URLSearchParams(search).has("approvalPeriod") && (
+        <MarketApprovalConditions market={market} period={new URLSearchParams(search).get("approvalPeriod")!} />
+      )}
       {!comparisonMode && market && (
         <MarketRentConditions
           marketA={market}
