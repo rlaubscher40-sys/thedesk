@@ -16,7 +16,6 @@ export async function readDocumentaryComparisonHistory(now: Date) {
       .where(
         and(
           like(jobRuns.jobKey, "instagram-reel-%"),
-          sql`${jobRuns.jobKey} <> 'instagram-reel-delivery-programme-v1'`,
           eq(jobRuns.status, "success"),
           sql`${jobRuns.detail} regexp '^Published media [0-9]+$'`,
           sql`coalesce(${jobRuns.finishedAt}, ${jobRuns.startedAt}) >= ${since}`
@@ -33,11 +32,29 @@ export async function readDocumentaryComparisonHistory(now: Date) {
   ]);
   if (receipts.length > 200 || posts.length > 200)
     throw new Error("Comparison history exceeds audited limit.");
-  const history = receipts.map((r) => ({
-    key: r.key,
-    date: r.date,
-    postId: r.detail!.slice("Published media ".length),
-  }));
+  const isDelivery = (key: string) =>
+    key === "instagram-reel-delivery-programme-v1" ||
+    /^instagram-reel-delivery-(?:speech2-)?\d{4}-\d{2}-01$/.test(key);
+  const history = receipts
+    .filter((r) => !isDelivery(r.key))
+    .map((r) => ({
+      key: r.key,
+      date: r.date,
+      postId: r.detail!.slice("Published media ".length),
+    }));
+  // Delivery watermarks repeat the publication's media ID; they are not a
+  // second editorial identity. Only collapse known markers when their exact
+  // media ID has a permanent publication receipt in this comparison window.
+  if (
+    receipts.some(
+      (r) =>
+        isDelivery(r.key) &&
+        !history.some(
+          (publication) => publication.postId === r.detail!.slice("Published media ".length)
+        )
+    )
+  )
+    throw new Error("A recent Reel delivery lacks a linked publication receipt.");
   if (posts.some((post) => !history.some((r) => r.postId === post.postId)))
     throw new Error("A recent recorded Reel lacks a linked publication receipt.");
   return history;
