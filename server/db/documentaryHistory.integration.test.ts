@@ -11,7 +11,7 @@ it("fails closed without durable comparison history", async () => {
 });
 const testUrl = process.env.SECURITY_TEST_DATABASE_URL;
 it.skipIf(!testUrl)(
-  "includes older recipe periods and unknown Reel identities, rejects orphan posts",
+  "links delivery watermarks to permanent receipts and rejects orphan deliveries or posts",
   async () => {
     const url = new URL(testUrl!);
     if (
@@ -33,6 +33,8 @@ it.skipIf(!testUrl)(
         ["instagram-reel-ordinary", "2026-07-01", "Published media 456"],
         ["instagram-reel-unknown", "2026-07-01", "Published media 789"],
         ["instagram-reel-delivery-programme-v1", "2026-09-16", "Published media 456"],
+        ["instagram-reel-delivery-speech2-2026-07-01", "2026-09-15", "Published media 123"],
+        ["instagram-reel-delivery-2026-07-01", "2026-09-14", "Published media 123"],
         ["instagram-reel-skipped", "2026-09-16", "Skipped"],
       ])
         await connection.execute(
@@ -45,6 +47,16 @@ it.skipIf(!testUrl)(
       state.db = drizzle(connection);
       const records = await readDocumentaryComparisonHistory(now);
       expect(records.map((r) => r.postId).sort()).toEqual(["123", "456", "789"]);
+      expect(records.some((r) => r.key === "instagram-reel-unknown")).toBe(true);
+      await connection.execute(
+        "INSERT INTO job_runs VALUES ('instagram-reel-delivery-speech2-2026-08-01', '2026-09-16', 'success', 'Published media 888', '2026-09-16 08:30:00', '2026-09-16 08:31:00')"
+      );
+      await expect(readDocumentaryComparisonHistory(now)).rejects.toThrow(
+        "delivery lacks a linked"
+      );
+      await connection.execute(
+        "DELETE FROM job_runs WHERE jobKey = 'instagram-reel-delivery-speech2-2026-08-01'"
+      );
       await connection.execute(
         "INSERT INTO instagram_posts VALUES ('999', 'reel', '2026-09-16 08:31:00')"
       );
