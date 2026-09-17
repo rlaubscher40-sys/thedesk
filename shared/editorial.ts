@@ -270,7 +270,10 @@ export function discoveryScore(input: EditorialInput): number {
   )
     return -100;
   if (["AU", "PROPERTY"].includes(input.channel ?? "AU"))
-    return editorialBeat(text) ? editorialPriority(input) : publisherWeight(input);
+    return editorialBeat(text) ||
+      (publisherWeight(input) === 16 && /\b(?:apprentices?|apprenticeships?|skills pipeline)\b/i.test(input.title))
+      ? editorialPriority(input)
+      : publisherWeight(input);
   return (editorialBeat(text) ? 40 : 0) + publisherWeight(input) + (/\d/.test(input.title) ? 3 : 0);
 }
 

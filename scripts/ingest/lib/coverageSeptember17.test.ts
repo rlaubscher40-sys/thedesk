@@ -112,3 +112,9 @@ it("attributes first-person NSW statements only to an explicitly declared minist
     statement
   );
 });
+
+it("gives official workforce releases a reading opportunity without waiving body relevance", () => {
+  const item = { title: "More apprentices picking up tools as the skills pipeline rebuilds", url: "https://www.nsw.gov.au/ministerial-releases/workforce", channel: "PROPERTY" };
+  expect(discoveryScore(item)).toBeGreaterThan(50);
+  expect(assessStory({ ...item, articleText: "Training in unrelated beauty services expanded across the state. ".repeat(15), sourceTiming }, now).eligible).toBe(false);
+});
