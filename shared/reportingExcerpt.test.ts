@@ -1,6 +1,35 @@
 import { expect, it } from "vitest";
 import { reportingExcerpt, cleanReportingExcerpt } from "./reportingExcerpt";
 import { evidenceEligible } from "./evidenceQuality";
+it("does not repeat a finding from a release's summary bullet", () => {
+  const first =
+    "The six-month annualised growth rate in the Westpac-Melbourne Institute Leading Index, which indicates the likely pace of economic activity relative to trend three to nine months into the future, lifted to -0.09% in August from -0.17% in July.";
+  const repeat = "Leading Index growth rate lifts to -0.09% in August from -0.17% in July.";
+  expect(
+    reportingExcerpt("Leading Index suggests momentum a touch below trend", first + "\n\n" + repeat)
+  ).toBe(first);
+});
+it("keeps a changed figure and a negative qualification", () => {
+  const first =
+    "The national rental index increased by 3.5 percent in July across the surveyed homes.";
+  const change =
+    "The national rental index increased by 3.6 percent in August across the surveyed homes.";
+  expect(reportingExcerpt("National rental index", first + "\n\n" + change)).toContain(change);
+  const caution = "The national rental index has not increased across all surveyed homes.";
+  expect(reportingExcerpt("National rental index", first + "\n\n" + caution)).toContain(caution);
+});
+it("rejects unattributed quotes and context-dependent fragments", () => {
+  const quote =
+    '"The immigration policy is a recipe to destroy the Australian economy and drive it into recession," he said.';
+  const context =
+    "For people already living that reality, the question of immigration policy isn't abstract.";
+  const finding =
+    "The party's immigration policy proposes changes to temporary visas and migration settings.";
+  expect(reportingExcerpt("Immigration policy", quote + "\n\n" + context + "\n\n" + finding)).toBe(
+    finding
+  );
+  expect(reportingExcerpt("Immigration policy", quote + "\n\n" + context)).toBe("");
+});
 it("skips a minister's title and selects the funding announcement", () => {
   const text =
     "Deputy Premier, Minister for State Development, Infrastructure and Planning and Minister for Industrial Relations The Honourable Jarrod Bleijie\n\nThe government has announced infrastructure funding to enable 710 new homes across South Burnett and Somerset.";
