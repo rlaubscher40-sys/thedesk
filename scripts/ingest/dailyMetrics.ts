@@ -161,7 +161,7 @@ export async function runDailyMetricsIngest(
     fetchYahooQuote("AUDGBP=X"),
     fetchYahooQuote("AUDEUR=X"),
     fetchYahooQuote("^TNX"), // US 10Y treasury yield
-    collectionDeadline(fetchAllAbs(), [], 45_000),
+    collectionDeadline(fetchAllAbs(options.onSourceError), [], 45_000),
     getCityApprovals(),
     getStateDemographics(),
     getCityRents(),
@@ -257,8 +257,8 @@ export async function runDailyMetricsIngest(
     });
   }
 
-  // ── ABS scrapes (CPI, unemployment, WPI, building approvals, NOM) ───────
-  console.log("[metrics] scraping ABS...");
+  // Explicit ABS release-table contracts (measure, adjustment and reference period).
+  console.log("[metrics] reading verified ABS release tables...");
   for (const r of absResults) {
     if (!r) continue;
     metrics.push({

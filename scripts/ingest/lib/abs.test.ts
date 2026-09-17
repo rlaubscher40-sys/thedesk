@@ -1,230 +1,145 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchAbsMetric, findReferenceDate, periodToDate } from "./abs";
-
-const SCRAPE_URL = "https://www.abs.gov.au/statistics/thing/latest-release";
-
-const scrape = {
-  url: SCRAPE_URL,
-  metricKey: "unemployment",
-  label: "Unemployment rate",
-  unit: "%",
-  context: "ABS seasonally adjusted",
-  groupKey: "LABOUR",
-  displayOrder: 70,
-  patterns: [/[Uu]nemployment rate[^0-9%]{0,200}?([0-9]+(?:\.[0-9]+)?)\s*%/],
-};
-
-const HTML = `<html><p>Reference period June 2026</p><p>Unemployment rate was 4.3 %</p></html>`;
-const CSV = [
-  "REGION,MEASURE,TIME_PERIOD,OBS_VALUE",
-  "AUS,UNEMP,2026-05,4.1",
-  "AUS,UNEMP,2026-06,4.2",
-  "NSW,UNEMP,2026-06,3.9",
-].join("\n");
-
-/** Route by URL: the API host serves CSV, the release page serves HTML. */
-function mockFetch(opts: { apiStatus?: number } = {}) {
-  return vi.fn(async (url: string) => {
-    if (String(url).includes("data.api.abs.gov.au")) {
-      const status = opts.apiStatus ?? 200;
-      return {
-        ok: status === 200,
-        status,
-        statusText: status === 200 ? "OK" : "Not Found",
-        text: async () => CSV,
-      } as unknown as Response;
-    }
-    return {
-      ok: true,
-      status: 200,
-      statusText: "OK",
-      text: async () => HTML,
-    } as unknown as Response;
-  });
-}
-
-afterEach(() => vi.unstubAllGlobals());
-
-describe("fetchAbsMetric", () => {
-  it("never promotes name/range discovery into trusted production data", async () => {
-    const fetch = mockFetch();
-    vi.stubGlobal("fetch", fetch);
-    const result = await fetchAbsMetric({
-      api: { discover: { terms: ["labour force"], expectRange: [2, 15] } },
-      scrape,
-    });
-    expect(result?.value).toBe("4.3");
-    expect(result?.sourceUrl).toBe(SCRAPE_URL);
-    expect(fetch).toHaveBeenCalledTimes(1);
-    expect(fetch.mock.calls[0]?.[0]).toBe(SCRAPE_URL);
-  });
-  it("rejects multiple plausible measures in a partially filtered flow", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(
-        async (url: string) =>
-          ({
-            ok: true,
-            status: 200,
-            text: async () =>
-              String(url).includes("data.api.abs.gov.au")
-                ? CSV + "\nAUS,UNDEREMP,2026-06,6.3"
-                : HTML,
-          }) as Response
-      )
-    );
-    const result = await fetchAbsMetric({
-      api: { flowRef: "ABS,LF,1.0.0", dimensionFilter: { REGION: "AUS" } },
-      scrape,
-    });
-    expect(result?.value).toBe("4.3");
-  });
-  it("scrapes when no API flow is configured", async () => {
-    // Every metric ships in this state until its flow reference is confirmed,
-    // so it has to keep working exactly as it does today.
-    vi.stubGlobal("fetch", mockFetch());
-    const result = await fetchAbsMetric({ scrape });
-    expect(result?.value).toBe("4.3");
-  });
-
-  it("prefers the API when a flow is configured", async () => {
-    const fetch = mockFetch();
-    vi.stubGlobal("fetch", fetch);
-    const result = await fetchAbsMetric({
-      api: { flowRef: "ABS,LF,1.0.0", dimensionFilter: { REGION: "AUS" } },
-      scrape,
-    });
-    // Latest AUS observation, not the scraped 4.3.
-    expect(result?.value).toBe("4.2");
-    expect(result?.sourceUrl).toBe(fetch.mock.calls[0]?.[0]);
-  });
-
-  it("dates the value from the observation's own period", async () => {
-    // The whole point over scraping: no regex guessing at a release date.
-    vi.stubGlobal("fetch", mockFetch());
-    const result = await fetchAbsMetric({
-      api: { flowRef: "ABS,LF,1.0.0", dimensionFilter: { REGION: "AUS" } },
-      scrape,
-    });
-    expect(result?.asOf.toISOString().slice(0, 7)).toBe("2026-06");
-  });
-
-  it("falls back to the scrape when the API call fails", async () => {
-    // This is what makes switching a metric over safe: a wrong flow reference
-    // costs a log line, not the metric.
-    vi.stubGlobal("fetch", mockFetch({ apiStatus: 404 }));
-    const result = await fetchAbsMetric({ api: { flowRef: "ABS,WRONG,1.0.0" }, scrape });
-    expect(result?.value).toBe("4.3");
-    expect(result?.sourceUrl).toBe(SCRAPE_URL);
-  });
-
-  it("falls back when the API returns data but nothing matches the filter", async () => {
-    // A filter that matches nothing is a misconfiguration, not an empty market.
-    vi.stubGlobal("fetch", mockFetch());
-    const result = await fetchAbsMetric({
-      api: { flowRef: "ABS,LF,1.0.0", dimensionFilter: { REGION: "NOWHERE" } },
-      scrape,
-    });
-    expect(result?.value).toBe("4.3");
-  });
-
-  it("says so out loud when it falls back", async () => {
-    // A silent fallback is how you end up believing you migrated something a
-    // year after it quietly reverted.
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    vi.stubGlobal("fetch", mockFetch({ apiStatus: 404 }));
-    await fetchAbsMetric({ api: { flowRef: "ABS,WRONG,1.0.0" }, scrape });
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("falling back to the scrape"));
-    warn.mockRestore();
-  });
-
-  it("applies a format function to the API value", async () => {
-    vi.stubGlobal("fetch", mockFetch());
-    const result = await fetchAbsMetric({
-      api: {
-        flowRef: "ABS,LF,1.0.0",
-        dimensionFilter: { REGION: "AUS" },
-        format: (v) => v.toFixed(1),
-      },
-      scrape,
-    });
-    expect(result?.value).toBe("4.2");
-  });
-
-  it("scrapes when discovery is configured but the catalogue is unreachable", async () => {
-    // Every metric ships in this state, and the catalogue is exactly the sort
-    // of thing that is briefly unavailable. It must cost a log line, not a
-    // metric.
-    vi.stubGlobal("fetch", mockFetch({ apiStatus: 503 }));
-    const result = await fetchAbsMetric({
-      api: { discover: { terms: ["labour force"], expectRange: [2, 15] } },
-      scrape,
-    });
-    expect(result?.value).toBe("4.3");
-  });
-
-  it("refuses a discovered flow whose latest value cannot be this metric", async () => {
-    // The guard that makes automatic discovery safe. A flow can match a name
-    // well and return perfectly good numbers for the wrong series; publishing
-    // those under a right-looking label is worse than having no metric.
-    const catalogue = {
-      data: {
-        dataflows: [{ id: "WRONG", agencyID: "ABS", version: "1.0.0", name: "Labour Force Index" }],
-      },
-    };
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async (url: string) => {
-        const u = String(url);
-        if (u.includes("/dataflow/")) {
-          return { ok: true, status: 200, json: async () => catalogue } as unknown as Response;
-        }
-        if (u.includes("data.api.abs.gov.au")) {
-          // An index level, not a rate — plausible data, wrong series.
-          return {
-            ok: true,
-            status: 200,
-            statusText: "OK",
-            text: async () => "REGION,TIME_PERIOD,OBS_VALUE\nAUS,2026-06,137.2",
-          } as unknown as Response;
-        }
-        return {
-          ok: true,
-          status: 200,
-          statusText: "OK",
-          text: async () => HTML,
-        } as unknown as Response;
-      })
-    );
-    const result = await fetchAbsMetric({
-      api: { discover: { terms: ["labour force"], expectRange: [2, 15] } },
-      scrape,
-    });
-    // Fell back to the scrape rather than publishing 137.2 as a rate.
-    expect(result?.value).toBe("4.3");
-  });
+import { readFileSync } from "node:fs";
+import { afterEach, expect, it, vi } from "vitest";
+import { fetchAllAbs, parseAbsRelease } from "./abs";
+const now = new Date("2026-09-17T08:00:00Z");
+const fixture = (name: string) =>
+  readFileSync(new URL(`./fixtures/abs-macro/${name}.html`, import.meta.url), "utf8");
+const cases = [
+  ["cpi_trimmed", "cpi", "3.6", "2026-07"],
+  ["unemployment", "labour", "4.5", "2026-07"],
+  ["wage_growth", "wage", "3.2", "2026-06"],
+  ["building_approvals", "approvals", "17,687", "2026-07"],
+  ["net_migration", "population", "292,137", "2026-03"],
+];
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
+  vi.restoreAllMocks();
 });
-
-describe("ABS reference dates", () => {
-  it.each(["unknown", "2026-13", "2026-Q5", "2026-02-30"])(
-    "rejects invalid API period %s",
-    (period) => expect(periodToDate(period)).toBeNull()
+it.each(cases)(
+  "reads the reviewed official %s table's exact measure and period",
+  (key, file, value, period) => {
+    const result = parseAbsRelease(key!, fixture(file!), now)!;
+    expect(result.value).toBe(value);
+    expect(result.asOf.toISOString().slice(0, 7)).toBe(period);
+    const source = new URL(result.sourceUrl);
+    expect(source.origin).toBe("https://www.abs.gov.au");
+    expect(source.pathname).toMatch(/^\/statistics\/.+\/latest-release$/);
+  }
+);
+it("selects annual wages, not the adjacent quarterly figure or page prose", () => {
+  const html = fixture("wage");
+  const result = parseAbsRelease(
+    "wage_growth",
+    html + "<p>Wage price index rose 0.8%. Annual growth 99%.</p>",
+    now
+  )!;
+  expect(result.value).toBe("3.2");
+  expect(result.context).toContain("annual change");
+  expect(result.context).toContain("seasonally adjusted");
+});
+it("preserves NOM's exact annual persons rather than rounded prose or quarterly flows", () => {
+  const result = parseAbsRelease(
+    "net_migration",
+    fixture("population") + "<p>Annual net overseas migration was 292,100. Quarterly: 101,005.</p>",
+    now
+  )!;
+  expect(result.value).toBe("292,137");
+  expect(result.context).toContain("year ending reference quarter");
+});
+it.each([
+  [
+    "wrong adjustment",
+    (s: string) => s.replace("Key statistics - Seasonally adjusted", "Key statistics - Trend"),
+  ],
+  [
+    "wrong geography/title",
+    (s: string) => s.replace("Labour Force, Australia", "Labour Force, New South Wales"),
+  ],
+  ["unmatched current period", (s: string) => s.replaceAll("Jul-26", "May-26")],
+  ["duplicate period column", (s: string) => s.replaceAll("Jun-26", "Jul-26")],
+  ["suppressed current value", (s: string) => s.replaceAll("4.5%", "np")],
+  ["unexpected unit", (s: string) => s.replaceAll("4.5%", "4.5 pts")],
+  [
+    "missing reference field",
+    (s: string) => s.replaceAll("field--name-field-abs-reference-period", "unrelated"),
+  ],
+  ["future reference month", (s: string) => s.replaceAll("July 2026", "July 2027")],
+])("withholds %s without falling back to earlier/prose values", (_reason, mutate) => {
+  expect(
+    parseAbsRelease(
+      "unemployment",
+      mutate(fixture("labour")) + "<p>Unemployment rate 4.5%</p>",
+      now
+    )
+  ).toBeNull();
+});
+it("rejects duplicate current rows, duplicate tables, merged cells and malformed rows", () => {
+  const html = fixture("wage");
+  expect(parseAbsRelease("wage_growth", html.replaceAll("Mar-26", "Jun-26"), now)).toBeNull();
+  const table = html.slice(html.indexOf("<table"));
+  expect(parseAbsRelease("wage_growth", html + table, now)).toBeNull();
+  expect(parseAbsRelease("wage_growth", html.replace("<td", '<td colspan="2"'), now)).toBeNull();
+  expect(
+    parseAbsRelease("wage_growth", html.replace("</tbody>", "<tr></tr></tbody>"), now)
+  ).toBeNull();
+});
+it("supports reordered columns through their measure labels", () => {
+  const html = fixture("wage")
+    .replace("Quarterly (%)", "PLACEHOLDER")
+    .replace("Annual (%)", "Quarterly (%)")
+    .replace("PLACEHOLDER", "Annual (%)")
+    .replaceAll(">0.8<", ">SWAP<")
+    .replaceAll(">3.2<", ">0.8<")
+    .replaceAll(">SWAP<", ">3.2<");
+  expect(parseAbsRelease("wage_growth", html, now)?.value).toBe("3.2");
+});
+it("fails closed on unfamiliar quarter/date and count formats", () => {
+  expect(
+    parseAbsRelease("wage_growth", fixture("wage").replaceAll("June 2026", "July 2026"), now)
+  ).toBeNull();
+  expect(
+    parseAbsRelease("building_approvals", fixture("approvals").replaceAll("17,687", "17,68"), now)
+  ).toBeNull();
+  expect(
+    parseAbsRelease(
+      "building_approvals",
+      fixture("approvals").replaceAll("17,687", "17.687 thousand"),
+      now
+    )
+  ).toBeNull();
+  expect(
+    parseAbsRelease("building_approvals", fixture("approvals"), new Date("invalid"))
+  ).toBeNull();
+});
+it("accepts signed annual growth, preserving a contraction", () => {
+  expect(
+    parseAbsRelease("wage_growth", fixture("wage").replaceAll(">3.2<", ">-0.2<"), now)?.value
+  ).toBe("-0.2");
+});
+it("reports failed contracts per source while retaining independently verified metrics", async () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(now);
+  vi.spyOn(console, "warn").mockImplementation(() => {});
+  const fetch = vi.fn(async (url: string) => {
+    const file = url.includes("consumer-price")
+      ? "cpi"
+      : url.includes("labour-force")
+        ? "labour"
+        : url.includes("wage-price")
+          ? "wage"
+          : url.includes("building-approvals")
+            ? "approvals"
+            : "population";
+    return new Response(file === "wage" ? "<h1>Service unavailable</h1>" : fixture(file));
+  });
+  vi.stubGlobal("fetch", fetch);
+  const failed = vi.fn();
+  const results = await fetchAllAbs(failed);
+  expect(results.filter(Boolean)).toHaveLength(4);
+  expect(failed).toHaveBeenCalledWith(
+    "wage_growth",
+    expect.stringContaining("could not be verified")
   );
-  it("preserves explicit month and quarter API periods", () => {
-    expect(periodToDate("2026-07")?.toISOString()).toBe("2026-07-01T00:00:00.000Z");
-    expect(periodToDate("2026-Q2")?.toISOString()).toBe("2026-06-01T00:00:00.000Z");
-  });
-  it("reads nested reference markup without substituting the release date", () => {
-    expect(
-      findReferenceDate(
-        "<div>Reference period</div><div><span>July 2026</span></div>Released 26 August 2026"
-      )?.toISOString()
-    ).toBe("2026-07-01T00:00:00.000Z");
-  });
-  it.each([
-    "Released 26 August 2026",
-    "Reference period Mystery 2026",
-    "Reference period 2026",
-    "Service unavailable",
-  ])("fails closed on %s", (html) => expect(findReferenceDate(html)).toBeNull());
+  expect(fetch).toHaveBeenCalledTimes(5);
 });

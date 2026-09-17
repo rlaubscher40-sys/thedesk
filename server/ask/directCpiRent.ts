@@ -19,6 +19,25 @@ export function directCpiRentAnswer(
     )
   )
     return null;
+  // This shortcut must account for the entire request. Recognising Brisbane
+  // cannot silently discard an additional Newcastle/London request or a second
+  // question. Unrecognised wording goes through the normal evidence review.
+  const plain = question.trim().replace(/\?$/, "");
+  if (/[?!;.]/.test(plain)) return null;
+  let scope = plain;
+  for (const city of RENT_CITIES) scope = scope.replace(new RegExp(`\\b${city}\\b`, "gi"), " ");
+  scope = scope
+    .replace(
+      /\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\b/gi,
+      " "
+    )
+    .replace(/\b20\d{2}(?:-(?:0[1-9]|1[0-2]))?\b/g, " ")
+    .replace(
+      /\b(?:how|did|what|was|were|is|are|the|annual|year|CPI|rents?|actually|paid|change|growth|inflation|compare|show|give|me|in|for|to|of|and)\b/gi,
+      " "
+    )
+    .replace(/[\s,&]/g, "");
+  if (scope) return null;
   const cities = RENT_CITIES.filter((city) => new RegExp(`\\b${city}\\b`, "i").test(question));
   const periods = requestedLocalPeriods(question);
   // Exact dated queries only. An undated question can still use normal synthesis.
