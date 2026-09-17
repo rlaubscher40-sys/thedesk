@@ -1,6 +1,21 @@
 import { expect, it } from "vitest";
 import { reportingExcerpt, cleanReportingExcerpt } from "./reportingExcerpt";
 import { evidenceEligible } from "./evidenceQuality";
+it("removes the observed detached publisher fragment without changing reported domains", () => {
+  expect(
+    cleanReportingExcerpt(
+      "A converted hospital laundry has hit the Brisbane property market, complete with original industrial shell. com.au."
+    )
+  ).toBe(
+    "A converted hospital laundry has hit the Brisbane property market, complete with original industrial shell."
+  );
+  expect(
+    cleanReportingExcerpt("The project has undergone significant transformation ... com.au.")
+  ).toBe("The project has undergone significant transformation ...");
+  expect(cleanReportingExcerpt("The report was published at realestate.com.au.")).toBe(
+    "The report was published at realestate.com.au."
+  );
+});
 it("does not repeat a finding from a release's summary bullet", () => {
   const first =
     "The six-month annualised growth rate in the Westpac-Melbourne Institute Leading Index, which indicates the likely pace of economic activity relative to trend three to nine months into the future, lifted to -0.09% in August from -0.17% in July.";
