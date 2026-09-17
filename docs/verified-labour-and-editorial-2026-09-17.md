@@ -28,4 +28,6 @@ The restored live-browser review confirmed PR309's corrected Bowen Hills headlin
 
 ## Verification
 
+PR311 deployed as `f1688e198d6503fcd1de010a4d1c8c402fb3e1a4`, after all 2,834 tests passed. Its live API returned all 32 matching observations; browser checks confirmed the July reader, June unavailable state, operator wording and Bowen Hills withdrawal/date. A live Ask comparison found both state records but was withheld by model review. The follow-up provides a bounded table answer only when the complete state/measure/period request and packed source records match. Unsupported scope retains normal review; no model review is bypassed for interpretive claims. The exact live question is covered by a router regression proving that neither generation nor model review is called for this supported lookup.
+
 Focused parser, question-scope, display, editorial and intake regressions cover changed source schemas, state/city boundaries, historical substitution, percentage units/cadence, contradictory headlines and valid claims that must continue to publish. Full CI includes the database suites, security checks, TypeScript, dependency/dead-code checks, rights inventory and production build. Exact revision, counts, deployment and live-page observations are recorded on the release pull request.
