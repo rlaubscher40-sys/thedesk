@@ -20,6 +20,23 @@ It is neither a reservation nor a promise to publish. Rehearsals use the same
 picker but cannot recreate historical publication locks. The preview script no
 longer overrides the lead with an earlier hand-selected story.
 
+September 17 selection correction: suburb-price headlines can use explicit
+housing evidence in the source summary to resolve an abbreviated subject.
+Neutral vacancy-rate titles likewise require rental-vacancy evidence. Geography,
+source timing, usable detail, promotion checks and permanent locks still apply;
+generated commentary never establishes relevance. Eligibility holds now expose
+the actual failed channel, attribution, timing, geography or subject check in
+the admin panel. Each daily run logs `[briefing-selection]` batches of at most
+25 candidate IDs and assessments before checking publication reservations.
+These are eligibility observations, not selected or published media receipts.
+
+The existing 100 local / 32 wider initial article budgets and 60 local reserve
+are unchanged. Reviewed property-data releases share the significant-story
+reservation inside those budgets and rank before routine stories at the
+publisher cap. SQM filename dates are ordering hints only: older releases do
+not take reserved slots, and the PDF's own validated date and rental evidence
+are still required. No skipped job is reset and no archive post is triggered.
+
 New daily carousel receipts carry `briefingVersion: story-v2` and
 `storyFollowupVersion: 1`. Every companion image Story has an `ig-story-` claim
 derived from its confirmed carousel media ID and source ID. One non-idempotent

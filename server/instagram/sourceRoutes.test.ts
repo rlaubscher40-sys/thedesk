@@ -8,6 +8,7 @@ const m = vi.hoisted(() => ({
   weekly: vi.fn(),
   record: vi.fn(),
   insights: vi.fn(),
+  pick: vi.fn(),
 }));
 vi.mock("./collectInsights", () => ({ collectInstagramInsights: m.insights }));
 vi.mock("../core/env", () => ({
@@ -31,7 +32,7 @@ vi.mock("./post", () => ({
   postDailyCarousel: m.publish,
   postWeeklyEdition: m.weekly,
   findAlreadyPublished: async () => null,
-  pickDailyTopStories: (items: unknown[]) => items,
+  pickDailyTopStories: m.pick,
 }));
 import { registerScheduledRoutes } from "../scheduledRoutes";
 const routes = new Map<string, (req: Request, res: Response) => Promise<void>>();
@@ -52,6 +53,7 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-09-08T21:30:00Z"));
   m.feed.mockResolvedValue([]);
+  m.pick.mockImplementation((items: unknown[]) => items);
   m.metrics.mockResolvedValue([]);
   m.editions.mockResolvedValue([]);
   m.publish.mockResolvedValue({ postId: "fixture-media", headline: "Housing update", publishedNow: true });
@@ -59,6 +61,29 @@ beforeEach(() => {
 });
 afterEach(() => vi.useRealTimers());
 describe("actual scheduled social entrypoints", () => {
+  it("logs each rejected candidate when the daily briefing skips, without publishing", async () => {
+    m.feed.mockResolvedValue([
+      { id: 1, feedDate: "2026-09-09", channel: "PROPERTY", title: "Sydney rents rise", source: "ABS", sourceTiming: null },
+      { id: 2, feedDate: "2026-09-09", channel: "GLOBAL", title: "World news" },
+    ]);
+    m.pick.mockReturnValue([]);
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      const res = await request("/api/ingest/instagram-daily");
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ skipped: true }));
+      const line = log.mock.calls.find(([value]) => String(value).startsWith("[briefing-selection] "))![0];
+      expect(JSON.parse(String(line).replace("[briefing-selection] ", ""))).toMatchObject({
+        received: 2, eligible: 0, date: "2026-09-09",
+        stage: "eligibility-before-publication-check",
+        candidates: [
+          { id: 1, hold: "missing-source-timing" },
+          { id: 2, hold: "outside-australian-property-channels" },
+        ],
+      });
+      expect(m.publish).not.toHaveBeenCalled();
+      expect(m.record).not.toHaveBeenCalled();
+    } finally { log.mockRestore(); }
+  });
   it("waits for insights collection and returns its real partial result", async () => {
     const summary = {
       selected: 2,
