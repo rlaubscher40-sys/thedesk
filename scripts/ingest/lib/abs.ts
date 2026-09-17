@@ -5,7 +5,7 @@
  * retain the dated release-page fallback rather than publish a guessed series.
  */
 
-import { fetchAbsSeries, latestObservation } from "./absApi";
+import { absDataUrl, fetchAbsSeries, latestObservation } from "./absApi";
 import type { DiscoverSpec } from "./absDiscover";
 
 const UA = "Mozilla/5.0 (compatible; TheDeskBot/1.0; +https://thedesk.au)";
@@ -18,6 +18,7 @@ export type AbsResult = {
   context: string | null;
   groupKey: string;
   source: string;
+  sourceUrl: string;
   asOf: Date;
   displayOrder: number;
 } | null;
@@ -100,6 +101,7 @@ async function scrapeAbs(args: {
           context: args.context,
           groupKey: args.groupKey,
           source: "ABS",
+          sourceUrl: args.url,
           asOf,
           displayOrder: args.displayOrder,
         };
@@ -213,6 +215,11 @@ export async function fetchAbsMetric(spec: {
           context: spec.scrape.context,
           groupKey: spec.scrape.groupKey,
           source: "ABS",
+          sourceUrl: absDataUrl({
+            flowRef,
+            dataKey: spec.api.dataKey,
+            startPeriod: spec.api.startPeriod,
+          }),
           asOf,
           displayOrder: spec.scrape.displayOrder,
         };

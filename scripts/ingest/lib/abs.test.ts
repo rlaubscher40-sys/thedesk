@@ -54,6 +54,7 @@ describe("fetchAbsMetric", () => {
       scrape,
     });
     expect(result?.value).toBe("4.3");
+    expect(result?.sourceUrl).toBe(SCRAPE_URL);
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(fetch.mock.calls[0]?.[0]).toBe(SCRAPE_URL);
   });
@@ -87,13 +88,15 @@ describe("fetchAbsMetric", () => {
   });
 
   it("prefers the API when a flow is configured", async () => {
-    vi.stubGlobal("fetch", mockFetch());
+    const fetch = mockFetch();
+    vi.stubGlobal("fetch", fetch);
     const result = await fetchAbsMetric({
       api: { flowRef: "ABS,LF,1.0.0", dimensionFilter: { REGION: "AUS" } },
       scrape,
     });
     // Latest AUS observation, not the scraped 4.3.
     expect(result?.value).toBe("4.2");
+    expect(result?.sourceUrl).toBe(fetch.mock.calls[0]?.[0]);
   });
 
   it("dates the value from the observation's own period", async () => {
@@ -112,6 +115,7 @@ describe("fetchAbsMetric", () => {
     vi.stubGlobal("fetch", mockFetch({ apiStatus: 404 }));
     const result = await fetchAbsMetric({ api: { flowRef: "ABS,WRONG,1.0.0" }, scrape });
     expect(result?.value).toBe("4.3");
+    expect(result?.sourceUrl).toBe(SCRAPE_URL);
   });
 
   it("falls back when the API returns data but nothing matches the filter", async () => {

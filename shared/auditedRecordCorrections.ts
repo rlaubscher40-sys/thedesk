@@ -5,6 +5,54 @@ type Field = "title" | "summary" | "partnerTag" | "sayThis" | "whyItMatters" | "
 type Correction = { field: Field; before: string; after: string | null };
 const records: Array<{ sourceUrl: string; feedDate: string; changes: Correction[] }> = [
   {
+    sourceUrl: "https://www.westpaciq.com.au/economics/2026/09/leading-index-september-2026",
+    feedDate: "2026-09-17",
+    changes: [
+      {
+        field: "summary",
+        before:
+          "The six-month annualised growth rate in the Westpac-Melbourne Institute Leading Index, which indicates the likely pace of economic activity relative to trend three to nine months into the future, lifted to -0.09% in August from -0.17% in July. Leading Index growth rate lifts to -0.09% in August from -0.17% in July.",
+        after:
+          "The Westpac-Melbourne Institute Leading Index's six-month annualised growth rate rose to -0.09% in August from -0.17% in July. It points to economic activity slightly below trend three to nine months ahead; Westpac cautions that the improvement may not be sustained.",
+      },
+      {
+        field: "partnerTag",
+        before:
+          "Buying: Slightly less economic drag ahead means the rate-cut window is narrowing, not widening, for borrowing relief.\nHolding: Soft but recovering momentum suggests the economy is not deteriorating further, which supports property values holding near current levels.\nWatching: Two months of improvement is a tentative signal, but the mixed component detail means one more month in the same direction matters before drawing conclusions.",
+        after:
+          "Buying: The index describes economic momentum, not an offer rate or a timetable for mortgage relief.\nHolding: An improvement in this index does not establish that local property values will hold steady.\nWatching: Westpac says stronger dwelling approvals helped the index, while other components and housing-market weakness leave the improvement uncertain.",
+      },
+    ],
+  },
+  {
+    sourceUrl:
+      "https://www.sbs.com.au/news/article/temporary-migrants-cuts-voting-rights-one-nation/97u096arb",
+    feedDate: "2026-09-17",
+    changes: [
+      {
+        field: "summary",
+        before:
+          "\"One Nation's policy is a recipe to destroy the Australian economy and drive the Australian economy into recession,\" he said. For people already living that reality, the question isn't abstract.",
+        after:
+          "SBS examines One Nation's proposed cuts to temporary migration and the limited electoral voice of those affected. The party proposes reducing student and graduate visa populations over three years; the article reports concerns about the wider economic and university impacts.",
+      },
+      {
+        field: "sayThis",
+        before:
+          "One Nation's plan to cut 270,000 graduate visa holders to 40,000 would hollow out university revenue and, with it, a quiet pillar of inner-city rental demand.",
+        after:
+          "The proposed graduate-visa reduction is part of a broader student and temporary-migration policy. It is not an enacted change or a measured fall in local rental demand.",
+      },
+      {
+        field: "whyItMatters",
+        before:
+          "A structural cut to the student and graduate visa pipeline of this scale would hit rental demand in university precincts and university employment before it reached broader housing markets.",
+        after:
+          "SBS reports warnings about university budgets and employment under the broader proposal. It does not establish the size, location or timing of any effect on rents.",
+      },
+    ],
+  },
+  {
     sourceUrl:
       "https://www.realestate.com.au/news/queensland-developers-tackle-housing-crisis-with-unconventional-homes-for-first-home-buyers/",
     feedDate: "2026-09-16",
