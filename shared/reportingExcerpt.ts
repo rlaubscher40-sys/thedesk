@@ -41,6 +41,15 @@ export function isPhotoCaption(text: string): boolean {
 export function cleanReportingExcerpt(text: string): string {
   return (
     text
+      // Exact publisher promotions observed inside historical RSS excerpts.
+      // Keep surrounding reporting, figures and qualifications verbatim.
+      .replace(/\bGet our breaking news email\s*,\s*free app or daily news podcast\b[.!]?/gi, " ")
+      .replace(/\bFollow our Australia news live blog for latest updates\b[.!]?/gi, " ")
+      .replace(
+        /\bWant to get more charts in your inbox every fortnight\?\s*Sign up for The Crunch here\b[.!]?/gi,
+        " "
+      )
+      .replace(/(?:^\s*|(?<=[.!?])\s+)Continue reading(?:\.{3}|…)\s*$/g, "")
       .replace(/\bThe post\s+.{0,500}?\s+appeared first on\s+.{0,150}?(?:\.|$)/gi, "")
       .replace(/\s*\(pictured\)\s*/gi, " ")
       .replace(/\s+/g, " ")

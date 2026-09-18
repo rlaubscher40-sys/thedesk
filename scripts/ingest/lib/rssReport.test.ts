@@ -20,6 +20,24 @@ beforeEach(() => {
   fixture.publicFetch.mockImplementation(async () => new Response("<rss />"));
   fetchSourceReport = createSourceReader();
 });
+it("cleans promotions before excerpt truncation and preserves decoded source text", async () => {
+  const promo = "<p>Get our breaking news email, free app or daily news podcast</p>";
+  fixture.parseString.mockResolvedValue({
+    items: [
+      {
+        title: "Housing vacancy measure",
+        content:
+          promo.repeat(8) +
+          "<p>The vacancy measure is labelled &lt;vacancy&gt; and remains 1.5%.</p>",
+        link: "https://example.org/housing",
+      },
+    ],
+  });
+  const result = await fetchSourceReport(source);
+  expect(result.items[0]!.summary).toBe(
+    "The vacancy measure is labelled <vacancy> and remains 1.5%."
+  );
+});
 it("tries only configured publisher alternatives and reports the original failure", async () => {
   fixture.publicFetch.mockImplementation(async (url: string) =>
     url.endsWith("/feed") ? new Response("Denied", { status: 403 }) : new Response("<rss/>")

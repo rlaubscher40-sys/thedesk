@@ -40,7 +40,11 @@ export function stripHtml(s: string): string {
 
 export function plainText(s: string | null | undefined, max = 480): string {
   if (!s) return "";
-  const clean = decodeEntities(stripHtml(s)).trim();
+  return truncatePlainText(decodeEntities(stripHtml(s)).trim(), max);
+}
+
+/** Apply the excerpt bound without interpreting already-decoded text as HTML again. */
+export function truncatePlainText(clean: string, max = 480): string {
   if (clean.length <= max) return clean;
   // Truncate at the last sentence boundary before `max`.
   const cut = clean.slice(0, max);

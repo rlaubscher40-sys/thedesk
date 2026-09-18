@@ -1,6 +1,36 @@
 import { expect, it } from "vitest";
 import { reportingExcerpt, cleanReportingExcerpt } from "./reportingExcerpt";
 import { evidenceEligible } from "./evidenceQuality";
+it("removes observed publisher promotions while retaining reporting and qualifications", () => {
+  const reporting = "The RBA held rates at 4.35%. The next decision remains uncertain.";
+  for (const promo of [
+    "Get our breaking news email, free app or daily news podcast",
+    "Get our breaking news email , free app or daily news podcast",
+    "Follow our Australia news live blog for latest updates Get our breaking news email, free app or daily news podcast",
+    "Want to get more charts in your inbox every fortnight? Sign up for The Crunch here",
+  ]) {
+    expect(cleanReportingExcerpt(`${promo} ${reporting} Continue reading...`)).toBe(reporting);
+    expect(
+      cleanReportingExcerpt(
+        `The RBA held rates at 4.35%. ${promo} The next decision remains uncertain.`
+      )
+    ).toBe(reporting);
+  }
+  expect(cleanReportingExcerpt("Get our breaking news email, free app or daily news podcast")).toBe(
+    ""
+  );
+});
+it("preserves genuine reporting about newsletters, apps and reading", () => {
+  const reporting =
+    "The housing newsletter has a free app. Readers can continue reading the report online. The podcast discussed falling rents, not falling rent growth.";
+  expect(cleanReportingExcerpt(reporting)).toBe(reporting);
+  expect(cleanReportingExcerpt("Subscribe to continue reading")).toBe(
+    "Subscribe to continue reading"
+  );
+  expect(cleanReportingExcerpt("Subscribe to Continue reading...")).toBe(
+    "Subscribe to Continue reading..."
+  );
+});
 it("removes the observed detached publisher fragment without changing reported domains", () => {
   expect(
     cleanReportingExcerpt(

@@ -1,6 +1,7 @@
 import { ARCHIVE_REGIONS, archiveCursorSchema } from "../../shared/archiveScope";
 import { cached, cacheKey } from "../core/cache";
 import { publicEdition } from "../core/publicEdition";
+import { publicFeedItem } from "../core/publicFeedItem";
 import { z } from "zod";
 import * as db from "../db";
 import { publicProcedure, router } from "../core/trpc";
@@ -33,7 +34,7 @@ export const topicsRouter = router({
       const page = feedItems.slice(0, input.limit);
       const last = page.at(-1);
       return {
-        feedItems: page,
+        feedItems: page.map((item) => publicFeedItem(item)),
         editions: editions.map(publicEdition),
         nextCursor:
           feedItems.length > input.limit && last ? { feedDate: last.feedDate, id: last.id } : null,
@@ -67,7 +68,7 @@ export const topicsRouter = router({
       for (const item of all) {
         const cat = (item.category || "OTHER").toUpperCase();
         grouped[cat] ??= [];
-        if (grouped[cat]!.length < 3) grouped[cat]!.push(item);
+        if (grouped[cat]!.length < 3) grouped[cat]!.push(publicFeedItem(item));
       }
       return grouped;
     }),
