@@ -1,6 +1,43 @@
 /** Reviewed corrections. Exact prior values protect later manual edits. */
 export const REVIEWED_STORY_CORRECTIONS = [
   {
+    id: 3960085,
+    sourceUrl: "https://www.nsw.gov.au/ministerial-releases/new-social-homes-hurstville",
+    issuedOn: "2026-09-18",
+    reference: "Story 3960085",
+    what: "Reader angles inferred effects on individual purchase timelines and comparable sale values from a social-housing proposal. The demand figures also lost the source's more-than qualification.",
+    now: "The unsupported reader angles are withdrawn. The briefing preserves the qualified demand figures and identifies the homes as proposed, with consultation and planning still ahead. The original announcement remains linked; already distributed copies are not rewritten.",
+    fields: [
+      {
+        field: "whyItMatters",
+        before:
+          "With 1,500 households on the Georges River Housing Register including 400 priority applicants, 180 dwellings addresses a fraction of documented local demand.",
+        after:
+          "The release reports more than 1,500 households on the Georges River Housing Register, including more than 400 priority applicants. Around 180 proposed homes would address only part of that reported demand.",
+      },
+      {
+        field: "counterpoint",
+        before:
+          "A community feedback period open until 28 September 2026, followed by a separate formal DA exhibition, means the gap between announcement and construction start is still completely open.",
+        after:
+          "Early feedback closes on 28 September 2026, before a State Significant Development Application is lodged and formally exhibited. The release does not provide a construction start or completion date.",
+      },
+      {
+        field: "sayThis",
+        before:
+          "180 social homes on a vacant rail site in Hurstville, but the early-feedback window closes 28 September 2026 and a formal DA still has to clear planning.",
+        after:
+          "Around 180 social homes are proposed for a former rail site in Hurstville. Early feedback closes on 28 September 2026, before the development application is lodged.",
+      },
+      {
+        field: "partnerTag",
+        before:
+          "Buying: The site is pre-DA, so no new supply pressure in Hurstville arrives soon enough to affect your purchase timeline.\nHolding: Concentrated social housing additions in Georges River are unlikely to shift comparable sale values materially while overall supply remains tight.\nWatching: Track whether the State Significant Development Application gets lodged and exhibited; that is the stage where the real delivery timeline becomes legible.",
+        after: null,
+      },
+    ],
+  },
+  {
     id: 3930103,
     sourceUrl:
       "https://www.realestate.com.au/news/hasnt-stopped-sydney-suburbs-defying-price-slump/",
