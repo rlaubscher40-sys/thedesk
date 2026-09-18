@@ -63,6 +63,8 @@ function ownsGutter(location: string): boolean {
     location === "/archive" ||
     location === "/editions" ||
     location === "/trends" ||
+    location === "/guides" ||
+    location.startsWith("/guides/") ||
     location === "/queue" ||
     location.startsWith("/editions/") ||
     location.startsWith("/story/")

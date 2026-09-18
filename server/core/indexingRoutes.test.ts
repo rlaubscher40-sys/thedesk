@@ -23,6 +23,8 @@ vi.mock("node:fs", async (original) => {
 });
 import { registerProductSeoRoutes } from "./productSeo";
 import { registerSeoRoutes } from "./seo";
+import { PROPERTY_GUIDES } from "../../shared/propertyGuides";
+import { isKnownRoute } from "./spaShell";
 
 let server: Server;
 let base: string;
@@ -62,6 +64,19 @@ it("keeps the social source trail readable without JavaScript", async () => {
   expect(html).toContain("not net proceeds");
   expect(html).toContain('id="documentary-stories"');
   expect(html).toContain('href="https://www.scentregroup.com/');
+});
+it("serves every explainer with readable sourced content before JavaScript and rejects invented guides", async () => {
+  for (const guide of PROPERTY_GUIDES) {
+    const response = await fetch(`${base}/guides/${guide.slug}`);
+    const html = await response.text();
+    expect(response.status).toBe(200);
+    expect(html).toContain(guide.source.url);
+    expect(html).toContain("The question to take back to the story");
+    expect(html).toMatch(/datetime="2026-09-18"/i);
+    expect(isKnownRoute(`/guides/${guide.slug}`)).toBe(true);
+  }
+  expect(isKnownRoute("/guides/invented")).toBe(false);
+  expect((await fetch(`${base}/guides/invented`)).status).toBe(404);
 });
 it("retires only the literal search placeholder, preserving genuine search URLs", async () => {
   const response = await fetch(`${base}/archive?q=%7Bsearch_term_string%7D`, {

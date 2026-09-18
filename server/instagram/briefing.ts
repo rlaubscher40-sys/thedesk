@@ -3,6 +3,7 @@ import { sourceTimingLabel } from "../../shared/sourceTiming";
 import { storyDestination } from "./sourceContent";
 import { captionBeat, captionText, composeEditorialCaption } from "./editorialCaption";
 import { needsPreviousContext } from "../../shared/headline";
+import { guideForStory } from "../../shared/propertyGuides";
 
 /** Source copy and reusable explanations have separate roles. No social model call. */
 const briefingText = (s: string) => s.replace(/[–—]/g, ", ").replace(/\s+/g, " ").trim();
@@ -286,7 +287,7 @@ export function briefingCaption(stories: DailyFeedItem[]): string {
     hook: captionText(lead.title),
     paragraphs: [`${captionText(lead.source)} reports: ${detail}`, `Context: ${lens.meaning}`],
     action: lens.takeaway,
-    destination: "Sources and full stories: bio → Recent carousel stories.",
+    destination: `Sources and full stories: bio → Recent carousel stories.\nProperty explained: thedesk.au/guides${guideForStory(lead.title, lead.channel) ? `/${guideForStory(lead.title, lead.channel)!.slug}` : ""}`,
     references,
     notes: stories.slice(0, 3).some((story) => briefingClaimLabel(story) === "REPORTED ESTIMATE")
       ? ["Modelled figures are reported estimates, not established outcomes."]

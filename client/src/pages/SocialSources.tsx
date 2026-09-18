@@ -23,6 +23,16 @@ export default function SocialSources() {
       <h1 className="font-serif text-4xl sm:text-5xl">From the post to the evidence.</h1>
       <PublishedPostGallery />
       <SocialStart />
+      <section aria-label="Property explained" className="rule-major py-6">
+        <p className="bs-label-accent">Understand the post</p>
+        <h2 className="font-serif text-3xl mt-3">The concepts behind the news.</h2>
+        <p className="mt-3">
+          Short, sourced guides to rates, rents, housing supply, prices and more.
+        </p>
+        <a href="/guides" className="bs-link min-h-11 inline-flex items-center mt-3">
+          Open Property explained →
+        </a>
+      </section>
       <DocumentarySources />
       <section
         id="capital-rents"

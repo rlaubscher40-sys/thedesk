@@ -18,6 +18,7 @@ import { cleanHeadline } from "@/lib/headline";
 import { dedash } from "@/lib/dedash";
 import { CashRatePanel } from "../MetricBlocks";
 import { ReaderAngleRows } from "../ReaderAngles";
+import { parseReaderAngles } from "@shared/schemas";
 import { GUTTER_X } from "../tokens";
 
 export function Lead({
@@ -134,10 +135,12 @@ export function Lead({
             ))}
           </section>
         )}
-        <details className="mt-5">
-          <summary className="bs-label min-h-11 py-3">Reading angles</summary>
-          <ReaderAngleRows raw={item.partnerTag} />
-        </details>
+        {parseReaderAngles(item.partnerTag) && (
+          <details className="mt-5">
+            <summary className="bs-label min-h-11 py-3">Reading angles</summary>
+            <ReaderAngleRows raw={item.partnerTag} />
+          </details>
+        )}
         <div className="rule-major mt-8 pt-6">
           <CashRatePanel />
         </div>

@@ -350,7 +350,7 @@
    dark-authored illustration wouldn't punch as a black rectangle
    *behind* card text — but broadsheet images are standalone framed
    elements, and ghosting them just made every cover read as muddy
-   grey. See components/broadsheet/StoryImage.tsx.) */
+   grey.) */
 
 /* Lead-card centre-fade vignette is a dark wash designed to deepen the
    cover plate on a dark canvas. In light mode it just adds an ugly

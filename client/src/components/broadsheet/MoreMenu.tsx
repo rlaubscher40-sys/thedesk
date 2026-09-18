@@ -15,6 +15,7 @@ export function MoreMenu() {
   const { resolvedTheme, toggleTheme } = useTheme();
   const links: [string, string][] = [
     ["/archive", "Search reporting"],
+    ["/guides", "Property explained"],
     ["/editions", "Weekly editions"],
     ["/trends", "Data charts"],
     ["/settings", "Preferences"],

@@ -4,6 +4,7 @@ import { consumeAnonymousAsk, resetAskQuotaForTests } from "../core/askQuota";
 import { ASK_SERVER_TIMEOUT_MS } from "../../shared/requestDeadline";
 
 vi.mock("../db", () => ({
+  getFeedItemById: vi.fn(),
   searchPropertyEvidence: vi.fn(),
   searchAllContent: vi.fn(),
   listDailyMetrics: vi.fn(),
@@ -67,6 +68,37 @@ afterEach(() => {
 });
 
 describe("Ask answer recovery", () => {
+  it("pins a selected story and assesses its counterpoint without treating it as evidence", async () => {
+    vi.mocked(db.getFeedItemById).mockResolvedValue({
+      ...related.feedItems[0],
+      id: 45,
+      counterpoint: "A nationwide boom is certain.",
+    } as NonNullable<Awaited<ReturnType<typeof db.getFeedItemById>>>);
+    const result = await askRouter
+      .createCaller(ctx)
+      .answer({ question: "What does this counterpoint change?", storyId: 45 });
+    expect(result.status).toBe("answered");
+    if (result.status === "answered") expect(result.sources[0]?.href).toBe("/story/45");
+    const messages = JSON.stringify(vi.mocked(invokeLLMJson).mock.calls[0]?.[0].messages);
+    expect(messages).toContain("Selected story: Lending update");
+    expect(messages).toContain("editorial interpretation, not independent evidence");
+    const reviewEvidence = vi.mocked(reviewAskAnswer).mock.calls[0]?.[2];
+    expect(JSON.stringify(reviewEvidence)).not.toContain("nationwide boom");
+  });
+  it("does not substitute unrelated reporting for a missing selected story", async () => {
+    vi.mocked(db.getFeedItemById).mockResolvedValue(undefined);
+    expect(await askRouter.createCaller(ctx).answer({ ...input, storyId: 45 })).toMatchObject({
+      status: "insufficient",
+      sources: [],
+    });
+    expect(invokeLLMJson).not.toHaveBeenCalled();
+  });
+  it("never exposes a held story through the selected-story input", async () => {
+    vi.mocked(db.getFeedItemById).mockResolvedValue({ ...related.feedItems[0], id: 45, channel: "HOLD" } as NonNullable<Awaited<ReturnType<typeof db.getFeedItemById>>>);
+    expect(await askRouter.createCaller(ctx).answer({ ...input, storyId: 45 })).toMatchObject({ status: "insufficient", sources: [] });
+    expect(invokeLLMJson).not.toHaveBeenCalled();
+    expect(db.searchAllContent).not.toHaveBeenCalled();
+  });
   it("answers an exact quarterly sales request with the dated source and no model calls", async () => {
     vi.useFakeTimers(); vi.setSystemTime(new Date("2026-09-17"));
     vi.mocked(retrieveLocalFacts).mockResolvedValue([{

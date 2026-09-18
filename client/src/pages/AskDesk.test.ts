@@ -50,6 +50,11 @@ it("prepares a story question without automatically spending an answer", () => {
   expect(screen.getByRole("link", { name: "this story" }).getAttribute("href")).toBe("/story/42");
   expect(m.mutate).not.toHaveBeenCalled();
   expect(m.track).not.toHaveBeenCalled();
+  fireEvent.submit(screen.getByRole("textbox").closest("form")!);
+  expect(m.mutate.mock.calls[0]?.[0]).toEqual({
+    question: "What does housing supply mean?",
+    storyId: 42,
+  });
 });
 
 it.each(["answered", "unavailable", "error"])(

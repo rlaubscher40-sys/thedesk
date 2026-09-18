@@ -23,7 +23,7 @@ export function requestedSourceLimit(question: string): number {
  */
 export function packAskEvidence(question: string, sources: AskContextSource[], limit: number) {
   const local = sources.filter((source) =>
-    ["LOCAL DATA", "REVIEWED CONTEXT"].includes(source.category ?? "")
+    ["LOCAL DATA", "REVIEWED CONTEXT", "SELECTED STORY"].includes(source.category ?? "")
   );
   if (local.length > limit) return null;
   const primary = sources.find((source) => {

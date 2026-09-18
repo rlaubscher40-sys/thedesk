@@ -3,6 +3,7 @@ import { contentRouteId } from "@shared/contentRouteId";
 import { ConnectionNotice } from "@/components/ConnectionNotice";
 import { ThreadLink } from "@/components/feed/ThreadLink";
 import { sourceTimingLabel } from "@shared/sourceTiming";
+import { GuideContext } from "@/components/GuideContext";
 /**
  * Story — the surface a LinkedIn link lands on, so it has to convert a
  * stranger.
@@ -194,7 +195,7 @@ export default function StoryPage() {
             />
             <div className="min-w-0">
               <p style={{ fontSize: "0.90625rem" }}>
-                <span className="font-semibold">Ruben Laubscher</span>
+                Briefing curated by <span className="font-semibold">Ruben Laubscher</span>
                 {" · The Desk"}
               </p>
               <p className="bs-label mt-1" style={{ letterSpacing: "0.16em" }}>
@@ -371,6 +372,7 @@ export default function StoryPage() {
           )}
 
           <ReaderAngleColumns raw={story.partnerTag} className="mt-9" />
+          <GuideContext title={story.title} channel={story.channel} />
 
           {(prevStory || nextStory) && (
             <nav
