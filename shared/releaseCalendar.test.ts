@@ -67,6 +67,16 @@ describe("Sydney wall clock to instant", () => {
     expect(formatSydney(instant)).toContain("2:30");
   });
 
+  it("resolves midnight to the right day, not the day before", () => {
+    expect(new Date(sydneyInstant("2026-07-15", "00:00")!).toISOString()).toBe(
+      "2026-07-14T14:00:00.000Z"
+    );
+    expect(new Date(sydneyInstant("2026-01-15", "00:00")!).toISOString()).toBe(
+      "2026-01-14T13:00:00.000Z"
+    );
+    expect(formatSydney(sydneyInstant("2026-07-15", "00:00")!)).toContain("15 July 2026");
+  });
+
   it("rejects malformed input rather than guessing", () => {
     for (const [date, time] of [
       ["2026-13-01", "11:30"],

@@ -188,7 +188,10 @@ const SYDNEY = "Australia/Sydney";
 function sydneyParts(instant: number): { asUtcMs: number } {
   const parts = new Intl.DateTimeFormat("en-AU", {
     timeZone: SYDNEY,
-    hour12: false,
+    // h23 explicitly, not hour12:false: a runtime whose locale default is h24
+    // renders midnight as "24" against the previous day's date, which would put
+    // the resolved instant a day out.
+    hourCycle: "h23",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -197,7 +200,6 @@ function sydneyParts(instant: number): { asUtcMs: number } {
     second: "2-digit",
   }).formatToParts(new Date(instant));
   const value = (type: string) => Number(parts.find((part) => part.type === type)!.value);
-  // Intl renders midnight as hour 24 in some ICU versions; normalise it.
   const hour = value("hour") % 24;
   return {
     asUtcMs: Date.UTC(
