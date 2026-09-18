@@ -218,7 +218,7 @@ export function guideForStory(title: string, channel?: string | null): PropertyG
   if (channel && channel !== "AU" && channel !== "PROPERTY") return undefined;
   if (/\b(?:rent(?:al)? (?:rights|laws?|reforms?)|evict\w*|tenancy (?:rights|protections))\b/i.test(title)) return undefined;
   const rules: [RegExp, string][] = [
-    [/\b(?:social|public|community|affordable) housing\b/i, "housing-tenure"],
+    [/\b(?:social|public|community|affordable) (?:housing|homes?|dwellings?)\b/i, "housing-tenure"],
     [/\b(?:cash rate|interest rates?|mortgages?|home loans?|refinanc\w*)\b/i, "interest-rates"],
     [/\b(?:auctions?|clearance rates?)\b/i, "auctions"],
     [/\b(?:migration|migrants?|population)\b/i, "population"],

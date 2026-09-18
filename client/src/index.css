@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@source "../../shared";
 
 /* ─── Brand fonts (self-hosted) ───────────────────────────────
    The three brand faces, served from /public/fonts as variable

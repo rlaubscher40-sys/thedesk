@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import { guideForStory, PROPERTY_GUIDES, guideArchiveHref } from "./propertyGuides";
 it("selects the headline subject and preserves housing tenure distinctions", () => {
   expect(guideForStory("Public housing rents change", "PROPERTY")?.slug).toBe("housing-tenure");
+  expect(guideForStory("180 new social homes in Hurstville", "AU")?.slug).toBe("housing-tenure");
   expect(guideForStory("Home loan rates rise", "AU")?.slug).toBe("interest-rates");
   expect(guideForStory("CPI rents growth slows", "AU")?.slug).toBe("rents");
   expect(guideForStory("Home prices rise", "INTERNATIONAL")).toBeUndefined();
