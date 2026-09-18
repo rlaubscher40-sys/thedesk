@@ -3,9 +3,10 @@ import { localSpeech, localVoiceReady, type SpeechProfile } from "./localVoice";
 import { elevenLabsSpeech, elevenLabsVoiceReady } from "./elevenLabsVoice";
 
 function provider(): "local" | "elevenlabs" {
-  if (env.reelVoiceProvider === "auto") return env.elevenLabsApiKey ? "elevenlabs" : "local";
-  if (env.reelVoiceProvider === "local" || env.reelVoiceProvider === "elevenlabs")
-    return env.reelVoiceProvider;
+  /** An absent setting is the documented default, as in core/env; a wrong value still stops. */
+  const configured = (env.reelVoiceProvider ?? "").trim() || "auto";
+  if (configured === "auto") return env.elevenLabsApiKey ? "elevenlabs" : "local";
+  if (configured === "local" || configured === "elevenlabs") return configured;
   throw new Error("REEL_VOICE_PROVIDER must be auto, elevenlabs or local.");
 }
 
