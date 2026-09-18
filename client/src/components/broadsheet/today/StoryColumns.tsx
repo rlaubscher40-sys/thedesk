@@ -1,21 +1,6 @@
 import { ThreadLink } from "@/components/feed/ThreadLink";
-/**
- * "More reporting" — three hairline-divided columns.
- *
- * Each column: source kicker, headline, summary, and the
- * Say This line as a one-line pull quote on a 3px accent rule. There is no
- * "Ruben's read" toggle: the take is the point of the card, so it renders
- * inline.
- *
- * Before the story grid, genuinely available counterpoints are compressed into
- * a small "What people are missing" plate. That makes the second-order read a
- * first-class product object rather than burying it inside individual stories.
- *
- * Ragged column heights are not a defect here — with hairline columns
- * instead of floating cards there is nothing to line up, which is why the
- * `estimatedCardHeight` sort that used to pre-order the grid is gone.
- */
-import { ArrowRight } from "lucide-react";
+/** One story treatment per item, with an optional expandable counterpoint. */
+import { useReadStories } from "@/lib/useReadStories";
 import { Link } from "wouter";
 import type { DailyFeedItem } from "@shared/types";
 import { cn } from "@/lib/cn";
@@ -26,79 +11,11 @@ import { dedash } from "@/lib/dedash";
 import { readingMinutes } from "@/lib/readingTime";
 import { GUTTER_X } from "../tokens";
 
-function askCounterpointHref(item: DailyFeedItem): string {
-  const question = `What does the counterpoint change about story ${item.id}, and what remains uncertain?`;
-  return `/ask?story=${item.id}&q=${encodeURIComponent(question)}`;
-}
-
 export function StoryColumns({ items }: { items: DailyFeedItem[] }) {
   if (items.length === 0) return null;
 
-  const counterpoints = [...items]
-    .filter((item) => Boolean(item.counterpoint?.trim()))
-    .sort((a, b) => (b.priority ?? 50) - (a.priority ?? 50))
-    .slice(0, 3);
-
   return (
     <section className={cn(GUTTER_X, "rule-major mt-11 pt-5")} aria-label="More reporting">
-      {counterpoints.length > 0 && (
-        <div className="rule-hair-b pb-7 mb-7">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="bs-label-accent" style={{ letterSpacing: "0.22em" }}>
-                What people are missing
-              </p>
-              <h2
-                className="font-serif font-bold mt-2"
-                style={{
-                  fontSize: "clamp(1.875rem, 4vw, 3rem)",
-                  lineHeight: 0.98,
-                  letterSpacing: "-0.035em",
-                }}
-              >
-                The second-order read.
-              </h2>
-            </div>
-            <p className="bs-label max-w-[44ch] text-right">
-              Counterpoints only appear when the reporting supports a genuine second side.
-            </p>
-          </div>
-
-          <div className="grid lg:grid-cols-3 mt-6">
-            {counterpoints.map((item, index) => (
-              <article
-                key={`counterpoint-${item.id}`}
-                className={cn("py-4 lg:py-2 lg:pr-7", index > 0 && "lg:rule-hair-l lg:pl-7")}
-              >
-                <p className="bs-label-accent">{item.category}</p>
-                <h3 className="font-serif font-bold mt-3 text-xl leading-tight">
-                  <Link href={`/story/${item.id}`} className="bs-link">
-                    {cleanHeadline(item.title)}
-                  </Link>
-                </h3>
-                <p
-                  className="font-serif mt-2.5 text-[var(--color-fg-body)]"
-                  style={{ fontSize: "clamp(1.25rem, 2vw, 1.5625rem)", lineHeight: 1.32 }}
-                >
-                  {dedash(item.counterpoint?.trim() ?? "")}
-                </p>
-                <div className="flex flex-wrap gap-x-5 gap-y-2 mt-4">
-                  <Link href={`/story/${item.id}`} className="bs-label bs-link">
-                    Read the story
-                  </Link>
-                  <Link
-                    href={askCounterpointHref(item)}
-                    className="bs-label bs-link inline-flex items-center gap-1.5"
-                  >
-                    Interrogate this angle <ArrowRight className="h-3 w-3" />
-                  </Link>
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-      )}
-
       <p className="bs-label mb-6" style={{ letterSpacing: "0.24em" }}>
         More reporting
       </p>
@@ -123,6 +40,7 @@ export function StoryColumns({ items }: { items: DailyFeedItem[] }) {
 
 function StoryColumn({ item, className }: { item: DailyFeedItem; className?: string }) {
   const colourFor = useCategoryColour();
+  const { isRead } = useReadStories();
   const dek = cardDek(item);
   const take = item.rubensNote?.trim() || item.sayThis?.trim();
 
@@ -134,6 +52,7 @@ function StoryColumn({ item, className }: { item: DailyFeedItem; className?: str
           style={{ fontSize: "0.75rem", letterSpacing: "0.18em", color: colourFor(item.category) }}
         >
           {item.category}
+          {isRead(item.id) ? " · Opened on this device" : ""}
           {item.source ? ` · ${item.source}` : ""} · {readingMinutes(item)} min
         </p>
         <h3
@@ -161,6 +80,12 @@ function StoryColumn({ item, className }: { item: DailyFeedItem; className?: str
         </p>
       )}
 
+      {item.counterpoint?.trim() && (
+        <details className="mt-4">
+          <summary className="bs-label-accent cursor-pointer">The counterpoint</summary>
+          <p className="text-sm leading-6 mt-2">{dedash(item.counterpoint.trim())}</p>
+        </details>
+      )}
       {take && (
         <p
           className="font-serif mt-4 pl-4"

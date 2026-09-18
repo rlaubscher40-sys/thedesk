@@ -25,6 +25,17 @@ function observations(row: ComparisonRow | undefined, view: MarketComparison): s
           observation
             ? {
                 quote: normalise(observation.quote),
+                basis: observation.basis
+                  ? Object.fromEntries(
+                      ["measure", "period", "segment", "geography", "unit"].map((key) => [
+                        key,
+                        normalise(
+                          observation.basis![key as keyof NonNullable<typeof observation.basis>] ??
+                            ""
+                        ),
+                      ])
+                    )
+                  : null,
                 href: source?.href ?? "",
                 date: source?.date ?? "",
               }

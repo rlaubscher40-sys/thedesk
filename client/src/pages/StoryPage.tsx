@@ -123,6 +123,7 @@ export default function StoryPage() {
   const correction = REVIEWED_STORY_CORRECTIONS.find(
     (c) => c.id === story.id && c.sourceUrl === story.sourceUrl
   );
+  const correctionApplied = correction?.fields.every((field) => story[field.field] === field.after);
   const dek = shouldShowSummary(story.title, story.summary)
     ? dedash(story.summary)
     : story.whyItMatters
@@ -273,6 +274,25 @@ export default function StoryPage() {
           </div>
 
           <div className="mt-5 flex flex-wrap items-center gap-4 text-sm">
+            <aside
+              aria-label="Review status"
+              className="rule-hair py-4 text-sm leading-6 text-[var(--color-fg-muted)]"
+            >
+              <p className="bs-label-accent">Review status</p>
+              <p className="mt-2">
+                AI-assisted summary and interpretation. Automated source and numeric checks are
+                safeguards, not human verification. Individual human pre-approval is not recorded
+                here.
+              </p>
+              {correctionApplied && (
+                <p className="mt-2">
+                  A dated source correction applies to the displayed fields.{" "}
+                  <a href="/corrections" className="bs-link underline">
+                    Read what changed and the review limits.
+                  </a>
+                </p>
+              )}
+            </aside>
             {story.sourceUrl && /^https?:\/\//i.test(story.sourceUrl) ? (
               <a
                 href={story.sourceUrl}
@@ -294,7 +314,7 @@ export default function StoryPage() {
               Ask about this story
             </Link>
           </div>
-          {correction && (
+          {correctionApplied && correction && (
             <p className="text-sm mt-5" role="note">
               Corrected{" "}
               {new Date(`${correction.issuedOn}T12:00:00Z`).toLocaleDateString("en-AU", {

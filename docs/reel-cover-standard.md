@@ -57,3 +57,11 @@ posts or grant documentary publication approval. Future subjects require their
 own truthful hook and correct photo selection; do not reuse Harry's portrait for
 a different person. Evaluate the rendered grid visually before accepting a new
 treatment. A passed geometry test is not an engagement result.
+
+## 18 September 2026 implementation
+
+Supply-checklist covers use the existing hash-checked D Goug/Pexels building photograph and ivory split layout. The headline poses the completion question, and the full-size cover retains the approval count, reference year and rights credit. The photograph illustrates construction; it is not a photograph of the measured city or proof of the stage of a particular development. A twelve-cover review used candidates retrieved through the live ABS/RBA/NHSAC adapters, with full, 3:4 and square renders. Existing published covers and documentary exports are not replaced.
+
+The supply opening now asks the reader to check three things, leading into the existing stage/place/timing takeaway. Narration still determines scene timing; fixed teaser cuts and documentary timing are unchanged.
+
+`reelVariety.ts` identifies narrative angles independently of city and release. Automatic data selection holds the same angle for seven days using permanent confirmed publication history. All city approval checklists and the two-city approvals comparison share one angle. Other established rent, financing, housing-balance and movement angles remain distinct. If only a repeated angle is available, no post is forced. The existing one-per-day limit, uncertain-publication locks, two documentary slots and documentary review/export gates still apply. This is a future production rule, not evidence of engagement or a change visible in old posts.

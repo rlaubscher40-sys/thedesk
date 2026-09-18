@@ -89,6 +89,16 @@ beforeEach(() => {
 const run = () => runReelAutomation({ post: m.post, alert: m.alert, now });
 
 describe("automatic verified Reel delivery", () => {
+  it("leaves an automatic slot empty when every available narrative was recently published", async () => {
+    m.history.mockResolvedValue([
+      { key: publicationKey, publishedAt: new Date("2026-09-08T09:00:00Z") },
+    ]);
+    expect((await readReelAutomation(now)).state).toBe("variety-held");
+    expect((await run()).state).toBe("variety-held");
+    expect(m.claim).not.toHaveBeenCalled();
+    expect(m.post).not.toHaveBeenCalled();
+  });
+
   it("retains the exact latest receipt after rotation and loss of all current evidence", async () => {
     const receipt = {
       key: "instagram-reel-rba-new-loan-rates-v1",

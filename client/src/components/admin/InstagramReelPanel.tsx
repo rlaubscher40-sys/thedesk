@@ -200,27 +200,29 @@ export function InstagramReelPanel() {
             recorded grid post. Pinned posts keep their existing colours.
           </p>
           <p className="text-sm" role="status">
-            {plan.data.publication === "exhausted"
-              ? "All currently eligible stories have confirmed publication receipts. Another episode needs new qualifying evidence."
-              : !plan.data.schedulerEnabled || !plan.data.accountConfigured
-                ? "Automatic publishing is off. Check the scheduler and connected account configuration."
-                : plan.data.publication === "ready"
-                  ? "Ready for the next automatic check. The server checks every five minutes, including after a restart."
-                  : plan.data.publication === "scheduled"
-                    ? `The next eligible story waits for the ${REEL_WINDOW.label} publishing window.`
-                    : plan.data.publication === "daily-limit"
-                      ? "Today's automatic Reel slot is used. The next eligible story waits until tomorrow."
-                      : plan.data.publication === "running"
-                        ? "Rendering or publishing. This continues on the server if you close this page."
-                        : plan.data.publication === "retrying"
-                          ? "The last attempt failed before confirmed publication. A safe retry is scheduled after a 15-minute cooldown."
-                          : plan.data.publication === "paused"
-                            ? "Automatic attempts are paused for today after a failure. They resume tomorrow if the publication slot is still unused."
-                            : plan.data.publication === "locked"
-                              ? "Publication needs inspection. The outcome may be uncertain, so automatic reposting is locked."
-                              : plan.data.publication === "no-evidence"
-                                ? "No current matching evidence is available."
-                                : "The publication record is unavailable; publishing is blocked."}
+            {plan.data.publication === "variety-held"
+              ? "The available candidates repeat a narrative angle used within seven days. The slot stays empty until a distinct supported story is eligible."
+              : plan.data.publication === "exhausted"
+                ? "All currently eligible stories have confirmed publication receipts. Another episode needs new qualifying evidence."
+                : !plan.data.schedulerEnabled || !plan.data.accountConfigured
+                  ? "Automatic publishing is off. Check the scheduler and connected account configuration."
+                  : plan.data.publication === "ready"
+                    ? "Ready for the next automatic check. The server checks every five minutes, including after a restart."
+                    : plan.data.publication === "scheduled"
+                      ? `The next eligible story waits for the ${REEL_WINDOW.label} publishing window.`
+                      : plan.data.publication === "daily-limit"
+                        ? "Today's automatic Reel slot is used. The next eligible story waits until tomorrow."
+                        : plan.data.publication === "running"
+                          ? "Rendering or publishing. This continues on the server if you close this page."
+                          : plan.data.publication === "retrying"
+                            ? "The last attempt failed before confirmed publication. A safe retry is scheduled after a 15-minute cooldown."
+                            : plan.data.publication === "paused"
+                              ? "Automatic attempts are paused for today after a failure. They resume tomorrow if the publication slot is still unused."
+                              : plan.data.publication === "locked"
+                                ? "Publication needs inspection. The outcome may be uncertain, so automatic reposting is locked."
+                                : plan.data.publication === "no-evidence"
+                                  ? "No current matching evidence is available."
+                                  : "The publication record is unavailable; publishing is blocked."}
           </p>
           {plan.data.detail && (
             <p className="text-xs break-words" role="alert">

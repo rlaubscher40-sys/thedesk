@@ -28,12 +28,18 @@ export default function Subscribe() {
       <section className={`${GUTTER_X} mt-8 max-w-3xl`} aria-label="Briefing sample">
         <h2 className="font-serif text-2xl">A briefing you can use</h2>
         <p className="mt-3 leading-7">
-          Each story pairs the headline with why it matters, a counterpoint where available and a
-          link to the original reporting.
+          The daily email contains short story summaries and a link to the full brief. The Sunday
+          email announces the weekly edition and links to it. Open the actual email layouts below;
+          these are dated examples using the current production templates, not messages sent to you.
         </p>
-        <Link href="/" className="bs-btn bs-btn-outline mt-4 inline-flex items-center">
-          Read today’s briefing as a sample
-        </Link>
+        <div className="flex flex-wrap gap-4 mt-4">
+          <a href="/newsletter-preview/daily" className="bs-btn bs-btn-outline">
+            Preview the daily email →
+          </a>
+          <a href="/newsletter-preview/sunday" className="bs-btn bs-btn-outline">
+            Preview the Sunday email →
+          </a>
+        </div>
       </section>
       <section className={`${GUTTER_X} mt-8 max-w-3xl`} aria-label="About your subscription">
         <p className="text-sm leading-7 text-[var(--color-fg-muted)]">

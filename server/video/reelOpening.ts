@@ -73,7 +73,7 @@ export function evidenceOpening(
       return {
         headline: `${count(a.value)} approvals.`,
         detail: `${a.label} / when will homes be ready?`,
-        voice: `${a.label.replace(/^Greater /, "").replace("Australian Capital Territory", "The ACT")}'s dwelling approvals don't tell you when homes will be ready.`,
+        voice: `Buying in ${a.label.replace(/^Greater /, "").replace("Australian Capital Territory", "the ACT")}? Check three things behind the approvals count.`,
       };
     default:
       throw new Error(`Unreviewed Reel opening: ${recipe}`);

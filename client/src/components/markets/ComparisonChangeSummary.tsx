@@ -52,6 +52,59 @@ export function ComparisonChangeSummary({
                       ? "Quoted evidence changed."
                       : "Directional interpretation changed."}
               </p>
+              {change.evidenceChanged && (
+                <details className="mt-3">
+                  <summary className="bs-link cursor-pointer">
+                    Inspect the saved and current evidence
+                  </summary>
+                  {[
+                    { label: "Saved", view: baseline },
+                    { label: "Current", view: current },
+                  ].map(({ label, view }) => {
+                    const row = view.rows.find((item) => item.dimension === change.dimension);
+                    return (
+                      <div key={label} className="mt-4">
+                        <h4 className="bs-label">
+                          {label} · {view.asOf}
+                        </h4>
+                        {(["a", "b"] as const).map((side) => {
+                          const observation = side === "a" ? row?.marketA : row?.marketB;
+                          const source = view.sources.find(
+                            (item) => item.ref === observation?.sourceRef
+                          );
+                          return (
+                            <div key={side} className="mt-3">
+                              <strong>{side === "a" ? view.marketA : view.marketB}</strong>
+                              <p className="leading-6">
+                                {observation?.quote ?? "No supported observation."}
+                              </p>
+                              {source && (
+                                <a className="bs-link underline text-sm" href={source.href}>
+                                  {source.publisher ?? source.title} · {source.date}
+                                </a>
+                              )}
+                              {observation && (
+                                <p className="text-xs mt-2 leading-5">
+                                  Basis:{" "}
+                                  {observation.basis
+                                    ? Object.entries(observation.basis)
+                                        .map(
+                                          ([key, value]) => `${key}: ${value ?? "not established"}`
+                                        )
+                                        .join(" · ")
+                                    : "not recorded in this older snapshot"}
+                                  . A change in period or basis is not a like-for-like market
+                                  movement.
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </details>
+              )}
               {change.edgeChanged && (
                 <p className="font-serif text-lg mt-1">
                   {change.before ?? "No clear edge"} → {change.after ?? "No clear edge"}

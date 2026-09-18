@@ -9,6 +9,7 @@ import { DocumentarySources } from "../../shared/DocumentarySources";
 import { getMarketDirectory } from "../markets/discovery";
 import { marketPath } from "../../shared/marketDirectory";
 import { PROPERTY_GUIDES, propertyGuide } from "../../shared/propertyGuides";
+import { RentPressureRead } from "../../shared/RentPressureRead";
 import { PropertyGuideRead } from "../../shared/PropertyGuideRead";
 import { ProjectFollowThroughRead } from "../../shared/ProjectFollowThroughRead";
 
@@ -75,6 +76,10 @@ async function sendProductShell(
   html = replaceMeta(html, "name", "twitter:description", meta.description);
   html = replaceMeta(html, "name", "twitter:image", image);
   html = replaceCanonical(html, canonical);
+  if (meta.path === "/analysis/rent-pressure") {
+    const content = renderToStaticMarkup(createElement(RentPressureRead));
+    html = html.replace('<div id="root"></div>', `<div id="root"><main>${content}</main></div>`);
+  }
   if (meta.path === "/social") {
     const sources = renderToStaticMarkup(createElement(DocumentarySources));
     html = html.replace(
@@ -106,6 +111,18 @@ async function sendProductShell(
 }
 
 const PRODUCT_META: ProductMeta[] = [
+  {
+    path: "/analysis/rent-pressure",
+    title: "Rent pressure monitor: July 2026 | The Desk",
+    description:
+      "Is rent growth easing across Australia’s capitals? A reproducible analysis of ABS annual rent changes, with inputs, calculations, chart and limitations.",
+  },
+  {
+    path: "/partners",
+    title: "Partner with The Desk",
+    description:
+      "Discuss support for Australian property explanation, with clear commercial disclosure and editorial independence.",
+  },
   {
     path: "/guides",
     title: "Property explained | The Desk",
@@ -190,7 +207,7 @@ const PRODUCT_META: ProductMeta[] = [
   },
   {
     path: "/",
-    title: "The Desk: Australian property intelligence before it becomes consensus",
+    title: "The Desk: Australian property news, evidence and explanation",
     description:
       "Know what changed, ask grounded property questions, inspect Australian markets, watch live signals and share the intelligence that matters.",
   },
@@ -214,7 +231,13 @@ const PRODUCT_META: ProductMeta[] = [
   },
 ];
 
-const PRODUCT_SITEMAP_PATHS = ["/ask", "/markets", "/signals"] as const;
+const PRODUCT_SITEMAP_PATHS = [
+  "/ask",
+  "/markets",
+  "/signals",
+  "/analysis/rent-pressure",
+  "/partners",
+] as const;
 
 /**
  * Product pages deserve their own search/social proposition instead of all

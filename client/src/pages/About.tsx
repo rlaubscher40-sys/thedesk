@@ -25,7 +25,7 @@ const LINKEDIN_URL = "https://www.linkedin.com/in/ruben-laubscher/";
 const INSTAGRAM_URL = "https://www.instagram.com/thedesk.au/";
 
 const HOW_TO_USE = [
-  "Open Today first thing. Five stories, each one already read for you.",
+  "Open Today for selected reporting, source links and clearly labelled interpretation.",
   "Save what you can't read now. Your reading queue stays on this browser; no account is required.",
   "Open the edition on Sunday for the deep dive, the signals and the dates to watch.",
   "Press / to search from anywhere. ⌘K opens the command palette.",
@@ -65,9 +65,9 @@ export default function About() {
             color: "var(--color-fg-muted)",
           }}
         >
-          Five stories every weekday morning, each one already angled for where you stand: buying,
-          holding, or watching. One long read on Sunday, with market evidence, charts and sourced
-          answers when you want to go deeper.
+          Selected Australian property reporting every weekday morning, with source links and
+          context for buyers, owners and curious readers. A deeper edition on Sunday, plus market
+          evidence, charts and sourced answers when you want to go further.
         </p>
       </section>
 
@@ -79,7 +79,7 @@ export default function About() {
           value="Sundays"
           sub={editionCount > 0 ? `${editionCount} published` : "In production"}
         />
-        <Fact label="Written by" value="One editor" sub="Ruben Laubscher" />
+        <Fact label="Editorial direction" value="Ruben Laubscher" sub="AI-assisted production" />
         <Fact label="Analytics" value="Our own" sub="No advertising pixels · see Privacy" last />
       </div>
 
@@ -108,8 +108,9 @@ export default function About() {
           <div className="mt-8 max-w-[66ch]">
             <p style={{ fontSize: "1.125rem", lineHeight: 1.7, color: "var(--color-fg-body)" }}>
               The Desk runs two scans. The daily one lands at seven in the morning Sydney time with
-              five stories worth knowing about, each angled for the three positions a reader can be
-              in: trying to buy, already holding property, or watching to time a move.
+              a selection of reporting worth understanding. Story counts vary with the available
+              evidence. Summaries and interpretations are AI-assisted, with links back to the
+              original sources.
             </p>
             <p
               className="mt-5"
@@ -216,7 +217,7 @@ export default function About() {
                   className="mt-2 text-[var(--color-fg-muted)]"
                   style={{ fontSize: "0.84375rem", lineHeight: 1.45 }}
                 >
-                  Writes The Desk
+                  Editorial direction
                   <br />
                   Sydney
                 </p>
@@ -226,8 +227,8 @@ export default function About() {
               className="mt-4"
               style={{ fontSize: "0.9375rem", lineHeight: 1.6, color: "var(--color-fg-body)" }}
             >
-              Reads the Australian property market for a living. The Desk is the reading he was
-              already doing, written down.
+              Reads the Australian property market for a living. The Desk combines that editorial
+              direction with automated collection, AI-assisted production and dated corrections.
             </p>
             <div className="flex gap-2 mt-4 flex-wrap">
               <LinkChip href={LINKEDIN_URL} icon={<Linkedin className="h-3 w-3" />}>
@@ -256,7 +257,7 @@ export default function About() {
 
       <SubscribeBand
         source="about-foot"
-        headline="Start tomorrow with the five stories and the lines already written."
+        headline="Start tomorrow with a clearer view of Australian property."
         blurb=""
         showHeadshot={false}
       />

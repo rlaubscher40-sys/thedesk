@@ -30,6 +30,8 @@ import { propertyGuide } from "../../shared/propertyGuides";
 const STATIC_ROUTES = new Set([
   "/",
   "/social",
+  "/analysis/rent-pressure",
+  "/partners",
   "/guides",
   "/projects",
   "/ask",

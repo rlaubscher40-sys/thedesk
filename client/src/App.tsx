@@ -1,4 +1,5 @@
 import { pageCanonical } from "@shared/pageCanonical";
+import { socialArrivalPath } from "@shared/entryRoutes";
 /**
  * Top-level routing + global providers. Pages are lazy-loaded so the initial
  * bundle stays under what one screen needs.
@@ -28,6 +29,8 @@ import { UserPrefsProvider } from "./lib/userPrefs";
 const EvidencePage = lazyWithReload(() => import("./pages/Evidence"), "Evidence");
 const DailyFeed = lazyWithReload(() => import("./pages/DailyFeed"), "DailyFeed");
 const SocialSources = lazyWithReload(() => import("./pages/SocialSources"), "SocialSources");
+const RentPressure = lazyWithReload(() => import("./pages/RentPressure"), "RentPressure");
+const Partners = lazyWithReload(() => import("./pages/Partners"), "Partners");
 const PropertyGuides = lazyWithReload(() => import("./pages/PropertyGuides"), "PropertyGuides");
 const Projects = lazyWithReload(() => import("./pages/Projects"), "Projects");
 const AskDesk = lazyWithReload(() => import("./pages/AskDesk"), "AskDesk");
@@ -92,6 +95,16 @@ function SearchRedirect() {
   return null;
 }
 
+function HomeEntry() {
+  const search = useSearch();
+  const [, navigate] = useLocation();
+  const target = socialArrivalPath("/", search);
+  useEffect(() => {
+    if (target) navigate(target + window.location.hash, { replace: true });
+  }, [target, navigate]);
+  return target ? <PageFallback /> : <DailyFeed />;
+}
+
 function PageFallback() {
   const [path] = useLocation();
   const reading = path.startsWith("/story/") || path.startsWith("/editions/");
@@ -152,7 +165,9 @@ function Routes() {
     <Suspense fallback={<PageFallback />}>
       <Switch>
         <Route path="/evidence/:id" component={EvidencePage} />
-        <Route path="/" component={DailyFeed} />
+        <Route path="/" component={HomeEntry} />
+        <Route path="/analysis/rent-pressure" component={RentPressure} />
+        <Route path="/partners" component={Partners} />
         <Route path="/social" component={SocialSources} />
         <Route path="/projects" component={Projects} />
         <Route path="/guides" component={PropertyGuides} />

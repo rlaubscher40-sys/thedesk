@@ -1,3 +1,5 @@
+import { comparisonResearchText } from "@shared/comparisonExport";
+import { trackEvent } from "@/lib/analytics";
 import {
   COMPARISON_BASIS_LABELS,
   COMPARISON_EVIDENCE_WINDOW_DAYS,
@@ -42,6 +44,14 @@ export function ComparisonRead({
           comparison
         />
       </div>
+      <a
+        className="bs-link underline inline-block mt-4 text-sm"
+        href={`data:text/plain;charset=utf-8,${encodeURIComponent(comparisonResearchText(c, shareToken))}`}
+        download="thedesk-comparison-source-trail.txt"
+        onClick={() => trackEvent("market_file_export", shared ? "brief" : "markets")}
+      >
+        Download full comparison and source trail (.txt)
+      </a>
       <h2
         className="font-serif font-bold mt-5 break-words"
         style={{ fontSize: "clamp(38px, 6vw, 76px)", lineHeight: 0.98, letterSpacing: "-0.035em" }}
@@ -215,7 +225,9 @@ export function ComparisonRead({
               [{source.ref}] {source.title}
             </Link>
             <p className="bs-label mt-2">
-              {source.publisher ?? "Desk reporting"} · {source.dateKind === "observation" ? "Observation period: " : ""}{source.date} ·{" "}
+              {source.publisher ?? "Desk reporting"} ·{" "}
+              {source.dateKind === "observation" ? "Observation period: " : ""}
+              {source.date} ·{" "}
               {source.markets.map((side) => (side === "a" ? c.marketA : c.marketB)).join(" / ")}
             </p>
           </div>
