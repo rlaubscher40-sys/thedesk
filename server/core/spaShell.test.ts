@@ -15,6 +15,7 @@ describe("isKnownRoute", () => {
       "/archive",
       "/trends",
       "/topics",
+      "/guides",
       "/about",
     ]) {
       expect(isKnownRoute(route), route).toBe(true);
@@ -25,6 +26,7 @@ describe("isKnownRoute", () => {
     expect(isKnownRoute("/editions/12")).toBe(true);
     expect(isKnownRoute("/topics/PROPERTY")).toBe(true);
     expect(isKnownRoute("/story/4821")).toBe(true);
+    expect(isKnownRoute("/guides/interest-rates")).toBe(true);
   });
 
   it("rejects anything the router has no page for", () => {
@@ -33,6 +35,8 @@ describe("isKnownRoute", () => {
     expect(isKnownRoute("/story")).toBe(false);
     expect(isKnownRoute("/about-us")).toBe(false);
     expect(isKnownRoute("/favicon.png")).toBe(false);
+    expect(isKnownRoute("/guides/perth")).toBe(false);
+    expect(isKnownRoute("/guides/interest-rates/extra")).toBe(false);
   });
 
   /**
@@ -49,8 +53,10 @@ describe("isKnownRoute", () => {
     expect(declared.length).toBeGreaterThan(10);
 
     for (const route of declared) {
-      // Public markets use an allow-listed slug; numeric IDs belong to the other routes.
-      const concrete = route.replace(":slug", "perth").replace(/:[^/]+/g, "1");
+      // Markets and guides have different allow-listed slugs. Numeric IDs
+      // belong to the remaining content routes.
+      const slug = route.startsWith("/guides/") ? "interest-rates" : "perth";
+      const concrete = route.replace(":slug", slug).replace(/:[^/]+/g, "1");
       expect(isKnownRoute(concrete), `${route} is missing from spaShell.ts`).toBe(true);
     }
   });
