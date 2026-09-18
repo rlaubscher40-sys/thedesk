@@ -145,6 +145,105 @@ What it will not say, enforced by tests:
 The planning records are New South Wales because that is where The Desk's planning
 reporting is checked; the page says so rather than implying national coverage.
 
-## What was built in later batches
+## Batch two: reader questions, the release calendar, and reusable research
 
-Recorded below as each lands.
+### Coverage requests (opportunity 4)
+
+Extends the two surfaces that already exist rather than adding a third form.
+Ask answers from evidence The Desk holds; a coverage request is the other case —
+the reader wants reporting that does not exist yet.
+
+- A fourth kind, "Cover this", on the existing feedback button, with three fixed
+  categorisation selects: topic, geography and reader task. The reader tasks are
+  the same three positions the voice rules already use (buying, holding, watching).
+- Migration `0030_reader_coverage_requests.sql` adds five columns to
+  `feedback_submissions`, with matching boot catch-up statements; `catchup.test.ts`
+  enforces the pairing.
+- An editorial triage panel in the admin overview: counts by topic, place and
+  reader task; an outcome per request including "Not covering"; and a field that
+  links the published answer back to the request that prompted it.
+- The Ask page now says what Ask is for and what a coverage request is for, and
+  states that what a reader types into Ask is not treated as a coverage request.
+
+Privacy, enforced in code and in tests:
+
+- Categorisation is a fixed list, never free text, so triage does not become a
+  second store of whatever someone typed about a person or an address.
+- `publicRequestShape` is the only shape of a request that may leave the inbox:
+  categories and outcome. No message, no contact details, no page URL, no user
+  agent, no timestamp. Even that is not published anywhere automatically.
+- A published answer must be one of The Desk's own published routes. An arbitrary
+  URL is refused rather than stored, and any outcome other than "answered" clears
+  the link, so a link cannot be left behind on a request that was later declined.
+- Categories sent with a bug report are discarded rather than quietly promoting it
+  to a coverage request.
+
+The panel says on its face that these are self-selected submissions from readers
+who happened to be on the site, not a representative sample, and that an empty
+inbox is an empty inbox rather than evidence of no demand. No submissions were
+invented to demonstrate it.
+
+### Official-source release calendar (opportunity 5)
+
+`shared/releaseCalendar.ts` turns the edition's model-written "dates to watch"
+prose into records: publisher, what the release measures, the period it observes,
+its cadence, the date if one is confirmed, when a person last checked, and the
+publisher's own schedule link. It appears on `/signals` under the planning pilot.
+
+**No date is inferred, estimated or generated.** Every seeded entry ships as
+`not-confirmed` and says so on the page, because this session's network policy
+blocked `abs.gov.au` and `rba.gov.au` and no date could be read off a publisher's
+calendar. A test asserts that every seeded entry is unconfirmed, so a future
+change cannot quietly add a plausible date without also carrying the source it was
+read from. Confirming one is a reviewed change to the file.
+
+The DST handling is real rather than nominal. `sydneyInstant` resolves a Sydney
+wall clock to an instant by solving for the offset at the candidate instant and
+checking the answer by converting back, so:
+
+- 11:30am resolves to 01:30Z in July and 00:30Z in January;
+- both sides of each changeover resolve correctly;
+- a time inside the spring-forward gap — 2:30am on the first Sunday in October —
+  returns null and the page says the recorded time needs review, rather than being
+  silently shifted an hour.
+
+Postponements and stated windows are distinct states with their own wording, and
+an entry nobody has checked for 45 days is marked as due for re-checking.
+
+Each entry links to the last result The Desk already holds for that measure, drawn
+from the existing metrics store, with the line that the next release replaces that
+figure rather than adding to it.
+
+No calendar export ships. An .ics file of entries with no confirmed dates would be
+an empty file with a download button; the export becomes worth building the moment
+the first date is confirmed.
+
+### Topic feeds and the calendar as data (opportunity 6)
+
+`/feed.xml` was inspected first: it carries the last 50 editions, which is the
+weekly product, and it is left alone. The smallest useful extension was the one
+missing thing — a reader who wants only the daily property reporting.
+
+- `/feeds/{property,policy,markets,economy}.xml`: the same published items the
+  archive already shows, scoped to one category, 50 items, linked from the footer.
+  Held items cannot reach them (the archive query already excludes `HOLD`), the
+  excerpt goes through the same publisher-promotion cleaning as the site, and each
+  item links to The Desk's story page, where the original publisher is credited.
+  No publisher's article body is republished. An unknown topic is a 404 and an
+  unavailable archive is a 503 — never an empty feed that reads like no coverage.
+- `/research/release-calendar.csv`: The Desk's own compilation, with publisher,
+  what it measures, geography, unit, observation period, cadence, date status,
+  confirmed time and its provenance, last-checked date, both source links and the
+  reuse terms on every row. `date_status` reads `not-confirmed` and the scheduled
+  column is empty, rather than a blank that could be mistaken for a date.
+- Every CSV field is quoted and a leading `=`, `+`, `-` or `@` is neutralised, so a
+  description containing a comma cannot add a column and no cell executes as a
+  spreadsheet formula.
+- The reuse terms are deliberately narrow: The Desk licenses its own compilation
+  for reuse with attribution, and says plainly that the underlying releases belong
+  to the publishers named in the source column and are governed by their terms.
+
+No separate "use and cite our research" page was built. The terms travel with the
+file and with the calendar, which is where someone deciding whether they may reuse
+it is actually looking; a page that repeats them would be a third place to keep in
+sync. No outreach was sent and nothing was posted anywhere.

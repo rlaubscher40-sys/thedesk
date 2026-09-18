@@ -14,16 +14,33 @@
  */
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { AlertTriangle, Bug, Heart, Lightbulb, MessageSquarePlus, Send } from "lucide-react";
+import {
+  AlertTriangle,
+  Bug,
+  Heart,
+  Lightbulb,
+  MessageSquarePlus,
+  Newspaper,
+  Send,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Honeypot } from "@/components/Honeypot";
 import { cn } from "@/lib/cn";
 import { trpc } from "@/lib/trpc";
 import { preferenceStorage } from "@/lib/storage";
 import { feedbackPageUrl } from "@shared/feedbackPageUrl";
+import {
+  READER_TASKS,
+  REQUEST_GEOGRAPHIES,
+  REQUEST_PRIVACY_NOTICE,
+  REQUEST_TOPICS,
+  type ReaderTask,
+  type RequestGeography,
+  type RequestTopic,
+} from "@shared/readerRequests";
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "./ui/Dialog";
 
-type Kind = "bug" | "idea" | "praise";
+type Kind = "bug" | "idea" | "praise" | "coverage";
 
 const STORAGE_LABEL_KEY = "thedesk:feedback-reporter-label";
 
@@ -54,6 +71,13 @@ const KIND_OPTIONS: Array<{
     description: "Tell Ruben what's working",
     icon: Heart,
     colour: "oklch(0.72 0.17 155)",
+  },
+  {
+    key: "coverage",
+    label: "Cover this",
+    description: "Ask The Desk to report or research something",
+    icon: Newspaper,
+    colour: "oklch(0.74 0.14 250)",
   },
 ];
 
@@ -100,6 +124,10 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
   const [contactEmail, setContactEmail] = useState("");
   const [hp, setHp] = useState("");
   const [reporterLabel, setReporterLabel] = useState("");
+  const [topic, setTopic] = useState<RequestTopic>("supply");
+  const [geography, setGeography] = useState<RequestGeography>("national");
+  const [readerTask, setReaderTask] = useState<ReaderTask>("watching");
+  const coverage = kind === "coverage";
 
   // Retire the previous automatic name persistence on shared devices.
   useEffect(() => {
@@ -108,7 +136,7 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
 
   const submit = trpc.feedback.submit.useMutation({
     onSuccess: () => {
-      toast.success("Thanks, Ruben sees this");
+      toast.success(coverage ? "Request received. Editors read every one." : "Thanks, Ruben sees this");
       setMessage("");
       onClose();
     },
@@ -129,6 +157,7 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
       userAgent: typeof navigator !== "undefined" ? navigator.userAgent : null,
       contactEmail: contactEmail.trim() || null,
       reporterLabel: reporterLabel.trim() || null,
+      ...(coverage ? { topic, geography, readerTask } : {}),
     });
   }
 
@@ -150,7 +179,9 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
             Send feedback
           </DialogTitle>
           <DialogDescription className="mt-2 text-sm text-[var(--color-fg-muted)]">
-            Report a problem or suggest an improvement. Leave out private or sensitive information.
+            {coverage
+              ? "Ask The Desk to report or research something. Editors read every request."
+              : "Report a problem or suggest an improvement. Leave out private or sensitive information."}
           </DialogDescription>
         </div>
       </header>
@@ -165,7 +196,7 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
           >
             Kind
           </p>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {KIND_OPTIONS.map((opt) => {
               const Icon = opt.icon;
               const active = kind === opt.key;
@@ -212,6 +243,41 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
           </p>
         </div>
 
+        {/* Coverage requests carry three fixed categories so editorial triage can
+            group them. Never free text: a second free-text field is a second
+            place a reader could put someone's name or address. */}
+        {coverage && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {(
+              [
+                ["Topic", topic, setTopic, REQUEST_TOPICS],
+                ["Where", geography, setGeography, REQUEST_GEOGRAPHIES],
+                ["You are", readerTask, setReaderTask, READER_TASKS],
+              ] as const
+            ).map(([label, value, set, options]) => (
+              <label key={label} className="block">
+                <span
+                  className="overline mb-1.5 block text-[var(--color-fg-subtle)]"
+                  style={{ letterSpacing: "0.18em", fontSize: "10px" }}
+                >
+                  {label}
+                </span>
+                <select
+                  value={value}
+                  onChange={(event) => (set as (next: string) => void)(event.target.value)}
+                  className="w-full min-h-11 px-3 py-2 rounded text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors"
+                >
+                  {options.map((option) => (
+                    <option key={option.key} value={option.key}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ))}
+          </div>
+        )}
+
         {/* Message. */}
         <label className="block">
           <span
@@ -231,7 +297,9 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
                 ? "What broke? What were you doing when it broke?"
                 : kind === "idea"
                   ? "What would make this more useful to you?"
-                  : "What's working for you?"
+                  : coverage
+                    ? "What should The Desk look into, and what decision would the answer help you make?"
+                    : "What's working for you?"
             }
             className="w-full px-3 py-2 rounded text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-amber)]/50 transition-colors leading-relaxed"
           />
@@ -276,6 +344,7 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
         <p className="flex items-start gap-1.5 text-[10px] text-[var(--color-fg-subtle)] leading-relaxed">
           <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0 text-amber-400/60" />
           <span>
+            {coverage ? `${REQUEST_PRIVACY_NOTICE} ` : ""}
             We include the page address without query parameters and your browser type with your
             message. Your name and reply email are optional and are not used to subscribe you to
             marketing.{" "}

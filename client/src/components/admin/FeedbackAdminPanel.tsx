@@ -12,6 +12,7 @@ import {
   Heart,
   Lightbulb,
   Mail,
+  Newspaper,
   Trash2,
   Undo2,
 } from "lucide-react";
@@ -29,6 +30,7 @@ const KIND_META: Record<
   bug: { label: "Bug", icon: Bug, colour: "oklch(0.68 0.20 15)" },
   idea: { label: "Idea", icon: Lightbulb, colour: "oklch(0.78 0.18 70)" },
   praise: { label: "Praise", icon: Heart, colour: "oklch(0.72 0.17 155)" },
+  coverage: { label: "Cover this", icon: Newspaper, colour: "oklch(0.74 0.14 250)" },
 };
 
 export function FeedbackAdminPanel() {

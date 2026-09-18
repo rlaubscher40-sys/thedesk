@@ -323,6 +323,16 @@ export const feedbackSubmissions = mysqlTable("feedback_submissions", {
    *  what during a wide testing window. */
   reporterLabel: varchar("reporterLabel", { length: 128 }),
   status: varchar("status", { length: 16 }).default("new").notNull(),
+  /** Coverage requests only (`kind = "coverage"`). Fixed keys from
+   *  shared/readerRequests.ts, never free text: triage must not become a
+   *  second store of whatever a reader typed about a person or an address. */
+  topic: varchar("topic", { length: 32 }),
+  geography: varchar("geography", { length: 32 }),
+  readerTask: varchar("readerTask", { length: 16 }),
+  /** The Desk page that answered the request. Validated as a same-site
+   *  published route before it is written; see publishedAnswerPath. */
+  answerUrl: varchar("answerUrl", { length: 512 }),
+  answeredAt: timestamp("answeredAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

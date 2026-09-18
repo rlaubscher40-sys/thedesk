@@ -11,6 +11,7 @@
  * for assessing the substance of financial-product or credit content.
  */
 import { Link } from "wouter";
+import { TOPIC_FEEDS } from "@shared/topicFeeds";
 import { cn } from "@/lib/cn";
 import { Logomark } from "@/components/Logomark";
 import { OnboardingModal } from "@/components/OnboardingModal";
@@ -57,6 +58,11 @@ function FooterNav() {
       <a href="/feed.xml" className="bs-label bs-link">
         RSS
       </a>
+      {TOPIC_FEEDS.map((feed) => (
+        <a key={feed.slug} href={`/feeds/${feed.slug}.xml`} className="bs-label bs-link">
+          {feed.title} feed
+        </a>
+      ))}
       <a
         href="https://www.instagram.com/thedesk.au/"
         target="_blank"

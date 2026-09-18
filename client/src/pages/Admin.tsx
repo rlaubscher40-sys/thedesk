@@ -19,6 +19,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
 import { AnalyticsAdminPanel } from "@/components/admin/AnalyticsAdminPanel";
 import { FeedbackAdminPanel } from "@/components/admin/FeedbackAdminPanel";
+import { CoverageRequestPanel } from "@/components/admin/CoverageRequestPanel";
 import { HealthAdminPanel } from "@/components/admin/HealthAdminPanel";
 import { HeroLibraryAdminPanel } from "@/components/admin/HeroLibraryAdminPanel";
 import { InstagramAdminPanel } from "@/components/admin/InstagramAdminPanel";
@@ -237,6 +238,14 @@ export default function AdminPage() {
         <TaskDetails title="Feedback inbox">
           <SectionErrorBoundary section="Feedback inbox">
             <FeedbackAdminPanel />
+          </SectionErrorBoundary>
+        </TaskDetails>
+      )}
+
+      {section === "overview" && (
+        <TaskDetails title="Coverage requests">
+          <SectionErrorBoundary section="Coverage requests">
+            <CoverageRequestPanel />
           </SectionErrorBoundary>
         </TaskDetails>
       )}
