@@ -19,6 +19,11 @@ it("removes observed publisher promotions while retaining reporting and qualific
   expect(cleanReportingExcerpt("Get our breaking news email, free app or daily news podcast")).toBe(
     ""
   );
+  expect(
+    cleanReportingExcerpt(
+      "Australia's best apartment designs for 2026 - in pictures Continue reading..."
+    )
+  ).toBe("Australia's best apartment designs for 2026 - in pictures");
 });
 it("preserves genuine reporting about newsletters, apps and reading", () => {
   const reporting =
