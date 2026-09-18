@@ -24,6 +24,7 @@ import { LocalMarketData } from "@/components/markets/LocalMarketData";
 import { ComparisonWatchlist } from "@/components/markets/ComparisonWatchlist";
 import { ShareIntelligenceCardButton } from "@/components/ask/ShareIntelligenceCardButton";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ConnectionNotice } from "@/components/ConnectionNotice";
 import { trackEvent } from "@/lib/analytics";
 import { trpc } from "@/lib/trpc";
 
@@ -94,7 +95,7 @@ export default function MarketsPage() {
   }, [initial, search]);
 
   const searchQuery = trpc.search.all.useQuery(
-    { query: market },
+    { query: market, region: "AU" },
     { enabled: !comparisonMode && market.length >= 2, staleTime: 60_000 }
   );
   const metrics = trpc.metrics.list.useQuery(undefined, { staleTime: 5 * 60_000 });
@@ -149,7 +150,10 @@ export default function MarketsPage() {
     const exists = watchlist.some((item) => item.toLowerCase() === market.toLowerCase());
     const next = exists
       ? watchlist.filter((item) => item.toLowerCase() !== market.toLowerCase())
-      : [market, ...watchlist.filter((item) => item.toLowerCase() !== market.toLowerCase())];
+      : [market, ...watchlist.filter((item) => item.toLowerCase() !== market.toLowerCase())].slice(
+          0,
+          12
+        );
     setWatchlist(next);
     writeWatchlist(next);
     if (!exists) trackEvent("market_watch", "markets");
@@ -349,15 +353,40 @@ export default function MarketsPage() {
 
           {market && (
             <>
-              <section className="grid sm:grid-cols-3 rule-major mt-9">
+              <section
+                aria-label="Reporting search summary"
+                className="grid sm:grid-cols-3 rule-major mt-9"
+              >
                 <MarketStat
                   label="Desk search matches"
-                  value={searchQuery.isLoading ? "…" : String(coverageCount)}
+                  value={
+                    searchQuery.isError
+                      ? "Unavailable"
+                      : searchQuery.isLoading
+                        ? "…"
+                        : `${coverageCount}${searchQuery.data?.hasMoreFeedItems ? "+" : ""}`
+                  }
                 />
-                <MarketStat label="Latest mention" value={latestMention ?? "None yet"} border />
+                <MarketStat
+                  label="Latest mention"
+                  value={
+                    searchQuery.isError
+                      ? "Unavailable"
+                      : searchQuery.isLoading
+                        ? "…"
+                        : (latestMention ?? "None yet")
+                  }
+                  border
+                />
                 <MarketStat
                   label="Signals touched"
-                  value={categories.length ? String(categories.length) : "0"}
+                  value={
+                    searchQuery.isError
+                      ? "Unavailable"
+                      : searchQuery.isLoading
+                        ? "…"
+                        : String(categories.length)
+                  }
                   border
                 />
               </section>
@@ -397,7 +426,12 @@ export default function MarketsPage() {
                 </div>
               </div>
 
-              {searchQuery.isLoading ? (
+              {searchQuery.isError ? (
+                <ConnectionNotice
+                  retry={() => void searchQuery.refetch()}
+                  retrying={searchQuery.isFetching}
+                />
+              ) : searchQuery.isLoading ? (
                 <MarketLoading />
               ) : coverageCount === 0 ? (
                 <section className="py-12 rule-hair-b">
@@ -453,6 +487,14 @@ export default function MarketsPage() {
                         </Link>
                       ))}
                     </div>
+                    {(feedItems.length > 10 || searchQuery.data?.hasMoreFeedItems) && (
+                      <Link
+                        href={`/archive?q=${encodeURIComponent(market)}&cat=ALL&region=AU`}
+                        className="bs-btn bs-btn-outline mt-5"
+                      >
+                        Explore more Australian reporting →
+                      </Link>
+                    )}
 
                     {editions.length > 0 && (
                       <div className="mt-8">

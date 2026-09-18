@@ -1,21 +1,14 @@
 /**
  * The hook line — full measure, never collapsed.
  *
- * The redesign's central move: this line and the partner angles are the
- * product, and they used to sit behind a "Ruben's read" toggle on every
- * card. Both now render inline, everywhere.
- *
- * Presentation is a pull quote on a 4px accent rule with the actions
- * beside it. Behaviour is unchanged: clipboard only, no logging, the same
- * 1.8s "Copied" state, and `dedash()` applied to both the rendered quote
- * and the clipboard payload so the line a partner pastes into a client
- * chat carries no em-dashes either.
+ * This stored line is shared across readers, so its label does not imply
+ * persona-specific advice. Copying normalises dashes in the same way as
+ * the displayed quote and reports clipboard failure explicitly.
  */
 import { useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/cn";
 import { dedash } from "@/lib/dedash";
-import { personaDisplayLabel, usePersona } from "@/lib/persona";
 
 export function SayThis({
   sayThis,
@@ -24,16 +17,12 @@ export function SayThis({
   /** Quote size. The Today lead runs at 34px, Story at 33px, cards at 19px. */
   size = 34,
   className,
-  /** Name the persona the line is angled for in the label. */
-  showPersona = true,
 }: {
   sayThis: string;
   actions?: React.ReactNode;
   size?: number;
   className?: string;
-  showPersona?: boolean;
 }) {
-  const { persona } = usePersona();
   const [copied, setCopied] = useState(false);
   const clean = dedash(sayThis);
 
@@ -55,7 +44,6 @@ export function SayThis({
     >
       <p className="bs-label-accent" style={{ letterSpacing: "0.22em" }}>
         The line worth remembering
-        {showPersona && ` — ${personaDisplayLabel(persona)}`}
       </p>
       <p
         className="font-serif mt-3"

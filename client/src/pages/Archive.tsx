@@ -1,4 +1,9 @@
-import type { ArchiveRegion } from "@shared/archiveScope";
+import {
+  ARCHIVE_PAGE_SIZE,
+  archiveCursorSchema,
+  type ArchiveCursor,
+  type ArchiveRegion,
+} from "@shared/archiveScope";
 import { shouldShowSummary } from "@shared/headline";
 import { ConnectionNotice } from "@/components/ConnectionNotice";
 /**
@@ -9,11 +14,10 @@ import { ConnectionNotice } from "@/components/ConnectionNotice";
  * set in Playfair with an accent caret — no bordered box), the category
  * index row, and a `1fr / 1px / 340px` results grid.
  *
- * Behaviour is unchanged: the same `?q=` / `?cat=` URL state, the same
- * tRPC queries, the same topic-allowlist filtering, and `highlight()`
- * still marks matched terms. The Today page's category sub-filter now
- * lives in the category index row here, which is where browsing by topic
- * belongs.
+ * Search, coverage, category and date filters live in the URL. Category
+ * browsing uses a stable date/ID cursor to reach older reporting; changing
+ * a filter returns to the newest matching page. Topic preferences and
+ * matched-term highlights apply to the displayed results.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useSearch } from "wouter";
@@ -32,8 +36,8 @@ import { trpc } from "@/lib/trpc";
 const BEAT_BLURB: Record<string, string> = {
   MACRO: "The rate cycle and the signals that move it.",
   PROPERTY: "Clearance, listings and the capacity constraint at the mid-tier.",
-  POLICY: "APRA, Treasury and everything that changes a client's borrowing power.",
-  MARKETS: "Lender pricing, SMSF lending and the non-bank channel.",
+  POLICY: "The rules that shape borrowing, renting and housing supply.",
+  MARKETS: "Lender pricing, credit and the cost of owning a home.",
   ECONOMICS: "Inflation, wages and the labour market.",
   TECH: "The tooling reshaping origination and advice.",
   AI: "Where models are actually being put to work.",
@@ -59,6 +63,13 @@ export default function ArchivePage() {
   const query = initial.q;
   const category = initial.cat === "ALL" ? null : (initial.cat ?? "PROPERTY");
   const params = new URLSearchParams(search);
+  const parsedCursor = archiveCursorSchema.safeParse({
+    feedDate: params.get("before"),
+    id: Number(params.get("beforeId")),
+  });
+  const cursor = parsedCursor.success ? parsedCursor.data : undefined;
+  const cursorKey = cursor ? `${cursor.feedDate}:${cursor.id}` : "";
+  const isSearching = query.trim().length >= 2;
   const sort = params.get("sort") === "latest" ? "latest" : "relevance";
   const sinceParam = params.get("since") ?? "";
   const since = /^\d{4}-\d{2}-\d{2}$/.test(sinceParam) ? sinceParam : "";
@@ -71,6 +82,8 @@ export default function ArchivePage() {
   const archiveFilters = { region, since: since || undefined };
   const update = (key: string, value: string) => {
     const next = new URLSearchParams(search);
+    next.delete("before");
+    next.delete("beforeId");
     next.set(key, value);
     navigate(`/archive?${next}`, { replace: true });
   };
@@ -82,6 +95,25 @@ export default function ArchivePage() {
     return () => clearTimeout(timer);
   }, [query]);
   const inputRef = useRef<HTMLInputElement>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
+  const previousCursor = useRef(cursorKey);
+  useEffect(() => {
+    if (previousCursor.current !== cursorKey) {
+      resultsRef.current?.focus();
+      resultsRef.current?.scrollIntoView({ block: "start" });
+    }
+    previousCursor.current = cursorKey;
+  }, [cursorKey]);
+  const pageUrl = (before?: ArchiveCursor) => {
+    const next = new URLSearchParams(search);
+    next.delete("before");
+    next.delete("beforeId");
+    if (before) {
+      next.set("before", before.feedDate);
+      next.set("beforeId", String(before.id));
+    }
+    return `/archive?${next}`;
+  };
   const colourFor = useCategoryColour();
 
   // Auto-focus on desktop so the reader can start typing immediately. On
@@ -101,8 +133,8 @@ export default function ArchivePage() {
     { enabled: debounced.trim().length >= 2, staleTime: 30_000 }
   );
   const categoryQuery = trpc.topics.getByCategory.useQuery(
-    { category: category ?? "", ...archiveFilters },
-    { enabled: !!category }
+    { category: category ?? "", ...archiveFilters, limit: ARCHIVE_PAGE_SIZE, before: cursor },
+    { enabled: !!category && !isSearching }
   );
 
   // User's topic-allowlist preference. Applied to the browse view and to
@@ -147,7 +179,6 @@ export default function ArchivePage() {
   const totalStories = Array.from(counts.values()).reduce((a, b) => a + b, 0);
   const editions = editionsQuery.data ?? [];
 
-  const isSearching = query.trim().length >= 2;
   const isCategoryView = !!category && !isSearching;
 
   const resultCount = filteredSearchResults
@@ -190,7 +221,13 @@ export default function ArchivePage() {
                   ? "Global stories"
                   : "Stories archived"
             }
-            value={totalStories.toLocaleString("en-AU")}
+            value={
+              countsQuery.isError
+                ? "Unavailable"
+                : countsQuery.isLoading
+                  ? "…"
+                  : totalStories.toLocaleString("en-AU")
+            }
           />
           {editions.length > 0 && (
             <div className="rule-hair-l">
@@ -313,7 +350,17 @@ export default function ArchivePage() {
         </p>
       )}
       <p role="status" className="sr-only">
-        {isSearching ? `${resultCount} results` : "Browse reporting"}
+        {isSearching
+          ? searchQuery.isLoading || query !== debounced
+            ? "Searching reporting"
+            : searchQuery.isError
+              ? "Reporting search unavailable"
+              : `${resultCount} results shown`
+          : isCategoryView && categoryQuery.isError
+            ? "Reporting unavailable"
+            : cursor
+              ? "Older reporting"
+              : "Browse reporting"}
       </p>
       {(isSearching
         ? searchQuery.isError
@@ -330,7 +377,13 @@ export default function ArchivePage() {
       )}
       {/* Results + rail */}
       <div className="grid lg:grid-cols-[minmax(0,1fr)_1px_340px]">
-        <div className="pt-8 lg:pr-13 min-w-0">
+        <div
+          ref={resultsRef}
+          role="region"
+          aria-label="Archive results"
+          tabIndex={-1}
+          className="pt-8 lg:pr-13 min-w-0 scroll-mt-5"
+        >
           {isSearching && (
             <SectionErrorBoundary section="Search results">
               <SearchResults
@@ -338,6 +391,19 @@ export default function ArchivePage() {
                 data={searchQuery.isError ? undefined : filteredSearchResults}
                 loading={searchQuery.isLoading || query !== debounced}
               />
+              {!searchQuery.isLoading &&
+                !searchQuery.isError &&
+                query === debounced &&
+                (searchQuery.data?.hasMoreFeedItems ||
+                  (!category &&
+                    !since &&
+                    region === "ALL" &&
+                    searchQuery.data?.hasMoreEditions)) && (
+                  <p className="text-sm mt-5 text-[var(--color-fg-muted)]">
+                    More matches are available. Showing up to 50 per section. Refine your keyword,
+                    date or coverage to narrow the results.
+                  </p>
+                )}
             </SectionErrorBoundary>
           )}
 
@@ -360,6 +426,28 @@ export default function ArchivePage() {
                 }
                 loading={categoryQuery.isLoading}
               />
+              {!categoryQuery.isLoading &&
+                !categoryQuery.isError &&
+                (cursor || categoryQuery.data?.nextCursor) && (
+                  <nav
+                    aria-label="Archive pages"
+                    className="flex flex-wrap items-center gap-4 mt-6 mb-8"
+                  >
+                    {cursor && (
+                      <Link href={pageUrl()} className="bs-btn bs-btn-outline">
+                        Back to latest stories
+                      </Link>
+                    )}
+                    {categoryQuery.data?.nextCursor && (
+                      <Link
+                        href={pageUrl(categoryQuery.data.nextCursor)}
+                        className="bs-btn bs-btn-solid"
+                      >
+                        Older stories →
+                      </Link>
+                    )}
+                  </nav>
+                )}
             </SectionErrorBoundary>
           )}
 
@@ -394,6 +482,8 @@ export default function ArchivePage() {
                     onClick={() => {
                       const next = new URLSearchParams(search);
                       next.delete("q");
+                      next.delete("before");
+                      next.delete("beforeId");
                       next.set("cat", c);
                       navigate(`/archive?${next}`, { replace: true });
                     }}
@@ -579,6 +669,7 @@ function ResultRow({
   metaSub,
   title,
   snippet,
+  source,
   first = false,
   last = false,
 }: {
@@ -587,6 +678,7 @@ function ResultRow({
   metaSub?: string;
   title: React.ReactNode;
   snippet?: React.ReactNode;
+  source?: string;
   first?: boolean;
   last?: boolean;
 }) {
@@ -594,12 +686,12 @@ function ResultRow({
     <Link
       href={href}
       className={cn(
-        "bs-row rule-hair grid grid-cols-[96px_minmax(0,1fr)] gap-5 py-4 items-baseline",
+        "bs-row rule-hair grid grid-cols-1 sm:grid-cols-[96px_minmax(0,1fr)] gap-2 sm:gap-5 py-4 items-baseline",
         first && "rule-band",
         last && "rule-hair-b"
       )}
     >
-      <div>
+      <div className="flex flex-wrap items-baseline gap-3 sm:block">
         <div
           className="font-mono uppercase"
           style={{ fontSize: "0.75rem", letterSpacing: "0.16em" }}
@@ -608,7 +700,7 @@ function ResultRow({
         </div>
         {metaSub && (
           <p
-            className="font-mono mt-1.5 text-[var(--color-fg-subtle)]"
+            className="font-mono sm:mt-1.5 text-[var(--color-fg-subtle)]"
             style={{ fontSize: "0.75rem" }}
           >
             {metaSub}
@@ -630,15 +722,26 @@ function ResultRow({
             {snippet}
           </p>
         )}
+        {source && (
+          <p className="text-xs mt-2 text-[var(--color-fg-subtle)] break-words">Source: {source}</p>
+        )}
       </div>
     </Link>
   );
 }
 
-function ResultGroup({ label, count }: { label: string; count: number }) {
+function ResultGroup({
+  label,
+  count,
+  shown = false,
+}: {
+  label: string;
+  count: number;
+  shown?: boolean;
+}) {
   return (
     <p className="bs-label mb-1.5" style={{ letterSpacing: "0.24em" }}>
-      {label} · {count} match{count === 1 ? "" : "es"}
+      {label} · {count} {shown ? "shown" : "in archive"}
     </p>
   );
 }
@@ -685,7 +788,7 @@ function SearchResults({
     <div className="flex flex-col gap-9">
       {data.editions.length > 0 && (
         <section>
-          <ResultGroup label="Editions" count={data.editions.length} />
+          <ResultGroup label="Editions" count={data.editions.length} shown />
           {data.editions.map((ed, i) => (
             <ResultRow
               key={ed.id}
@@ -706,7 +809,7 @@ function SearchResults({
 
       {data.feedItems.length > 0 && (
         <section className="order-first">
-          <ResultGroup label="Daily items" count={data.feedItems.length} />
+          <ResultGroup label="Daily items" count={data.feedItems.length} shown />
           {data.feedItems.map((item, i) => (
             <ResultRow
               key={item.id}
@@ -716,19 +819,11 @@ function SearchResults({
               meta={<span style={{ color: colourFor(item.category) }}>{item.category}</span>}
               metaSub={item.feedDate}
               title={highlight(item.title, query)}
+              source={item.source}
               snippet={
-                <>
-                  {shouldShowSummary(item.title, item.summary) &&
-                    highlight(item.snippet || item.summary, query)}{" "}
-                  {item.source && (
-                    <span
-                      className="font-mono uppercase text-[var(--color-fg-subtle)]"
-                      style={{ fontSize: "0.75rem", letterSpacing: "0.14em" }}
-                    >
-                      {item.source}
-                    </span>
-                  )}
-                </>
+                shouldShowSummary(item.title, item.summary)
+                  ? highlight(item.snippet || item.summary, query)
+                  : undefined
               }
             />
           ))}
@@ -763,7 +858,7 @@ function CategoryResults({
     <div className="flex flex-col gap-9">
       {data.editions.length > 0 && (
         <section>
-          <ResultGroup label="Editions" count={data.editions.length} />
+          <ResultGroup label="Editions" count={data.editions.length} shown />
           {data.editions.map((ed, i) => (
             <ResultRow
               key={ed.id}
@@ -783,7 +878,7 @@ function CategoryResults({
 
       {data.feedItems.length > 0 && (
         <section className="order-first">
-          <ResultGroup label="Daily items" count={data.feedItems.length} />
+          <ResultGroup label="Daily items" count={data.feedItems.length} shown />
           {data.feedItems.map((item, i) => (
             <ResultRow
               key={item.id}
@@ -793,6 +888,7 @@ function CategoryResults({
               meta={<span style={{ color: colourFor(item.category) }}>{item.category}</span>}
               metaSub={item.feedDate}
               title={item.title}
+              source={item.source}
               snippet={shouldShowSummary(item.title, item.summary) ? item.summary : undefined}
             />
           ))}
@@ -836,6 +932,7 @@ function RecentByBeat({
               meta={<span style={{ color: colourFor(category) }}>{category}</span>}
               metaSub={item.feedDate}
               title={item.title}
+              source={item.source}
             />
           ))}
         </section>

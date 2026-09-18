@@ -130,7 +130,7 @@ Output a SINGLE JSON object matching this exact shape, and NOTHING ELSE:
 Rules for the revised output:
 - Keep the topic count and order identical to the input.
 - Keep the keyMetrics values unchanged (you're not re-extracting data).
-- Preserve each topic's sourceItemIds when editing or reordering it. Never invent references or socialSource metadata. A missing reference means the social post is held, not guessed.
+- Preserve each topic's sourceItemIds and category in its original position. Do not move a reference from another topic or change the topic order. Never invent references or socialSource metadata. A missing reference means the social post is held, not guessed.
 - Preserve all fields. If a topic had a body, return a body. If it had whatToWatch, return whatToWatch.
 - Edits should be conservative, fix what's broken, don't rewrite for taste.
 - whyItMatters is REQUIRED on every topic in the revised output, even if you had to write it from scratch.
@@ -174,6 +174,13 @@ export async function runEditorQc(
   const r = validated.data.revised;
   if (r.topics.length !== input.topics.length)
     throw new Error("editorQc: review changed topic coverage");
+  for (const [index, topic] of r.topics.entries()) {
+    const original = input.topics[index]!;
+    const before = [...new Set(original.sourceItemIds ?? [])].sort((a, b) => a - b);
+    const after = [...new Set(topic.sourceItemIds ?? [])].sort((a, b) => a - b);
+    if (topic.category !== original.category || JSON.stringify(before) !== JSON.stringify(after))
+      throw new Error("editorQc: review changed topic source attribution");
+  }
   if (
     Object.keys(r.keyMetrics).length !== Object.keys(input.keyMetrics).length ||
     Object.entries(r.keyMetrics).some(([key, value]) => input.keyMetrics[key] !== value)
@@ -183,11 +190,9 @@ export async function runEditorQc(
     approved: validated.data.approved,
     notes: validated.data.notes ?? [],
     revised: {
-      topics: r.topics.map((t) => ({
+      topics: r.topics.map((t, index) => ({
         ...t,
-        sourceItemIds: (t.sourceItemIds ?? []).filter((id) =>
-          input.topics.some((topic) => topic.sourceItemIds?.includes(id))
-        ),
+        sourceItemIds: [...(input.topics[index]!.sourceItemIds ?? [])],
         socialSource: undefined,
         title: stripBannedChars(t.title),
         summary: stripBannedChars(t.summary),

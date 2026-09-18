@@ -1,11 +1,15 @@
-import { matchesArchiveFilters, type ArchiveFilters } from "../../shared/archiveScope";
+import {
+  matchesArchiveFilters,
+  type ArchiveFilters,
+  type ArchiveCursor,
+} from "../../shared/archiveScope";
 import { archiveConditions } from "./archiveFilters";
 import { and, desc, eq, gte, isNotNull, like, or, sql } from "drizzle-orm";
 import * as demoQueries from "../demo/queries";
 import { isDemoMode } from "../demo/store";
 import { getDb } from "./client";
 import { escapeLike } from "./like";
-import { rankResults } from "./searchRank";
+import { extractSnippet, rankResults, sqlMatchScore } from "./searchRank";
 import { hasHousingEvidence, HOUSING_TOPIC_PATTERN } from "../../shared/marketRelevance";
 import { dailyFeedItems, editions, type DailyFeedItem } from "./schema";
 import { insertFeedOnce, type FeedIngestItem } from "./feedClaims";
@@ -436,20 +440,35 @@ export async function listFeedItemsMissingWhyItMatters(limit = 50): Promise<Dail
 export async function getFeedItemsByCategory(
   category: string,
   limit = 100,
-  filters: ArchiveFilters = {}
+  filters: ArchiveFilters & { before?: ArchiveCursor } = {}
 ): Promise<DailyFeedItem[]> {
   if (isDemoMode())
     return demoQueries
       .getFeedItemsByCategory(category, Number.MAX_SAFE_INTEGER)
       .filter((item) => matchesArchiveFilters(item, filters))
+      .filter(
+        (item) =>
+          !filters.before ||
+          item.feedDate < filters.before.feedDate ||
+          (item.feedDate === filters.before.feedDate && item.id < filters.before.id)
+      )
+      .sort((a, b) => b.feedDate.localeCompare(a.feedDate) || b.id - a.id)
       .slice(0, limit);
   const db = getDb();
-  if (!db) return [];
+  if (!db) throw new Error("Archive storage unavailable");
   return db
     .select()
     .from(dailyFeedItems)
-    .where(and(eq(dailyFeedItems.category, category.toUpperCase()), archiveConditions(filters)))
-    .orderBy(desc(dailyFeedItems.createdAt))
+    .where(
+      and(
+        eq(dailyFeedItems.category, category.toUpperCase()),
+        archiveConditions(filters),
+        filters.before
+          ? sql`(${dailyFeedItems.feedDate} < ${filters.before.feedDate} OR (${dailyFeedItems.feedDate} = ${filters.before.feedDate} AND ${dailyFeedItems.id} < ${filters.before.id}))`
+          : undefined
+      )
+    )
+    .orderBy(desc(dailyFeedItems.feedDate), desc(dailyFeedItems.id))
     .limit(limit);
 }
 
@@ -487,7 +506,7 @@ export async function getCategoryHeat(days: number, filters?: ArchiveFilters) {
       return [...counts].map(([category, total]) => ({ category, daily: total, weekly: 0, total }));
     }
     const db = getDb();
-    if (!db) return [];
+    if (!db) throw new Error("Archive counts unavailable");
     const rows = await db
       .select({ category: dailyFeedItems.category, total: sql<number>`count(*)` })
       .from(dailyFeedItems)
@@ -539,31 +558,78 @@ export async function getCategoryHeat(days: number, filters?: ArchiveFilters) {
 
 export async function searchAllContent(
   query: string,
-  options: ArchiveFilters & { category?: string; sort?: "relevance" | "latest" } = {}
+  options: ArchiveFilters & {
+    category?: string;
+    sort?: "relevance" | "latest";
+    limit?: number;
+  } = {}
 ) {
+  query = query.trim();
+  const limit = Math.max(1, Math.min(100, Math.trunc(options.limit ?? 50)));
   if (isDemoMode()) {
     const result = demoQueries.searchAllContent(query);
+    const feedItems = result.feedItems
+      .filter(
+        (item) =>
+          matchesArchiveFilters(item, options) &&
+          (!options.category || item.category === options.category)
+      )
+      .sort((a, b) => b.feedDate.localeCompare(a.feedDate) || b.id - a.id);
     return {
       editions:
         options.category || options.since || (options.region && options.region !== "ALL")
           ? []
-          : result.editions,
-      feedItems: result.feedItems.filter(
-        (item) =>
-          matchesArchiveFilters(item, options) &&
-          (!options.category || item.category === options.category)
-      ),
+          : (options.sort === "latest"
+              ? result.editions.sort((a, b) => b.editionNumber - a.editionNumber)
+              : rankResults(
+                  query,
+                  result.editions,
+                  (e) => `Edition ${e.editionNumber} ${e.weekRange}`,
+                  (e) => e.fullText ?? ""
+                )
+            ).slice(0, limit),
+      feedItems: (options.sort === "latest"
+        ? feedItems
+        : rankResults(
+            query,
+            feedItems,
+            (f) => f.title,
+            (f) => f.summary ?? ""
+          )
+      ).slice(0, limit),
     };
   }
   const db = getDb();
-  if (!db) return { editions: [], feedItems: [] };
+  if (!db) throw new Error("Search storage unavailable");
   const pattern = `%${escapeLike(query)}%`;
-  const editionResults = await db
-    .select()
-    .from(editions)
-    .where(or(like(editions.fullText, pattern), like(editions.weekOf, pattern)))
-    .orderBy(desc(editions.editionNumber))
-    .limit(50);
+  const includeEditions =
+    !options.category && !options.since && (!options.region || options.region === "ALL");
+  const editionResults = includeEditions
+    ? await db
+        .select()
+        .from(editions)
+        .where(
+          or(
+            like(editions.fullText, pattern),
+            like(editions.weekOf, pattern),
+            like(editions.weekRange, pattern)
+          )
+        )
+        .orderBy(
+          ...(options.sort === "latest"
+            ? []
+            : [
+                desc(
+                  sqlMatchScore(
+                    query,
+                    sql`CONCAT('Edition ', ${editions.editionNumber}, ' ', ${editions.weekRange})`
+                  )
+                ),
+              ]),
+          desc(editions.editionNumber)
+        )
+        .limit(limit)
+    : [];
   const feedResults = await db
     .select()
     .from(dailyFeedItems)
@@ -574,21 +640,29 @@ export async function searchAllContent(
         archiveConditions(options)
       )
     )
-    .orderBy(desc(dailyFeedItems.createdAt))
-    .limit(50);
-  // Re-rank by relevance (title hits above body-only hits, recency as the
-  // DB-order tiebreak) and attach a match snippet. The DB LIKE scan only
-  // knows "matched or not", so this is where a query actually gets ranked.
+    .orderBy(
+      ...(options.sort === "latest" ? [] : [desc(sqlMatchScore(query, dailyFeedItems.title))]),
+      desc(dailyFeedItems.feedDate),
+      desc(dailyFeedItems.id)
+    )
+    .limit(limit);
+  // Rank before the database cap so an older exact title match cannot be
+  // displaced by fifty newer body-only matches. Attach readable snippets here.
   return {
     editions:
       options.category || options.since || (options.region && options.region !== "ALL")
         ? []
-        : rankResults(
-            query,
-            editionResults,
-            (e) => `Edition ${e.editionNumber} ${e.weekRange}`,
-            (e) => e.fullText ?? ""
-          ),
+        : options.sort === "latest"
+          ? editionResults.map((row) => ({
+              ...row,
+              snippet: row.fullText ? extractSnippet(query, row.fullText) : null,
+            }))
+          : rankResults(
+              query,
+              editionResults,
+              (e) => `Edition ${e.editionNumber} ${e.weekRange}`,
+              (e) => e.fullText ?? ""
+            ),
     feedItems:
       options.sort === "latest"
         ? feedResults.map((row) => ({ ...row, snippet: row.summary }))

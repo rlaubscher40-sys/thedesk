@@ -1,4 +1,4 @@
-import { ARCHIVE_REGIONS } from "../../shared/archiveScope";
+import { ARCHIVE_REGIONS, archiveCursorSchema } from "../../shared/archiveScope";
 import { cached, cacheKey } from "../core/cache";
 import { publicEdition } from "../core/publicEdition";
 import { z } from "zod";
@@ -16,15 +16,28 @@ const archiveFiltersSchema = z.object({
 export const topicsRouter = router({
   /** Aggregate feed items + edition topics for a category. */
   getByCategory: publicProcedure
-    .input(archiveFiltersSchema.extend({ category: z.string().min(1).max(40) }))
+    .input(
+      archiveFiltersSchema.extend({
+        category: z.string().min(1).max(40),
+        limit: z.number().int().min(1).max(100).default(100),
+        before: archiveCursorSchema.optional(),
+      })
+    )
     .query(async ({ input }) => {
       const [feedItems, editions] = await Promise.all([
-        db.getFeedItemsByCategory(input.category, 100, input),
-        input.region || input.since
+        db.getFeedItemsByCategory(input.category, input.limit + 1, input),
+        input.region || input.since || input.before
           ? Promise.resolve([])
           : db.getEditionsByCategory(input.category),
       ]);
-      return { feedItems, editions: editions.map(publicEdition) };
+      const page = feedItems.slice(0, input.limit);
+      const last = page.at(-1);
+      return {
+        feedItems: page,
+        editions: editions.map(publicEdition),
+        nextCursor:
+          feedItems.length > input.limit && last ? { feedDate: last.feedDate, id: last.id } : null,
+      };
     }),
 
   list: publicProcedure.query(async () => db.listAllCategories()),
