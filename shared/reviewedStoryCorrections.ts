@@ -11,6 +11,8 @@ export const REVIEWED_STORY_CORRECTIONS = [
     fields: [
       {
         field: "summary",
+        // Reviewed against the public excerpt, which removes publisher promotions.
+        matchPublicExcerpt: true,
         before:
           "Labor has shown what a government can do to improve housing affordability, exposing how pathetic previous attempts had been. For the first time in 25 years, an Australian government actually did something about housing based on the idea that the only way to make houses more affordable is for house prices to fall. They stopped pretending there was another way.",
         after: "An opinion column about housing policy and affordability.",
