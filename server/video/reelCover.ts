@@ -7,6 +7,7 @@ import { evidenceOpening, housingOpening } from "./reelOpening";
 import { assertReelVisualSequence, reelSceneShot, REEL_SHOTS } from "./reelVisualStandard";
 import { validateDocumentary } from "./documentaryStory";
 import { renderCoverArtwork, type CoverArtwork } from "./reelCoverArtwork";
+import { REEL_PHOTO_CATALOGUE } from "./reelPhotoCatalogue";
 
 export function reelCoverContent(stat: ReelStat, script: ScriptLine[]) {
   if (stat.documentary) {
@@ -121,13 +122,15 @@ export function reelCoverDesign(stat: ReelStat, script: ScriptLine[]): CoverArtw
   if (visual?.recipe === "supply-checklist") {
     return {
       ...design,
+      treatment: "split",
+      photo: REEL_PHOTO_CATALOGUE.building,
       subject: visual.rows[0]!.label,
       section: "Housing supply",
       headline:
         visual.rows[0]!.label === "Greater Sydney"
           ? "Approved.\nWhen built?"
           : `${visual.rows[0]!.label.replace(/^Greater /, "").replace("Australian Capital Territory", "ACT")} supply.\nWhen built?`,
-      detail: `${visual.rows[0]!.value.toLocaleString("en-AU")} dwelling approvals. Timing matters.`,
+      detail: `${visual.rows[0]!.value.toLocaleString("en-AU")} approvals. Not completed homes.`,
     };
   }
   if (visual?.recipe === "new-loan-rates") {

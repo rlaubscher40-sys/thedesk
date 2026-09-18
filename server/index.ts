@@ -9,6 +9,7 @@ import { applyReviewedStoryCorrections } from "./db/reviewedCorrections";
  * client; in production it falls back to the static bundle in dist/public.
  */
 import "dotenv/config";
+import { socialArrivalPath } from "../shared/entryRoutes";
 import { TRPC_BATCH_LIMIT } from "../shared/const";
 import { protectBrowserMutation } from "./core/csrf";
 
@@ -20,6 +21,7 @@ import net from "node:net";
 import { registerAnalyticsRoutes } from "./core/analyticsRoutes";
 import { registerCanonicalRedirects } from "./core/canonicalHost";
 import { registerDistributionSeoRoutes } from "./core/distributionSeo";
+import { registerNewsletterPreviews } from "./core/newsletterPreviews";
 import { registerProductSeoRoutes } from "./core/productSeo";
 import { registerMarketSeoRoutes } from "./core/marketSeo";
 import { registerUnsubscribeRoute } from "./core/unsubscribeRoute";
@@ -127,6 +129,11 @@ async function startServer() {
   // Fold www / http / trailing-slash variants onto the one canonical URL
   // with a 301, before anything can answer 200 on a duplicate address.
   registerCanonicalRedirects(app);
+  app.get("/", (req, res, next) => {
+    const target = socialArrivalPath(req.path, req.originalUrl.split("?").slice(1).join("?"));
+    if (target) return res.redirect(302, target);
+    next();
+  });
 
   // 4MB body ceiling: the largest real payload is the weekly-edition
   // synthesis result (under 1MB), so this is ~4x headroom while still
@@ -174,6 +181,7 @@ async function startServer() {
   registerSeoRoutes(app);
   registerDistributionSeoRoutes(app);
   registerMarketSeoRoutes(app);
+  registerNewsletterPreviews(app);
   registerProductSeoRoutes(app);
   registerHealthRoutes(app);
   registerAnalyticsRoutes(app);

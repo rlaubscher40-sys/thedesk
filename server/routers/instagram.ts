@@ -1,3 +1,4 @@
+import { reelNarrativeAngle } from "../instagram/reelVariety";
 import { publicPostGallery } from "../instagram/publicPostGallery";
 /**
  * Instagram posts admin router.
@@ -138,7 +139,11 @@ export const instagramRouter = router({
         status: entry.candidate
           ? (await reelPublicationRecord(entry.candidate.publication)).state
           : "no-evidence",
-        requirement: entry.requirement,
+        requirement:
+          entry.requirement +
+          (entry.candidate && reelNarrativeAngle(entry.candidate.publication.key)
+            ? ` Narrative: ${reelNarrativeAngle(entry.candidate.publication.key)}. Same angle held for seven days after confirmed publication, including other cities.`
+            : ""),
         referenceMonth: entry.candidate?.publication.date.slice(0, 7) ?? null,
         hook: entry.candidate?.script[0]?.text ?? null,
         selected: entry.candidate?.evidenceHash === plan.candidate?.evidenceHash,

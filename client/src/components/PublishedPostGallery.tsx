@@ -76,6 +76,7 @@ export function PublishedPostGallery() {
                 <a
                   key={link.path}
                   href={link.path}
+                  onClick={() => trackEvent("social_open", "social")}
                   className="bs-link min-h-11 inline-flex items-center text-sm underline"
                 >
                   {link.title} →

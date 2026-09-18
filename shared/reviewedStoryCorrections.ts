@@ -1,6 +1,69 @@
 /** Reviewed corrections. Exact prior values protect later manual edits. */
 export const REVIEWED_STORY_CORRECTIONS = [
   {
+    id: 3000015,
+    sourceUrl:
+      "https://www.theguardian.com/business/grogonomics/2026/aug/12/isnt-it-amazing-what-a-policy-that-actually-tackles-the-cause-of-outrageous-house-prices-can-do",
+    issuedOn: "2026-09-18",
+    reference: "Story 3000015",
+    what: "The summary presented an opinion as the publication’s own factual conclusion. The affordability estimate lost its conditional character and mixed-source attribution; the counterpoint added unsupported certainty about structural reform and future policy effects.",
+    now: "The summary now identifies the article type, the conditional estimate is qualified and the unsupported counterpoint is withdrawn. Original article checked in an AI-assisted source review on 18 September 2026; this is not human verification. Distributed copies remain unchanged.",
+    fields: [
+      {
+        field: "summary",
+        before:
+          "Labor has shown what a government can do to improve housing affordability, exposing how pathetic previous attempts had been. For the first time in 25 years, an Australian government actually did something about housing based on the idea that the only way to make houses more affordable is for house prices to fall. They stopped pretending there was another way.",
+        after: "An opinion column about housing policy and affordability.",
+      },
+      {
+        field: "whyItMatters",
+        before:
+          "ANZ projects a 10.6% average capital city price fall by end of 2027, with dwelling costs dropping from 17.3 to 14.7 years of household income, the sharpest two-year affordability improvement since 1970.",
+        after:
+          "This estimate combines forecasts from different sources; it is conditional, rather than an observed outcome.",
+      },
+      {
+        field: "counterpoint",
+        before:
+          "ANZ's own forecast has prices rising 4.3% in 2028, which means this is a managed correction, not structural reform, and the affordability problem resurfaces the moment policy pressure eases.",
+        after: null,
+      },
+    ],
+  },
+
+  {
+    id: 3960095,
+    sourceUrl:
+      "https://www.mpamag.com/au/news/general/afg-continues-run-with-12bn-mortgage-backed-securitisation/590239",
+    issuedOn: "2026-09-18",
+    reference: "Story 3960095",
+    what: "The reader angles inferred comparative loan pricing, sector-wide capital strength and mortgage quality from one lender's funding transaction. The counterpoint asserted a repricing speed not established by the article.",
+    now: "Those interpretations are withdrawn. The funding transaction and attributed figures remain. The revised context distinguishes one company's growth from market share and borrower outcomes. The full original article was checked on 18 September 2026 using an AI-assisted source review, not human verification. Already distributed copies are unchanged.",
+    fields: [
+      {
+        field: "whyItMatters",
+        before:
+          "AFG Securities' book grew 30% over the year to a record $7.1 billion, meaning a non-bank lender is becoming a structurally larger force in the prime mortgage market.",
+        after:
+          "The reported growth concerns AFG Securities' own loan book. It does not establish its market share or the rates available to an individual borrower.",
+      },
+      {
+        field: "counterpoint",
+        before:
+          "A $13.1 billion RMBS program funded at competitive spreads depends on credit markets staying open; a risk-off move would reprice that funding fast.",
+        after:
+          "The article reports a funding transaction, not a comparison of borrower rates or a sector-wide assessment of lenders' capital strength.",
+      },
+      {
+        field: "partnerTag",
+        before:
+          "Buying: AFG can price loans off its own balance sheet, which can support more competitive rates than commission-based aggregators.\nHolding: A growing non-bank funding pool signals lenders outside the big four remain well-capitalised to compete on refinancing.\nWatching: Sustained international appetite for Australian prime RMBS at this volume is a confidence signal on domestic mortgage book quality.",
+        after: null,
+      },
+    ],
+  },
+
+  {
     id: 3960085,
     sourceUrl: "https://www.nsw.gov.au/ministerial-releases/new-social-homes-hurstville",
     issuedOn: "2026-09-18",

@@ -1,7 +1,7 @@
 {
   "name": "The Desk",
   "short_name": "The Desk",
-  "description": "Australian property intelligence before it becomes consensus.",
+  "description": "Australian property news, evidence and explanation.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

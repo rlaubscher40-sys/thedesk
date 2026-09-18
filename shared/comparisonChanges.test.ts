@@ -65,6 +65,19 @@ describe("comparison change summaries", () => {
     expect(changes.sourceRecordsRemoved).toBe(1);
     expect(changes).not.toHaveProperty("priceChange");
   });
+  it("flags changed periods or dwelling types even when the quotation is unchanged", () => {
+    const before = view(),
+      after = structuredClone(before);
+    after.rows[0]!.marketA!.basis = {
+      measure: "Median rent",
+      period: "2026-06",
+      segment: "Units",
+      geography: "Capital city",
+      unit: "AUD/week",
+    };
+    expect(compareIntelligenceSnapshots(before, after)?.evidenceChanged).toBe(true);
+    expect(compareIntelligenceSnapshots(before, after)?.callChanged).toBe(false);
+  });
   it("handles added and missing dimensions, confidence changes and unrelated pairs", () => {
     const before = view();
     const after = structuredClone(before);
