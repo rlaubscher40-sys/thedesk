@@ -353,10 +353,14 @@ export default function ArchivePage() {
         {isSearching
           ? searchQuery.isLoading || query !== debounced
             ? "Searching reporting"
-            : `${resultCount} results shown`
-          : cursor
-            ? "Older reporting"
-            : "Browse reporting"}
+            : searchQuery.isError
+              ? "Reporting search unavailable"
+              : `${resultCount} results shown`
+          : isCategoryView && categoryQuery.isError
+            ? "Reporting unavailable"
+            : cursor
+              ? "Older reporting"
+              : "Browse reporting"}
       </p>
       {(isSearching
         ? searchQuery.isError

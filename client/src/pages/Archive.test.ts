@@ -159,6 +159,9 @@ it("offers retry on search failure instead of claiming no matches", () => {
   open("/archive?q=Sydney&cat=PROPERTY");
   expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
   expect(screen.queryByText(/No results for/)).toBeNull();
+  const announcements = screen.getAllByRole("status").map((node) => node.textContent);
+  expect(announcements).toContain("Reporting search unavailable");
+  expect(announcements.some((text) => text?.includes("0 results"))).toBe(false);
 });
 
 it("defaults to Australia and preserves keyword, category and date when changing coverage", () => {
