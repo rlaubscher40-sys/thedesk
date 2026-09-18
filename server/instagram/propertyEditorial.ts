@@ -23,22 +23,49 @@ const AUSTRALIAN_SCOPE =
   /\b(Australia\w*|Sydney|Melbourne|Brisbane|Perth|Adelaide|Hobart|Darwin|Canberra|Townsville|Newcastle|Wollongong|Geelong|Shepparton|Gold Coast|Sunshine Coast|NSW|New South Wales|Queensland(?:ers?)?|Victoria|Tasmania|Western Australia|South Australia|Northern Territory|RBA|Reserve Bank of Australia)\b/i;
 const NEUTRAL_RELEASE = /^(new |latest |official |ABS )?(data|figures|statistics|report|update)\b/i;
 
-export function australianPropertyTier(input: {
+function australianPropertyAssessment(input: {
   title: string;
   summary?: string | null;
   sourceUrl?: string | null;
   source?: string | null;
-}): number {
-  if (foreignHousingHeadline(input.title, input.sourceUrl, input.source)) return 0;
+}) {
+  if (foreignHousingHeadline(input.title, input.sourceUrl, input.source))
+    return { tier: 0, hold: "foreign-housing-story" };
   const text = `${input.title} ${input.summary ?? ""}`;
-  if (!AUSTRALIAN_SCOPE.test(text) && !/\bACT\b/.test(text)) return 0;
+  if (!AUSTRALIAN_SCOPE.test(text) && !/\bACT\b/.test(text))
+    return { tier: 0, hold: "missing-australian-geography" };
   // A passing mention in a broad politics article must not become the lead.
   const subject = NEUTRAL_RELEASE.test(input.title) ? text : input.title;
-  return PROPERTY.test(subject) || HOUSING_MARKET.test(subject) || HOUSING_SUPPLY.test(subject)
-    ? 2
-    : FINANCING.test(subject)
-      ? 1
-      : 0;
+  // Elliptical suburb-price headlines still need explicit housing evidence in
+  // the publisher summary. Never use generated implications or a lane label.
+  const suburbPrices =
+    /\bsuburbs?\b.{0,60}\b(?:prices?|values?)\b|\b(?:prices?|values?)\b.{0,60}\bsuburbs?\b/i.test(
+      input.title
+    ) &&
+    !/\b(?:petrol|fuel|grocer\w*|food|electricity|energy|insurance|shares?|stocks?|tickets?)\b/i.test(input.title) &&
+    /\b(?:house|home|dwelling|property|apartment|unit) (?:prices?|values?|market|downturn)\b/i.test(
+      input.summary ?? ""
+    );
+  const vacancyReport =
+    /^(?:national |residential )?vacancy rates\b/i.test(input.title) &&
+    /\brental vacanc(?:y|ies)\b/i.test(input.summary ?? "");
+  const tier =
+    PROPERTY.test(subject) ||
+    HOUSING_MARKET.test(subject) ||
+    HOUSING_SUPPLY.test(subject) ||
+    suburbPrices ||
+    vacancyReport
+      ? 2
+      : FINANCING.test(subject)
+        ? 1
+        : 0;
+  return { tier, hold: tier ? null : "no-property-or-financing-subject" };
+}
+
+export function australianPropertyTier(
+  input: Parameters<typeof australianPropertyAssessment>[0]
+): number {
+  return australianPropertyAssessment(input).tier;
 }
 
 /** An edition's category or generated takeaway cannot manufacture relevance. */
@@ -64,14 +91,20 @@ export function pickPropertyTopics(topics: EditionTopic[], limit = 4): EditionTo
 }
 
 export function propertyStoryTier(story: DailyFeedItem): number {
-  if (!["AU", "PROPERTY"].includes(story.channel)) return 0;
-  if (!story.title?.trim() || !story.source?.trim()) return 0;
-  if (
-    propertyNewsHold(story, story.feedDate) ||
-    datedBriefingHold(story.sourceTiming, story.feedDate)
-  )
-    return 0;
-  return australianPropertyTier(story);
+  return assessPropertyStory(story).tier;
+}
+
+/** Preserve the first concrete eligibility failure for admin and run audits. */
+export function assessPropertyStory(story: DailyFeedItem) {
+  const hold = !["AU", "PROPERTY"].includes(story.channel)
+    ? "outside-australian-property-channels"
+    : !story.title?.trim()
+      ? "missing-headline"
+      : !story.source?.trim()
+        ? "missing-publisher"
+        : (propertyNewsHold(story, story.feedDate) ??
+          datedBriefingHold(story.sourceTiming, story.feedDate));
+  return hold ? { tier: 0, hold } : australianPropertyAssessment(story);
 }
 
 /** Thin days stay thin. Never pad a property carousel with unrelated news. */

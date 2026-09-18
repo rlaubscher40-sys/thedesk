@@ -1287,6 +1287,18 @@ function registerInstagramRoutes(app: Express): void {
     // ample headroom for image render + Graph API publish.
     try {
       const { pickDailyTopStories, postDailyCarousel } = await import("./instagram/post");
+      const { briefingSelectionAudit } = await import("./instagram/briefingSelection");
+      const assessments = briefingSelectionAudit(current.items);
+      for (let offset = 0; offset < assessments.length; offset += 25) {
+        console.log(`[briefing-selection] ${JSON.stringify({
+          date: feedDate,
+          stage: "eligibility-before-publication-check",
+          received: current.items.length,
+          eligible: assessments.filter((row) => !row.hold).length,
+          offset,
+          candidates: assessments.slice(offset, offset + 25),
+        })}`);
+      }
 
       // Checkerboard the profile grid (slide 1 is the grid thumbnail) and
       // surface the morning's market metrics on the cover's lower third. The

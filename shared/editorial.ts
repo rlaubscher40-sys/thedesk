@@ -301,6 +301,12 @@ export function editorialPriority(input: EditorialInput): number {
 /** The subject must be in the headline/dek. Only designated official releases
  * may use a generic interview/release title and establish their beat in the body. */
 function subjectBeat(input: EditorialInput): string | null {
+  // SQM's index labels a dated PDF by measure, not by its reported finding.
+  // Require rental evidence in the document; the filename is not date evidence.
+  const sqmVacancyRelease = publisherHost(input) === "sqmresearch.com.au" &&
+    /^(?:national |residential |rental )?vacancy rates\b/i.test(input.title) &&
+    /\/uploads\/\d{2}-\d{2}-\d{2}-[^/?]+\.pdf(?:\?|$)/i.test(input.sourceUrl ?? input.url ?? "") &&
+    /\brental vacanc(?:y|ies)\b/i.test((input.articleText ?? "").slice(0, 4500));
   if (isStateGovernmentRelease(input)) {
     // State release bodies can explain a generic headline, but distant mentions
     // of productivity, employment or housing must not redefine the main subject.
@@ -328,6 +334,7 @@ function subjectBeat(input: EditorialInput): string | null {
   }
   return (
     editorialBeat(`${input.title} ${input.summary ?? ""}`) ??
+    (sqmVacancyRelease ? "rents" : null) ??
     (publisherWeight(input) === 16 ? editorialBeat((input.articleText ?? "").slice(0, 4500)) : null)
   );
 }

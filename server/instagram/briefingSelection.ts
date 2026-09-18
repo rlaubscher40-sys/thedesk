@@ -1,5 +1,5 @@
 import type { DailyFeedItem } from "../db/schema";
-import { propertyStoryTier } from "./propertyEditorial";
+import { assessPropertyStory } from "./propertyEditorial";
 import { briefingReady, briefingLens, briefingClaimLabel } from "./briefing";
 import { storyPublicationKeys } from "./socialProvenance";
 import { unpublishedSocialStories } from "./socialPublication";
@@ -7,7 +7,7 @@ import { diverseCoverage } from "../../shared/coverageGroups";
 
 /** Editorial ordering, not a truth score. Only publisher copy contributes. */
 export function assessBriefingStory(story: DailyFeedItem) {
-  const tier = propertyStoryTier(story);
+  const { tier, hold: eligibilityHold } = assessPropertyStory(story);
   const text = `${story.title} ${story.summary ?? ""}`;
   const promotional =
     /\b(sponsored|advertorial|partner content|register now|book (?:your|a) (?:free )?(?:consultation|inspection)|investment opportunity|dream home|luxury living)\b/i.test(
@@ -22,7 +22,7 @@ export function assessBriefingStory(story: DailyFeedItem) {
     /\bclearance rates?\b/i.test(story.summary ?? "") &&
     !/\b(?:auction sales|sales volumes?|number of (?:sales|auctions))\b/i.test(story.summary ?? "");
   const hold = !tier
-    ? "Outside current Australian property criteria"
+    ? eligibilityHold
     : promotional
       ? "Promotional copy"
       : boilerplate
@@ -57,6 +57,11 @@ export function assessBriefingStory(story: DailyFeedItem) {
   // ingestion model gave a dramatic headline a higher priority.
   const merit = estimate || commentary ? 0 : announcement ? 1 : data ? 3 : 2;
   return { hold, tier, kind, merit, topic: briefingLens(story).key };
+}
+
+/** Eligibility only: no reservation, publication claim, or generated copy in logs. */
+export function briefingSelectionAudit(stories: DailyFeedItem[]) {
+  return stories.map((story) => ({ id: story.id, ...assessBriefingStory(story) }));
 }
 
 function rankBriefingStories(stories: DailyFeedItem[]): DailyFeedItem[] {
