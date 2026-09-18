@@ -1,17 +1,15 @@
 /**
- * Single-call daily enrichment. Produces ALL of an item's context lines —
- * partnerTag, sayThis, whyItMatters, counterpoint — in one LLM round-trip.
+ * Generate all daily context fields together, then independently review their
+ * support against the same source before returning anything for publication.
  *
  * Why this exists: the batch enrichment used to fire four separate generators
  * per story and then a fifth "editor QC" pass, each call re-sending the full
  * article text (up to ~6000 chars / ~1500 tokens). That's the same article
  * paid for five times per story, the dominant driver of input-token spend.
  *
- * Generating the four angles together in one pass is also strictly better for
- * quality, not worse: the model sees the whole story and all four lines at
- * once, which is exactly what the separate QC pass was bolted on to do —
- * read the lines together, sharpen the flat one, cull the contrived one. So
- * the culling/voice rules that lived in runDailyItemQc are folded in here.
+ * Generation sees all four fields together. A separate, bounded evidence
+ * review can withhold unsupported interpretations; self-editing alone did
+ * not catch market-wide conclusions drawn from individual broker examples.
  *
  * The per-angle rules below are kept verbatim from the standalone generators
  * (sayThis.ts, partnerTag.ts, whyItMatters.ts, counterpoint.ts) and the editor
@@ -23,6 +21,7 @@ import { invokeLLM } from "../core/llm";
 import { checkedContext, type ClaimIssue } from "../../shared/claimEvidence";
 import { editorialTimeContext, validEditorialAngle } from "../../shared/editorialTiming";
 import { rubenSystemPrompt, stripBannedChars, voiceRules } from "./voice";
+import { reviewEditorialCopy } from "./editorialReview";
 
 export type DailyAnglesInput = {
   title: string;
@@ -209,6 +208,20 @@ export async function generateDailyAngles(
     },
     input
   );
-  options.onHeld?.(checked.held);
-  return checked.values;
+  try {
+    const reviewed = await reviewEditorialCopy(
+      checked.values,
+      { ...input, articleText: input.articleText?.slice(0, 6000) },
+      options.signal ?? AbortSignal.timeout(60_000)
+    );
+    for (const field of Object.keys(reviewed) as Array<keyof DailyAngles>)
+      if (checked.values[field] && !reviewed[field])
+        checked.held[field] = ["unsupported-inference"];
+    options.onHeld?.(checked.held);
+    return reviewed;
+  } catch {
+    if (options.strict) throw new Error("Daily angle evidence review unavailable");
+    console.warn("[dailyAngles] evidence review unavailable; withholding generated context");
+    return EMPTY;
+  }
 }

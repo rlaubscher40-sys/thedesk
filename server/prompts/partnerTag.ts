@@ -16,6 +16,7 @@
  */
 import { READER_ANGLE_LABELS, parseReaderAngles } from "../../shared/schemas";
 import { invokeLLM } from "../core/llm";
+import { reviewEditorialCopy } from "./editorialReview";
 import { checkClaimEvidence } from "../../shared/claimEvidence";
 import { editorialTimeContext, validEditorialAngle } from "../../shared/editorialTiming";
 
@@ -92,7 +93,17 @@ export async function generatePartnerTag(input: PartnerTagInput): Promise<string
       return null;
     }
     const lines = validEditorialAngle(content);
-    return checkClaimEvidence(lines, input).length ? null : lines;
+    if (checkClaimEvidence(lines, input).length) return null;
+    const reviewed = await reviewEditorialCopy(
+      { copy: lines },
+      {
+        title: input.title,
+        summary: input.summary,
+        articleText: input.articleText?.slice(0, 6000),
+      },
+      AbortSignal.timeout(60_000)
+    );
+    return reviewed.copy;
   } catch (err) {
     console.error("[partnerTag] generation error:", err);
     return null;

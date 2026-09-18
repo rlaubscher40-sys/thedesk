@@ -6,6 +6,8 @@ vi.mock("../../core/llm", () => ({
 
 import { invokeLLM } from "../../core/llm";
 import { generateDailyAngles } from "../dailyAngles";
+vi.mock("../editorialReview", () => ({ reviewEditorialCopy: vi.fn(async (copy) => copy) }));
+import { reviewEditorialCopy } from "../editorialReview";
 
 const mockedInvoke = vi.mocked(invokeLLM);
 
@@ -184,12 +186,48 @@ it("strict recovery distinguishes a deliberate empty result from a failed attemp
 });
 
 it("supplies the current date and drops an expired deadline before persistence", async () => {
- vi.useFakeTimers(); vi.setSystemTime(new Date("2026-09-11T11:00:00Z"));
- try {
-  mockedInvoke.mockResolvedValue(JSON.stringify({sayThis:"Watch the result by mid-2026.",partnerTag:null,whyItMatters:"The model covers 2026–27 to 2029–30.",counterpoint:null}));
-  const result=await generateDailyAngles({ ...input, title: "Housing model released", articleText: "The model covers 2026-27 to 2029-30." });
-  expect(result.sayThis).toBeNull();
-  expect(result.whyItMatters).toContain("2029-30");
-  expect(mockedInvoke.mock.calls.at(-1)?.[0].messages[1]?.content).toContain("Current Sydney calendar date: 2026-09-11");
- } finally {vi.useRealTimers();}
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-09-11T11:00:00Z"));
+  try {
+    mockedInvoke.mockResolvedValue(
+      JSON.stringify({
+        sayThis: "Watch the result by mid-2026.",
+        partnerTag: null,
+        whyItMatters: "The model covers 2026–27 to 2029–30.",
+        counterpoint: null,
+      })
+    );
+    const result = await generateDailyAngles({
+      ...input,
+      title: "Housing model released",
+      articleText: "The model covers 2026-27 to 2029-30.",
+    });
+    expect(result.sayThis).toBeNull();
+    expect(result.whyItMatters).toContain("2029-30");
+    expect(mockedInvoke.mock.calls.at(-1)?.[0].messages[1]?.content).toContain(
+      "Current Sydney calendar date: 2026-09-11"
+    );
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it("withholds context when independent review fails and marks rejected inferences", async () => {
+  const draft = {
+    sayThis: null,
+    partnerTag: null,
+    whyItMatters: "The hold gives borrowers time to review their loan terms.",
+    counterpoint: null,
+  };
+  mockedInvoke.mockResolvedValue(JSON.stringify(draft));
+  vi.mocked(reviewEditorialCopy).mockRejectedValueOnce(new Error("Review unavailable"));
+  await expect(generateDailyAngles(input, { strict: true })).rejects.toThrow("review unavailable");
+  vi.mocked(reviewEditorialCopy).mockRejectedValueOnce(new Error("Review unavailable"));
+  expect((await generateDailyAngles(input)).whyItMatters).toBeNull();
+  vi.mocked(reviewEditorialCopy).mockResolvedValueOnce({ ...draft, whyItMatters: null });
+  const held = vi.fn();
+  expect(
+    (await generateDailyAngles(input, { strict: true, onHeld: held })).whyItMatters
+  ).toBeNull();
+  expect(held).toHaveBeenCalledWith({ whyItMatters: ["unsupported-inference"] });
 });

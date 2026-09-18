@@ -144,7 +144,7 @@ describe("buildDailyCaption — source-grounded property briefing", () => {
     expect(caption).toContain(story.title);
     expect(caption).not.toContain("Perth");
     expect(caption).not.toContain("double");
-    expect(caption).toMatch(/rent levels or rent growth/i);
+    expect(caption).toMatch(/rent levels and rent growth/i);
     expect(caption).toContain("Source: AFR");
     expect(caption).not.toContain("in our bio");
   });

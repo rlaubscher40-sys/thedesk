@@ -54,7 +54,7 @@ const item = (id: number, over: Partial<Item> = {}): Item => ({
   id,
   title: `Perth property report ${id}`,
   summary: `Perth rents were reported in release ${id}.`,
-  source: "Publisher",
+  source: "The West Australian",
   sourceUrl: `https://source-${id}.test/report`,
   feedDate: "2026-09-07",
   category: "PROPERTY",
@@ -133,7 +133,7 @@ describe("public market discovery", () => {
       }),
       item(3, {
         title: "Perth housing supply tightens",
-        summary: "Perth housing supply tightens Perth housing supply tightens Publisher",
+        summary: "Perth housing supply tightens Perth housing supply tightens The West Australian",
       }),
       item(4),
     ];
@@ -141,7 +141,7 @@ describe("public market discovery", () => {
     expect(file.references.map((row) => row.id)).toEqual([4, 3]);
     expect(file.references[0]!.excerpt).toBe("Perth rents were reported in release 4.");
     expect(file.references[1]!.excerpt).toBe("");
-    expect(rows[2]!.summary).toContain("Publisher");
+    expect(rows[2]!.summary).toContain("The West Australian");
   });
   it("excludes stored spam and recycled updates even when their feed date is recent", () => {
     const file = perth([
@@ -228,7 +228,11 @@ describe("public market discovery", () => {
   it("counts source websites, not repeated publisher labels or unsafe links", () => {
     const file = perth([
       item(1, { sourceUrl: "https://www.source.test/1" }),
-      item(2, { sourceUrl: "https://source.test/2", source: "Different label" }),
+      item(2, {
+        title: "Perth WA housing report 2",
+        sourceUrl: "https://source.test/2",
+        source: "Different label",
+      }),
       item(3, { sourceUrl: "javascript:alert(1)" }),
       item(4, { sourceUrl: "https://user:pass@other.test/a" }),
     ]);

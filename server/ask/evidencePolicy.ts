@@ -22,7 +22,9 @@ export function requestedSourceLimit(question: string): number {
  * Refuse a limit that would silently drop part of a local comparison.
  */
 export function packAskEvidence(question: string, sources: AskContextSource[], limit: number) {
-  const local = sources.filter((source) => source.category === "LOCAL DATA");
+  const local = sources.filter((source) =>
+    ["LOCAL DATA", "REVIEWED CONTEXT"].includes(source.category ?? "")
+  );
   if (local.length > limit) return null;
   const primary = sources.find((source) => {
     const label = normaliseAskText(source.title.split(":")[0]!);

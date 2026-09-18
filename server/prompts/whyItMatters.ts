@@ -12,6 +12,7 @@
  * already knowing the background.
  */
 import { invokeLLM } from "../core/llm";
+import { reviewEditorialCopy } from "./editorialReview";
 import { checkClaimEvidence } from "../../shared/claimEvidence";
 import { editorialTimeContext, validEditorialAngle } from "../../shared/editorialTiming";
 
@@ -78,7 +79,17 @@ export async function generateWhyItMatters(input: WhyItMattersInput): Promise<st
       return null;
     }
     const line = validEditorialAngle(trimmed);
-    return checkClaimEvidence(line, input).length ? null : line;
+    if (checkClaimEvidence(line, input).length) return null;
+    const reviewed = await reviewEditorialCopy(
+      { copy: line },
+      {
+        title: input.title,
+        summary: input.summary,
+        articleText: input.articleText?.slice(0, 6000),
+      },
+      AbortSignal.timeout(60_000)
+    );
+    return reviewed.copy;
   } catch (err) {
     console.error("[whyItMatters] generation error:", err);
     return null;

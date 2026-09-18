@@ -6,6 +6,7 @@ import { askQueryTerms, rankAskRecords } from "../ask/relevance";
 import { retrieveLocalFacts } from "../ask/localFacts";
 import { describeMetricObservation } from "../../shared/metricObservation";
 import { directLocalRentAnswer } from "../ask/directLocalRent";
+import { directRegionalContextAnswer } from "../ask/regionalContext";
 import { directCpiRentAnswer } from "../ask/directCpiRent";
 import { directStateLabourAnswer } from "../ask/directStateLabour";
 import { directQuarterlyHousingAnswer } from "../ask/quarterlyHousing";
@@ -219,20 +220,22 @@ export const askRouter = router({
 
           for (const fact of matches.facts) {
             const ref = evidence.length + 1;
+            const category = fact.reviewedContext ? "REVIEWED CONTEXT" : "LOCAL DATA";
+            const kind = fact.reviewedContext ? ("feed" as const) : ("metric" as const);
             evidence.push({
               ref,
-              kind: "metric",
+              kind,
               title: fact.title,
               date: fact.date,
-              category: "LOCAL DATA",
+              category,
               text: fact.text,
             });
             sourceMeta.push({
               ref,
-              kind: "metric",
+              kind,
               title: fact.title,
               date: fact.date,
-              category: "LOCAL DATA",
+              category,
               href: fact.href,
               publisher: fact.publisher,
               externalUrl: fact.sourceUrl,
@@ -404,6 +407,7 @@ export const askRouter = router({
           });
           const packedRefs = new Set(packedEvidence.map((source) => source.ref));
           const directAnswer =
+            directRegionalContextAnswer(input.question, matches.facts, packedEvidence) ??
             directQuarterlyHousingAnswer(input.question, matches.facts, packedEvidence) ??
             directStateLabourAnswer(input.question, matches.facts, packedEvidence) ??
             directCpiRentAnswer(input.question, matches.facts, packedEvidence) ??

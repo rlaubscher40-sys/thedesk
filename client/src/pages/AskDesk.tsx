@@ -22,10 +22,10 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/lib/useAuth";
 
 const EXAMPLES = [
-  "What is changing in investor lending?",
+  "What reviewed sources does The Desk have about Newcastle?",
   "What does The Desk know about Townsville?",
-  "What is the case against the current property consensus?",
-  "What has changed in housing supply recently?",
+  "Compare NSW and Queensland unemployment in July 2026",
+  "What is the median weekly rent for three-bedroom houses in Townsville?",
 ];
 
 export default function AskDeskPage() {
@@ -542,21 +542,12 @@ function AskDeskSession({ accountId }: { accountId: number | "guest" }) {
                   {result.answer.headline}
                 </h2>
                 <p
-                  className="font-serif mt-6 max-w-[64ch] text-[var(--color-fg-body)]"
+                  className="font-serif mt-6 max-w-[64ch] whitespace-pre-line text-[var(--color-fg-body)]"
                   style={{ fontSize: "clamp(1.25rem, 2.2vw, 1.6875rem)", lineHeight: 1.5 }}
                 >
-                  {result.answer.answer
-                    .split(/(?<=[.!?])\s+/)
-                    .slice(0, 2)
-                    .join(" ")}
+                  {result.answer.answer}
                 </p>
 
-                {result.answer.answer.split(/(?<=[.!?])\s+/).length > 2 && (
-                  <details className="mt-4">
-                    <summary className="bs-link min-h-11 py-3">Read the full answer</summary>
-                    <p className="leading-7 max-w-prose">{result.answer.answer}</p>
-                  </details>
-                )}
                 {result.answer.signals.length > 0 && (
                   <div className="grid sm:grid-cols-3 rule-major mt-9">
                     {result.answer.signals.slice(0, 3).map((signal, index) => (

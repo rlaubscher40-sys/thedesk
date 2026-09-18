@@ -1,3 +1,5 @@
+vi.mock("./editorialReview", () => ({ reviewEditorialCopy: vi.fn(async (copy) => copy) }));
+import { reviewEditorialCopy } from "./editorialReview";
 import { afterEach, expect, it, vi } from "vitest";
 vi.mock("../core/llm", () => ({ invokeLLM: vi.fn() }));
 import { invokeLLM } from "../core/llm";
@@ -28,3 +30,12 @@ it("does not let an existing generated tag validate its replacement", async () =
   vi.mocked(invokeLLM).mockResolvedValue(output.replace("annual", "quarterly"));
   expect(await generatePartnerTag(input)).toBe(output.replace("annual", "quarterly"));
 });
+
+it.each([generateSayThis, generateWhyItMatters])(
+  "withholds manual generation rejected by independent review",
+  async (generate) => {
+    vi.mocked(invokeLLM).mockResolvedValue("NSW annual rent growth was 3.2%.");
+    vi.mocked(reviewEditorialCopy).mockResolvedValueOnce({ copy: null });
+    expect(await generate(input)).toBeNull();
+  }
+);

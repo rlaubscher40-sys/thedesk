@@ -1,6 +1,54 @@
 /** Reviewed corrections. Exact prior values protect later manual edits. */
 export const REVIEWED_STORY_CORRECTIONS = [
   {
+    id: 3960030,
+    sourceUrl:
+      "https://www.realestate.com.au/news/homeowners-switch-to-interest-only-as-families-roll-debts-into-mortgages/",
+    issuedOn: "2026-09-18",
+    reference: "Story 3960030",
+    what: "The summary began with an unidentified speaker and the interpretation turned reported refinancing examples into broad conclusions about structural stress and supply.",
+    now: "The standfirst identifies the reported subject. The unsupported structural-stress and market-supply conclusions are withdrawn; the original reporting remains linked.",
+    fields: [
+      {
+        field: "summary",
+        before:
+          "He said homeowners were switching to interest only mortgages just to survive and free up cash each month. Homeowners are under extreme money flow pressures with interest rate hikes and modest wage growth.",
+        after:
+          "The report describes homeowners switching to interest-only mortgages and consolidating other debts into their home loans.",
+      },
+      {
+        field: "whyItMatters",
+        before:
+          "When owner-occupiers, not investors, are the dominant interest-only applicants and are rolling consumer debt into 30-year loans, the stress is structural, not a rate-cycle blip.",
+        after:
+          "The reported refinancing examples describe household cash-flow pressure. They do not establish how widespread that pressure is or whether it is structural.",
+      },
+      {
+        field: "counterpoint",
+        before:
+          "Families consolidating debt and staying in their homes are not distressed sellers, which means the supply shock that would drive a price correction is still not materialising.",
+        after: null,
+      },
+    ],
+  },
+  {
+    id: 3960015,
+    sourceUrl: "https://www.realestate.com.au/news/big-banks-hike-rates-days-from-rba-decision/",
+    issuedOn: "2026-09-18",
+    reference: "Story 3960015",
+    what: "The standfirst began with a dependent fragment and quoted a rate forecast without distinguishing it from an announced decision.",
+    now: "The standalone summary identifies the analyst and labels the expected hike as a forecast.",
+    fields: [
+      {
+        field: "summary",
+        before:
+          'This as Canstar.com.au data insights director Sally Tindall warned "the big question at this stage is not if the RBA will hike again, but when" - with latest rate moves by banks a clear sign they\'re now bracing for impact.',
+        after:
+          "The report quotes Canstar data insights director Sally Tindall expecting a further RBA hike. That is a forecast, not an announced decision.",
+      },
+    ],
+  },
+  {
     fields: [
       {
         after:

@@ -99,7 +99,7 @@ describe("evidence read projections", () => {
     fixture.rows = [
       ...Array.from({ length: 150 }, (_, i) => row(i + 1)),
       row(500, "Townsville housing supply expands"),
-      row(501, "Newcastle housing approvals increase"),
+      row(501, "Newcastle NSW housing approvals increase"),
       row(502, "Newcastleshire housing report"),
       row(503, "Townsville Mortgage Awards: Book your hotel room now"),
     ];

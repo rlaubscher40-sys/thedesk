@@ -1,4 +1,5 @@
 import { REVIEWED_METRIC_CORRECTIONS } from "@shared/reviewedMetricCorrections";
+import { REVIEWED_EDITION_NOTICE } from "@shared/reviewedEditionCorrection";
 /**
  * Public corrections log. A newsroom-grade trust signal, we publish the
  * mistakes we've made and how we fixed them. Entries are kept in this file
@@ -26,6 +27,19 @@ type Correction = {
  * the page live so readers know the channel exists.
  */
 const CORRECTIONS: readonly Correction[] = [
+  REVIEWED_EDITION_NOTICE,
+  {
+    issuedOn: "2026-09-18",
+    reference: "Newcastle evidence 287372",
+    what: "A Yahoo News UK item about Newcastle in the UK was assigned to NSW and selected for the Newcastle market file.",
+    now: "The NSW classification is removed and the item is excluded from Australian market evidence. The original record remains accessible for traceability.",
+  },
+  {
+    issuedOn: "2026-09-18",
+    reference: "18 September Instagram carousel · Story 3960065",
+    what: "The explainer described rent levels and growth, although the story concerns the public-housing commitment in a Richmond redevelopment proposal.",
+    now: "The Instagram caption now opens with a correction and explains public, affordable and market-rate housing, together with the proposal's commitments and delivery status. Future explainers distinguish these topics. The already-published image slides have not been replaced.",
+  },
   ...REVIEWED_METRIC_CORRECTIONS,
   ...REVIEWED_STORY_CORRECTIONS,
 ];
@@ -129,7 +143,12 @@ export default function Corrections() {
                     <p className="overline mb-1.5">Now stands</p>
                     <p className="leading-relaxed">{c.now}</p>
                     {c.reviewSourceUrl && (
-                      <a className="bs-link inline-block mt-2" href={c.reviewSourceUrl} target="_blank" rel="noopener noreferrer">
+                      <a
+                        className="bs-link inline-block mt-2"
+                        href={c.reviewSourceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
                         Primary source checked for this correction
                       </a>
                     )}

@@ -19,6 +19,36 @@ const story = {
   whyItMatters: "Buy now before prices explode",
 } as DailyFeedItem;
 describe("daily briefing evidence and layout contract", () => {
+  it("explains tenure and delivery for the audited Richmond redevelopment", () => {
+    const s = {
+      ...story,
+      title:
+        "Hundreds of market-rate rentals but no public housing guarantee: Tower plans labelled horrific",
+      summary:
+        "New redevelopment plans for a Richmond public housing tower provide no guarantee of supplying public homes.",
+    };
+    expect(briefingLens(s).key).toBe("tenure");
+    expect(buildBriefingSlides([s])[2]!.body).toContain("public homes");
+    expect(briefingCaption([s])).not.toContain("Rent levels");
+  });
+  it("distinguishes rights and planning from rent-price data", () => {
+    expect(briefingLens({ ...story, title: "New rental rights reform for tenants" }).key).toBe(
+      "tenancy"
+    );
+    expect(briefingLens({ ...story, title: "Tower plans propose new rental apartments" }).key).toBe(
+      "planning"
+    );
+    expect(briefingLens({ ...story, title: "Sydney median rents fall" }).key).toBe("rents");
+    expect(
+      briefingDetail({
+        ...story,
+        summary: "He said homeowners were switching to interest-only mortgages to free up cash.",
+      })
+    ).toBeNull();
+    expect(
+      briefingDetail({ ...story, summary: "This as a lender warned of future rate rises." })
+    ).toBeNull();
+  });
   it("keeps whole evidence sentences and never copies cached predictions", () => {
     const slides = buildBriefingSlides([story]);
     expect(slides.map((s) => s.kind)).toEqual(["cover", "evidence", "explainer", "takeaway"]);
