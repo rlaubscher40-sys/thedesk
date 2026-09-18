@@ -1,5 +1,6 @@
-/** Deterministic, evidence-backed scripts spoken locally. No paid speech API. */
-import { localSpeech, type SpeechProfile } from "./localVoice";
+/** Deterministic, evidence-backed scripts spoken by the configured Reel voice. */
+import type { SpeechProfile } from "./localVoice";
+import { reelSpeech } from "./reelVoice";
 import type { ReelScriptLines } from "../prompts/reelScript";
 
 /** Acronyms that must survive de-shouting as acronyms: spoken as letters, not
@@ -182,5 +183,5 @@ export async function synthesiseScript(
 ): Promise<Array<{ key: string; bytes: Buffer }>> {
   // Preserve the actual failure (timeout, missing assets, process exit or
   // invalid PCM) through the scheduled route and its admin result.
-  return localSpeech(lines, profile);
+  return reelSpeech(lines, profile);
 }

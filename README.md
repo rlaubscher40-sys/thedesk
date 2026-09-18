@@ -78,11 +78,16 @@ ANONYMOUS_AI_DAILY_ATTEMPTS Optional — site-wide daily AI attempt cap (default
 ANTHROPIC_API_KEY     LLM enrichment (tags, sayThis, synthesis, …)
 SCHEDULED_API_KEY     x-scheduled-key header for /api/scheduled/* POSTs
 OPENAI_API_KEY        Optional — hero image generation
+ELEVENLABS_API_KEY    Optional — use Ruben's cloned voice for Reel narration
+ELEVENLABS_VOICE_ID   Optional — defaults to Ruben (xeSYpoWjkR3imzxB6qDk)
+REEL_VOICE_PROVIDER   auto (default), elevenlabs (require clone), or local
 RESEND_API_KEY        Optional — subscriber + alert email delivery
 SITE_URL              Canonical origin used in emails / sitemap / OG tags
 ```
 
 ## Project layout
+
+For cloned-voice activation and rollback, see [Reel voice setup](docs/elevenlabs-reel-voice.md).
 
 ```
 shared/              Zod schemas + constants the client and server both import

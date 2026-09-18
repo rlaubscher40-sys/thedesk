@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import { promisify } from "node:util";
 import ffmpegPath from "ffmpeg-static";
-import { localVoiceReady } from "./localVoice";
+import { reelVoiceReadiness } from "./reelVoice";
 
 const run = promisify(execFile);
 
@@ -28,10 +28,9 @@ export function parseFfmpegVersion(output: string): string | null {
  * thing to debug at the moment you are already debugging something.
  */
 export async function checkReelReadiness(): Promise<ReelReadiness> {
-  const voice = await localVoiceReady();
-  const voiceNote = voice
-    ? ""
-    : " Narration is off: the local voice check failed. Reels will not publish. Run the voice build setup.";
+  const voiceState = await reelVoiceReadiness();
+  const voice = voiceState.ok;
+  const voiceNote = ` ${voiceState.detail}`;
 
   if (!ffmpegPath) {
     return {
@@ -64,9 +63,7 @@ export async function checkReelReadiness(): Promise<ReelReadiness> {
       ok: voice,
       ffmpegVersion: version,
       voice,
-      detail:
-        `ffmpeg ${version ?? "present"}.` +
-        (voiceNote || " Narration is on: local voice produced audible speech; no paid speech API."),
+      detail: `ffmpeg ${version ?? "present"}.` + voiceNote,
     };
   } catch (err) {
     return {
