@@ -11,7 +11,7 @@ import { and, gte, lte, like, notLike, sql } from "drizzle-orm";
 import * as demoQueries from "../demo/queries";
 import { isDemoMode } from "../demo/store";
 import { getDb } from "./client";
-import { pageViews, type InsertPageView } from "./schema";
+import { pageViews, subscribers, type InsertPageView } from "./schema";
 import { SOCIAL_CAMPAIGNS, type SocialCampaign } from "../../shared/socialCampaign";
 
 const EVENT_PREFIX = "@event/";
@@ -241,6 +241,10 @@ export async function readerJourney(windowHours = 24 * 7, now = new Date()) {
           sql<number>`max(case when ${pageViews.path} = '@event/ask_answer/ask' then 1 else 0 end)`.as(
             "answers"
           ),
+        research:
+          sql<number>`max(case when ${pageViews.path} like '@event/market_compare/%' or ${pageViews.path} like '@event/comparison_refresh/%' or ${pageViews.path} like '@event/market_file_export/%' or ${pageViews.path} like '@event/signal_watch/%' then 1 else 0 end)`.as(
+            "research"
+          ),
         requests:
           sql<number>`max(case when ${pageViews.path} = '@event/newsletter_request/subscribe' then 1 else 0 end)`.as(
             "requests"
@@ -258,11 +262,18 @@ export async function readerJourney(windowHours = 24 * 7, now = new Date()) {
         questions: sql<number>`coalesce(sum(${sessions.questions}), 0)`,
         answers: sql<number>`coalesce(sum(${sessions.answers}), 0)`,
         requests: sql<number>`coalesce(sum(${sessions.requests}), 0)`,
+        research: sql<number>`coalesce(sum(${sessions.research}), 0)`,
       })
       .from(sessions)
       .where(sql`${sessions.viewed} = 1`);
+    const [confirmed] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(subscribers)
+      .where(and(gte(subscribers.confirmedAt, since), lte(subscribers.confirmedAt, now)));
     return {
       available: true as const,
+      research: Number(row?.research ?? 0),
+      confirmations: Number(confirmed?.count ?? 0),
       sessions: Number(row?.sessions ?? 0),
       stories: Number(row?.stories ?? 0),
       sources: Number(row?.sources ?? 0),

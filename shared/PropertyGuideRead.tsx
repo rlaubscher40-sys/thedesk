@@ -1,3 +1,4 @@
+import { GUIDE_EXAMPLES } from "./guideExamples";
 import type { ReactNode } from "react";
 import {
   GUIDE_REVIEWED,
@@ -49,7 +50,8 @@ export function PropertyGuideRead({
       {guide ? (
         <>
           <p className="bs-label mt-5">
-            The Desk explainer · Reviewed <time dateTime={GUIDE_REVIEWED}>18 September 2026</time>
+            The Desk explainer · AI-assisted source check{" "}
+            <time dateTime={GUIDE_REVIEWED}>18 September 2026</time>
           </p>
           <section
             aria-label="The key distinctions"
@@ -83,6 +85,13 @@ export function PropertyGuideRead({
               This explains how to read a measure. It is not a current market reading or a forecast.
             </p>
           </section>
+          {GUIDE_EXAMPLES[guide.slug] && (
+            <section className="mt-8 rule-hair pt-6 max-w-3xl">
+              <p className="bs-label-accent">Worked example · hypothetical</p>
+              <h2 className="font-serif text-2xl mt-3">{GUIDE_EXAMPLES[guide.slug]!.title}</h2>
+              <p className="mt-3 leading-7">{GUIDE_EXAMPLES[guide.slug]!.text}</p>
+            </section>
+          )}
           {children}
           <nav
             aria-label="Follow the evidence"

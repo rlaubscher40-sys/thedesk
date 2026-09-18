@@ -49,6 +49,8 @@ export function describeReelPlan(
   if (plan.retryAt && plan.retryAt.getTime() >= Date.parse(window.end))
     window = nextReelWindow(plan.retryAt);
   const blocked: Record<string, string> = {
+    "variety-held":
+      "Available evidence repeats a narrative angle published within seven days. A different city is not a new story; the slot stays empty.",
     "no-evidence": "No eligible story has current verified evidence.",
     locked: "A publication outcome needs inspection. Reposting is locked to prevent duplicates.",
     unavailable: "The publication record cannot be checked.",

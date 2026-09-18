@@ -11,6 +11,7 @@ import {
   REEL_PUBLICATION_FAMILIES,
 } from "./reelCandidates";
 import { reelPublicationRecord } from "./reelStatus";
+import { narrativeRecentlyPublished } from "./reelVariety";
 import { isRateLimitError } from "./api";
 import { logReelPlan } from "./reelPlanSummary";
 import { readReelPublicationHistory } from "../db/reelHistory";
@@ -65,7 +66,7 @@ async function readReelSelection(
   history: Awaited<ReturnType<typeof readReelPublicationHistory>>
 ) {
   const offered = await getVerifiedReelCandidates(now);
-  const candidates = [];
+  const candidates: typeof offered = [];
   for (const item of offered) {
     if ("documentary" in item.stat && item.stat.documentary) {
       const guard = await documentaryPublicationGuard(item.stat.documentary.id, now);
@@ -116,16 +117,6 @@ async function readReelSelection(
       candidate: candidates[blocked]!,
       date,
     };
-  const available = chooseReelCandidate(
-    candidates,
-    records,
-    history.flatMap((item) => {
-      const family = REEL_PUBLICATION_FAMILIES[item.key];
-      return family ? [{ family, publishedAt: item.publishedAt }] : [];
-    })
-  );
-  if (available < 0) return { state: "exhausted" as const, candidate: null, date };
-  candidate = candidates[available]!;
   // Also recover the daily cap from the permanent publication record if the
   // delivery response or the best-effort day watermark was lost after posting.
   if (
@@ -136,6 +127,28 @@ async function readReelSelection(
     )
   )
     return { state: "daily-limit" as const, candidate, date };
+  const available = chooseReelCandidate(
+    candidates,
+    records.map((record, index) =>
+      record.state === "available" &&
+      narrativeRecentlyPublished(candidates[index]!.publication.key, history, now)
+        ? { ...record, state: "variety-held" }
+        : record
+    ),
+    history.flatMap((item) => {
+      const family = REEL_PUBLICATION_FAMILIES[item.key];
+      return family ? [{ family, publishedAt: item.publishedAt }] : [];
+    })
+  );
+  if (available < 0)
+    return {
+      state: records.some((record) => record.state === "available")
+        ? ("variety-held" as const)
+        : ("exhausted" as const),
+      candidate: null,
+      date,
+    };
+  candidate = candidates[available]!;
   if (!inReelWindow(now)) return { state: "scheduled" as const, candidate, date };
   const key = REEL_DELIVERY_KEY;
   let attempt;

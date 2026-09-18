@@ -21,6 +21,8 @@ import { GUTTER_X } from "@/components/broadsheet/tokens";
 
 const LINKS = [
   { href: "/about", label: "About" },
+  { href: "/partners", label: "Partnership enquiries" },
+  { href: "/analysis/rent-pressure", label: "Rent pressure monitor" },
   { href: "/editorial-standards", label: "Editorial standards" },
   { href: "/corrections", label: "Corrections" },
   { href: "/privacy", label: "Privacy" },

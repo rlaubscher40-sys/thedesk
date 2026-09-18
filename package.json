@@ -15,6 +15,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
+    "analysis:rent-pressure": "node --import tsx scripts/reproduce-rent-pressure.ts",
     "preview:weekly": "node --import tsx scripts/weeklyBriefingPreview.ts",
     "documentary:brief": "node --import tsx scripts/new-documentary.ts",
     "documentary:review": "node --import tsx scripts/review-documentary.ts",

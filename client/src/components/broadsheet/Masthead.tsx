@@ -115,7 +115,7 @@ export function Masthead({ dateLabel, shapeLine }: { dateLabel: string; shapeLin
               className="bs-label mt-3 lg:mt-4 hidden sm:block"
               style={{ fontSize: "0.75rem", letterSpacing: "0.3em" }}
             >
-              Australian property intelligence before it becomes consensus
+              Australian property news, evidence and explanation
             </p>
           </div>
         </div>

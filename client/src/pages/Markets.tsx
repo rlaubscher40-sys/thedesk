@@ -1,4 +1,6 @@
 import { PUBLIC_MARKETS, marketPath } from "@shared/marketDirectory";
+import { marketResearchBridge } from "@shared/entryRoutes";
+import { RegionalContextRead } from "@shared/RegionalContextRead";
 import { preferenceStorage } from "@/lib/storage";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useSearch } from "wouter";
@@ -68,6 +70,8 @@ export default function MarketsPage() {
   const otherMarket = new URLSearchParams(search).get("vs") ?? "";
   const [input, setInput] = useState(initial);
   const [market, setMarket] = useState(initial);
+  const params = new URLSearchParams(search);
+  const researchBridge = marketResearchBridge(market, params.get("state"), params.get("areaKind"));
   const [watchlist, setWatchlist] = useState<string[]>([]);
 
   useEffect(() => setWatchlist(readWatchlist()), []);
@@ -95,7 +99,7 @@ export default function MarketsPage() {
   }, [initial, search]);
 
   const searchQuery = trpc.search.all.useQuery(
-    { query: market, region: "AU" },
+    { query: researchBridge?.name ?? market, region: "AU" },
     { enabled: !comparisonMode && market.length >= 2, staleTime: 60_000 }
   );
   const metrics = trpc.metrics.list.useQuery(undefined, { staleTime: 5 * 60_000 });
@@ -239,6 +243,31 @@ export default function MarketsPage() {
           Compare markets
         </Link>
       </nav>
+
+      {!comparisonMode && researchBridge && (
+        <section aria-label="Related market research" className="rule-hair mt-6 py-5">
+          <p className="bs-label-accent">Keep the geography clear</p>
+          <h2 className="font-serif text-2xl mt-2">
+            Townsville research, with your council data retained.
+          </h2>
+          <p className="text-sm leading-6 mt-3 max-w-[80ch]">
+            The rent table below keeps {market}, {params.get("state")}, {params.get("areaKind")}
+            {params.get("period") ? ` and period ${params.get("period")}` : ""}. Reporting and
+            primary-source notes cover the broader Townsville market; they are not measurements of
+            this council boundary or the selected rent period.
+          </p>
+          <Link
+            href={marketPath(researchBridge.slug)}
+            className="bs-link inline-flex min-h-11 items-center"
+          >
+            Open the complete Townsville market file →
+          </Link>
+          <RegionalContextRead
+            market={researchBridge.slug}
+            asOf={new Date().toISOString().slice(0, 10)}
+          />
+        </section>
+      )}
 
       {!comparisonMode && market && new URLSearchParams(search).has("approvalPeriod") && (
         <MarketApprovalConditions

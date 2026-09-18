@@ -116,17 +116,33 @@ export function AnalyticsAdminPanel() {
               value={journeyQuery.data.answers.toLocaleString("en-AU")}
             />
             <Tile
+              label="Requested comparisons/exports or watched data"
+              value={journeyQuery.data.research.toLocaleString("en-AU")}
+            />
+            <Tile
               label="Requested newsletter email"
               value={journeyQuery.data.requests.toLocaleString("en-AU")}
             />
           </div>
         )}
+        {journeyQuery.data?.available && (
+          <p className="mt-4">
+            <strong>
+              {journeyQuery.data.confirmations.toLocaleString("en-AU")} subscription confirmations
+              recorded in this window.
+            </strong>{" "}
+            This separate subscriber total is not linked to anonymous tab sessions, attributed to a
+            campaign or divided by requests as a conversion rate. It is not a count of delivered
+            emails or currently active subscribers.
+          </p>
+        )}
         <p className="text-sm text-[var(--color-fg-muted)]">
           Story openings, story-source clicks, Ask outcomes and email requests started being
           recorded with the 16 September 2026 reader-measurement release. Earlier actions cannot be
-          recovered. An email request is not confirmation or delivery; confirmed subscriptions
-          remain in Subscribers. An Ask answer is a returned response, not an assessment of its
-          accuracy.
+          recovered. An email request is not confirmation or delivery; confirmed subscriptions are
+          shown separately above. An Ask answer is a returned response, not an assessment of its
+          accuracy. The research-action total records comparison and export requests or a saved data
+          watch; it does not establish a completed research task.
         </p>
       </div>
 

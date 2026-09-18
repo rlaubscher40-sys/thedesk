@@ -43,7 +43,6 @@ import { GUTTER_X } from "@/components/broadsheet/tokens";
 import { AskDeskBand } from "@/components/broadsheet/today/AskDeskBand";
 import { MarketDiscovery } from "@/components/markets/MarketDiscovery";
 import { SocialStart } from "@/components/SocialStart";
-import { IndexStrip } from "@/components/broadsheet/today/IndexStrip";
 import { Lead } from "@/components/broadsheet/today/Lead";
 import { MorningSignals } from "@/components/broadsheet/today/MorningSignals";
 import { StoryColumns } from "@/components/broadsheet/today/StoryColumns";
@@ -235,6 +234,33 @@ export default function DailyFeed() {
       </UtilityBar>
 
       <Masthead dateLabel={dateLabel} shapeLine={shapeLine} />
+      <aside className={cn(GUTTER_X, "rule-hair-b py-4")}>
+        <p className="bs-label-accent">Original analysis · July 2026 data</p>
+        <a href="/analysis/rent-pressure" className="bs-link font-serif text-xl inline-block mt-2">
+          Is rent growth easing across the capitals? Read the first Rent pressure monitor →
+        </a>
+      </aside>
+      <nav
+        aria-label="Start here"
+        className={cn(
+          GUTTER_X,
+          "rule-hair-b py-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm"
+        )}
+      >
+        <a href="#today-reporting" className="bs-link min-h-11 inline-flex items-center">
+          Read the brief ↓
+        </a>
+        <a href="/markets" className="bs-link min-h-11 inline-flex items-center">
+          Research a market →
+        </a>
+        <a href="/guides" className="bs-link min-h-11 inline-flex items-center">
+          Understand a change →
+        </a>
+        <a href="/subscribe" className="bs-btn bs-btn-solid sm:ml-auto">
+          Get the free 7am email
+        </a>
+      </nav>
+      <div id="today-reporting" className="scroll-mt-4" />
       <SectionErrorBoundary section="Lane nav">
         <LaneNav channel={channel} onChannelChange={setChannel} />
         {enriched && <AngledForChips />}
@@ -276,10 +302,7 @@ export default function DailyFeed() {
                   <LeadEnrichmentWarning item={lead} />
                 </div>
               )}
-              <Lead
-                item={lead}
-                supporting={feedItems.filter((item) => item.id !== lead.id).slice(0, 3)}
-              />
+              <Lead item={lead} />
               {lead.sayThis && (
                 <div className={cn(GUTTER_X, "rule-hair mt-8 pt-6")}>
                   <SayThis
@@ -307,9 +330,7 @@ export default function DailyFeed() {
             <StoryColumns items={columns} />
           </SectionErrorBoundary>
 
-          <SectionErrorBoundary section="Index strip">
-            <IndexStrip items={feedItems} />
-          </SectionErrorBoundary>
+          <SubscribeBand source="today-band" showHeadshot={false} />
 
           <SectionErrorBoundary section="Metrics">
             <WhereThingsStand />
@@ -334,7 +355,7 @@ export default function DailyFeed() {
             <AskDeskBand />
           </SectionErrorBoundary>
           <SectionErrorBoundary section="Moving now">
-            <MorningSignals />
+            {!hasLiveData && <MorningSignals />}
           </SectionErrorBoundary>
         </>
       )}
@@ -379,7 +400,7 @@ export default function DailyFeed() {
           </div>
         </section>
       )}
-      <SubscribeBand source="today-band" />
+      {!hasLiveData && <SubscribeBand source="today-band" showHeadshot={false} />}
     </>
   );
 }

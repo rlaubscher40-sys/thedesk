@@ -69,3 +69,22 @@ it("keeps the visible watchlist consistent with its persisted twelve-market limi
   expect(screen.queryByRole("button", { name: "Place 11" })).toBeNull();
   expect(screen.getByText("12")).toBeTruthy();
 });
+it("retains council filters while exposing canonical reporting and primary notes", () => {
+  const location = memoryLocation({
+    path: "/markets?q=Townsville%20(C)&state=QLD&areaKind=LGA&period=2026-06-30",
+  });
+  render(h(Router, { hook: location.hook, searchHook: location.searchHook }, h(Markets)));
+  expect(m.search).toHaveBeenCalledWith({ query: "Townsville", region: "AU" });
+  expect(
+    screen
+      .getByRole("link", { name: "Open the complete Townsville market file →" })
+      .getAttribute("href")
+  ).toBe("/markets/townsville");
+  expect(screen.getByText(/and period 2026-06-30/)).toBeTruthy();
+  expect(
+    screen.getByRole("heading", { name: "Social and affordable housing construction" })
+  ).toBeTruthy();
+  expect(screen.getByRole("textbox", { name: "Market name" }).getAttribute("value")).toBe(
+    "Townsville (C)"
+  );
+});

@@ -1,0 +1,105 @@
+{
+  "status": "available",
+  "retrievedAt": "2026-09-18T14:27:37.062Z",
+  "observations": [
+    {
+      "city": "Sydney",
+      "period": "2026-06",
+      "annualPercent": 3.5,
+      "status": ""
+    },
+    {
+      "city": "Sydney",
+      "period": "2026-07",
+      "annualPercent": 3.5,
+      "status": ""
+    },
+    {
+      "city": "Melbourne",
+      "period": "2026-06",
+      "annualPercent": 2.6,
+      "status": ""
+    },
+    {
+      "city": "Melbourne",
+      "period": "2026-07",
+      "annualPercent": 2.5,
+      "status": ""
+    },
+    {
+      "city": "Brisbane",
+      "period": "2026-06",
+      "annualPercent": 4.6,
+      "status": ""
+    },
+    {
+      "city": "Brisbane",
+      "period": "2026-07",
+      "annualPercent": 4.6,
+      "status": ""
+    },
+    {
+      "city": "Adelaide",
+      "period": "2026-06",
+      "annualPercent": 4.1,
+      "status": ""
+    },
+    {
+      "city": "Adelaide",
+      "period": "2026-07",
+      "annualPercent": 4.1,
+      "status": ""
+    },
+    {
+      "city": "Perth",
+      "period": "2026-06",
+      "annualPercent": 5.3,
+      "status": ""
+    },
+    {
+      "city": "Perth",
+      "period": "2026-07",
+      "annualPercent": 5.3,
+      "status": ""
+    },
+    {
+      "city": "Hobart",
+      "period": "2026-06",
+      "annualPercent": 2.8,
+      "status": ""
+    },
+    {
+      "city": "Hobart",
+      "period": "2026-07",
+      "annualPercent": 3,
+      "status": ""
+    },
+    {
+      "city": "Darwin",
+      "period": "2026-06",
+      "annualPercent": 5.6,
+      "status": ""
+    },
+    {
+      "city": "Darwin",
+      "period": "2026-07",
+      "annualPercent": 6,
+      "status": ""
+    },
+    {
+      "city": "Canberra",
+      "period": "2026-06",
+      "annualPercent": 1.3,
+      "status": ""
+    },
+    {
+      "city": "Canberra",
+      "period": "2026-07",
+      "annualPercent": 1.3,
+      "status": ""
+    }
+  ],
+  "sourceUrl": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/jul-2026/6401011.xlsx",
+  "delivery": "workbook",
+  "workbookSha256": "aab708a2c478c77140abb17cca6c65173070cdddd5c68e3574c17beac07170b7"
+}

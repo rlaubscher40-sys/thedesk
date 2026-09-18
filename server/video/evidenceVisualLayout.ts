@@ -90,8 +90,8 @@ export function evidenceVisualLayout(
     return v.rows.flatMap((row, i) => {
       const y = (capitals ? 240 : 320) + i * (capitals ? 82 : 220);
       const amount = counts
-        ? Math.round(row.value * p).toLocaleString("en-AU")
-        : `${(row.value * p).toFixed(1)}%`;
+        ? Math.round(row.value).toLocaleString("en-AU")
+        : `${row.value.toFixed(1)}%`;
       const bar = geometry.bars[i]!;
       return [
         at(0, y, type(row.label, capitals ? 32 : 38, c.muted), { width: 570 }),

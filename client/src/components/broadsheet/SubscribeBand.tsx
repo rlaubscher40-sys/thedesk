@@ -22,7 +22,7 @@ export function SubscribeBand({
   source,
   kicker = "The Daily Brief · free",
   headline = "What changed in Australian property, in your inbox at 7am.",
-  blurb = "Curated by Ruben Laubscher with AI-assisted reporting. Weekdays at 7am Sydney time, plus the Sunday edition. Unsubscribe in a click.",
+  blurb = "Curated by Ruben Laubscher with AI-assisted summaries and analysis. Weekdays at 7am Sydney time, plus the Sunday edition. Unsubscribe in a click.",
   showHeadshot = true,
   hideAfterSignup = true,
 }: {

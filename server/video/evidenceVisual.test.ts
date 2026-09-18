@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { verifiedRentReel } from "../instagram/verifiedReel";
-import { verifiedSydneyRentChange } from "../instagram/verifiedSydneyReels";
+import {
+  verifiedCapitalBeforeBuy,
+  verifiedSydneyRentChange,
+} from "../instagram/verifiedSydneyReels";
 import { evidenceBarGeometry, validateEvidenceVisual } from "./evidenceVisual";
 import { evidenceVisualLayout } from "./evidenceVisualLayout";
 import { assertProductionCandidate } from "./reelProduction";
@@ -20,6 +23,24 @@ const rent = () =>
     now
   )!;
 describe("evidence-led repeatable visuals", () => {
+  it("keeps verified numeric labels constant while approval bars animate", () => {
+    const observations = Array.from({ length: 12 }, (_, index) => ({
+      city: "Melbourne",
+      period: new Date(Date.UTC(2025, 7 + index, 1)).toISOString().slice(0, 7),
+      dwellings: 1000,
+      status: "",
+    }));
+    const candidate = verifiedCapitalBeforeBuy(
+      { status: "available", retrievedAt: now.toISOString(), observations },
+      "Melbourne",
+      now
+    )!;
+    for (const progress of [0, 0.25, 0.5, 1]) {
+      const layout = evidenceVisualLayout(candidate.stat.visualStory!, "value", progress, "navy");
+      expect(JSON.stringify(layout)).toContain("12,000");
+    }
+  });
+
   it("rejects text that would collide with the next heading", async () => {
     const node = {
       type: "div",

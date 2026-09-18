@@ -44,8 +44,8 @@ export function OnboardingModal() {
           Make your next property question a better one.
         </DialogTitle>
         <DialogDescription className="text-sm leading-6 text-[var(--color-fg-muted)]">
-          Australian property intelligence before it becomes consensus. Start with the evidence,
-          then decide what to investigate.
+          Australian property news, evidence and explanation. Start with the evidence, then decide
+          what to investigate.
         </DialogDescription>
         <nav aria-label="Product guide" className="rule-hair-b">
           {PRODUCT_GUIDE_ACTIONS.map((action) => (

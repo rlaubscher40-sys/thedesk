@@ -27,7 +27,7 @@ export function RegionalContextRead({ market, asOf }: { market: string; asOf: st
             {entry.limitation}
           </p>
           <p className="text-sm leading-6 mt-2">
-            Source reviewed {entry.reviewedOn}.
+            Source checked with AI assistance {entry.reviewedOn}; not human verification.
             {entry.reviewDue
               ? " Review due: this is an older checked record, not verified current status."
               : ""}

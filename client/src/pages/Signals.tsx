@@ -1,3 +1,4 @@
+import { PROPERTY_DATA_SECTIONS, propertyDataSection } from "@shared/propertyDataSections";
 import { ConnectionNotice } from "@/components/ConnectionNotice";
 import { formatMetricValue, historyChange, hasDailyObservations } from "@shared/metricPresentation";
 import { preferenceStorage } from "@/lib/storage";
@@ -142,7 +143,9 @@ export default function SignalsPage() {
       : selectSignal(
           rows,
           requestedMetricKey,
-          ranked.find((row) => row.move != null) ?? rows[0] ?? null
+          rows.find((row) => row.metric.metricKey === "building_approvals") ??
+            rows.find((row) => propertyDataSection(row.metric) !== "macro") ??
+            null
         );
   const sharedTake = snapshotId !== null ? frozen?.deskTake : undefined;
   const shownTake = snapshotId !== null ? sharedTake : editions.data?.[0]?.rubensTake;
@@ -207,7 +210,7 @@ export default function SignalsPage() {
       <header className="rule-major pt-5">
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div>
-            <p className="bs-label-accent">The Desk · Signals</p>
+            <p className="bs-label-accent">The Desk · Property data</p>
             <h1
               className="font-serif font-bold mt-3"
               style={{
@@ -216,15 +219,15 @@ export default function SignalsPage() {
                 letterSpacing: "-0.045em",
               }}
             >
-              Read the numbers in context.
+              The evidence behind Australian housing.
             </h1>
             <p
               className="font-serif mt-5 max-w-[58ch] text-[var(--color-fg-muted)]"
               style={{ fontSize: "clamp(1.1875rem, 2vw, 1.625rem)", lineHeight: 1.4 }}
             >
-              Market signals with observation dates, reporting context and a watchboard for the
-              indicators you care about. Publication schedules differ; a recent refresh does not
-              make an older reporting period current.
+              Housing supply, rents and financing first, with broader economic context kept
+              separate. Each observation keeps its source and reference date. Publication schedules
+              differ; a recent refresh does not make an older reporting period current.
             </p>
           </div>
           <div className="flex items-center gap-2 bs-label mt-2">
@@ -233,6 +236,27 @@ export default function SignalsPage() {
           </div>
         </div>
       </header>
+
+      <nav
+        aria-label="Housing data sections"
+        className="flex flex-wrap gap-x-6 gap-y-2 mt-5 text-sm"
+      >
+        {PROPERTY_DATA_SECTIONS.map((section) => (
+          <a
+            key={section.id}
+            href={`#data-${section.id}`}
+            className="bs-link min-h-11 inline-flex items-center"
+          >
+            {section.title} ↓
+          </a>
+        ))}
+        <Link href="/analysis/rent-pressure" className="bs-link min-h-11 inline-flex items-center">
+          Rent pressure monitor →
+        </Link>
+        <Link href="/markets" className="bs-link min-h-11 inline-flex items-center">
+          Local rent tables →
+        </Link>
+      </nav>
 
       {(snapshotId !== null || requestedMetricKey !== null) && !requestedHero && (
         <div
@@ -396,39 +420,61 @@ export default function SignalsPage() {
         </div>
 
         <div className="mt-5 rule-hair-b">
-          {ranked.slice(0, 8).map((row) => {
-            const watched = watchlist.some((watch) => watch.metricKey === row.metric.metricKey);
-            const rising = (row.move ?? 0) >= 0;
-            const MoveIcon = rising ? MoveUpRight : MoveDownRight;
-            return (
-              <div
-                key={row.metric.metricKey}
-                className="rule-hair py-4 grid sm:grid-cols-[minmax(0,1fr)_140px_120px_auto] gap-3 sm:gap-5 items-center"
-              >
-                <div className="min-w-0">
-                  <Link
-                    href={`/signals?metric=${encodeURIComponent(row.metric.metricKey)}`}
-                    className="font-serif text-xl leading-6 bs-link"
-                  >
-                    {row.metric.label}
-                  </Link>
-                  <p className="bs-label mt-1.5 truncate">
-                    {row.metric.groupKey ?? "Market"}
-                    {row.metric.source ? ` · ${row.metric.source}` : ""}
-                  </p>
-                  <SignalObservation observation={row.observation} />
-                </div>
-                <p className="font-serif font-bold tabular-nums text-2xl sm:text-right">
-                  {displayValue(row.metric)}
-                </p>
-                <div className="flex sm:justify-end items-center gap-1.5 font-mono text-xs text-[var(--color-fg-muted)]">
-                  {row.move != null && <MoveIcon className="h-3.5 w-3.5" />}
-                  {historyChange(row.metric, row.series)}
-                </div>
-                <WatchButton watched={watched} compact onClick={() => toggleWatch(row)} />
-              </div>
-            );
-          })}
+          {PROPERTY_DATA_SECTIONS.map((section) => (
+            <details
+              id={`data-${section.id}`}
+              key={section.id}
+              open={section.id !== "macro"}
+              className="rule-hair py-5 scroll-mt-5"
+            >
+              <summary className="font-serif text-2xl cursor-pointer min-h-11">
+                {section.title}{" "}
+                <span className="font-sans text-sm text-[var(--color-fg-muted)]">
+                  ({ranked.filter((row) => propertyDataSection(row.metric) === section.id).length})
+                </span>
+              </summary>
+              <p className="text-sm leading-6 max-w-[85ch] mt-2 mb-3">{section.description}</p>
+              {ranked.filter((row) => propertyDataSection(row.metric) === section.id).length ===
+                0 && <p className="text-sm">No observations available in this group.</p>}
+              {ranked
+                .filter((row) => propertyDataSection(row.metric) === section.id)
+                .map((row) => {
+                  const watched = watchlist.some(
+                    (watch) => watch.metricKey === row.metric.metricKey
+                  );
+                  const rising = (row.move ?? 0) >= 0;
+                  const MoveIcon = rising ? MoveUpRight : MoveDownRight;
+                  return (
+                    <div
+                      key={row.metric.metricKey}
+                      className="rule-hair py-4 grid sm:grid-cols-[minmax(0,1fr)_140px_120px_auto] gap-3 sm:gap-5 items-center"
+                    >
+                      <div className="min-w-0">
+                        <Link
+                          href={`/signals?metric=${encodeURIComponent(row.metric.metricKey)}`}
+                          className="font-serif text-xl leading-6 bs-link"
+                        >
+                          {row.metric.label}
+                        </Link>
+                        <p className="bs-label mt-1.5 truncate">
+                          {row.metric.groupKey ?? "Market"}
+                          {row.metric.source ? ` · ${row.metric.source}` : ""}
+                        </p>
+                        <SignalObservation observation={row.observation} />
+                      </div>
+                      <p className="font-serif font-bold tabular-nums text-2xl sm:text-right">
+                        {displayValue(row.metric)}
+                      </p>
+                      <div className="flex sm:justify-end items-center gap-1.5 font-mono text-xs text-[var(--color-fg-muted)]">
+                        {row.move != null && <MoveIcon className="h-3.5 w-3.5" />}
+                        {historyChange(row.metric, row.series)}
+                      </div>
+                      <WatchButton watched={watched} compact onClick={() => toggleWatch(row)} />
+                    </div>
+                  );
+                })}
+            </details>
+          ))}
         </div>
       </section>
 

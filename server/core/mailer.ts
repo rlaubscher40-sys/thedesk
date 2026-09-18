@@ -797,7 +797,7 @@ function dailyBriefHtml({
   return wrapLayout(`Today's brief · ${displayDate}`, inner);
 }
 
-function editionNotificationHtml({
+export function editionNotificationHtml({
   greeting,
   editionNumber,
   weekRange,

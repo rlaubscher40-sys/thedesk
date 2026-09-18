@@ -30,11 +30,13 @@ it("distinguishes unavailable measurements from a measured zero", () => {
       questions: 0,
       answers: 0,
       requests: 0,
+      research: 0,
+      confirmations: 0,
     },
   };
   view.rerender(h(AnalyticsAdminPanel));
   expect(within(section).queryByRole("alert")).toBeNull();
-  expect(within(section).getAllByText("0")).toHaveLength(6);
+  expect(within(section).getAllByText("0")).toHaveLength(7);
   expect(section.textContent).toContain("email request is not confirmation");
 });
 it("warns when a refresh fails even if an earlier measurement remains", () => {
@@ -48,6 +50,8 @@ it("warns when a refresh fails even if an earlier measurement remains", () => {
       questions: 1,
       answers: 0,
       requests: 0,
+      research: 0,
+      confirmations: 0,
     },
   };
   render(h(AnalyticsAdminPanel));
