@@ -13,8 +13,9 @@ import { requestFailure, requestFailureDescription } from "./requestFailure";
 import Parser from "rss-parser";
 import { DEFAULT_SITE_URL } from "../../../shared/const";
 import { cleanHeadline } from "../../../shared/headline";
+import { cleanReportingExcerpt } from "../../../shared/reportingExcerpt";
 import type { Source } from "../sources";
-import { plainText } from "./text";
+import { plainText, truncatePlainText } from "./text";
 import { createFeedCache, FeedCooldownError } from "./feedCache";
 
 class FeedHttpError extends Error {
@@ -202,7 +203,12 @@ export function createSourceReader(
             plainText(it.title, 480),
             publisherName(src, it.publisherSource)
           );
-          const summary = plainText(it.contentSnippet || it.content || it.summary || "", 480);
+          const summary = truncatePlainText(
+            cleanReportingExcerpt(
+              plainText(it.contentSnippet || it.content || it.summary || "", 20_000)
+            ),
+            480
+          );
           if (!title) return null;
           return {
             source: publisherName(src, it.publisherSource),

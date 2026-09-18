@@ -4,6 +4,7 @@ import * as db from "../db";
 import { cached, cacheKey, invalidate } from "../core/cache";
 import { adminProcedure, publicProcedure, router } from "../core/trpc";
 import { generatePartnerTag, generateSayThis, generateWhyItMatters } from "../prompts";
+import { publicFeedItem } from "../core/publicFeedItem";
 
 /**
  * Public feed reads are cached for a short window: every anonymous
@@ -91,7 +92,7 @@ export const feedRouter = router({
     .input(z.object({ date: feedDateSchema.optional() }).optional())
     .query(async ({ input }) =>
       cached(cacheKey("feed:byDate", input?.date ?? null), FEED_TTL_MS, () =>
-        db.listFeedItems(input?.date)
+        db.listFeedItems(input?.date).then((rows) => rows.map((item) => publicFeedItem(item)))
       )
     ),
 
@@ -100,7 +101,9 @@ export const feedRouter = router({
     .query(({ input }) => {
       const today = sydneyTodayIso();
       return cached(cacheKey("feed:recentLocal", [today, input.channel]), FEED_TTL_MS, () =>
-        db.listRecentLocalFeed(input.channel, today)
+        db
+          .listRecentLocalFeed(input.channel, today)
+          .then((rows) => rows.map((item) => publicFeedItem(item)))
       );
     }),
 
@@ -109,7 +112,7 @@ export const feedRouter = router({
     .input(z.object({ id: z.number().int().positive() }))
     .query(async ({ input }) => {
       const item = await db.getFeedItemById(input.id);
-      return item?.channel === "HOLD" ? undefined : item;
+      return !item || item.channel === "HOLD" ? undefined : publicFeedItem(item);
     }),
 
   /**
@@ -121,7 +124,9 @@ export const feedRouter = router({
     .input(z.object({ ids: z.array(z.number().int().positive()).max(60) }))
     .query(async ({ input }) => {
       if (input.ids.length === 0) return [];
-      return (await db.getFeedItemsByIds(input.ids)).filter((item) => item.channel !== "HOLD");
+      return (await db.getFeedItemsByIds(input.ids))
+        .filter((item) => item.channel !== "HOLD")
+        .map((item) => publicFeedItem(item));
     }),
 
   /** Dates that have at least one feed item, newest first. */
@@ -146,7 +151,9 @@ export const feedRouter = router({
       const weekStart = weekMondayOf(date);
       const weekEnd = date <= today ? date : today;
       return cached(cacheKey("feed:week", [weekStart, weekEnd]), FEED_TTL_MS, () =>
-        db.listFeedItemsBetween(weekStart, weekEnd)
+        db
+          .listFeedItemsBetween(weekStart, weekEnd)
+          .then((rows) => rows.map((item) => publicFeedItem(item)))
       );
     }),
 
@@ -160,7 +167,9 @@ export const feedRouter = router({
       })
     )
     .query(async ({ input }) =>
-      cached(cacheKey("feed:archive", input), FEED_TTL_MS, () => db.listArchive(input))
+      cached(cacheKey("feed:archive", input), FEED_TTL_MS, () =>
+        db.listArchive(input).then((rows) => rows.map((item) => publicFeedItem(item)))
+      )
     ),
 
   /**

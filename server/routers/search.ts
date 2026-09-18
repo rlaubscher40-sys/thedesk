@@ -1,5 +1,6 @@
 import { ARCHIVE_REGIONS } from "../../shared/archiveScope";
 import { publicEdition } from "../core/publicEdition";
+import { publicFeedItem } from "../core/publicFeedItem";
 import { z } from "zod";
 import * as db from "../db";
 import { publicProcedure, router } from "../core/trpc";
@@ -23,7 +24,7 @@ export const searchRouter = router({
       return {
         hasMoreFeedItems: result.feedItems.length > 50,
         hasMoreEditions: result.editions.length > 50,
-        feedItems: result.feedItems.slice(0, 50),
+        feedItems: result.feedItems.slice(0, 50).map((item) => publicFeedItem(item, input.query)),
         editions: result.editions
           .slice(0, 50)
           .map((ed) => ({ ...publicEdition(ed), snippet: ed.snippet })),
