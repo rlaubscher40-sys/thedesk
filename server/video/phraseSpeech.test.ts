@@ -23,6 +23,37 @@ function wave(seconds = 1) {
   for (let i = 44; i < b.length; i += 2) b.writeInt16LE(Math.round(Math.sin(i / 10) * 2000), i);
   return b;
 }
+it("binds prepared clone audio to exact phrases and rejects text drift or missing audio", async () => {
+  const plans = [{ key: "a", text: "First. Second.", phrases: ["First.", "Second."] }];
+  const prepared = {
+    voice: { engine: "elevenlabs" as const, voice: "xeSYpoWjkR3imzxB6qDk", speed: 1 },
+    clips: [
+      { key: "a:0", text: "First.", bytes: wave(1) },
+      { key: "a:1", text: "Second.", bytes: wave(2) },
+    ],
+  };
+  const result = await synthesisePhrases(plans, undefined, prepared);
+  expect(result.engine).toBe("elevenlabs");
+  expect(result.clips[0]!.phrases[1]!.start).toBe(1.08);
+  await expect(
+    synthesisePhrases(plans, undefined, {
+      ...prepared,
+      clips: prepared.clips.slice(0, 1),
+    })
+  ).rejects.toThrow("exact verified phrases");
+  await expect(
+    synthesisePhrases(plans, undefined, {
+      ...prepared,
+      clips: prepared.clips.map((c) => ({ ...c, text: "Different." })),
+    })
+  ).rejects.toThrow("exact verified phrases");
+  await expect(
+    synthesisePhrases(plans, undefined, {
+      ...prepared,
+      clips: prepared.clips.map((c) => ({ ...c, bytes: Buffer.alloc(50) })),
+    })
+  ).rejects.toThrow("PCM");
+});
 it("preserves speech samples and measures phrase boundaries including the deliberate pause", () => {
   const first = wave(1),
     second = wave(2);

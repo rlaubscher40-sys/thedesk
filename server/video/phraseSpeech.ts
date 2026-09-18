@@ -1,5 +1,5 @@
 import { audibleWave, type SpeechProfile } from "./localVoice";
-import { reelNarration, type ReelVoiceEngine } from "./reelVoice";
+import { reelNarration, type ReelVoiceEngine, type ReelVoiceIdentity } from "./reelVoice";
 
 export type MeasuredPhrase = { text: string; start: number; seconds: number };
 export type PhraseAudio = {
@@ -8,6 +8,11 @@ export type PhraseAudio = {
   phrases: MeasuredPhrase[];
 };
 export type PhrasePlan = { key: string; text: string; phrases: string[] };
+/** Review-only audio generated through the connected speech workspace. */
+export type PreparedNarration = {
+  voice: ReelVoiceIdentity;
+  clips: Array<{ key: string; text: string; bytes: Buffer }>;
+};
 
 /** Remove excess leading/trailing model silence, retaining 100ms before and
  * 160ms after detectable speech to protect quiet consonants and natural tails.
@@ -68,7 +73,8 @@ export function joinPhraseAudio(parts: Array<{ text: string; bytes: Buffer }>) {
 
 export async function synthesisePhrases(
   plans: PhrasePlan[],
-  profile?: SpeechProfile
+  profile?: SpeechProfile,
+  prepared?: PreparedNarration
 ): Promise<{ engine: ReelVoiceEngine; clips: PhraseAudio[] }> {
   if (
     !plans.length ||
@@ -91,7 +97,16 @@ export async function synthesisePhrases(
   // hand every batch over together so one speaker covers the whole scene set.
   const batches: Array<typeof requests> = [];
   for (let i = 0; i < requests.length; i += 9) batches.push(requests.slice(i, i + 9));
-  const { engine, clips } = await reelNarration(batches, profile);
+  if (
+    prepared &&
+    (prepared.clips.length !== requests.length ||
+      new Set(prepared.clips.map((c) => c.key)).size !== requests.length ||
+      requests.some((r) => !prepared.clips.some((c) => c.key === r.key && c.text === r.text)))
+  )
+    throw new Error("Prepared narration does not match the exact verified phrases.");
+  const { engine, clips } = prepared
+    ? { engine: prepared.voice.engine, clips: prepared.clips }
+    : await reelNarration(batches, profile);
   const spoken = plans.map((p) => ({
     key: p.key,
     ...joinPhraseAudio(

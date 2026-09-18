@@ -5,6 +5,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 import ffmpegPath from "ffmpeg-static";
+import type { ReelVoiceIdentity } from "../../server/video/reelVoice";
 import type { DocumentaryEpisode } from "../../server/instagram/documentaryEpisodes";
 import {
   documentaryProductionDossier,
@@ -40,6 +41,7 @@ export async function writeDocumentaryReviewPackage(input: {
   seconds: number;
   videoSha256: string;
   inputHash: string;
+  voice?: ReelVoiceIdentity;
 }) {
   const { episode, output, timeline, seconds } = input;
   if (!path.isAbsolute(output) || !ffmpegPath)
@@ -50,7 +52,7 @@ export async function writeDocumentaryReviewPackage(input: {
     .digest("hex");
   if (hash !== input.videoSha256) throw new Error("The MP4 changed before review packaging.");
   const shots = measuredDocumentaryShots(episode, timeline, seconds);
-  const dossier = documentaryProductionDossier(episode);
+  const dossier = { ...documentaryProductionDossier(episode), voice: input.voice ?? null };
   await fs.writeFile(
     path.join(output, "production-dossier.json"),
     JSON.stringify(dossier, null, 2)
@@ -212,6 +214,7 @@ export async function writeDocumentaryReviewPackage(input: {
     seconds,
     audioSeconds,
     voiceEnd,
+    voice: input.voice ?? null,
     audio,
     visualSections: shots.length,
     frameSamples: samples,
@@ -223,7 +226,7 @@ export async function writeDocumentaryReviewPackage(input: {
   const review = [
     `# ${episode.scenes[0]!.chapter}: production review`,
     "",
-    `${clock(seconds)} / ${shots.length} visual sections / Fable / AUD`,
+    `${clock(seconds)} / ${shots.length} visual sections / ${input.voice ? `${input.voice.engine}: ${input.voice.voice}` : "voice not recorded"} / AUD`,
     "",
     "Technical checks passed. Creative review and a full listen are still required. This export does not post or approve itself.",
     "",

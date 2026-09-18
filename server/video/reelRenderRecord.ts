@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { ReelStat } from "./statReel";
 import { REEL_SAFE_AREAS } from "./reelSafeAreas";
 import { REEL_VISUAL_SEQUENCES } from "./reelVisualStandard";
-import { reelVoiceIdentity, type ReelVoiceEngine } from "./reelVoice";
+import { reelVoiceIdentity, type ReelVoiceEngine, type ReelVoiceIdentity } from "./reelVoice";
 
 const hash = z.string().regex(/^[a-f0-9]{64}$/);
 const coordinate = z.number().finite().min(0).max(1920);
@@ -52,6 +52,8 @@ export function captureReelRender(
     subtitled: boolean;
     /** The speaker actually heard, when the render reported one. */
     spokenBy?: ReelVoiceEngine | null;
+    /** Exact identity attached to saved audio; independent of today's configuration. */
+    voice?: ReelVoiceIdentity;
   },
   cover: Buffer,
   stat: ReelStat,
@@ -70,7 +72,7 @@ export function captureReelRender(
     seconds: video.seconds,
     narrated: video.narrated,
     subtitled: video.subtitled,
-    voice: reelVoiceIdentity(voice, video.spokenBy),
+    voice: video.voice ?? reelVoiceIdentity(voice, video.spokenBy),
     safeAreas: { ...REEL_SAFE_AREAS },
   });
 }
