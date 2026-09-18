@@ -231,7 +231,7 @@ export function buildBriefingSlides(stories: DailyFeedItem[]): BriefingSlide[] {
     {
       kind: "cover",
       story: lead,
-      title: lens.key === "stress" ? "New homes.\nStretched borrowers." : briefingText(lead.title),
+      title: briefingText(lead.title),
       body: "The finding. The context. What to watch.",
       lens,
     },
