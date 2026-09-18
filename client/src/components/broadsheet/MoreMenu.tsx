@@ -16,6 +16,7 @@ export function MoreMenu() {
   const links: [string, string][] = [
     ["/archive", "Search reporting"],
     ["/guides", "Property explained"],
+    ["/projects", "Project follow-through"],
     ["/editions", "Weekly editions"],
     ["/trends", "Data charts"],
     ["/settings", "Preferences"],

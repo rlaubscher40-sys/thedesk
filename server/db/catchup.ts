@@ -44,6 +44,12 @@ export const CATCHUP_STATEMENTS: Array<{ name: string; sql: string }> = [
     name: "0029 · subscribers.consentRequestedAt",
     sql: "ALTER TABLE subscribers ADD consentRequestedAt timestamp NULL",
   },
+  ...["topic varchar(32)", "geography varchar(32)", "readerTask varchar(16)", "answerUrl varchar(512)", "answeredAt timestamp NULL"].map(
+    (column) => ({
+      name: `0030 · feedback_submissions.${column.split(" ")[0]}`,
+      sql: `ALTER TABLE feedback_submissions ADD ${column}`,
+    })
+  ),
   SIGNAL_SNAPSHOT_DDL,
   WEB_VITALS_DDL,
   ...SECURITY_DDL,

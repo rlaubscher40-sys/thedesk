@@ -112,6 +112,11 @@ export function NswPlanningRead({
             determination date does not identify whether an application was approved or refused.
             These counts alone do not explain future prices or rents.
           </p>
+          <p className="mt-3 text-sm leading-relaxed max-w-[85ch]">
+            <a className="bs-link underline" href="/projects">
+              Follow a cohort of these applications over time →
+            </a>
+          </p>
           <details className="mt-4 text-sm">
             <summary className="cursor-pointer underline underline-offset-4">
               Evidence, status and revisions

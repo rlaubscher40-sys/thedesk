@@ -502,6 +502,9 @@ export function createFeedback(data: {
   userAgent?: string | null;
   contactEmail?: string | null;
   reporterLabel?: string | null;
+  topic?: string | null;
+  geography?: string | null;
+  readerTask?: string | null;
 }): void {
   demo.feedback.unshift({
     id: allocId(),
@@ -511,6 +514,11 @@ export function createFeedback(data: {
     userAgent: data.userAgent ?? null,
     contactEmail: data.contactEmail ?? null,
     reporterLabel: data.reporterLabel ?? null,
+    topic: data.topic ?? null,
+    geography: data.geography ?? null,
+    readerTask: data.readerTask ?? null,
+    answerUrl: null,
+    answeredAt: null,
     status: "new",
     createdAt: new Date(),
   });
@@ -523,6 +531,14 @@ export function listFeedback() {
 export function updateFeedbackStatus(id: number, status: "new" | "reviewed"): void {
   const row = demo.feedback.find((f) => f.id === id);
   if (row) row.status = status;
+}
+
+export function recordRequestOutcome(
+  id: number,
+  patch: { status: string; answerUrl: string | null; answeredAt: Date | null }
+): void {
+  const row = demo.feedback.find((f) => f.id === id);
+  if (row) Object.assign(row, patch);
 }
 
 export function deleteFeedback(id: number): void {

@@ -246,6 +246,12 @@ function AskDeskSession({ accountId, storyId }: { accountId: number | "guest"; s
               Answers are constrained to evidence already inside The Desk. When the archive cannot
               support a claim, it should say so.
             </p>
+            <p className="mt-3 text-[0.9375rem] leading-6 text-[var(--color-fg-muted)]">
+              Wanting reporting that does not exist yet is a different request. Use the Feedback
+              button on any page and choose “Cover this”. It goes privately to the editors, and if it
+              leads to published reporting, the request is linked to the answer. What you type into
+              Ask is answered for you here and is not treated as a coverage request.
+            </p>
           </div>
         </div>
       </header>

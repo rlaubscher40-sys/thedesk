@@ -32,6 +32,7 @@ const SocialSources = lazyWithReload(() => import("./pages/SocialSources"), "Soc
 const RentPressure = lazyWithReload(() => import("./pages/RentPressure"), "RentPressure");
 const Partners = lazyWithReload(() => import("./pages/Partners"), "Partners");
 const PropertyGuides = lazyWithReload(() => import("./pages/PropertyGuides"), "PropertyGuides");
+const Projects = lazyWithReload(() => import("./pages/Projects"), "Projects");
 const AskDesk = lazyWithReload(() => import("./pages/AskDesk"), "AskDesk");
 const SharedBrief = lazyWithReload(() => import("./pages/SharedBrief"), "SharedBrief");
 const Signals = lazyWithReload(() => import("./pages/Signals"), "Signals");
@@ -168,6 +169,7 @@ function Routes() {
         <Route path="/analysis/rent-pressure" component={RentPressure} />
         <Route path="/partners" component={Partners} />
         <Route path="/social" component={SocialSources} />
+        <Route path="/projects" component={Projects} />
         <Route path="/guides" component={PropertyGuides} />
         <Route path="/guides/:slug" component={PropertyGuides} />
         <Route path="/ask" component={AskDesk} />

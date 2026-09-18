@@ -14,7 +14,11 @@ it("renders market documents from the production JSX transform without a global 
   const outdir = await mkdtemp(path.resolve("node_modules/.cache/desk-ssr-"));
   try {
     await build({
-      entryPoints: ["shared/PublicMarketRead.tsx", "shared/FeaturedComparisonRead.tsx"],
+      entryPoints: [
+        "shared/PublicMarketRead.tsx",
+        "shared/FeaturedComparisonRead.tsx",
+        "shared/ProjectFollowThroughRead.tsx",
+      ],
       outdir,
       outExtension: { ".js": ".mjs" },
       bundle: true,
@@ -47,6 +51,9 @@ it("renders market documents from the production JSX transform without a global 
     const { FeaturedComparisonRead } = await import(
       pathToFileURL(path.join(outdir, "FeaturedComparisonRead.mjs")).href
     );
+    const { ProjectFollowThroughRead } = await import(
+      pathToFileURL(path.join(outdir, "ProjectFollowThroughRead.mjs")).href
+    );
     const file = directory.markets.find((item) => item.market.slug === "sydney")!;
     expect(renderToStaticMarkup(createElement(PublicMarketRead, { file, directory }))).toContain(
       "Sydney"
@@ -54,6 +61,11 @@ it("renders market documents from the production JSX transform without a global 
     expect(renderToStaticMarkup(createElement(FeaturedComparisonRead, { directory }))).toContain(
       "Brisbane"
     );
+    // The follow-through page is server-rendered with no data at all, so a
+    // crawler and a reader without JavaScript still get the method and limits.
+    const followThrough = renderToStaticMarkup(createElement(ProjectFollowThroughRead, {}));
+    expect(followThrough).toContain("What happened after the application?");
+    expect(followThrough).toContain("A determination is not an approval");
     expect(automatic).toBe(true);
   } finally {
     await rm(outdir, { recursive: true, force: true });

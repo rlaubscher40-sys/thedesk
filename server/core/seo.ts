@@ -25,6 +25,14 @@ import { siteUrl } from "./siteUrl";
 import { withNoindex } from "./spaShell";
 import * as db from "../db";
 import { renderEditionCard } from "../og/editionCard";
+import { publicFeedItem } from "./publicFeedItem";
+import {
+  RELEASE_CALENDAR_CSV_COLUMNS,
+  RESEARCH_REUSE_TERMS,
+  csvRow,
+  topicFeed,
+} from "../../shared/topicFeeds";
+import { RELEASE_EVENTS, formatSydney, sydneyInstant } from "../../shared/releaseCalendar";
 
 function xmlEscape(s: string): string {
   return s
@@ -508,6 +516,7 @@ export function registerSeoRoutes(app: Express): void {
       "/editions",
       "/archive",
       "/social",
+      "/projects",
       "/subscribe",
       "/trends",
       "/topics",
@@ -563,6 +572,98 @@ ${urls.join("\n")}
     res.set("Content-Type", "application/xml; charset=utf-8");
     res.set("Cache-Control", "public, max-age=3600");
     res.send(xml);
+  });
+
+  /**
+   * Topic feeds. The same published items the archive already shows, scoped to
+   * one category, so a reader can follow the property reporting without the
+   * whole edition. Held items never reach here: the archive query excludes them.
+   *
+   * These carry The Desk's own headline and the excerpt the site displays, and
+   * link to the story page where the original publisher is credited. No
+   * publisher's article body is republished.
+   */
+  app.get("/feeds/:slug.xml", async (req: Request, res: Response, next: NextFunction) => {
+    const feed = topicFeed(routeParam(req.params.slug) ?? "");
+    if (!feed) return next();
+    res.set("X-Robots-Tag", "noindex, follow");
+    const base = siteUrl();
+    let stories: Awaited<ReturnType<typeof db.getFeedItemsByCategory>>;
+    try {
+      stories = await db.getFeedItemsByCategory(feed.category, 50);
+    } catch {
+      res.set("Cache-Control", "no-store").set("Retry-After", "60").status(503).end();
+      return;
+    }
+    const items = stories
+      .map((story) => publicFeedItem(story))
+      .map((story) => {
+        const url = `${base}/story/${story.id}`;
+        const published = new Date(`${story.feedDate}T00:00:00Z`);
+        const pub = Number.isFinite(published.getTime())
+          ? published.toUTCString()
+          : new Date().toUTCString();
+        const summary = clampDescription(story.summary ?? story.title, 600);
+        return `    <item>
+      <title>${xmlEscape(story.title)}</title>
+      <link>${url}</link>
+      <guid isPermaLink="true">${url}</guid>
+      <pubDate>${pub}</pubDate>
+      <category>${xmlEscape(feed.category)}</category>
+      <source url="${base}/feeds/${feed.slug}.xml">The Desk</source>
+      <description>${xmlEscape(summary)}</description>
+    </item>`;
+      })
+      .join("\n");
+    res.set("Content-Type", "application/rss+xml; charset=utf-8");
+    res.set("Cache-Control", "public, max-age=600");
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>The Desk · ${xmlEscape(feed.title)}</title>
+    <link>${base}/archive?category=${encodeURIComponent(feed.category)}</link>
+    <description>${xmlEscape(feed.description)}</description>
+    <language>en-AU</language>
+${items}
+  </channel>
+</rss>`);
+  });
+
+  /**
+   * The release calendar as data. It is The Desk's own compilation, so it can be
+   * offered for reuse; the releases it points at are not, so every row carries
+   * its publisher, its source links and the terms that separate the two.
+   *
+   * A date appears only when it has been confirmed against the publisher.
+   * `date_status` says which, rather than leaving a reader to guess.
+   */
+  app.get("/research/release-calendar.csv", (_req: Request, res: Response) => {
+    const header = csvRow(RELEASE_CALENDAR_CSV_COLUMNS.map((column) => column.header));
+    const rows = RELEASE_EVENTS.map((event) => {
+      const confirmed =
+        event.when.kind === "confirmed" ? sydneyInstant(event.when.date, event.when.time) : null;
+      return csvRow([
+        event.id,
+        event.publisher,
+        event.title,
+        event.measures,
+        "Australia",
+        "see source",
+        event.observationPeriod,
+        event.cadence,
+        event.when.kind,
+        confirmed === null ? "" : formatSydney(confirmed),
+        event.confirmedFrom ?? "",
+        event.lastCheckedOn,
+        event.sourceUrl,
+        event.sourceCalendarUrl,
+        RESEARCH_REUSE_TERMS,
+      ]);
+    });
+    res.set("Content-Type", "text/csv; charset=utf-8");
+    res.set("Content-Disposition", 'attachment; filename="the-desk-release-calendar.csv"');
+    res.set("Cache-Control", "public, max-age=3600");
+    res.send([header, ...rows].join("\r\n"));
   });
 
   app.get("/feed.xml", async (_req: Request, res: Response) => {

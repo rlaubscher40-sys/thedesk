@@ -5,6 +5,7 @@ import { formatMetricValue, historyChange } from "../../shared/metricPresentatio
  * ingest (CPI, unemployment, auction clearance, etc.).
  */
 import { getNswPlanningPilot, getStoredPlanningPilot } from "../planning/read";
+import { getProjectFollowThrough } from "../planning/followThrough";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { consumeAnonymousCard } from "../core/askQuota";
@@ -70,6 +71,12 @@ export const metricsRouter = router({
     .query(({ input }) =>
       input ? getStoredPlanningPilot(input.period, input.fingerprint) : getNswPlanningPilot()
     ),
+  /**
+   * Follow-through on the planning pilot's cohort. No input: the council, the
+   * tracked months and the cohort size are all fixed server-side, so a public
+   * caller cannot widen the read or aim it at another council.
+   */
+  projectFollowThrough: publicProcedure.query(() => getProjectFollowThrough()),
   list: publicProcedure.query(async () => {
     return db.listDailyMetrics();
   }),

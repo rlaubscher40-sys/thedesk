@@ -3,6 +3,7 @@ import { ConnectionNotice } from "@/components/ConnectionNotice";
 import { formatMetricValue, historyChange, hasDailyObservations } from "@shared/metricPresentation";
 import { preferenceStorage } from "@/lib/storage";
 import { NswPlanningPanel } from "@/components/planning/NswPlanningRead";
+import { ReleaseCalendarRead } from "@shared/ReleaseCalendarRead";
 import {
   Bookmark,
   BookmarkCheck,
@@ -558,6 +559,8 @@ export default function SignalsPage() {
       </section>
 
       <NswPlanningPanel />
+
+      <ReleaseCalendarRead now={new Date()} metrics={metrics.data ?? []} />
     </div>
   );
 }
