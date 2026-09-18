@@ -8,6 +8,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { DocumentarySources } from "../../shared/DocumentarySources";
 import { getMarketDirectory } from "../markets/discovery";
 import { marketPath } from "../../shared/marketDirectory";
+import { PROPERTY_GUIDES, propertyGuide } from "../../shared/propertyGuides";
+import { PropertyGuideRead } from "../../shared/PropertyGuideRead";
 
 function htmlEscape(value: string): string {
   return value
@@ -79,6 +81,15 @@ async function sendProductShell(
       `<div id="root"><main class="max-w-6xl mx-auto px-5 py-8"><h1>From the post to the evidence.</h1>${sources}</main></div>`
     );
   }
+  if (meta.path === "/guides" || meta.path.startsWith("/guides/")) {
+    const guide = propertyGuide(meta.path.slice(8));
+    const content = renderToStaticMarkup(createElement(PropertyGuideRead, { guide }));
+    html = html.replace('<div id="root"></div>', `<div id="root"><main>${content}</main></div>`);
+    html = html.replace(
+      "The Desk needs JavaScript to display this page.",
+      "This guide is readable without JavaScript. Enable JavaScript to use interactive tools."
+    );
+  }
 
   res.set("Content-Type", "text/html; charset=utf-8");
   res.set("Cache-Control", "no-cache");
@@ -86,6 +97,17 @@ async function sendProductShell(
 }
 
 const PRODUCT_META: ProductMeta[] = [
+  {
+    path: "/guides",
+    title: "Property explained | The Desk",
+    description:
+      "Short, sourced guides to Australian housing supply, interest rates, rents, prices, migration, auctions and social housing. Understand the headline, then follow the evidence.",
+  },
+  ...PROPERTY_GUIDES.map((guide) => ({
+    path: `/guides/${guide.slug}`,
+    title: `${guide.title} | The Desk`,
+    description: guide.intro,
+  })),
   {
     path: "/social",
     title: "Reel sources and property evidence | The Desk",

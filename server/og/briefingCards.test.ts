@@ -25,6 +25,9 @@ it("renders the full six-slide briefing and Story in the actual publishing forma
   expect(
     await sharp(await renderBriefingSlide(slides[1]!, 0, 1, "light", true)).metadata()
   ).toMatchObject({ width: 1080, height: 1920 });
+  expect(
+    await sharp(await renderBriefingSlide(slides[0]!, 0, slides.length, "navy", true)).metadata()
+  ).toMatchObject({ width: 1080, height: 1920 });
 }, 30000);
 
 it("fits long source claims without truncating them or overlapping the next region", async () => {

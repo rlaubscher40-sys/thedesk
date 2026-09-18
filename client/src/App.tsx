@@ -28,6 +28,7 @@ import { UserPrefsProvider } from "./lib/userPrefs";
 const EvidencePage = lazyWithReload(() => import("./pages/Evidence"), "Evidence");
 const DailyFeed = lazyWithReload(() => import("./pages/DailyFeed"), "DailyFeed");
 const SocialSources = lazyWithReload(() => import("./pages/SocialSources"), "SocialSources");
+const PropertyGuides = lazyWithReload(() => import("./pages/PropertyGuides"), "PropertyGuides");
 const AskDesk = lazyWithReload(() => import("./pages/AskDesk"), "AskDesk");
 const SharedBrief = lazyWithReload(() => import("./pages/SharedBrief"), "SharedBrief");
 const Signals = lazyWithReload(() => import("./pages/Signals"), "Signals");
@@ -152,6 +153,8 @@ function Routes() {
         <Route path="/evidence/:id" component={EvidencePage} />
         <Route path="/" component={DailyFeed} />
         <Route path="/social" component={SocialSources} />
+        <Route path="/guides" component={PropertyGuides} />
+        <Route path="/guides/:slug" component={PropertyGuides} />
         <Route path="/ask" component={AskDesk} />
         <Route path="/subscribe" component={Subscribe} />
         <Route path="/brief" component={SharedBrief} />

@@ -20,6 +20,7 @@ import {
 } from "../ask/evidencePolicy";
 import { reviewAskAnswer } from "../ask/review";
 import * as db from "../db";
+import { publicFeedItem } from "../core/publicFeedItem";
 import {
   consumeAnonymousAskAttempt,
   reserveAnonymousAsk,
@@ -179,6 +180,7 @@ export const askRouter = router({
     .input(
       z.object({
         question: z.string().trim().min(3).max(240),
+        storyId: z.number().int().positive().safe().optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -187,7 +189,28 @@ export const askRouter = router({
       };
       try {
         const result = await withDeadline(async (signal) => {
-          const matches = await retrieve(input.question);
+          const rawSelected = input.storyId ? await db.getFeedItemById(input.storyId) : undefined;
+          const selectedStory = rawSelected && rawSelected.channel !== "HOLD" ? publicFeedItem(rawSelected) : undefined;
+          if (input.storyId && !selectedStory?.summary?.trim())
+            return {
+              status: "insufficient" as const,
+              question: input.question,
+              message:
+                "That story has no available source summary to assess. Open another story or ask a new question.",
+              sources: [],
+              anonymousRemaining: null,
+            };
+          const questionContext = selectedStory
+            ? `${input.question}\nSelected story: ${selectedStory.title}\nCounterpoint to assess (editorial interpretation, not independent evidence): ${selectedStory.counterpoint ?? "None recorded"}`
+            : input.question;
+          const matches = await retrieve(
+            selectedStory ? `${input.question} ${selectedStory.title}` : input.question
+          );
+          if (selectedStory)
+            matches.feed = [
+              { ...selectedStory, snippet: "" },
+              ...matches.feed.filter((item) => item.id !== selectedStory.id),
+            ];
 
           if (
             matches.archive.length === 0 &&
@@ -288,7 +311,7 @@ export const askRouter = router({
               kind: "feed",
               title: item.title,
               date: item.feedDate,
-              category: item.category,
+              category: item.id === selectedStory?.id ? "SELECTED STORY" : item.category,
               text,
             });
             sourceMeta.push({
@@ -441,7 +464,7 @@ export const askRouter = router({
             const raw =
               directAnswer ??
               (await invokeLLMJson<unknown>({
-                messages: buildAskDeskMessages(input.question, packedEvidence, sourceLimit),
+                messages: buildAskDeskMessages(questionContext, packedEvidence, sourceLimit),
                 responseFormat: askDeskResponseFormatForLimit(sourceLimit),
                 maxTokens: 1800,
                 tier: "standard",
@@ -500,7 +523,7 @@ export const askRouter = router({
             let supported: boolean;
             try {
               supported = await reviewAskAnswer(
-                input.question,
+                questionContext,
                 parsed,
                 packedEvidence.filter((source) => selected.has(source.ref)),
                 signal

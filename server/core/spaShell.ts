@@ -24,11 +24,13 @@
 
 import { publicMarket } from "../../shared/marketDirectory";
 import { contentRouteId } from "../../shared/contentRouteId";
+import { propertyGuide } from "../../shared/propertyGuides";
 
 /** Exact-match public routes. */
 const STATIC_ROUTES = new Set([
   "/",
   "/social",
+  "/guides",
   "/ask",
   "/subscribe",
   "/brief",
@@ -81,6 +83,7 @@ const NOINDEX_ROUTES = new Set([
 
 export function isKnownRoute(pathname: string): boolean {
   if (STATIC_ROUTES.has(pathname)) return true;
+  if (pathname.startsWith("/guides/")) return Boolean(propertyGuide(pathname.slice(8)));
   const content = pathname.match(/^\/(?:story|editions|evidence)\/([^/]+)$/);
   if (content) return contentRouteId(content[1]) !== null;
   if (pathname.startsWith("/markets/"))

@@ -6,6 +6,7 @@ import { Resvg } from "@resvg/resvg-js";
 import sharp from "sharp";
 import { briefingClaimLabel, type BriefingSlide } from "../instagram/briefing";
 import { sourceTimingLabel } from "../../shared/sourceTiming";
+import { guideForStory } from "../../shared/propertyGuides";
 
 const FONT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "fonts");
 const div = (style: object, children: unknown) => ({
@@ -161,18 +162,40 @@ export async function renderBriefingSlide(
   if (slide.kind === "cover") {
     const p = await photo(slide.lens.key);
     children.push(
+      {
+        type: "img",
+        props: {
+          src: p.src,
+          width: 1080,
+          height: 500,
+          style: { position: "absolute", left: 0, top: baseY + 145, objectFit: "cover" },
+        },
+      },
       div(
-        { position: "absolute", left: 76, top: baseY + 170 },
-        label(`PROPERTY BRIEFING · ${briefingClaimLabel(slide.story)}`, 19)
+        {
+          position: "absolute",
+          left: 0,
+          top: baseY + 145,
+          width: 1080,
+          height: 500,
+          backgroundImage:
+            "linear-gradient(180deg, rgba(0,0,0,0.8), rgba(0,0,0,0.05) 45%, rgba(0,0,0,0.85))",
+        },
+        ""
       ),
       div(
-        { position: "absolute", left: 76, top: baseY + 228, right: 76 },
+        { position: "absolute", left: 76, top: baseY + 175 },
+        label(`PROPERTY BRIEFING · ${briefingClaimLabel(slide.story)}`, 19, "#FFFFFF")
+      ),
+      div({ position: "absolute", left: 76, top: baseY + 605 }, label(p.credit, 17, "#FFFFFF")),
+      div(
+        { position: "absolute", left: 76, top: baseY + 687, right: 76 },
         heading(
           slide.title,
           slide.title.length > 140
             ? 58
             : slide.title.length > 110
-              ? 66
+              ? 72
               : slide.title.length > 75
                 ? 76
                 : slide.title.length > 45
@@ -184,34 +207,13 @@ export async function renderBriefingSlide(
         {
           position: "absolute",
           left: 76,
-          top: baseY + 630,
+          top: baseY + 1135,
           right: 76,
           flexDirection: "column",
           gap: 12,
         },
-        [body(slide.body, 29), label(`SOURCE · ${slide.story.source}`, 18, c.body)]
+        label(`SOURCE · ${slide.story.source}`, 18, c.body)
       ),
-      {
-        type: "img",
-        props: {
-          src: p.src,
-          width: 1080,
-          height: 440,
-          style: { position: "absolute", left: 0, top: baseY + 730, objectFit: "cover" },
-        },
-      },
-      div(
-        {
-          position: "absolute",
-          left: 0,
-          top: baseY + 1080,
-          width: 1080,
-          height: 90,
-          backgroundImage: "linear-gradient(0deg, rgba(0,0,0,0.9), rgba(0,0,0,0))",
-        },
-        ""
-      ),
-      div({ position: "absolute", left: 76, top: baseY + 1130 }, label(p.credit, 17, "#FFFFFF")),
       div(
         {
           position: "absolute",
@@ -293,9 +295,15 @@ export async function renderBriefingSlide(
           gap: 20,
         },
         [
-          heading("Keep the useful part.", 48),
-          body("Save this for your next local market comparison.", 31),
-          label("FULL STORIES & SOURCES → LINK IN BIO", 20),
+          heading("Understand the measure.", 48),
+          body(
+            "Read the source, then use the property guides to check what the headline means.",
+            31
+          ),
+          label(
+            `thedesk.au/guides${guideForStory(slide.story.title, slide.story.channel) ? `/${guideForStory(slide.story.title, slide.story.channel)!.slug}` : ""}`,
+            20
+          ),
         ]
       )
     );

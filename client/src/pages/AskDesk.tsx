@@ -20,6 +20,7 @@ import { readAskHistory, rememberAskQuestion } from "@/lib/askHistory";
 import { cn } from "@/lib/cn";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/lib/useAuth";
+import { contentRouteId } from "@shared/contentRouteId";
 
 const EXAMPLES = [
   "What reviewed sources does The Desk have about Newcastle?",
@@ -30,15 +31,25 @@ const EXAMPLES = [
 
 export default function AskDeskPage() {
   const { user } = useAuth();
-  return <AskDeskSession key={user?.id ?? "guest"} accountId={user?.id ?? "guest"} />;
+  const search = useSearch();
+  const storyId =
+    contentRouteId(new URLSearchParams(search).get("story") ?? undefined) ?? undefined;
+  return (
+    <AskDeskSession
+      key={`${user?.id ?? "guest"}:${storyId ?? "general"}`}
+      accountId={user?.id ?? "guest"}
+      storyId={storyId}
+    />
+  );
 }
-function AskDeskSession({ accountId }: { accountId: number | "guest" }) {
+function AskDeskSession({ accountId, storyId }: { accountId: number | "guest"; storyId?: number }) {
   const search = useSearch();
   const cache = useQueryClient();
+  const completedKey = ["desk-completed-brief", accountId, ...(storyId ? [storyId] : [])];
   const cached = cache.getQueryData<{
     question: string;
     result: NonNullable<typeof mutation.data>;
-  }>(["desk-completed-brief", accountId]);
+  }>(completedKey);
   const [completed, setCompleted] = useState(cached);
   const [question, setQuestion] = useState(cached?.question ?? "");
   const [history, setHistory] = useState<string[]>([]);
@@ -106,12 +117,15 @@ function AskDeskSession({ accountId }: { accountId: number | "guest" }) {
     trackEvent("ask_query", "ask");
     setCompleted(undefined);
     mutation.mutate(
-      { question: value },
+      {
+        question: value,
+        storyId,
+      },
       {
         onSuccess: (result) => {
           trackEvent(result.status === "answered" ? "ask_answer" : "ask_unavailable", "ask");
           const completed = { question: value, result };
-          cache.setQueryData(["desk-completed-brief", accountId], completed);
+          cache.setQueryData(completedKey, completed);
           setCompleted(completed);
         },
         onError: () => trackEvent("ask_error", "ask"),
@@ -236,10 +250,10 @@ function AskDeskSession({ accountId }: { accountId: number | "guest" }) {
         </div>
       </header>
 
-      {new URLSearchParams(search).get("story")?.match(/^\d+$/) && (
+      {storyId && (
         <p className="mt-5 text-sm">
           Following up on{" "}
-          <Link className="underline" href={`/story/${new URLSearchParams(search).get("story")}`}>
+          <Link className="underline" href={`/story/${storyId}`}>
             this story
           </Link>
           . Review the question, then choose Ask.

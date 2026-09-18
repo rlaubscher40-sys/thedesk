@@ -362,6 +362,23 @@ export default function DailyFeed() {
           </div>
         </SectionErrorBoundary>
       )}
+      {(channel === "PROPERTY" || channel === "AU") && (
+        <section className={cn(GUTTER_X, "rule-major mt-8 py-7")} aria-label="Property explained">
+          <p className="bs-label-accent">Go beyond the headline</p>
+          <h2 className="font-serif text-3xl font-bold mt-3">Know what the numbers mean.</h2>
+          <p className="mt-3 text-[var(--color-fg-muted)]">
+            Rates, rents, housing supply and the distinctions that change a property story.
+          </p>
+          <div className="flex flex-wrap gap-x-7 gap-y-2 mt-4">
+            <a href="/guides" className="bs-link min-h-11 inline-flex items-center">
+              Explore the guides →
+            </a>
+            <a href="/guides/interest-rates" className="bs-link min-h-11 inline-flex items-center">
+              Compare loan repayments →
+            </a>
+          </div>
+        </section>
+      )}
       <SubscribeBand source="today-band" />
     </>
   );

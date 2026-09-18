@@ -2,7 +2,7 @@ import { ThreadLink } from "@/components/feed/ThreadLink";
 /**
  * "More reporting" — three hairline-divided columns.
  *
- * Each column: a 3:2 image, kicker, 28px headline, 16.5px summary, and the
+ * Each column: source kicker, headline, summary, and the
  * Say This line as a one-line pull quote on a 3px accent rule. There is no
  * "Ruben's read" toggle: the take is the point of the card, so it renders
  * inline.
@@ -25,12 +25,10 @@ import { cleanHeadline } from "@/lib/headline";
 import { dedash } from "@/lib/dedash";
 import { readingMinutes } from "@/lib/readingTime";
 import { GUTTER_X } from "../tokens";
-import { StoryImage } from "../StoryImage";
 
 function askCounterpointHref(item: DailyFeedItem): string {
-  const counterpoint = dedash(item.counterpoint?.trim() ?? "").slice(0, 135);
-  const question = `What does this counterpoint change about the story "${cleanHeadline(item.title)}": ${counterpoint}`;
-  return `/ask?q=${encodeURIComponent(question.slice(0, 240))}`;
+  const question = `What does the counterpoint change about story ${item.id}, and what remains uncertain?`;
+  return `/ask?story=${item.id}&q=${encodeURIComponent(question)}`;
 }
 
 export function StoryColumns({ items }: { items: DailyFeedItem[] }) {
@@ -73,6 +71,11 @@ export function StoryColumns({ items }: { items: DailyFeedItem[] }) {
                 className={cn("py-4 lg:py-2 lg:pr-7", index > 0 && "lg:rule-hair-l lg:pl-7")}
               >
                 <p className="bs-label-accent">{item.category}</p>
+                <h3 className="font-serif font-bold mt-3 text-xl leading-tight">
+                  <Link href={`/story/${item.id}`} className="bs-link">
+                    {cleanHeadline(item.title)}
+                  </Link>
+                </h3>
                 <p
                   className="font-serif mt-2.5 text-[var(--color-fg-body)]"
                   style={{ fontSize: "clamp(1.25rem, 2vw, 1.5625rem)", lineHeight: 1.32 }}
@@ -81,7 +84,7 @@ export function StoryColumns({ items }: { items: DailyFeedItem[] }) {
                 </p>
                 <div className="flex flex-wrap gap-x-5 gap-y-2 mt-4">
                   <Link href={`/story/${item.id}`} className="bs-label bs-link">
-                    Underlying story
+                    Read the story
                   </Link>
                   <Link
                     href={askCounterpointHref(item)}
@@ -126,7 +129,6 @@ function StoryColumn({ item, className }: { item: DailyFeedItem; className?: str
   return (
     <article className={cn("min-w-0", className)}>
       <Link href={`/story/${item.id}`} className="bs-link block">
-        <StoryImage seed={item.id} category={item.category} alt="" aspect="3 / 2" />
         <p
           className="font-mono uppercase mt-4"
           style={{ fontSize: "0.75rem", letterSpacing: "0.18em", color: colourFor(item.category) }}

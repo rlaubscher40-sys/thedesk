@@ -529,6 +529,14 @@ export function registerSeoRoutes(app: Express): void {
     const siteLastmod = new Date(newestPublished ?? Date.now()).toISOString().slice(0, 10);
 
     const urls: string[] = [];
+    for (const guidePath of [
+      "/guides",
+      ...PROPERTY_GUIDES.map((guide) => `/guides/${guide.slug}`),
+    ]) {
+      urls.push(
+        `<url><loc>${base}${guidePath}</loc><lastmod>${GUIDE_REVIEWED}</lastmod><changefreq>monthly</changefreq></url>`
+      );
+    }
     for (const path of staticPaths) {
       urls.push(
         `<url><loc>${base}${path}</loc><lastmod>${siteLastmod}</lastmod><changefreq>${path === "/" ? "daily" : "weekly"}</changefreq></url>`
@@ -596,3 +604,4 @@ ${items}
     res.send(xml);
   });
 }
+import { GUIDE_REVIEWED, PROPERTY_GUIDES } from "../../shared/propertyGuides";

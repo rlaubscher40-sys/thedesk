@@ -59,6 +59,10 @@ describe("daily briefing evidence and layout contract", () => {
     expect(briefingCaption([story])).not.toMatch(/double|Buy now|explode/);
     expect(briefingAlt(slides[2]!, 2, 4)).toContain("Approved: Planning or building permission");
   });
+  it("preserves the source headline on a mortgage-stress cover", () => {
+    const title = "New homes in areas with high mortgage stress";
+    expect(buildBriefingSlides([{ ...story, title }])[0]!.title).toBe(title);
+  });
   it("rejects boilerplate, headline duplicates and ambiguous supply measures", () => {
     for (const summary of [
       story.title,
