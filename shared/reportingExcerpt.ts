@@ -37,17 +37,22 @@ export function isPhotoCaption(text: string): boolean {
   );
 }
 
+/** Removing a promotional block must not fuse a standfirst with a new sentence. */
+function removePromotion(match: string, at: number, original: string): string {
+  const before = original.slice(0, at).trimEnd();
+  const after = original.slice(at + match.length).trimStart();
+  return /[\p{L}\p{N}%\)\]’”']$/u.test(before) && /^\p{Lu}/u.test(after) ? ". " : " ";
+}
+
 /** Remove recognisable syndication chrome, never silently complete clipped prose. */
 export function cleanReportingExcerpt(text: string): string {
   return (
     text
       // Exact publisher promotions observed inside historical RSS excerpts.
       // Keep surrounding reporting, figures and qualifications verbatim.
-      .replace(/\bGet our breaking news email\s*,\s*free app or daily news podcast\b[.!]?/gi, " ")
-      .replace(/\bFollow our Australia news live blog for latest updates\b[.!]?/gi, " ")
       .replace(
-        /\bWant to get more charts in your inbox every fortnight\?\s*Sign up for The Crunch here\b[.!]?/gi,
-        " "
+        /(?:\s*\b(?:Get our breaking news email\s*,\s*free app or daily news podcast|Follow our Australia news live blog for latest updates|Want to get more charts in your inbox every fortnight\?\s*Sign up for The Crunch here)\b[.!]?\s*)+/gi,
+        removePromotion
       )
       .replace(
         /(?:^|\s+)Continue reading(?:\.{3}|…)\s*$/g,

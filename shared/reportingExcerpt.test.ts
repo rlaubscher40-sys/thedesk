@@ -36,6 +36,23 @@ it("preserves genuine reporting about newsletters, apps and reading", () => {
     "Subscribe to Continue reading..."
   );
 });
+it("retains the sentence boundary where a promotion separated a standfirst and article body", () => {
+  const promo = "Get our breaking news email, free app or daily news podcast";
+  expect(
+    cleanReportingExcerpt(
+      `Previous attempts had been ineffective ${promo} The source describes a new policy.`
+    )
+  ).toBe("Previous attempts had been ineffective. The source describes a new policy.");
+  expect(
+    cleanReportingExcerpt(`Rents remain uncertain. ${promo} The next release is due later.`)
+  ).toBe("Rents remain uncertain. The next release is due later.");
+  expect(cleanReportingExcerpt(`Rents rose ${promo} but not in every area.`)).toBe(
+    "Rents rose but not in every area."
+  );
+  expect(cleanReportingExcerpt(`${promo} The reported rate remains 4.35%.`)).toBe(
+    "The reported rate remains 4.35%."
+  );
+});
 it("removes the observed detached publisher fragment without changing reported domains", () => {
   expect(
     cleanReportingExcerpt(
