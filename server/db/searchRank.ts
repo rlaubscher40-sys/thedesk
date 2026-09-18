@@ -1,12 +1,19 @@
 /**
  * Pure relevance ranking + snippet extraction for the site search.
  *
- * The search query is a `LIKE '%q%'` scan, so the DB returns matches in
- * table order (recency), not relevance. These helpers re-rank in memory —
- * the result sets are small (all editions, feed capped at 50) — so a title
- * hit outranks a body-only hit, and each result carries a snippet showing
- * the matched phrase in context rather than a bare title.
+ * SQL ranks the entire matching set before applying a result cap. The pure
+ * helpers supply equivalent demo ranking and readable match snippets.
  */
+import { sql, type SQLWrapper } from "drizzle-orm";
+import { escapeLike } from "./like";
+
+export function sqlMatchScore(query: string, title: SQLWrapper) {
+  const literal = query.trim().toLowerCase();
+  const escaped = escapeLike(literal);
+  return sql<number>`CASE WHEN LOWER(${title}) = ${literal} THEN 4
+    WHEN LOWER(${title}) LIKE ${`${escaped}%`} THEN 3
+    WHEN LOWER(${title}) LIKE ${`%${escaped}%`} THEN 2 ELSE 1 END`;
+}
 
 /** Case-insensitive index of `needle` in `haystack`, or -1. */
 function indexOfCI(haystack: string, needle: string): number {

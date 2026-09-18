@@ -39,12 +39,12 @@ it("scopes counts, category browse and search in SQL before limiting results", a
   await getFeedItemsByCategory("PROPERTY", 3, filters);
   await searchAllContent("Sydney", { ...filters, category: "PROPERTY" });
   const queries = calls.conditions.map((sql) => new MySqlDialect().sqlToQuery(sql));
-  for (const q of [queries[0]!, queries[1]!, queries[3]!]) {
+  for (const q of [queries[0]!, queries[1]!, queries[2]!]) {
     expect(q.sql).toContain("IN ('AU', 'PROPERTY')");
     expect(q.sql).toContain("<> 'HOLD'");
     expect(q.params).toContain("2026-09-01");
   }
-  expect(calls.limits).toEqual([3, 50, 50]);
+  expect(calls.limits).toEqual([3, 50]);
 });
 it("includes international coverage explicitly and never admits held stories", async () => {
   await getFeedItemsByCategory("PROPERTY", 100, { region: "INTERNATIONAL" });

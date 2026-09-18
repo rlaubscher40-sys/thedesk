@@ -106,3 +106,10 @@ it("records source and Ask actions without transmitting story content", () => {
     ["story_ask", "story"],
   ]);
 });
+
+it("does not label a generic stored talking point as personalised reader guidance", () => {
+  m.query.data = { ...story, sayThis: "A forecast remains a forecast." };
+  open();
+  expect(screen.getByText("The line worth remembering")).toBeTruthy();
+  expect(screen.queryByText(/The line worth remembering.*If you're/)).toBeNull();
+});

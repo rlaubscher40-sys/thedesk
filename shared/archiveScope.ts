@@ -11,3 +11,11 @@ export function matchesArchiveFilters(
   const local = channel === "AU" || channel === "PROPERTY";
   return filters.region === "AU" ? local : filters.region === "INTERNATIONAL" ? !local : true;
 }
+import { z } from "zod";
+
+export const archiveCursorSchema = z.object({
+  feedDate: z.iso.date(),
+  id: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+});
+export type ArchiveCursor = z.infer<typeof archiveCursorSchema>;
+export const ARCHIVE_PAGE_SIZE = 40;

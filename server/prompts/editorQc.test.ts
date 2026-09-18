@@ -18,6 +18,30 @@ const input: SynthesisShape = {
   datesToWatch: null,
 };
 afterEach(() => vi.resetAllMocks());
+it("rejects cross-topic, invented, missing and reordered source attribution", async () => {
+  for (const replacement of [[2], [999], [], undefined]) {
+    const revised = structuredClone(input);
+    revised.topics[0]!.sourceItemIds = replacement;
+    vi.mocked(invokeLLM).mockResolvedValue(JSON.stringify({ approved: true, notes: [], revised }));
+    await expect(runEditorQc(input, "Original source packet")).rejects.toThrow(
+      /source attribution/
+    );
+  }
+  const revised = { ...input, topics: [...input.topics].reverse() };
+  vi.mocked(invokeLLM).mockResolvedValue(JSON.stringify({ approved: true, notes: [], revised }));
+  await expect(runEditorQc(input, "Original source packet")).rejects.toThrow(/source attribution/);
+});
+it("accepts wording edits and reference order changes but keeps original topic references", async () => {
+  const original = structuredClone(input);
+  original.topics[0]!.sourceItemIds = [1, 4];
+  const revised = structuredClone(original);
+  revised.topics[0]!.sourceItemIds = [4, 1];
+  revised.topics[0]!.summary = "A clearer, qualified account.";
+  vi.mocked(invokeLLM).mockResolvedValue(JSON.stringify({ approved: false, notes: [], revised }));
+  const result = await runEditorQc(original, "Original source packet");
+  expect(result.revised.topics[0]!.sourceItemIds).toEqual([1, 4]);
+  expect(result.revised.topics[0]!.summary).toBe("A clearer, qualified account.");
+});
 it("supplies source evidence to review and preserves verified figures", async () => {
   vi.mocked(invokeLLM).mockResolvedValue(
     JSON.stringify({ approved: true, notes: [], revised: input })

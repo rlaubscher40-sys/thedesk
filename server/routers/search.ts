@@ -19,10 +19,14 @@ export const searchRouter = router({
       })
     )
     .query(async ({ input }) => {
-      const result = await db.searchAllContent(input.query, input);
+      const result = await db.searchAllContent(input.query, { ...input, limit: 51 });
       return {
-        feedItems: result.feedItems,
-        editions: result.editions.map((ed) => ({ ...publicEdition(ed), snippet: ed.snippet })),
+        hasMoreFeedItems: result.feedItems.length > 50,
+        hasMoreEditions: result.editions.length > 50,
+        feedItems: result.feedItems.slice(0, 50),
+        editions: result.editions
+          .slice(0, 50)
+          .map((ed) => ({ ...publicEdition(ed), snippet: ed.snippet })),
       };
     }),
 });
