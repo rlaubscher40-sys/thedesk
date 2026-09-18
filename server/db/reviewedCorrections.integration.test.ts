@@ -49,6 +49,25 @@ it.skipIf(!testUrl)(
       for (const f of c.fields) expect(rows[0]![f.field]).toBe(f.after);
       expect(rows[0]!.rubensNote).toBe("Preserve the reader note");
     }
+    // Production returns a cleaned excerpt; archived publisher promotions must
+    // not prevent this explicitly marked correction from reaching readers.
+    const opinion = REVIEWED_STORY_CORRECTIONS.find((c) => c.id === 3000015)!;
+    const summary = opinion.fields.find((f) => f.field === "summary")!;
+    const archived = summary.before + "\nGet our breaking news email, free app or daily news podcast Continue reading…";
+    await pool!.query("UPDATE daily_feed_items SET summary=? WHERE id=?", [archived, opinion.id]);
+    await apply();
+    const [cleaned] = await pool!.query<RowDataPacket[]>(
+      "SELECT summary FROM daily_feed_items WHERE id=?", [opinion.id]
+    );
+    expect(cleaned[0]!.summary).toBe(summary.after);
+    const editorialEdit = summary.before + " A later editorial qualification.";
+    await pool!.query("UPDATE daily_feed_items SET summary=? WHERE id=?", [editorialEdit, opinion.id]);
+    await apply();
+    const [preserved] = await pool!.query<RowDataPacket[]>(
+      "SELECT summary FROM daily_feed_items WHERE id=?", [opinion.id]
+    );
+    expect(preserved[0]!.summary).toBe(editorialEdit);
+
     await apply();
     const [first, second] = REVIEWED_STORY_CORRECTIONS.filter((c) =>
       c.fields.some((f) => f.field === "summary")
