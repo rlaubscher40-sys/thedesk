@@ -17,7 +17,7 @@ beforeAll(async () => {
   url.pathname = "/" + name;
   pool = createPool(url.toString());
   await pool.query(
-    "CREATE TABLE editions (id INT PRIMARY KEY, editionNumber INT, weekOf VARCHAR(64), topics JSON, fullText TEXT, rubensTake TEXT, lookback JSON, datesToWatch JSON)"
+    "CREATE TABLE editions (id INT PRIMARY KEY, editionNumber INT, weekOf VARCHAR(64), topics JSON, `fullText` TEXT, rubensTake TEXT, lookback JSON, datesToWatch JSON)"
   );
   await pool.query(
     "CREATE TABLE property_evidence (id INT PRIMARY KEY, title TEXT, source TEXT, regions JSON)"
@@ -60,10 +60,10 @@ it.skipIf(!testUrl)(
     expect(corrected[0].body).toBe(topics[0]!.body);
     expect(corrected[0].sourceItemIds).toEqual([7]);
     expect(rows[1]!.fullText).toBe(before);
-    await pool!.query("UPDATE editions SET fullText=? WHERE id=1", ["An editor's newer text."]);
+    await pool!.query("UPDATE editions SET `fullText`=? WHERE id=1", ["An editor's newer text."]);
     await edition();
     const [updated] = await pool!.query<RowDataPacket[]>(
-      "SELECT fullText FROM editions WHERE id=1"
+      "SELECT `fullText` FROM editions WHERE id=1"
     );
     expect(updated[0]!.fullText).toBe("An editor's newer text.");
   }
