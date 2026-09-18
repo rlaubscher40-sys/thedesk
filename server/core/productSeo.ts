@@ -10,6 +10,7 @@ import { getMarketDirectory } from "../markets/discovery";
 import { marketPath } from "../../shared/marketDirectory";
 import { PROPERTY_GUIDES, propertyGuide } from "../../shared/propertyGuides";
 import { PropertyGuideRead } from "../../shared/PropertyGuideRead";
+import { ProjectFollowThroughRead } from "../../shared/ProjectFollowThroughRead";
 
 function htmlEscape(value: string): string {
   return value
@@ -81,6 +82,14 @@ async function sendProductShell(
       `<div id="root"><main class="max-w-6xl mx-auto px-5 py-8"><h1>From the post to the evidence.</h1>${sources}</main></div>`
     );
   }
+  if (meta.path === "/projects") {
+    const content = renderToStaticMarkup(createElement(ProjectFollowThroughRead, {}));
+    html = html.replace('<div id="root"></div>', `<div id="root">${content}</div>`);
+    html = html.replace(
+      "The Desk needs JavaScript to display this page.",
+      "The method and limits of this tracker are readable without JavaScript. Enable JavaScript to load the cohort."
+    );
+  }
   if (meta.path === "/guides" || meta.path.startsWith("/guides/")) {
     const guide = propertyGuide(meta.path.slice(8));
     const content = renderToStaticMarkup(createElement(PropertyGuideRead, { guide }));
@@ -108,6 +117,12 @@ const PRODUCT_META: ProductMeta[] = [
     title: `${guide.title} | The Desk`,
     description: guide.intro,
   })),
+  {
+    path: "/projects",
+    title: "Project follow-through | The Desk",
+    description:
+      "Follow a small cohort of Sydney housing applications through dated, source-backed milestones. A determination is not an approval, and construction is not assumed.",
+  },
   {
     path: "/social",
     title: "Reel sources and property evidence | The Desk",

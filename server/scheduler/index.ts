@@ -45,6 +45,7 @@ import { pausedLocalSourceJobs } from "../../shared/localSourceAccess";
 import { LocalSourceAccessPaused } from "../localData/access";
 import { LOCAL_SOURCE_KEYS } from "../../shared/localData";
 import { recoverMissingMetrics, runScheduledMetricRefresh } from "../metrics/recovery";
+import { refreshProjectFollowThrough } from "../planning/followThrough";
 import {
   claimCollectionRun,
   finishCollectionRun,
@@ -234,6 +235,28 @@ export const ADVICE_NEWSROOM_RECOVERY_JOB: Job = {
 };
 
 const JOBS: Job[] = [
+  /**
+   * Keep the follow-through cohort's months alive. The pilot only ever reads
+   * the previous complete month on demand, so without this an application stops
+   * being followed the moment its month rolls out of that window. Weekly, early,
+   * against the same fixed council: three whole-month reads of a source that
+   * publishes daily.
+   */
+  {
+    key: "planning-follow-through-refresh",
+    at: "04:20",
+    dow: [2],
+    graceMinutes: 8 * 60,
+    maxAttempts: 2,
+    run: async () => {
+      const results = await refreshProjectFollowThrough();
+      if (results.length > 0 && results.every((result) => result.state === "failed"))
+        throw new Error(
+          `Follow-through refresh failed for every tracked period: ${results.map((r) => r.period).join(", ")}`
+        );
+      return results;
+    },
+  },
   {
     key: "instagram-comment-access-rollout",
     claimDate: "2026-09-14",

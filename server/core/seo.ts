@@ -508,6 +508,7 @@ export function registerSeoRoutes(app: Express): void {
       "/editions",
       "/archive",
       "/social",
+      "/projects",
       "/subscribe",
       "/trends",
       "/topics",
