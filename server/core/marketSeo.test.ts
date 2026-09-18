@@ -25,6 +25,13 @@ const directory = buildMarketDirectory(
 const file = directory.markets.find((item) => item.market.slug === "perth")!;
 
 describe("public market HTML and cards", () => {
+  it.each([0, 1, 3])("uses accurate reference-count labels for %s references", (count) => {
+    const selected = { ...file, referenceCount: count };
+    const label = `${count} selected reporting ${count === 1 ? "reference" : "references"}`;
+    const html = marketShell(shell, selected, directory, "https://thedesk.au");
+    expect(html).toContain(`${label} in the last 90 days`);
+    expect(marketCardInput(selected).context).toContain(`${label} across 90 days`);
+  });
   it.each(["perth", "townsville"])(
     "keeps every section shortcut attached to visible content for %s",
     (slug) => {

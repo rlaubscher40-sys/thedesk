@@ -78,8 +78,9 @@ export function PublicMarketRead({
           <h2 className="bs-label-accent">At a glance</h2>
           <div className="grid sm:grid-cols-3 gap-5 mt-3 text-sm leading-6">
             <p>
-              <strong>Available here:</strong> {file.referenceCount} selected reporting references
-              in the last 90 days and {context.length} reviewed primary-source notes. Each keeps
+              <strong>Available here:</strong> {file.referenceCount} selected reporting{" "}
+              {file.referenceCount === 1 ? "reference" : "references"} in the last 90 days and{" "}
+              {context.length} reviewed primary-source {context.length === 1 ? "note" : "notes"}. Each keeps
               its own date and scope.
             </p>
             <p>
