@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { ReelStat } from "./statReel";
 import { REEL_SAFE_AREAS } from "./reelSafeAreas";
 import { REEL_VISUAL_SEQUENCES } from "./reelVisualStandard";
+import { reelVoiceIdentity } from "./reelVoice";
 
 const hash = z.string().regex(/^[a-f0-9]{64}$/);
 const coordinate = z.number().finite().min(0).max(1920);
@@ -22,7 +23,7 @@ export const reelRenderRecordSchema = z.object({
   narrated: z.boolean(),
   subtitled: z.boolean(),
   voice: z.object({
-    engine: z.literal("local-kokoro"),
+    engine: z.enum(["local-kokoro", "elevenlabs"]),
     voice: z.string().min(1).max(80),
     speed: z.number().finite().positive().max(4),
   }),
@@ -44,7 +45,12 @@ export type ReelRenderRecord = z.infer<typeof reelRenderRecordSchema>;
 /** Fingerprint the actual submitted bytes and the options used for this render.
  * This is export provenance, not evidence that Meta published or served them. */
 export function captureReelRender(
-  video: { bytes: Buffer; seconds: number; narrated: boolean; subtitled: boolean },
+  video: {
+    bytes: Buffer;
+    seconds: number;
+    narrated: boolean;
+    subtitled: boolean;
+  },
   cover: Buffer,
   stat: ReelStat,
   voice: { voice: string; speed: number },
@@ -62,7 +68,7 @@ export function captureReelRender(
     seconds: video.seconds,
     narrated: video.narrated,
     subtitled: video.subtitled,
-    voice: { engine: "local-kokoro", ...voice },
+    voice: reelVoiceIdentity(voice),
     safeAreas: { ...REEL_SAFE_AREAS },
   });
 }

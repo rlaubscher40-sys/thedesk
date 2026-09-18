@@ -1,4 +1,4 @@
-/** Animated property cards with a required, locally generated voice track. */
+/** Animated property cards with a required voice track. */
 import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
@@ -607,7 +607,7 @@ export async function renderStatReel(
       validateDocumentary(stat.documentary, script);
       if (opts.narrate === false || !opts.subtitles || opts.auditionVoice)
         throw new Error(
-          "Documentary review and publication require local narration and subtitles."
+          "Documentary review and publication require narration and subtitles."
         );
     }
     const maxSeconds = reelDurationLimit(stat);

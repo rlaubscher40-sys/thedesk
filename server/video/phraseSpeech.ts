@@ -1,7 +1,12 @@
-import { audibleWave, localSpeech, type SpeechProfile } from "./localVoice";
+import { audibleWave, type SpeechProfile } from "./localVoice";
+import { reelSpeech } from "./reelVoice";
 
 export type MeasuredPhrase = { text: string; start: number; seconds: number };
-export type PhraseAudio = { key: string; bytes: Buffer; phrases: MeasuredPhrase[] };
+export type PhraseAudio = {
+  key: string;
+  bytes: Buffer;
+  phrases: MeasuredPhrase[];
+};
 export type PhrasePlan = { key: string; text: string; phrases: string[] };
 
 /** Remove excess leading/trailing model silence, retaining 100ms before and
@@ -46,7 +51,11 @@ export function joinPhraseAudio(parts: Array<{ text: string; bytes: Buffer }>) {
       samples += 1920;
     }
     const pcm = speechPcm(b);
-    phrases.push({ text: part.text, start: samples / 24000, seconds: pcm.length / 48000 });
+    phrases.push({
+      text: part.text,
+      start: samples / 24000,
+      seconds: pcm.length / 48000,
+    });
     chunks.push(pcm);
     samples += pcm.length / 2;
   }
@@ -78,10 +87,10 @@ export async function synthesisePhrases(
     p.phrases.map((text, i) => ({ key: `${p.key}:${i}`, text }))
   );
   if (requests.length > 16) throw new Error("Too many speech phrases.");
-  const clips: Awaited<ReturnType<typeof localSpeech>> = [];
+  const clips: Awaited<ReturnType<typeof reelSpeech>> = [];
   // Retain the existing nine-utterance child bound and serial voice queue.
   for (let i = 0; i < requests.length; i += 9)
-    clips.push(...(await localSpeech(requests.slice(i, i + 9), profile)));
+    clips.push(...(await reelSpeech(requests.slice(i, i + 9), profile)));
   return plans.map((p) => ({
     key: p.key,
     ...joinPhraseAudio(

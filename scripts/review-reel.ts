@@ -4,6 +4,7 @@ import path from "node:path";
 import { getVerifiedReelProgramme } from "../server/instagram/reelCandidates";
 import { renderStatReel } from "../server/video/statReel";
 import { productionReelOptions } from "../server/video/reelProduction";
+import { reelVoiceIdentity } from "../server/video/reelVoice";
 
 const args = process.argv.slice(2);
 const audition = args.includes("--audition-voice")
@@ -59,7 +60,11 @@ if (args.includes("--list")) {
   for (const entry of selected) {
     const candidate = entry.candidate;
     if (!candidate) {
-      manifest.push({ topic: entry.topic, status: "withheld", requirement: entry.requirement });
+      manifest.push({
+        topic: entry.topic,
+        status: "withheld",
+        requirement: entry.requirement,
+      });
       continue;
     }
     const destination = args.includes("--all")
@@ -95,7 +100,10 @@ if (args.includes("--list")) {
                 voice: audition,
                 reviewOnly: true,
               }
-            : productionReelOptions(),
+            : {
+                ...productionReelOptions(),
+                voice: reelVoiceIdentity(production.voice),
+              },
           candidate,
           seconds: rendered.seconds,
           narrated: rendered.narrated,

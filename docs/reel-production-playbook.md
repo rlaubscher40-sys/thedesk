@@ -2,15 +2,17 @@
 
 ## Approved baseline
 
-Ruben selected Fable after the external voice audition on 10 September 2026.
-Use local Kokoro Fable (`bm_fable`) at speed 1.0. It is a British stock voice,
-not an Australian voice clone. Australian English applies to the writing.
-The external audition is not a production dependency.
+Ruben requested his ElevenLabs voice clone for future Reels on 18 September 2026.
+The configured ElevenLabs workspace voice is `Ruben` (`xeSYpoWjkR3imzxB6qDk`).
+Set up the server using [Reel voice setup](elevenlabs-reel-voice.md).
+The existing local Kokoro Fable voice remains available when ElevenLabs is not
+configured or `REEL_VOICE_PROVIDER=local` is explicitly selected. A failed
+ElevenLabs request blocks rendering; it never silently changes speakers.
 
 `productionReelOptions` is shared by the publisher, admin preview and review
 commands. Narration and burned-in subtitles are mandatory for publishing,
 even if a caller tries to disable subtitles. Missing audio or captions blocks
-the post before a Meta container is created. The default voice is immutable.
+the post before a Meta container is created. Server configuration selects the speaker.
 
 All eight registered topics pass `assertProductionCandidate` before selection:
 visible source/reference context, evidence identity, complete uniquely keyed

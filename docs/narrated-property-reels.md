@@ -27,8 +27,8 @@ caveat without reposting the same topic/month. Publication uses
 a durable reservation immediately before Meta's non-idempotent publish call;
 uncertain responses stay locked. Quota, audio or evidence failures send no post.
 
-Admin → Instagram shows the scheduler's actual enabled state, a real local
-speech check, next cover tone, sourced caption and an on-demand video preview.
+Admin → Instagram shows the scheduler's actual enabled state, the configured
+voice's readiness check, next cover tone, sourced caption and an on-demand video preview.
 The panel is at the top of Admin, with distinct ready, rendering, retrying,
 paused, scheduled, daily-limit, published and uncertain/locked states. It refreshes every 30 seconds.
 Previewing does not publish; no manual click or open browser is needed. Covers continue alternating from the last recorded
@@ -36,6 +36,11 @@ grid post; pinned posts keep their colours, so the pinned row is not guaranteed
 to form a checkerboard. Manual/out-of-band posts can also change the grid.
 
 ## Voice and reproducible installation
+
+For Ruben's cloned voice, configure [ElevenLabs narration](elevenlabs-reel-voice.md).
+It is selected when `ELEVENLABS_API_KEY` is present, or required explicitly with
+`REEL_VOICE_PROVIDER=elevenlabs`. The local-only details below describe the
+fallback installation. A configured ElevenLabs failure never falls back locally.
 
 `pnpm setup:voice` is included in the production build and CI. It installs
 Kokoro-82M v1.0 (8-bit CPU model), with the approved **Fable** British male voice at speed 1.0
