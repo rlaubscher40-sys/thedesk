@@ -24,7 +24,10 @@ export default function Evidence() {
       ) : (
         <>
           <p className="bs-label">
-            Source evidence · {item.regions.join(" · ") || "Australia / location unspecified"}
+            Source evidence ·{" "}
+            {item.excluded
+              ? "Excluded reference"
+              : item.regions.join(" · ") || "Location unspecified"}
           </p>
           <h1 className="font-serif text-3xl sm:text-4xl">{item.title}</h1>
           <p className="text-sm">
@@ -35,8 +38,9 @@ export default function Evidence() {
               "No usable article excerpt is available. Read the original for context."}
           </p>
           <p className="text-sm text-[var(--color-fg-muted)]">
-            This is a public feed excerpt, not a full article or a verified market statistic. Read
-            the original for its complete context.
+            {item.summary
+              ? "This is a public feed excerpt, not a full article or a verified market statistic. Read the original for its complete context."
+              : "Headline-only reference. No article prose has been verified here."}
           </p>
           {item.excluded && (
             <p role="note" className="text-sm text-[var(--color-fg-muted)]">
@@ -52,14 +56,16 @@ export default function Evidence() {
           >
             Read original source
           </a>
-          <p>
-            <Link
-              className="bs-link"
-              href={`/ask?q=${encodeURIComponent(item.title.slice(0, 240))}`}
-            >
-              Ask about this story
-            </Link>
-          </p>
+          {!item.excluded && (
+            <p>
+              <Link
+                className="bs-link"
+                href={`/ask?q=${encodeURIComponent(item.title.slice(0, 240))}`}
+              >
+                Ask about this story
+              </Link>
+            </p>
+          )}
         </>
       )}
     </article>

@@ -1,5 +1,9 @@
 /** Conservative automatic-news holds, not a publisher rating or fact checker. */
-export type NewsHold = "unattributed-search" | "promotional-headline" | "recycled-market-update";
+export type NewsHold =
+  | "unattributed-search"
+  | "promotional-headline"
+  | "recycled-market-update"
+  | "recruitment-listing";
 const MONTHS = [
   "january",
   "february",
@@ -18,10 +22,27 @@ export function propertyNewsHold(
   input: {
     title: string;
     source?: string | null;
+    sourceUrl?: string | null;
   },
   asOf: string
 ): NewsHold | null {
   const title = input.title.slice(0, 1024);
+  // A housing department's job advert is not housing-market reporting. Use
+  // the original host or retained publisher identity, never a roundup body.
+  const careersHost = /^(?:(?:jobs|careers)\.)|(?:^|\.)careers\.vic\.gov\.au$/i;
+  let host = "";
+  try {
+    host = new URL(input.sourceUrl ?? "").hostname;
+  } catch {
+    /* optional */
+  }
+  if (
+    careersHost.test(host) ||
+    careersHost.test(input.source?.trim() ?? "") ||
+    /\|\s*(?:[^|]*\bCareers|(?:Job|Career) (?:Vacancies|Opportunities))\s*$/i.test(title) ||
+    /^(?:job vacancy|job vacancies)\s*[:|–—-]|\bwe(?:'re| are) hiring\b/i.test(title)
+  )
+    return "recruitment-listing";
   if (/^(google news|unknown|unknown publisher)$/i.test(input.source?.trim() ?? ""))
     return "unattributed-search";
   if (

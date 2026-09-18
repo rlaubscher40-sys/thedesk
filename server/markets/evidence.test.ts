@@ -14,7 +14,7 @@ const feed = (id: number, title: string, sourceUrl: string) =>
     title,
     summary: title,
     sourceUrl,
-    source: "Fixture",
+    source: "Domain", // Australian context survives headline-only cleaning.
     feedDate: "2026-09-01",
   }) as Bundle["feedItems"][number];
 beforeEach(() => {

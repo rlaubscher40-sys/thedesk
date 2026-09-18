@@ -17,6 +17,33 @@ const item: FetchedItem = {
 };
 
 describe("nationwide evidence", () => {
+  it("prevents the reviewed recruitment and overseas namesake records from re-entering market evidence", () => {
+    for (const [title, source] of [
+      [
+        "Sourcing Program Lead | Melbourne - CBD | Department of Families, Fairness and Housing Careers",
+        "jobs.careers.vic.gov.au",
+      ],
+      [
+        "More than 1,000 homes coming after Caivan Perth development wins approval",
+        "lanarkleedstoday.ca",
+      ],
+      [
+        "Builder defends controversial Newcastle housing plans after row over council land deal",
+        "Yahoo News UK",
+      ],
+    ])
+      expect(
+        normaliseEvidence(
+          {
+            ...item,
+            title: title!,
+            source: source!,
+            url: "https://news.google.com/rss/articles/fixture",
+          },
+          now
+        )
+      ).toBeNull();
+  });
   it("rejects event sales and does not infer topics or regions from a search roundup", () => {
     expect(
       normaliseEvidence(

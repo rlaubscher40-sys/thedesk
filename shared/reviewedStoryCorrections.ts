@@ -1,6 +1,29 @@
 /** Reviewed corrections. Exact prior values protect later manual edits. */
 export const REVIEWED_STORY_CORRECTIONS = [
   {
+    id: 3930103,
+    sourceUrl:
+      "https://www.realestate.com.au/news/hasnt-stopped-sydney-suburbs-defying-price-slump/",
+    issuedOn: "2026-09-18",
+    reference: "Story 3930103",
+    what: "The counterpoint attributed annual suburb gains to a low starting base without source support. Reader angles also asserted a recovery and policy-driven price effects beyond the attributed reporting.",
+    now: "Those interpretations have been withdrawn. The source-supported headline and summary remain, with the original article linked. Already distributed copies are not rewritten.",
+    fields: [
+      {
+        field: "counterpoint",
+        before:
+          "Strong twelve-month figures in Wentworth Falls and Ingleburn partly reflect how low the base was , not necessarily a new structural demand shift.",
+        after: null,
+      },
+      {
+        field: "partnerTag",
+        before:
+          "Buying: The federal deposit scheme's $1.5m Sydney cap is concentrating first-home buyer demand into outer and mid-ring suburbs, lifting prices there.\nHolding: If you own in an affordable pocket like the outer west or Blue Mountains, your equity may be moving against the city-wide trend.\nWatching: Outer suburbs leading a downturn recovery signals where affordability pressure concentrates first , watch whether inner-ring units follow the same trajectory.",
+        after: null,
+      },
+    ],
+  },
+  {
     fields: [
       {
         after:

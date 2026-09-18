@@ -3,16 +3,13 @@ import { articleIdentity } from "../../scripts/ingest/lib/dedupe";
 import type { FetchedItem } from "../../scripts/ingest/lib/rss";
 import { evidenceRegions, evidenceTopics } from "../../shared/propertyCoverage";
 import { looksLikeGarbage, looksLikeSiteBoilerplate } from "../../shared/headline";
-import { propertyNewsHold } from "../../shared/propertyNewsQuality";
-import { foreignHousingHeadline } from "../../shared/australianScope";
-import { evidenceText } from "../../shared/evidenceQuality";
+import { evidenceEligible, evidenceText } from "../../shared/evidenceQuality";
 
 /** Public feed excerpts only. Never infer a publication date from collection time. */
 export function normaliseEvidence(item: FetchedItem, now = new Date()) {
   if (
     !Number.isFinite(now.getTime()) ||
-    propertyNewsHold(item, now.toISOString().slice(0, 10)) ||
-    foreignHousingHeadline(item.title, item.url, item.source)
+    !evidenceEligible({ ...item, sourceUrl: item.url }, now.toISOString().slice(0, 10))
   )
     return null;
   const clean = evidenceText({ ...item, sourceUrl: item.url });

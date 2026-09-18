@@ -7,6 +7,30 @@ const source = {
     "NSW plans to deliver 226 new social homes in Sydney. Funding of $1.5 billion was announced in September 2026. Rent growth was 4.3 per cent.",
 };
 describe("source claim checks", () => {
+  it("does not infer low-base effects or a recovery from annual suburb gains", () => {
+    const source = {
+      title: "Sydney suburbs defying price slump",
+      articleText:
+        "Some Sydney suburbs recorded annual median gains while the city remained below its peak.",
+    };
+    for (const counterpoint of [
+      "Strong twelve-month figures in Wentworth Falls and Ingleburn partly reflect how low the base was , not necessarily a new structural demand shift.",
+      "Outer suburbs leading a downturn recovery signals where affordability pressure concentrates first.",
+      "Annual suburb gains reflect a low starting base.",
+    ]) {
+      expect(checkClaimEvidence(counterpoint, source)).toContain("unsupported-cause");
+      expect(checkedContext({ counterpoint }, source).values.counterpoint).toBeNull();
+    }
+    expect(
+      checkClaimEvidence("Annual gains do not establish a housing recovery.", source)
+    ).not.toContain("unsupported-cause");
+    expect(
+      checkClaimEvidence("The analyst attributes the gain to a low starting base.", {
+        ...source,
+        articleText: "The analyst attributes the gain to a low starting base.",
+      })
+    ).toEqual([]);
+  });
   it("does not infer losing sellers' behaviour from profitable sellers' holding periods", () => {
     const source = {
       title: "Resale profits",
