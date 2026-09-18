@@ -2,11 +2,22 @@ import type { DailyFeedItem } from "../db/schema";
 import { sourceTimingLabel } from "../../shared/sourceTiming";
 import { storyDestination } from "./sourceContent";
 import { captionBeat, captionText, composeEditorialCaption } from "./editorialCaption";
+import { needsPreviousContext } from "../../shared/headline";
 
 /** Source copy and reusable explanations have separate roles. No social model call. */
 const briefingText = (s: string) => s.replace(/[–—]/g, ", ").replace(/\s+/g, " ").trim();
 export type BriefingLens = {
-  key: "estimate" | "stress" | "supply" | "rents" | "loans" | "auction" | "general";
+  key:
+    | "estimate"
+    | "stress"
+    | "supply"
+    | "tenure"
+    | "tenancy"
+    | "planning"
+    | "rents"
+    | "loans"
+    | "auction"
+    | "general";
   title: string;
   meaning: string;
   points: Array<{ label: string; detail: string }>;
@@ -14,6 +25,53 @@ export type BriefingLens = {
 };
 export function briefingLens(story: Pick<DailyFeedItem, "title" | "summary">): BriefingLens {
   const full = `${story.title} ${story.summary ?? ""}`;
+  if (/\b(?:public|social|affordable) (?:housing|homes)|\bmarket-rate\b/i.test(story.title))
+    return {
+      key: "tenure",
+      title: "The housing mix matters.",
+      meaning:
+        "Market-rate rentals, affordable housing and public housing serve different needs. A total dwelling count does not establish how many public homes are guaranteed.",
+      points: [
+        { label: "Tenure", detail: "Public, affordable or market-rate" },
+        { label: "Commitment", detail: "Proposed or guaranteed homes" },
+        { label: "Delivery", detail: "Replacement homes and timing" },
+      ],
+      takeaway:
+        "Check the committed housing mix, replacement provision and delivery timetable in the proposal.",
+    };
+  if (
+    /\b(?:evict\w*|rental (?:reform|law|rights)|tenan\w* (?:rights|protections)|lease (?:rules|reform))\b/i.test(
+      story.title
+    )
+  )
+    return {
+      key: "tenancy",
+      title: "A proposal is not a rule in force.",
+      meaning:
+        "Rental rights depend on the jurisdiction, the final rules and their commencement date. An announcement alone does not change every lease.",
+      points: [
+        { label: "Place", detail: "The jurisdiction covered" },
+        { label: "Status", detail: "Proposal or enacted rule" },
+        { label: "Start", detail: "Commencement and affected leases" },
+      ],
+      takeaway:
+        "Read the final rules, start date and lease coverage before applying the change to a tenancy.",
+    };
+  if (
+    /\b(?:redevelop\w*|tower plans?|planning (?:proposal|controls)|rezon\w*)\b/i.test(story.title)
+  )
+    return {
+      key: "planning",
+      title: "Follow the proposal through its stages.",
+      meaning:
+        "A redevelopment or planning proposal can change during assessment. Proposed homes, approved homes and completed homes are separate stages.",
+      points: [
+        { label: "Proposal", detail: "The scope being considered" },
+        { label: "Decision", detail: "Consent and conditions" },
+        { label: "Delivery", detail: "Construction and completion" },
+      ],
+      takeaway: "Check the latest decision, conditions and delivery commitments for this site.",
+    };
   if (/\b(modell?ing|forecast\w*|projected|projections?|predict\w*)\b/i.test(full))
     return {
       key: "estimate",
@@ -77,12 +135,16 @@ export function briefingLens(story: Pick<DailyFeedItem, "title" | "summary">): B
       takeaway:
         "Compare the same market and reporting stage before treating one weekend as a trend.",
     };
-  if (/\b(rents?|rental\w*|tenan\w*)\b/i.test(text))
+  if (
+    /\b(?:rent(?:s|al)? (?:levels?|growth|prices?|rose|rise|rising|fell|fall|falling|increas\w*|decreas\w*|index)|(?:asking|median|weekly) rents?)\b/i.test(
+      text
+    )
+  )
     return {
       key: "rents",
       title: "The price and the pace are different.",
       meaning:
-        "Rent levels or rent growth answer different questions. A slower increase still means rents are rising.",
+        "Rent levels and rent growth answer different questions. Slower positive growth still means rents are rising; a negative change means they fell over that period.",
       points: [
         { label: "Level", detail: "The dollar rent" },
         { label: "Change", detail: "Movement over a period" },
@@ -125,6 +187,7 @@ export function briefingLens(story: Pick<DailyFeedItem, "title" | "summary">): B
  * of isolated dramatic clauses; cached/generated angles never enter this path. */
 export function briefingDetail(story: Pick<DailyFeedItem, "title" | "summary">): string | null {
   const summary = briefingText(story.summary ?? "");
+  if (needsPreviousContext(summary)) return null;
   if (/^(?:Media contact|Published by)\b/i.test(summary)) return null;
   const ministerialLead = /^(?:Deputy Premier|Minister for|The Honourable)\b/i.test(summary);
   const reportsAction =

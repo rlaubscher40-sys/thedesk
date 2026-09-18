@@ -13,7 +13,7 @@ const directory = buildMarketDirectory(
   [1, 2, 3].map((id) => ({
     id,
     title: `Perth housing report ${id}`,
-    summary: "Perth housing evidence.",
+    summary: "Perth, Western Australia housing evidence.",
     source: `Publisher ${id}`,
     sourceUrl: `https://source-${id}.com.au/report`,
     feedDate: "2026-09-07",

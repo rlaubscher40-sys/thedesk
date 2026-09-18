@@ -189,6 +189,7 @@ export async function getLocalCoverage() {
 }
 
 export type FactEvidence = {
+  reviewedContext?: boolean;
   quarterlyHousing?: { kind: "transfers" | "completions"; place: string; period: string };
   stateLabour?: {
     period: string;

@@ -26,7 +26,7 @@ export default function Evidence() {
           <p className="bs-label">
             Source evidence ·{" "}
             {item.excluded
-              ? "Excluded reference"
+              ? "Excluded from Australian market evidence"
               : item.regions.join(" · ") || "Location unspecified"}
           </p>
           <h1 className="font-serif text-3xl sm:text-4xl">{item.title}</h1>

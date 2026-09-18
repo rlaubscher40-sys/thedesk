@@ -146,11 +146,23 @@ export function looksLikeSiteBoilerplate(text: string | null | undefined): boole
  * consistent — and the reason a boilerplate row already in the database
  * stops rendering without needing a re-ingest.
  */
+/** A standalone excerpt must identify its subject and speaker. */
+export function needsPreviousContext(text: string): boolean {
+  return (
+    /^(?:i|we|our|he|she|they|it|this|that|these|those|for people already living that reality)\b/i.test(
+      text.trim()
+    ) ||
+    /^(?:it comes as|in (?:other|earlier) news|meanwhile)\b/i.test(text.trim()) ||
+    /["”']?,?\s+(?:he|she|they)\s+(?:said|added|warned|told|argued)\b/i.test(text)
+  );
+}
+
 export function shouldShowSummary(title: string, summary: string | null | undefined): boolean {
   if (!summary) return false;
   if (isRedundantSummary(title, summary)) return false;
   if (looksLikeGarbage(summary)) return false;
   if (looksLikeSiteBoilerplate(summary)) return false;
+  if (needsPreviousContext(summary)) return false;
   // A minister's portfolio and name are attribution, not a story standfirst.
   if (
     /^(?:Deputy Premier|Premier|Minister for)\b[^.!?]{0,500}\bThe Honourable [\p{L}'’-]+(?: [\p{L}'’-]+){1,3}\s*$/u.test(

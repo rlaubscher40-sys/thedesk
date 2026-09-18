@@ -1,3 +1,4 @@
+vi.mock("../editorialReview", () => ({ reviewEditorialCopy: vi.fn(async (copy) => copy) }));
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock the LLM core so no network call fires.

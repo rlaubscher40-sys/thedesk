@@ -22,6 +22,7 @@ import {
 } from "../../shared/cityApprovals";
 import { getCityApprovals } from "../markets/absApprovals";
 import { stateLabourFacts } from "./stateLabourFacts";
+import { reviewedRegionalFacts } from "./regionalContext";
 import {
   quarterlyHousingFacts,
   quarterlyHousingScope,
@@ -39,6 +40,8 @@ import {
 /** Optional evidence has a smaller budget than Ask. A failed source must not fail the answer.
  * Stored local data and planning reads never initiate external collection. */
 export async function retrieveLocalFacts(question: string): Promise<FactEvidence[]> {
+  const reviewed = reviewedRegionalFacts(question, new Date().toISOString().slice(0, 10));
+  if (reviewed.length) return reviewed;
   const requestedPeriods = requestedLocalPeriods(question);
   const rent = /\brent(?:s|al)?\b/i.test(question),
     population = /\b(population|migration|demographic|residents)\b/i.test(question);

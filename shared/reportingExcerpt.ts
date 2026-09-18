@@ -1,4 +1,4 @@
-import { looksLikeGarbage, looksLikeSiteBoilerplate } from "./headline";
+import { looksLikeGarbage, looksLikeSiteBoilerplate, needsPreviousContext } from "./headline";
 
 const STOP = new Set(
   "about after again against also among before could have into many more most says said that their them there these they this those through under what when where which while will with would your from than been were over news australia australian".split(
@@ -12,17 +12,6 @@ const words = (s: string) => [
       .filter((w) => !STOP.has(w))
   ),
 ];
-
-/** A standalone excerpt must not leave the speaker or subject in an omitted paragraph. */
-function needsPreviousContext(text: string): boolean {
-  return (
-    /^(?:i|we|our|he|she|they|it|this|that|these|those|for people already living that reality)\b/i.test(
-      text
-    ) ||
-    /^(?:it comes as|in (?:other|earlier) news|meanwhile)\b/i.test(text) ||
-    /["”']?,?\s+(?:he|she|they)\s+(?:said|added|warned|told|argued)\b/i.test(text)
-  );
-}
 
 /** Suppress a short restatement only when it adds neither vocabulary nor figures.
  * Negations and changed numbers remain significant; this is not semantic deduplication. */

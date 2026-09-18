@@ -24,7 +24,9 @@ afterEach(cleanup);
 it("keeps excluded originals accessible without endorsing the archived region or offering story-specific Ask", () => {
   const location = memoryLocation({ path: "/evidence/99278" });
   render(h(Router, { hook: location.hook }, h(Evidence)));
-  expect(screen.getByText(/Source evidence · Excluded reference/)).toBeTruthy();
+  expect(
+    screen.getByText(/Source evidence · Excluded from Australian market evidence/)
+  ).toBeTruthy();
   expect(screen.queryByText(/Source evidence · WA/)).toBeNull();
   expect(screen.getByRole("note").textContent).toContain("excluded from selected market evidence");
   expect(screen.getByText(/Headline-only reference/)).toBeTruthy();

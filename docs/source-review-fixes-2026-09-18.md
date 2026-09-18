@@ -2,6 +2,8 @@
 
 Production was recovered at PR317, commit `310aa8caa413dffa07141073cd78753d0b406d04`, with successful Railway deployment `ecbbaf49-d245-4192-88df-1cb758958a6e`. These changes follow the public source review, not an assumption that opening a PR proves deployment.
 
+During validation, PR304 and then PR318 merged separately. This change integrates main at `b120c0e8e4fb454c35844f75dc14e14753900f13`, preserving their briefing, Ask, editorial-review and source-correction changes. In particular, PR318's guarded removal of record 287372's wrong-country region remains in place. The additional changes here preserve the archived source text and URLs.
+
 ## Reviewed findings
 
 - Evidence 278267 is a [Homes Victoria recruitment advertisement](https://jobs.careers.vic.gov.au/jobtools/jncustomsearch.viewFullSingle?in_jnCounter=226686920&in_organid=14160), posted September 16. Salary, application requirements and a closing date do not make this housing-market reporting. Careers hosts and job-advert formats are held on ingestion and in search/market read projections. Ordinary reporting about construction vacancies is retained.

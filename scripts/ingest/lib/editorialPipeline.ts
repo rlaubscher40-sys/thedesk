@@ -65,15 +65,27 @@ export type PipelineOptions = {
 /** Give each discovered publisher a small reading opportunity before taking
  * extra articles from the highest-scoring feeds. Index bonuses must not let
  * a few publishers exhaust the budget before specialist reporting is read. */
-export function readingBudget(items: FetchedItem[], limit: number): FetchedItem[] {
+function propertyDataRelease(item: FetchedItem): boolean {
+  return ["AU", "PROPERTY"].includes(item.channel) &&
+    publisherWeight(item) >= 12 &&
+    !referenceNewsHold(item) &&
+    storySignificance(item.title).reason !== "analysis-or-proposal" &&
+    /\b(?:vacancy rates?|rental vacanc(?:y|ies)|building approvals?|dwelling approvals?|housing approvals?|housing completions?|rental report|rents? (?:report|index)|home (?:price|value) index|housing (?:price|value) index|total property listings)\b/i.test(item.title);
+}
+
+export function readingBudget(items: FetchedItem[], limit: number, now = new Date()): FetchedItem[] {
+  if (!Number.isFinite(limit) || limit < 1) return [];
+  limit = Math.floor(limit);
   const selected = new Set<FetchedItem>();
   const counts = new Map<string, number>();
   // Reserve part of the existing budget for concrete decisions and data.
   // Publisher rotation must not strand a release behind that publisher's
   // two earlier stories. Eligibility, dates and evidence still run afterwards.
   const significant = items
-    .filter((item) => storySignificance(item.title).baseline >= 88)
-    .sort((a, b) => discoveryScore(b) - discoveryScore(a));
+    .filter((item) => !olderIndexPath(item, now) &&
+      (propertyDataRelease(item) || storySignificance(item.title).baseline >= 88))
+    .sort((a, b) => Number(propertyDataRelease(b)) - Number(propertyDataRelease(a)) ||
+      discoveryScore(b) - discoveryScore(a));
   for (const item of significant) {
     if (selected.size >= Math.ceil(limit / 3)) break;
     if ((counts.get(item.source) ?? 0) >= 3) continue;
@@ -187,6 +199,7 @@ export async function buildDailyBrief(options: PipelineOptions = {}) {
         discoveryScore(item) + (item.discovery === "publisher-index" ? 4 : 0);
       return (
         Number(olderIndexPath(a, now)) - Number(olderIndexPath(b, now)) ||
+        Number(propertyDataRelease(b)) - Number(propertyDataRelease(a)) ||
         score(b) - score(a) ||
         Date.parse(b.isoDate ?? "1970-01-01") - Date.parse(a.isoDate ?? "1970-01-01")
       );
@@ -205,11 +218,13 @@ export async function buildDailyBrief(options: PipelineOptions = {}) {
   const selectedToRead = [
     ...readingBudget(
       shortlist.filter((i) => ["AU", "PROPERTY"].includes(i.channel)),
-      100
+      100,
+      now
     ),
     ...readingBudget(
       shortlist.filter((i) => !["AU", "PROPERTY"].includes(i.channel)),
-      32
+      32,
+      now
     ),
   ];
   const articleRequests = new Map<string, Promise<FetchedArticle>>();
@@ -322,7 +337,8 @@ export async function buildDailyBrief(options: PipelineOptions = {}) {
       recoveryCounts.set(item.source, count + 1);
       return true;
     }),
-    60
+    60,
+    now
   );
   const hasLocalSupply = () => {
     const published = createEvidenceDuplicateIndex(options.recentStories);

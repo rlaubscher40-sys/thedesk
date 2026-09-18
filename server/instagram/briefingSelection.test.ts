@@ -5,6 +5,7 @@ const m = vi.hoisted(() => ({ unused: vi.fn() }));
 vi.mock("./socialPublication", () => ({ unpublishedSocialStories: m.unused }));
 import {
   assessBriefingStory,
+  briefingSelectionAudit,
   pickBriefingStories,
   unpublishedBriefingSelection,
 } from "./briefingSelection";
@@ -22,6 +23,71 @@ const story = (id: number, overrides: Partial<DailyFeedItem> = {}) =>
     ...overrides,
   }) as DailyFeedItem;
 beforeEach(() => vi.resetAllMocks());
+it("keeps the September 17 suburb-price headline when the source summary establishes housing", () => {
+  const candidate = story(3930103, {
+    title: "'Hasn't stopped': Sydney suburbs defying price slump",
+    summary:
+      "Sydney home values have fallen below their previous peak, according to the latest Home Price Report.",
+    source: "realestate.com.au News",
+    sourceUrl:
+      "https://www.realestate.com.au/news/hasnt-stopped-sydney-suburbs-defying-price-slump/",
+  });
+  expect(assessBriefingStory(candidate)).toMatchObject({ tier: 2, hold: null });
+  expect(pickBriefingStories([candidate])).toEqual([candidate]);
+  expect(candidate.title).toBe("'Hasn't stopped': Sydney suburbs defying price slump");
+});
+it.each([
+  { summary: "Sydney petrol prices have fallen." },
+  { summary: null, whyItMatters: "Sydney home values are falling." },
+  { title: "London suburbs defying price slump" },
+  { title: "Sydney suburbs welcome a new festival" },
+  { title: "Sydney suburbs see petrol prices fall" },
+  { sourceTiming: null },
+  { sourceUrl: null },
+  { summary: "Sydney home values fell. Sponsored content: book a free consultation." },
+])("does not broaden the suburb-price exception past evidence safeguards: %j", (overrides) => {
+  const candidate = story(1, {
+    title: "Sydney suburbs defying price slump",
+    summary: "Sydney home values fell in the latest monthly report.",
+    ...overrides,
+  });
+  expect(pickBriefingStories([candidate])).toEqual([]);
+});
+it("audits distinct eligibility failures without checking or changing publication locks", () => {
+  const rows = briefingSelectionAudit([
+    story(1, { channel: "GLOBAL" }),
+    story(2, { sourceTiming: null }),
+    story(3, { source: "" }),
+    story(4, { title: "London rents rise" }),
+    story(5, { title: "Rents rise", summary: "Rents paid rose in July." }),
+    story(6, { title: "Sydney chipmaker profits rise" }),
+    story(7),
+  ]);
+  expect(rows.map((row) => row.hold)).toEqual([
+    "outside-australian-property-channels",
+    "missing-source-timing",
+    "missing-publisher",
+    "foreign-housing-story",
+    "missing-australian-geography",
+    "no-property-or-financing-subject",
+    null,
+  ]);
+  expect(m.unused).not.toHaveBeenCalled();
+  expect(JSON.stringify(rows)).not.toContain("https://");
+});
+it("requires rental evidence and Australian geography for a neutral vacancy report", () => {
+  const candidate = story(8, {
+    title: "National Vacancy Rates August 2026",
+    summary: "Australian rental vacancy rates fell in the latest monthly report.",
+  });
+  expect(pickBriefingStories([candidate])).toEqual([candidate]);
+  expect(
+    pickBriefingStories([{ ...candidate, summary: "Australian job vacancy rates fell." }])
+  ).toEqual([]);
+  expect(pickBriefingStories([{ ...candidate, summary: "Rental vacancy rates fell." }])).toEqual(
+    []
+  );
+});
 it("lets usable reported figures lead ahead of a dramatic higher-priority forecast or opinion", () => {
   const data = story(1);
   const forecast = story(2, {
@@ -34,7 +100,8 @@ it("lets usable reported figures lead ahead of a dramatic higher-priority foreca
     summary: "We believe Sydney housing needs a different approach.",
     priority: 98,
   });
-  expect(pickBriefingStories([forecast, opinion, data]).map((s) => s.id)).toEqual([1, 2, 3]);
+  expect(pickBriefingStories([forecast, opinion, data]).map((s) => s.id)).toEqual([1, 2]);
+  expect(assessBriefingStory(opinion).hold).toBeTruthy(); // Unidentified "we" is not standalone reporting.
   expect(assessBriefingStory(forecast).kind).toBe("Forecast or modelling");
   expect(data.title).toBe("Sydney rents update 1");
 });

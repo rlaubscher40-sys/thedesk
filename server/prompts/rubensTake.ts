@@ -9,6 +9,7 @@
 import type { EditionTopic, KeyMetrics } from "../../shared/schemas";
 import { invokeLLM } from "../core/llm";
 import { rubenSystemPrompt, rubensVoiceSamples, stripBannedChars, voiceRules } from "./voice";
+import { reviewEditorialCopy } from "./editorialReview";
 
 export type RubensTakeInput = {
   weekRange: string;
@@ -73,5 +74,7 @@ export async function generateRubensTake(input: RubensTakeInput): Promise<string
   if (cleaned.length < 20) {
     throw new Error("Ruben's Take generation returned too little content");
   }
-  return cleaned;
+  const reviewed = await reviewEditorialCopy({ take: cleaned }, input, AbortSignal.timeout(60_000));
+  if (!reviewed.take) throw new Error("Ruben's Take failed evidence review");
+  return reviewed.take;
 }

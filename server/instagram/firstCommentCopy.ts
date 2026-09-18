@@ -10,6 +10,18 @@ export function buildFirstComment(input: {
   const headline = input.headline ?? "";
   const themes: Array<[RegExp, string]> = [
     [
+      /\b(?:public|social|affordable) (?:housing|homes)|\bmarket-rate\b/i,
+      "Which part of this housing proposal needs more explanation: the housing mix, replacement homes or delivery timetable?",
+    ],
+    [
+      /\b(?:evict\w*|rental (?:reform|law|rights)|tenan\w* (?:rights|protections)|lease (?:rules|reform))\b/i,
+      "Which part of the rental rules would you like explained: who is covered, what changes or when they start?",
+    ],
+    [
+      /\b(?:redevelop\w*|tower plans?|planning (?:proposal|controls)|rezon\w*)\b/i,
+      "What would you like explained about this proposal: its scope, approval stage or delivery commitments?",
+    ],
+    [
       /\b(migrat\w*|population|interstate)\b/i,
       "When people move into an area, what changes first where you live: rents, available homes or prices?",
     ],

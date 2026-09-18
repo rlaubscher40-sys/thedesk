@@ -16,6 +16,7 @@ import { getStateLabour } from "./absLabour";
 import { getHousingTransfers, getHousingCompletions } from "./absQuarterlyHousing";
 import { readLocalDataset } from "../db/localData";
 import { matchLocalAreas } from "../localData/read";
+import { sourceWebsite } from "../../shared/sourceIdentity";
 
 async function optionalSource<T>(read: Promise<T>): Promise<T | undefined> {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -144,8 +145,8 @@ export function buildMarketDirectory(
     });
     const references = candidates.filter((_, index) => root(index) === index);
     for (const reference of references) {
-      if (reference.sourceUrl)
-        publishers.add(new URL(reference.sourceUrl).hostname.toLowerCase().replace(/^www\./, ""));
+      const identity = sourceWebsite(reference.sourceUrl, reference.publisher);
+      if (identity) publishers.add(identity);
     }
     const latestMention = references[0]?.date ?? null;
     const enough = references.length >= 3 && publishers.size >= 2;
