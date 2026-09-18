@@ -57,12 +57,15 @@ it("deduplicates simultaneous reads but regenerates changed scripts and speeds",
 
 it("routes documentary phrases to ElevenLabs while preserving measured cues", async () => {
   request.mockImplementation(async () => new Response(pcm()));
-  const clips = await synthesisePhrases([
+  const { engine, clips } = await synthesisePhrases([
     { key: "scene", text: "One. Two.", phrases: ["One.", "Two."] },
   ]);
+  expect(engine).toBe("elevenlabs");
   expect(clips[0].phrases.map((p) => p.start)).toEqual([0, 1.08]);
   expect(request).toHaveBeenCalledTimes(2);
-  expect(request.mock.calls.every(([url]) => new URL(url).hostname === "api.elevenlabs.io")).toBe(true);
+  expect(request.mock.calls.every(([url]) => new URL(url).hostname === "api.elevenlabs.io")).toBe(
+    true
+  );
 });
 
 it.each([401, 403, 429, 500])(

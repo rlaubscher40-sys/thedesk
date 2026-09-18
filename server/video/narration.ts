@@ -1,6 +1,6 @@
 /** Deterministic, evidence-backed scripts spoken by the configured Reel voice. */
 import type { SpeechProfile } from "./localVoice";
-import { reelSpeech } from "./reelVoice";
+import { reelNarration, type ReelNarration } from "./reelVoice";
 import type { ReelScriptLines } from "../prompts/reelScript";
 
 /** Acronyms that must survive de-shouting as acronyms: spoken as letters, not
@@ -180,8 +180,8 @@ export function estimateSpeechSeconds(text: string): number {
 export async function synthesiseScript(
   lines: ScriptLine[],
   profile?: SpeechProfile
-): Promise<Array<{ key: string; bytes: Buffer }>> {
+): Promise<ReelNarration> {
   // Preserve the actual failure (timeout, missing assets, process exit or
   // invalid PCM) through the scheduled route and its admin result.
-  return reelSpeech(lines, profile);
+  return reelNarration([lines], profile);
 }

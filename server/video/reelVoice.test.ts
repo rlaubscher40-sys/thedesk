@@ -6,16 +6,20 @@ const config = vi.hoisted(() => ({
 }));
 vi.mock("../core/env", () => ({ env: config }));
 vi.mock("./localVoice", () => ({
-  localSpeech: vi.fn(),
+  localSpeech: vi.fn(async (lines: Array<{ key: string }>) =>
+    lines.map((l) => ({ key: l.key, bytes: Buffer.from("local") }))
+  ),
   localVoiceReady: vi.fn().mockResolvedValue(true),
 }));
 vi.mock("./elevenLabsVoice", () => ({
-  elevenLabsSpeech: vi.fn(),
+  elevenLabsSpeech: vi.fn(async (lines: Array<{ key: string }>) =>
+    lines.map((l) => ({ key: l.key, bytes: Buffer.from("clone") }))
+  ),
   elevenLabsVoiceReady: vi.fn().mockResolvedValue(true),
 }));
-import { localSpeech } from "./localVoice";
+import { localSpeech, localVoiceReady } from "./localVoice";
 import { elevenLabsSpeech, elevenLabsVoiceReady } from "./elevenLabsVoice";
-import { reelSpeech, reelVoiceReadiness, reelVoiceIdentity } from "./reelVoice";
+import { reelSpeech, reelNarration, reelVoiceReadiness, reelVoiceIdentity } from "./reelVoice";
 import { synthesiseScript } from "./narration";
 vi.mock("./reelVisualStandard", () => ({ REEL_VISUAL_SEQUENCES: {} }));
 import { captureReelRender, reelRenderRecordSchema } from "./reelRenderRecord";
@@ -75,4 +79,78 @@ it("permits an explicit local rollback and blocks an invalid provider", async ()
   config.reelVoiceProvider = "typo";
   await expect(reelSpeech(lines)).rejects.toThrow("REEL_VOICE_PROVIDER");
   expect((await reelVoiceReadiness()).ok).toBe(false);
+});
+
+it("speaks locally rather than losing the Reel when the clone fails in auto mode", async () => {
+  config.elevenLabsApiKey = "test-key";
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  vi.mocked(elevenLabsSpeech).mockRejectedValueOnce(new Error("HTTP 429"));
+  const spoken = await reelSpeech(lines);
+  expect(spoken.map((c) => c.bytes.toString())).toEqual(["local"]);
+  expect(localSpeech).toHaveBeenCalledWith(lines, undefined);
+  expect(warn.mock.calls[0]![0]).toContain("speaks in the local voice");
+  expect(warn.mock.calls[0]![0]).toContain("HTTP 429");
+  warn.mockRestore();
+});
+
+it("never mixes two speakers in one Reel when the clone fails part way through", async () => {
+  config.elevenLabsApiKey = "test-key";
+  vi.spyOn(console, "warn").mockImplementation(() => {});
+  const first = Array.from({ length: 9 }, (_, i) => ({ key: `a${i}`, text: "One." }));
+  const second = [{ key: "b0", text: "Two." }];
+  // The opening batch is spoken by the clone, and then the closing batch fails:
+  // the state that could put two speakers in one clip.
+  vi.mocked(elevenLabsSpeech).mockImplementationOnce(async (batch) =>
+    batch.map((l) => ({ key: l.key, bytes: Buffer.from("clone") }))
+  );
+  vi.mocked(elevenLabsSpeech).mockRejectedValueOnce(new Error("HTTP 500"));
+  const { engine, clips } = await reelNarration([first, second]);
+  expect(engine).toBe("local-kokoro");
+  expect(clips).toHaveLength(10);
+  expect(clips.every((c) => c.bytes.toString() === "local")).toBe(true);
+  expect(vi.mocked(localSpeech).mock.calls.map((c) => c[0].length)).toEqual([9, 1]);
+  vi.mocked(console.warn).mockRestore();
+});
+
+it("keeps an explicitly required clone strict, with no local substitute", async () => {
+  config.elevenLabsApiKey = "test-key";
+  config.reelVoiceProvider = "elevenlabs";
+  vi.mocked(elevenLabsSpeech).mockRejectedValueOnce(new Error("HTTP 401"));
+  await expect(reelNarration([lines])).rejects.toThrow("HTTP 401");
+  expect(localSpeech).not.toHaveBeenCalled();
+});
+
+it("reports a readiness state that names the voice a listener would hear", async () => {
+  config.elevenLabsApiKey = "test-key";
+  vi.mocked(elevenLabsVoiceReady).mockResolvedValueOnce(false);
+  const fallingBack = await reelVoiceReadiness();
+  expect(fallingBack.ok).toBe(true);
+  expect(fallingBack.detail).toContain("not in Ruben's clone");
+  // Nothing can speak: the Reel must not publish silently.
+  vi.mocked(elevenLabsVoiceReady).mockResolvedValueOnce(false);
+  vi.mocked(localVoiceReady).mockResolvedValueOnce(false);
+  expect((await reelVoiceReadiness()).ok).toBe(false);
+});
+
+it("records the speaker that was actually heard, not the one configured", () => {
+  config.reelVoiceProvider = "elevenlabs";
+  const profile = { voice: "bm_fable", speed: 1 };
+  expect(reelVoiceIdentity(profile, "local-kokoro")).toEqual({
+    engine: "local-kokoro",
+    voice: "bm_fable",
+    speed: 1,
+  });
+  const record = captureReelRender(
+    {
+      bytes: Buffer.from("video"),
+      seconds: 10,
+      narrated: true,
+      subtitled: true,
+      spokenBy: "local-kokoro",
+    },
+    Buffer.from("cover"),
+    { label: "Test", value: "1", line: "Evidence", subtext: "Period" },
+    profile
+  );
+  expect(record.voice).toEqual({ engine: "local-kokoro", voice: "bm_fable", speed: 1 });
 });

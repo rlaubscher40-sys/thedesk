@@ -36,7 +36,8 @@ if (!args.includes("--frames-only")) {
   if (candidate.stat.storyboard.kind === "housing-balance") {
     // This audit also warms the bounded exact-script speech cache. The render
     // below reuses the same local audio, with no second model run.
-    const speech = await synthesisePhrases(candidate.stat.storyboard.scenes);
+    const { engine, clips: speech } = await synthesisePhrases(candidate.stat.storyboard.scenes);
+    console.log(`Spoken by: ${engine}`);
     for (const s of speech) await fs.writeFile(path.join(out, `speech-${s.key}.wav`), s.bytes);
     const durations = Object.fromEntries(speech.map((s) => [s.key, (s.bytes.length - 44) / 48000]));
     const phrases = Object.fromEntries(speech.map((s) => [s.key, s.phrases]));

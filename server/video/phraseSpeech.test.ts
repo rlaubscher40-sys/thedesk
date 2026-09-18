@@ -76,8 +76,9 @@ it("rejects script drift before synthesis and retains the bounded voice batches"
     text: "First. Second.",
     phrases: ["First.", "Second."],
   }));
-  const spoken = await synthesisePhrases(plans);
+  const { engine, clips: spoken } = await synthesisePhrases(plans);
   expect(vi.mocked(localSpeech).mock.calls.map((c) => c[0].length)).toEqual([9, 3]);
+  expect(engine).toBe("local-kokoro");
   expect(spoken.map((s) => s.key)).toEqual(plans.map((p) => p.key));
   expect(spoken.every((s) => s.phrases[1]!.start === 1.08)).toBe(true);
 });

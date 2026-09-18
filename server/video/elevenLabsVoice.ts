@@ -38,7 +38,8 @@ function wave(pcm: Buffer): Buffer {
   return bytes;
 }
 
-/** Bounded, all-or-nothing synthesis. Never replace Ruben with a stock voice on failure. */
+/** Bounded, all-or-nothing synthesis: a partial script never reaches a render.
+ *  This module never substitutes a speaker itself; reelVoice owns that choice. */
 export async function elevenLabsSpeech(lines: SpeechLine[], speed = 1): Promise<SpeechAudio[]> {
   const voice = voiceUrl();
   if (!Number.isFinite(speed) || speed < 0.9 || speed > 1.1)
