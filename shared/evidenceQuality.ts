@@ -45,6 +45,7 @@ export function evidenceText(input: EvidenceInput) {
 }
 
 export function evidenceEligible(input: EvidenceInput, asOf: string): boolean {
+  const clean = evidenceText(input);
   // Entertainment about landlords is not market evidence. Company publicity
   // is not independent analysis, even when its headline names a city.
   if (
@@ -63,12 +64,7 @@ export function evidenceEligible(input: EvidenceInput, asOf: string): boolean {
     !looksLikeGarbage(input.title) &&
     !looksLikeSiteBoilerplate(input.title) &&
     !propertyNewsHold(input, asOf) &&
-    !foreignHousingHeadline(input.title, input.sourceUrl, input.source) &&
-    !unresolvedAustralianNamesake(
-      input.title,
-      evidenceText(input).summary,
-      input.sourceUrl,
-      input.source
-    )
+    !foreignHousingHeadline(`${clean.title} ${clean.summary}`, input.sourceUrl, input.source) &&
+    !unresolvedAustralianNamesake(input.title, clean.summary, input.sourceUrl, input.source)
   );
 }

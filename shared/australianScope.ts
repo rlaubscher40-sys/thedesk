@@ -49,8 +49,24 @@ export function unresolvedAustralianNamesake(
   publisher?: string | null
 ): boolean {
   if (!/\b(?:Newcastle|Perth)\b/i.test(title + " " + summary)) return false;
+  // Country-specific publisher labels survive Google wrappers. Treat these as
+  // unresolved Australian evidence, not as proof of a particular foreign city.
   if (
-    /\b(?:Australia\w*|NSW|New South Wales|WA|Western Australia|QLD|Queensland|Sydney|Melbourne|Brisbane|Adelaide|Canberra|Hobart|Darwin)\b/.test(
+    foreignHousingHeadline(
+      title + " " + summary,
+      publisher?.includes(".") ? `https://${publisher.trim()}` : sourceUrl,
+      publisher
+    )
+  )
+    return true;
+  if (
+    /\b(?:Perth|Newcastle)\b.{0,60}\b(?:Ontario|Scotland|England|South Africa)\b|\b(?:Ontario|Scotland|England|South Africa)\b.{0,60}\b(?:Perth|Newcastle)\b/i.test(
+      title + " " + summary
+    )
+  )
+    return true;
+  if (
+    /\b(?:Australia\w*|NSW|New South Wales|WA|Western Australia|QLD|Queensland|Sydney|Melbourne|Brisbane|Adelaide|Canberra|Hobart|Darwin)\b/i.test(
       title + " " + summary
     )
   )

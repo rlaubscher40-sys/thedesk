@@ -15,7 +15,7 @@ const directory = buildMarketDirectory(
     title: `Perth housing report ${id}`,
     summary: "Perth, Western Australia housing evidence.",
     source: `Publisher ${id}`,
-    sourceUrl: `https://source-${id}.test/report`,
+    sourceUrl: `https://source-${id}.com.au/report`,
     feedDate: "2026-09-07",
     category: "PROPERTY",
     channel: "AU",

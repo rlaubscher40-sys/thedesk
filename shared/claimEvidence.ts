@@ -18,6 +18,7 @@ export type ClaimIssue =
   | "cohort-scope"
   | "decision-authority"
   | "conditional-guidance"
+  | "unsupported-cause"
   | "allegation-as-fact";
 
 function figures(text: string): Set<string> {
@@ -190,6 +191,22 @@ export function checkClaimEvidence(
       /\b(?:repeal|remove|abolish)\w*\b/i.test(s)
   );
   for (const sentence of sentences(copy)) {
+    // Annual gains alone establish neither a base effect nor a turning point.
+    // Check original prose, not the headline or another generated angle.
+    const deniesInference =
+      /\b(?:does not|doesn't|cannot|can't|not enough to|do not|does not necessarily)\b/i.test(
+        sentence
+      );
+    const baseEffect = /\b(?:low(?:er)? (?:the |starting )?base|base effects?)\b/i;
+    const recovery = /\b(?:recovery|recovering|rebound|turning point)\b/i;
+    if (
+      !deniesInference &&
+      ((baseEffect.test(sentence) && !planningBody.some((s) => baseEffect.test(s))) ||
+        (recovery.test(sentence) &&
+          /\b(?:housing|property|suburbs?|prices?|market|downturn)\b/i.test(sentence) &&
+          !planningBody.some((s) => recovery.test(s))))
+    )
+      issues.add("unsupported-cause");
     // A profitable seller's holding period cannot explain the behaviour of
     // loss-making sellers. Require independent evidence for that conclusion.
     if (

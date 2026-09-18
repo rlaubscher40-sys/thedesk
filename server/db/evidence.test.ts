@@ -113,4 +113,33 @@ describe("evidence read projections", () => {
     fixture.rows = [row(1, "Sydney Mortgage Awards: Book your hotel room now")];
     expect(await getPropertyEvidence(1)).toEqual(fixture.rows[0]);
   });
+  it("excludes recruitment and unresolved namesakes from search and market selection but preserves direct reads", async () => {
+    const held = [
+      {
+        ...row(
+          278267,
+          "Sourcing Program Lead | Melbourne - CBD | Department of Families, Fairness and Housing Careers"
+        ),
+        source: "jobs.careers.vic.gov.au",
+      },
+      {
+        ...row(99278, "More than 1,000 homes coming after Caivan Perth development wins approval"),
+        source: "lanarkleedstoday.ca",
+      },
+      {
+        ...row(
+          287372,
+          "Builder defends controversial Newcastle housing plans after row over council land deal"
+        ),
+        source: "Yahoo News UK",
+      },
+    ].map((r) => ({ ...r, sourceUrl: `https://news.google.com/rss/articles/${r.id}` }));
+    fixture.rows = [...held, row(4)];
+    expect((await listPropertyMarketEvidence()).map((r) => r.id)).toEqual([4]);
+    for (const r of held) {
+      fixture.rows = [r];
+      expect(await searchPropertyEvidence(r.title, 10)).toEqual([]);
+      expect(await getPropertyEvidence(r.id)).toEqual(r);
+    }
+  });
 });

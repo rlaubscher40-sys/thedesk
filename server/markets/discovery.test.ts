@@ -120,6 +120,21 @@ it("retains reporting when the optional council dataset read fails", async () =>
 });
 
 describe("public market discovery", () => {
+  it("does not promote unresolved Australian geography from Google search descriptions", () => {
+    const file = perth([
+      item(1, {
+        source: "Unresolved Publisher",
+        sourceUrl: "https://news.google.com/rss/articles/1",
+        summary: "Western Australia housing roundup",
+      }),
+      item(2, {
+        source: "lanarkleedstoday.ca",
+        sourceUrl: "https://news.google.com/rss/articles/2",
+      }),
+      item(3),
+    ]);
+    expect(file.references.map((r) => r.id)).toEqual([3]);
+  });
   it("removes promotions and roundup geography, and labels headline-only references honestly", () => {
     const rows = [
       item(1, {

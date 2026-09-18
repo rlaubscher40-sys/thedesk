@@ -50,7 +50,9 @@ it.skipIf(!testUrl)(
       expect(rows[0]!.rubensNote).toBe("Preserve the reader note");
     }
     await apply();
-    const [first, second] = REVIEWED_STORY_CORRECTIONS;
+    const [first, second] = REVIEWED_STORY_CORRECTIONS.filter((c) =>
+      c.fields.some((f) => f.field === "summary")
+    );
     const original = first!.fields.find((f) => f.field === "summary")!.before;
     await pool!.query("UPDATE daily_feed_items SET summary=? WHERE id=?", [
       original.toUpperCase(),
