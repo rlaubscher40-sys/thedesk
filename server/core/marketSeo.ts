@@ -69,7 +69,7 @@ export function marketCardInput(file: PublicMarketFile): DeskTakeCardInput {
     category: file.market.state,
     take: `${file.market.name}. ${lead?.title ?? "The evidence gap is visible."}`,
     storyTitle: "Read the evidence. Then question the view.",
-    context: `${file.referenceCount} selected reporting references across 90 days. Coverage is not an investment ranking. Open the source trail at thedesk.au${marketPath(file.market.slug)}.`,
+    context: `${file.referenceCount} selected reporting ${file.referenceCount === 1 ? "reference" : "references"} across 90 days. Coverage is not an investment ranking. Open the source trail at thedesk.au${marketPath(file.market.slug)}.`,
     source: lead?.publisher ?? "The Desk",
     feedDate: lead?.date ?? file.asOf,
   };

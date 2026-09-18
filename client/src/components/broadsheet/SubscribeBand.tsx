@@ -10,7 +10,7 @@
  * On the navy canvas there is no "more ink" to invert into, so `.bs-ink-band`
  * turns this into an elevated panel ringed in amber instead.
  */
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import { Honeypot } from "@/components/Honeypot";
 import { hasSubscribed, useSubscribe } from "@/lib/useSubscribe";
@@ -43,6 +43,20 @@ export function SubscribeBand({
     source,
     onSubscribed: () => setDone(true),
   });
+  const emailInput = useRef<HTMLInputElement>(null);
+  const confirmation = useRef<HTMLDivElement>(null);
+  const wasDone = useRef(false);
+
+  // Both transitions remove the focused control. Keep keyboard readers at
+  // the result, then return them to the address when they choose to edit it.
+  useEffect(() => {
+    if (done) confirmation.current?.focus();
+    else if (wasDone.current) emailInput.current?.focus();
+    wasDone.current = done;
+  }, [done]);
+  useEffect(() => {
+    if (error) emailInput.current?.focus();
+  }, [error]);
 
   if (alreadySubscribed && hideAfterSignup) return null;
 
@@ -83,7 +97,7 @@ export function SubscribeBand({
 
       <div className="min-w-0">
         {done ? (
-          <div role="status" className="text-base leading-7">
+          <div ref={confirmation} role="status" tabIndex={-1} className="text-base leading-7">
             <p>
               Check your inbox at <strong className="break-all">{submittedEmail}</strong>. Follow
               the email instructions to confirm or manage your subscription.
@@ -104,7 +118,11 @@ export function SubscribeBand({
           </div>
         ) : (
           <form
-            onSubmit={submit}
+            onSubmit={(event) => {
+              submit(event);
+              // Also covers repeated invalid submissions with unchanged text.
+              emailInput.current?.focus();
+            }}
             noValidate
             className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] gap-2.5"
           >
@@ -112,6 +130,7 @@ export function SubscribeBand({
               Email address
             </label>
             <input
+              ref={emailInput}
               id={`subscribe-${source}`}
               type="email"
               required

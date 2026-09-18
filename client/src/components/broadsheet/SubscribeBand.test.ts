@@ -41,11 +41,23 @@ it("shows the newsletter scope and sends the matching notice version", () => {
 });
 it("shows a visible label and inline validation without sending invalid addresses", () => {
   open();
+  screen.getByRole("button", { name: "Subscribe" }).focus();
   expect(screen.getByText("Email address").className).not.toContain("sr-only");
   fireEvent.click(screen.getByRole("button", { name: "Subscribe" }));
   expect(screen.getByRole("alert").textContent).toContain("valid email");
   expect(m.mutate).not.toHaveBeenCalled();
   expect(m.track).not.toHaveBeenCalled();
+  expect(document.activeElement).toBe(screen.getByLabelText("Email address"));
+  screen.getByRole("button", { name: "Subscribe" }).focus();
+  fireEvent.click(screen.getByRole("button", { name: "Subscribe" }));
+  expect(document.activeElement).toBe(screen.getByLabelText("Email address"));
+  expect(m.mutate).not.toHaveBeenCalled();
+});
+
+it("does not take focus when a passive signup form mounts", () => {
+  const focused = document.activeElement;
+  open();
+  expect(document.activeElement).toBe(focused);
 });
 it("keeps the submitted address visible and lets the reader correct it", () => {
   open();
@@ -56,7 +68,9 @@ it("keeps the submitted address visible and lets the reader correct it", () => {
   act(() => m.options.onSuccess({}, { email: "typo@example.com" }));
   expect(m.track).toHaveBeenCalledExactlyOnceWith("newsletter_request", "subscribe");
   expect(screen.getByRole("status").textContent).toContain("typo@example.com");
+  expect(document.activeElement).toBe(screen.getByRole("status"));
   fireEvent.click(screen.getByRole("button", { name: /Edit address/ }));
+  expect(document.activeElement).toBe(screen.getByLabelText("Email address"));
   fireEvent.change(screen.getByLabelText("Email address"), {
     target: { value: "correct@example.com" },
   });

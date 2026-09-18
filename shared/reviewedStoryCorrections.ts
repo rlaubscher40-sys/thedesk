@@ -29,8 +29,8 @@ export const REVIEWED_STORY_CORRECTIONS = [
       "https://www.realestate.com.au/news/homeowners-switch-to-interest-only-as-families-roll-debts-into-mortgages/",
     issuedOn: "2026-09-18",
     reference: "Story 3960030",
-    what: "The summary began with an unidentified speaker and the interpretation turned reported refinancing examples into broad conclusions about structural stress and supply.",
-    now: "The standfirst identifies the reported subject. The unsupported structural-stress and market-supply conclusions are withdrawn; the original reporting remains linked.",
+    what: "The summary began with an unidentified speaker. Interpretation, the talking point and reader angles extrapolated one broker's examples into broad claims about household stress, neighbours' equity, housing supply and price outcomes.",
+    now: "The standfirst identifies the reported subject. The talking point identifies the sample limitation, and the unsupported market-wide conclusions and reader angles are withdrawn. The original reporting remains linked; already distributed copies are not rewritten.",
     fields: [
       {
         field: "summary",
@@ -52,6 +52,19 @@ export const REVIEWED_STORY_CORRECTIONS = [
           "Families consolidating debt and staying in their homes are not distressed sellers, which means the supply shock that would drive a price correction is still not materialising.",
         after: null,
       },
+      {
+        field: "sayThis",
+        before:
+          "Stretching a credit card over 30 years is not a debt solution, it is a sign of how far into the buffer zone Brisbane families have already moved.",
+        after:
+          "The report describes one Brisbane broker's clients, not a representative measure of household stress.",
+      },
+      {
+        field: "partnerTag",
+        before:
+          "Buying: Sellers staying put rather than distress-selling keeps stock tight, so the price relief you are waiting for may not arrive.\nHolding: More than half of one Brisbane broker's recent refinances rolled short-term debt into the mortgage, which tells you how many neighbours are quietly burning equity.\nWatching: Five consecutive months of national price falls alongside record-low affordability is the kind of divergence that historically resolves one way or the other, not both.",
+        after: null,
+      },
     ],
   },
   {
@@ -59,8 +72,8 @@ export const REVIEWED_STORY_CORRECTIONS = [
     sourceUrl: "https://www.realestate.com.au/news/big-banks-hike-rates-days-from-rba-decision/",
     issuedOn: "2026-09-18",
     reference: "Story 3960015",
-    what: "The standfirst began with a dependent fragment and quoted a rate forecast without distinguishing it from an announced decision.",
-    now: "The standalone summary identifies the analyst and labels the expected hike as a forecast.",
+    what: "The standfirst quoted a rate forecast without distinguishing it from a decision. The talking point and reader angles overstated what advertised fixed-rate changes established about RBA timing and borrowers' future repayments.",
+    now: "The summary and talking point distinguish forecasts from announced decisions. Unsupported timing and borrower-outcome angles are withdrawn. The original reporting remains linked; already distributed copies are not rewritten.",
     fields: [
       {
         field: "summary",
@@ -68,6 +81,19 @@ export const REVIEWED_STORY_CORRECTIONS = [
           'This as Canstar.com.au data insights director Sally Tindall warned "the big question at this stage is not if the RBA will hike again, but when" - with latest rate moves by banks a clear sign they\'re now bracing for impact.',
         after:
           "The report quotes Canstar data insights director Sally Tindall expecting a further RBA hike. That is a forecast, not an announced decision.",
+      },
+      {
+        field: "sayThis",
+        before:
+          "Nine banks have already moved on fixed rates this month, and the spread between fixed and variable is now the market's clearest signal on RBA timing.",
+        after:
+          "Fixed-rate offers changed ahead of an RBA meeting; the report's cash-rate timing remains a forecast.",
+      },
+      {
+        field: "partnerTag",
+        before:
+          "Buying: Variable rates still sit below 6 per cent at some lenders, but that window narrows if the RBA moves in November.\nHolding: A November cash rate rise of 0.25 per cent would add to repayments on any variable loan still held after the fixed cliff.\nWatching: The gap between fixed and variable closing further would confirm the market has priced a hike as imminent rather than probable.",
+        after: null,
       },
     ],
   },
