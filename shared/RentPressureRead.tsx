@@ -40,60 +40,67 @@ export function RentPressureRead() {
           <p className="text-sm mt-2">
             Open circle: June · Filled circle: July · Original CPI rents-paid series
           </p>
-          <svg
-            viewBox="0 0 780 435"
-            role="img"
-            aria-label="Eight capital-city annual rent growth rates in June and July 2026"
-            className="w-full mt-4"
+          <div
+            className="overflow-x-auto"
+            role="region"
+            aria-label="Scrollable rent change chart"
+            tabIndex={0}
           >
-            {[0, 2, 4, 6].map((tick) => (
-              <g key={tick}>
-                <line
-                  x1={x(tick)}
-                  x2={x(tick)}
-                  y1="18"
-                  y2="382"
-                  stroke="currentColor"
-                  opacity="0.15"
-                />
-                <text x={x(tick)} y="415" textAnchor="middle" fill="currentColor" fontSize="17">
-                  {tick}%
-                </text>
-              </g>
-            ))}
-            {read.rows.map((row, index) => (
-              <g key={row.city}>
-                <text x="4" y={44 + index * 46} fill="currentColor" fontSize="19">
-                  {row.city}
-                </text>
-                <line
-                  x1={x(row.prior.annualPercent)}
-                  x2={x(row.current.annualPercent)}
-                  y1={38 + index * 46}
-                  y2={38 + index * 46}
-                  stroke="var(--color-accent-text)"
-                  strokeWidth="4"
-                />
-                <circle
-                  cx={x(row.prior.annualPercent)}
-                  cy={38 + index * 46}
-                  r="8"
-                  fill="var(--color-bg)"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                />
-                <circle
-                  cx={x(row.current.annualPercent)}
-                  cy={38 + index * 46}
-                  r="5"
-                  fill="var(--color-accent-text)"
-                />
-                <text x="718" y={44 + index * 46} fill="currentColor" fontSize="19">
-                  {row.current.annualPercent.toFixed(1)}%
-                </text>
-              </g>
-            ))}
-          </svg>
+            <svg
+              viewBox="0 0 780 435"
+              role="img"
+              aria-label="Eight capital-city annual rent growth rates in June and July 2026"
+              className="w-full min-w-[620px] mt-4"
+            >
+              {[0, 2, 4, 6].map((tick) => (
+                <g key={tick}>
+                  <line
+                    x1={x(tick)}
+                    x2={x(tick)}
+                    y1="18"
+                    y2="382"
+                    stroke="currentColor"
+                    opacity="0.15"
+                  />
+                  <text x={x(tick)} y="415" textAnchor="middle" fill="currentColor" fontSize="17">
+                    {tick}%
+                  </text>
+                </g>
+              ))}
+              {read.rows.map((row, index) => (
+                <g key={row.city}>
+                  <text x="4" y={44 + index * 46} fill="currentColor" fontSize="19">
+                    {row.city}
+                  </text>
+                  <line
+                    x1={x(row.prior.annualPercent)}
+                    x2={x(row.current.annualPercent)}
+                    y1={38 + index * 46}
+                    y2={38 + index * 46}
+                    stroke="var(--color-accent-text)"
+                    strokeWidth="4"
+                  />
+                  <circle
+                    cx={x(row.prior.annualPercent)}
+                    cy={38 + index * 46}
+                    r="8"
+                    fill="var(--color-bg)"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  />
+                  <circle
+                    cx={x(row.current.annualPercent)}
+                    cy={38 + index * 46}
+                    r="5"
+                    fill="var(--color-accent-text)"
+                  />
+                  <text x="718" y={44 + index * 46} fill="currentColor" fontSize="19">
+                    {row.current.annualPercent.toFixed(1)}%
+                  </text>
+                </g>
+              ))}
+            </svg>
+          </div>
           <p className="text-xs leading-6">
             Source: Australian Bureau of Statistics, CPI Table 11, July 2026 release. Chart and
             calculations: The Desk. CC BY 4.0 attribution; ABS does not endorse this analysis.
