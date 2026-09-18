@@ -20,6 +20,7 @@ import {
 import { subtitleCues, subtitleAss } from "./subtitles";
 import { housingBalanceSubtitleScript } from "./housingBalanceStoryboard";
 import { synthesisePhrases, type MeasuredPhrase } from "./phraseSpeech";
+import type { ReelVoiceEngine, SpeechAudio } from "./reelVoice";
 import {
   renderStoryFrame,
   storyboardSections,
@@ -581,6 +582,7 @@ export async function renderStatReel(
   seconds: number;
   narrated: boolean;
   subtitled: boolean;
+  spokenBy: ReelVoiceEngine | null;
   timeline: Array<{ key: string; start: number; seconds: number; phrases?: MeasuredPhrase[] }>;
 }> {
   if (!ffmpegPath) throw new Error("ffmpeg binary unavailable");
@@ -606,9 +608,7 @@ export async function renderStatReel(
     if (stat.documentary) {
       validateDocumentary(stat.documentary, script);
       if (opts.narrate === false || !opts.subtitles || opts.auditionVoice)
-        throw new Error(
-          "Documentary review and publication require narration and subtitles."
-        );
+        throw new Error("Documentary review and publication require narration and subtitles.");
     }
     const maxSeconds = reelDurationLimit(stat);
     if (opts.script && !scriptFitsClip(opts.script, stat)) {
@@ -616,18 +616,18 @@ export async function renderStatReel(
         `Narration script exceeds the ${maxSeconds}-second editorial limit. Shorten the story before publishing.`
       );
     }
-    const spoken =
+    const narration: { engine: ReelVoiceEngine | null; clips: SpeechAudio[] } | null =
       opts.narrate === false
         ? null
         : opts.auditionVoice
-          ? await (
-              await import("./openAiVoiceAudition")
-            ).auditionOpenAiPhrases(
-              stat.storyboard?.kind === "housing-balance"
-                ? stat.storyboard.scenes
-                : script.map((s) => ({ ...s, phrases: s.text.split(/(?<=[.!?])\s+(?=[A-Z])/u) })),
-              opts.auditionVoice
-            )
+          ? await (await import("./openAiVoiceAudition"))
+              .auditionOpenAiPhrases(
+                stat.storyboard?.kind === "housing-balance"
+                  ? stat.storyboard.scenes
+                  : script.map((s) => ({ ...s, phrases: s.text.split(/(?<=[.!?])\s+(?=[A-Z])/u) })),
+                opts.auditionVoice
+              )
+              .then((clips) => ({ engine: null, clips }))
           : stat.documentary
             ? await synthesisePhrases(
                 stat.documentary.scenes.map((s) => ({ ...s, text: s.phrases.join(" ") })),
@@ -644,6 +644,7 @@ export async function renderStatReel(
                     opts.voice
                   )
                 : await synthesiseScript(script, opts.voice);
+    const spoken = narration?.clips ?? null;
     if (opts.narrate !== false && !spoken)
       throw new Error("Narration unavailable. No silent Reel was produced.");
 
@@ -974,6 +975,8 @@ export async function renderStatReel(
       seconds: total,
       narrated: spokenSections.length > 0,
       subtitled: Boolean(subtitleFilter),
+      /** Who was actually heard, which a fallback render makes worth recording. */
+      spokenBy: narration?.engine ?? null,
       timeline: sections.map((s, i) => ({
         key: s.key,
         start: starts[i]!,

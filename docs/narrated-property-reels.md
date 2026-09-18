@@ -40,7 +40,8 @@ to form a checkerboard. Manual/out-of-band posts can also change the grid.
 For Ruben's cloned voice, configure [ElevenLabs narration](elevenlabs-reel-voice.md).
 It is selected when `ELEVENLABS_API_KEY` is present, or required explicitly with
 `REEL_VOICE_PROVIDER=elevenlabs`. The local-only details below describe the
-fallback installation. A configured ElevenLabs failure never falls back locally.
+Kokoro installation, which also speaks a Reel that the clone fails to narrate
+under `auto`; requiring the provider explicitly refuses that substitution.
 
 `pnpm setup:voice` is included in the production build and CI. It installs
 Kokoro-82M v1.0 (8-bit CPU model), with the approved **Fable** British male voice at speed 1.0
@@ -72,6 +73,7 @@ script duration, invalid/silent WAVs, quota failure, lost reservations and an
 uncertain Meta response. CI installs and runs the actual voice and ffmpeg.
 
 Dependency source/license references:
+
 - https://github.com/espeak-ng/espeak-ng/blob/master/COPYING
 - https://github.com/microsoft/onnxruntime/blob/main/LICENSE
 
@@ -130,10 +132,11 @@ dwelling-approvals explainer. Two monthly topics are not a varied weekly calenda
    literal card read. Preserve the publication lock across voice/copy revisions.
 
 Next format candidates, each requiring its own verified adapter and tests:
+
 - Market vs Market: matched measures, periods and geographies.
 - What Changed: a verified change with a comparison baseline.
 - Before You Buy: explain a property measure and the limits of a decision based on it.
-Do not manufacture more monthly observations to meet a posting quota.
+  Do not manufacture more monthly observations to meet a posting quota.
 
 Audience learning is an editorial review, not an implemented automatic optimiser.
 Use existing media reach/shares/saves and attributed comparison/subscription

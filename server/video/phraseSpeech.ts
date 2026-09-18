@@ -1,5 +1,5 @@
 import { audibleWave, type SpeechProfile } from "./localVoice";
-import { reelSpeech } from "./reelVoice";
+import { reelNarration, type ReelVoiceEngine } from "./reelVoice";
 
 export type MeasuredPhrase = { text: string; start: number; seconds: number };
 export type PhraseAudio = {
@@ -69,7 +69,7 @@ export function joinPhraseAudio(parts: Array<{ text: string; bytes: Buffer }>) {
 export async function synthesisePhrases(
   plans: PhrasePlan[],
   profile?: SpeechProfile
-): Promise<PhraseAudio[]> {
+): Promise<{ engine: ReelVoiceEngine; clips: PhraseAudio[] }> {
   if (
     !plans.length ||
     plans.length > 9 ||
@@ -87,11 +87,12 @@ export async function synthesisePhrases(
     p.phrases.map((text, i) => ({ key: `${p.key}:${i}`, text }))
   );
   if (requests.length > 16) throw new Error("Too many speech phrases.");
-  const clips: Awaited<ReturnType<typeof reelSpeech>> = [];
-  // Retain the existing nine-utterance child bound and serial voice queue.
-  for (let i = 0; i < requests.length; i += 9)
-    clips.push(...(await reelSpeech(requests.slice(i, i + 9), profile)));
-  return plans.map((p) => ({
+  // Retain the existing nine-utterance child bound and serial voice queue, and
+  // hand every batch over together so one speaker covers the whole scene set.
+  const batches: Array<typeof requests> = [];
+  for (let i = 0; i < requests.length; i += 9) batches.push(requests.slice(i, i + 9));
+  const { engine, clips } = await reelNarration(batches, profile);
+  const spoken = plans.map((p) => ({
     key: p.key,
     ...joinPhraseAudio(
       p.phrases.map((text, i) => {
@@ -101,4 +102,5 @@ export async function synthesisePhrases(
       })
     ),
   }));
+  return { engine, clips: spoken };
 }
