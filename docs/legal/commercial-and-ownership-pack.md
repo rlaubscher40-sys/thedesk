@@ -4,7 +4,7 @@ Prepared 14 September 2026. Draft business decisions and lawyer instructions. No
 
 ## Owner worksheet
 
-Complete privately: exact legal operator and ABN/ACN where applicable; founders and ownership shares; existing IP owner(s); employment/outside-business restrictions; contributors and assignments; domain registrant and account administrators; prior MIT/open-source grants; intended revenue; service suppliers, data locations and backup retention; incident deputy; monitored complaints contact.
+Owner declaration received 17 September 2026: Ruben Laubscher owns and operates The Desk. Do not keep asking for that confirmation. Record an ABN/ACN only if applicable and supplied; no company or registration has been inferred. Remaining records, where applicable: third-party IP/permissions; employment/outside-business restrictions; contributors and assignments; domain registrant and account administrators; prior MIT/open-source grants; intended revenue; service suppliers, data locations and backup retention; any appointed incident deputy; monitored complaints contact. A sole operator does not need invented co-founder paperwork.
 
 The existing `owner-and-lawyer-brief.md` contains founder assignment, contributor and employment-exclusion drafting instructions. Supply real dates, parties and asset schedules before counsel finalises them. Keep third-party code, public facts, licensed photographs, fonts, stock voices and uncertain AI authorship separate from owned assets. No purported assignment of rights that the assignor does not own.
 
@@ -28,7 +28,7 @@ Do not publish bracketed placeholders or invent a sponsor. The feed triage catch
 
 ## Account control and confidential IP
 
-Record the verified owner/admin of GitHub, domain/DNS, Railway/database, mail, Meta, AI providers and any design storage. Use individual access, least privilege, MFA where available, a recovery contact and restricted recovery-code storage. Review access when a contributor leaves; rotate exposed secrets through the provider and revoke sessions as appropriate. Do not transfer accounts to an unverified company or alter ownership while the operator is unresolved.
+Record the verified owner/admin of GitHub, domain/DNS, Railway/database, mail, Meta, AI providers and any design storage. Use individual access, least privilege, MFA where available, a recovery contact and restricted recovery-code storage. Review access when a contributor leaves; rotate exposed secrets through the provider and revoke sessions as appropriate. Ruben's operating declaration does not require account transfers or establish that MFA/recovery settings have been checked.
 
 Keep original files, dated design/source history, asset provenance and contributor approvals. Mark genuinely confidential internal material, limit access and use appropriate confidentiality agreements. A public repository cannot be made confidential merely by adding a notice. Keep MIT and third-party notices intact pending distribution-history review.
 

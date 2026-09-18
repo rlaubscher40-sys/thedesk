@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createHash } from "node:crypto";
 const m = vi.hoisted(() => ({
   quota: vi.fn(),
+  archive: vi.fn(),
+  guard: vi.fn(),
   render: vi.fn(),
   cover: vi.fn(),
   create: vi.fn(),
@@ -13,6 +15,8 @@ const m = vi.hoisted(() => ({
   remove: vi.fn(),
   stage: vi.fn(),
 }));
+vi.mock("./documentaryExports", () => ({ approvedDocumentaryExport: m.archive }));
+vi.mock("./documentaryPublicationGuard", () => ({ documentaryPublicationGuard: m.guard }));
 vi.mock("../db/reelStorySource", () => ({ stageReelStorySource: m.stage }));
 vi.mock("../core/env", () => ({
   env: { instagramAccessToken: "test", instagramBusinessAccountId: "test" },
@@ -40,6 +44,13 @@ const options = {
 };
 beforeEach(() => {
   vi.resetAllMocks();
+  m.guard.mockResolvedValue({ ready: true });
+  m.archive.mockResolvedValue({
+    bytes: Buffer.from("approved-mp4"),
+    seconds: 84.6,
+    narrated: true,
+    subtitled: true,
+  });
   m.quota.mockResolvedValue({ usage: 1, quota: 100 });
   m.render.mockResolvedValue({
     bytes: Buffer.from("video"),
@@ -196,4 +207,24 @@ describe("narrated Reel publication", () => {
     );
     expect(m.remove).toHaveBeenCalledTimes(2);
   });
+});
+
+it("posts saved documentary bytes and rejects cross-programme export identities", async () => {
+  const { DOCUMENTARY_EPISODES } = await import("./documentaryEpisodes");
+  const { documentaryCandidate } = await import("./verifiedDocumentaryReel");
+  const candidate = documentaryCandidate(DOCUMENTARY_EPISODES[0]!);
+  await postStatReel(candidate.stat, "https://thedesk.au", { ...candidate });
+  expect(m.archive).toHaveBeenCalledOnce();
+  expect(m.render).not.toHaveBeenCalled();
+  expect(m.store).toHaveBeenCalledWith(Buffer.from("approved-mp4"), "video/mp4");
+  m.publish.mockClear();
+  await expect(postStatReel(candidate.stat, "https://thedesk.au", options)).rejects.toThrow(
+    "another programme"
+  );
+  expect(m.publish).not.toHaveBeenCalled();
+  m.guard.mockResolvedValue({ ready: false, reason: "duplicate" });
+  await expect(
+    postStatReel(candidate.stat, "https://thedesk.au", { ...candidate })
+  ).rejects.toThrow("duplicate");
+  expect(m.publish).not.toHaveBeenCalled();
 });

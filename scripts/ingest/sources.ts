@@ -116,10 +116,11 @@ export const SOURCES: Source[] = [
   },
   {
     name: "CBA Australian Market Close",
+    // Include attributed economic reporting and changing ASX headline slugs.
+    // Dates, Australian relevance and article evidence are checked after discovery.
     url: "https://www.commbank.com.au/articles/newsroom.html",
     kind: "index",
-    articlePath:
-      "^/articles/newsroom/20[0-9]{2}/[0-9]{2}/(?:asx-close|australian-shares)-[^/]+\\.html$",
+    articlePath: "^/articles/newsroom/20[0-9]{2}/[0-9]{2}/[^/]+\\.html$",
     category: "MARKETS",
     channel: "AU",
     maxItems: 8,
@@ -227,10 +228,10 @@ export const SOURCES: Source[] = [
     url:
       "https://www.nsw.gov.au/api/v1/elasticsearch/prod_content/_search?" +
       new URLSearchParams({
-        q: "status:true AND subtype:ministerialmediarelease AND (title:housing OR title:rent* OR title:planning OR title:homes)",
+        q: "status:true AND subtype:ministerialmediarelease AND (content:housing OR content:rent* OR content:planning OR content:homes OR content:construction OR content:apprentice* OR content:development OR content:land)",
         sort: "display_date:desc",
         size: "30",
-        _source: "url,title,subtype,status",
+        _source: "url,title,subtype,status,summary",
       }).toString(),
     kind: "nsw-index",
     category: "PROPERTY",
@@ -240,6 +241,15 @@ export const SOURCES: Source[] = [
   {
     name: "Queensland Housing Releases",
     url: "https://statements.qld.gov.au/?Search=True&Text=housing",
+    kind: "index",
+    articlePath: "^/statements/[0-9]+$",
+    category: "PROPERTY",
+    channel: "PROPERTY",
+    maxItems: 12,
+  },
+  {
+    name: "Queensland Land Releases",
+    url: "https://statements.qld.gov.au/?Search=True&Text=land",
     kind: "index",
     articlePath: "^/statements/[0-9]+$",
     category: "PROPERTY",
@@ -563,6 +573,27 @@ export const SOURCES: Source[] = [
     category: "PROPERTY",
     channel: "PROPERTY",
     maxItems: 6,
+  },
+  {
+    name: "Townsville Housing",
+    // Local reporting can omit Queensland; do not require a state keyword.
+    url: googleNews(
+      'Townsville (housing OR rents OR "property market" OR "building approvals") when:14d'
+    ),
+    category: "PROPERTY",
+    channel: "PROPERTY",
+    maxItems: 12,
+  },
+  {
+    name: "Newcastle Housing",
+    // Disambiguate Newcastle, NSW from the UK without relying on a broad
+    // state feed's first page. Publisher geography checks still apply.
+    url: googleNews(
+      'Newcastle (housing OR rents OR "property market" OR "building approvals") (NSW OR Australia OR Hunter) when:14d'
+    ),
+    category: "PROPERTY",
+    channel: "PROPERTY",
+    maxItems: 12,
   },
   {
     name: "Short-stay Housing Policy",

@@ -33,20 +33,25 @@ export function approvalsDataUrl(asOf: string): string {
 }
 
 /** Sum only twelve consecutive observed months. Missing/suppressed is never zero. */
-export function annualApprovals(data: CityApprovals | undefined, city: string, asOf: string) {
+export function cityApprovalHref(city: string, period: string): string {
+  return `/markets?q=${encodeURIComponent(city)}&approvalPeriod=${encodeURIComponent(period)}#housing-approvals`;
+}
+export function annualApprovals(data: CityApprovals | undefined, city: string, asOf: string, period?: string | null) {
   if (
     data?.status !== "available" ||
-    !Object.values(APPROVAL_REGIONS).some((name) => name === city)
+    !Object.values(APPROVAL_REGIONS).some((name) => name === city) ||
+    !Number.isFinite(Date.parse(asOf)) ||
+    (period != null && !/^20\d{2}-(0[1-9]|1[0-2])$/.test(period))
   )
     return null;
   const rows = data.observations
-    .filter((row) => row.city === city)
+    .filter((row) => row.city === city && (period == null || row.period <= period))
     .sort((a, b) => b.period.localeCompare(a.period));
   const latest = rows[0];
-  if (!latest) return null;
+  if (!latest || (period != null && latest.period !== period)) return null;
   const month = (value: string) => Number(value.slice(0, 4)) * 12 + Number(value.slice(5, 7));
   const age = month(asOf) - month(latest.period);
-  if (age < 1 || age > 3) return null;
+  if (age < 1 || (period == null && age > 3)) return null;
   const year = rows.slice(0, 12);
   if (
     year.length !== 12 ||

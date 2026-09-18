@@ -151,6 +151,13 @@ export function shouldShowSummary(title: string, summary: string | null | undefi
   if (isRedundantSummary(title, summary)) return false;
   if (looksLikeGarbage(summary)) return false;
   if (looksLikeSiteBoilerplate(summary)) return false;
+  // A minister's portfolio and name are attribution, not a story standfirst.
+  if (
+    /^(?:Deputy Premier|Premier|Minister for)\b[^.!?]{0,500}\bThe Honourable [\p{L}'’-]+(?: [\p{L}'’-]+){1,3}\s*$/u.test(
+      summary.trim()
+    )
+  )
+    return false;
   return true;
 }
 
@@ -164,7 +171,10 @@ export function cleanHeadline(title: string, publisher?: string): string {
   if (title.length > MAX_HELPER_INPUT) return title;
   // This legacy ABC masthead contains a dash of its own and the word
   // Australian. It is attribution, never geography evidence.
-  title = title.replace(/\s+[-–—]\s+ABC News & Headlines\s*[-–—]\s*Australian Broadcasting Corporation$/iu, "");
+  title = title.replace(
+    /\s+[-–—]\s+ABC News & Headlines\s*[-–—]\s*Australian Broadcasting Corporation$/iu,
+    ""
+  );
   const m = title.match(/^(.*\S)\s+[-–—]\s+([^-–—]{1,40})$/u);
   if (!m || !m[1] || !m[2]) return title;
   const head = m[1].trim();

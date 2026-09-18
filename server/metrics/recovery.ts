@@ -37,18 +37,20 @@ export async function needsMetricRecovery() {
     (row) =>
       !row.extracted &&
       !isAuctionCollectionPaused(row.key) &&
-      [
-        "missing",
-        "collection overdue",
-        "invalid dates",
-        "old reporting period",
-        "check extracted evidence",
-      ].includes(row.state) &&
-      // Re-downloading an unchanged release cannot make its period newer.
-      // Leave the warning visible, but don't immediately fetch it again.
-      (row.state !== "old reporting period" ||
-        !row.storedAt ||
-        Date.now() - row.storedAt.getTime() >= 6 * 60 * 60_000),
+      ((METRIC_EXPECTATIONS.some((spec) => spec.key === row.key) &&
+        row.sourceStatus !== "link available") ||
+        ([
+          "missing",
+          "collection overdue",
+          "invalid dates",
+          "old reporting period",
+          "check extracted evidence",
+        ].includes(row.state) &&
+          // Re-downloading an unchanged release cannot make its period newer.
+          // Leave the warning visible, but don't immediately fetch it again.
+          (row.state !== "old reporting period" ||
+            !row.storedAt ||
+            Date.now() - row.storedAt.getTime() >= 6 * 60 * 60_000)))
   );
 }
 
@@ -58,16 +60,10 @@ export function refreshOfficialMetrics(): Promise<MetricRefreshReport> {
   const signal = collectionSignal();
   signal?.throwIfAborted();
   if (!signal && pending) return pending;
-  if (
-    !signal &&
-    lastReport &&
-    Date.now() - lastReport.finishedAt.getTime() < 60_000
-  )
+  if (!signal && lastReport && Date.now() - lastReport.finishedAt.getTime() < 60_000)
     return Promise.resolve(lastReport);
   if (!getDb() || isDemoMode())
-    return Promise.reject(
-      new Error("Live metric collection requires a database"),
-    );
+    return Promise.reject(new Error("Live metric collection requires a database"));
   const runStartedAt = new Date();
   startedAt = runStartedAt;
   lastError = null;
@@ -96,7 +92,7 @@ export function refreshOfficialMetrics(): Promise<MetricRefreshReport> {
               failedWrites.push(metric.metricKey);
               console.error(
                 `[metrics] storage failed for ${metric.metricKey}:`,
-                (error as Error).message,
+                (error as Error).message
               );
             }
           }
@@ -109,7 +105,7 @@ export function refreshOfficialMetrics(): Promise<MetricRefreshReport> {
       finishedAt: new Date(),
       stored: written.size,
       unavailable: METRIC_EXPECTATIONS.filter(
-        (row) => !row.extracted && !collected.has(row.key),
+        (row) => !row.extracted && !collected.has(row.key)
       ).map((row) => row.key),
       failedWrites,
       sourceErrors,
@@ -130,7 +126,7 @@ export function refreshOfficialMetrics(): Promise<MetricRefreshReport> {
     () => {
       if (pending === task) pending = null;
     },
-    { once: true },
+    { once: true }
   );
   return task;
 }
@@ -147,19 +143,17 @@ export async function runScheduledMetricRefresh() {
   const report = await refreshOfficialMetrics();
   // Still expose all gaps in Admin. An intentional source pause cannot be
   // repaired by retrying all the other sources and should not exhaust retries.
-  const retryableUnavailable = report.unavailable.filter(
-    (key) => !isAuctionCollectionPaused(key),
-  );
+  const retryableUnavailable = report.unavailable.filter((key) => !isAuctionCollectionPaused(key));
   // Paused sources remain visible in Admin, but are not causes of this
   // failed job. Keep the alert focused on sources that actually need repair.
   const activeSourceErrors = report.sourceErrors.filter(
-    (error) => !isAuctionCollectionPaused(error.metricKey),
+    (error) => !isAuctionCollectionPaused(error.metricKey)
   );
   if (retryableUnavailable.length || report.failedWrites.length)
     throw new Error(
       `Metric refresh stored ${report.stored}; unavailable: ${retryableUnavailable.join(", ") || "none"}; failed writes: ${report.failedWrites.join(", ") || "none"}` +
         (activeSourceErrors.length
           ? `; source errors: ${activeSourceErrors.map((error) => `${error.metricKey}: ${error.reason}`).join("; ")}`
-          : ""),
+          : "")
     );
 }

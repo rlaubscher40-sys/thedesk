@@ -7,12 +7,16 @@ export type ClaimIssue =
   | "unsupported-figure"
   | "figure-scope"
   | "period-scope"
+  | "series-basis"
   | "figure-unit"
   | "proposal-as-fact"
   | "unsupported-place"
   | "unsupported-date"
   | "delivery-status"
   | "forecast-as-fact"
+  | "cohort-scope"
+  | "decision-authority"
+  | "conditional-guidance"
   | "allegation-as-fact";
 
 function figures(text: string): Set<string> {
@@ -58,6 +62,8 @@ const placeGroups = [
   /\b(?:WA|Western Australia)\b/g,
   /\b(?:SA|South Australia)\b/g,
   /\b(?:TAS|Tasmania)\b/gi,
+  /\b(?:NT|Northern Territory)\b/g,
+  /\b(?:ACT|Australian Capital Territory)\b/g,
 ];
 const months =
   /\b(?:January|February|March|April|June|July|August|September|October|November|December)\b/gi;
@@ -73,6 +79,55 @@ const delivered =
 const future =
   /\b(?:will|would|could|may|might|plans?|planned|planning|propos\w*|target\w*|aim\w*|expect\w*|forecast\w*|project\w*|modelling|modeling|if|once|not yet)\b/i;
 const sentences = (text: string) => text.split(/(?<=[.!?])\s+|\n+/).filter(Boolean);
+
+const measures = [
+  /\b(?:rents?|rental)\b/i,
+  /\b(?:house|home|dwelling|property) (?:prices?|values?)\b/i,
+  /\bunemployment\b/i,
+  /\b(?:employment|employed)\b/i,
+  /\bparticipation\b/i,
+  /\b(?:wages?|WPI)\b/i,
+  /\b(?:inflation|CPI)\b/i,
+  /\bvacanc(?:y|ies)\b/i,
+];
+const cadences = [
+  /\b(?:annual|annually|yearly|year.on.year|year to|year ending)\b/i,
+  /\b(?:quarterly|quarter.on.quarter|quarter to|quarter ending)\b/i,
+  /\b(?:monthly|month.on.month|month to|month ending)\b/i,
+];
+const bases = [/\btrend\b/i, /\bseasonally adjusted\b/i, /\b(?:original|unadjusted)\b/i];
+function scopes(text: string, patterns: RegExp[]): number[] {
+  return patterns.flatMap((pattern, index) => {
+    pattern.lastIndex = 0;
+    return pattern.test(text) ? [index] : [];
+  });
+}
+function conflicts(a: string, b: string, patterns: RegExp[]) {
+  const left = scopes(a, patterns),
+    right = scopes(b, patterns);
+  return left.length > 0 && right.length > 0 && !left.some((value) => right.includes(value));
+}
+
+/** Bind percentage figures to the original sentence's geography, measure,
+ * cadence and adjustment. Global numeric overlap alone cannot verify them.
+ * Ambiguous/unlabelled source sentences remain outside this bounded check. */
+function percentageScopeIssues(copy: string, body: string[]): ClaimIssue[] {
+  const issues = new Set<ClaimIssue>();
+  for (const value of figures(copy)) {
+    if (!value.startsWith("%:")) continue;
+    const matching = body.filter((sentence) => figures(sentence).has(value));
+    const mismatches = matching.map((sentence) => [
+      ...(conflicts(copy, sentence, measures) || conflicts(copy, sentence, placeGroups)
+        ? ["figure-scope" as const]
+        : []),
+      ...(conflicts(copy, sentence, cadences) ? ["period-scope" as const] : []),
+      ...(conflicts(copy, sentence, bases) ? ["series-basis" as const] : []),
+    ]);
+    if (mismatches.length && mismatches.every((list) => list.length))
+      mismatches.flat().forEach((issue) => issues.add(issue));
+  }
+  return [...issues];
+}
 
 export function checkClaimEvidence(
   copy: string | null | undefined,
@@ -112,7 +167,105 @@ export function checkClaimEvidence(
       .filter((s) => /\b(?:lower|reduced) payment costs\b/i.test(s))
       .flatMap((s) => [...figures(s)].filter((n) => n.startsWith("$:")))
   );
+  // A definitive headline cannot verify implementation when the reporting says draft.
+  const planningBody = sentences(source.articleText?.slice(0, 6000) || source.summary || "");
+  const planningProposal = planningBody.some(
+    (s) =>
+      /\b(?:propos\w*|draft|consultation)\b/i.test(s) &&
+      /\b(?:height limits?|rezoning|development scheme|planning changes|amendments)\b/i.test(s)
+  );
+  const repealProposal =
+    planningBody.some(
+      (s) =>
+        /\b(?:bill|legislation)\b/i.test(s) &&
+        /\b(?:introduced|tabled|proposed|will repeal|would repeal)\b/i.test(s)
+    ) &&
+    planningBody.some((s) =>
+      /\b(?:repeal|remove|abolish)\w*\b.{0,100}\b(?:obligations?|requirements?)\b/i.test(s)
+    );
+  const enactedRepeal = planningBody.some(
+    (s) =>
+      /\b(?:received royal assent|became law|has passed|was passed|was enacted)\b/i.test(s) &&
+      /\b(?:repeal|remove|abolish)\w*\b/i.test(s)
+  );
   for (const sentence of sentences(copy)) {
+    // A profitable seller's holding period cannot explain the behaviour of
+    // loss-making sellers. Require independent evidence for that conclusion.
+    if (
+      /\bprofitable\b/i.test(sentence) &&
+      /\bmedian\b/i.test(sentence) &&
+      /\b(?:means|shows|therefore|so)\b/i.test(sentence) &&
+      /\b(?:most|majority of)\b.{0,40}\bloss.making\b.{0,70}\bshort\b/i.test(sentence) &&
+      !/\b(?:does not|doesn't|cannot|can't|never) (?:mean|show|establish|imply)\b/i.test(
+        sentence
+      ) &&
+      !planningBody.some((s) =>
+        /\b(?:most|majority of)\b.{0,40}\bloss.making\b.{0,70}\bshort\b/i.test(s)
+      )
+    )
+      issues.add("cohort-scope");
+    // Preserve the distinction between the IPC's advice and the minister's
+    // decision in the reviewed Town Hall planning process.
+    if (
+      /\b(?:IPC|Independent Planning Commission)\b.{0,35}\b(?:decides?|determines?|approves?)\b/i.test(
+        sentence
+      ) &&
+      !/\b(?:not|never|doesn't|cannot|can't)\b/i.test(sentence) &&
+      /\b(?:IPC|Independent Planning Commission)\b/i.test(evidence) &&
+      /\badvice\b/i.test(evidence) &&
+      /\b(?:my decision|minister.{0,50}(?:decid|decision))\b/i.test(evidence)
+    )
+      issues.add("decision-authority");
+    // Conditional easing guidance must retain its inflation condition as well
+    // as the growth condition; a separate reform recommendation is not a veto.
+    const conditionalEasing =
+      /\bIMF\b/i.test(evidence) &&
+      planningBody.some(
+        (s) => /\brate cuts?\b/i.test(s) && /\bif\b/i.test(s) && /\binflation\b/i.test(s)
+      );
+    if (
+      conditionalEasing &&
+      ((/\brate cuts?\b/i.test(sentence) &&
+        /\b(?:should|could|consider)\w*\b/i.test(sentence) &&
+        /\bgrowth\b/i.test(sentence) &&
+        !/\binflation\b/i.test(sentence)) ||
+        (/\brate (?:relief|cuts?)\b.{0,45}\b(?:depends? on|requires?)\b.{0,35}\b(?:structural )?reform\b/i.test(
+          sentence
+        ) &&
+          !/\b(?:does not|doesn't|never) (?:depend|require)\b/i.test(sentence)))
+    )
+      issues.add("conditional-guidance");
+    percentageScopeIssues(sentence, planningBody).forEach((issue) => issues.add(issue));
+    if (
+      repealProposal &&
+      !enactedRepeal &&
+      /\b(?:obligations?|requirements?)\b/i.test(sentence) &&
+      /\b(?:stripped|removed|repealed|abolished|ended|lifting|removing|repealing)\b/i.test(
+        sentence
+      ) &&
+      !/\b(?:propos\w*|would|could|if|will|to be|not yet|has not|hasn't|bill to|legislation to)\b/i.test(
+        sentence
+      )
+    )
+      issues.add("proposal-as-fact");
+    if (
+      planningProposal &&
+      (/\b(?:rezoned|(?:after|following|with) rezoning)\b/i.test(sentence) ||
+        (/\b(?:height limits?|rezoning|development scheme|planning changes|amendments)\b/i.test(
+          sentence
+        ) &&
+          (/\b(?:already|now|just had|has been|have been|was|were)\b.{0,70}\b(?:lifted|raised|increased|approved|implemented|enacted)\b/i.test(
+            sentence
+          ) ||
+            /\bheight limits?\b.{0,30}\b(?:lifted|raised|increased|approved)\b/i.test(
+              sentence
+            )))) &&
+      !/\b(?:propos\w*|draft|would|could|if|to be|will be|may be)\b|\b(?:not|never)\s+(?:yet\s+)?(?:been\s+)?(?:rezoned|raised|lifted|increased|approved|implemented|enacted)\b/i.test(
+        sentence
+      ) &&
+      !planningBody.some((s) => s.trim() === sentence.trim() && !future.test(s))
+    )
+      issues.add("proposal-as-fact");
     // Do not collapse a reported combination of rates and loan size into a
     // rates-only repayment effect. Mere numeric overlap does not prove causation.
     if (

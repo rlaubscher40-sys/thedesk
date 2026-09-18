@@ -16,6 +16,7 @@
  * database column is still `sayThis` for continuity.
  */
 import { invokeLLM } from "../core/llm";
+import { checkClaimEvidence } from "../../shared/claimEvidence";
 import { editorialTimeContext, validEditorialAngle } from "../../shared/editorialTiming";
 
 export type SayThisInput = {
@@ -83,7 +84,8 @@ export async function generateSayThis(input: SayThisInput): Promise<string | nul
       console.log(`[sayThis] skipped (off-topic): ${input.title.slice(0, 80)}`);
       return null;
     }
-    return validEditorialAngle(trimmed);
+    const line = validEditorialAngle(trimmed);
+    return checkClaimEvidence(line, input).length ? null : line;
   } catch (err) {
     console.error("[sayThis] generation error:", err);
     return null;

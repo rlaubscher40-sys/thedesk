@@ -119,6 +119,9 @@ export default function StoryPage() {
     );
   }
 
+  const correction = REVIEWED_STORY_CORRECTIONS.find(
+    (c) => c.id === story.id && c.sourceUrl === story.sourceUrl
+  );
   const dek = shouldShowSummary(story.title, story.summary)
     ? dedash(story.summary)
     : story.whyItMatters
@@ -290,11 +293,16 @@ export default function StoryPage() {
               Ask about this story
             </Link>
           </div>
-          {REVIEWED_STORY_CORRECTIONS.some(
-            (c) => c.id === story.id && c.sourceUrl === story.sourceUrl
-          ) && (
+          {correction && (
             <p className="text-sm mt-5" role="note">
-              Corrected 16 September 2026.{" "}
+              Corrected{" "}
+              {new Date(`${correction.issuedOn}T12:00:00Z`).toLocaleDateString("en-AU", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+                timeZone: "UTC",
+              })}
+              .{" "}
               <Link href="/corrections" className="bs-link">
                 Read what changed →
               </Link>

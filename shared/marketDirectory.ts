@@ -1,6 +1,10 @@
 import type { CityRents } from "./cityRents";
 import type { CityApprovals } from "./cityApprovals";
 import type { StateDemographics } from "./stateDemographics";
+import type { StateLabour } from "./stateLabour";
+import type { HousingTransfers, HousingCompletions } from "./quarterlyHousing";
+import { PROPERTY_REGIONS } from "./propertyCoverage";
+import type { CouncilRents } from "./CouncilRentRead";
 /** A deliberately small public directory, not a claim of suburb-wide coverage. */
 export const PUBLIC_MARKETS = [
   { slug: "sydney", name: "Sydney", state: "NSW" },
@@ -16,6 +20,11 @@ export const PUBLIC_MARKETS = [
   { slug: "gold-coast", name: "Gold Coast", state: "QLD" },
   { slug: "sunshine-coast", name: "Sunshine Coast", state: "QLD" },
 ] as const;
+
+/** Regional files have their own retrieval budget as well as state coverage. */
+export const PUBLIC_REGIONAL_MARKETS = PUBLIC_MARKETS.filter(
+  (market) => !PROPERTY_REGIONS.some((region) => region.places[0] === market.name)
+);
 
 export type PublicMarket = (typeof PUBLIC_MARKETS)[number];
 export function publicMarket(slug: string): PublicMarket | undefined {
@@ -48,6 +57,10 @@ export type PublicMarketFile = {
   rents?: CityRents;
   approvals?: CityApprovals;
   demographics?: StateDemographics;
+  labour?: StateLabour;
+  transfers?: HousingTransfers;
+  completions?: HousingCompletions;
+  councilRents?: CouncilRents;
 };
 export type MarketDirectory = {
   asOf: string;

@@ -49,3 +49,22 @@ it("cannot drop a requested city, duplicate an observation or cite unpacked evid
     )
   ).toBeNull();
 });
+
+it.each([
+  "Compare annual rents in Brisbane and Newcastle in July 2026",
+  "Compare annual rents in Brisbane and London in July 2026",
+  "What were annual rents in Brisbane excluding Perth in July 2026?",
+  "What were annual rents outside Brisbane in July 2026?",
+  "Compare annual rents in Brisbane and Perth in July 2026. What were wages?",
+  "Compare annual rents in Brisbane and Perth in July 2026 and rank affordability",
+  "What were annual rents in North Brisbane in July 2026?",
+])("does not silently answer only the supported part of a request: %s", (q) => {
+  expect(directCpiRentAnswer(q, facts, evidence)).toBeNull();
+});
+it.each([
+  "What was annual CPI rent growth in Brisbane in July 2026?",
+  "Compare annual rents in Brisbane and Perth in July 2026",
+  "Show me annual rents actually paid in Brisbane, Perth for 2026-07",
+])("retains complete bounded factual requests: %s", (q) => {
+  expect(directCpiRentAnswer(q, facts, evidence)?.status).toBe("answered");
+});

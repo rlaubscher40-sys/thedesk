@@ -67,6 +67,42 @@ afterEach(() => {
 });
 
 describe("Ask answer recovery", () => {
+  it("answers an exact quarterly sales request with the dated source and no model calls", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date("2026-09-17"));
+    vi.mocked(retrieveLocalFacts).mockResolvedValue([{
+      quarterlyHousing: {kind: "transfers", place: "Brisbane", period: "2026-Q2"},
+      title: "Brisbane: sale medians and transfers", date: "2026-Q2", href: "/markets?q=Brisbane&transferPeriod=2026-Q2#transfers",
+      publisher: "Australian Bureau of Statistics", sourceUrl: "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/total-value-dwellings/jun-quarter-2026",
+      text: "Brisbane, June quarter 2026. Established houses: median sale price $1,155,000, recorded transfers 6,559. ABS original, unstratified median; not a price-growth index."
+    }]);
+    vi.mocked(reviewAskAnswer).mockResolvedValue(false);
+    const result = await askRouter.createCaller(ctx).answer({question: "What are median sale prices and recorded transfers in Brisbane in 2026-Q2?"});
+    expect(result.status).toBe("answered");
+    if (result.status === "answered") {
+      expect(result.answer.answer).toContain("$1,155,000");
+      expect(result.sources).toMatchObject([{date:"2026-Q2",href:"/markets?q=Brisbane&transferPeriod=2026-Q2#transfers"}]);
+    }
+    expect(invokeLLMJson).not.toHaveBeenCalled();expect(reviewAskAnswer).not.toHaveBeenCalled();
+  });
+  it("answers verified state unemployment without generation or model review", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date("2026-09-17"));
+    vi.mocked(retrieveLocalFacts).mockResolvedValue(["NSW", "QLD"].map((state) => ({
+      stateLabour: {period: "2026-07", observation: {state: state as "NSW" | "QLD", employedPeople: 3052100, employmentMonthlyPercent: 0.2, unemploymentPercent: 4.2, participationPercent: 67.1}},
+      title: `${state}: state labour market`, date: "2026-07", href: `/markets?q=${state}&labourPeriod=2026-07#state-labour`,
+      publisher: "Australian Bureau of Statistics", sourceUrl: "https://www.abs.gov.au/statistics/labour/employment-and-unemployment/labour-force-australia/jul-2026",
+      text: `${state} unemployment rate 4.2%, ABS trend, July 2026.`
+    })));
+    vi.mocked(reviewAskAnswer).mockResolvedValue(false);
+    const result = await askRouter.createCaller(ctx).answer({question: "Compare NSW and Queensland unemployment in July 2026"});
+    expect(result.status).toBe("answered");
+    if (result.status === "answered") {
+      expect(result.answer.answer).toContain("Queensland — unemployment rate: 4.2%");
+      expect(result.sources).toHaveLength(2);
+      expect(result.sources.every((source) => source.href.includes("labourPeriod=2026-07"))).toBe(true);
+    }
+    expect(invokeLLMJson).not.toHaveBeenCalled();
+    expect(reviewAskAnswer).not.toHaveBeenCalled();
+  });
   it("answers the approvals Signals hand-off without either model invocation", async () => {
     vi.useFakeTimers(); vi.setSystemTime(new Date("2026-09-09"));
     vi.mocked(db.listDailyMetrics).mockResolvedValue([{

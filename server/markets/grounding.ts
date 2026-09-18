@@ -2,6 +2,7 @@ import {
   basisTextIsQuoted,
   comparisonQuality,
   evidenceFreshness,
+  comparisonSourceDate,
 } from "../../shared/comparisonQuality";
 import {
   MARKET_DIMENSIONS,
@@ -82,6 +83,16 @@ export function groundComparison(
   let withheldEvidence = false;
   const rows = result.rows.map((row) => {
     const quality = comparisonQuality(row, selected, asOf);
+    const usesRawApprovals = [row.marketA, row.marketB].some(observation =>
+      selected.some(source => source.ref === observation?.sourceRef && source.measureKind === "dwelling-approvals")
+    );
+    if (usesRawApprovals) {
+      withheldEvidence = true;
+      return {
+        ...row, edge: "unclear" as const,
+        read: "These raw dwelling approval counts describe permission to build, not completed homes. They are not adjusted for population or housing stock and do not establish an investment advantage.",
+      };
+    }
     if (quality.comparable) return row;
     withheldEvidence = true;
     // Keep the grounded observations useful, but never retain a directional
@@ -93,7 +104,7 @@ export function groundComparison(
     };
   });
   const comparable = rows.filter((row) => comparisonQuality(row, selected, asOf).comparable);
-  const allRecent = selected.every((source) => evidenceFreshness(source.date, asOf) === "recent");
+  const allRecent = selected.every((source) => evidenceFreshness(comparisonSourceDate(source), asOf) === "recent");
   // Coverage volume is not a market score. In this first slice confidence is capped
   // at medium: Desk records have not been independently audited for comparability.
   const confidence =

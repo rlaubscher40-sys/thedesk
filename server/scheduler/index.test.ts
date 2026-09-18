@@ -1,6 +1,7 @@
 import { INSTAGRAM_FEED_SLOTS } from "../../shared/instagramSchedule";
 import { describe, expect, it } from "vitest";
 import {
+  SEPTEMBER_17_COVERAGE_RECOVERY_JOB,
   ADVICE_COVERAGE_RECOVERY_JOB,
   ADVICE_NEWSROOM_RECOVERY_JOB,
   MORTGAGE_COVERAGE_RECOVERY_JOB,
@@ -220,4 +221,11 @@ it("bounds the permitted newsroom recovery to one durable claim", () => {
   expect(ADVICE_NEWSROOM_RECOVERY_JOB).toMatchObject({
     key: "advice-public-newsroom-recovery", claimDate: "2026-09-14", maxAttempts: 1,
   });
+});
+
+it("bounds the September 17 coverage recovery to one durable collection claim", () => {
+  expect(SEPTEMBER_17_COVERAGE_RECOVERY_JOB).toMatchObject({
+    key: "coverage-september-17-relevance-recovery", claimDate: "2026-09-17", maxAttempts: 1,
+  });
+  expect(isJobDue(SEPTEMBER_17_COVERAGE_RECOVERY_JOB, baseClock({ minutes: 1439 }))).toBe(true);
 });

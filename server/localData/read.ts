@@ -189,6 +189,12 @@ export async function getLocalCoverage() {
 }
 
 export type FactEvidence = {
+  quarterlyHousing?: { kind: "transfers" | "completions"; place: string; period: string };
+  stateLabour?: {
+    period: string;
+    observation: import("../../shared/stateLabour").LabourObservation;
+  };
+  measureKind?: "dwelling-approvals";
   cpiRent?: { city: string; period: string; annualPercent: number; status: "" | "p" | "r" };
   title: string;
   date: string;

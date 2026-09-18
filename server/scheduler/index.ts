@@ -208,6 +208,19 @@ export const ADVICE_COVERAGE_RECOVERY_JOB: Job = {
     }),
 };
 
+export const SEPTEMBER_17_COVERAGE_RECOVERY_JOB: Job = {
+  key: "coverage-september-17-relevance-recovery",
+  at: "00:00",
+  graceMinutes: 24 * 60 - 1,
+  claimDate: "2026-09-17",
+  maxAttempts: 1,
+  run: (b, k) => runDailyFeedIngest(b, k, {
+    sources: SOURCES.filter(source => [
+      "CBA Australian Market Close", "NSW Housing Releases", "Queensland Land Releases",
+    ].includes(source.name)),
+  }),
+};
+
 export const ADVICE_NEWSROOM_RECOVERY_JOB: Job = {
   key: "advice-public-newsroom-recovery",
   at: "00:00",
@@ -249,6 +262,7 @@ const JOBS: Job[] = [
         });
     },
   },
+  SEPTEMBER_17_COVERAGE_RECOVERY_JOB,
   ADVICE_NEWSROOM_RECOVERY_JOB,
   ADVICE_COVERAGE_RECOVERY_JOB,
   {

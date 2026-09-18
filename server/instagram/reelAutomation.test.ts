@@ -1,3 +1,7 @@
+vi.mock("./documentaryPublicationGuard", () => ({
+  documentaryPublicationGuard: vi.fn(async () => ({ ready: true })),
+  logDocumentaryReleaseReadiness: vi.fn(async () => {}),
+}));
 import { testLoanRates, testMigration } from "./fixtures/contextReels";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DOCUMENTARY_EPISODES } from "./documentaryEpisodes";
@@ -288,7 +292,9 @@ describe("automatic verified Reel delivery", () => {
       detail: "Render failed",
       finishedAt: new Date(now.getTime() - 5 * 60_000),
     };
-    m.read.mockImplementation(async (key: string) => (key === publicationKey ? null : row));
+    m.read.mockImplementation(async (key: string) =>
+      key === "instagram-reel-delivery-programme-v1" ? row : null
+    );
     expect(await run()).toEqual({ state: "retrying" });
     expect(m.claim).not.toHaveBeenCalled();
     row.finishedAt = new Date(now.getTime() - 15 * 60_000);
@@ -298,7 +304,9 @@ describe("automatic verified Reel delivery", () => {
   });
   it("does not reclaim a running delivery after restart", async () => {
     m.read.mockImplementation(async (key: string) =>
-      key === publicationKey ? null : { status: "running", startedAt: now, attempts: 1 }
+      key === "instagram-reel-delivery-programme-v1"
+        ? { status: "running", startedAt: now, attempts: 1 }
+        : null
     );
     expect(await run()).toEqual({ state: "running" });
     expect(m.post).not.toHaveBeenCalled();
@@ -314,7 +322,9 @@ describe("automatic verified Reel delivery", () => {
         ? published
           ? { status: "success", detail: "Published media 123456" }
           : null
-        : stale
+        : key === "instagram-reel-delivery-programme-v1"
+          ? stale
+          : null
     );
     expect(await run()).toEqual({ state: "published", postId: "123456" });
     expect(m.expire).toHaveBeenCalledWith(
@@ -331,15 +341,15 @@ describe("automatic verified Reel delivery", () => {
   });
   it("does not retry a rate block or exhaust preparation retries forever after restart", async () => {
     m.read.mockImplementation(async (key: string) =>
-      key === publicationKey
-        ? null
-        : { status: "failed", attempts: 1, detail: "PAUSED: rate limit" }
+      key === "instagram-reel-delivery-programme-v1"
+        ? { status: "failed", attempts: 1, detail: "PAUSED: rate limit" }
+        : null
     );
     expect(await run()).toEqual({ state: "paused" });
     m.read.mockImplementation(async (key: string) =>
-      key === publicationKey
-        ? null
-        : { status: "running", attempts: 2, startedAt: new Date(now.getTime() - 16 * 60_000) }
+      key === "instagram-reel-delivery-programme-v1"
+        ? { status: "running", attempts: 2, startedAt: new Date(now.getTime() - 16 * 60_000) }
+        : null
     );
     expect(await run()).toEqual({ state: "paused" });
     expect(m.expire).not.toHaveBeenCalled();
@@ -539,22 +549,22 @@ describe("documentary slots share the existing publication safeguards", () => {
   }
   it("gives Wednesday's reviewed episode priority over eligible data, inside the same window", async () => {
     reviewedPilot();
-    const date = new Date("2026-09-16T08:30:00Z");
+    const date = new Date("2026-09-23T08:30:00Z");
     expect((await readReelAutomation(date)).candidate?.family).toBe("documentary-deal");
-    expect((await readReelAutomation(new Date("2026-09-16T08:29:00Z"))).state).toBe("scheduled");
+    expect((await readReelAutomation(new Date("2026-09-23T08:29:00Z"))).state).toBe("scheduled");
     expect((await readReelAutomation(date)).state).toBe("ready");
     expect((await readReelAutomation(new Date("2026-09-17T08:30:00Z"))).candidate?.family).toBe(
       "rents"
     );
   });
   it("uses data when the documentary buffer is not reviewed", async () => {
-    expect((await readReelAutomation(new Date("2026-09-16T08:30:00Z"))).candidate?.family).toBe(
+    expect((await readReelAutomation(new Date("2026-09-23T08:30:00Z"))).candidate?.family).toBe(
       "rents"
     );
   });
   it("a data Reel already published today blocks the documentary too", async () => {
     reviewedPilot();
-    const date = new Date("2026-09-16T08:30:00Z");
+    const date = new Date("2026-09-23T08:30:00Z");
     m.history.mockResolvedValue([
       { key: publicationKey, date: "2026-07-01", postId: "9999", publishedAt: date },
     ]);

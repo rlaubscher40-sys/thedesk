@@ -18,8 +18,7 @@ vi.mock("../db/dailyMetrics", () => ({
   listDailyMetrics: async () => state.metrics,
   upsertDailyMetric: vi.fn(async (row) => {
     state.writes.push(row);
-    if (state.failWrites && row.metricKey === "audusd")
-      throw new Error("write failed");
+    if (state.failWrites && row.metricKey === "audusd") throw new Error("write failed");
   }),
 }));
 vi.mock("../../scripts/ingest/dailyMetrics", () => ({
@@ -28,22 +27,19 @@ vi.mock("../../scripts/ingest/dailyMetrics", () => ({
     if (state.completeActive) {
       options.onSourceError?.(
         "auction_clearance",
-        "Auction collection is paused pending approved access",
+        "Auction collection is paused pending approved access"
       );
       await options.persist(
-        METRIC_EXPECTATIONS.filter(
-          (row) => !isAuctionCollectionPaused(row.key),
-        ).map((row) => ({
+        METRIC_EXPECTATIONS.filter((row) => !isAuctionCollectionPaused(row.key)).map((row) => ({
           metricKey: row.key,
           label: row.label,
           value: "1",
           asOf: new Date().toISOString(),
-        })),
+        }))
       );
       return;
     }
-    if (state.sourceError)
-      options.onSourceError?.("cash_rate", state.sourceError);
+    if (state.sourceError) options.onSourceError?.("cash_rate", state.sourceError);
     await options.persist([
       ...(state.sourceError
         ? []
@@ -80,29 +76,20 @@ it("carries the cash-rate failure reason into Admin and the scheduler error", as
   const { refreshOfficialMetrics, metricRefreshStatus, recoverMissingMetrics } =
     await import("./recovery");
   const report = await refreshOfficialMetrics();
-  expect(report.sourceErrors).toEqual([
-    { metricKey: "cash_rate", reason: "RBA F1 HTTP 403" },
-  ]);
+  expect(report.sourceErrors).toEqual([{ metricKey: "cash_rate", reason: "RBA F1 HTTP 403" }]);
   expect(report.unavailable).toContain("cash_rate");
-  expect(metricRefreshStatus().lastReport?.sourceErrors).toEqual(
-    report.sourceErrors,
-  );
-  await expect(recoverMissingMetrics()).rejects.toThrow(
-    "cash_rate: RBA F1 HTTP 403",
-  );
+  expect(metricRefreshStatus().lastReport?.sourceErrors).toEqual(report.sourceErrors);
+  await expect(recoverMissingMetrics()).rejects.toThrow("cash_rate: RBA F1 HTTP 403");
 });
 
 it("bounds source diagnostics in the refresh report", async () => {
   state.sourceError = "x".repeat(1000);
   const { refreshOfficialMetrics } = await import("./recovery");
-  expect((await refreshOfficialMetrics()).sourceErrors[0]!.reason).toHaveLength(
-    400,
-  );
+  expect((await refreshOfficialMetrics()).sourceErrors[0]!.reason).toHaveLength(400);
 });
 
 it("collects missing metrics directly and reports missing sources separately from failed writes", async () => {
-  const { refreshOfficialMetrics, metricRefreshStatus } =
-    await import("./recovery");
+  const { refreshOfficialMetrics, metricRefreshStatus } = await import("./recovery");
   const report = await refreshOfficialMetrics();
   expect(report.stored).toBe(1);
   expect(report.failedWrites).toEqual(["audusd"]);
@@ -127,9 +114,7 @@ it("shares concurrent refreshes and briefly reuses the completed result", async 
 });
 it("does not claim partial collection is a successful automatic recovery", async () => {
   const { recoverMissingMetrics } = await import("./recovery");
-  await expect(recoverMissingMetrics()).rejects.toThrow(
-    "Metric refresh stored 1",
-  );
+  await expect(recoverMissingMetrics()).rejects.toThrow("Metric refresh stored 1");
 });
 it("rejects collection before contacting sources when storage is unavailable", async () => {
   state.connected = false;
@@ -139,17 +124,17 @@ it("rejects collection before contacting sources when storage is unavailable", a
 });
 
 it("does not trigger recovery solely for intentionally paused auction gaps", async () => {
-  state.metrics = METRIC_EXPECTATIONS.filter(
-    (row) => !isAuctionCollectionPaused(row.key),
-  ).map((row) => ({
-    metricKey: row.key,
-    label: row.label,
-    asOf: new Date(new Date().toISOString().slice(0, 10)),
-    updatedAt: new Date(),
-    source: "Fixture",
-  }));
-  const { needsMetricRecovery, recoverMissingMetrics } =
-    await import("./recovery");
+  state.metrics = METRIC_EXPECTATIONS.filter((row) => !isAuctionCollectionPaused(row.key)).map(
+    (row) => ({
+      metricKey: row.key,
+      label: row.label,
+      asOf: new Date(new Date().toISOString().slice(0, 10)),
+      updatedAt: new Date(),
+      source: "Fixture",
+      sourceUrl: "https://example.com/observations",
+    })
+  );
+  const { needsMetricRecovery, recoverMissingMetrics } = await import("./recovery");
   expect(await needsMetricRecovery()).toBe(false);
   await recoverMissingMetrics();
   expect(state.writes).toHaveLength(0);
@@ -160,8 +145,7 @@ it("does not trigger recovery solely for intentionally paused auction gaps", asy
 it("recovers active metrics without exhausting retries for paused auctions, but keeps Admin gaps visible", async () => {
   state.completeActive = true;
   state.failWrites = false;
-  const { recoverMissingMetrics, metricRefreshStatus } =
-    await import("./recovery");
+  const { recoverMissingMetrics, metricRefreshStatus } = await import("./recovery");
   await expect(recoverMissingMetrics()).resolves.toBeUndefined();
   const report = metricRefreshStatus().lastReport!;
   expect(report.unavailable).toEqual(PAUSED_AUCTION_KEYS);
@@ -172,9 +156,7 @@ it("recovers active metrics without exhausting retries for paused auctions, but 
 it("still fails recovery for a storage error even when the only missing sources are paused", async () => {
   state.completeActive = true;
   const { recoverMissingMetrics } = await import("./recovery");
-  await expect(recoverMissingMetrics()).rejects.toThrow(
-    "failed writes: audusd",
-  );
+  await expect(recoverMissingMetrics()).rejects.toThrow("failed writes: audusd");
 });
 
 it("keeps intentional source pauses out of failure emails without hiding them in Admin", async () => {
@@ -190,21 +172,19 @@ it("keeps intentional source pauses out of failure emails without hiding them in
 it("fails a scheduled partial refresh even when retained metrics look healthy", async () => {
   state.failWrites = false;
   state.sourceError = "RBA F1 HTTP 403";
-  state.metrics = METRIC_EXPECTATIONS.filter(
-    (row) => !isAuctionCollectionPaused(row.key),
-  ).map((row) => ({
-    metricKey: row.key,
-    label: row.label,
-    asOf: new Date(new Date().toISOString().slice(0, 10)),
-    updatedAt: new Date(),
-    source: "Fixture",
-  }));
-  const { needsMetricRecovery, runScheduledMetricRefresh } =
-    await import("./recovery");
-  expect(await needsMetricRecovery()).toBe(false);
-  await expect(runScheduledMetricRefresh()).rejects.toThrow(
-    "cash_rate: RBA F1 HTTP 403",
+  state.metrics = METRIC_EXPECTATIONS.filter((row) => !isAuctionCollectionPaused(row.key)).map(
+    (row) => ({
+      metricKey: row.key,
+      label: row.label,
+      asOf: new Date(new Date().toISOString().slice(0, 10)),
+      updatedAt: new Date(),
+      source: "Fixture",
+      sourceUrl: "https://example.com/observations",
+    })
   );
+  const { needsMetricRecovery, runScheduledMetricRefresh } = await import("./recovery");
+  expect(await needsMetricRecovery()).toBe(false);
+  await expect(runScheduledMetricRefresh()).rejects.toThrow("cash_rate: RBA F1 HTTP 403");
   expect(state.writes.some((row) => row.metricKey === "audusd")).toBe(true);
   expect(await needsMetricRecovery()).toBe(true);
 });
@@ -212,13 +192,16 @@ it("fails a scheduled partial refresh even when retained metrics look healthy", 
 it("clears the recovery requirement after the next successful collection", async () => {
   state.failWrites = false;
   state.sourceError = "RBA F1 HTTP 403";
-  state.metrics = METRIC_EXPECTATIONS.filter(
-    (row) => !isAuctionCollectionPaused(row.key),
-  ).map((row) => ({
-    metricKey: row.key, label: row.label,
-    asOf: new Date(new Date().toISOString().slice(0, 10)),
-    updatedAt: new Date(), source: "Fixture",
-  }));
+  state.metrics = METRIC_EXPECTATIONS.filter((row) => !isAuctionCollectionPaused(row.key)).map(
+    (row) => ({
+      metricKey: row.key,
+      label: row.label,
+      asOf: new Date(new Date().toISOString().slice(0, 10)),
+      updatedAt: new Date(),
+      source: "Fixture",
+      sourceUrl: "https://example.com/observations",
+    })
+  );
   const { needsMetricRecovery, runScheduledMetricRefresh } = await import("./recovery");
   await expect(runScheduledMetricRefresh()).rejects.toThrow("cash_rate");
   expect(await needsMetricRecovery()).toBe(true);
@@ -235,41 +218,75 @@ it("clears the recovery requirement after the next successful collection", async
 });
 
 it("can discover a new gap after an earlier healthy recovery check", async () => {
-  state.metrics = METRIC_EXPECTATIONS.filter(
-    (row) => !isAuctionCollectionPaused(row.key),
-  ).map((row) => ({
-    metricKey: row.key,
-    label: row.label,
-    asOf: new Date(new Date().toISOString().slice(0, 10)),
-    updatedAt: new Date(),
-    source: "Fixture",
-  }));
+  state.metrics = METRIC_EXPECTATIONS.filter((row) => !isAuctionCollectionPaused(row.key)).map(
+    (row) => ({
+      metricKey: row.key,
+      label: row.label,
+      asOf: new Date(new Date().toISOString().slice(0, 10)),
+      updatedAt: new Date(),
+      source: "Fixture",
+      sourceUrl: "https://example.com/observations",
+    })
+  );
   const { recoverMissingMetrics } = await import("./recovery");
   await recoverMissingMetrics();
   expect(state.writes).toHaveLength(0);
   state.metrics = state.metrics.filter((row) => row.metricKey !== "cash_rate");
-  await expect(recoverMissingMetrics()).rejects.toThrow(
-    "Metric refresh stored",
-  );
+  await expect(recoverMissingMetrics()).rejects.toThrow("Metric refresh stored");
   expect(state.writes.length).toBeGreaterThan(0);
 });
 
 it("keeps an old-release warning without repeatedly downloading a just-checked release", async () => {
-  state.metrics = METRIC_EXPECTATIONS.filter(
-    (row) => !isAuctionCollectionPaused(row.key),
-  ).map((row) => ({
-    metricKey: row.key,
-    label: row.label,
-    asOf: new Date(new Date().toISOString().slice(0, 10)),
-    updatedAt: new Date(),
-    source: "Fixture",
-  }));
-  const release = state.metrics.find(
-    (row) => row.metricKey === "consumer_confidence",
+  state.metrics = METRIC_EXPECTATIONS.filter((row) => !isAuctionCollectionPaused(row.key)).map(
+    (row) => ({
+      metricKey: row.key,
+      label: row.label,
+      asOf: new Date(new Date().toISOString().slice(0, 10)),
+      updatedAt: new Date(),
+      source: "Fixture",
+      sourceUrl: "https://example.com/observations",
+    })
   );
+  const release = state.metrics.find((row) => row.metricKey === "consumer_confidence");
   release.asOf = new Date(Date.now() - 100 * 86_400_000);
   const { needsMetricRecovery } = await import("./recovery");
   expect(await needsMetricRecovery()).toBe(false);
   release.updatedAt = new Date(Date.now() - 7 * 60 * 60_000);
   expect(await needsMetricRecovery()).toBe(true);
+});
+
+it.each([null, "javascript:alert(1)"])(
+  "recollects recent active metrics with unusable provenance: %s",
+  async (sourceUrl) => {
+    state.metrics = METRIC_EXPECTATIONS.filter((row) => !isAuctionCollectionPaused(row.key)).map(
+      (row) => ({
+        metricKey: row.key,
+        label: row.label,
+        asOf: new Date(new Date().toISOString().slice(0, 10)),
+        updatedAt: new Date(),
+        source: "Fixture",
+        sourceUrl: "https://example.com/observations",
+      })
+    );
+    const quote = state.metrics.find((row) => row.metricKey === "audusd");
+    quote.sourceUrl = sourceUrl;
+    const { needsMetricRecovery, recoverMissingMetrics } = await import("./recovery");
+    expect(await needsMetricRecovery()).toBe(true);
+    await expect(recoverMissingMetrics()).rejects.toThrow("Metric refresh stored");
+    expect(state.writes.length).toBeGreaterThan(0);
+  }
+);
+
+it("does not trigger collection for provenance gaps in paused or unconfigured metrics", async () => {
+  state.metrics = METRIC_EXPECTATIONS.map((row) => ({
+    metricKey: row.key,
+    label: row.label,
+    asOf: new Date(new Date().toISOString().slice(0, 10)),
+    updatedAt: new Date(),
+    source: "Fixture",
+    sourceUrl: isAuctionCollectionPaused(row.key) ? null : "https://example.com/observations",
+  }));
+  state.metrics.push({ ...state.metrics[0], metricKey: "unknown_source", sourceUrl: null });
+  const { needsMetricRecovery } = await import("./recovery");
+  expect(await needsMetricRecovery()).toBe(false);
 });

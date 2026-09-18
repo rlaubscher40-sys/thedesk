@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { MySqlDialect } from "drizzle-orm/mysql-core";
+import type { SQL } from "drizzle-orm";
 const fixture = vi.hoisted(() => ({
   rows: [] as Record<string, unknown>[],
   offsets: [] as number[],
@@ -8,13 +10,24 @@ vi.mock("./client", () => ({
   getDb: () => ({
     select: () => ({
       from: () => ({
-        where: () => ({
+        where: (condition: SQL) => ({
           orderBy: () => ({
             limit: (limit: number) => ({
               offset: async (offset: number) => {
                 fixture.offsets.push(offset);
                 fixture.limits.push(limit);
-                return fixture.rows.slice(offset, offset + limit);
+                const params = new MySqlDialect().sqlToQuery(condition).params;
+                const term = params.find((p) => typeof p === "string" && /^%.*%$/.test(p)) as
+                  | string
+                  | undefined;
+                const selected = term
+                  ? fixture.rows.filter((r) =>
+                      `${r.title} ${r.summary}`
+                        .toLowerCase()
+                        .includes(term.slice(1, -1).toLowerCase())
+                    )
+                  : fixture.rows;
+                return selected.slice(offset, offset + limit);
               },
             }),
           }),
@@ -80,7 +93,21 @@ describe("evidence read projections", () => {
       },
     ];
     expect((await listPropertyMarketEvidence()).map((item) => item.id)).toEqual([1]);
-    expect(fixture.limits).toEqual(Array(8).fill(100));
+    expect(fixture.limits).toEqual([...Array(8).fill(100), ...Array(4).fill(40)]);
+  });
+  it("recovers regional reporting beyond a busy state sample without duplicating it", async () => {
+    fixture.rows = [
+      ...Array.from({ length: 150 }, (_, i) => row(i + 1)),
+      row(500, "Townsville housing supply expands"),
+      row(501, "Newcastle housing approvals increase"),
+      row(502, "Newcastleshire housing report"),
+      row(503, "Townsville Mortgage Awards: Book your hotel room now"),
+    ];
+    const found = await listPropertyMarketEvidence();
+    expect(found.filter((r) => r.id === 500)).toHaveLength(1);
+    expect(found.filter((r) => r.id === 501)).toHaveLength(1);
+    expect(found.some((r) => [502, 503].includes(r.id))).toBe(false);
+    expect(found.length).toBe(102);
   });
   it("retains raw archived records for direct traceability reads", async () => {
     fixture.rows = [row(1, "Sydney Mortgage Awards: Book your hotel room now")];

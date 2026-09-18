@@ -16,9 +16,11 @@ const words = (s: string) => [
 /** A standalone excerpt must not leave the speaker or subject in an omitted paragraph. */
 function needsPreviousContext(text: string): boolean {
   return (
-    /^(?:he|she|they|it|this|that|these|those|for people already living that reality)\b/i.test(
+    /^(?:i|we|our|he|she|they|it|this|that|these|those|for people already living that reality)\b/i.test(
       text
-    ) || /["”']?,?\s+(?:he|she|they)\s+(?:said|added|warned|told|argued)\b/i.test(text)
+    ) ||
+    /^(?:it comes as|in (?:other|earlier) news|meanwhile)\b/i.test(text) ||
+    /["”']?,?\s+(?:he|she|they)\s+(?:said|added|warned|told|argued)\b/i.test(text)
   );
 }
 
@@ -48,11 +50,16 @@ export function isPhotoCaption(text: string): boolean {
 
 /** Remove recognisable syndication chrome, never silently complete clipped prose. */
 export function cleanReportingExcerpt(text: string): string {
-  return text
-    .replace(/\bThe post\s+.{0,500}?\s+appeared first on\s+.{0,150}?(?:\.|$)/gi, "")
-    .replace(/\s*\(pictured\)\s*/gi, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  return (
+    text
+      .replace(/\bThe post\s+.{0,500}?\s+appeared first on\s+.{0,150}?(?:\.|$)/gi, "")
+      .replace(/\s*\(pictured\)\s*/gi, " ")
+      .replace(/\s+/g, " ")
+      // Broken publisher suffix observed in archived realestate.com.au excerpts.
+      // Require sentence punctuation; preserve domains within actual reporting.
+      .replace(/(?<=[.!?…])\s+com\.au\.?\s*$/i, "")
+      .trim()
+  );
 }
 
 /** Extractive fallback, not a semantic summary. Choose a relevant complete
@@ -87,7 +94,10 @@ export function reportingExcerpt(title: string, articleText: string, max = 380):
     })
     .filter((c) => c.overlap > 0)
     .sort((a, b) => b.score - a.score || a.index - b.index);
-  const first = ranked[0];
+  // A relevant opening finding should beat a later keyword-rich aside or quote.
+  // Keep the strongest match when the lead is an analogy or off-topic.
+  const lead = ranked.find((candidate) => candidate.index === 0);
+  const first = lead && lead.overlap >= 2 ? lead : ranked[0];
   if (!first) return "";
   if (first.text.length > max) {
     const clip = first.text.slice(0, max - 1);

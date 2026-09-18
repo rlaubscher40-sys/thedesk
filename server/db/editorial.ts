@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from "node:util";
 import { desc, gte, lte, and, sql, lt, eq, inArray } from "drizzle-orm";
 import { json, mysqlTable, timestamp, varchar } from "drizzle-orm/mysql-core";
 import { getDb } from "./client";
@@ -63,6 +64,16 @@ export async function recordEditorialReport(report: EditorialReport) {
     .insert(editorialRuns)
     .values({ id: report.runId, report })
     .onDuplicateKeyUpdate({ set: { report } });
+  const [saved] = await db
+    .select({ report: editorialRuns.report })
+    .from(editorialRuns)
+    .where(eq(editorialRuns.id, report.runId))
+    .limit(1);
+  if (!saved || !isDeepStrictEqual(saved.report, report))
+    throw new Error("Editorial report read-back did not match the submitted report");
+  console.log(
+    `[editorial-report-saved] ${JSON.stringify({ runId: report.runId, sources: report.sources.length, decisions: report.decisions.length, status: report.status, verified: true })}`
+  );
   await db
     .delete(editorialRuns)
     .where(lt(editorialRuns.createdAt, new Date(Date.now() - 30 * 86_400_000)));

@@ -4,6 +4,9 @@ import { z } from "zod";
 import { publicMarket } from "../../shared/marketDirectory";
 import { getMarketDirectory } from "../markets/discovery";
 import { getCityRents } from "../markets/absRents";
+import { getCityApprovals } from "../markets/absApprovals";
+import { getStateLabour } from "../markets/absLabour";
+import { getHousingTransfers, getHousingCompletions } from "../markets/absQuarterlyHousing";
 import { getLocalData } from "../localData/read";
 import { STATE_CODES } from "../../shared/localData";
 import { comparisonInputSchema } from "../../shared/marketComparison";
@@ -30,6 +33,10 @@ export const marketsRouter = router({
     .query(({ input }) => getLocalData(input.query, input.state, input.kind)),
   newLoanRates: publicProcedure.query(() => getReelLendingRates()),
   rentalConditions: publicProcedure.query(() => getCityRents()),
+  housingApprovals: publicProcedure.query(() => getCityApprovals()),
+  stateLabour: publicProcedure.query(() => getStateLabour()),
+  housingTransfers: publicProcedure.query(() => getHousingTransfers()),
+  housingCompletions: publicProcedure.query(() => getHousingCompletions()),
   discovery: publicProcedure.query(() => getMarketDirectory()),
   publicFile: publicProcedure
     .input(z.object({ slug: z.string().max(40) }))

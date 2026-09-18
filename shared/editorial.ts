@@ -5,6 +5,7 @@ import { sourceTimingHold, type SourceTiming } from "./sourceTiming";
 import { storyChannel } from "./storyGeography";
 import { storySignificance } from "./editorialSignificance";
 import { nonNewsFormatHold } from "./editorialPageTypes";
+import { checkClaimEvidence } from "./claimEvidence";
 
 export const EDITORIAL_VERSION = "2026-09-10-v4";
 export type EditorialInput = {
@@ -16,6 +17,7 @@ export type EditorialInput = {
   category?: string | null;
   channel?: string | null;
   articleText?: string | null;
+  discoveryText?: string;
   sourceTiming?: SourceTiming | null;
 };
 function publisherHost(input: EditorialInput): string {
@@ -23,6 +25,18 @@ function publisherHost(input: EditorialInput): string {
     return new URL(input.sourceUrl ?? input.url ?? "").hostname.replace(/^www\./, "").toLowerCase();
   } catch {
     return "";
+  }
+}
+function isStateGovernmentRelease(input: EditorialInput): boolean {
+  try {
+    const url = new URL(input.sourceUrl ?? input.url ?? "");
+    const host = url.hostname.replace(/^www\./, "");
+    return (
+      (host === "nsw.gov.au" && /^\/ministerial-releases\/[^/]+$/.test(url.pathname)) ||
+      (host === "statements.qld.gov.au" && /^\/statements\/\d+$/.test(url.pathname))
+    );
+  } catch {
+    return false;
   }
 }
 const primary = new Set([
@@ -86,7 +100,7 @@ export function publisherWeight(input: EditorialInput): number {
     input.source === "REIWA public releases (National Tribune)"
   )
     return 8;
-  return primary.has(host)
+  return primary.has(host) || isStateGovernmentRelease(input)
     ? 16
     : specialist.has(host)
       ? 12
@@ -100,6 +114,13 @@ export function publisherWeight(input: EditorialInput): number {
 /** Page types are evidence/reference material, not automatically a dated news event. */
 export function referenceNewsHold(input: EditorialInput): string | null {
   const title = input.title.trim();
+  if (
+    isStateGovernmentRelease(input) &&
+    /\b(?:animal welfare|animal rescue|rehoming|bird flu)\b/i.test(title)
+  )
+    return "animal-news-not-residential-housing";
+  if (/\b(?:winners?|ceremony)\b/i.test(title) && /\bawards\b/i.test(title))
+    return "awards-announcement";
   const formatHold = nonNewsFormatHold(input);
   if (formatHold) return formatHold;
   // A rolling national-news page is not a housing article. In particular,
@@ -208,6 +229,18 @@ export function editorialBeat(text: string): string | null {
     return "advice-tax";
   if (markets.test(text)) return "markets";
   if (
+    /\bworker accommodation\b/i.test(text) &&
+    /\b(?:legislation|obligations?|laws?|bill|repeal)\b/i.test(text)
+  )
+    return "policy";
+  if (
+    /\b(?:development applications?|planning (?:approval|commission)|state significant development)\b/i.test(
+      text
+    ) &&
+    /\b(?:direction|determination|minister|council|approv\w*|reject\w*|demolition)\b/i.test(text)
+  )
+    return "supply";
+  if (
     policy.test(text) ||
     accommodationPolicy.test(text) ||
     industryRegulation.test(text) ||
@@ -215,6 +248,11 @@ export function editorialBeat(text: string): string | null {
     paymentPolicy.test(text)
   )
     return "policy";
+  if (
+    /\b(?:construction trades|apprentices?\w*)\b/i.test(text) &&
+    /\bbuild (?:more |new )?homes\b/i.test(text)
+  )
+    return "supply";
   if (
     /\b(?:DA|development|planning) approval\b.{0,100}\b(?:homes|housing|dwellings)\b/i.test(text) ||
     /\b(?:(?:new|social|affordable) homes|homes (?:built|delivered)|making way for more homes)\b/i.test(
@@ -240,14 +278,18 @@ export function editorialBeat(text: string): string | null {
   return null;
 }
 export function discoveryScore(input: EditorialInput): number {
-  const text = `${input.title} ${input.summary ?? ""}`;
+  const text = `${input.title} ${input.summary ?? ""} ${input.discoveryText ?? ""}`;
   if (
     referenceNewsHold(input) ||
     (["AU", "PROPERTY"].includes(input.channel ?? "AU") && noise.test(input.title))
   )
     return -100;
   if (["AU", "PROPERTY"].includes(input.channel ?? "AU"))
-    return editorialBeat(text) ? editorialPriority(input) : publisherWeight(input);
+    return editorialBeat(text) ||
+      (publisherWeight(input) === 16 &&
+        /\b(?:apprentices?|apprenticeships?|skills pipeline)\b/i.test(input.title))
+      ? editorialPriority(input)
+      : publisherWeight(input);
   return (editorialBeat(text) ? 40 : 0) + publisherWeight(input) + (/\d/.test(input.title) ? 3 : 0);
 }
 
@@ -265,6 +307,31 @@ function subjectBeat(input: EditorialInput): string | null {
     /^(?:national |residential |rental )?vacancy rates\b/i.test(input.title) &&
     /\/uploads\/\d{2}-\d{2}-\d{2}-[^/?]+\.pdf(?:\?|$)/i.test(input.sourceUrl ?? input.url ?? "") &&
     /\brental vacanc(?:y|ies)\b/i.test((input.articleText ?? "").slice(0, 4500));
+  if (isStateGovernmentRelease(input)) {
+    // State release bodies can explain a generic headline, but distant mentions
+    // of productivity, employment or housing must not redefine the main subject.
+    const workforceRelease = /\b(?:apprentices?|apprenticeships?|skills pipeline)\b/i.test(
+      input.title
+    );
+    const lead = (input.articleText ?? input.summary ?? "")
+      .split(/\n+/)
+      .filter((p) => !/^(?:published|minister for|deputy premier|the honourable)\b/i.test(p.trim()))
+      .filter((p) => p.trim())
+      .slice(0, workforceRelease ? 4 : 2)
+      .join(" ")
+      .slice(0, 1800);
+    const subject = `${input.title} ${lead}`;
+    const housing =
+      hasHousingEvidence(subject) ||
+      /\b(?:worker accommodation|stamp duty|land tax|build (?:more |new )?homes|construction trades)\b/i.test(
+        subject
+      ) ||
+      (/\b(?:development applications?|state significant development|planning commission)\b/i.test(
+        subject
+      ) &&
+        /\b(?:council|minister|determination|direction|demolition)\b/i.test(subject));
+    return housing ? editorialBeat(subject) : null;
+  }
   return (
     editorialBeat(`${input.title} ${input.summary ?? ""}`) ??
     (sqmVacancyRelease ? "rents" : null) ??
@@ -320,6 +387,20 @@ export function assessStory(input: EditorialInput, now = new Date(), feedDate?: 
     return reject("insufficient-article-text");
   if (looksLikeGarbage(text) || looksLikeSiteBoilerplate(text))
     return reject("unusable-article-text");
+  // A publisher headline is not independent evidence for its own claim.
+  // Only bounded contradictions hold intake; omitted headline details do not.
+  const contradiction = checkClaimEvidence(input.title, { title: "", articleText: text }).find(
+    (issue) =>
+      [
+        "figure-scope",
+        "period-scope",
+        "series-basis",
+        "proposal-as-fact",
+        "delivery-status",
+        "forecast-as-fact",
+      ].includes(issue)
+  );
+  if (contradiction) return reject(`headline-evidence:${contradiction}`);
   const category = local
     ? beat === "rates-economy"
       ? "MACRO"

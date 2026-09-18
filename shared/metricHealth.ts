@@ -24,34 +24,22 @@ export const METRIC_EXPECTATIONS: Expectation[] = [
     period: "Trading days",
     maxAgeDays: 5,
   })),
-  ...[
-    "cpi_trimmed",
-    "unemployment",
-    "wage_growth",
-    "building_approvals",
-    "net_migration",
-  ].map((key) => ({
-    key,
-    label: key.replaceAll("_", " "),
-    period:
-      key === "unemployment" || key === "building_approvals"
-        ? "Monthly"
-        : "Release based",
-    maxAgeDays:
-      key === "net_migration"
-        ? 300
-        : key === "wage_growth" || key === "cpi_trimmed"
-          ? 180
-          : 100,
-  })),
-  ...["owner_occupier_new_lending_rate", "investor_new_lending_rate"].map(
+  ...["cpi_trimmed", "unemployment", "wage_growth", "building_approvals", "net_migration"].map(
     (key) => ({
       key,
       label: key.replaceAll("_", " "),
-      period: "Monthly",
-      maxAgeDays: 100,
-    }),
+      period: ["cpi_trimmed", "unemployment", "building_approvals"].includes(key)
+        ? "Monthly"
+        : "Quarterly release · annual measure",
+      maxAgeDays: key === "net_migration" ? 300 : key === "wage_growth" ? 180 : 100,
+    })
   ),
+  ...["owner_occupier_new_lending_rate", "investor_new_lending_rate"].map((key) => ({
+    key,
+    label: key.replaceAll("_", " "),
+    period: "Monthly",
+    maxAgeDays: 100,
+  })),
   ...RENT_CITIES.map((city) => ({
     key: `${city.toLowerCase()}_rent_growth_annual`,
     label: `${city} annual rent change`,
@@ -75,13 +63,11 @@ export const METRIC_EXPECTATIONS: Expectation[] = [
       label: `${region.code} ${suffix.replaceAll("_", " ")}`,
       period: "Quarterly · official publication lag",
       maxAgeDays: 300,
-    })),
+    }))
   ),
   ...[
     "auction_clearance",
-    ...AUCTION_REGIONS.map(
-      (region) => `${region.toLowerCase()}_auction_clearance`,
-    ),
+    ...AUCTION_REGIONS.map((region) => `${region.toLowerCase()}_auction_clearance`),
   ].map((key) => ({
     key,
     label: key.replaceAll("_", " "),
@@ -114,7 +100,21 @@ type StoredMetric = {
   asOf: Date;
   updatedAt: Date;
   source: string | null;
+  sourceUrl?: string | null;
 };
+
+/** A usable link is traceability evidence, not proof that its contents match. */
+function metricSourceLink(raw: string | null | undefined) {
+  if (!raw?.trim()) return { sourceStatus: "missing source link", sourceUrl: null };
+  try {
+    const url = new URL(raw);
+    if (!["https:", "http:"].includes(url.protocol) || url.username || url.password)
+      throw new Error("Unsupported source link");
+    return { sourceStatus: "link available", sourceUrl: url.href };
+  } catch {
+    return { sourceStatus: "invalid source link", sourceUrl: null };
+  }
+}
 export function metricHealth(rows: StoredMetric[], now = new Date()) {
   const sydneyParts = Number.isFinite(now.getTime())
     ? new Intl.DateTimeFormat("en-CA", {
@@ -124,11 +124,8 @@ export function metricHealth(rows: StoredMetric[], now = new Date()) {
         day: "2-digit",
       }).formatToParts(now)
     : [];
-  const dayPart = (type: string) =>
-    sydneyParts.find((part) => part.type === type)?.value;
-  const sydneyDay = Date.parse(
-    `${dayPart("year")}-${dayPart("month")}-${dayPart("day")}`,
-  );
+  const dayPart = (type: string) => sydneyParts.find((part) => part.type === type)?.value;
+  const sydneyDay = Date.parse(`${dayPart("year")}-${dayPart("month")}-${dayPart("day")}`);
   const specs = [...METRIC_EXPECTATIONS];
   for (const row of rows)
     if (!specs.some((spec) => spec.key === row.metricKey))
@@ -143,13 +140,9 @@ export function metricHealth(rows: StoredMetric[], now = new Date()) {
     // F1 labels daily observations by Sydney calendar day. It is not an
     // instantaneous quote or the effective date of the last policy decision.
     const observationAge = row
-      ? ((spec.key === "cash_rate" ? sydneyDay : now.getTime()) -
-          row.asOf.getTime()) /
-        86_400_000
+      ? ((spec.key === "cash_rate" ? sydneyDay : now.getTime()) - row.asOf.getTime()) / 86_400_000
       : null;
-    const storedAge = row
-      ? (now.getTime() - row.updatedAt.getTime()) / 86_400_000
-      : null;
+    const storedAge = row ? (now.getTime() - row.updatedAt.getTime()) / 86_400_000 : null;
     let state = "within review window";
     if (!row) state = "missing";
     else if (
@@ -161,12 +154,9 @@ export function metricHealth(rows: StoredMetric[], now = new Date()) {
       state = "invalid dates";
     else if (spec.maxAgeDays !== null && observationAge! > spec.maxAgeDays)
       state = "old reporting period";
-    else if (storedAge! > (spec.extracted ? 8 : 2))
-      state = "collection overdue";
-    else if (spec.extracted || row.source === "News + LLM")
-      state = "check extracted evidence";
-    else if (spec.period === "Cadence unconfigured")
-      state = "cadence unconfigured";
+    else if (storedAge! > (spec.extracted ? 8 : 2)) state = "collection overdue";
+    else if (spec.extracted || row.source === "News + LLM") state = "check extracted evidence";
+    else if (spec.period === "Cadence unconfigured") state = "cadence unconfigured";
     return {
       ...spec,
       label: row?.label ?? spec.label,
@@ -174,6 +164,7 @@ export function metricHealth(rows: StoredMetric[], now = new Date()) {
       asOf: row?.asOf ?? null,
       storedAt: row?.updatedAt ?? null,
       source: row?.source ?? null,
+      ...metricSourceLink(row?.sourceUrl),
     };
   });
 }

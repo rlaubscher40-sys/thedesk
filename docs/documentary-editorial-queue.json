@@ -1,21 +1,21 @@
 {
   "version": 1,
-  "checkedAt": "2026-09-16T22:55:00Z",
-  "recoveredMain": "efab66ba440cf6fef8a4cd5cab3ac1f2fd672ecf",
-  "productionDeployment": "4e52b7a6-ad31-4b5e-afcc-b9e922045bb2",
+  "checkedAt": "2026-09-17T06:00:00Z",
+  "recoveredMain": "3cca5318e4b4d7e1771c4bce1bffebef7123314e",
+  "productionDeployment": "39bf6e6f-92fb-4a05-b447-db843e54490b",
   "policy": {
     "targetReviewedUnpublished": 4,
     "maxNewFilmsPerRun": 1,
     "continueOldestViableFirst": true,
-    "releaseDays": { "documentary-deal": "Wednesday", "documentary-empires": "Sunday" },
+    "releaseDays": {
+      "documentary-deal": "Wednesday",
+      "documentary-empires": "Sunday"
+    },
     "window": "18:30-20:00 Australia/Sydney",
     "ordinaryReelsOwnedByThisProducer": false
   },
   "blockers": [
-    "No full perceptual audio/video review capability is exposed in this producer session. Encoding measurements and sampled frames cannot approve pronunciation, delivery, motion or the complete mix.",
-    "Authenticated production receipt read returned HTTP 403. Public gallery and scheduler logs provide partial history only; unpublished status is not independently confirmed for every episode.",
-    "Cross-programme subject/event/takeaway comparison is not enforced by the existing publisher. The latest ordinary Reel in logs is Melbourne approvals on 16 September; the next selected topic is Brisbane approvals. These differ from the four biographies/business decisions, but this is not a complete recent-history audit.",
-    "The four-preview archive lacks its central directory and ends after Harry frame 28. CRC-verified Grollo/Lowy packages and the manifest were recovered. The separate Harry package is valid. Walker's standalone MP4 matches the manifest, but its original detailed review package is absent from that archive."
+    "Live receipt availability and cross-programme history must pass in the production scheduler before each release. Repository status is not a publication receipt."
   ],
   "recovery": {
     "recoveredPackageLibraryId": "libfile_34228a9ee718819198a46719ed5f7205",
@@ -34,7 +34,7 @@
       "episodeId": "triguboff-apartments",
       "family": "documentary-empires",
       "firstRecordedDate": "2026-09-14",
-      "stage": "blocked-review",
+      "stage": "authorised-for-scheduled-release",
       "selectionReason": "Continue the oldest existing film. Person-led progression from early flats through changes in ownership, financing, management, rental and accommodation operations; accepted visual benchmark, not an approval of these exact bytes.",
       "underlyingEvent": "Meriton business progression, 1963-2026, including the 1974-76 debt crisis",
       "centralTakeaway": "The operating model changed alongside building scale; sales, finance, management, rents and accommodation are distinct activities.",
@@ -55,13 +55,20 @@
         "sampledFrames": "previously-inspected",
         "fullListening": "blocked",
         "continuousMotion": "not-reviewed",
-        "approval": null
+        "approval": {
+          "kind": "user-release-authorisation",
+          "author": "Ruben Laubscher",
+          "date": "2026-09-17",
+          "instruction": "I trust them to be good lets start posting etx",
+          "fullListening": "not-performed",
+          "continuousMotion": "not-reviewed"
+        }
       },
       "publication": {
         "key": "instagram-reel-documentary-triguboff-apartments-v1",
         "date": "2026-09-14",
         "receiptStatus": "unavailable",
-        "reservedSydneyDate": null,
+        "reservedSydneyDate": "2026-09-20",
         "legacyProvisionalDate": "2026-09-27"
       }
     },
@@ -70,7 +77,7 @@
       "episodeId": "grollo-family",
       "family": "documentary-empires",
       "firstRecordedDate": "2026-09-14",
-      "stage": "blocked-review",
+      "stage": "authorised-for-scheduled-release",
       "selectionReason": "Continue the existing distinct family story; documented labour-to-development progression and a major contract setback. Supersedes the separate Grollo ownership preview, not an additional launch subject.",
       "underlyingEvent": "Grollo family business progression, 1928-1994",
       "centralTakeaway": "Emma's finance work and the generations' different roles supported the move from labour supply to development and part-ownership.",
@@ -92,13 +99,20 @@
         "sampledFrames": "previously-inspected",
         "fullListening": "blocked",
         "continuousMotion": "not-reviewed",
-        "approval": null
+        "approval": {
+          "kind": "user-release-authorisation",
+          "author": "Ruben Laubscher",
+          "date": "2026-09-17",
+          "instruction": "I trust them to be good lets start posting etx",
+          "fullListening": "not-performed",
+          "continuousMotion": "not-reviewed"
+        }
       },
       "publication": {
         "key": "instagram-reel-documentary-grollo-family-v1",
         "date": "2026-09-14",
         "receiptStatus": "unavailable",
-        "reservedSydneyDate": null,
+        "reservedSydneyDate": "2026-09-27",
         "legacyProvisionalDate": "2026-09-20"
       }
     },
@@ -107,7 +121,7 @@
       "episodeId": "lowy-westfield",
       "family": "documentary-deal",
       "firstRecordedDate": "2026-09-15",
-      "stage": "blocked-review",
+      "stage": "authorised-for-scheduled-release",
       "selectionReason": "Continue the existing shopping-centre financing decision, distinct from apartment development and construction contracting. No new topic research is needed while four exports await review.",
       "underlyingEvent": "Westfield's 1960 float and 1961 Hornsby expansion",
       "centralTakeaway": "The funding decision helps explain expansion; aggregate issue value is not net cash raised or the full project funding stack.",
@@ -129,13 +143,20 @@
         "sampledFrames": "previously-inspected",
         "fullListening": "blocked",
         "continuousMotion": "not-reviewed",
-        "approval": null
+        "approval": {
+          "kind": "user-release-authorisation",
+          "author": "Ruben Laubscher",
+          "date": "2026-09-17",
+          "instruction": "I trust them to be good lets start posting etx",
+          "fullListening": "not-performed",
+          "continuousMotion": "not-reviewed"
+        }
       },
       "publication": {
         "key": "instagram-reel-documentary-lowy-westfield-v1",
         "date": "2026-09-14",
         "receiptStatus": "unavailable",
-        "reservedSydneyDate": null,
+        "reservedSydneyDate": "2026-09-23",
         "legacyProvisionalDate": "2026-09-16"
       }
     },
@@ -144,7 +165,7 @@
       "episodeId": "walker-rebuild",
       "family": "documentary-deal",
       "firstRecordedDate": "2026-09-15",
-      "stage": "blocked-evidence-and-review",
+      "stage": "authorised-for-scheduled-release",
       "selectionReason": "Continue the existing two-exit/rebuild story rather than another Meriton or Grollo angle. Hold on evidence and review limitations before scheduling.",
       "underlyingEvent": "Walker's 1999 and 2006 exits and subsequent business progression",
       "centralTakeaway": "Selling a development business and later building projects is not evidence of personal profit, foresight of the GFC or traced reinvestment.",
@@ -168,15 +189,36 @@
         "sampledFrames": "previously-inspected",
         "fullListening": "blocked",
         "continuousMotion": "not-reviewed",
-        "approval": null
+        "approval": {
+          "kind": "user-release-authorisation",
+          "author": "Ruben Laubscher",
+          "date": "2026-09-17",
+          "instruction": "I trust them to be good lets start posting etx",
+          "fullListening": "not-performed",
+          "continuousMotion": "not-reviewed"
+        }
       },
       "publication": {
         "key": "instagram-reel-documentary-walker-rebuild-v1",
         "date": "2026-09-14",
         "receiptStatus": "unavailable",
-        "reservedSydneyDate": null,
+        "reservedSydneyDate": "2026-09-30",
         "legacyProvisionalDate": "2026-09-23"
       }
     }
-  ]
+  ],
+  "previousBlockers": [
+    "No full perceptual audio/video review capability is exposed in this producer session. Encoding measurements and sampled frames cannot approve pronunciation, delivery, motion or the complete mix.",
+    "Authenticated production receipt read returned HTTP 403. Public gallery and scheduler logs provide partial history only; unpublished status is not independently confirmed for every episode.",
+    "Cross-programme subject/event/takeaway comparison is not enforced by the existing publisher. The latest ordinary Reel in logs is Melbourne approvals on 16 September; the next selected topic is Brisbane approvals. These differ from the four biographies/business decisions, but this is not a complete recent-history audit.",
+    "The four-preview archive lacks its central directory and ends after Harry frame 28. CRC-verified Grollo/Lowy packages and the manifest were recovered. The separate Harry package is valid. Walker's standalone MP4 matches the manifest, but its original detailed review package is absent from that archive."
+  ],
+  "releaseAuthorisation": {
+    "kind": "user-release-authorisation",
+    "author": "Ruben Laubscher",
+    "date": "2026-09-17",
+    "instruction": "I trust them to be good lets start posting etx",
+    "fullListening": "not-performed",
+    "continuousMotion": "not-reviewed"
+  }
 }

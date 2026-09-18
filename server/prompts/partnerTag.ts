@@ -16,6 +16,7 @@
  */
 import { READER_ANGLE_LABELS, parseReaderAngles } from "../../shared/schemas";
 import { invokeLLM } from "../core/llm";
+import { checkClaimEvidence } from "../../shared/claimEvidence";
 import { editorialTimeContext, validEditorialAngle } from "../../shared/editorialTiming";
 
 export type PartnerTagInput = {
@@ -90,7 +91,8 @@ export async function generatePartnerTag(input: PartnerTagInput): Promise<string
       console.warn("[partnerTag] missing personas in output:", content.slice(0, 120));
       return null;
     }
-    return validEditorialAngle(content);
+    const lines = validEditorialAngle(content);
+    return checkClaimEvidence(lines, input).length ? null : lines;
   } catch (err) {
     console.error("[partnerTag] generation error:", err);
     return null;
