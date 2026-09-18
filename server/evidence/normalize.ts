@@ -6,6 +6,7 @@ import { looksLikeGarbage, looksLikeSiteBoilerplate } from "../../shared/headlin
 import { propertyNewsHold } from "../../shared/propertyNewsQuality";
 import { foreignHousingHeadline } from "../../shared/australianScope";
 import { evidenceText } from "../../shared/evidenceQuality";
+import { unresolvedAustralianNamesake } from "../../shared/australianScope";
 
 /** Public feed excerpts only. Never infer a publication date from collection time. */
 export function normaliseEvidence(item: FetchedItem, now = new Date()) {
@@ -16,6 +17,7 @@ export function normaliseEvidence(item: FetchedItem, now = new Date()) {
   )
     return null;
   const clean = evidenceText({ ...item, sourceUrl: item.url });
+  if (unresolvedAustralianNamesake(clean.title, clean.summary, item.url, item.source)) return null;
   const text = `${clean.title} ${clean.summary}`;
   const topics = evidenceTopics(text);
   if (!topics.length || looksLikeGarbage(text) || looksLikeSiteBoilerplate(text)) return null;

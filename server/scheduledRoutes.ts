@@ -597,6 +597,30 @@ function registerSynthesizeEditionRoute(app: Express): void {
       return;
     }
 
+    // Review before the first insert: readers and social jobs must never see
+    // an unreviewed draft while a best-effort background check is pending.
+    try {
+      const packet = JSON.stringify({
+        weekOf,
+        verifiedMetrics,
+        reporting: items.map((item) => ({
+          id: item.id,
+          title: item.title,
+          summary: item.summary,
+          source: item.source,
+          sourceUrl: item.sourceUrl,
+          feedDate: item.feedDate,
+        })),
+      });
+      const qc = await runEditorQc(synth, packet);
+      synth = { ...synth, ...qc.revised };
+      console.log(`[editor-qc] Reviewed ${weekOf} before publication; ${qc.notes.length} edits`);
+    } catch (err) {
+      console.error("[editor-qc] Weekly publication withheld:", err);
+      res.status(503).json({ error: "Editorial review failed; edition not published" });
+      return;
+    }
+
     const buildEdition = (editionNumber: number) => ({
       editionNumber,
       weekOf,
@@ -637,10 +661,9 @@ function registerSynthesizeEditionRoute(app: Express): void {
       sourcedItemCount: items.length,
     });
 
-    // ── Background: editor QC + hero + take + headline SEO ─────────────────
-    // The QC pass and headline optimiser run on the LIVE edition so a slow
-    // call doesn't hold up the synthesise endpoint. Each step is best-effort
-    //, a failure logs and moves on, the edition stays usable either way.
+    // ── Background: hero + take + headline SEO ─────────────────────────────
+    // The editorial review above is a publication gate. Optional presentation
+    // enrichment can run after publication without exposing an unreviewed draft.
     // Wrapped in one try/catch for the same reason as the weekly-edition
     // background block: a rejected await in a detached async would be an
     // unhandled rejection and crash the process.
@@ -649,10 +672,7 @@ function registerSynthesizeEditionRoute(app: Express): void {
         const inserted = await db.getEditionByNumber(editionNumber);
         if (!inserted) return;
 
-        // Step 1: Editor QC pass. Audits voice, clarity, audience hooks,
-        // unsupported claims and applies fixes in place. We feed it the
-        // synthesised output (not the DB row, which is the same shape).
-        let finalEdition = {
+        const finalEdition = {
           topics: edition.topics,
           signals: edition.signals,
           keyMetrics: edition.keyMetrics,
@@ -661,27 +681,6 @@ function registerSynthesizeEditionRoute(app: Express): void {
           marketStress: edition.marketStress,
           datesToWatch: edition.datesToWatch,
         };
-        try {
-          const qc = await runEditorQc(finalEdition);
-          if (!qc.approved) {
-            console.log(`[editor-qc] Edition ${editionNumber}: applied ${qc.notes.length} edits`);
-            for (const n of qc.notes) console.log(`  - ${n}`);
-          } else {
-            console.log(`[editor-qc] Edition ${editionNumber}: clean on first pass`);
-          }
-          finalEdition = qc.revised;
-          await db.updateEditionSynthesis(inserted.id, {
-            topics: finalEdition.topics,
-            signals: finalEdition.signals,
-            fullText: finalEdition.fullText,
-            keyMetrics: finalEdition.keyMetrics,
-            marketStress: finalEdition.marketStress,
-            datesToWatch: finalEdition.datesToWatch,
-          });
-        } catch (err) {
-          console.warn(`[editor-qc] Edition ${editionNumber} skipped: ${(err as Error).message}`);
-        }
-
         // Step 1b: accountability look-back. Scores last week's forward-looking
         // calls against this week's feed. Best-effort and skipped for the first
         // edition (no prior to grade).

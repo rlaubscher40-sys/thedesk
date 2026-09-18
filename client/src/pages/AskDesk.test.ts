@@ -105,7 +105,7 @@ it("restores a completed brief after navigating away and back without regenerati
       answer: {
         headline: "Housing supply remains constrained",
         answer:
-          "Approvals are permissions. They are not completed homes. Compare the relevant periods.",
+          "NSW unemployment was 4.2%. The observation is trend, July 2026. Queensland unemployment was 4.2%. The observation is trend, July 2026.",
         signals: [],
         whyItMatters: "Timing matters.",
         deskTake: "Read the dates.",
@@ -119,6 +119,10 @@ it("restores a completed brief after navigating away and back without regenerati
   view.unmount();
   open(cache);
   expect(screen.getByRole("heading", { name: "Housing supply remains constrained" })).toBeTruthy();
-  expect(screen.getByText("Read the full answer")).toBeTruthy();
+  const comparison = screen.getByText(
+    /NSW unemployment was 4.2%.*Queensland unemployment was 4.2%/
+  );
+  expect(comparison.closest("details")).toBeNull();
+  expect(screen.queryByText("Read the full answer")).toBeNull();
   expect(m.mutate).not.toHaveBeenCalled();
 });

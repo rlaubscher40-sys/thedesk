@@ -3,6 +3,7 @@ import { assertCaptionStyle, CaptionStyleError } from "./captionStyle";
 /** Caption copy is assembled from checked inputs, never generated at publish time. */
 export type CaptionBeat =
   | "property"
+  | "policy"
   | "supply"
   | "rents"
   | "loans"
@@ -16,6 +17,7 @@ export type CaptionBeat =
 
 const TAGS: Record<CaptionBeat, string> = {
   property: "#PropertyMarket",
+  policy: "#HousingPolicy",
   supply: "#HousingSupply",
   rents: "#RentalMarket",
   loans: "#HomeLoans",
@@ -30,6 +32,12 @@ const TAGS: Record<CaptionBeat, string> = {
 
 /** Match the actual headline, not a passing reference in a summary or hashtag. */
 export function captionBeat(title: string): CaptionBeat {
+  if (
+    /\b(?:public|social|affordable) (?:housing|homes)|\b(?:market-rate|redevelop\w*|tower plans?|planning (?:proposal|controls)|rezon\w*|rental (?:reform|law|rights)|tenan\w* (?:rights|protections))\b/i.test(
+      title
+    )
+  )
+    return "policy";
   if (/\b(migrat\w*|population|interstate)\b/i.test(title)) return "population";
   if (
     /\b(mortgage\w*|home loans?|lending|RBA|cash rate|interest rates?|refinanc\w*)\b/i.test(title)
@@ -47,6 +55,8 @@ export function captionBeat(title: string): CaptionBeat {
 /** A useful reading task, not a request to like, tag and follow every post. */
 export function captionAction(beat: CaptionBeat): string {
   switch (beat) {
+    case "policy":
+      return "Check the proposal's status, scope and commencement or delivery commitments.";
     case "supply":
       return "Keep approvals, starts and completions separate when comparing local supply.";
     case "rents":

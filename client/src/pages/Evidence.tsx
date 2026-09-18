@@ -24,7 +24,10 @@ export default function Evidence() {
       ) : (
         <>
           <p className="bs-label">
-            Source evidence · {item.regions.join(" · ") || "Australia / location unspecified"}
+            Source evidence ·{" "}
+            {item.excluded
+              ? "Excluded from Australian market evidence"
+              : item.regions.join(" · ") || "Australia / location unspecified"}
           </p>
           <h1 className="font-serif text-3xl sm:text-4xl">{item.title}</h1>
           <p className="text-sm">
@@ -52,14 +55,16 @@ export default function Evidence() {
           >
             Read original source
           </a>
-          <p>
-            <Link
-              className="bs-link"
-              href={`/ask?q=${encodeURIComponent(item.title.slice(0, 240))}`}
-            >
-              Ask about this story
-            </Link>
-          </p>
+          {!item.excluded && (
+            <p>
+              <Link
+                className="bs-link"
+                href={`/ask?q=${encodeURIComponent(item.title.slice(0, 240))}`}
+              >
+                Ask about this story
+              </Link>
+            </p>
+          )}
         </>
       )}
     </article>

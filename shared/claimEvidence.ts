@@ -4,6 +4,7 @@
 export type ClaimSource = { title: string; summary?: string | null; articleText?: string | null };
 export type ClaimIssue =
   | "missing-evidence"
+  | "unsupported-inference"
   | "unsupported-figure"
   | "figure-scope"
   | "period-scope"

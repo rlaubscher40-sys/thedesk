@@ -34,7 +34,8 @@ it("lets usable reported figures lead ahead of a dramatic higher-priority foreca
     summary: "We believe Sydney housing needs a different approach.",
     priority: 98,
   });
-  expect(pickBriefingStories([forecast, opinion, data]).map((s) => s.id)).toEqual([1, 2, 3]);
+  expect(pickBriefingStories([forecast, opinion, data]).map((s) => s.id)).toEqual([1, 2]);
+  expect(assessBriefingStory(opinion).hold).toBeTruthy(); // Unidentified "we" is not standalone reporting.
   expect(assessBriefingStory(forecast).kind).toBe("Forecast or modelling");
   expect(data.title).toBe("Sydney rents update 1");
 });

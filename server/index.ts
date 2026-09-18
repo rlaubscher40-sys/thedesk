@@ -1,4 +1,6 @@
 import { applyReviewedMetricCorrections } from "./db/reviewedMetricCorrections";
+import { applyReviewedEditionCorrection } from "./db/reviewedEditionCorrection";
+import { applyReviewedEvidenceCorrection } from "./db/reviewedEvidenceCorrection";
 import { repairEditorialReferences, repairCoverageAudit } from "./db/editorial";
 import { repairEditorialCategories, repairFeedGeography } from "./db/feedGeography";
 import { applyReviewedStoryCorrections } from "./db/reviewedCorrections";
@@ -220,6 +222,8 @@ async function startServer() {
     // These public correction notices must not go live ahead of their guarded edits.
     await applyReviewedStoryCorrections();
     await applyReviewedMetricCorrections();
+    await applyReviewedEditionCorrection();
+    await applyReviewedEvidenceCorrection();
     try {
       const corrected = await repairEditorialCategories();
       console.log(`[editorial] corrected ${corrected} topic category labels`);

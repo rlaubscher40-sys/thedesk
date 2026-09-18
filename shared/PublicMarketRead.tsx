@@ -1,7 +1,7 @@
 import { StateDemographicsRead } from "./StateDemographicsRead";
 import { StateLabourRead } from "./StateLabourRead";
 import { TransferRead, CompletionRead } from "./QuarterlyHousingRead";
-import { transferForMarket } from "./quarterlyHousing";
+import { housingPeriod, transferForMarket } from "./quarterlyHousing";
 import { CityRentRead } from "./CityRentRead";
 import { CityApprovalRead } from "./CityApprovalRead";
 import { rentCity } from "./cityRents";
@@ -28,6 +28,11 @@ export function PublicMarketRead({
 }) {
   const { market } = file;
   const lead = file.references[0];
+  const context = regionalContext(market.slug, file.asOf);
+  const salesPeriod = housingPeriod(file.transfers, file.asOf);
+  const sales = file.transfers?.observations.find(
+    (row) => row.area === (transferForMarket(market.name) ?? market.name) && row.period === salesPeriod
+  );
   const peers = directory.markets
     .filter((item) => item.market.slug !== market.slug && item.coverage === "recent")
     .slice(0, 3);
@@ -67,6 +72,33 @@ export function PublicMarketRead({
           {coverageLabel(file)} · Checked {file.asOf}
         </p>
       </header>
+
+      {!directory.demo && (
+        <section aria-label="Market file at a glance" className="rule-hair-b py-5 mt-4">
+          <h2 className="bs-label-accent">At a glance</h2>
+          <div className="grid sm:grid-cols-3 gap-5 mt-3 text-sm leading-6">
+            <p>
+              <strong>Available here:</strong> {file.referenceCount} selected reporting references
+              in the last 90 days and {context.length} reviewed primary-source notes. Each keeps
+              its own date and scope.
+            </p>
+            <p>
+              <strong>Limits:</strong>{" "}
+              {sales
+                ? "Sale medians describe the published area and property segments."
+                : "An exact-area sale-price table is unavailable here."}{" "}
+              State population, employment and completions are broader context.
+            </p>
+            <p>
+              <strong>Start here:</strong>{" "}
+              <a className="bs-link" href={context.length ? "#primary-context" : "#latest-reporting"}>
+                {context.length ? "Read the dated primary-source notes" : "Check the selected reporting"}
+              </a>
+              , then follow the original source for the full account.
+            </p>
+          </div>
+        </section>
+      )}
 
       <nav aria-label="Market file sections" className="flex flex-wrap gap-2 mt-5">
         {!directory.demo && (
@@ -204,7 +236,7 @@ export function PublicMarketRead({
           <p className="font-mono text-4xl mt-2">{file.referenceCount}</p>
         </div>
         <div>
-          <p className="bs-label">Distinct source websites</p>
+          <p className="bs-label">Identified source websites</p>
           <p className="font-mono text-4xl mt-2">{file.publisherCount}</p>
         </div>
         <div>
@@ -215,7 +247,8 @@ export function PublicMarketRead({
       <p className="text-sm leading-6 mt-4 max-w-[80ch] text-[var(--color-fg-muted)]">
         Coverage is not confidence in a market. Counts describe deduplicated reporting, not
         independent datasets, price momentum or investment quality. A mention does not establish a
-        consistent city boundary or property type.
+        consistent city boundary or property type. Unresolved aggregator publishers are not counted
+        as additional source websites.
       </p>
 
       <section id="source-trail" className="mt-9" aria-label="Market source trail">

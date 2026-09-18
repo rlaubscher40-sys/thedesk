@@ -4,7 +4,7 @@ import {
   looksLikeSiteBoilerplate,
   shouldShowSummary,
 } from "./headline";
-import { foreignHousingHeadline } from "./australianScope";
+import { foreignHousingHeadline, unresolvedAustralianNamesake } from "./australianScope";
 import { propertyNewsHold } from "./propertyNewsQuality";
 import { cleanReportingExcerpt } from "./reportingExcerpt";
 
@@ -63,6 +63,12 @@ export function evidenceEligible(input: EvidenceInput, asOf: string): boolean {
     !looksLikeGarbage(input.title) &&
     !looksLikeSiteBoilerplate(input.title) &&
     !propertyNewsHold(input, asOf) &&
-    !foreignHousingHeadline(input.title, input.sourceUrl, input.source)
+    !foreignHousingHeadline(input.title, input.sourceUrl, input.source) &&
+    !unresolvedAustralianNamesake(
+      input.title,
+      evidenceText(input).summary,
+      input.sourceUrl,
+      input.source
+    )
   );
 }

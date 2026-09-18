@@ -2,6 +2,9 @@ import { expect, it } from "vitest";
 import { buildFirstComment, validateFirstComment } from "./firstCommentCopy";
 it.each([
   ["Sydney housing approvals", "approvals, infrastructure"],
+  ["Market-rate rentals but no public housing guarantee", "housing mix"],
+  ["New rental rights reform", "rental rules"],
+  ["Richmond tower plans", "approval stage"],
   ["New home loan rates", "borrowing capacity"],
   ["Home loan approvals", "borrowing capacity"],
   ["Brisbane vs Perth rents", "local rental market"],

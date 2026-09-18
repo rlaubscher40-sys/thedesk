@@ -57,6 +57,15 @@ const photographs = {
   ],
   stress: ["sydney-construction-damon-hall.jpg", "Archive illustration · Damon Hall / Unsplash"],
   supply: ["sydney-construction-damon-hall.jpg", "Archive illustration · Damon Hall / Unsplash"],
+  tenure: [
+    "architecture-phillip-flores.jpg",
+    "Architectural illustration · Phillip Flores / Unsplash",
+  ],
+  tenancy: [
+    "architecture-phillip-flores.jpg",
+    "Architectural illustration · Phillip Flores / Unsplash",
+  ],
+  planning: ["sydney-construction-damon-hall.jpg", "Archive illustration · Damon Hall / Unsplash"],
   loans: ["australian-money-pixabay.jpg", "Illustration · Pixabay / Pexels"],
   rents: [
     "architecture-phillip-flores.jpg",
