@@ -1,4 +1,5 @@
 import { expect, it } from "vitest";
+import { Script } from "node:vm";
 import { documentaryReviewPlayerHtml } from "./lib/documentaryReviewPlayer";
 it("packages an offline exact-export review without automatic approval or executable titles", () => {
   const html = documentaryReviewPlayerHtml({
@@ -14,4 +15,7 @@ it("packages an offline exact-export review without automatic approval or execut
   expect(html).toContain("published:false");
   expect(html).toContain("Not reviewed");
   expect(html).not.toContain("https://");
+  const script = html.match(/<\/script><script>([\s\S]*)<\/script>/)?.[1];
+  expect(script).toBeTruthy();
+  expect(() => new Script(script!)).not.toThrow();
 });
