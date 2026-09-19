@@ -1,3 +1,9 @@
+import {
+  deliveryBoundaries,
+  type DirectedSpeechLine,
+  type DeliveryMode,
+  type DeliveryReview,
+} from "./narrationDelivery";
 import type { TimedWord } from "./newsreader";
 import { audibleWave, type SpeechProfile } from "./localVoice";
 import { reelNarration, type ReelVoiceEngine, type ReelVoiceIdentity } from "./reelVoice";
@@ -9,7 +15,7 @@ export type PhraseAudio = {
   phrases: MeasuredPhrase[];
   start?: number;
 };
-export type PhrasePlan = { key: string; text: string; phrases: string[] };
+export type PhrasePlan = DirectedSpeechLine & { phrases: string[] };
 /** Review-only audio generated through the connected speech workspace. */
 export type PreparedNarration = {
   voice: ReelVoiceIdentity;
@@ -80,8 +86,14 @@ export function joinPhraseAudio(
 export async function synthesisePhrases(
   plans: PhrasePlan[],
   profile?: SpeechProfile,
-  prepared?: PreparedNarration
-): Promise<{ engine: ReelVoiceEngine; clips: PhraseAudio[]; continuous?: boolean }> {
+  prepared?: PreparedNarration,
+  mode: DeliveryMode = "briefing"
+): Promise<{
+  engine: ReelVoiceEngine;
+  clips: PhraseAudio[];
+  continuous?: boolean;
+  delivery?: DeliveryReview;
+}> {
   if (
     !plans.length ||
     plans.length > 9 ||
@@ -95,9 +107,22 @@ export async function synthesisePhrases(
     )
   )
     throw new Error("Speech phrases do not preserve the verified script.");
-  const requests = plans.flatMap((p) =>
-    p.phrases.map((text, i) => ({ key: `${p.key}:${i}`, text }))
-  );
+  deliveryBoundaries(plans); // Validate authored direction before any paid request.
+  const requests = plans.flatMap((p) => {
+    let offset = 0;
+    return p.phrases.map((text, i) => {
+      const count = text.trim().split(/\s+/).length;
+      const marked = p.protectPauseAfterWords
+        ?.filter((n) => n >= offset && n < offset + count)
+        .map((n) => n - offset);
+      offset += count;
+      return {
+        key: `${p.key}:${i}`,
+        text,
+        ...(marked?.length ? { protectPauseAfterWords: marked } : {}),
+      };
+    });
+  });
   if (requests.length > 16) throw new Error("Too many speech phrases.");
   // Retain the existing nine-utterance child bound and serial voice queue, and
   // hand every batch over together so one speaker covers the whole scene set.
@@ -110,9 +135,14 @@ export async function synthesisePhrases(
       requests.some((r) => !prepared.clips.some((c) => c.key === r.key && c.text === r.text)))
   )
     throw new Error("Prepared narration does not match the exact verified phrases.");
-  const { engine, clips, continuous } = prepared
-    ? { engine: prepared.voice.engine, clips: prepared.clips, continuous: false }
-    : await reelNarration(batches, profile);
+  const { engine, clips, continuous, delivery } = prepared
+    ? {
+        engine: prepared.voice.engine,
+        clips: prepared.clips,
+        continuous: false,
+        delivery: undefined,
+      }
+    : await reelNarration(batches, profile, mode);
   const spoken = plans.map((p) => ({
     key: p.key,
     ...(continuous ? { start: clips.find((c) => c.key === `${p.key}:0`)?.start } : {}),
@@ -129,5 +159,5 @@ export async function synthesisePhrases(
       continuous
     ),
   }));
-  return { engine, clips: spoken, continuous };
+  return { engine, clips: spoken, continuous, delivery };
 }

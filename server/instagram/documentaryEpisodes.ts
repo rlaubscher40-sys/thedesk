@@ -7,6 +7,8 @@ type DocumentaryScene = {
   headline: string;
   detail: string;
   phrases: string[];
+  /** Optional non-spoken direction, indexed across the scene’s joined phrases. */
+  protectPauseAfterWords?: number[];
   sources: DocumentarySourceId[];
   /** Analysis is explicitly labelled on screen, never passed off as a source quotation. */
   analysis?: boolean;

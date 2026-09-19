@@ -1,3 +1,4 @@
+import { deliveryReviewSchema, type DeliveryReview } from "./narrationDelivery";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import type { ReelStat } from "./statReel";
@@ -27,6 +28,7 @@ export const reelRenderRecordSchema = z.object({
     voice: z.string().min(1).max(80),
     speed: z.number().finite().positive().max(4),
   }),
+  delivery: deliveryReviewSchema.optional(),
   safeAreas: z.object({
     sceneBottom: coordinate,
     contentBottom: coordinate,
@@ -54,6 +56,7 @@ export function captureReelRender(
     spokenBy?: ReelVoiceEngine | null;
     /** Exact identity attached to saved audio; independent of today's configuration. */
     voice?: ReelVoiceIdentity;
+    delivery?: DeliveryReview;
   },
   cover: Buffer,
   stat: ReelStat,
@@ -73,6 +76,7 @@ export function captureReelRender(
     narrated: video.narrated,
     subtitled: video.subtitled,
     voice: video.voice ?? reelVoiceIdentity(voice, video.spokenBy),
+    ...(video.delivery ? { delivery: video.delivery } : {}),
     safeAreas: { ...REEL_SAFE_AREAS },
   });
 }

@@ -3,13 +3,19 @@ import { env } from "../core/env";
 import { localSpeech, localVoiceReady, type SpeechProfile } from "./localVoice";
 import { elevenLabsSpeech, elevenLabsVoiceReady } from "./elevenLabsVoice";
 
-export type SpeechLine = { key: string; text: string };
+import type { DeliveryMode, DeliveryReview, DirectedSpeechLine } from "./narrationDelivery";
+export type SpeechLine = DirectedSpeechLine;
 export type SpeechAudio = { key: string; bytes: Buffer; start?: number; words?: TimedWord[] };
 /** Which speaker actually produced a render's audio, for its provenance record. */
 export type ReelVoiceEngine = "elevenlabs" | "local-kokoro";
 export type ReelVoiceIdentity = { engine: ReelVoiceEngine; voice: string; speed: number };
 /** One narration: the clips, and who is heard saying them. */
-export type ReelNarration = { engine: ReelVoiceEngine; clips: SpeechAudio[]; continuous?: boolean };
+export type ReelNarration = {
+  engine: ReelVoiceEngine;
+  clips: SpeechAudio[];
+  continuous?: boolean;
+  delivery?: DeliveryReview;
+};
 
 function configured(): "auto" | "local" | "elevenlabs" {
   /** An absent setting is the documented default, as in core/env; a wrong value still stops. */
@@ -47,7 +53,8 @@ function fallbackPermitted(): boolean {
  */
 export async function reelNarration(
   batches: SpeechLine[][],
-  profile?: SpeechProfile
+  profile?: SpeechProfile,
+  mode: DeliveryMode = "briefing"
 ): Promise<ReelNarration> {
   const speakLocally = async (): Promise<ReelNarration> => {
     const clips: SpeechAudio[] = [];
@@ -56,8 +63,8 @@ export async function reelNarration(
   };
   if (provider() === "local") return speakLocally();
   try {
-    const clips = await elevenLabsSpeech(batches.flat(), profile?.speed);
-    return { engine: "elevenlabs", clips, continuous: true };
+    const clips = await elevenLabsSpeech(batches.flat(), profile?.speed, mode);
+    return { engine: "elevenlabs", clips, continuous: true, delivery: clips[0]?.delivery };
   } catch (error) {
     if (!fallbackPermitted()) throw error;
     // Loud on the way past: the Reel still publishes, so this log and the

@@ -70,7 +70,7 @@ it("preserves local narration without configuration", async () => {
 it("routes regular scripts to the clone when the key is configured", async () => {
   config.elevenLabsApiKey = "test-key";
   await synthesiseScript(lines, { voice: "bm_fable", speed: 1.05 });
-  expect(elevenLabsSpeech).toHaveBeenCalledWith(lines, 1.05);
+  expect(elevenLabsSpeech).toHaveBeenCalledWith(lines, 1.05, "briefing");
   expect(localSpeech).not.toHaveBeenCalled();
   expect((await reelVoiceReadiness()).detail).toContain("ElevenLabs");
   expect(reelVoiceIdentity({ voice: "bm_fable", speed: 1 })).toEqual({
@@ -169,9 +169,9 @@ it("records the speaker that was actually heard, not the one configured", () => 
 it("sends all documentary batches as one continuous performance", async () => {
   config.elevenLabsApiKey = "test-key";
   const full = Array.from({ length: 16 }, (_, i) => ({ key: String(i), text: "One." }));
-  const result = await reelNarration([full.slice(0, 9), full.slice(9)]);
+  const result = await reelNarration([full.slice(0, 9), full.slice(9)], undefined, "documentary");
   expect(elevenLabsSpeech).toHaveBeenCalledTimes(1);
-  expect(elevenLabsSpeech).toHaveBeenCalledWith(full, undefined);
+  expect(elevenLabsSpeech).toHaveBeenCalledWith(full, undefined, "documentary");
   expect(result.continuous).toBe(true);
   expect(localSpeech).not.toHaveBeenCalled();
 });

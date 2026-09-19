@@ -2,7 +2,13 @@ import { createHash } from "node:crypto";
 import { env } from "../core/env";
 import { newsreaderClips, NARRATION_PCM_LIMIT, type AlignedClip } from "./newsreader";
 
-type SpeechLine = { key: string; text: string };
+import {
+  deliveryProfile,
+  deliveryBoundaries,
+  type DeliveryMode,
+  type DirectedSpeechLine,
+} from "./narrationDelivery";
+type SpeechLine = DirectedSpeechLine;
 type SpeechAudio = AlignedClip;
 const MODEL = "eleven_multilingual_v2";
 const RESPONSE_LIMIT = NARRATION_PCM_LIMIT * 2;
@@ -18,7 +24,13 @@ function voiceUrl() {
 
 /** Bounded, all-or-nothing synthesis: a partial script never reaches a render.
  *  This module never substitutes a speaker itself; reelVoice owns that choice. */
-export async function elevenLabsSpeech(lines: SpeechLine[], speed = 1): Promise<SpeechAudio[]> {
+export async function elevenLabsSpeech(
+  lines: SpeechLine[],
+  speed = 1,
+  mode: DeliveryMode = "briefing"
+): Promise<SpeechAudio[]> {
+  const delivery = deliveryProfile(mode);
+  deliveryBoundaries(lines);
   const voice = voiceUrl();
   if (!Number.isFinite(speed) || speed < 0.9 || speed > 1.1)
     throw new Error("Invalid ElevenLabs speech speed.");
@@ -38,6 +50,7 @@ export async function elevenLabsSpeech(lines: SpeechLine[], speed = 1): Promise<
         voice,
         speed,
         model: MODEL,
+        delivery: delivery.id,
       })
     )
     .digest("hex");
@@ -106,7 +119,21 @@ export async function elevenLabsSpeech(lines: SpeechLine[], speed = 1): Promise<
       Buffer.from(data.audio_base64, "base64").toString("base64") !== data.audio_base64
     )
       throw new Error("ElevenLabs returned invalid base64 audio.");
-    const result = newsreaderClips(input, Buffer.from(data.audio_base64, "base64"), data.alignment);
+    const result = newsreaderClips(
+      input,
+      Buffer.from(data.audio_base64, "base64"),
+      data.alignment,
+      mode
+    );
+    result[0]!.delivery!.synthesis = {
+      model: MODEL,
+      voice: env.elevenLabsVoiceId,
+      speed,
+      stability: 0.5,
+      similarity_boost: 0.75,
+      style: 0,
+      use_speaker_boost: true,
+    };
     cache.set(key, result);
     while (cache.size > 4) cache.delete(cache.keys().next().value!);
     return result;

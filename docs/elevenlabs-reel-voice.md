@@ -28,9 +28,9 @@ reservations and deduplication rules remain in force.
 
 ## Audio and subtitles
 
-New documentary and briefing Reels use the approved **newsreader-v1** delivery
-(19 September 2026). Ruben approved the continuous Lowy pacing preview and asked
-for this delivery on future videos only. Do not rebuild or replace existing or
+New documentary and briefing Reels use **newsreader-v2**, extending Ruben’s
+approved continuous Lowy read with protected meaning boundaries (19 September
+2026). The change applies to future renders only. Do not rebuild or replace existing or
 scheduled MP4 archives, their digests, review approvals or release dates.
 
 The shared provider sends the entire verified script in **one continuous take**
@@ -45,6 +45,57 @@ are eligible for tightening: retain 160ms at each quiet edge, protect 200ms afte
 the preceding word and 120ms before the next, and fade each splice over 3ms.
 The accepted preview averaged about 167 words per minute; this is a reference,
 not a command to force every script to an identical rate.
+
+The renderer chooses `newsreader-v2-briefing` for ordinary/data/briefing Reels and
+`newsreader-v2-documentary` for documentary scenes. Both retain the approved
+synthesis settings above. Editorial reference ranges are 165–180 and 150–170 wpm
+respectively; no time stretching, pitch shift or silence insertion enforces them.
+At protected boundaries, preserve at least 450ms (briefing) or 600ms (documentary)
+of the existing word-to-word gap, or the entire gap if it is already shorter.
+These are production heuristics to review, not scientifically proven optima.
+
+Protection uses conservative cues: a completed statement containing digits or
+spoken number words, a contrast beginning with “but”, “yet”, “however”, “instead”,
+“despite” or “nevertheless”, and a punctuation boundary before the final passage.
+`protectPauseAfterWords` can explicitly mark zero-based whitespace word indexes
+on a directed speech line or across a documentary scene’s joined phrases. Direction must identify punctuation and is never read
+aloud. Unmarked boundaries retain the approved quiet-edge protection. Scene
+changes alone do not earn extra silence. Names or implied narrative turns that
+lack these cues need explicit direction or listening review; this is not semantic
+understanding of every script.
+
+Each new ElevenLabs render stores optional `delivery` provenance: profile, script
+and PCM hashes, cuts in source samples, protected gaps before/after editing,
+measured rate and per-passage review flags. The final captions and pictures still
+follow the edited sample clock. Review flags are advisory, not automatic creative
+approval or a trigger for repeated paid synthesis. Rates use written whitespace
+tokens; a numeric token can expand into several spoken words. Passages under ten
+words do not receive fast/slow flags.
+
+For an offline comparison of the same source performance:
+
+```sh
+pnpm narration:review /absolute/script.json /absolute/timestamp-response.json /absolute/new-output
+```
+
+The script is an array of `{key,text,protectPauseAfterWords?}` objects. The response
+is an ElevenLabs PCM24k `with-timestamps` JSON with exact source alignment. The
+command saves the source, briefing and documentary WAVs plus measured review JSON;
+it makes no paid requests and does not post. Existing output directories are refused.
+
+Direct a human or AI-assisted performance toward one listener, using Ruben’s
+natural accent and pitch, one main emphasis per thought, clear numbers and units,
+and restrained emotion. Briefings lead with the change and consequence;
+documentaries allow important turns to land. Do not inject acting directions or
+v3-only audio tags into the current v2 narration text. A high-quality human guide
+or Voice Changer performance remains an optional reviewed input, never a new
+requirement for daily automated production.
+
+Research basis: [speech rate and information density](https://repositori.upf.edu/bitstreams/4a43adcc-3dc9-4cfd-8c17-7c78f42e30c8/download),
+[context-dependent processing effects](https://link.springer.com/article/10.1007/s10919-024-00477-6),
+and [ElevenLabs delivery controls](https://elevenlabs.io/docs/eleven-creative/playground/text-to-speech).
+Parameter/model auditions remain separate experiments; no untested stability or
+model change is promoted automatically.
 
 Picture changes and captions follow the edited audio's sample clock and exact
 source words. There is no added gap between phrases or scenes; the final picture

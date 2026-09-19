@@ -149,3 +149,53 @@ it("rejects invalid scripts before any paid request", async () => {
   await expect(elevenLabsSpeech([{ key: "a", text: "Hello." }], NaN)).rejects.toThrow("speed");
   expect(request).not.toHaveBeenCalled();
 });
+
+it("isolates delivery profiles in the cache and never speaks direction metadata", async () => {
+  request.mockImplementation(response);
+  const { elevenLabsSpeech } = await import("./elevenLabsVoice");
+  const lines = [{ key: "a", text: "A turning point. Then another.", protectPauseAfterWords: [2] }];
+  const briefing = await elevenLabsSpeech(lines, 1, "briefing");
+  const documentary = await elevenLabsSpeech(lines, 1, "documentary");
+  expect(request).toHaveBeenCalledTimes(2);
+  expect(briefing[0]!.delivery!.profile).toBe("newsreader-v2-briefing");
+  expect(documentary[0]!.delivery!.profile).toBe("newsreader-v2-documentary");
+  expect(documentary[0]!.delivery!.synthesis).toMatchObject({
+    model: "eleven_multilingual_v2",
+    voice: config.elevenLabsVoiceId,
+    speed: 1,
+    stability: 0.5,
+  });
+  expect(JSON.parse(request.mock.calls[0][1].body).text).toBe(lines[0]!.text);
+  expect(request.mock.calls[0][1].body).not.toContain("protectPause");
+  await elevenLabsSpeech(lines, 1, "documentary");
+  expect(request).toHaveBeenCalledTimes(2);
+  await expect(elevenLabsSpeech([{ ...lines[0]!, protectPauseAfterWords: [99] }])).rejects.toThrow(
+    "boundary"
+  );
+  await expect(elevenLabsSpeech(lines, 1, "unknown" as never)).rejects.toThrow("delivery");
+  expect(request).toHaveBeenCalledTimes(2);
+});
+
+it("maps an authored scene boundary into its second phrase without speaking the direction", async () => {
+  request.mockImplementation(response);
+  const result = await synthesisePhrases(
+    [
+      {
+        key: "scene",
+        text: "The beginning. The turning point. Then the conclusion.",
+        phrases: ["The beginning.", "The turning point. Then the conclusion."],
+        protectPauseAfterWords: [4],
+      },
+    ],
+    undefined,
+    undefined,
+    "documentary"
+  );
+  expect(result.delivery!.boundaries).toContainEqual(
+    expect.objectContaining({ afterWord: 4, reason: "directed" })
+  );
+  expect(result.delivery!.profile).toBe("newsreader-v2-documentary");
+  expect(JSON.parse(request.mock.calls[0][1].body).text).toBe(
+    "The beginning. The turning point. Then the conclusion."
+  );
+});
