@@ -19,8 +19,14 @@ import {
 
 import { subtitleCues, subtitleAss } from "./subtitles";
 import { housingBalanceSubtitleScript } from "./housingBalanceStoryboard";
-import { synthesisePhrases, type MeasuredPhrase } from "./phraseSpeech";
-import type { ReelVoiceEngine, SpeechAudio } from "./reelVoice";
+import { synthesisePhrases, type MeasuredPhrase, type PreparedNarration } from "./phraseSpeech";
+import {
+  reelVoiceIdentity,
+  type ReelVoiceEngine,
+  type ReelVoiceIdentity,
+  type SpeechAudio,
+} from "./reelVoice";
+import { DEFAULT_SPEECH_PROFILE } from "./localVoice";
 import {
   renderStoryFrame,
   storyboardSections,
@@ -576,6 +582,8 @@ export async function renderStatReel(
     voice?: SpeechProfile;
     /** Explicit local review command only; publishing never supplies this option. */
     auditionVoice?: "cedar" | "marin";
+    /** Offline documentary review only; exact phrase text and PCM are validated. */
+    preparedNarration?: PreparedNarration;
   } = {}
 ): Promise<{
   bytes: Buffer;
@@ -583,6 +591,7 @@ export async function renderStatReel(
   narrated: boolean;
   subtitled: boolean;
   spokenBy: ReelVoiceEngine | null;
+  voice?: ReelVoiceIdentity;
   timeline: Array<{ key: string; start: number; seconds: number; phrases?: MeasuredPhrase[] }>;
 }> {
   if (!ffmpegPath) throw new Error("ffmpeg binary unavailable");
@@ -605,6 +614,8 @@ export async function renderStatReel(
         : buildScript(stat));
     if (stat.storyboard) validateStoryboard(stat.storyboard, script);
     if (stat.visualStory) validateEvidenceVisual(stat.visualStory, script);
+    if (opts.preparedNarration && (!stat.documentary || opts.auditionVoice))
+      throw new Error("Prepared narration is only supported for documentary reviews.");
     if (stat.documentary) {
       validateDocumentary(stat.documentary, script);
       if (opts.narrate === false || !opts.subtitles || opts.auditionVoice)
@@ -631,7 +642,8 @@ export async function renderStatReel(
           : stat.documentary
             ? await synthesisePhrases(
                 stat.documentary.scenes.map((s) => ({ ...s, text: s.phrases.join(" ") })),
-                opts.voice
+                opts.voice,
+                opts.preparedNarration
               )
             : stat.storyboard?.kind === "housing-balance"
               ? await synthesisePhrases(stat.storyboard.scenes, opts.voice)
@@ -977,6 +989,13 @@ export async function renderStatReel(
       subtitled: Boolean(subtitleFilter),
       /** Who was actually heard, which a fallback render makes worth recording. */
       spokenBy: narration?.engine ?? null,
+      ...(narration?.engine
+        ? {
+            voice:
+              opts.preparedNarration?.voice ??
+              reelVoiceIdentity(opts.voice ?? DEFAULT_SPEECH_PROFILE, narration.engine),
+          }
+        : {}),
       timeline: sections.map((s, i) => ({
         key: s.key,
         start: starts[i]!,

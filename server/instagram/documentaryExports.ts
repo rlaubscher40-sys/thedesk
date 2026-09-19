@@ -28,5 +28,12 @@ export async function approvedDocumentaryExport(story: DocumentaryStory) {
   const bytes = Buffer.concat(chunks);
   if (createHash("sha256").update(bytes).digest("hex") !== review.videoSha256)
     throw new Error("Approved documentary MP4 is missing or changed.");
-  return { bytes, seconds: review.seconds, narrated: true, subtitled: true };
+  return {
+    bytes,
+    seconds: review.seconds,
+    narrated: true,
+    subtitled: true,
+    spokenBy: review.voice.engine,
+    voice: { ...review.voice },
+  };
 }

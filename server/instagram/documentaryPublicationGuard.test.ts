@@ -24,6 +24,8 @@ describe("documentary release controls", () => {
       const video = await approvedDocumentaryExport(story);
       expect(video.bytes.length).toBeGreaterThan(10_000_000);
       expect(video.seconds).toBe(DOCUMENTARY_REVIEWS[episode.id]!.seconds);
+      expect(video.voice).toEqual(DOCUMENTARY_REVIEWS[episode.id]!.voice);
+      expect(video.spokenBy).toBe(video.voice.engine);
       const changed = structuredClone(story);
       changed.scenes[0]!.phrases[0] += " Changed.";
       await expect(approvedDocumentaryExport(changed)).rejects.toThrow("render inputs");

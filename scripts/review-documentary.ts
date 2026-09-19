@@ -1,5 +1,5 @@
 /** Offline export only. Never sets a publication approval or calls Meta.
- * node --import tsx scripts/review-documentary.ts <episode-id|all> /absolute/new-directory */
+ * node --import tsx scripts/review-documentary.ts <episode-id|all> /absolute/new-directory [prepared-audio-directory] */
 import fs from "node:fs/promises";
 import path from "node:path";
 import { createHash } from "node:crypto";
@@ -9,9 +9,11 @@ import { documentaryReviewHash } from "../server/video/documentaryStory";
 import { assertProductionCandidate, productionReelOptions } from "../server/video/reelProduction";
 import { renderStatReel } from "../server/video/statReel";
 import { renderReelCover } from "../server/video/reelCover";
+import { reelVoiceIdentity } from "../server/video/reelVoice";
 import { writeDocumentaryReviewPackage } from "./lib/documentaryReviewPackage";
+import { loadPreparedNarration } from "./lib/preparedNarration";
 
-const [id, output] = process.argv.slice(2);
+const [id, output, audioDirectory] = process.argv.slice(2);
 const episodes = DOCUMENTARY_EPISODES.filter((e) => id === "all" || id === e.id);
 if (!episodes.length || !output || !path.isAbsolute(output))
   throw new Error("Provide an episode ID (or all) and a new absolute output directory.");
@@ -25,11 +27,17 @@ for (const episode of episodes) {
   const started = Date.now();
   const cover = await renderReelCover(candidate.stat, candidate.script);
   await fs.writeFile(path.join(out, "The-Desk-Cover.jpg"), cover);
-  const video = await renderStatReel(
-    candidate.stat,
-    "navy",
-    productionReelOptions(candidate.script)
-  );
+  const video = await renderStatReel(candidate.stat, "navy", {
+    ...productionReelOptions(candidate.script),
+    ...(audioDirectory
+      ? {
+          preparedNarration: await loadPreparedNarration(
+            id === "all" ? path.join(audioDirectory, episode.id) : audioDirectory,
+            episode.id
+          ),
+        }
+      : {}),
+  });
   const videoSha256 = createHash("sha256").update(video.bytes).digest("hex");
   await fs.writeFile(path.join(out, `The-Desk-${episode.id}.mp4`), video.bytes);
   await fs.writeFile(path.join(out, "caption.txt"), candidate.caption + "\n");
@@ -44,7 +52,10 @@ for (const episode of episodes) {
         seconds: video.seconds,
         videoSha256,
         timeline: video.timeline,
-        production: productionReelOptions(),
+        production: {
+          ...productionReelOptions(),
+          voice: video.voice ?? reelVoiceIdentity(productionReelOptions().voice, video.spokenBy),
+        },
         generatedAt: new Date().toISOString(),
         renderSeconds: (Date.now() - started) / 1000,
       },
@@ -60,6 +71,7 @@ for (const episode of episodes) {
     seconds: video.seconds,
     videoSha256,
     inputHash: hash,
+    voice: video.voice,
   });
   console.log(
     JSON.stringify({

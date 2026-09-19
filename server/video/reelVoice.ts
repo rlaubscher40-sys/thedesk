@@ -6,6 +6,7 @@ export type SpeechLine = { key: string; text: string };
 export type SpeechAudio = { key: string; bytes: Buffer };
 /** Which speaker actually produced a render's audio, for its provenance record. */
 export type ReelVoiceEngine = "elevenlabs" | "local-kokoro";
+export type ReelVoiceIdentity = { engine: ReelVoiceEngine; voice: string; speed: number };
 /** One narration: the clips, and who is heard saying them. */
 export type ReelNarration = { engine: ReelVoiceEngine; clips: SpeechAudio[] };
 

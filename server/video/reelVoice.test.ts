@@ -46,6 +46,22 @@ beforeEach(() => {
   config.reelVoiceProvider = "auto";
 });
 
+it("retains an archived voice identity when today's provider or clone changes", () => {
+  config.reelVoiceProvider = "elevenlabs";
+  for (const voice of [
+    { engine: "local-kokoro" as const, voice: "bm_fable", speed: 1 },
+    { engine: "elevenlabs" as const, voice: "previous-clone-id", speed: 1 },
+  ]) {
+    const record = captureReelRender(
+      { bytes: Buffer.from("saved video"), seconds: 10, narrated: true, subtitled: true, voice },
+      Buffer.from("cover"),
+      { label: "Test", value: "1", line: "Evidence", subtext: "Period" },
+      { voice: "bm_daniel", speed: 1.1 }
+    );
+    expect(record.voice).toEqual(voice);
+  }
+});
+
 it("preserves local narration without configuration", async () => {
   await reelSpeech(lines);
   expect(localSpeech).toHaveBeenCalledWith(lines, undefined);
