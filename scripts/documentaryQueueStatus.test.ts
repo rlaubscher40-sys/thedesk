@@ -47,6 +47,12 @@ describe("documentary recovery queue", () => {
         e.review.approval = { kind: "human", reviewer: "Ruben" };
       },
       (e: any) => {
+        delete e.review.approval.revoice;
+      },
+      (e: any) => {
+        e.review.approval.revoice.scope = "Approve every future film";
+      },
+      (e: any) => {
         e.publication.date = "2026-09-17";
       },
       (e: any) => {

@@ -12,7 +12,7 @@ A subject is enough to begin. An angle or deadline is optional. The reusable `de
 
 - Australian property stories, Australian English and AUD throughout. Display A$; identify historical conversion and periods. Avoid em dashes in public copy.
 - Introduce the person before explaining the empire. Establish a specific tension or question, then answer it through the business progression.
-- Fable narration at speed 1.0, portrait video at 1080 × 1920 and 30 fps, stereo AAC at 48 kHz, readable subtitles and protected source space.
+- Ruben's ElevenLabs clone at speed 1.0 through the shared Reel voice provider, portrait video at 1080 × 1920 and 30 fps, stereo AAC at 48 kHz, readable subtitles and protected source space. The configured `auto` mode permits a complete Fable fallback if ElevenLabs fails; record the voice actually heard. See [voice configuration](elevenlabs-reel-voice.md).
 - The Desk's editorial serif, plain supporting text, dark green/ivory palette, restrained gold and event-specific colour emphasis.
 - Actual dated archive material, original explanatory graphics, purposeful motion and a restrained score beneath the voice.
 - A downloadable MP4, source dossier and a review of the actual encoded film.

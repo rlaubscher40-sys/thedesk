@@ -1,5 +1,32 @@
 # The Desk documentary Reel programme
 
+## Ruben clone replacement, 19 September 2026
+
+The four active saved films now use Ruben's ElevenLabs clone (`xeSYpoWjkR3imzxB6qDk`,
+`eleven_multilingual_v2`, speed 1). This completes the archived-audio replacement
+that changing Railway voice settings alone could not perform. Exact scripts,
+licensed imagery, permanent publication keys and Sydney release slots are retained.
+
+| Film | Duration | Sydney release date |
+| --- | ---: | --- |
+| Harry Triguboff | 148.3s | 20 September |
+| Frank Lowy | 66.4s | 23 September |
+| Grollo family | 90.9s | 27 September |
+| Lang Walker | 65.6s | 30 September |
+
+Each film was rebuilt from 16 provider-generated phrases. The review loader checked
+phrase identity and WAV hashes; timings were measured from the new audio. Complete
+H.264/AAC decoding, narration coverage, 1080×1920/30fps format, audio mix levels,
+section frame sheets and endings passed review. No full perceptual listening or
+continuous-motion review is claimed. No film was manually posted or receipt reset.
+
+The exact MP4 hashes, provider generation IDs and audio metrics are in
+[the revoice record](documentary-revoice-2026-09-19.json). User authorisation covers
+the requested voice replacement; it is not a claim that Ruben watched the exports.
+The production scheduler must still pass live history, duplicate and receipt gates.
+Ordinary briefing/data Reels and new documentary renders use the shared voice
+provider; existing `auto` fallback behaviour is preserved.
+
 ## Producer recovery, 17 September 2026 (Sydney)
 
 The durable work queue is [documentary-editorial-queue.json](documentary-editorial-queue.json).

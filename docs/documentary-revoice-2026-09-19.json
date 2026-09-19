@@ -1,0 +1,532 @@
+{
+  "date": "2026-09-19",
+  "flowId": "u26LlfZTSREA6Gwxm4Ef",
+  "fullListening": "not-performed",
+  "continuousMotion": "not-reviewed",
+  "exports": [
+    {
+      "episodeId": "lowy-westfield",
+      "voice": {
+        "engine": "elevenlabs",
+        "voice": "xeSYpoWjkR3imzxB6qDk",
+        "speed": 1
+      },
+      "model": "eleven_multilingual_v2",
+      "videoSha256": "005bb8b67db415b316310129dbab118586aebe4d3cadce54301b770381159038",
+      "seconds": 66.43333333333334,
+      "audio": {
+        "integratedLufs": -16.72,
+        "truePeakDbtp": -4.2,
+        "loudnessRange": 2.1
+      },
+      "inputHash": "defe97189f5a2b2427ff2d15e50d3cc76f5df301a63103fda3675918eb0fbfbc",
+      "clips": [
+        {
+          "key": "label:0",
+          "text": "Frank Lowy built Westfield with John Saunders.",
+          "file": "label-0.wav",
+          "sha256": "3187b54279d5d98c762fe3f53f1f0702e3e4299bbee59cd93fe03a2342403a4e",
+          "generationId": "WsjAOmxNF9a3RtWV9PVq"
+        },
+        {
+          "key": "label:1",
+          "text": "Their breakthrough was finding a way to fund the next shopping centre.",
+          "file": "label-1.wav",
+          "sha256": "ed8b1939ca14c8be00869614af67ae99fd76c6d9d782f49393a0fb865896db73",
+          "generationId": "oQQIgXvId1Og0gK2EWLl"
+        },
+        {
+          "key": "value:0",
+          "text": "In nineteen fifty-nine, they opened in Blacktown: twelve shops, two department stores and a supermarket.",
+          "file": "value-0.wav",
+          "sha256": "21a07056a510e01e5ee683706a755930f44697a36d600b1054d021111f61bb3c",
+          "generationId": "CtcucqyzbPnGtPQFWQk5"
+        },
+        {
+          "key": "value:1",
+          "text": "Then they took the company to the stock exchange.",
+          "file": "value-1.wav",
+          "sha256": "06d9750390d760a9db34f057552c44e25f5152b2b6805556d9212f683731a2e0",
+          "generationId": "ztqDcLH8KrWth6FKNSul"
+        },
+        {
+          "key": "line:0",
+          "text": "The nineteen sixty float issued three hundred thousand shares.",
+          "file": "line-0.wav",
+          "sha256": "24c0315269e531cccdcb68be71725960e4765d5cdaa2c4248ec8944d83c09d48",
+          "generationId": "G2NeObeTGCHt49R5ftMS"
+        },
+        {
+          "key": "line:1",
+          "text": "At fifty Australian cents each in decimal equivalents, that represents one hundred and fifty thousand Australian dollars in issued shares.",
+          "file": "line-1.wav",
+          "sha256": "565680c249121f908611cf3070b2840d54e22c552d35ea77d519e2fc0e69867e",
+          "generationId": "sGH9GVYr8aENAAwQMt3u"
+        },
+        {
+          "key": "turn:0",
+          "text": "Scentre's history says the float funded the Hornsby centre, which opened the following year.",
+          "file": "turn-0.wav",
+          "sha256": "ee0978cf9c11324921ad6ca0438666ff1d092990b4665d98ea46f3d6c17131c5",
+          "generationId": "hYVVEmG3SoZ7bvRLp8lF"
+        },
+        {
+          "key": "turn:1",
+          "text": "Its reported cost converts to six hundred and ninety thousand Australian dollars. These are historical equivalents, without inflation adjustment.",
+          "file": "turn-1.wav",
+          "sha256": "02b4a358055a3338d79c6fb5ebba4ca006f72bc5473b2af5176d497c9de5f6bd",
+          "generationId": "v7586dAEQr4tgdbdt0mk"
+        },
+        {
+          "key": "mechanism:0",
+          "text": "Hornsby had twenty-two stores.",
+          "file": "mechanism-0.wav",
+          "sha256": "cff8ec9b592711c5304af40856c551cd39f82a59cb362ac16b4029a04e35a6b9",
+          "generationId": "8AIsTajIYbABBu3fs6wk"
+        },
+        {
+          "key": "mechanism:1",
+          "text": "By the end of nineteen sixty-two, eight centres were completed or being developed in Sydney.",
+          "file": "mechanism-1.wav",
+          "sha256": "829a74ebd40df50eb2cfd6b42efaf64e0f1f9b38808ae58376497837439e2a63",
+          "generationId": "ZyH7LfAZgc9TUFAWtv15"
+        },
+        {
+          "key": "stakes:0",
+          "text": "Queensland followed in nineteen sixty-seven. Victoria in nineteen sixty-nine.",
+          "file": "stakes-0.wav",
+          "sha256": "8fae8f5084d8b16e465b782775cfce95c3ed2dc04c873f0c15aced4c00cb231d",
+          "generationId": "uFuV8d49NTa9B3d7u3na"
+        },
+        {
+          "key": "stakes:1",
+          "text": "In nineteen seventy-seven, Westfield bought its first American centre.",
+          "file": "stakes-1.wav",
+          "sha256": "608a04ba5f886e505445961c78078e36b17266fe7ce51b558c168f89e0bd31ed",
+          "generationId": "m8nq8b9IF25eTuIFoT5p"
+        },
+        {
+          "key": "meaning:0",
+          "text": "Decades later came London's Stratford City, in twenty eleven.",
+          "file": "meaning-0.wav",
+          "sha256": "d09d4f5b9014fd854991d95e91374157f6ac65cb09951b4fcafc8f0d1704c861",
+          "generationId": "cYkZzvK3zRRegcLsOGX1"
+        },
+        {
+          "key": "meaning:1",
+          "text": "The scale had changed completely. The early funding decision helps explain the journey.",
+          "file": "meaning-1.wav",
+          "sha256": "5818d63ddbc6840d712949133fc2f2e3b9cbf6ac36bf1dbe34684b5cae0185bb",
+          "generationId": "3gaK5NpGrfxU0xY6J3jk"
+        },
+        {
+          "key": "signOff:0",
+          "text": "This was more than a story about opening shops.",
+          "file": "signOff-0.wav",
+          "sha256": "064d2e5e35f01a6417a40519325c6efd9a2725926e3635d3d0be16264c3e440b",
+          "generationId": "kUN1Xr9gzZsqoBGx5Dyr"
+        },
+        {
+          "key": "signOff:1",
+          "text": "Lowy and Saunders were building a company that could raise capital for the next centre.",
+          "file": "signOff-1.wav",
+          "sha256": "74241a9141df5f499d209ba89cddeee8ea6b748ede3ec702d364d92e6aac5833",
+          "generationId": "lwaWC2dI9g0PpOGhLmYy"
+        }
+      ]
+    },
+    {
+      "episodeId": "grollo-family",
+      "voice": {
+        "engine": "elevenlabs",
+        "voice": "xeSYpoWjkR3imzxB6qDk",
+        "speed": 1
+      },
+      "model": "eleven_multilingual_v2",
+      "videoSha256": "f2c65593b6ab05f44769c78af349782ccccc97291804ea56c3818297bfd1c262",
+      "seconds": 90.9,
+      "audio": {
+        "integratedLufs": -16.87,
+        "truePeakDbtp": -4.11,
+        "loudnessRange": 3.2
+      },
+      "inputHash": "1de2f11e99392eb43a6dc1b434b527a48d42829ab67e004bccf149b6f714669d",
+      "clips": [
+        {
+          "key": "label:0",
+          "text": "Luigi Grollo arrived in Melbourne from Italy in nineteen twenty-eight, aged eighteen.",
+          "file": "label-0.wav",
+          "sha256": "0ec387561e110749f97a78967041584474e8ccf45a4774f53ad7e807f5ec6515",
+          "generationId": "qHpoGEeJmvhJ38CmtbBJ"
+        },
+        {
+          "key": "label:1",
+          "text": "The family enterprise that followed would be reported worth more than three hundred and fifty million Australian dollars by his death in nineteen ninety-four.",
+          "file": "label-1.wav",
+          "sha256": "195eb1a3b590dbbad42f0bf1bff558a0c525175eff5fe24f5a068bd29ab3d6f8",
+          "generationId": "IxwYkliKtus50Zsu7esz"
+        },
+        {
+          "key": "value:0",
+          "text": "First came a decade of itinerant labouring, sometimes living in a tent.",
+          "file": "value-0.wav",
+          "sha256": "164af037a57d12ae9a20dd63959e796a346509d62240b83446c11c467aa76717",
+          "generationId": "DaWEudKWS7ZvOpziG0yA"
+        },
+        {
+          "key": "value:1",
+          "text": "In nineteen forty-eight, Luigi began weekend concreting. Emma, his wife, managed the books and finances.",
+          "file": "value-1.wav",
+          "sha256": "eac1cb1454ce66d783253269c1b8d4353a588bb661b3b0f72dea51af0bc30dd5",
+          "generationId": "T0pagssVU3MAgGEVcLHA"
+        },
+        {
+          "key": "line:0",
+          "text": "By nineteen fifty-two, there was enough work to leave his paid job.",
+          "file": "line-0.wav",
+          "sha256": "42cbcf763ab7b20ff2b8af79841fe0a23e377714b553dd27c33640337030733b",
+          "generationId": "EJcynieTi9wrWMtU73jp"
+        },
+        {
+          "key": "line:1",
+          "text": "The workforce grew from thirty-five in nineteen fifty-eight to one hundred and twenty-eight in nineteen sixty-three.",
+          "file": "line-1.wav",
+          "sha256": "ca7fda60371ebc06130da76a2cdb6eb3eecebaec15e0986a03e1ac6b67eaffbc",
+          "generationId": "h7dxDSVbOpQdpDu5gKey"
+        },
+        {
+          "key": "turn:0",
+          "text": "But a Reserve Bank building project nearly bankrupted the family, according to the Australian Dictionary of Biography.",
+          "file": "turn-0.wav",
+          "sha256": "388d7e7a38c465afa9e606c7b2362cb422cc15b133f986507ad6765a9f75fc8d",
+          "generationId": "5sQsdQNWAf7UtTJdxjow"
+        },
+        {
+          "key": "turn:1",
+          "text": "After a heart attack in nineteen sixty-eight, Luigi left the business to his sons.",
+          "file": "turn-1.wav",
+          "sha256": "bf43400bf45f9ab90195ae948c429a7389a5cad3016c28d39df838c51e4fb423",
+          "generationId": "rydDQGjaXObCzaKLixvu"
+        },
+        {
+          "key": "mechanism:0",
+          "text": "Bruno described his role as winning and overseeing jobs. Rino handled the office and the numbers.",
+          "file": "mechanism-0.wav",
+          "sha256": "87b2a7c05a963db578e687c212cb6496738bd8d9a6ace1329fc7b9487a36eb8c",
+          "generationId": "k1NLIMhODF5aRycZ6Typ"
+        },
+        {
+          "key": "mechanism:1",
+          "text": "The work expanded through swimming pools, civil engineering and concrete structures for major builders.",
+          "file": "mechanism-1.wav",
+          "sha256": "7160747a651b26d735bdcc3af9317aab87537dc03d5d9976d26c91d526a01868",
+          "generationId": "iEnDAc941FPmoweh7xyJ"
+        },
+        {
+          "key": "stakes:0",
+          "text": "After Cyclone Tracy struck Darwin at Christmas nineteen seventy-four, Bruno recalled building four hundred houses.",
+          "file": "stakes-0.wav",
+          "sha256": "008f18398acb432e6deec1ba3a7caf65cba3a6b784ef6f7a42fb7bff995da91c",
+          "generationId": "PjB8UDojouwkqRqDxmR8"
+        },
+        {
+          "key": "stakes:1",
+          "text": "He said that work was followed by their own shopping centres and multistorey developments, alongside contracts for others.",
+          "file": "stakes-1.wav",
+          "sha256": "761ed3d6ca7e59d26d2c2c126256e0c36705edd3f5c0f7aafd0c75c04ac4576a",
+          "generationId": "ZxMhHkpgNlfHbDSJ2wj4"
+        },
+        {
+          "key": "meaning:0",
+          "text": "Rialto followed in the nineteen eighties, a project Bruno remembered as a major risk.",
+          "file": "meaning-0.wav",
+          "sha256": "50a9e05b16d59c40949c93e009d2c7abcadadb0b7d59cf1220cfe60fa4784af3",
+          "generationId": "kN1yPnBzPROxr5tBwnNs"
+        },
+        {
+          "key": "meaning:1",
+          "text": "The family's progression was not just taller buildings. It was a move from supplying labour towards developing and part-owning property.",
+          "file": "meaning-1.wav",
+          "sha256": "ad02a2d4463ba42fee4c28e3d96cf15fa10d6df928147e0d629c03a1d069c7f5",
+          "generationId": "bLGiICmlS0tKGP1DJegm"
+        },
+        {
+          "key": "signOff:0",
+          "text": "That reported three hundred and fifty million dollars described the companies' worth, not Luigi's cash, annual profit or today's value.",
+          "file": "signOff-0.wav",
+          "sha256": "9cb9f3c370b8073821eef95c840b5b944eecbf372098bfcc6777cdc9e1f0b4e0",
+          "generationId": "dWZ1cEaHfI7pgzYwrTh0"
+        },
+        {
+          "key": "signOff:1",
+          "text": "Behind the skyline were Emma's books, Luigi's groundwork, and two sons doing very different jobs.",
+          "file": "signOff-1.wav",
+          "sha256": "91c0af872e7633d82f92d52db3291112ecfc2117f6fae0851f9a9dcbd715b33a",
+          "generationId": "AHuksGuVIMeiEJcA5eKd"
+        }
+      ]
+    },
+    {
+      "episodeId": "walker-rebuild",
+      "voice": {
+        "engine": "elevenlabs",
+        "voice": "xeSYpoWjkR3imzxB6qDk",
+        "speed": 1
+      },
+      "model": "eleven_multilingual_v2",
+      "videoSha256": "2b6120734d906d9a4e32d5efe7eca8e54bae17c3f9be92e2d194e0890a7936bf",
+      "seconds": 65.56666666666666,
+      "audio": {
+        "integratedLufs": -16.23,
+        "truePeakDbtp": -4.05,
+        "loudnessRange": 3.5
+      },
+      "inputHash": "0e43fade259cb0af9d0202e141456fc0c7dff4961f5c559ffd636ee0fb3265ee",
+      "clips": [
+        {
+          "key": "label:0",
+          "text": "Lang Walker helped transform Sydney's waterfront.",
+          "file": "label-0.wav",
+          "sha256": "4316ee996f4390e63375155eb16fe2ca2acc99ccc811fcbff6881307f970ee14",
+          "generationId": "eAr53jaqdgFbO3FyDnZO"
+        },
+        {
+          "key": "label:1",
+          "text": "But twice, he sold major parts of his business, then kept developing.",
+          "file": "label-1.wav",
+          "sha256": "084a9ed06c84c6caee3cbd2c2a7e390228e4d77190e0ab7f2958b61b8522f078",
+          "generationId": "0bg6hPqEzKlCnyNLP5Mp"
+        },
+        {
+          "key": "value:0",
+          "text": "He started with his father in nineteen sixty-four, in earthmoving and civil engineering.",
+          "file": "value-0.wav",
+          "sha256": "56e4f7c260e2fc76ea072e92efb6762242cee6d278ae1055dea7a2ddc8fc9682",
+          "generationId": "U9cfVL16Qj3sTSJpR9Pf"
+        },
+        {
+          "key": "value:1",
+          "text": "In nineteen seventy-two, he formed the Walker Group and expanded into property development.",
+          "file": "value-1.wav",
+          "sha256": "cd63e6fcd91b9db509230f73f11b7ffa7a8ba396096ec6d85813e699d1618a93",
+          "generationId": "JhfebZ92ZxUbcMoDfH1L"
+        },
+        {
+          "key": "line:0",
+          "text": "The company listed in nineteen ninety-four.",
+          "file": "line-0.wav",
+          "sha256": "7621745cdc0fe0d117c53504085dfac29094f2db0d7fd5587eff6476c79482cf",
+          "generationId": "j5ChutdiYpnN8HwL2eE7"
+        },
+        {
+          "key": "line:1",
+          "text": "Five years later, Walker sold his shares to Australand, reserving the right to use the Walker name again.",
+          "file": "line-1.wav",
+          "sha256": "f0dd5fc1d54cfcd69a6ea93d4598a6531399ef62e448e227d39348241b889b77",
+          "generationId": "BmxqrRFS8srnCOY3kLV8"
+        },
+        {
+          "key": "turn:0",
+          "text": "He brought that name back in two thousand and three.",
+          "file": "turn-0.wav",
+          "sha256": "af4a04abdafb1b3306932527dc62a9143589d54b5b1af4c4a60b602846f75036",
+          "generationId": "qag3zxEtH3B5ucPzOilL"
+        },
+        {
+          "key": "turn:1",
+          "text": "In two thousand and six, another portfolio sale to Mirvac was reported at more than one point one billion Australian dollars.",
+          "file": "turn-1.wav",
+          "sha256": "ca9ec6680de3f69cf7a6c624811a0cadd037e208f3e6e5045b9dee76b48b3945",
+          "generationId": "udPLXqrpjiXw31NmG6rw"
+        },
+        {
+          "key": "mechanism:0",
+          "text": "That was a property and business transaction, not his personal profit.",
+          "file": "mechanism-0.wav",
+          "sha256": "6c9fb54f4f38411a05800e2e5afd782aedab1cee41a193c42adb56999f19c31a",
+          "generationId": "hTzOw8pV8csnADPQVDUa"
+        },
+        {
+          "key": "mechanism:1",
+          "text": "Walker kept industrial interests and some commercial and retail assets.",
+          "file": "mechanism-1.wav",
+          "sha256": "3d4a65e8b59e8cad9d4fd81380e1e573750b9cc5ad57193a3cbd0c3536feac14",
+          "generationId": "za6PVReC0wlBf3I0xjEc"
+        },
+        {
+          "key": "stakes:0",
+          "text": "The exit preceded the global financial crisis. It was not the end of his career.",
+          "file": "stakes-0.wav",
+          "sha256": "38a59f1d854b9b8fa68ce1b2c693c954df04adc2b00d8ef13b97878b905ccdf9",
+          "generationId": "bfIDK6GSYHBtOjDf15P3"
+        },
+        {
+          "key": "stakes:1",
+          "text": "Later projects included Melbourne's Collins Square and Sydney's Parramatta Square.",
+          "file": "stakes-1.wav",
+          "sha256": "a04881cf6d4a32f7caa78376db27624f4f6169081404ebe6b46e09c798f6dcda",
+          "generationId": "a0smAKYBTKC3znuHxsxd"
+        },
+        {
+          "key": "meaning:0",
+          "text": "In twenty twenty-four, the ABC described the completed Parramatta Square as a three point five billion Australian dollar project.",
+          "file": "meaning-0.wav",
+          "sha256": "a5da491a13421262b430da1f254110e4fd23fe2f73fd8785f9579e98ee6fec4c",
+          "generationId": "sPwfXGLcrkac9mNBYPUm"
+        },
+        {
+          "key": "meaning:1",
+          "text": "Project scale, again, is different from a developer's profit.",
+          "file": "meaning-1.wav",
+          "sha256": "170f792c880705370898177a087bb9f3cea890b10d6848a5c1d46d37972f2090",
+          "generationId": "mWNcqj4b29mQntEVO87T"
+        },
+        {
+          "key": "signOff:0",
+          "text": "Walker moved from shifting earth to reshaping city blocks.",
+          "file": "signOff-0.wav",
+          "sha256": "738a980755f10670701f61f100a0b1d92c1c6614b28b6449bf3c07575b7dabc1",
+          "generationId": "mSnDSZ8DhG3CkHl6qpKf"
+        },
+        {
+          "key": "signOff:1",
+          "text": "In between, he changed what he owned, sold major portfolios, and built again.",
+          "file": "signOff-1.wav",
+          "sha256": "4f538ac4e6833cec929e11624db7f1e6a67039374a9131166423aa09874865e4",
+          "generationId": "XXpYzJcdSERyxzQp8yd6"
+        }
+      ]
+    },
+    {
+      "episodeId": "triguboff-apartments",
+      "voice": {
+        "engine": "elevenlabs",
+        "voice": "xeSYpoWjkR3imzxB6qDk",
+        "speed": 1
+      },
+      "model": "eleven_multilingual_v2",
+      "videoSha256": "5c19a4089a7f6dbfa255a3e75313dbd68ef70c5b10d0191b83d2aba8234ff782",
+      "seconds": 148.29999999999998,
+      "audio": {
+        "integratedLufs": -16.48,
+        "truePeakDbtp": -4,
+        "loudnessRange": 2.6
+      },
+      "inputHash": "ee8cf73ded8469d8925262eb5917cd4fdc77cc853aca14bf0c9e6c51152d9aef",
+      "clips": [
+        {
+          "key": "label:0",
+          "text": "This is Harry Triguboff. He built Meriton. But the road to the towers ran through a thirty million Australian dollar debt crisis.",
+          "file": "label-0.wav",
+          "sha256": "b02d08a2f7ed81c1aeb23f3e8a37adc8eb902a124eefd74ce59b8d440e1bd5d0",
+          "generationId": "DJnCNJ2nmSLOMG8yZLLV"
+        },
+        {
+          "key": "label:1",
+          "text": "Born in Dalian to Russian Jewish parents, he grew up in Tianjin. In nineteen forty-eight, Harry and his brother came to Sydney.",
+          "file": "label-1.wav",
+          "sha256": "15bc476953f6547f562f7594394e0902c2366f523b516e8b03654eca42d0d8bc",
+          "generationId": "s23P3NWPZQqsXpiY6uK9"
+        },
+        {
+          "key": "value:0",
+          "text": "Textiles took him to Leeds, Israel and South Africa. Back in Australia: taxis. A milk round. Then problems with his Roseville builder. Harry took over and finished the house.",
+          "file": "value-0.wav",
+          "sha256": "800337a8c29c1bfefbfda8ee1e423cba58dfdff93760d5412e0c65fa2f6328e3",
+          "generationId": "x2zQkFBtZOQ3c0Y8BzZ6"
+        },
+        {
+          "key": "value:1",
+          "text": "Then, in nineteen sixty-three, land in Tempe cost the equivalent of six thousand eight hundred Australian dollars. Eight flats sold within eight months for fifty-one thousand Australian dollars, before building and other costs.",
+          "file": "value-1.wav",
+          "sha256": "6d5b77ac78e203b9d76de528d1d6cb69aca52ce1f5a253a912d1688a05b14966",
+          "generationId": "qaknSZaPYsT1EpzCku74"
+        },
+        {
+          "key": "line:0",
+          "text": "Eighteen apartments followed on Meriton Street in Gladesville. The street gave the company its name. Harry shifted from selling whole blocks to individual apartments.",
+          "file": "line-0.wav",
+          "sha256": "931caae7ae6a81960373343158940b2c572f1151799e24f20fe331c6713654ff",
+          "generationId": "PWEomhJRqIIKcRbWgz3c"
+        },
+        {
+          "key": "line:1",
+          "text": "Meriton floated in nineteen sixty-nine. Four years later, Harry bought it back. Then the property market crashed.",
+          "file": "line-1.wav",
+          "sha256": "1e5e6fb77c10bd4d07f29a2a7c435a7c3862c3593bf8010dd5cf50993b6330ef",
+          "generationId": "Q6r5CCHgA6GSVCpv3wXo"
+        },
+        {
+          "key": "turn:0",
+          "text": "The business had grown. Now it had to survive. Domain reports thirty million Australian dollars of debt in the nineteen seventy-four and seventy-five downturn. Repaid by nineteen seventy-six. Harry also held apartments for rent.",
+          "file": "turn-0.wav",
+          "sha256": "f607d602bf5d135d9cf3ba4c5240e8ac2b41d50963e2c2a7965cfc5dea5e47e0",
+          "generationId": "RfPSlxYnCZB6Tvtd6gqi"
+        },
+        {
+          "key": "turn:1",
+          "text": "By the nineteen eighties, Meriton was building on the Gold Coast. Florida and The Nelson came before Xanadu in the late nineteen nineties. The business had crossed state lines.",
+          "file": "turn-1.wav",
+          "sha256": "ade33fa5b8ed475be313b8d1866946d8f04dfce4cbd0374a436c3ffeff52a063",
+          "generationId": "gJKMdsBZAIYOkAZnwFHE"
+        },
+        {
+          "key": "mechanism:0",
+          "text": "A formal finance division followed in nineteen eighty-nine, and property management in nineteen ninety. Meriton could help buyers purchase apartments, then manage them.",
+          "file": "mechanism-0.wav",
+          "sha256": "9ef403f4dc26a1583f551dc2773111c775878e5a13f8f33d622ce1547bd9e253",
+          "generationId": "1OjaUASBRH6GNSw0f3KE"
+        },
+        {
+          "key": "mechanism:1",
+          "text": "Before World Tower, Sydney already had the Regis complex: thirty-two, forty-three and thirty-six levels by nineteen ninety-nine. Two documented apartment contracts were four hundred and eleven thousand, and three hundred and fifty-three thousand Australian dollars.",
+          "file": "mechanism-1.wav",
+          "sha256": "53f5b64bd2796c29898d20d1e154eec1579f4d76523bfa8e3513348fdb7aa59f",
+          "generationId": "JywJExFZXrrXbUIWX7rI"
+        },
+        {
+          "key": "stakes:0",
+          "text": "At World Square, the project surveyor describes buying two parts of the site. World Tower was completed in two thousand and four, with lower sections occupied while construction continued above.",
+          "file": "stakes-0.wav",
+          "sha256": "81f9348d000245954dca2f73d3723efb76fe4ebcf88e499808dbcc04802495c6",
+          "generationId": "oDZo4h9bbgYLteumWgoZ"
+        },
+        {
+          "key": "stakes:1",
+          "text": "Meanwhile, in two thousand and three, Meriton launched serviced apartments. It could build apartments, sell them, retain rentals, and operate accommodation.",
+          "file": "stakes-1.wav",
+          "sha256": "ceb4d8d7862a33d92311632f1ec67d9ddf028b6110a585bff5d15d10cfe57755",
+          "generationId": "rOFNf4ZBRbhrZKEfhzYc"
+        },
+        {
+          "key": "meaning:0",
+          "text": "During the global financial crisis, an industry profile reported a one hundred and nine million Australian dollar purchase at Victoria Park, Zetland, and eighteen hundred housing starts in one financial year.",
+          "file": "meaning-0.wav",
+          "sha256": "acb177382300e6036314916212f656712c9dd6a45016c5a815479db089f2f241",
+          "generationId": "fJllJCx96FN04aCeFLBj"
+        },
+        {
+          "key": "meaning:1",
+          "text": "Keeping more apartments also tied up capital. Meriton borrowed again in two thousand and thirteen. By February twenty-fourteen, reported debt was around three hundred million Australian dollars.",
+          "file": "meaning-1.wav",
+          "sha256": "e985f7ca72eba4cdd6eb4678162955df134012e0e2f0966afe2d60e62200a6a4",
+          "generationId": "vxI9hXxXYG1RGDEr7nVI"
+        },
+        {
+          "key": "signOff:0",
+          "text": "For the twenty-twenty financial year, reported group rents were four hundred and forty-seven million Australian dollars. Rental income, not profit.",
+          "file": "signOff-0.wav",
+          "sha256": "2f01d772bbd80b0eeb16517fb3fd0ae3b8cbb54c65db485e0dde9ba9e81407ba",
+          "generationId": "iw0PAngdKEW3a60QLSvP"
+        },
+        {
+          "key": "signOff:1",
+          "text": "Eight flats became over eighty thousand apartments built, according to Meriton. Harry changed more than the skyline. He changed how he sold, financed, managed, and earned from the apartments he kept.",
+          "file": "signOff-1.wav",
+          "sha256": "6b29d4933113954e72116072cbac97ce7dd3e33830334451e7189a6f64ef45e7",
+          "generationId": "zWjjoJlBm9yISuI0kU6m"
+        }
+      ]
+    }
+  ]
+}

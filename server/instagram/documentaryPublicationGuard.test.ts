@@ -22,9 +22,16 @@ describe("documentary release controls", () => {
     for (const episode of DOCUMENTARY_EPISODES) {
       const story = documentaryCandidate(episode).stat.documentary!;
       const video = await approvedDocumentaryExport(story);
-      expect(video.bytes.length).toBeGreaterThan(10_000_000);
+      // Duration and compression change with the speaker. Container identity,
+      // the complete digest and recorded narrator bind the actual export.
+      expect(video.bytes.subarray(4, 8).toString("ascii")).toBe("ftyp");
       expect(video.seconds).toBe(DOCUMENTARY_REVIEWS[episode.id]!.seconds);
       expect(video.voice).toEqual(DOCUMENTARY_REVIEWS[episode.id]!.voice);
+      expect(video.voice).toEqual({
+        engine: "elevenlabs",
+        voice: "xeSYpoWjkR3imzxB6qDk",
+        speed: 1,
+      });
       expect(video.spokenBy).toBe(video.voice.engine);
       const changed = structuredClone(story);
       changed.scenes[0]!.phrases[0] += " Changed.";
