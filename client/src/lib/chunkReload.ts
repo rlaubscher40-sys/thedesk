@@ -4,6 +4,24 @@ import { withDeadline } from "@shared/requestDeadline";
 
 const RELOAD_KEY = "thedesk:chunk-recovery-at:v2";
 const RELOAD_COOLDOWN_MS = 5 * 60_000;
+const RECOVERY_PARAM = "_desk_reload";
+
+/** A new document URL avoids repeating a failed same-address reload on WebKit. */
+function freshPageUrl(href: string): string {
+  const url = new URL(href);
+  url.searchParams.set(RECOVERY_PARAM, `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  return url.href;
+}
+
+/** Remove only our recovery marker, preserving route, filters, fragment and state. */
+export function cleanRecoveryUrl(): void {
+  try {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has(RECOVERY_PARAM)) return;
+    url.searchParams.delete(RECOVERY_PARAM);
+    window.history.replaceState(window.history.state, "", url.href);
+  } catch { /* URL cleanup must never prevent startup. */ }
+}
 
 export function isChunkLoadError(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err);
@@ -30,16 +48,29 @@ function claimAutomaticReload(): boolean {
   }
 }
 
-/** Manual and automatic recovery both have a strict cache-cleanup deadline. */
+/** Manual and automatic recovery share a deadline; neither clears reader data. */
 export async function hardReload(): Promise<void> {
   try {
-    await withDeadline(async () => {
-      if (typeof caches === "undefined") return;
-      const keys = await caches.keys();
-      await Promise.all(keys.filter((key) => key.startsWith("thedesk-")).map((key) => caches.delete(key)));
-    }, 1500);
+    await withDeadline(() => Promise.allSettled([
+      (async () => {
+        if (typeof caches === "undefined") return;
+        const keys = await caches.keys();
+        await Promise.all(keys.filter((key) => key.startsWith("thedesk-")).map((key) => caches.delete(key)));
+      })(),
+      (async () => {
+        if (!("serviceWorker" in navigator)) return;
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        const workerUrl = new URL("/sw.js", window.location.href).href;
+        await Promise.all(registrations.filter((registration) =>
+          [registration.active, registration.waiting, registration.installing]
+            .some((worker) => worker?.scriptURL === workerUrl)
+        ).map((registration) => registration.unregister()));
+      })(),
+    ]), 1500);
   } catch { /* A wedged cache must not prevent retrying the page. */ }
-  window.location.reload();
+  // Replace prevents Back from returning to the broken document. Keep the
+  // sessionStorage cooldown so an unavailable network cannot create a loop.
+  window.location.replace(freshPageUrl(window.location.href));
 }
 
 export function lazyWithReload<T extends ComponentType<any>>(

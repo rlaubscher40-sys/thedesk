@@ -1,5 +1,31 @@
 # Mobile loading and network access follow-up
 
+## 19 September 2026: same-tab recovery
+
+The reader reached the app's module-download error screen. Its Reload button
+returned to the same screen; closing the tab and opening a new one worked.
+Five homepage module failures were recorded around the report. Separately, an
+older admin tab requested a retired Login chunk (404), while current bundles
+returned 200. This supports a stale-tab recovery problem but does not identify
+the exact resource that failed on the reader's iPhone.
+
+Recovery now replaces the document with a unique `_desk_reload` URL, preserving
+the path, existing filters and fragment. On startup the marker is removed with
+`history.replaceState`. Before navigation, cache deletion and unregistering only
+The Desk's `/sw.js` run independently under the existing 1.5-second deadline.
+Cookies, saved stories, preferences and the five-minute automatic-retry guard
+are retained. Manual recovery works even inside that cooldown or with blocked
+storage. The bundle-independent splash retry also uses a fresh document URL.
+
+Service worker v6 requests navigation HTML with `cache: no-store`. Missing
+deployment assets return a non-cacheable plain-text 404 instead of an HTML app
+shell. Valid hashed bundles retain immutable caching.
+
+Regression coverage includes repeated manual retries, automatic-loop prevention,
+blocked and hanging storage/worker APIs, cleanup scope, URL/state preservation,
+bundle-independent retry, navigation fetch policy and retired asset responses.
+Browser verification in Chrome is not a reproduction on the reader's iPhone.
+
 12 September 2026. Base: 0d7ca5b88c021f694813c5b2e7465678e2bac5bb.
 
 ## Evidence and limits
