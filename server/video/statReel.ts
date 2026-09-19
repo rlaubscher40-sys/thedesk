@@ -1,3 +1,4 @@
+import type { DeliveryReview } from "./narrationDelivery";
 import { narrationWave } from "./newsreader";
 /** Animated property cards with a required voice track. */
 import { execFile } from "node:child_process";
@@ -638,6 +639,7 @@ export async function renderStatReel(
   subtitled: boolean;
   spokenBy: ReelVoiceEngine | null;
   voice?: ReelVoiceIdentity;
+  delivery?: DeliveryReview;
   timeline: Array<{ key: string; start: number; seconds: number; phrases?: MeasuredPhrase[] }>;
 }> {
   if (!ffmpegPath) throw new Error("ffmpeg binary unavailable");
@@ -677,6 +679,7 @@ export async function renderStatReel(
       engine: ReelVoiceEngine | null;
       clips: SpeechAudio[];
       continuous?: boolean;
+      delivery?: DeliveryReview;
     } | null =
       opts.narrate === false
         ? null
@@ -693,7 +696,8 @@ export async function renderStatReel(
             ? await synthesisePhrases(
                 stat.documentary.scenes.map((s) => ({ ...s, text: s.phrases.join(" ") })),
                 opts.voice,
-                opts.preparedNarration
+                opts.preparedNarration,
+                "documentary"
               )
             : stat.storyboard?.kind === "housing-balance"
               ? await synthesisePhrases(stat.storyboard.scenes, opts.voice)
@@ -1054,6 +1058,7 @@ export async function renderStatReel(
       subtitled: Boolean(subtitleFilter),
       /** Who was actually heard, which a fallback render makes worth recording. */
       spokenBy: narration?.engine ?? null,
+      ...(narration?.delivery ? { delivery: narration.delivery } : {}),
       ...(narration?.engine
         ? {
             voice:

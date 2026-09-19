@@ -52,6 +52,7 @@ for (const episode of episodes) {
         seconds: video.seconds,
         videoSha256,
         timeline: video.timeline,
+        delivery: video.delivery,
         production: {
           ...productionReelOptions(),
           voice: video.voice ?? reelVoiceIdentity(productionReelOptions().voice, video.spokenBy),

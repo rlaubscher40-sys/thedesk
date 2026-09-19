@@ -1,3 +1,4 @@
+import { deliveryProfile } from "./narrationDelivery";
 import type { DocumentaryEpisode } from "../instagram/documentaryEpisodes";
 import {
   DOCUMENTARY_SOURCES,
@@ -71,6 +72,9 @@ export function documentaryProductionDossier(episode: DocumentaryEpisode) {
     releaseDate: episode.releaseDate,
     currency: "AUD",
     voice: DEFAULT_SPEECH_PROFILE,
+    deliveryGuidance: deliveryProfile("documentary"),
+    voiceDirection:
+      "Speak to one person in Ruben’s natural accent. Emphasise the contrast or consequence, give figures room, and preserve a meaningful pause at turning points. Keep completed thoughts connected; never split a number from its unit.",
     benchmark: {
       episodeId: "triguboff-apartments",
       acceptedDirection: "2026-09-14",
@@ -110,6 +114,9 @@ export function newDocumentaryBrief(id: string, subject: string, series: Documen
     status: "research-required",
     currency: "AUD",
     voice: DEFAULT_SPEECH_PROFILE,
+    deliveryGuidance: deliveryProfile("documentary"),
+    voiceDirection:
+      "Speak to one person in Ruben’s natural accent. Emphasise the contrast or consequence, give figures room, and preserve a meaningful pause at turning points. Keep completed thoughts connected; never split a number from its unit.",
     releaseDate: null,
     audienceQuestion: null,
     openingPersonIntroduction: null,

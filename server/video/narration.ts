@@ -1,4 +1,5 @@
 /** Deterministic, evidence-backed scripts spoken by the configured Reel voice. */
+import type { DirectedSpeechLine } from "./narrationDelivery";
 import type { SpeechProfile } from "./localVoice";
 import { reelNarration, type ReelNarration } from "./reelVoice";
 import type { ReelScriptLines } from "../prompts/reelScript";
@@ -99,7 +100,7 @@ export type ReelStatText = {
 };
 
 /** One spoken passage, and the moment in the clip it belongs to. */
-export type ScriptLine = { key: string; text: string };
+export type ScriptLine = DirectedSpeechLine;
 
 /**
  * The closing line. The point of the Reel is not the number; it is that there
