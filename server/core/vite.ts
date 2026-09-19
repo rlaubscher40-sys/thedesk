@@ -59,6 +59,11 @@ export function serveStatic(app: Express): void {
       },
     })
   );
+  // Missing deployment chunks are assets, not app routes. Never return an HTML
+  // shell (or a cacheable negative response) for a retired script/style URL.
+  app.use("/assets", (_req, res) => {
+    res.status(404).set("Cache-Control", "no-store").type("text").send("Asset unavailable. Reload the page for the current version.");
+  });
   const indexPath = path.resolve(distPath, "index.html");
 
   // Path-less catch-all (was app.use("*", ...)) — see setupVite for why.

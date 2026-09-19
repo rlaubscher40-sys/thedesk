@@ -19,8 +19,10 @@ import { applyLiteClass } from "./lib/liteMode";
 import { trpc } from "./lib/trpc";
 import { queryFetch } from "./lib/queryFetch";
 import { initInstallPrompt } from "./lib/installPrompt";
+import { cleanRecoveryUrl } from "./lib/chunkReload";
 import "./index.css";
 
+cleanRecoveryUrl();
 initInstallPrompt();
 initWebVitals();
 

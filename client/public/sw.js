@@ -1,6 +1,6 @@
 // v4 never caches navigation HTML. An old shell can reference deleted chunks,
 // and an arbitrary page must not become another route's offline fallback.
-const CACHE = "thedesk-static-v5";
+const CACHE = "thedesk-static-v6";
 const MAX_ENTRIES = 64;
 const SHELL = ["/offline.html", "/manifest.json", "/favicon.svg", "/icon-192.png",
   "/icon-512.png", "/apple-touch-icon.png", "/fonts/SourceSans3-Variable.woff2",
@@ -45,7 +45,8 @@ async function navigate(request) {
   let timer;
   try {
     const response = await Promise.race([
-      fetch(request, { signal: controller.signal }),
+      // Fetch the current shell even if the browser retained older HTML.
+      fetch(request, { signal: controller.signal, cache: "no-store" }),
       new Promise((_, reject) => {
         timer = setTimeout(() => { reject(new Error("Navigation timed out")); controller.abort(); }, 12000);
       }),

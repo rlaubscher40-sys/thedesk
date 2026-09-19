@@ -16,9 +16,9 @@ afterEach(() => vi.useRealTimers());
 it("offers a working retry when the main bundle never starts", async () => {
   vi.useFakeTimers();
   const children: any[] = [];
-  const reload = vi.fn();
+  const replace = vi.fn();
   const splash = { classList: { contains: () => false }, removeAttribute: vi.fn(), appendChild: (el: any) => children.push(el) };
-  runInNewContext(script, { setTimeout, window: { location: { reload } }, document: {
+  runInNewContext(script, { setTimeout, URL, window: { location: { href: "https://thedesk.au/markets?q=rent#evidence", replace } }, document: {
     getElementById: () => splash,
     createElement: (tag: string) => ({ tag, style: {}, setAttribute: vi.fn(), addEventListener(_event: string, action: () => void) { this.click = action; } }),
   } });
@@ -26,7 +26,12 @@ it("offers a working retry when the main bundle never starts", async () => {
   expect(splash.removeAttribute).toHaveBeenCalledWith("aria-hidden");
   expect(children[0].textContent).toContain("longer than expected");
   children[1].click();
-  expect(reload).toHaveBeenCalledOnce();
+  expect(replace).toHaveBeenCalledOnce();
+  const retryUrl = new URL(replace.mock.calls[0][0]);
+  expect(retryUrl.pathname).toBe("/markets");
+  expect(retryUrl.searchParams.get("q")).toBe("rent");
+  expect(retryUrl.searchParams.has("_desk_reload")).toBe(true);
+  expect(retryUrl.hash).toBe("#evidence");
 });
 it("does nothing after a successful boot has dismissed the splash", async () => {
   vi.useFakeTimers();

@@ -67,8 +67,10 @@ it("serves an explicit retry page for a hanging navigation, never a stale shell"
   expect(await response.text()).toContain("try again");
 });
 it("passes a healthy navigation through without caching HTML", async () => {
-  const w = worker();
+  const fetcher = vi.fn().mockResolvedValue(new Response("current shell"));
+  const w = worker(fetcher);
   expect((await w.request("/story/123", "navigate").response!).status).toBe(200);
+  expect(fetcher).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ cache: "no-store" }));
   expect(w.cache.put).not.toHaveBeenCalled();
 });
 it("does not intercept API, media, private pages, POST or range requests", () => {

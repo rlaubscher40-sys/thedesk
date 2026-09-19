@@ -282,7 +282,11 @@
           retry.type = "button";
           retry.textContent = "Try again";
           retry.style.cssText = "padding:12px 20px;border:1px solid currentColor;border-radius:4px;background:transparent;color:inherit;font:16px system-ui,sans-serif;cursor:pointer";
-          retry.addEventListener("click", function () { window.location.reload(); });
+          retry.addEventListener("click", function () {
+            var url = new URL(window.location.href);
+            url.searchParams.set("_desk_reload", Date.now() + "-" + Math.random().toString(36).slice(2));
+            window.location.replace(url.href);
+          });
           splash.appendChild(message);
           splash.appendChild(retry);
         }, 15000);
