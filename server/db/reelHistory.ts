@@ -1,7 +1,45 @@
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { isDemoMode } from "../demo/store";
 import { getDb } from "./client";
 import { jobRuns } from "./schema";
+
+/** Bounded reporting history across all periods. Rotation still uses the latest
+ * receipt per family below; analytics must not silently discard older periods. */
+export async function readRecentReelPublications(keys: string[]) {
+  if (!keys.length) return [];
+  const db = getDb();
+  if (!db || isDemoMode()) throw new Error("The durable Reel history is unavailable.");
+  const rows = await db
+    .select({
+      key: jobRuns.jobKey,
+      date: jobRuns.runDate,
+      detail: jobRuns.detail,
+      publishedAt:
+        sql<number>`unix_timestamp(coalesce(${jobRuns.finishedAt}, ${jobRuns.startedAt})) * 1000`.mapWith(
+          Number
+        ),
+    })
+    .from(jobRuns)
+    .where(
+      and(
+        inArray(jobRuns.jobKey, [...new Set(keys)]),
+        eq(jobRuns.status, "success"),
+        sql`${jobRuns.detail} regexp '^Published media [0-9]+$'`
+      )
+    )
+    .orderBy(
+      desc(sql`coalesce(${jobRuns.finishedAt}, ${jobRuns.startedAt})`),
+      desc(jobRuns.runDate),
+      desc(jobRuns.detail)
+    )
+    .limit(80);
+  return rows.map((row) => {
+    const postId = row.detail?.match(/^Published media (\d+)$/)?.[1];
+    if (!postId || !Number.isFinite(row.publishedAt) || row.publishedAt <= 0)
+      throw new Error("The durable Reel receipt is invalid.");
+    return { key: row.key, date: row.date, postId, publishedAt: new Date(row.publishedAt) };
+  });
+}
 
 /** Confirmed publications across reference periods, not delivery attempts.
  * One bounded result per registered key; no new watermark or publication write. */

@@ -1,6 +1,7 @@
 import { REEL_WINDOW } from "@shared/instagramSchedule";
 import { useEffect, useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { ReelOperationsPanel } from "./ReelOperationsPanel";
 
 export function InstagramReelPanel() {
   const readiness = trpc.instagram.reelReadiness.useQuery(undefined, { staleTime: 60_000 });
@@ -46,6 +47,7 @@ export function InstagramReelPanel() {
   return (
     <section className="rounded border border-[var(--color-border)] p-4 space-y-3">
       <h3 className="font-semibold">Automatic narrated Reels</h3>
+      <ReelOperationsPanel />
       <p className="text-sm">
         {readiness.data?.detail ??
           (readiness.error
@@ -95,7 +97,10 @@ export function InstagramReelPanel() {
                       {plan.data.lastRender.render.subtitled ? "yes" : "no"}.
                     </p>
                     <p>
-                      Local Kokoro voice: {plan.data.lastRender.render.voice.voice}, speed{" "}
+                      {plan.data.lastRender.render.voice.engine === "elevenlabs"
+                        ? "ElevenLabs voice"
+                        : "Local Kokoro voice"}
+                      : {plan.data.lastRender.render.voice.voice}, speed{" "}
                       {plan.data.lastRender.render.voice.speed}.
                     </p>
                     <p>

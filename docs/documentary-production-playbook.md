@@ -1,5 +1,7 @@
 # The Desk documentary production system
 
+Start with the [quality and audience learning workflow](reel-quality-and-learning.md). Check the production buffer and previous comparable films' observations before choosing the next improvement. New review packages include an offline `review.html` player beside the exact MP4 for full-film review, timestamped corrections and an export-specific review record.
+
 The standard is a person-led documentary in which the evidence and the pictures do equal work. The Harry Triguboff cut accepted on 14 September 2026 is the creative benchmark. A new film needs its own research, decisions and images.
 
 ## The next request

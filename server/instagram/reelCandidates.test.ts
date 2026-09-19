@@ -88,10 +88,20 @@ describe("repeatable automatic editorial selection", () => {
     expect(new Set(candidates.map((c) => c.publication.key)).size).toBe(2);
   });
   it("explains every withheld recipe without inventing a story", async () => {
-    const programme = await getVerifiedReelProgramme();
+    // Fix the clock outside a registered documentary day. A real release can
+    // remain eligible even while every current-data adapter is unavailable.
+    const now = new Date("2026-09-19T00:00:00Z");
+    const programme = await getVerifiedReelProgramme(now);
     expect(programme).toHaveLength(19);
     expect(programme.every((p) => !p.candidate && p.requirement.length > 10)).toBe(true);
-    expect(await getVerifiedReelCandidates()).toEqual([]);
+    expect(await getVerifiedReelCandidates(now)).toEqual([]);
+  });
+  it("retains the registered documentary on its Sydney release day despite unavailable data feeds", async () => {
+    const candidates = await getVerifiedReelCandidates(new Date("2026-09-20T08:30:00Z"));
+    expect(candidates.map((candidate) => candidate.publication.key)).toEqual([
+      "instagram-reel-documentary-triguboff-apartments-v1",
+    ]);
+    expect(await getVerifiedReelCandidates(new Date("2026-09-21T08:30:00Z"))).toEqual([]);
   });
   it("can explain national supply and demand without substituting unavailable city data", async () => {
     m.balance.mockResolvedValue(HOUSING_BALANCE_SNAPSHOT);

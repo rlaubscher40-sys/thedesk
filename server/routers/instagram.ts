@@ -23,6 +23,9 @@ import { launchPostStatus, previewLaunchPost, publishLaunchPost } from "../insta
 import { currentSocialFeed } from "../instagram/sourceContent";
 import { listFeedItems } from "../db/feed";
 import { assessBriefingStory, unpublishedBriefingSelection } from "../instagram/briefingSelection";
+import { reelReviewSaveSchema } from "../../shared/reelReview";
+import { saveReelReview } from "../db/reelReviews";
+import { readReelOperations } from "../instagram/reelOperations";
 
 /** The ingest endpoint behind each re-runnable posting job. */
 const RERUN_PATHS = {
@@ -60,6 +63,10 @@ function describeFailure(status: number, body: string): string {
 }
 
 export const instagramRouter = router({
+  reelOperations: adminProcedure.query(() => readReelOperations()),
+  saveReelReview: adminProcedure
+    .input(reelReviewSaveSchema)
+    .mutation(({ input, ctx }) => saveReelReview(input, ctx.user.id)),
   briefingPlan: adminProcedure.query(async () => {
     const { date, items } = await currentSocialFeed(listFeedItems);
     const selected = await unpublishedBriefingSelection(items);

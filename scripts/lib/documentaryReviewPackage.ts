@@ -5,6 +5,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 import ffmpegPath from "ffmpeg-static";
+import { documentaryReviewPlayerHtml } from "./documentaryReviewPlayer";
 import type { ReelVoiceIdentity } from "../../server/video/reelVoice";
 import type { DocumentaryEpisode } from "../../server/instagram/documentaryEpisodes";
 import {
@@ -256,5 +257,15 @@ export async function writeDocumentaryReviewPackage(input: {
     "",
   ].join("\n");
   await fs.writeFile(path.join(output, "production-review.md"), review);
+  await fs.writeFile(
+    path.join(output, "review.html"),
+    documentaryReviewPlayerHtml({
+      episodeId: episode.id,
+      videoFile: path.basename(video),
+      videoSha256: hash,
+      inputHash: input.inputHash,
+      shots,
+    })
+  );
   return audit;
 }
