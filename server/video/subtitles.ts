@@ -1,3 +1,4 @@
+import type { TimedWord } from "./newsreader";
 import type { ScriptLine } from "./narration";
 
 export type SubtitleCue = { start: number; end: number; lines: string[] };
@@ -68,11 +69,11 @@ export function captionChunks(text: string, lineChars = LINE_CHARS): string[][] 
   return split(words);
 }
 
-/** Passages start with their measured audio. Phrase timing within a passage
- * is length-weighted, not claimed to be word-level forced alignment. */
+/** New continuous reads use verified word timestamps. Legacy passage-only
+ * recordings retain their length-weighted timing. */
 export function subtitleCues(
   script: ScriptLine[],
-  passages: Array<{ key: string; start: number; seconds: number }>,
+  passages: Array<{ key: string; start: number; seconds: number; words?: TimedWord[] }>,
   lineChars = LINE_CHARS,
   format: "standard" | "documentary" = "standard"
 ): SubtitleCue[] {
@@ -92,6 +93,31 @@ export function subtitleCues(
     )
       throw new Error("Subtitle passage has no verified audio timing.");
     const chunks = captionChunks(line.text, lineChars);
+    if (p.words) {
+      const words = p.words;
+      if (
+        words.map((w) => w.text).join(" ") !== line.text.trim().split(/\s+/).join(" ") ||
+        words.some(
+          (w, i) =>
+            !Number.isFinite(w.start) ||
+            !Number.isFinite(w.end) ||
+            w.start < 0 ||
+            w.end < w.start ||
+            w.end > p.seconds + 1 / 24000 ||
+            (i > 0 && w.start < words[i - 1]!.end - 1 / 24000)
+        )
+      )
+        throw new Error("Subtitle words do not match the verified narration alignment.");
+      let cursor = 0;
+      for (const lines of chunks) {
+        const first = words[cursor]!;
+        cursor += lines.join(" ").split(/\s+/).length;
+        const last = words[cursor - 1]!;
+        const end = Math.max(last.end, (words[cursor]?.start ?? p.seconds) - 0.035);
+        cues.push({ start: p.start + first.start, end: p.start + end, lines });
+      }
+      continue;
+    }
     const weights = chunks.map((c) => c.join(" ").length);
     const total = weights.reduce((a, b) => a + b, 0);
     let used = 0;

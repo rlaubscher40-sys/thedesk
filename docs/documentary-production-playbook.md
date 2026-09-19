@@ -49,7 +49,7 @@ New subjects require authored visuals. The current Harry renderer is bespoke. Ad
 
 ## Sound and finishing
 
-Keep the voice natural and intelligible. Check names, dates and money by listening to the complete MP4. Music should support the emotional progression, lower under speech and finish with the picture. The Harry score is original code-generated instrumental audio; it does not need a commercial music subscription.
+Use the approved `newsreader-v1` delivery for newly generated films: one continuous read in Ruben’s clone, natural newsreader flow, shorter punctuation pauses and captions aligned to the spoken words. Do not add silence at scene changes or force speech to a fixed duration. The 19 September 2026 preference applies to future documentary and briefing Reels; existing and scheduled exports retain their exact approved bytes and release records. Keep the voice natural and intelligible. Check names, dates and money by listening to the complete MP4. Music should support the emotional progression, lower under speech and finish with the picture. The Harry score is original code-generated instrumental audio; it does not need a commercial music subscription.
 
 The technical review measures the encoded audio, confirms that it covers the measured narration and checks the media format. Human listening and a phone-size visual review remain necessary. Record a limitation when an environment cannot support listening; never convert a waveform measurement into a claim of creative approval.
 

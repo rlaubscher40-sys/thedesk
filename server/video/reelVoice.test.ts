@@ -109,16 +109,11 @@ it("speaks locally rather than losing the Reel when the clone fails in auto mode
   warn.mockRestore();
 });
 
-it("never mixes two speakers in one Reel when the clone fails part way through", async () => {
+it("re-speaks every local batch when the single clone take fails", async () => {
   config.elevenLabsApiKey = "test-key";
   vi.spyOn(console, "warn").mockImplementation(() => {});
   const first = Array.from({ length: 9 }, (_, i) => ({ key: `a${i}`, text: "One." }));
   const second = [{ key: "b0", text: "Two." }];
-  // The opening batch is spoken by the clone, and then the closing batch fails:
-  // the state that could put two speakers in one clip.
-  vi.mocked(elevenLabsSpeech).mockImplementationOnce(async (batch) =>
-    batch.map((l) => ({ key: l.key, bytes: Buffer.from("clone") }))
-  );
   vi.mocked(elevenLabsSpeech).mockRejectedValueOnce(new Error("HTTP 500"));
   const { engine, clips } = await reelNarration([first, second]);
   expect(engine).toBe("local-kokoro");
@@ -169,4 +164,14 @@ it("records the speaker that was actually heard, not the one configured", () => 
     profile
   );
   expect(record.voice).toEqual({ engine: "local-kokoro", voice: "bm_fable", speed: 1 });
+});
+
+it("sends all documentary batches as one continuous performance", async () => {
+  config.elevenLabsApiKey = "test-key";
+  const full = Array.from({ length: 16 }, (_, i) => ({ key: String(i), text: "One." }));
+  const result = await reelNarration([full.slice(0, 9), full.slice(9)]);
+  expect(elevenLabsSpeech).toHaveBeenCalledTimes(1);
+  expect(elevenLabsSpeech).toHaveBeenCalledWith(full, undefined);
+  expect(result.continuous).toBe(true);
+  expect(localSpeech).not.toHaveBeenCalled();
 });
