@@ -38,6 +38,19 @@ export type InstagramPostMetrics = {
   totalInteractions?: number | null;
 };
 
+/** Exact confirmed Reel IDs for the bounded operations report. No best-effort
+ * empty result on an outage: absence of evidence must remain distinguishable. */
+export async function readReelMetricPosts(mediaIds: string[]) {
+  if (!mediaIds.length) return [];
+  if (mediaIds.length > 80) throw new Error("Reel metrics report exceeds its history budget.");
+  const db = getDb();
+  if (!db || isDemoMode()) throw new Error("Reel metrics storage unavailable.");
+  return db
+    .select()
+    .from(instagramPosts)
+    .where(inArray(instagramPosts.mediaId, [...new Set(mediaIds)]));
+}
+
 /**
  * Insert a published post. Idempotent on mediaId; never throws.
  *

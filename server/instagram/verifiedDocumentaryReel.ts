@@ -43,7 +43,7 @@ export function documentaryLaunchReady() {
   );
 }
 
-function documentaryEpisodeReviewed(episode: DocumentaryEpisode) {
+export function documentaryEpisodeReviewed(episode: DocumentaryEpisode) {
   const review = DOCUMENTARY_REVIEWS[episode.id];
   return Boolean(
     review &&

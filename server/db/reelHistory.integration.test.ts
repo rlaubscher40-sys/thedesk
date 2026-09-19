@@ -4,7 +4,7 @@ import { drizzle } from "drizzle-orm/mysql2";
 const state = vi.hoisted(() => ({ db: null as ReturnType<typeof drizzle> | null }));
 vi.mock("./client", () => ({ getDb: () => state.db }));
 vi.mock("../demo/store", () => ({ isDemoMode: () => false }));
-import { readReelPublicationHistory } from "./reelHistory";
+import { readReelPublicationHistory, readRecentReelPublications } from "./reelHistory";
 
 it("distinguishes no eligible topics from unavailable history", async () => {
   expect(await readReelPublicationHistory([])).toEqual([]);
@@ -85,6 +85,13 @@ it.skipIf(!testUrl)(
       for (const row of rows)
         await connection.execute("INSERT INTO job_runs VALUES (?, ?, ?, ?, ?, ?)", row);
       state.db = drizzle(connection);
+      const reporting = await readRecentReelPublications([
+        "rents",
+        "population",
+        "supply",
+        "borrowing",
+      ]);
+      expect(reporting.map((row) => row.postId)).toEqual(["456", "999999", "789", "123"]);
       expect(
         (
           await readReelPublicationHistory(["rents", "population", "supply", "borrowing", "rents"])
