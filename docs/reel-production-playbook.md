@@ -1,5 +1,7 @@
 # Repeatable Reel production
 
+Before the next batch, use the [quality and audience learning workflow](reel-quality-and-learning.md): read comparable films' review notes, record one improvement to test, and check the documentary buffer. Human watch/listen records and measured audience outcomes remain separate from technical export checks.
+
 ## Approved baseline
 
 Ruben requested his ElevenLabs voice clone for future Reels on 18 September 2026.
