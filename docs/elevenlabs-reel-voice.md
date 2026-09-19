@@ -28,16 +28,34 @@ reservations and deduplication rules remain in force.
 
 ## Audio and subtitles
 
-Regular scripts and phrase-based documentary/housing stories use the same provider.
-ElevenLabs `eleven_multilingual_v2` reads only the verified text. Adjacent text
-provides continuity between passages. The existing profile controls speed;
-its Kokoro voice name does not override the configured clone.
+New documentary and briefing Reels use the approved **newsreader-v1** delivery
+(19 September 2026). Ruben approved the continuous Lowy pacing preview and asked
+for this delivery on future videos only. Do not rebuild or replace existing or
+scheduled MP4 archives, their digests, review approvals or release dates.
 
-The provider requests mono 24 kHz PCM and wraps it as a canonical WAV. Existing
-phrase trimming, measured subtitles, ffmpeg duration checks and mixing operate on
-the returned samples. Each passage is bounded to 30 seconds and each batch to
-90 seconds. A small exact-script cache and shared in-flight requests avoid
-duplicate charges in one server process. New synthesis uses ElevenLabs credits.
+The shared provider sends the entire verified script in **one continuous take**
+to `eleven_multilingual_v2` with source-text timestamps. Settings are speed 1.0,
+stability 0.5, similarity boost 0.75, style 0 and speaker boost enabled. Explicit
+review speed overrides remain available. The Kokoro profile's voice name does
+not override Ruben's configured clone.
+
+The approved pace comes from continuous sentence flow and shorter pauses, not
+pitch changes or time stretching. Only quiet gaps of at least 350ms at punctuation
+are eligible for tightening: retain 160ms at each quiet edge, protect 200ms after
+the preceding word and 120ms before the next, and fade each splice over 3ms.
+The accepted preview averaged about 167 words per minute; this is a reference,
+not a command to force every script to an identical rate.
+
+Picture changes and captions follow the edited audio's sample clock and exact
+source words. There is no added gap between phrases or scenes; the final picture
+holds for 450ms after the narration. Caption text retains all verified words and
+numbers. Reject missing or mismatched alignment rather than guessing new timing.
+
+Requests return mono 24 kHz PCM. A full take is bounded to 180 seconds/8,000 text
+characters, 16 passages and one 90-second request deadline. Individual passages
+remain bounded to 30 seconds. A small exact-script cache and shared in-flight
+requests avoid duplicate charges in one server process. New synthesis uses
+ElevenLabs credits. Readiness checks only verify voice access, not synthesis.
 
 If ElevenLabs fails under `auto`, the whole narration is re-spoken by Kokoro Fable
 rather than losing the slot, and never half in each voice: one Reel has one
@@ -48,4 +66,4 @@ which voice shipped. Set `REEL_VOICE_PROVIDER=elevenlabs` to refuse the
 substitution and fail the render instead, or `REEL_VOICE_PROVIDER=local` to stay
 on Kokoro Fable. Existing published videos are not revoiced or republished.
 
-API contract: https://elevenlabs.io/docs/api-reference/text-to-speech/convert
+API contract: https://elevenlabs.io/docs/api-reference/text-to-speech/convert-with-timestamps

@@ -1,14 +1,15 @@
+import { NEWSREADER_DELIVERY, type TimedWord } from "./newsreader";
 import { env } from "../core/env";
 import { localSpeech, localVoiceReady, type SpeechProfile } from "./localVoice";
 import { elevenLabsSpeech, elevenLabsVoiceReady } from "./elevenLabsVoice";
 
 export type SpeechLine = { key: string; text: string };
-export type SpeechAudio = { key: string; bytes: Buffer };
+export type SpeechAudio = { key: string; bytes: Buffer; start?: number; words?: TimedWord[] };
 /** Which speaker actually produced a render's audio, for its provenance record. */
 export type ReelVoiceEngine = "elevenlabs" | "local-kokoro";
 export type ReelVoiceIdentity = { engine: ReelVoiceEngine; voice: string; speed: number };
 /** One narration: the clips, and who is heard saying them. */
-export type ReelNarration = { engine: ReelVoiceEngine; clips: SpeechAudio[] };
+export type ReelNarration = { engine: ReelVoiceEngine; clips: SpeechAudio[]; continuous?: boolean };
 
 function configured(): "auto" | "local" | "elevenlabs" {
   /** An absent setting is the documented default, as in core/env; a wrong value still stops. */
@@ -39,7 +40,7 @@ function fallbackPermitted(): boolean {
  *
  * The batches exist because the local voice runs nine utterances per child
  * process, but they are a single narration: the speaker is chosen once for the
- * whole set. That is the point of taking them together. A clip that opened in
+ * whole set. ElevenLabs receives one continuous full-script take. A clip that opened in
  * Ruben's voice and closed in a stock one would be worse than either voice
  * alone, so when the clone fails part way through, the passages it already
  * spoke are discarded and the entire narration is re-spoken locally.
@@ -55,9 +56,8 @@ export async function reelNarration(
   };
   if (provider() === "local") return speakLocally();
   try {
-    const clips: SpeechAudio[] = [];
-    for (const batch of batches) clips.push(...(await elevenLabsSpeech(batch, profile?.speed)));
-    return { engine: "elevenlabs", clips };
+    const clips = await elevenLabsSpeech(batches.flat(), profile?.speed);
+    return { engine: "elevenlabs", clips, continuous: true };
   } catch (error) {
     if (!fallbackPermitted()) throw error;
     // Loud on the way past: the Reel still publishes, so this log and the
@@ -108,8 +108,7 @@ export async function reelVoiceReadiness(): Promise<{
       if (await elevenLabsVoiceReady())
         return {
           ok: true,
-          detail:
-            "Narration is on: ElevenLabs voice access verified. Speech is validated when rendering.",
+          detail: `Narration is on: ElevenLabs voice access verified. New renders use ${NEWSREADER_DELIVERY} delivery. Speech is validated when rendering.`,
         };
       // Say which voice will be heard, not merely that narration works. An
       // operator reading this needs to know the clone is not the one speaking.

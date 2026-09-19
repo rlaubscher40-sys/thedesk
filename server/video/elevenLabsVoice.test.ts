@@ -13,6 +13,20 @@ function pcm() {
   for (let i = 0; i < b.length; i += 2) b.writeInt16LE(Math.round(Math.sin(i / 10) * 2000), i);
   return b;
 }
+function response(_url: string, options: { body: string }) {
+  const text = JSON.parse(options.body).text as string;
+  const characters = Array.from(text);
+  return new Response(
+    JSON.stringify({
+      audio_base64: pcm().toString("base64"),
+      alignment: {
+        characters,
+        character_start_times_seconds: characters.map((_, i) => i / characters.length),
+        character_end_times_seconds: characters.map((_, i) => (i + 1) / characters.length),
+      },
+    })
+  );
+}
 beforeEach(() => {
   vi.resetModules();
   request.mockReset();
@@ -21,30 +35,36 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 it("uses Ruben's clone and produces WAV compatible with measured phrase subtitles", async () => {
-  request.mockImplementation(async () => new Response(pcm()));
+  request.mockImplementation(response);
   const { elevenLabsSpeech } = await import("./elevenLabsVoice");
   const lines = [
     { key: "a", text: "First sentence." },
     { key: "b", text: "Second sentence." },
   ];
   const audio = await elevenLabsSpeech(lines);
-  expect(request.mock.calls[0][0]).toContain("/xeSYpoWjkR3imzxB6qDk?output_format=pcm_24000");
+  expect(request.mock.calls[0][0]).toContain(
+    "/xeSYpoWjkR3imzxB6qDk/with-timestamps?output_format=pcm_24000"
+  );
   const body = JSON.parse(request.mock.calls[0][1].body);
   expect(body).toMatchObject({
-    text: lines[0].text,
+    text: lines.map((l) => l.text).join(" "),
     model_id: "eleven_multilingual_v2",
-    next_text: lines[1].text,
+    voice_settings: { speed: 1, stability: 0.5, similarity_boost: 0.75, style: 0 },
   });
-  expect(JSON.parse(request.mock.calls[1][1].body).previous_text).toBe(lines[0].text);
-  const joined = joinPhraseAudio(audio.map((a, i) => ({ text: lines[i].text, bytes: a.bytes })));
-  expect(joined.phrases.map((p) => p.start)).toEqual([0, 1.08]);
+  expect(request).toHaveBeenCalledTimes(1);
+  const joined = joinPhraseAudio(
+    audio.map((a, i) => ({ ...a, text: lines[i].text })),
+    true
+  );
+  expect(joined.phrases[1].start).toBeCloseTo(0.5, 4);
+  expect(joined.bytes.subarray(44)).toEqual(pcm());
   expect(joined.bytes.readUInt32LE(24)).toBe(24000);
   await elevenLabsSpeech(lines);
-  expect(request).toHaveBeenCalledTimes(2);
+  expect(request).toHaveBeenCalledTimes(1);
 });
 
 it("deduplicates simultaneous reads but regenerates changed scripts and speeds", async () => {
-  request.mockImplementation(async () => new Response(pcm()));
+  request.mockImplementation(response);
   const { elevenLabsSpeech } = await import("./elevenLabsVoice");
   const lines = [{ key: "a", text: "Original number." }];
   const results = await Promise.all([elevenLabsSpeech(lines), elevenLabsSpeech(lines)]);
@@ -56,13 +76,14 @@ it("deduplicates simultaneous reads but regenerates changed scripts and speeds",
 });
 
 it("routes documentary phrases to ElevenLabs while preserving measured cues", async () => {
-  request.mockImplementation(async () => new Response(pcm()));
+  request.mockImplementation(response);
   const { engine, clips } = await synthesisePhrases([
     { key: "scene", text: "One. Two.", phrases: ["One.", "Two."] },
   ]);
   expect(engine).toBe("elevenlabs");
-  expect(clips[0].phrases.map((p) => p.start)).toEqual([0, 1.08]);
-  expect(request).toHaveBeenCalledTimes(2);
+  expect(clips[0].phrases[1].start).toBeCloseTo(5 / 9, 4);
+  expect(clips[0].bytes.subarray(44)).toEqual(pcm());
+  expect(request).toHaveBeenCalledTimes(1);
   expect(request.mock.calls.every(([url]) => new URL(url).hostname === "api.elevenlabs.io")).toBe(
     true
   );
@@ -75,7 +96,7 @@ it.each([401, 403, 429, 500])(
     const { elevenLabsSpeech } = await import("./elevenLabsVoice");
     const lines = [{ key: "a", text: "A sentence." }];
     await expect(elevenLabsSpeech(lines)).rejects.toThrow(`HTTP ${status}`);
-    request.mockResolvedValueOnce(new Response(pcm()));
+    request.mockImplementationOnce(response);
     expect(await elevenLabsSpeech(lines)).toHaveLength(1);
   }
 );
@@ -89,15 +110,26 @@ it.each([Buffer.alloc(0), Buffer.alloc(48000), Buffer.alloc(301), Buffer.alloc(1
   }
 );
 
-it("does not return partial narration when a later passage fails", async () => {
-  request.mockResolvedValueOnce(new Response(pcm())).mockRejectedValueOnce(new Error("Timed out"));
+it("rejects an incomplete alignment for the whole take", async () => {
+  request.mockResolvedValue(
+    new Response(
+      JSON.stringify({
+        audio_base64: pcm().toString("base64"),
+        alignment: {
+          characters: ["First."],
+          character_start_times_seconds: [0],
+          character_end_times_seconds: [1],
+        },
+      })
+    )
+  );
   const { elevenLabsSpeech } = await import("./elevenLabsVoice");
   await expect(
     elevenLabsSpeech([
       { key: "a", text: "First." },
       { key: "b", text: "Second." },
     ])
-  ).rejects.toThrow("Timed out");
+  ).rejects.toThrow("alignment");
 });
 
 it("checks voice access without spending speech credits and caches the probe", async () => {

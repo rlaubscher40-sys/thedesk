@@ -1,3 +1,4 @@
+import { narrationWave } from "./newsreader";
 /** Animated property cards with a required voice track. */
 import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
@@ -218,6 +219,50 @@ export function countUpFrames(value: string, ticks = COUNT_TICKS): string[] {
 
 export type Section = { key: string; frames: Frame[]; seconds: number };
 
+/** New continuous reads drive the picture and captions from the same sample clock.
+ * Existing archived/prepared exports continue to use their original timeline. */
+export function newsreaderLayout(sections: Section[], clips: SpeechAudio[]) {
+  if (sections.length !== clips.length || sections.some((s, i) => s.key !== clips[i]?.key))
+    throw new Error("Continuous narration does not match the scene order.");
+  const starts: number[] = [];
+  const beats: Beat[] = [];
+  let elapsed = 0;
+  for (const [i, section] of sections.entries()) {
+    const clip = clips[i]!;
+    if (clip.start === undefined || Math.abs(clip.start - elapsed) > 1 / 24000)
+      throw new Error("Continuous narration contains a gap or overlap.");
+    starts.push(elapsed);
+    const seconds = (clip.bytes.length - 44) / 48000;
+    const end = elapsed + seconds + (i === sections.length - 1 ? 0.45 : 0);
+    const firstFrame = Math.round(elapsed * FPS);
+    const lastFrame = i === sections.length - 1 ? Math.ceil(end * FPS) : Math.round(end * FPS);
+    const available = lastFrame - firstFrame;
+    if (available < section.frames.length)
+      throw new Error("Scene is too short for its picture sequence.");
+    const elastic = section.frames.filter((f) => f.seconds === undefined).length;
+    const fixed = section.frames.reduce((n, f) => n + (f.seconds ?? 0), 0);
+    const share = Math.max(1 / FPS, seconds - fixed) / Math.max(1, elastic);
+    const weights = section.frames.map((f) => f.seconds ?? share);
+    const sum = weights.reduce((a, b) => a + b, 0);
+    let used = 0,
+      frame = firstFrame;
+    section.frames.forEach((f, j) => {
+      used += weights[j]!;
+      const next =
+        j === section.frames.length - 1
+          ? lastFrame
+          : Math.min(
+              lastFrame - (section.frames.length - j - 1),
+              Math.max(frame + 1, firstFrame + Math.round((available * used) / sum))
+            );
+      beats.push({ frame: { ...f, hardCut: true }, seconds: (next - frame) / FPS, fade: 0 });
+      frame = next;
+    });
+    elapsed += seconds;
+  }
+  return { beats, starts, total: Math.ceil((elapsed + 0.45) * FPS) / FPS };
+}
+
 /**
  * Lay the clip out: what to show, for how long, and when each passage speaks.
  *
@@ -388,7 +433,8 @@ export function buildAudioGraph(
   starts: number[],
   firstInput: number,
   total: number,
-  normalise = false
+  normalise = false,
+  fadeSeconds = 0.6
 ): string {
   if (starts.length === 0) return "";
   const parts = starts.map(
@@ -396,13 +442,13 @@ export function buildAudioGraph(
   );
   const mixed = starts.map((_, i) => `[a${i}]`).join("");
   const voiceLevel = normalise ? "loudnorm=I=-16:TP=-1.5:LRA=11," : "";
-  const fadeAt = Math.max(0, total - 0.6).toFixed(3);
+  const fadeAt = Math.max(0, total - fadeSeconds).toFixed(3);
   if (starts.length === 1) {
-    parts.push(`[a0]${voiceLevel}afade=t=out:st=${fadeAt}:d=0.6[aout]`);
+    parts.push(`[a0]${voiceLevel}afade=t=out:st=${fadeAt}:d=${fadeSeconds}[aout]`);
   } else {
     parts.push(
       `${mixed}amix=inputs=${starts.length}:duration=longest:normalize=0,` +
-        `${voiceLevel}afade=t=out:st=${fadeAt}:d=0.6[aout]`
+        `${voiceLevel}afade=t=out:st=${fadeAt}:d=${fadeSeconds}[aout]`
     );
   }
   return parts.join(";");
@@ -627,7 +673,11 @@ export async function renderStatReel(
         `Narration script exceeds the ${maxSeconds}-second editorial limit. Shorten the story before publishing.`
       );
     }
-    const narration: { engine: ReelVoiceEngine | null; clips: SpeechAudio[] } | null =
+    const narration: {
+      engine: ReelVoiceEngine | null;
+      clips: SpeechAudio[];
+      continuous?: boolean;
+    } | null =
       opts.narrate === false
         ? null
         : opts.auditionVoice
@@ -657,6 +707,7 @@ export async function renderStatReel(
                   )
                 : await synthesiseScript(script, opts.voice);
     const spoken = narration?.clips ?? null;
+    const newsreader = narration?.continuous === true;
     if (opts.narrate !== false && !spoken)
       throw new Error("Narration unavailable. No silent Reel was produced.");
 
@@ -671,7 +722,7 @@ export async function renderStatReel(
       for (const [i, clip] of spoken.entries()) {
         const file = path.join(dir, `say-${i}.wav`);
         await fs.writeFile(file, clip.bytes);
-        const measured = await probeSeconds(file);
+        const measured = newsreader ? (clip.bytes.length - 44) / 48000 : await probeSeconds(file);
         if (!measured) throw new Error("Narration duration could not be verified.");
         durations[clip.key] = measured;
         if ("phrases" in clip) phrases[clip.key] = clip.phrases as MeasuredPhrase[];
@@ -684,7 +735,9 @@ export async function renderStatReel(
       durations,
       spoken && stat.storyboard?.kind === "housing-balance" ? phrases : undefined
     );
-    const { beats, starts, total } = layout(sections);
+    const { beats, starts, total } = newsreader
+      ? newsreaderLayout(sections, spoken!)
+      : layout(sections);
     if (total > maxSeconds)
       throw new Error(
         `Recorded narration is ${total.toFixed(1)} seconds, exceeding the ${maxSeconds}-second Reel limit. Shorten the story before publishing.`
@@ -753,7 +806,7 @@ export async function renderStatReel(
 
     // Audio inputs follow the stills, so a passage's stream index is its
     // position in the script offset by the number of frames.
-    const spokenSections = spoken
+    let spokenSections = spoken
       ? sections
           .map((s, i) => ({
             start: starts[i],
@@ -761,6 +814,15 @@ export async function renderStatReel(
           }))
           .filter((s): s is { start: number; file: string } => Boolean(s.file))
       : [];
+
+    if (newsreader) {
+      const file = path.join(dir, "continuous-narration.wav");
+      await fs.writeFile(
+        file,
+        narrationWave(Buffer.concat(spoken!.map((c) => c.bytes.subarray(44))))
+      );
+      spokenSections = [{ start: 0, file }];
+    }
 
     const output = path.join(dir, "reel.mp4");
     const args: string[] = ["-y", "-loglevel", "error"];
@@ -808,7 +870,7 @@ export async function renderStatReel(
     if (opts.subtitles) {
       if (!spoken) throw new Error("Subtitles require measured narration.");
       const display =
-        stat.storyboard?.kind === "housing-balance"
+        !newsreader && stat.storyboard?.kind === "housing-balance"
           ? housingBalanceSubtitleScript(stat.storyboard, script)
           : Object.keys(phrases).length
             ? script.map((s) => ({
@@ -826,12 +888,14 @@ export async function renderStatReel(
                 key: `${s.key}:${j}`,
                 start: starts[i]! + p.start,
                 seconds: p.seconds,
+                words: newsreader ? p.words : undefined,
               }))
             )
           : sections.map((section, i) => ({
               key: section.key,
               start: starts[i]!,
               seconds: durations[section.key] ?? 0,
+              words: newsreader ? spoken.find((c) => c.key === section.key)?.words : undefined,
             })),
         documentary ? 34 : 32,
         documentary ? "documentary" : "standard"
@@ -857,7 +921,8 @@ export async function renderStatReel(
           spokenSections.map((s) => s.start),
           continuous ? 1 : frameFiles.length,
           total,
-          documentary
+          documentary,
+          newsreader ? 0.35 : 0.6
         )
       : "";
     if (scored) {

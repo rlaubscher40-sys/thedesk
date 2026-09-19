@@ -1,17 +1,19 @@
+import type { TimedWord } from "./newsreader";
 import { audibleWave, type SpeechProfile } from "./localVoice";
 import { reelNarration, type ReelVoiceEngine, type ReelVoiceIdentity } from "./reelVoice";
 
-export type MeasuredPhrase = { text: string; start: number; seconds: number };
+export type MeasuredPhrase = { text: string; start: number; seconds: number; words?: TimedWord[] };
 export type PhraseAudio = {
   key: string;
   bytes: Buffer;
   phrases: MeasuredPhrase[];
+  start?: number;
 };
 export type PhrasePlan = { key: string; text: string; phrases: string[] };
 /** Review-only audio generated through the connected speech workspace. */
 export type PreparedNarration = {
   voice: ReelVoiceIdentity;
-  clips: Array<{ key: string; text: string; bytes: Buffer }>;
+  clips: Array<{ key: string; text: string; bytes: Buffer; start?: number; words?: TimedWord[] }>;
 };
 
 /** Remove excess leading/trailing model silence, retaining 100ms before and
@@ -31,7 +33,10 @@ function speechPcm(bytes: Buffer) {
 
 /** Join the pinned child's PCM24k output without re-encoding. Phrase offsets
  * come from the samples actually included, not a words-per-second estimate. */
-export function joinPhraseAudio(parts: Array<{ text: string; bytes: Buffer }>) {
+export function joinPhraseAudio(
+  parts: Array<{ text: string; bytes: Buffer; words?: TimedWord[] }>,
+  continuous = false
+) {
   if (!parts.length || parts.length > 3) throw new Error("Invalid phrase count.");
   const phrases: MeasuredPhrase[] = [];
   const chunks: Buffer[] = [];
@@ -51,15 +56,16 @@ export function joinPhraseAudio(parts: Array<{ text: string; bytes: Buffer }>) {
       throw new Error("Phrase audio does not match the pinned PCM format.");
     // The voice already has natural sentence tails. Only a small separation
     // is added, with no change to Fable's speed or pitch.
-    if (i) {
+    if (i && !continuous) {
       chunks.push(Buffer.alloc(1920 * 2));
       samples += 1920;
     }
-    const pcm = speechPcm(b);
+    const pcm = continuous ? b.subarray(44) : speechPcm(b);
     phrases.push({
       text: part.text,
       start: samples / 24000,
       seconds: pcm.length / 48000,
+      ...(continuous ? { words: part.words } : {}),
     });
     chunks.push(pcm);
     samples += pcm.length / 2;
@@ -75,7 +81,7 @@ export async function synthesisePhrases(
   plans: PhrasePlan[],
   profile?: SpeechProfile,
   prepared?: PreparedNarration
-): Promise<{ engine: ReelVoiceEngine; clips: PhraseAudio[] }> {
+): Promise<{ engine: ReelVoiceEngine; clips: PhraseAudio[]; continuous?: boolean }> {
   if (
     !plans.length ||
     plans.length > 9 ||
@@ -104,18 +110,24 @@ export async function synthesisePhrases(
       requests.some((r) => !prepared.clips.some((c) => c.key === r.key && c.text === r.text)))
   )
     throw new Error("Prepared narration does not match the exact verified phrases.");
-  const { engine, clips } = prepared
-    ? { engine: prepared.voice.engine, clips: prepared.clips }
+  const { engine, clips, continuous } = prepared
+    ? { engine: prepared.voice.engine, clips: prepared.clips, continuous: false }
     : await reelNarration(batches, profile);
   const spoken = plans.map((p) => ({
     key: p.key,
+    ...(continuous ? { start: clips.find((c) => c.key === `${p.key}:0`)?.start } : {}),
     ...joinPhraseAudio(
       p.phrases.map((text, i) => {
         const clip = clips.find((c) => c.key === `${p.key}:${i}`);
         if (!clip) throw new Error("A spoken phrase is missing.");
-        return { text, bytes: clip.bytes };
-      })
+        return {
+          text,
+          bytes: clip.bytes,
+          words: "words" in clip ? (clip.words as TimedWord[]) : undefined,
+        };
+      }),
+      continuous
     ),
   }));
-  return { engine, clips: spoken };
+  return { engine, clips: spoken, continuous };
 }
