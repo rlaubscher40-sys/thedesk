@@ -6,8 +6,8 @@ import { documentaryReviewHash, type DocumentaryStory } from "../video/documenta
 
 const parts: Record<string, number> = {
   "grollo-family": 3,
-  "lowy-westfield": 3,
-  "triguboff-apartments": 7,
+  "lowy-westfield": 2,
+  "triguboff-apartments": 6,
   "walker-rebuild": 2,
 };
 
