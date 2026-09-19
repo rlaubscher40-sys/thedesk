@@ -47,6 +47,13 @@ const queueSchema = z.object({
               instruction: z.literal("I trust them to be good lets start posting etx"),
               fullListening: z.literal("not-performed"),
               continuousMotion: z.literal("not-reviewed"),
+              revoice: z.object({
+                date: z.literal(DOCUMENTARY_RELEASE_AUTHORISATION.revoice.date),
+                instruction: z.literal(DOCUMENTARY_RELEASE_AUTHORISATION.revoice.instruction),
+                scope: z.literal(DOCUMENTARY_RELEASE_AUTHORISATION.revoice.scope),
+                fullListening: z.literal("not-performed"),
+                continuousMotion: z.literal("not-reviewed"),
+              }),
             }),
           ]),
         }),

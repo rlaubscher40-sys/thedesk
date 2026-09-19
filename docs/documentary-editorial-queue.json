@@ -56,8 +56,8 @@
         }
       },
       "review": {
-        "technical": "passed-2026-09-19",
-        "sampledFrames": "all-encoded-section-frames-inspected-2026-09-19",
+        "technical": "previously-passed",
+        "sampledFrames": "previously-inspected",
         "fullListening": "blocked",
         "continuousMotion": "not-reviewed",
         "approval": {
@@ -67,7 +67,19 @@
           "instruction": "I trust them to be good lets start posting etx",
           "fullListening": "not-performed",
           "continuousMotion": "not-reviewed",
-          "revoiceInstruction": "Use Ruben cloned voice across future documentary and briefing reels, 2026-09-19."
+          "revoice": {
+            "date": "2026-09-19",
+            "instruction": "Check and make aure all is good and implenented across all reels documentary style and the briefing ones moving forward.",
+            "scope": "Replace the four active documentary exports with Ruben's clone; retain release dates and receipts.",
+            "fullListening": "not-performed",
+            "continuousMotion": "not-reviewed"
+          }
+        },
+        "revoiceEvidence": {
+          "reviewedAt": "2026-09-19",
+          "technical": "passed",
+          "sampledFrames": "all-encoded-section-frames-inspected",
+          "manifest": "docs/documentary-revoice-2026-09-19.json"
         }
       },
       "publication": {
@@ -110,8 +122,8 @@
         }
       },
       "review": {
-        "technical": "passed-2026-09-19",
-        "sampledFrames": "all-encoded-section-frames-inspected-2026-09-19",
+        "technical": "previously-passed",
+        "sampledFrames": "previously-inspected",
         "fullListening": "blocked",
         "continuousMotion": "not-reviewed",
         "approval": {
@@ -121,7 +133,19 @@
           "instruction": "I trust them to be good lets start posting etx",
           "fullListening": "not-performed",
           "continuousMotion": "not-reviewed",
-          "revoiceInstruction": "Use Ruben cloned voice across future documentary and briefing reels, 2026-09-19."
+          "revoice": {
+            "date": "2026-09-19",
+            "instruction": "Check and make aure all is good and implenented across all reels documentary style and the briefing ones moving forward.",
+            "scope": "Replace the four active documentary exports with Ruben's clone; retain release dates and receipts.",
+            "fullListening": "not-performed",
+            "continuousMotion": "not-reviewed"
+          }
+        },
+        "revoiceEvidence": {
+          "reviewedAt": "2026-09-19",
+          "technical": "passed",
+          "sampledFrames": "all-encoded-section-frames-inspected",
+          "manifest": "docs/documentary-revoice-2026-09-19.json"
         }
       },
       "publication": {
@@ -165,8 +189,8 @@
         }
       },
       "review": {
-        "technical": "passed-2026-09-19",
-        "sampledFrames": "all-encoded-section-frames-inspected-2026-09-19",
+        "technical": "previously-passed",
+        "sampledFrames": "previously-inspected",
         "fullListening": "blocked",
         "continuousMotion": "not-reviewed",
         "approval": {
@@ -176,7 +200,19 @@
           "instruction": "I trust them to be good lets start posting etx",
           "fullListening": "not-performed",
           "continuousMotion": "not-reviewed",
-          "revoiceInstruction": "Use Ruben cloned voice across future documentary and briefing reels, 2026-09-19."
+          "revoice": {
+            "date": "2026-09-19",
+            "instruction": "Check and make aure all is good and implenented across all reels documentary style and the briefing ones moving forward.",
+            "scope": "Replace the four active documentary exports with Ruben's clone; retain release dates and receipts.",
+            "fullListening": "not-performed",
+            "continuousMotion": "not-reviewed"
+          }
+        },
+        "revoiceEvidence": {
+          "reviewedAt": "2026-09-19",
+          "technical": "passed",
+          "sampledFrames": "all-encoded-section-frames-inspected",
+          "manifest": "docs/documentary-revoice-2026-09-19.json"
         }
       },
       "publication": {
@@ -222,8 +258,8 @@
         }
       },
       "review": {
-        "technical": "passed-2026-09-19",
-        "sampledFrames": "all-encoded-section-frames-inspected-2026-09-19",
+        "technical": "previously-passed",
+        "sampledFrames": "previously-inspected",
         "fullListening": "blocked",
         "continuousMotion": "not-reviewed",
         "approval": {
@@ -233,7 +269,19 @@
           "instruction": "I trust them to be good lets start posting etx",
           "fullListening": "not-performed",
           "continuousMotion": "not-reviewed",
-          "revoiceInstruction": "Use Ruben cloned voice across future documentary and briefing reels, 2026-09-19."
+          "revoice": {
+            "date": "2026-09-19",
+            "instruction": "Check and make aure all is good and implenented across all reels documentary style and the briefing ones moving forward.",
+            "scope": "Replace the four active documentary exports with Ruben's clone; retain release dates and receipts.",
+            "fullListening": "not-performed",
+            "continuousMotion": "not-reviewed"
+          }
+        },
+        "revoiceEvidence": {
+          "reviewedAt": "2026-09-19",
+          "technical": "passed",
+          "sampledFrames": "all-encoded-section-frames-inspected",
+          "manifest": "docs/documentary-revoice-2026-09-19.json"
         }
       },
       "publication": {
